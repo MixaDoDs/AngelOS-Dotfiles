@@ -1,0 +1,8 @@
+# SDDM login screen with the pixel-cyberpunk theme (INSTALL_SDDM=1).
+sddm
+# QML modules the theme imports (Qt5Compat.GraphicalEffects, QtMultimedia).
+qt6-declarative
+qt6-5compat
+qt6-multimedia
+# Video backend for the animated background; without it the screen stays black.
+qt6-multimedia-ffmpeg

@@ -13,6 +13,13 @@ fastfetch
 fuzzel
 nwg-displays
 
+# Niri session plumbing: X11 apps (Steam, Wine), screencasting and file
+# pickers through portals, a secrets service for browsers and chat clients.
+xwayland-satellite
+xdg-desktop-portal-gnome
+xdg-desktop-portal-gtk
+gnome-keyring
+
 # Wayland helpers
 grim
 slurp
@@ -40,6 +47,9 @@ wireplumber
 
 # Fonts, icons, paths and installer tools
 fontconfig
+# Fallback glyphs (Cyrillic, symbols, emoji) the pixel fonts do not cover.
+noto-fonts
+noto-fonts-emoji
 capitaine-cursors
 xdg-user-dirs
 xdg-utils

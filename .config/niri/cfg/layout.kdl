@@ -4,6 +4,22 @@
 
         background-color "transparent" // <- needed for noctalia-shell to set wallpaper
 
+        // Focus indicator: a thin outline instead of Niri's default 4 px ring.
+        // With focus-follows-mouse the thick, near-white ring jumped from window
+        // to window under the pointer and made them look like they were glowing.
+        // Colours come from noctalia.kdl (Noctalia regenerates that file);
+        // Niri merges both blocks, so only the width is set here.
+        // Want no indicator at all? Replace the block with: focus-ring { off; }
+        focus-ring {
+            width 2
+        }
+        border {
+            off
+        }
+        shadow {
+            off
+        }
+
         preset-column-widths {
             proportion 0.33333
             proportion 0.5

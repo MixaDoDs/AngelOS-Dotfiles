@@ -11,7 +11,9 @@
 #                                  (or a raw XKB option such as grp:shifts_toggle)
 #   KB_VARIANT=,phonetic           optional XKB variants, one per layout, comma separated
 #   VOXTYPE_LANGUAGE=ru            dictation language (default: derived from KB_LAYOUTS)
-#   SKIP_PACKAGES=0|1              skip `pacman -S`
+#   INSTALL_SDDM=1|0               SDDM login screen with the pixel-cyberpunk theme
+#                                  (default 1, or 0 together with SKIP_PACKAGES=1)
+#   SKIP_PACKAGES=0|1              skip `pacman -Syu`
 #   INSTALL_VOXTYPE=0|1            voice input binary (checksum-verified download)
 #   DOWNLOAD_VOXTYPE_MODEL=0|1     Whisper large-v3-turbo model (~1.6 GB)
 #   INSTALL_WALLPAPERS=0|1         copy the wallpaper collection (~880 MB, full mode)
@@ -32,7 +34,7 @@ VOXTYPE_FORCE="${VOXTYPE_FORCE:-0}"
 # asks about the rest.
 is_set() { [[ -n "${!1+x}" ]]; }
 for v in DOTFILES_MODE NOCTALIA KB_LAYOUTS KB_TOGGLE INSTALL_VOXTYPE DOWNLOAD_VOXTYPE_MODEL \
-         INSTALL_WALLPAPERS; do
+         INSTALL_WALLPAPERS INSTALL_SDDM; do
   is_set "$v" && declare -r "GIVEN_$v=1"
 done
 given() { local n="GIVEN_$1"; [[ -n "${!n:-}" ]]; }
@@ -45,6 +47,9 @@ DOWNLOAD_VOXTYPE_MODEL="${DOWNLOAD_VOXTYPE_MODEL:-1}"
 INSTALL_WALLPAPERS="${INSTALL_WALLPAPERS:-1}"
 ENABLE_SERVICES="${ENABLE_SERVICES:-1}"
 INSTALL_FLATPAK="${INSTALL_FLATPAK:-0}"
+INSTALL_SDDM="${INSTALL_SDDM:-1}"
+# A config-only run (SKIP_PACKAGES=1) leaves the system alone unless asked to.
+[[ "$SKIP_PACKAGES" == 1 ]] && ! given INSTALL_SDDM && INSTALL_SDDM=0
 KB_LAYOUTS="${KB_LAYOUTS:-us,ru}"
 KB_TOGGLE="${KB_TOGGLE:-alt_shift}"
 KB_VARIANT="${KB_VARIANT:-}"
@@ -249,6 +254,11 @@ ask_profile() {
                  'Поставить голосовой ввод (Voxtype + модель Whisper ~1.6 ГБ)?')" y \
       && { INSTALL_VOXTYPE=1; DOWNLOAD_VOXTYPE_MODEL=1; } || { INSTALL_VOXTYPE=0; DOWNLOAD_VOXTYPE_MODEL=0; }
   fi
+  if ! given INSTALL_SDDM; then
+    confirm "$(_ 'Install the SDDM login screen with the pixel-cyberpunk theme?' \
+                 'Поставить экран входа SDDM с темой pixel-cyberpunk?')" "$( ((INSTALL_SDDM)) && echo y || echo n)" \
+      && INSTALL_SDDM=1 || INSTALL_SDDM=0
+  fi
 }
 
 normalize_mode() {
@@ -269,6 +279,9 @@ pacman_install() {
 
   mapfile -t packages < <(grep -Ev '^[[:space:]]*(#|$)' "$list")
   [[ "$NOCTALIA" == 0 ]] && mapfile -t packages < <(printf '%s\n' "${packages[@]}" | grep -Ev '^noctalia$')
+  if [[ "$INSTALL_SDDM" == 1 ]]; then
+    mapfile -t -O "${#packages[@]}" packages < <(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/sddm.txt")
+  fi
 
   # OCR language packs follow the chosen keyboard layouts.
   for code in "${KB_LIST[@]}"; do
@@ -281,8 +294,11 @@ pacman_install() {
     fi
   done
 
-  say "$(_ 'Installing packages (pacman)…' 'Установка пакетов (pacman)…')"
-  sudo pacman -S --needed "${packages[@]}"
+  # -Syu, not -S: Arch does not support partial upgrades, and with a stale
+  # package database a plain -S fails with 404s halfway through.
+  say "$(_ 'Updating the system and installing packages (pacman -Syu)…' \
+           'Обновление системы и установка пакетов (pacman -Syu)…')"
+  sudo pacman -Syu --needed "${packages[@]}"
 }
 
 install_noctalia() {
@@ -460,6 +476,129 @@ install_assets() {
   return 0
 }
 
+# ── SDDM login screen ────────────────────────────────────────────────────────
+
+SDDM_THEME=pixel-cyberpunk
+SDDM_CONF=zz-pixelstreetart.conf
+SDDM_STATUS=skipped
+# Test hook for scripts/check.sh: put the system files under this directory
+# instead of /, without sudo and without touching systemd.
+SYSROOT="${SYSROOT:-}"
+
+as_root() {
+  if [[ -n "$SYSROOT" || "$EUID" -eq 0 ]]; then "$@"; else sudo "$@"; fi
+}
+
+# The theme fails to load without Qt5Compat, and shows no video without the
+# multimedia backend. Only reachable with SKIP_PACKAGES=1 or a broken install.
+sddm_check_modules() {
+  local qml=/usr/lib/qt6/qml missing=()
+  [[ -d "$qml/Qt5Compat/GraphicalEffects" ]] || missing+=(qt6-5compat)
+  [[ -d "$qml/QtMultimedia" ]] || missing+=(qt6-multimedia)
+  compgen -G '/usr/lib/qt6/plugins/multimedia/*ffmpeg*' >/dev/null || missing+=(qt6-multimedia-ffmpeg)
+  ((${#missing[@]})) || return 0
+  warn "$(_ "The SDDM theme needs: ${missing[*]}  →  sudo pacman -S ${missing[*]}" \
+           "Теме SDDM не хватает: ${missing[*]}  →  sudo pacman -S ${missing[*]}")"
+}
+
+# /etc/sddm.conf is read after /etc/sddm.conf.d/, so a Current= there would
+# silently win over our drop-in. Comment it out, keeping a backup.
+sddm_unpin_main_conf() {
+  local main="$SYSROOT/etc/sddm.conf"
+  [[ -f "$main" ]] || return 0
+  awk '/^[[:space:]]*\[/{s=$0} s ~ /^[[:space:]]*\[Theme\]/ && /^[[:space:]]*Current[[:space:]]*=/{f=1} END{exit !f}' "$main" ||
+    return 0
+  as_root cp -p -- "$main" "$main.bak.$STAMP"
+  as_root sed -i '/^[[:space:]]*\[Theme\]/,/^[[:space:]]*\[/ s/^\([[:space:]]*Current[[:space:]]*=\)/# \1/' "$main"
+  say "$(_ "Commented out the theme set in /etc/sddm.conf (backup: sddm.conf.bak.$STAMP)" \
+           "Закомментирована тема в /etc/sddm.conf (бэкап: sddm.conf.bak.$STAMP)")"
+}
+
+# Make SDDM the display manager that starts at boot.
+sddm_enable() {
+  local current
+  command -v systemctl >/dev/null 2>&1 || { warn "$(_ 'systemctl not found; SDDM not enabled' 'systemctl не найден; SDDM не включён')"; return 0; }
+
+  # Another display manager (gdm, lightdm, ly, greetd, …) owns
+  # display-manager.service; enabling SDDM on top of it fails.
+  local name units=()
+  current="$(readlink /etc/systemd/system/display-manager.service 2>/dev/null || true)"
+  current="${current##*/}"
+  if [[ -n "$current" && "$current" != sddm.service ]]; then
+    name="${current%.service}"; name="${name%@}"
+    if [[ "$current" == *@.service ]]; then
+      # Template units (ly@tty2.service): disable the enabled instances.
+      mapfile -t units < <(find /etc/systemd/system -name "$name@?*.service" -printf '%f\n' 2>/dev/null | sort -u)
+    else
+      units=("$current")
+    fi
+    if { ((INTERACTIVE)) && confirm "$(_ "Login manager $name is enabled. Switch to SDDM?" \
+                                         "Сейчас включён менеджер входа $name. Переключить на SDDM?")" y; } ||
+       { ! ((INTERACTIVE)) && given INSTALL_SDDM; }; then
+      ((${#units[@]} == 0)) || as_root systemctl disable "${units[@]}" || true
+    else
+      warn "$(_ "Keeping $name; SDDM is installed but not enabled (sudo systemctl enable --force sddm)" \
+               "Оставлен $name; SDDM установлен, но не включён (sudo systemctl enable --force sddm)")"
+      SDDM_STATUS="installed, not enabled"
+      return 0
+    fi
+  fi
+  # --force replaces a dangling display-manager.service alias left by a
+  # removed display manager.
+  if ! as_root systemctl enable --force sddm.service; then
+    warn "$(_ 'Could not enable SDDM; see: systemctl status sddm' 'Не удалось включить SDDM; смотрите: systemctl status sddm')"
+    SDDM_STATUS="installed, not enabled"
+    return 0
+  fi
+
+  # display-manager.service is pulled in by graphical.target only.
+  if [[ "$(systemctl get-default 2>/dev/null || true)" != graphical.target ]]; then
+    as_root systemctl set-default graphical.target
+    say "$(_ 'Boot target set to graphical.target' 'Цель загрузки: graphical.target')"
+  fi
+}
+
+install_sddm() {
+  [[ "$INSTALL_SDDM" == 1 ]] || { say "$(_ 'SDDM skipped' 'SDDM пропущен')"; return 0; }
+  local src="$ROOT/sddm/themes/$SDDM_THEME" themes="$SYSROOT/usr/share/sddm/themes"
+  local confd="$SYSROOT/etc/sddm.conf.d"
+  local dst="$themes/$SDDM_THEME"
+
+  if [[ -z "$SYSROOT" ]] && ! command -v sddm >/dev/null 2>&1; then
+    warn "$(_ 'SDDM is not installed (SKIP_PACKAGES=1?); login screen not configured' \
+             'SDDM не установлен (SKIP_PACKAGES=1?); экран входа не настроен')"
+    return 0
+  fi
+  if ! as_root true; then
+    warn "$(_ 'No root access; SDDM login screen not configured' 'Нет прав root; экран входа SDDM не настроен')"
+    return 0
+  fi
+  say "$(_ "Installing the SDDM theme $SDDM_THEME…" "Установка темы SDDM $SDDM_THEME…")"
+
+  if ! diff -rq -- "$src" "$dst" >/dev/null 2>&1; then
+    as_root mkdir -p -- "$themes"
+    if [[ -e "$dst" ]]; then
+      # Hidden, so SDDM does not list the backup as a second theme.
+      as_root mv -- "$dst" "$themes/.$SDDM_THEME.bak.$STAMP"
+      say "backup: $themes/.$SDDM_THEME.bak.$STAMP"
+    fi
+    as_root cp -r --no-preserve=mode,ownership -- "$src" "$dst"
+    # The greeter runs as the sddm user and must be able to read everything.
+    as_root chmod -R u=rwX,go=rX -- "$dst"
+  fi
+
+  as_root mkdir -p -- "$confd"
+  if ! cmp -s -- "$ROOT/sddm/$SDDM_CONF" "$confd/$SDDM_CONF"; then
+    as_root install -m 0644 -- "$ROOT/sddm/$SDDM_CONF" "$confd/$SDDM_CONF"
+  fi
+  sddm_unpin_main_conf
+  SDDM_STATUS=enabled
+
+  [[ -z "$SYSROOT" ]] || return 0
+  sddm_check_modules
+  sddm_enable
+}
+
 enable_services() {
   [[ "$ENABLE_SERVICES" == 1 ]] || return 0
   command -v systemctl >/dev/null 2>&1 || { warn "$(_ 'systemctl not found; user services not enabled' 'systemctl не найден; user-сервисы не включены')"; return 0; }
@@ -498,6 +637,11 @@ summary() {
   say "$(_ '  change later in' '  изменить позже в') ~/.config/niri/cfg/input.kdl"
   say "$(_ 'Monitors: run nwg-displays, or edit ~/.config/niri/monitor.kdl' \
            'Мониторы: запустите nwg-displays или правьте ~/.config/niri/monitor.kdl')"
+  if [[ "$SDDM_STATUS" != skipped ]]; then
+    say "$(_ "Login screen: SDDM + $SDDM_THEME ($SDDM_STATUS); it appears after a reboot" \
+             "Экран входа: SDDM + $SDDM_THEME ($SDDM_STATUS); появится после перезагрузки")"
+    say "$(_ '  preview it now:' '  посмотреть сейчас:') sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/$SDDM_THEME"
+  fi
   say "$(_ 'Cheat sheet: Mod+Shift+Esc  (Mod = Super/Windows key)' \
            'Шпаргалка по клавишам: Mod+Shift+Esc  (Mod = клавиша Super/Windows)')"
 }
@@ -517,6 +661,7 @@ install_assets
 install_voxtype
 install_voxtype_model
 install_flatpak
+install_sddm
 enable_services
 validate
 summary

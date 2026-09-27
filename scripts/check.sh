@@ -76,9 +76,41 @@ for file in \
   .local/bin/niri-record-overlay .local/bin/niri-record-overlay-simple \
   .local/bin/niri-ocr .local/bin/voxtype-indicator \
   .config/systemd/user/niri-game-mode.service .config/systemd/user/voxtype.service \
-  .config/systemd/user/voxtype-indicator.service; do
+  .config/systemd/user/voxtype-indicator.service \
+  packages/pacman.txt packages/sddm.txt sddm/zz-pixelstreetart.conf \
+  sddm/themes/pixel-cyberpunk/metadata.desktop sddm/themes/pixel-cyberpunk/Main.qml \
+  sddm/themes/pixel-cyberpunk/BackgroundVideo.qml sddm/themes/pixel-cyberpunk/theme.conf \
+  sddm/themes/pixel-cyberpunk/bg.mp4 sddm/themes/pixel-cyberpunk/LICENSE; do
   check_file "$file"
 done
+
+# ── SDDM theme ───────────────────────────────────────────────────────────────
+
+theme_dir="$ROOT/sddm/themes/pixel-cyberpunk"
+current="$(sed -n 's/^Current=//p' "$ROOT/sddm/zz-pixelstreetart.conf")"
+main_script="$(sed -n 's/^MainScript=//p' "$theme_dir/metadata.desktop")"
+if [[ "$current" == pixel-cyberpunk && -n "$main_script" && -f "$theme_dir/$main_script" ]]; then
+  pass "SDDM: drop-in selects the bundled theme, its MainScript exists"
+else
+  fail "SDDM: drop-in theme ($current) / MainScript ($main_script) mismatch"
+fi
+if compgen -G "$theme_dir/font/*.ttf" >/dev/null; then
+  pass "SDDM: theme font is bundled"
+else
+  fail "SDDM: theme font is missing"
+fi
+# Every QML module the theme imports must come from a package in sddm.txt.
+declare -A qml_pkg=([QtQuick]=qt6-declarative [QtQuick.Window]=qt6-declarative
+                    [Qt.labs.folderlistmodel]=qt6-declarative [Qt5Compat.GraphicalEffects]=qt6-5compat
+                    [QtMultimedia]=qt6-multimedia [SddmComponents]=sddm)
+while read -r module; do
+  pkg="${qml_pkg[$module]:-}"
+  if [[ -n "$pkg" ]] && grep -qx "$pkg" "$ROOT/packages/sddm.txt"; then
+    pass "SDDM: QML import $module is provided by $pkg"
+  else
+    fail "SDDM: QML import $module has no package in packages/sddm.txt"
+  fi
+done < <(sed -n 's/^import[[:space:]]\+\([A-Za-z0-9_.]\+\).*/\1/p' "$theme_dir"/*.qml | sort -u)
 
 # ── Niri config ──────────────────────────────────────────────────────────────
 
@@ -101,6 +133,20 @@ else
   pass "input.kdl leaves pointer speed at libinput defaults"
 fi
 
+# Glowing windows: translucent + blurred windows, inactive dimming, or the thick
+# default focus ring all "lit up" windows as focus followed the mouse.
+if grep -Eq '^[[:space:]]*(blur[[:space:]]+true|opacity[[:space:]]+0\.[0-9]+)' "$ROOT/.config/niri/cfg/rules.kdl"; then
+  fail "rules.kdl makes windows translucent/blurred (they glow under focus-follows-mouse)"
+else
+  pass "rules.kdl keeps windows opaque, no blur"
+fi
+ring_width="$(awk '/focus-ring[[:space:]]*\{/{f=1} f && /width/{print $2; exit}' "$ROOT/.config/niri/cfg/layout.kdl")"
+if [[ -n "$ring_width" ]] && ((ring_width <= 2)); then
+  pass "layout.kdl uses a thin focus ring (${ring_width}px)"
+else
+  fail "layout.kdl must set a thin focus-ring width (Niri's default 4px ring looks like a glow)"
+fi
+
 # ── Installer, end to end ────────────────────────────────────────────────────
 
 # install_case NAME [VAR=value…] runs the installer in a fresh fake $HOME.
@@ -110,7 +156,7 @@ install_case() {
   mkdir -p "$home"
   env -i HOME="$home" PATH="$PATH" LANG=C \
       SKIP_PACKAGES=1 INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 \
-      ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 "$@" \
+      ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 INSTALL_SDDM=0 "$@" \
       "$ROOT/install.sh" >"$WORK/$name.log" 2>&1 </dev/null
 }
 
@@ -193,6 +239,33 @@ else
     fail "installer: Voxtype config"; sed 's/^/    /' "$WORK/voice.log" >&2
   fi
 
+  # SDDM: theme and drop-in land in a fake system root; a theme pinned in
+  # /etc/sddm.conf (read last by SDDM) gets commented out with a backup.
+  sysroot="$WORK/sysroot"
+  mkdir -p "$sysroot/etc"
+  printf '[Autologin]\nUser=\n\n[Theme]\nCurrent=breeze\n\n[Users]\nCurrent=keep-me\n' >"$sysroot/etc/sddm.conf"
+  if install_case sddm INSTALL_SDDM=1 SYSROOT="$sysroot"; then
+    if diff -rq "$ROOT/sddm/themes/pixel-cyberpunk" "$sysroot/usr/share/sddm/themes/pixel-cyberpunk" >/dev/null &&
+       cmp -s "$ROOT/sddm/zz-pixelstreetart.conf" "$sysroot/etc/sddm.conf.d/zz-pixelstreetart.conf"; then
+      pass "installer: SDDM theme and drop-in installed"
+    else
+      fail "installer: SDDM theme and drop-in installed"
+    fi
+    if grep -q '^# Current=breeze' "$sysroot/etc/sddm.conf" && grep -q '^Current=keep-me' "$sysroot/etc/sddm.conf" &&
+       compgen -G "$sysroot/etc/sddm.conf.bak.*" >/dev/null; then
+      pass "installer: theme pinned in /etc/sddm.conf is unpinned (other sections untouched, backup kept)"
+    else
+      fail "installer: theme pinned in /etc/sddm.conf is unpinned"
+    fi
+    if [[ -z "$(find "$sysroot/usr/share/sddm/themes/pixel-cyberpunk" \! -perm -o=r)" ]]; then
+      pass "installer: SDDM theme is readable by the sddm user"
+    else
+      fail "installer: SDDM theme is readable by the sddm user"
+    fi
+  else
+    fail "installer: SDDM"; sed 's/^/    /' "$WORK/sddm.log" >&2
+  fi
+
   # Bad input must be refused, not written into the config.
   for bad in "KB_LAYOUTS=us zz9" "KB_TOGGLE=nonsense" "DOTFILES_MODE=nope" "NOCTALIA=2"; do
     if install_case bad "$bad"; then fail "installer rejects: $bad"; else pass "installer rejects: $bad"; fi
@@ -226,11 +299,13 @@ else
 fi
 
 # Inline comments in a package list would be passed to pacman verbatim.
-if grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/pacman.txt" | grep -q '[[:space:]#]'; then
-  fail "packages/pacman.txt: package lines must contain only the name"
-else
-  pass "packages/pacman.txt: one clean package name per line"
-fi
+for list in pacman.txt sddm.txt; do
+  if grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/$list" | grep -q '[[:space:]#]'; then
+    fail "packages/$list: package lines must contain only the name"
+  else
+    pass "packages/$list: one clean package name per line"
+  fi
+done
 
 if ((failures)); then
   printf '[check] %d check(s) failed\n' "$failures" >&2
