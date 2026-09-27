@@ -84,6 +84,29 @@ for file in \
   check_file "$file"
 done
 
+# ── Noctalia ────────────────────────────────────────────────────────────────
+
+noctalia_cfg="$ROOT/.config/noctalia/config.toml"
+wallpaper="$(sed -n 's|^path = "@HOME@/\(.*\)"$|\1|p' "$noctalia_cfg" | head -n 1)"
+if [[ -n "$wallpaper" && -f "$ROOT/$wallpaper" ]]; then
+  pass "Noctalia: default wallpaper $wallpaper is in the repository"
+else
+  fail "Noctalia: default wallpaper '$wallpaper' is missing from the repository"
+fi
+if grep -q '^setup_wizard_enabled = false$' "$noctalia_cfg"; then
+  pass "Noctalia: first-run wizard is off (the config is preseeded)"
+else
+  fail "Noctalia: setup_wizard_enabled = false is missing"
+fi
+# A plugin widget whose plugin is not enabled renders nothing and warns.
+while read -r plugin; do
+  if sed -n '/^enabled = \[/,/\]/p' "$noctalia_cfg" | grep -q "\"$plugin\""; then
+    pass "Noctalia: widget plugin $plugin is enabled"
+  else
+    fail "Noctalia: a widget uses plugin $plugin, which is not in [plugins].enabled"
+  fi
+done < <(sed -n 's|^type = "\([^":]*/[^":]*\):.*"$|\1|p' "$noctalia_cfg" | sort -u)
+
 # ── SDDM theme ───────────────────────────────────────────────────────────────
 
 theme_dir="$ROOT/sddm/themes/pixel-cyberpunk"
@@ -182,6 +205,21 @@ else
       niri validate -c "$WORK/default/.config/niri/config.kdl" >/dev/null 2>&1 &&
         pass "installer: installed config validates" || fail "installer: installed config validates"
     fi
+    if command -v noctalia >/dev/null 2>&1; then
+      if noctalia config validate "$WORK/default/.config/noctalia/config.toml" >"$WORK/noctalia-validate" 2>&1 &&
+         ! grep -Eq '^(WARN|ERROR)' "$WORK/noctalia-validate"; then
+        pass "installer: installed Noctalia config validates without warnings"
+      else
+        fail "installer: installed Noctalia config validates without warnings"; sed 's/^/    /' "$WORK/noctalia-validate" >&2
+      fi
+    else
+      skip "Noctalia config validation (noctalia is not installed)"
+    fi
+    if [[ -f "$WORK/default/$wallpaper" ]]; then
+      pass "installer: default wallpaper installed even without the collection"
+    else
+      fail "installer: default wallpaper installed even without the collection"
+    fi
     # Second run must change nothing except what the user owns.
     if install_case default && grep -q 'Files: 0 installed' "$WORK/default.log"; then
       pass "installer: re-run is idempotent"
@@ -213,7 +251,7 @@ else
   fi
 
   if install_case tech DOTFILES_MODE=tech; then
-    if [[ ! -e "$WORK/tech/.local/share" && ! -e "$WORK/tech/.config/noctalia" ]] &&
+    if [[ ! -e "$WORK/tech/.local/share" && ! -e "$WORK/tech/.config/noctalia" && ! -e "$WORK/tech/Pictures" ]] &&
        ! grep -q noctalia "$WORK/tech/.config/niri/config.kdl"; then
       pass "installer: tech profile is minimal"
     else
@@ -238,6 +276,26 @@ else
   else
     fail "installer: Voxtype config"; sed 's/^/    /' "$WORK/voice.log" >&2
   fi
+
+  # Noctalia GUI settings from an earlier run: kept unless a reset is asked for.
+  for reset in 0 1; do
+    state="$WORK/reset$reset/.local/state/noctalia"
+    mkdir -p "$state"
+    echo '[bar.default]' >"$state/settings.toml"
+    if install_case "reset$reset" NOCTALIA_RESET_SETTINGS=$reset; then
+      if [[ "$reset" == 1 ]]; then
+        [[ ! -e "$state/settings.toml" ]] && compgen -G "$state/settings.toml.bak.*" >/dev/null &&
+          pass "installer: NOCTALIA_RESET_SETTINGS=1 moves old Noctalia settings aside" ||
+          fail "installer: NOCTALIA_RESET_SETTINGS=1 moves old Noctalia settings aside"
+      else
+        [[ -f "$state/settings.toml" ]] &&
+          pass "installer: existing Noctalia settings are kept by default" ||
+          fail "installer: existing Noctalia settings are kept by default"
+      fi
+    else
+      fail "installer: Noctalia settings reset=$reset"; sed 's/^/    /' "$WORK/reset$reset.log" >&2
+    fi
+  done
 
   # SDDM: theme and drop-in land in a fake system root; a theme pinned in
   # /etc/sddm.conf (read last by SDDM) gets commented out with a backup.

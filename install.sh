@@ -6,6 +6,8 @@
 #
 #   DOTFILES_MODE=full|tech        full = styling + Noctalia + assets, tech = minimal
 #   NOCTALIA=1|0                   install/use Noctalia Shell (default 1)
+#   NOCTALIA_RESET_SETTINGS=0|1    move aside Noctalia GUI settings saved by an earlier
+#                                  run, so the preconfigured shell setup applies (default 0)
 #   KB_LAYOUTS=us,ru               keyboard layouts, XKB codes, first one is the default
 #   KB_TOGGLE=alt_shift            layout switch: alt_shift | ctrl_shift | caps | ralt | lalt | none
 #                                  (or a raw XKB option such as grp:shifts_toggle)
@@ -34,13 +36,14 @@ VOXTYPE_FORCE="${VOXTYPE_FORCE:-0}"
 # asks about the rest.
 is_set() { [[ -n "${!1+x}" ]]; }
 for v in DOTFILES_MODE NOCTALIA KB_LAYOUTS KB_TOGGLE INSTALL_VOXTYPE DOWNLOAD_VOXTYPE_MODEL \
-         INSTALL_WALLPAPERS INSTALL_SDDM; do
+         INSTALL_WALLPAPERS INSTALL_SDDM NOCTALIA_RESET_SETTINGS; do
   is_set "$v" && declare -r "GIVEN_$v=1"
 done
 given() { local n="GIVEN_$1"; [[ -n "${!n:-}" ]]; }
 
 MODE="${DOTFILES_MODE:-full}"
 NOCTALIA="${NOCTALIA:-1}"
+NOCTALIA_RESET_SETTINGS="${NOCTALIA_RESET_SETTINGS:-0}"
 SKIP_PACKAGES="${SKIP_PACKAGES:-0}"
 INSTALL_VOXTYPE="${INSTALL_VOXTYPE:-1}"
 DOWNLOAD_VOXTYPE_MODEL="${DOWNLOAD_VOXTYPE_MODEL:-1}"
@@ -476,6 +479,30 @@ install_assets() {
   return 0
 }
 
+# Noctalia takes its colours from the wallpaper, so the default one is installed
+# even when the collection is skipped (or in the tech profile).
+install_noctalia_defaults() {
+  [[ "$NOCTALIA" == 1 ]] || return 0
+  local rel overrides
+  rel="$(sed -n 's|^path = "@HOME@/\(.*\)"$|\1|p' "$ROOT/.config/noctalia/config.toml" | head -n 1)"
+  if [[ -n "$rel" && -f "$ROOT/$rel" && ! -e "$HOME_DIR/$rel" ]]; then
+    mkdir -p -- "$(dirname -- "$HOME_DIR/$rel")"
+    cp -p -- "$ROOT/$rel" "$HOME_DIR/$rel"
+  fi
+
+  # Settings saved from Noctalia's GUI (or its first-run wizard) override
+  # ~/.config/noctalia/config.toml, so an earlier run would hide the rice setup.
+  overrides="${NOCTALIA_STATE_HOME:-${XDG_STATE_HOME:-$HOME_DIR/.local/state}}/noctalia/settings.toml"
+  [[ -f "$overrides" ]] || return 0
+  if [[ "$NOCTALIA_RESET_SETTINGS" == 1 ]] ||
+     { ((INTERACTIVE)) && ! given NOCTALIA_RESET_SETTINGS &&
+       confirm "$(_ "Noctalia settings saved earlier (${overrides/#$HOME_DIR/\~}) override the rice config. Reset them (a backup is kept)?" \
+                    "Сохранённые ранее настройки Noctalia (${overrides/#$HOME_DIR/\~}) перекрывают конфиг rice. Сбросить их (с бэкапом)?")" n; }; then
+    mv -- "$overrides" "$overrides.bak.$STAMP"
+    say "backup: ${overrides/#$HOME_DIR/\~}.bak.$STAMP"
+  fi
+}
+
 # ── SDDM login screen ────────────────────────────────────────────────────────
 
 SDDM_THEME=pixel-cyberpunk
@@ -658,6 +685,7 @@ pacman_install
 install_noctalia
 install_configs
 install_assets
+install_noctalia_defaults
 install_voxtype
 install_voxtype_model
 install_flatpak

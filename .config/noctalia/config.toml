@@ -1,6 +1,259 @@
-[shell]
-polkit_agent = true
+# Noctalia Shell config of the PixelStreetArt rice: the author's live setup,
+# exported with `noctalia config export` (config.toml + GUI settings merged).
+#
+# Machine-specific bits are left out on purpose:
+#   * monitor names: desktop widgets land on the first monitor and are scaled
+#     to its size; the lock screen uses Noctalia's default login box;
+#   * the profile picture (Noctalia falls back to ~/.face).
+#
+# Changes made in Settings are saved to ~/.local/state/noctalia/settings.toml,
+# which overrides this file. Delete that file to return to this setup.
 
-[theme.templates]
-enable_community_templates = true
-community_ids = ["telegram"]
+[shell]
+# The rice is preconfigured; skip Noctalia's first-run wizard.
+setup_wizard_enabled = false
+polkit_agent = true
+app_icon_colorize = true
+corner_radius_scale = 1.35
+font_family = "CozetteVector"
+panel_anchor_bar = "default"
+screen_time_enabled = true
+
+    [shell.panel]
+    floating_layer = "top"
+    transparency_mode = "glass"
+
+    [shell.screen_corners]
+    enabled = true
+
+[accessibility]
+ui_scale = 1.3
+
+[backdrop]
+blur_intensity = 0.14
+enabled = true
+tint_intensity = 0.0
+
+# ── Wallpaper and colours ───────────────────────────────────────────────────
+# The palette is generated from the wallpaper. install.sh always installs this
+# one, even when the wallpaper collection is skipped. The picker browses ~/Pictures.
+
+[wallpaper.default]
+path = "@HOME@/Pictures/Pixel/wallhaven-p9qj59.png"
+
+[theme]
+builtin = "Gruvbox"
+community_palette = "Oxocarbon"
+mode = "dark"
+source = "wallpaper"
+wallpaper_scheme = "m3-content"
+
+    [theme.templates]
+    builtin_ids = [
+        "alacritty",
+        "btop",
+        "cava",
+        "emacs",
+        "foot",
+        "gtk3",
+        "gtk4",
+        "ghostty",
+        "helix",
+        "hyprland",
+        "kcolorscheme",
+        "kitty",
+        "labwc",
+        "mango",
+        "niri",
+        "qt",
+        "scroll",
+        "starship",
+        "umbriel",
+        "wezterm"
+    ]
+    community_ids = [ "telegram", "vscode", "prismlauncher", "obs" ]
+    enable_community_templates = true
+
+# ── Bar ─────────────────────────────────────────────────────────────────────
+
+[bar.default]
+start = [ "launcher", "wallpaper", "workspaces" ]
+center = [ "cat", "audio_visualizer", "lyrics_2" ]
+end = [
+    "speedtest-widget",
+    "media",
+    "tray",
+    "notifications",
+    "network",
+    "bluetooth",
+    "volume",
+    "control-center",
+    "pill",
+    "clock",
+    "session"
+]
+font_scale = 0.97
+margin_ends = 0
+radius = 10
+radius_bottom_right = 0
+scale = 1.1
+
+[widget.audio_visualizer]
+bands = 18
+centered = false
+font_scale = 1.05
+reversed = true
+scale = 0.75
+width = 58
+
+[widget.cat]
+type = "dotnetrob/cat:cat"
+
+[widget.lyrics_2]
+type = "h465855hgg/lyrics:lyrics"
+char_width = 7
+font_weight = "normal"
+max_chars = 38
+primary_font_size = 14
+secondary_font_size = 6
+show_translation = false
+text_alignment = "center"
+
+[widget.media]
+enabled = false
+max_length = 121
+
+[widget.network]
+show_label = false
+
+[widget.pill]
+type = "jrohland/claudecode:pill"
+
+[widget.speedtest-widget]
+type = "nilsonlinux/speedtest-meter:speedtest-widget"
+
+# ── Plugins ─────────────────────────────────────────────────────────────────
+# Noctalia clones the sources and fetches the enabled plugins by itself on the
+# first start (git and network access needed).
+
+[plugins]
+auto_update = "official"
+enabled = [
+    "dotnetrob/cat",
+    "h465855hgg/lyrics",
+    "notfinaldev/web-search",
+    "lowcache/claude-companion",
+    "nilsonlinux/speedtest-meter",
+    "jrohland/claudecode"
+]
+
+    [[plugins.source]]
+    name = "official"
+    kind = "git"
+    location = "https://github.com/noctalia-dev/official-plugins"
+
+    [[plugins.source]]
+    name = "community"
+    kind = "git"
+    location = "https://github.com/noctalia-dev/community-plugins"
+
+[plugin_settings."h465855hgg/lyrics"]
+lyrics_sources = [
+    "lrclib",
+    "netease",
+    "splayer",
+    "qqmusic",
+    "kugou",
+    "qishui",
+    "apple_music",
+    "spotify",
+    "musixmatch",
+    "lyrics",
+    "genius"
+]
+translation_language = "en"
+
+# ── Desktop widgets: clock, audio visualizer, CPU monitor ───────────────────
+# No `output`: Noctalia puts them on the first monitor and rescales the
+# positions (laid out on 1920×1080) to its resolution.
+
+[desktop_widgets]
+schema_version = 2
+widget_order = [ "desktop-widget-0000000000000001", "desktop-widget-0000000000000002", "desktop-widget-0000000000000003" ]
+
+    [desktop_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [desktop_widgets.widget.desktop-widget-0000000000000001]
+    type = "clock"
+    box_height = 153.0
+    box_width = 341.0
+    cx = 177.5
+    cy = 440.5
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+
+    [desktop_widgets.widget.desktop-widget-0000000000000002]
+    type = "audio_visualizer"
+    box_height = 0.0
+    box_width = 0.0
+    cx = 174.0
+    cy = 635.0
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+
+        [desktop_widgets.widget.desktop-widget-0000000000000002.settings]
+        bands = 32
+        show_when_idle = true
+
+    [desktop_widgets.widget.desktop-widget-0000000000000003]
+    type = "sysmon"
+    box_height = 0.0
+    box_width = 0.0
+    cx = 158.0
+    cy = 261.0
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+
+        [desktop_widgets.widget.desktop-widget-0000000000000003.settings]
+        stat = "cpu_usage"
+        stat2 = "cpu_temp"
+
+[lockscreen_widgets]
+enabled = false
+schema_version = 2
+
+    [lockscreen_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+# ── Panels and services ─────────────────────────────────────────────────────
+
+[control_center.calendar]
+show_events_card = false
+
+[dock]
+icon_size = 27
+
+# Weather location. Change it in Settings → Location, or set auto_locate = true
+# to detect it from your IP address (via noctalia.dev).
+[location]
+address = "Moscow"
+
+[nightlight]
+enabled = true
+temperature_day = 6600
+temperature_night = 3900
+
+[osd]
+position = "top_right"
+
+    [osd.kinds]
+    privacy = false
+    volume_input = false

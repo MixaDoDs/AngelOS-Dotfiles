@@ -73,6 +73,29 @@ noctalia msg color-scheme-set wallpaper vibrant
 noctalia msg notification-dnd-toggle   # do not disturb
 ```
 
+#### Preconfigured, plugins included
+
+[`.config/noctalia/config.toml`](.config/noctalia/config.toml) is the author's live Noctalia setup, exported with `noctalia config export`, so the shell looks the same from the first login, with no setup wizard:
+
+- **Wallpaper**: `~/Pictures/Pixel/wallhaven-p9qj59.png`. The palette is generated from it (`m3-content`, dark), and the Niri focus ring, terminals, GTK/Qt and the apps below are coloured to match. This wallpaper is installed even if you skip the collection. The wallpaper picker browses all of `~/Pictures`.
+- **Bar**: launcher, wallpaper and workspaces on the left; the running cat, an audio visualizer and synced lyrics in the centre; speed test, media, tray, notifications, network, Bluetooth, volume, control centre, Claude Code usage, clock and session on the right. Glass panels, screen corners, CozetteVector font, UI scale 1.3.
+- **Desktop widgets**: clock, audio visualizer and CPU usage/temperature. They go on your first monitor and are scaled to its resolution.
+- **Also on**: night light (6600 K by day, 3900 K at night), OSD in the top-right corner, backdrop blur in the overview, and colour templates for Telegram, VS Code, Prism Launcher and OBS.
+- **Weather** is set to Moscow: change it in Settings → Location.
+
+| Plugin | What it does |
+| --- | --- |
+| `dotnetrob/cat` | Animated running cat in the bar; it runs faster when the CPU is busy |
+| `h465855hgg/lyrics` | Synchronized lyrics with karaoke highlighting |
+| `nilsonlinux/speedtest-meter` | Internet speed test with a live speedometer |
+| `notfinaldev/web-search` | Search the web or open favourite sites from the launcher |
+| `jrohland/claudecode` | Claude Code usage: rate limits, token burn, cost |
+| `lowcache/claude-companion` | Claude Code companion: `/claude` from the launcher and an attention pulse (its Claude hooks are opt-in, see the plugin README) |
+
+You do not download plugins by hand. On first start Noctalia clones its official and community plugin sources and fetches the enabled plugins, so that start needs `git` and a network connection.
+
+Changes you make in Noctalia's Settings are saved to `~/.local/state/noctalia/settings.toml`, which overrides the rice config. If you installed an earlier version of this rice, that file may be hiding this setup. Re-run the installer with `NOCTALIA_RESET_SETTINGS=1`, or answer "yes" when it asks, to move the file aside (a backup is kept).
+
 ### Built-in cheat sheet
 
 Forgot a binding? `Mod`+`Shift`+`Esc` opens Niri's hotkey overlay. Every important bind in this config carries a readable title, so the overlay doubles as documentation.
@@ -187,6 +210,7 @@ Other switches (run `./install.sh --help` for the full list):
 ```bash
 SKIP_PACKAGES=1 ./install.sh                                  # config only: no pacman, no SDDM, no sudo
 INSTALL_SDDM=0 ./install.sh                                   # keep your current login manager
+NOCTALIA_RESET_SETTINGS=1 ./install.sh                        # drop old Noctalia GUI settings (backed up)
 INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 ./install.sh       # no voice input
 ENABLE_SERVICES=0 ./install.sh                                # do not enable user services
 NOCTALIA=0 ./install.sh                                       # plain Niri + fuzzel, no Noctalia
