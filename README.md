@@ -204,6 +204,10 @@ Run the repository check before installing. Besides syntax and hygiene checks it
 
 The installer sets up [SDDM](https://github.com/sddm/sddm) with **pixel-cyberpunk**, an animated pixel-art theme from [Qylock](https://github.com/Darkkal44/qylock) by Darkkal44: a looping video background, a pixel font, clock, user and session switchers, reboot and shutdown buttons.
 
+![SDDM login screen with the pixel-cyberpunk theme](docs/screenshots/sddm-login.png)
+
+*Rendered by the real greeter (`sddm-greeter-qt6 --test-mode`) with a placeholder user; the background is a looping pixel-art video.*
+
 What `INSTALL_SDDM=1` (the default) does:
 
 1. Installs `sddm` and exactly the Qt modules the theme imports (`packages/sddm.txt`): without `qt6-5compat` the theme cannot load at all, and without `qt6-multimedia-ffmpeg` the background stays black.
@@ -212,7 +216,7 @@ What `INSTALL_SDDM=1` (the default) does:
 4. Enables `sddm.service`. If another login manager (GDM, LightDM, ly, greetd, …) is enabled it asks before switching; unattended runs only switch when you pass `INSTALL_SDDM=1` explicitly.
 5. Makes sure the machine boots into `graphical.target`, the only target that starts a login manager.
 
-Pick the **Niri** session in the bottom bar (click the session name to cycle) the first time; SDDM remembers it afterwards.
+The session button in the top-right corner (`NIRI` above) cycles through installed sessions when clicked; SDDM remembers the last one you used.
 
 Preview the theme without logging out:
 
