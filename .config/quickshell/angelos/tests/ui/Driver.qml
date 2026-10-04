@@ -579,6 +579,15 @@ Scope {
             if ((!ready || d.page !== "lyrics") && waiting)
                 return;
             report(name + ":settings-cli", ready && d.page === "lyrics", "page " + d.page);
+            if (v === "win11") {
+                // Mod+S (`angelos settings appearance`, an old id): opens its page, closes it again
+                Shell.toggleSettings("appearance");
+                const opened = Shell.settingsOpen && Shell.settingsPage === "theme";
+                Shell.toggleSettings("appearance");
+                const closed = !Shell.settingsOpen;
+                Shell.settingsOpen = true;
+                report(name + ":mod-s", opened && closed, "open " + opened + ", closed " + closed);
+            }
             nextViewCase();
         }
     }

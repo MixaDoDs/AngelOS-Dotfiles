@@ -170,7 +170,8 @@ Singleton {
         settingsOpen = true;
     }
     function toggleSettings(page) {
-        if (settingsOpen && (!page || page === settingsPage))
+        // an old id (Mod+S still says "appearance") closes its page in the tree too
+        if (settingsOpen && (!page || SettingsTree.resolve(page).page === settingsPage))
             settingsOpen = false;
         else
             openSettings(page);
