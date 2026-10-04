@@ -19,6 +19,7 @@ PanelWindow {
     required property var modelData
     readonly property string screenName: modelData.name
     readonly property bool open: GoldenGate.panel === "cc" && GoldenGate.panelScreen === screenName
+    readonly property int radios: (Wifi.hasWifi ? 1 : 0) + (Bt.available ? 1 : 0)
     readonly property real tile: GoldenGate.px(68)            // one slot
     readonly property real gap: GoldenGate.px(10)
     readonly property real pad: GoldenGate.px(12)
@@ -85,14 +86,14 @@ PanelWindow {
             id: knob
             x: GoldenGate.px(10)
             anchors.verticalCenter: parent.verticalCenter
-            width: GoldenGate.px(44)
+            width: GoldenGate.px(38)
             height: width
             radius: width / 2
             color: cap.on ? win.tileOn : GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(0, 0, 0, 0.1)
             MacIcon {
                 anchors.centerIn: parent
                 name: cap.icon
-                size: GoldenGate.px(22)
+                size: GoldenGate.px(19)
                 stroke: 2
                 color: cap.on ? "#ffffff" : GoldenGate.label
             }
@@ -103,14 +104,17 @@ PanelWindow {
         }
         Column {
             anchors.left: knob.right
-            anchors.leftMargin: GoldenGate.px(9)
+            anchors.leftMargin: GoldenGate.px(8)
             anchors.right: parent.right
-            anchors.rightMargin: GoldenGate.px(10)
+            anchors.rightMargin: GoldenGate.px(8)
             anchors.verticalCenter: parent.verticalCenter
+            // as on macOS a long label goes on to the next line ("Do Not / Disturb")
             MacText {
                 width: parent.width
                 text: cap.title
                 semibold: true
+                wrapMode: Text.WordWrap
+                maximumLineCount: cap.sub ? 1 : 2
             }
             MacText {
                 width: parent.width
@@ -118,12 +122,31 @@ PanelWindow {
                 size: GoldenGate.smallSize
                 color: GoldenGate.secondaryLabel
                 visible: text !== ""
+                wrapMode: Text.WordWrap
+                maximumLineCount: 2
             }
         }
         MouseArea {
             anchors.fill: parent
             anchors.leftMargin: knob.x + knob.width
             onClicked: cap.opened()
+        }
+    }
+    component FocusCapsule: Capsule {
+        icon: "moon"
+        title: I18n.t("Не беспокоить", "Do Not Disturb")
+        sub: Config.notifications.dnd ? I18n.t("Вкл.", "On") : ""
+        on: Config.notifications.dnd
+        onToggled: Config.notifications.dnd = !Config.notifications.dnd
+        onOpened: Config.notifications.dnd = !Config.notifications.dnd
+    }
+    component RecordCapsule: Capsule {
+        icon: "circle-dot"
+        title: I18n.t("Запись экрана", "Screen Recording")
+        onToggled: opened()
+        onOpened: {
+            GoldenGate.closePanel();
+            Capture.record();
         }
     }
     component Round: Item {
@@ -293,13 +316,12 @@ PanelWindow {
                             Shell.openSettings("bluetooth");
                         }
                     }
-                    Capsule {
-                        icon: "moon"
-                        title: I18n.t("Не беспокоить", "Do Not Disturb")
-                        sub: Config.notifications.dnd ? I18n.t("Вкл.", "On") : ""
-                        on: Config.notifications.dnd
-                        onToggled: Config.notifications.dnd = !Config.notifications.dnd
-                        onOpened: Config.notifications.dnd = !Config.notifications.dnd
+                    // what Wi-Fi and Bluetooth leave free of the column
+                    FocusCapsule {
+                        visible: win.radios < 2
+                    }
+                    RecordCapsule {
+                        visible: win.radios === 0 && Capture.canRecord
                     }
                 }
                 // Now Playing
@@ -375,6 +397,30 @@ PanelWindow {
                     }
                 }
             }
+            // the rows of the reference: [Screen Recording][Mission Control][Lock] and
+            // [Dark Mode][Screenshot][Do Not Disturb] under Wi-Fi and Bluetooth; four round
+            // buttons in one row when the column above took the capsules
+            Row {
+                visible: win.radios === 2
+                spacing: win.gap
+                RecordCapsule {
+                    visible: Capture.canRecord
+                }
+                Round {
+                    icon: "layout-grid"
+                    onClicked: {
+                        GoldenGate.closePanel();
+                        Niri.toggleOverview();
+                    }
+                }
+                Round {
+                    icon: "lock"
+                    onClicked: {
+                        GoldenGate.closePanel();
+                        Shell.lock();
+                    }
+                }
+            }
             Row {
                 spacing: win.gap
                 Round {
@@ -389,7 +435,11 @@ PanelWindow {
                         Capture.screenshot();
                     }
                 }
+                FocusCapsule {
+                    visible: win.radios === 2
+                }
                 Round {
+                    visible: win.radios < 2
                     icon: "layout-grid"
                     onClicked: {
                         GoldenGate.closePanel();
@@ -397,6 +447,7 @@ PanelWindow {
                     }
                 }
                 Round {
+                    visible: win.radios < 2
                     icon: "lock"
                     onClicked: {
                         GoldenGate.closePanel();

@@ -514,7 +514,7 @@ IpcHandler {
     function macQuit(): string {
         if (!GoldenGate.on || !AppMenu.window)
             return "nothing to quit";
-        const app = AppMenu.menus.length ? AppMenu.menus[0].items.find(it => it.id === "app:quit" || /^(Завершить|Quit) /.test(it.label || "")) : null;
+        const app = AppMenu.menus.length ? AppMenu.menus[0].items.find(it => /^(app|s):quit$/.test(it.id)) : null;
         AppMenu.trigger(app || AppMenu.item("app:quit", "", {
             "kind": "quit"
         }));
@@ -555,6 +555,14 @@ IpcHandler {
             return "no item " + index;
         MacMenus.openDock(scr.name, it, scr.width / 2, scr.height - GoldenGate.px(Config.mac.dockSize) - GoldenGate.px(30));
         return it.name;
+    }
+    // the desktop's menu (a right click on the wallpaper) in the middle of the focused screen
+    function macDeskMenu(): string {
+        const scr = Shell.focusedScreen;
+        if (!GoldenGate.on || !scr)
+            return "the Golden Gate skin is off";
+        MacMenus.openDesktop(scr.name, scr.width / 2, scr.height / 3);
+        return MacMenus.menu ? MacMenus.menu.items.filter(it => it.label).map(it => it.label).join(", ") : "no menu";
     }
     // a status item's menu on the focused screen: wifi | bluetooth | sound | input
     function macStatus(kind: string): string {

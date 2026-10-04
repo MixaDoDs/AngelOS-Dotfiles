@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 
 // Region screenshot / screen recording through the dotfiles tools, which draw
@@ -15,6 +16,15 @@ Singleton {
 
     readonly property string screenshotTool: Config.home + "/.local/bin/niri-screenshot-region"
     readonly property string recordTool: Config.home + "/.local/bin/niri-record-region"
+
+    // the recorder is there (the dotfiles put it): Golden Gate's Control Center offers
+    // recording only then
+    property bool canRecord: false
+    Process {
+        running: true
+        command: ["test", "-x", root.recordTool]
+        onExited: code => root.canRecord = code === 0
+    }
 
     function screenshot() {
         launch(screenshotTool, "niri msg action screenshot");

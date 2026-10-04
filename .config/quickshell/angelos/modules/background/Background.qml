@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.modules.desktop
+import qs.modules.mac
 import qs.modules.y2k
 import qs.widgets
 
@@ -85,7 +86,8 @@ Variants {
             WlrLayershell.layer: WlrLayer.Background
             WlrLayershell.namespace: "angelos-desktop"
 
-            readonly property bool sparkles: Config.y2k.sparkles && (!(Config.y2k.sparkleScreens || []).length || Config.y2k.sparkleScreens.includes(modelData.name)) && StreamMode.effectsOn(modelData.name)
+            // (not in Golden Gate: no glitter behind a Mac's pointer)
+            readonly property bool sparkles: !GoldenGate.on && Config.y2k.sparkles && (!(Config.y2k.sparkleScreens || []).length || Config.y2k.sparkleScreens.includes(modelData.name)) && StreamMode.effectsOn(modelData.name)
             // where the pointer is, over the widgets too (Pointer: the demon's glass
             // clears up as it comes near)
             HoverHandler {
@@ -103,7 +105,8 @@ Variants {
                     if (win.sparkles)
                         trail.spawn(m.x, m.y);
                 }
-                onMenu: (x, y) => menu.openAt(x, y)
+                // Golden Gate: Finder's desktop menu in the skin's glass (MacMenus)
+                onMenu: (x, y) => GoldenGate.on ? MacMenus.openDesktop(win.modelData.name, x, y) : menu.openAt(x, y)
                 onOtherClicked: {
                     menu.close();
                     DesktopWidgets.editMode = false;

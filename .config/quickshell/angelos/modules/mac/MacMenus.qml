@@ -26,6 +26,7 @@ Singleton {
     property bool fromKeyboard: false        // opened from the keyboard: the first item is selected
     property real bottom: -1                 // a Dock menu: its bottom edge (it opens upwards, centred on x)
     property var dockItem: null              // the Dock item whose menu is open
+    property real top: -1                    // the desktop's menu: its top edge (x is its left, where the click was)
     readonly property var barMenus: [angelMenu].concat(AppMenu.menus)
     readonly property var menu: screen === "" ? null : index >= 0 ? barMenus[index] || null : statusKind ? statusMenu(statusKind) : null
     readonly property bool isOpen: menu !== null
@@ -36,6 +37,7 @@ Singleton {
         if (!isOpen)
             Shell.closeTransient();
         fromKeyboard = !!keyboard;
+        top = -1;
         statusKind = "";
         bottom = -1;
         dockItem = null;
@@ -49,6 +51,7 @@ Singleton {
         if (!isOpen)
             Shell.closeTransient();
         fromKeyboard = false;
+        top = -1;
         index = -1;
         bottom = -1;
         dockItem = null;
@@ -67,6 +70,7 @@ Singleton {
         if (!isOpen)
             Shell.closeTransient();
         fromKeyboard = false;
+        top = -1;
         index = -1;
         dockItem = item;
         statusKind = item.kind === "trash" ? "dock-trash" : item.kind === "downloads" ? "dock-downloads" : "dock";
@@ -75,7 +79,25 @@ Singleton {
         alignRight = false;
         screen = screenName;
     }
+    // the desktop's menu (a right click on the wallpaper), as Finder's: under the pointer
+    function openDesktop(screenName, xPos, yPos) {
+        if (!isOpen)
+            Shell.closeTransient();
+        fromKeyboard = false;
+        index = -1;
+        bottom = -1;
+        dockItem = null;
+        trayItem = null;
+        statusKind = "desk";
+        deskScreen = screenName;
+        x = xPos;
+        top = yPos;
+        alignRight = false;
+        screen = screenName;
+    }
+    property string deskScreen: ""
     function close() {
+        top = -1;
         screen = "";
         index = -1;
         statusKind = "";
@@ -204,6 +226,11 @@ Singleton {
                 "id": "s:dock:trash",
                 "items": MacDockModel.trashMenu()
             };
+        case "desk":
+            return {
+                "id": "s:desk",
+                "items": deskItems()
+            };
         case "dock-downloads":
             return {
                 "id": "s:dock:downloads",
@@ -211,6 +238,25 @@ Singleton {
             };
         }
         return null;
+    }
+    // Finder's desktop menu, of what angelOS's desktop has: no files on it, so no New Folder or
+    // Sort By; the wallpaper, the desktop widgets (angelOS's own, toggled per screen) and
+    // the Desktop folder in the file manager
+    function deskItems() {
+        const scr = deskScreen;
+        const widgets = DesktopWidgets.types.map(t => AppMenu.item("desk:w:" + t.type, t.label, {
+                    "kind": "fn",
+                    "fn": () => DesktopWidgets.toggle(t.type, scr)
+                }, {
+                    "toggle": "check",
+                    "checked": DesktopWidgets.has(t.type, scr)
+                }));
+        const out = [fn("desk:wall", I18n.t("Изменить обои…", "Change Wallpaper…"), () => Shell.openSettings("wallpaper")), AppMenu.sep("desk1"), AppMenu.submenu("desk:widgets", I18n.t("Виджеты", "Widgets"), widgets)];
+        // editing only while there is something to move
+        if (DesktopWidgets.editMode || DesktopWidgets.uidsFor(scr).length > 0)
+            out.push(fn("desk:edit", DesktopWidgets.editMode ? I18n.t("Закончить редактирование", "Done Editing Widgets") : I18n.t("Редактировать виджеты", "Edit Widgets"), () => DesktopWidgets.editMode = !DesktopWidgets.editMode));
+        out.push(AppMenu.sep("desk2"), fn("desk:folder", I18n.t("Открыть папку «Рабочий стол»", "Open the Desktop Folder"), () => Quickshell.execDetached(["sh", "-c", 'exec xdg-open "$(xdg-user-dir DESKTOP)"'])));
+        return out;
     }
     function wifiItems() {
         const out = [

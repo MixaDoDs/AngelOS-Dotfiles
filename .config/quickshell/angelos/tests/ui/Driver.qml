@@ -1995,6 +1995,12 @@ Scope {
             const go = desk.find(m => m.id === "m:go");
             report("mac-settings-desktop", ssOk && !!go && go.items.length >= 5 && desk[0].bold, "settings " + ss.map(m => m.title).join(",") + "; desktop " + desk.map(m => m.title).join(","));
             Niri.workspaces = [];
+            // a right click on the wallpaper: Finder's menu of what the desktop has, nothing greyed
+            MacMenus.deskScreen = "T";
+            const deskMenu = MacMenus.deskItems();
+            const wsub = deskMenu.find(i => i.id === "desk:widgets");
+            const deskOk = deskMenu.some(i => i.id === "desk:wall") && !!wsub && wsub.children.length > 0 && wsub.children.every(c => c.toggle === "check") && deskMenu.every(i => i.type === "separator" || (i.enabled !== false && (i.act || i.type === "submenu")));
+            report("mac-desk-menu", deskOk, deskMenu.filter(i => i.label).map(i => i.label + (i.type === "submenu" ? " (" + i.children.length + ")" : "")).join(", "));
             // System Settings: a few pages of every kind in the Mac view
             macPages = ["theme", "sound", "display", "keyboard", "taskbar", "start", "about", "updates", "cat:system"];
             macSeen = [];
