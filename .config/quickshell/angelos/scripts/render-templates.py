@@ -18,6 +18,8 @@ entries with "apps": true with its "apps" overrides (GTK, Qt: Y2K → Apps in he
 An entry with a "command" lists the files it writes in "writes" (~/ paths, {a,b}
 alternatives): an update's snapshot takes them too, so «Вернуть как было» removes
 or restores them (scripts/update-txn.py).
+"variants" swaps an entry's template by the palette's "skin": {"goldengate": "gtk3-mac.css"}
+renders the Golden Gate skin's version into the same target (services/ThemeExport.macPalette).
 """
 import json
 import os
@@ -89,7 +91,7 @@ def main():
                     p = dict(p, **pal[key])
                     p["gtkSuffix"] = "-dark" if p.get("mode") == "dark" else ""
             if e.get("template"):
-                src = Path(e["_base"]) / e["template"]
+                src = Path(e["_base"]) / (e.get("variants") or {}).get(p.get("skin") or "", e["template"])
                 dst = Path(os.path.expanduser(e["target"]))
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 out = render(src.read_text(), p)

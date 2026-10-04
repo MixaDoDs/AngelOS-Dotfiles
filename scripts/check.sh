@@ -84,6 +84,14 @@ else
   sed 's/^/    /' "$WORK/profiles.log" >&2; fail "global menu: tests/appmenu/test_profiles.py"
 fi
 
+# the Golden Gate skin outside the shell: system font, icons and GTK module on and back, Qt's look,
+# the templates' Mac variants and their niri config (stand-ins for gsettings and fc-list)
+if python3 "$ROOT/.config/quickshell/angelos/tests/goldengate/test_goldengate.py" >"$WORK/goldengate.log" 2>&1; then
+  pass "Golden Gate: system settings on and back, Qt's look, template variants, niri-mac.kdl valid"
+else
+  sed 's/^/    /' "$WORK/goldengate.log" >&2; fail "Golden Gate: tests/goldengate/test_goldengate.py"
+fi
+
 if python3 "$ROOT/.config/quickshell/angelos/tests/browsers/test_browser_theme.py" >"$WORK/browsers.log" 2>&1; then
   pass "browser themes: profile edits, undo, gentle restart (stand-in browsers)"
 else

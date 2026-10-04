@@ -20,6 +20,9 @@ block (cfg/misc.kdl, the old value kept in a comment), in systemd's user manager
 D-Bus activation; the shell itself stays on its own (bin/angelos), apps started from
 angelOS get qt6ct right away (Shell.childEnv). Off: everything back as it was.
 The first change of qt6ct.conf keeps a copy in ~/.local/state/angelos/backups/.
+The Golden Gate skin (palette key skin "goldengate") turns it on as well, with macOS's look
+instead of the pixels (stylesheet_mac: rounded controls, the accent on selections), Inter and
+JetBrains Mono as qt6ct's fonts and the Adwaita icons — given back when the skin goes.
 """
 import configparser
 import hashlib
@@ -228,6 +231,74 @@ Ui--RpWidget QTextEdit:focus, Ui--RpWidget QLineEdit:focus, Ui--MaskedInputField
     return css
 
 
+def stylesheet_mac(p):
+    """The Golden Gate skin's Qt look: macOS 27's rounded controls in the mac palette (Fusion
+    underneath): push buttons and fields with a 7 px corner and a hairline, the accent on
+    selections and on the default button, rounded menus with an accent highlight, thin scroll
+    bars, a capsule slider."""
+    dark = p.get("mode") == "dark"
+    c = {
+        "fg": p["fg"], "bg": p["bg"], "content": p.get("sunken", "#ffffff") if not dark else p.get("faceAlt", p["bg"]),
+        "accent": p.get("accent"), "dim": p.get("textDim", p["fg"]),
+        "line": "rgba(255,255,255,0.14)" if dark else "rgba(0,0,0,0.14)",
+        "control": "rgba(255,255,255,0.12)" if dark else "#ffffff",
+        "hover": "rgba(255,255,255,0.18)" if dark else "#f2f2f2",
+        "pressed": "rgba(255,255,255,0.24)" if dark else "#e6e6e6",
+        "menu": "#2b2b2d" if dark else "#f6f6f6",
+        "track": "rgba(255,255,255,0.16)" if dark else "rgba(0,0,0,0.12)",
+        "handle": "rgba(255,255,255,0.35)" if dark else "rgba(0,0,0,0.3)",
+    }
+    return """/* angelOS Golden Gate style for Qt (scripts/qt-theme.py) — generated */
+QPushButton, QToolButton[popupMode="1"], QComboBox {
+    background: %(control)s; color: %(fg)s;
+    border: 1px solid %(line)s; border-radius: 7px;
+}
+QPushButton { padding: 3px 14px; min-height: 20px; }
+QPushButton:hover, QComboBox:hover { background: %(hover)s; }
+QPushButton:pressed, QPushButton:checked, QComboBox:on { background: %(pressed)s; }
+QPushButton:default { background: %(accent)s; color: #ffffff; border-color: %(accent)s; }
+QPushButton:disabled { color: %(dim)s; }
+QComboBox { padding: 2px 8px; }
+QComboBox QAbstractItemView { background: %(menu)s; border: 1px solid %(line)s; border-radius: 10px; padding: 4px;
+    selection-background-color: %(accent)s; selection-color: #ffffff; }
+QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox {
+    background: %(content)s; color: %(fg)s;
+    border: 1px solid %(line)s; border-radius: 7px; padding: 2px 4px;
+    selection-background-color: %(accent)s; selection-color: #ffffff;
+}
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QAbstractSpinBox:focus { border: 2px solid %(accent)s; }
+QMenu { background: %(menu)s; color: %(fg)s; border: 1px solid %(line)s; border-radius: 12px; padding: 5px; }
+QMenu::item { padding: 4px 22px 4px 22px; border-radius: 6px; }
+QMenu::item:selected { background: %(accent)s; color: #ffffff; }
+QMenu::separator { height: 1px; background: %(line)s; margin: 4px 10px; }
+QMenuBar::item:selected { background: %(track)s; border-radius: 6px; }
+QToolTip { background: %(menu)s; color: %(fg)s; border: 1px solid %(line)s; border-radius: 6px; padding: 3px 6px; }
+QTabBar::tab { background: transparent; color: %(dim)s; padding: 4px 14px; margin: 2px; border-radius: 7px; }
+QTabBar::tab:selected { background: %(control)s; color: %(fg)s; border: 1px solid %(line)s; }
+QProgressBar { background: %(track)s; color: %(fg)s; text-align: center; border: none; border-radius: 4px; max-height: 8px; }
+QProgressBar::chunk { background: %(accent)s; border-radius: 4px; }
+QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
+QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; }
+QScrollBar::handle { background: %(handle)s; border-radius: 4px; }
+QScrollBar::handle:vertical { min-height: 28px; }
+QScrollBar::handle:horizontal { min-width: 28px; }
+QScrollBar::add-line, QScrollBar::sub-line { width: 0px; height: 0px; }
+QScrollBar::add-page, QScrollBar::sub-page { background: none; }
+QHeaderView::section { background: %(bg)s; color: %(dim)s; padding: 4px 8px; border: 0px; border-right: 1px solid %(line)s; border-bottom: 1px solid %(line)s; }
+QGroupBox { border: 1px solid %(line)s; border-radius: 10px; margin-top: 12px; padding-top: 8px; }
+QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 4px; color: %(fg)s; }
+QSlider::groove:horizontal { height: 4px; background: %(track)s; border-radius: 2px; }
+QSlider::handle:horizontal { width: 18px; height: 18px; margin: -7px 0; background: #ffffff; border: 1px solid %(line)s; border-radius: 9px; }
+QSlider::sub-page:horizontal { background: %(accent)s; border-radius: 2px; }
+QCheckBox::indicator, QRadioButton::indicator { width: 14px; height: 14px; }
+Ui--RpWidget QTextEdit, Ui--RpWidget QLineEdit, Ui--MaskedInputField {
+    background: transparent; color: palette(text);
+    border: none; border-radius: 0px; padding: 0px;
+    selection-background-color: palette(highlight); selection-color: palette(highlighted-text);
+}
+""" % c
+
+
 def backup_conf():
     if not CONF.exists():
         return
@@ -240,7 +311,7 @@ def backup_conf():
     flag.write_text(str(d) + "\n")
 
 
-def set_conf(on):
+def set_conf(on, mac=False):
     cp = configparser.RawConfigParser()
     cp.optionxform = str
     if CONF.exists():
@@ -252,6 +323,34 @@ def set_conf(on):
     want = {("Appearance", "color_scheme_path"): str(SCHEME), ("Appearance", "custom_palette"): "true",
             ("Appearance", "style"): "Fusion", ("Appearance", "standard_dialogs"): "xdgdesktopportal",
             ("Interface", "stylesheets"): str(QSS)}
+    # the Golden Gate skin: macOS's fonts and icons too (kept apart, so leaving the skin gives
+    # them back while the pixel style may stay on)
+    keep_mac = QT6CT / ".angelos-mac-before.json"
+    mac_want = {}
+    if mac:
+        if not cp.has_section("Fonts"):
+            cp.add_section("Fonts")
+        fams = subprocess.run(["fc-list", "--format", "%{family}\n"], capture_output=True, text=True).stdout
+        if "Inter" in fams:
+            mac_want[("Fonts", "general")] = '"Inter,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"'
+        if "JetBrains Mono" in fams:
+            mac_want[("Fonts", "fixed")] = '"JetBrains Mono,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"'
+        if any((d / "Adwaita/index.theme").exists() for d in (HOME / ".local/share/icons", Path("/usr/share/icons"))):
+            mac_want[("Appearance", "icon_theme")] = "Adwaita"
+        if not keep_mac.exists():
+            write(keep_mac, json.dumps({"%s/%s" % k: cp.get(*k, fallback=None) for k in mac_want}))
+        for (s, k), v in mac_want.items():
+            cp.set(s, k, v)
+    mac_restored = False
+    if not mac and keep_mac.exists():
+        mac_restored = True
+        for sk, v in json.loads(keep_mac.read_text()).items():
+            s, k = sk.split("/", 1)
+            if v is None:
+                cp.remove_option(s, k)
+            else:
+                cp.set(s, k, v)
+        keep_mac.unlink()
     if on:
         if not keep.exists():
             before = {"%s/%s" % k: cp.get(*k, fallback=None) for k in want}
@@ -260,7 +359,8 @@ def set_conf(on):
             cp.set(s, k, v)
     else:
         if not keep.exists():
-            return False
+            # nothing of ours to undo but the Mac's fonts and icons (if they were set)
+            return write_conf(cp) if mac_restored else False
         before = json.loads(keep.read_text())
         for sk, v in before.items():
             s, k = sk.split("/", 1)
@@ -269,6 +369,10 @@ def set_conf(on):
             else:
                 cp.set(s, k, v)
         keep.unlink()
+    return write_conf(cp)
+
+
+def write_conf(cp):
     from io import StringIO
     buf = StringIO()
     cp.write(buf, space_around_delimiters=False)
@@ -357,7 +461,8 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--status":
         return status()
     pal = json.loads(Path(sys.argv[1]).read_text())
-    on = bool(pal.get("qtStyle"))
+    mac = pal.get("skin") == "goldengate"
+    on = bool(pal.get("qtStyle")) or mac
     if not on:
         # back as it was: qt6ct's settings, then the environment
         set_conf(False)
@@ -368,11 +473,11 @@ def main():
         return
     p = dict(pal, **(pal.get("apps") or {}))
     changed = write(SCHEME, colours(p))
-    changed = write(QSS, stylesheet(p, frames(p))) or changed
+    changed = write(QSS, stylesheet_mac(p) if mac else stylesheet(p, frames(p))) or changed
     # qt6ct reloads on a change in its folder only: a stamp there tells running apps
     if changed:
         write(QT6CT / ".angelos-stamp", hashlib.sha1((SCHEME.read_text() + QSS.read_text()).encode()).hexdigest() + "\n")
-    set_conf(True)
+    set_conf(True, mac)
     if niri_env(True) == "set":
         session_env("qt6ct")
     print(json.dumps({"qt": "on", "realm": p.get("appsRealm", "heaven")}))

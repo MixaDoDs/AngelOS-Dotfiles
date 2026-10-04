@@ -1,0 +1,151 @@
+/* angelOS Golden Gate / {{mode}} (GTK 3) — generated (templates/gtk3-mac.css).
+   The Golden Gate skin: macOS 27's colours and shapes over adw-gtk3 — a light (or dark) window,
+   a white content area, a sidebar a shade darker with icons in the accent, rounded controls,
+   the accent on selections. The traffic lights come with templates/gtk3-decor-mac.css. */
+@define-color accent_color {{macAccent}};
+@define-color accent_bg_color {{macAccent}};
+@define-color accent_fg_color #ffffff;
+@define-color destructive_bg_color #ff3b30;
+@define-color destructive_fg_color #ffffff;
+@define-color error_bg_color #ff3b30;
+@define-color error_fg_color #ffffff;
+@define-color window_bg_color {{macWindow}};
+@define-color window_fg_color {{macText}};
+@define-color view_bg_color {{macContent}};
+@define-color view_fg_color {{macText}};
+@define-color headerbar_bg_color {{macWindow}};
+@define-color headerbar_fg_color {{macText}};
+@define-color headerbar_backdrop_color {{macWindow}};
+@define-color popover_bg_color {{macPopover}};
+@define-color popover_fg_color {{macText}};
+@define-color card_bg_color {{macContent}};
+@define-color card_fg_color {{macText}};
+@define-color dialog_bg_color {{macWindow}};
+@define-color dialog_fg_color {{macText}};
+@define-color sidebar_bg_color {{macSidebar}};
+@define-color sidebar_fg_color {{macText}};
+@define-color theme_bg_color {{macWindow}};
+@define-color theme_fg_color {{macText}};
+@define-color theme_base_color {{macContent}};
+@define-color theme_text_color {{macText}};
+@define-color theme_selected_bg_color {{macAccent}};
+@define-color theme_selected_fg_color #ffffff;
+@define-color theme_unfocused_selected_bg_color alpha({{macAccent}}, 0.6);
+@define-color theme_unfocused_selected_fg_color #ffffff;
+@define-color borders {{macLine}};
+
+window,
+window.csd,
+window.solid-csd,
+decoration {
+    border-radius: 16px;
+}
+
+headerbar,
+.titlebar {
+    background: {{macWindow}};
+    box-shadow: inset 0 -1px {{macLine}};
+    min-height: 40px;
+}
+headerbar .title,
+.titlebar .title {
+    font-weight: bold;
+}
+
+button {
+    border-radius: 7px;
+}
+headerbar button:not(.titlebutton),
+.titlebar button:not(.titlebutton) {
+    border-radius: 999px;
+    background: {{macControl}};
+    border: none;
+    box-shadow: none;
+}
+headerbar button:not(.titlebutton):hover {
+    background: {{macControlHover}};
+}
+
+entry,
+spinbutton {
+    border-radius: 7px;
+    border: 1px solid {{macLine}};
+    box-shadow: none;
+}
+entry:focus {
+    box-shadow: 0 0 0 3px alpha({{macAccent}}, 0.45);
+}
+
+.sidebar,
+.navigation-sidebar,
+placessidebar,
+placessidebar list {
+    background-color: {{macSidebar}};
+}
+placessidebar row,
+.navigation-sidebar row {
+    border-radius: 7px;
+    margin: 1px 8px;
+}
+placessidebar row image,
+.navigation-sidebar row image {
+    color: {{macAccent}};
+}
+placessidebar row:selected,
+.navigation-sidebar row:selected {
+    background-color: {{macSelectedSidebar}};
+    color: {{macText}};
+}
+
+menu,
+.menu,
+.context-menu,
+popover.background {
+    border-radius: 12px;
+    padding: 5px;
+}
+menu menuitem,
+.menu menuitem {
+    border-radius: 6px;
+    min-height: 22px;
+}
+menu menuitem:hover,
+.menu menuitem:hover,
+popover.background modelbutton:hover {
+    background-color: {{macAccent}};
+    color: #ffffff;
+    border-radius: 6px;
+}
+
+list row:selected,
+treeview.view:selected,
+iconview:selected {
+    background-color: {{macAccent}};
+    color: #ffffff;
+}
+
+switch {
+    border-radius: 999px;
+}
+switch:checked {
+    background-color: {{macAccent}};
+}
+switch slider {
+    border-radius: 999px;
+}
+check,
+radio {
+    border-radius: 4px;
+}
+radio {
+    border-radius: 999px;
+}
+check:checked,
+radio:checked {
+    background-color: {{macAccent}};
+    color: #ffffff;
+}
+scale highlight,
+progressbar progress {
+    background-color: {{macAccent}};
+}

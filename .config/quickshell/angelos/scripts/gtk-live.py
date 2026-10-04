@@ -17,6 +17,9 @@ would outrank the theme with stale colours). GTK 4 / libadwaita ignores themes: 
 Off: gtk-theme goes back to adw-gtk3(-dark), the stub and the GTK 4 file are emptied.
 Also sets the title bar buttons (org.gnome.desktop.wm.preferences button-layout) to
 decorButtons, e.g. "maximize,close" (niri has no minimizing).
+The Golden Gate skin (palette key skin "goldengate"): the decorations are macOS's traffic lights
+(templates/gtk3-decor-mac.css, gtk4-decor-mac.css) on the leading side, close,minimize,maximize:
+— the minimize light stays grey, niri has no minimizing; off again, the leading side goes back.
 Always (on or off): the pixel frames the palette CSS draws its buttons, fields and menus with
 (templates/gtk3.css, gtk4.css → assets/frame-raised.svg, frame-sunken.svg next to each CSS):
 the outline in the palette's edge colour with stepped corners, and the bevel.
@@ -147,7 +150,10 @@ def main():
     base = "adw-gtk3" + suffix
     base_dir = next((d / base for d in (HOME / ".local/share/themes", HOME / ".themes", Path("/usr/share/themes")) if (d / base / "gtk-3.0/gtk.css").exists()), None)
     current = gsettings("org.gnome.desktop.interface", "gtk-theme")
-    on = bool(pal.get("decorGtk"))
+    mac = pal.get("skin") == "goldengate"
+    on = bool(pal.get("decorGtk")) or mac
+    decor3_tpl = SHELL / ("templates/gtk3-decor-mac.css" if mac else "templates/gtk3-decor.css")
+    decor4_tpl = SHELL / ("templates/gtk4-decor-mac.css" if mac else "templates/gtk4-decor.css")
     # the palette CSS's frames, next to it, in the apps' colours (hell's while the demon rules)
     apps = dict(pal, **(pal.get("apps") or {}))
     frames(GTK3, apps)
@@ -164,19 +170,19 @@ def main():
         return
 
     # GTK 4 / libadwaita: the decorations next to its user CSS
-    write(GTK4 / "angelos-decor.css", render((SHELL / "templates/gtk4-decor.css").read_text(), pal))
+    write(GTK4 / "angelos-decor.css", render(decor4_tpl.read_text(), pal))
     assets(GTK4, pal)
 
     # GTK 3 (and Chromium's GTK mode): the live theme
     palette_css = (GTK3 / "angelos.css").read_text() if (GTK3 / "angelos.css").exists() else ""
     if palette_css == STUB:
         palette_css = ""
-    decor3 = render((SHELL / "templates/gtk3-decor.css").read_text(), pal)
+    decor3 = render(decor3_tpl.read_text(), pal)
     css3 = '@import url("file://%s/gtk-3.0/gtk.css");\n\n%s\n%s' % (base_dir, palette_css, decor3)
     # inlined below the theme's own @import: an @import further down would be dropped
     palette4 = (GTK4 / "angelos.css").read_text() if (GTK4 / "angelos.css").exists() else ""
     palette4 = "\n".join(l for l in palette4.splitlines() if not l.lstrip().startswith("@import"))
-    css4 = '@import url("file://%s/gtk-4.0/gtk.css");\n\n%s\n%s' % (base_dir, palette4, render((SHELL / "templates/gtk4-decor.css").read_text(), pal))
+    css4 = '@import url("file://%s/gtk-4.0/gtk.css");\n\n%s\n%s' % (base_dir, palette4, render(decor4_tpl.read_text(), pal))
     in_use = THEMES / current if current in ("angelOS-a", "angelOS-b") else None
     if palette_css and in_use and (in_use / "gtk-3.0/gtk.css").exists() and (in_use / "gtk-3.0/gtk.css").read_text() == css3:
         print(json.dumps({"live": True, "theme": current, "changed": False}))
@@ -200,7 +206,13 @@ def main():
     layout = pal.get("decorButtons") or "maximize,close"
     cur_layout = gsettings("org.gnome.desktop.wm.preferences", "button-layout")
     left = cur_layout.split(":")[0] if ":" in cur_layout else "icon"
-    want = left + ":" + layout
+    if mac:
+        want = "close,minimize,maximize:"
+    else:
+        # the Mac's lights on the leading side go back to the app icon there
+        if "close" in left.split(","):
+            left = "icon"
+        want = left + ":" + layout
     if cur_layout != want:
         gsettings("org.gnome.desktop.wm.preferences", "button-layout", want)
 

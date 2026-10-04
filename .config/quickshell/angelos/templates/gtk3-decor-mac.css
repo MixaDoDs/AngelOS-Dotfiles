@@ -1,0 +1,55 @@
+/* angelOS Golden Gate window buttons — GTK 3, generated (templates/gtk3-decor-mac.css).
+   macOS's traffic lights on the leading side (button layout close,minimize,maximize:) for GTK 3
+   apps and for Firefox and Chromium drawing their title bars with GTK: 12 px circles with Golden
+   Gate's glass shading, grey in an inactive window. niri has no minimizing: the middle light
+   stays grey, as macOS draws a light whose action a window doesn't have. The selectors are long
+   on purpose: adw-gtk3 styles title buttons with :not(.appmenu) and resets them in :backdrop. */
+headerbar button.titlebutton:not(.appmenu),
+.titlebar button.titlebutton:not(.appmenu),
+headerbar button.titlebutton:backdrop:not(.appmenu),
+.titlebar button.titlebutton:backdrop:not(.appmenu),
+headerbar button.titlebutton:hover:not(.appmenu),
+.titlebar button.titlebutton:hover:not(.appmenu) {
+    min-width: 12px;
+    min-height: 12px;
+    padding: 0;
+    margin: 0 4px;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    -gtk-icon-shadow: none;
+    outline: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 12px 12px;
+    background-image: radial-gradient(circle closest-side, {{macLightOff}} 0%, {{macLightOff}} 86%, rgba(0, 0, 0, 0.18) 92%, transparent 100%);
+}
+headerbar button.titlebutton:not(.appmenu) image,
+.titlebar button.titlebutton:not(.appmenu) image {
+    opacity: 0;
+    -gtk-icon-transform: scale(0.6);
+}
+headerbar button.titlebutton.close:not(.appmenu),
+.titlebar button.titlebutton.close:not(.appmenu),
+headerbar button.titlebutton.close:hover:not(.appmenu),
+.titlebar button.titlebutton.close:hover:not(.appmenu) {
+    background-image: radial-gradient(circle closest-side, #ff8e87 0%, #ff5f57 62%, #e0443e 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+}
+headerbar button.titlebutton.maximize:not(.appmenu),
+.titlebar button.titlebutton.maximize:not(.appmenu),
+headerbar button.titlebutton.maximize:hover:not(.appmenu),
+.titlebar button.titlebutton.maximize:hover:not(.appmenu) {
+    background-image: radial-gradient(circle closest-side, #5fdc71 0%, #28c840 62%, #1aab29 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+}
+headerbar button.titlebutton.close:backdrop:not(.appmenu),
+.titlebar button.titlebutton.close:backdrop:not(.appmenu),
+headerbar button.titlebutton.maximize:backdrop:not(.appmenu),
+.titlebar button.titlebutton.maximize:backdrop:not(.appmenu) {
+    background-image: radial-gradient(circle closest-side, {{macLightOff}} 0%, {{macLightOff}} 86%, rgba(0, 0, 0, 0.18) 92%, transparent 100%);
+}
+headerbar:hover button.titlebutton.close:not(.appmenu) image,
+headerbar:hover button.titlebutton.maximize:not(.appmenu) image {
+    opacity: 0.6;
+    color: rgba(0, 0, 0, 0.6);
+}

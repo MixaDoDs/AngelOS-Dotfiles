@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pixel fonts for angelOS: list what is available, install or remove a font.
+"""Pixel fonts for angelOS, and the Golden Gate skin's smooth ones: list, install, remove.
 
   fonts.py list             -> JSON catalog with installed state
   fonts.py install <id>     -> download, verify SHA-256, install into
@@ -74,6 +74,20 @@ CATALOG = [
                  "sha256": "c845473330b94c2079ce9af01c51ac8ba2d99c24f4d14c039843bbb8e642ebd8"},
                 {"url": GF + "silkscreen/Silkscreen-Bold.ttf",
                  "sha256": "768476aa712d4f5c3e18d3bce80f980a8bd3f72b7094d22ec5e768df3acfed61"}]},
+    # the Golden Gate skin's fonts (smooth, native 0): Inter — open, drawn close to SF Pro — and
+    # JetBrains Mono for code; pinned to a google/fonts commit
+    {"id": "inter", "families": ["Inter"], "native": 0, "cyrillic": True,
+     "roles": ["body", "title"], "license": "OFL", "note": "the Golden Gate skin's font, close to SF Pro",
+     "homepage": "https://rsms.me/inter/",
+     "assets": [{"url": "https://raw.githubusercontent.com/google/fonts/0b58fb370093f9a9f4ff785d94405710b79de67c/ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf",
+                 "name": "Inter.ttf",
+                 "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"}]},
+    {"id": "jetbrains-mono", "families": ["JetBrains Mono"], "native": 0, "cyrillic": True,
+     "roles": ["mono"], "license": "OFL", "note": "the Golden Gate skin's monospace",
+     "homepage": "https://www.jetbrains.com/lp/mono/",
+     "assets": [{"url": "https://raw.githubusercontent.com/google/fonts/6e4b84c976cadb3c49a40fd9a1c203e4f7fcf2da/ofl/jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf",
+                 "name": "JetBrainsMono.ttf",
+                 "sha256": "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda"}]},
     {"id": "vt323", "families": ["VT323"], "native": 0, "cyrillic": False,
      "roles": ["mono", "body"], "license": "OFL", "note": "Latin only, terminal look",
      "homepage": "https://fonts.google.com/specimen/VT323",

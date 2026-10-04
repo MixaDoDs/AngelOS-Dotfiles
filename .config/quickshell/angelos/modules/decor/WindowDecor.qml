@@ -16,7 +16,9 @@ import qs.widgets
 // their own (browsers, GTK4, Steam…) are skipped: Config.decor.skip.
 // The bar sits right above the window (inside its top edge when there is no room), hides
 // where another floating window covers it, in the overview, under fullscreen and while
-// a workspace switch slides past. In hell (Theme.hell) it is obsidian and blackletter.
+// a workspace switch slides past. In hell (Theme.hell) it is obsidian and blackletter. In the
+// Golden Gate skin it is a Mac's: the traffic lights on the left (close; minimize, grey — niri
+// has none; full screen), the title in the middle, double-click to zoom.
 // The bars live in a ListModel keyed by window id, not in a JS array: every focus change
 // and every step of a move rebuilt an array model, the bar being held was destroyed and
 // the drag let go at once. While held, the bar follows the pointer itself and niri moves
@@ -30,7 +32,9 @@ Variants {
         required property var modelData
         readonly property string screenName: modelData.name
         readonly property var ws: Niri.activeWorkspace(screenName)
-        readonly property int barH: Theme.sizeBody + Theme.u * 7
+        // the Golden Gate skin: a Mac's title bar (traffic lights, the title in the middle)
+        readonly property bool mac: GoldenGate.on && !Theme.hell
+        readonly property int barH: mac ? GoldenGate.px(30) : Theme.sizeBody + Theme.u * 7
 
         function skipped(appId) {
             const id = String(appId || "").toLowerCase();
@@ -206,10 +210,28 @@ Variants {
                 height: info ? info.h : win.barH
 
                 PxBox {
+                    visible: !win.mac
                     anchors.fill: parent
                     hell: bar.hell
                     color: bar.hell ? (bar.active ? Theme.mix(Theme.hellFaceAlt, Theme.hellBlood, 0.35) : Theme.hellFace) : bar.active || bar.held ? Theme.menuHeader : Theme.faceAlt
                     shadow: false
+                }
+                // a Mac's title bar: the window's own colour, the top corners round like niri's
+                // window below it (templates/niri-mac.kdl squares that one's top corners)
+                Rectangle {
+                    visible: win.mac
+                    anchors.fill: parent
+                    topLeftRadius: bar.info && bar.info.inside ? 0 : GoldenGate.windowRadius
+                    topRightRadius: topLeftRadius
+                    color: GoldenGate.windowBg
+                    MacText {
+                        anchors.centerIn: parent
+                        width: Math.min(implicitWidth, parent.width - GoldenGate.px(160))
+                        horizontalAlignment: Text.AlignHCenter
+                        text: Niri.titleOf(bar.w) || bar.w.app_id || ""
+                        semibold: true
+                        color: bar.active ? GoldenGate.label : GoldenGate.secondaryLabel
+                    }
                 }
 
                 // drag: the bar goes with the pointer, niri moves the window after it;
@@ -345,7 +367,64 @@ Variants {
                     }
                 }
 
+                // the traffic lights: close, minimize (grey: niri has no minimizing — the way macOS
+                // draws a light the window can't use), full screen; their glyphs under the pointer
                 Row {
+                    id: lights
+                    visible: win.mac
+                    z: 2
+                    x: GoldenGate.px(13)
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: GoldenGate.px(8)
+                    HoverHandler {
+                        id: lightsHover
+                    }
+                    Repeater {
+                        model: [["close", 0], ["minimize", 1], ["full", 2]]
+                        Rectangle {
+                            id: light
+                            required property var modelData
+                            readonly property bool usable: modelData[0] !== "minimize"
+                            width: GoldenGate.px(12)
+                            height: width
+                            radius: width / 2
+                            color: !bar.active || !usable ? (GoldenGate.dark ? "#4a4a4d" : "#d1d1d6") : GoldenGate.lights[modelData[1]]
+                            border.width: 1
+                            border.color: Qt.rgba(0, 0, 0, 0.14)
+                            // Golden Gate's glass on the lights: a highlight in the upper half
+                            Rectangle {
+                                visible: bar.active && light.usable
+                                x: parent.width * 0.2
+                                y: parent.height * 0.08
+                                width: parent.width * 0.6
+                                height: parent.height * 0.42
+                                radius: height / 2
+                                color: Qt.rgba(1, 1, 1, 0.35)
+                            }
+                            MacIcon {
+                                visible: lightsHover.hovered && light.usable
+                                anchors.centerIn: parent
+                                name: light.modelData[0] === "close" ? "x" : "maximize-2"
+                                size: parent.width * 0.7
+                                stroke: 3
+                                color: Qt.rgba(0, 0, 0, 0.55)
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: light.usable
+                                onClicked: {
+                                    if (light.modelData[0] === "close")
+                                        Niri.closeWindow(bar.wid);
+                                    else
+                                        Niri.fullscreenWindow(bar.wid);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Row {
+                    visible: !win.mac
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.u * 3
                     anchors.verticalCenter: parent.verticalCenter
@@ -369,6 +448,7 @@ Variants {
 
                 Row {
                     id: buttons
+                    visible: !win.mac
                     anchors.right: parent.right
                     anchors.rightMargin: Theme.u * 2
                     anchors.verticalCenter: parent.verticalCenter

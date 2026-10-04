@@ -6,7 +6,9 @@
 #   fake_app.py x11           a dbusmenu at /com/example/Menu, registered with RegisterWindow
 #   fake_app.py gtkapp [m]    a GtkApplication: actions app./win., a menubar when m = "menubar"
 #   fake_app.py module        appmenu-gtk-module: a GMenuModel menubar + "unity." actions
+import os
 import sys
+import time
 import warnings
 
 from gi.repository import Gio, GLib
@@ -14,6 +16,9 @@ from gi.repository import Gio, GLib
 warnings.simplefilter("ignore", DeprecationWarning)
 conn = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 mode = sys.argv[1]
+# FAKE_DELAY=seconds: an app that takes a while to start (on the bus at once, its objects later)
+if os.environ.get("FAKE_DELAY"):
+    time.sleep(float(os.environ["FAKE_DELAY"]))
 
 
 def say(*a):

@@ -44,18 +44,8 @@ Singleton {
     readonly property string monoFont: families.includes("JetBrains Mono") ? "JetBrains Mono" : families.includes("Noto Sans Mono") ? "Noto Sans Mono" : "monospace"
 
     // ---- colours ----
-    // the accent colours of Appearance (macOS 26/27 values), and graphite
-    readonly property var accents: ({
-            "blue": ["#0088ff", "#0091ff"],
-            "purple": ["#a550a7", "#bf5af2"],
-            "pink": ["#f74f9e", "#ff6aa8"],
-            "red": ["#ff5257", "#ff6961"],
-            "orange": ["#f7821b", "#ff9f0a"],
-            "yellow": ["#ffc600", "#ffd60a"],
-            "green": ["#62ba46", "#4cd964"],
-            "graphite": ["#8c8c8c", "#98989d"]
-        })
-    readonly property color accent: hell ? Theme.hellAccent : (accents[Config.mac.accent] || accents.blue)[dark ? 1 : 0]
+    // the accent of Appearance (macOS 26/27 values, Theme.macAccents); hell's own in hell
+    readonly property color accent: hell ? Theme.hellAccent : Theme.macAccent
     readonly property color accentText: "#ffffff"
     readonly property color label: hell ? Theme.hellText : dark ? Qt.rgba(1, 1, 1, 0.88) : Qt.rgba(0, 0, 0, 0.86)
     readonly property color secondaryLabel: hell ? Theme.hellTextDim : dark ? Qt.rgba(1, 1, 1, 0.55) : Qt.rgba(0, 0, 0, 0.5)
@@ -106,8 +96,114 @@ Singleton {
             root.closePanel();
         }
     }
-    onOnChanged: if (!on)
-        closePanel()
+
+    // ---- what the skin puts on while it is chosen, and gives back after ----
+    // (not in dev runs and tests: nothing is downloaded, nothing of yours changes)
+    readonly property bool live: Config.ready && !Shell.dev
+    // its fonts (scripts/fonts.py, pinned downloads): Inter, then JetBrains Mono — once a session
+    property var fontsTried: []
+    Timer {
+        interval: 2500
+        repeat: true
+        running: root.on && root.live && Fonts.catalog.length > 0
+        onTriggered: {
+            if (Fonts.busy)
+                return;
+            const want = ["inter", "jetbrains-mono"].find(id => !Fonts.installed(id) && !root.fontsTried.includes(id));
+            if (!want) {
+                stop();
+                // fresh fonts: GTK, Qt and the rest get them now (goldengate.py, qt-theme.py)
+                if (root.fontsTried.length)
+                    ThemeExport.apply();
+                return;
+            }
+            root.fontsTried = root.fontsTried.concat([want]);
+            Fonts.install(want);
+        }
+    }
+    // its wallpaper (scripts/goldengate-wallpaper.py, drawn here once, light and dark): put on when
+    // the skin is chosen, the light or dark one with the theme; the ones it replaced come back
+    // when the skin goes — unless you picked another one meanwhile
+    property var walls: ({})
+    function ours(p) {
+        return !!p && String(p).indexOf("/angelos/wallpapers/goldengate-") >= 0;
+    }
+    function putWallpaper() {
+        if (!on || !live || !Config.mac.wallpaper || hell)
+            return;
+        const want = Theme.dark ? walls.dark : walls.light;
+        if (!want)
+            return;
+        const w = Config.wallpaper;
+        const before = Config.mac.wallBefore || {};
+        const first = !before.saved;
+        // the first time: what was there is kept; later only our own two swap with the theme
+        if (first)
+            Config.mac.wallBefore = {
+                "saved": true,
+                "fallback": w.fallback,
+                "outputs": w.outputs,
+                "workspaces": w.workspaces
+            };
+        else if (!ours(w.fallback) || Object.keys(w.outputs || {}).length || Object.keys(w.workspaces || {}).length)
+            return;
+        if (w.fallback !== want || Object.keys(w.outputs || {}).length || Object.keys(w.workspaces || {}).length)
+            Wallpapers.setEverywhere(want);
+    }
+    function giveBackWallpaper() {
+        const b = Config.mac.wallBefore || {};
+        if (!b.saved)
+            return;
+        if (ours(Config.wallpaper.fallback)) {
+            Config.wallpaper.fallback = b.fallback || "";
+            Config.wallpaper.outputs = b.outputs || ({});
+            Config.wallpaper.workspaces = b.workspaces || ({});
+        }
+        Config.mac.wallBefore = ({});
+    }
+    Process {
+        id: wallMaker
+        command: ["python3", Quickshell.shellDir + "/scripts/goldengate.py", "wallpapers"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.walls = JSON.parse(text);
+                } catch (e) {}
+                root.putWallpaper();
+            }
+        }
+    }
+    function arrive() {
+        if (live && on && !wallMaker.running)
+            wallMaker.running = true;
+    }
+    onOnChanged: {
+        if (!on)
+            closePanel();
+        if (live) {
+            if (on)
+                arrive();
+            else
+                giveBackWallpaper();
+        }
+    }
+    onLiveChanged: arrive()
+    Component.onCompleted: arrive()
+    Connections {
+        target: Theme
+        function onDarkChanged() {
+            root.putWallpaper();
+        }
+    }
+    Connections {
+        target: Config.mac
+        function onWallpaperChanged() {
+            if (Config.mac.wallpaper)
+                root.putWallpaper();
+            else
+                root.giveBackWallpaper();
+        }
+    }
 
     // ---- the menu bar's ink: black over a light wallpaper, white over a dark one ----
     // (it has no background of its own unless Config.mac.barBackground)

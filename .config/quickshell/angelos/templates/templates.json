@@ -4,8 +4,8 @@
   { "id": "kitty",     "name": "kitty",       "template": "kitty.conf",    "target": "~/.config/kitty/themes/angelos.conf", "reload": "pkill -USR1 -x kitty", "terminal": true },
   { "id": "foot",      "name": "foot",        "template": "foot.ini",      "target": "~/.config/foot/themes/angelos", "terminal": true },
   { "id": "alacritty", "name": "Alacritty",   "template": "alacritty.toml","target": "~/.config/alacritty/themes/angelos.toml", "terminal": true },
-  { "id": "gtk3",      "name": "GTK 3",       "template": "gtk3.css",      "target": "~/.config/gtk-3.0/angelos.css", "apps": true },
-  { "id": "gtk4",      "name": "GTK 4 / libadwaita", "template": "gtk4.css", "target": "~/.config/gtk-4.0/angelos.css", "apps": true },
+  { "id": "gtk3",      "name": "GTK 3",       "template": "gtk3.css",      "target": "~/.config/gtk-3.0/angelos.css", "apps": true, "variants": { "goldengate": "gtk3-mac.css" } },
+  { "id": "gtk4",      "name": "GTK 4 / libadwaita", "template": "gtk4.css", "target": "~/.config/gtk-4.0/angelos.css", "apps": true, "variants": { "goldengate": "gtk4-mac.css" } },
   { "id": "gtk-scheme","name": "GTK color-scheme", "apps": true, "command": "gsettings set org.gnome.desktop.interface color-scheme prefer-{{mode}}; [ -n \"{{decorGtk}}\" ] || gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3{{gtkSuffix}}" },
   { "id": "gtk-live",  "name": "GTK: окна angelOS (рай/ад, кнопки)", "command": "python3 {{shellDir}}/scripts/gtk-live.py {{paletteFile}}",
     "writes": ["~/.config/gtk-4.0/angelos-decor.css", "~/.config/gtk-4.0/assets/{close,maximize,minimize,close-hover}.svg",
@@ -24,5 +24,7 @@
   { "id": "qt",        "name": "Qt: qt6ct (рай/ад, пиксельный стиль)", "command": "python3 {{shellDir}}/scripts/qt-theme.py {{paletteFile}}",
     "writes": ["~/.config/qt6ct/colors/angelos.conf", "~/.config/qt6ct/qss/angelos.qss", "~/.config/qt6ct/qt6ct.conf",
                "~/.config/qt6ct/qss/angelos-frame-{raised,sunken,default,focus}.png", "~/.config/qt6ct/.angelos-stamp"] },
-  { "id": "niri",      "name": "niri (рамки окон)", "template": "niri.kdl", "target": "~/.config/niri/angelos.kdl" }
+  { "id": "golden-gate", "name": "Golden Gate: системный шрифт, значки, модуль меню GTK 3", "command": "python3 {{shellDir}}/scripts/goldengate.py {{paletteFile}}",
+    "writes": ["~/.config/gtk-3.0/settings.ini", "~/.config/gtk-4.0/settings.ini", "~/.local/state/angelos/goldengate-before.json"] },
+  { "id": "niri",      "name": "niri (рамки окон)", "template": "niri.kdl", "target": "~/.config/niri/angelos.kdl", "variants": { "goldengate": "niri-mac.kdl" } }
 ]

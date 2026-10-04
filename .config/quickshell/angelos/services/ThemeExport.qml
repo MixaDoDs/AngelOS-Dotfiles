@@ -18,7 +18,7 @@ Singleton {
     // change re-renders — also the ones that come late: Theme.realm turns midway through the
     // widgets' burn, after Angel.demon (a return "as in the game" used to render heaven's
     // file with hell's accent and stay so); hell's wallpaper accent lands a beat after the circle
-    readonly property string paletteText: JSON.stringify(Object.assign(Theme.exportPalette(), decorPalette(), terminalPalette(), appsPalette(), hellPalette()), null, 2)
+    readonly property string paletteText: JSON.stringify(Object.assign(Theme.exportPalette(), decorPalette(), terminalPalette(), appsPalette(), hellPalette(), macPalette()), null, 2)
     readonly property string disabled: (Config.appearance.disabledTemplates || []).join(",")
     readonly property string signature: Config.appearance.themeApps + "|" + disabled + "|" + paletteText
     property string lastLog: ""
@@ -64,6 +64,46 @@ Singleton {
         // a render see its palette, never the next one half-way
         render.command = ["python3", stub || Quickshell.shellDir + "/scripts/render-templates.py", paletteFile, disabled, "--palette", paletteText];
         render.running = true;
+    }
+
+    // the Golden Gate skin (services/GoldenGate) while the demon doesn't rule: "skin" picks the
+    // templates' Mac variants (templates.json "variants": gtk3-mac.css, gtk4-mac.css,
+    // niri-mac.kdl), the GTK and Qt Mac looks (gtk-live.py, qt-theme.py) and the system font,
+    // icons and GTK 3 module (goldengate.py); the mac* colours are macOS 27's
+    function macPalette() {
+        if (!GoldenGate.on || Angel.demon)
+            return {
+                "skin": ""
+            };
+        const d = Theme.dark;
+        const h = c => Theme.hex(c);
+        // windows float like on a Mac (Config.mac.floating); the ones that get angelOS's title
+        // bar (modules/decor: floating, not drawing their own) meet it with square top corners
+        const skip = (Config.decor.skip || []).map(s => String(s).endsWith("*") ? "^" + String(s).slice(0, -1).replace(/\./g, "\\.") : "^" + String(s).replace(/\./g, "\\.") + "$");
+        let rules = Config.mac.floating ? "window-rule {\n    open-floating true\n}\n" : "";
+        if (Config.decor.titlebars) {
+            rules += "window-rule {\n    match is-floating=true\n";
+            for (const s of skip)
+                rules += "    exclude app-id=r#\"" + s + "\"#\n";
+            rules += "    geometry-corner-radius 0 0 16 16\n}\n";
+        }
+        return {
+            "skin": "goldengate",
+            "macAccent": h(Theme.macAccent),
+            "macWindow": d ? "#1e1e1e" : "#f5f5f5",
+            "macContent": d ? "#232323" : "#ffffff",
+            "macSidebar": d ? "#2a2a2c" : "#e8e8ea",
+            "macPopover": d ? "#2b2b2d" : "#f6f6f6",
+            "macText": d ? "#f5f5f7" : "#1d1d1f",
+            "macLine": d ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)",
+            "macLineHex": d ? "#ffffff24" : "#0000001f",
+            "macControl": d ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.05)",
+            "macControlHover": d ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.09)",
+            "macSelectedSidebar": d ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)",
+            "macLightOff": d ? "#4a4a4d" : "#d1d1d6",
+            "macOverview": d ? "#101012" : "#2c2c30",
+            "macWindowRules": rules
+        };
     }
 
     // window decorations (templates gtk3-decor/gtk4-decor, scripts/gtk-live.py, Helium):

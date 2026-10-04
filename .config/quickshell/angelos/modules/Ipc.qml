@@ -518,6 +518,8 @@ IpcHandler {
             "source": AppMenu.source,
             "ambiguous": !!AppMenu.report.ambiguous,
             "registrar": AppMenu.registrar,
+            "pid": AppMenu.pid,
+            "reported": [AppMenu.report.pid, AppMenu.report.source],
             "menus": AppMenu.menus.map(m => ({
                         "title": m.title,
                         "items": m.items.map(it => it.type === "separator" ? "—" : (it.label || "") + (it.type === "submenu" ? " ›" : "") + (it.enabled === false ? " (off)" : "") + (it.act ? " [" + it.act.kind + "]" : ""))

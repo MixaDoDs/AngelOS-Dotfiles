@@ -40,7 +40,14 @@ Singleton {
     // sparkle (angelOS Pixel); cold for good, angelOS's own arrow frosts over (angelOS Frost).
     // Someone else's theme stays as it is.
     readonly property int angelStep: Story.ready ? Story.angelStep : 0
+    // the Golden Gate skin: macOS's black arrow — capitaine-cursors (drawn after macOS's cursors,
+    // LGPL-3.0, from the distribution) — while it is on and the demon doesn't rule; the cursor
+    // before it comes back when it goes (Config.cursor.beforeMac)
+    readonly property string macTheme: "capitaine-cursors"
+    readonly property bool macCursor: GoldenGate.on && !hellOn && other.includes(macTheme)
     readonly property string heavenTheme: {
+        if (macCursor)
+            return macTheme;
         const own = theme === "angelOS-Pixel" || theme === "angelOS-Glitter";
         if (angelStep >= 3 && own)
             return "angelOS-Frost";
@@ -141,6 +148,10 @@ Singleton {
         _attempt = "";
         Qt.callLater(sync);
     }
+    onMacCursorChanged: {
+        _attempt = "";
+        Qt.callLater(sync);
+    }
     // a new circle, a new mood step: the circle's cursor changes — only then
     onHellThemeChanged: if (hellOn) {
         _attempt = "";
@@ -182,6 +193,23 @@ Singleton {
                 "size": sz
             };
         const now = status.niri ? status.niri[0] : "";
+        // the skin's arrow on; off again, the one before it back
+        if (macCursor && now !== macTheme) {
+            if (!Config.cursor.beforeMac)
+                Config.cursor.beforeMac = now || status.gsettings || "Adwaita";
+            return {
+                "theme": macTheme,
+                "size": sz
+            };
+        }
+        if (!macCursor && now === macTheme && Config.cursor.beforeMac) {
+            const back = Config.cursor.theme ? heavenTheme : Config.cursor.beforeMac;
+            Config.cursor.beforeMac = "";
+            return {
+                "theme": back,
+                "size": sz
+            };
+        }
         if (Config.cursor.theme && now !== heavenTheme && (now === Config.cursor.theme || now === "angelOS-Frost" || now === "angelOS-Pixel" || now === "angelOS-Glitter"))
             return {
                 "theme": heavenTheme,

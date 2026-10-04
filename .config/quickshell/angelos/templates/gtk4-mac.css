@@ -1,0 +1,197 @@
+/* angelOS Golden Gate / {{mode}} (GTK 4 / libadwaita) — generated (templates/gtk4-mac.css).
+   The Golden Gate skin: macOS 27's colours and shapes — a light (or dark) window, a white
+   content area, an edge-to-edge sidebar a shade darker with icons in the accent, rounded
+   controls, the accent on selections. The window buttons (traffic lights) come with
+   angelos-decor.css (templates/gtk4-decor-mac.css). */
+@import url("angelos-decor.css");
+@define-color accent_color {{macAccent}};
+@define-color accent_bg_color {{macAccent}};
+@define-color accent_fg_color #ffffff;
+@define-color destructive_bg_color #ff3b30;
+@define-color destructive_fg_color #ffffff;
+@define-color error_bg_color #ff3b30;
+@define-color error_fg_color #ffffff;
+@define-color window_bg_color {{macWindow}};
+@define-color window_fg_color {{macText}};
+@define-color view_bg_color {{macContent}};
+@define-color view_fg_color {{macText}};
+@define-color headerbar_bg_color {{macWindow}};
+@define-color headerbar_fg_color {{macText}};
+@define-color headerbar_backdrop_color {{macWindow}};
+@define-color popover_bg_color {{macPopover}};
+@define-color popover_fg_color {{macText}};
+@define-color card_bg_color {{macContent}};
+@define-color card_fg_color {{macText}};
+@define-color dialog_bg_color {{macWindow}};
+@define-color dialog_fg_color {{macText}};
+@define-color sidebar_bg_color {{macSidebar}};
+@define-color sidebar_fg_color {{macText}};
+@define-color secondary_sidebar_bg_color {{macWindow}};
+@define-color secondary_sidebar_fg_color {{macText}};
+@define-color theme_selected_bg_color @accent_bg_color;
+@define-color theme_selected_fg_color @accent_fg_color;
+:root {
+    --accent-color: {{macAccent}};
+    --accent-bg-color: {{macAccent}};
+    --accent-fg-color: #ffffff;
+    --destructive-bg-color: #ff3b30;
+    --destructive-fg-color: #ffffff;
+    --error-color: #ff3b30;
+    --success-color: #28c840;
+    --warning-color: #febc2e;
+    --window-bg-color: {{macWindow}};
+    --window-fg-color: {{macText}};
+    --view-bg-color: {{macContent}};
+    --view-fg-color: {{macText}};
+    --headerbar-bg-color: {{macWindow}};
+    --headerbar-fg-color: {{macText}};
+    --headerbar-backdrop-color: {{macWindow}};
+    --headerbar-shade-color: {{macLine}};
+    --popover-bg-color: {{macPopover}};
+    --popover-fg-color: {{macText}};
+    --card-bg-color: {{macContent}};
+    --card-fg-color: {{macText}};
+    --dialog-bg-color: {{macWindow}};
+    --dialog-fg-color: {{macText}};
+    --sidebar-bg-color: {{macSidebar}};
+    --sidebar-fg-color: {{macText}};
+    --sidebar-backdrop-color: {{macSidebar}};
+    --border-color: {{macLine}};
+    --window-radius: 16px;
+}
+
+/* niri rounds and clips every window by 16 px (templates/niri-mac.kdl): the window's own
+   corner follows */
+window {
+    --window-radius: 16px;
+    font-feature-settings: "cv11", "ss03";
+}
+
+/* the toolbar: one with the window, a hairline under it */
+headerbar,
+.titlebar {
+    background: {{macWindow}};
+    box-shadow: inset 0 -1px {{macLine}};
+    min-height: 46px;
+}
+headerbar:backdrop,
+.titlebar:backdrop {
+    background: {{macWindow}};
+}
+headerbar .title,
+.titlebar .title {
+    font-weight: 700;
+}
+
+/* buttons: rounded; in the toolbar soft capsules like Golden Gate's */
+button,
+menubutton > button,
+splitbutton > button {
+    border-radius: 7px;
+}
+/* (only the toolbar's own buttons: the window buttons sit in windowcontrols, styled apart) */
+headerbar .start > button,
+headerbar .end > button,
+headerbar .start > menubutton > button,
+headerbar .end > menubutton > button,
+headerbar .start > splitbutton > button,
+headerbar .end > splitbutton > button {
+    border-radius: 999px;
+    min-height: 28px;
+    min-width: 28px;
+    background-color: {{macControl}};
+}
+headerbar .start > button:hover,
+headerbar .end > button:hover,
+headerbar .start > menubutton > button:hover,
+headerbar .end > menubutton > button:hover {
+    background-color: {{macControlHover}};
+}
+button.suggested-action,
+button.default {
+    background-color: {{macAccent}};
+    color: #ffffff;
+}
+
+/* fields: rounded, a hairline, the accent ring when focused */
+entry,
+spinbutton,
+searchbar > revealer > box > entry {
+    border-radius: 7px;
+    box-shadow: inset 0 0 0 1px {{macLine}};
+    background-color: {{macContent}};
+}
+entry:focus-within,
+spinbutton:focus-within {
+    outline: 3px solid alpha({{macAccent}}, 0.45);
+    outline-offset: 0;
+}
+
+/* the sidebar: edge to edge, a shade darker, icons in the accent, the selection a grey pill */
+.navigation-sidebar,
+.sidebar-pane,
+.sidebar {
+    background-color: {{macSidebar}};
+}
+.navigation-sidebar > row,
+.sidebar-pane row {
+    border-radius: 7px;
+    margin: 1px 8px;
+    min-height: 28px;
+}
+.navigation-sidebar > row image,
+.sidebar-pane row image {
+    color: {{macAccent}};
+}
+.navigation-sidebar > row:selected,
+.sidebar-pane row:selected {
+    background-color: {{macSelectedSidebar}};
+    color: {{macText}};
+}
+
+/* lists and views: the accent on what is picked */
+list > row:selected,
+gridview > child:selected,
+columnview > listview > row:selected {
+    background-color: {{macAccent}};
+    color: #ffffff;
+    border-radius: 6px;
+}
+list.boxed-list,
+.boxed-list,
+.card {
+    border-radius: 10px;
+    box-shadow: 0 0 0 1px {{macLine}};
+}
+
+/* menus and popovers: glass-like, rounded, the accent highlight */
+popover > contents,
+popover.menu > contents {
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px {{macLine}}, 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+popover.menu modelbutton:hover,
+popover.menu modelbutton:selected {
+    background-color: {{macAccent}};
+    color: #ffffff;
+    border-radius: 6px;
+}
+
+/* switches and checks in the accent */
+switch {
+    border-radius: 999px;
+}
+switch:checked {
+    background-color: {{macAccent}};
+}
+checkbutton > check {
+    border-radius: 4px;
+}
+checkbutton > check:checked,
+checkbutton > radio:checked {
+    background-color: {{macAccent}};
+    color: #ffffff;
+}
+scale > trough > highlight {
+    background-color: {{macAccent}};
+}

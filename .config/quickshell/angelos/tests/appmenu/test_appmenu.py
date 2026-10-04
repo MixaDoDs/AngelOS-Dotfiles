@@ -17,6 +17,8 @@ private session bus (it re-runs itself under dbus-run-session), with stand-in ap
   gtk-two      two windows: only app.* actions (win.* would hit an unknown window)
   module       appmenu-gtk-module: the non-empty per-window menubar, "unity." actions, the
                submenu-action set while the submenu shows
+  two-in-one   two commands in one write: both are read (the second one used to wait in a buffer)
+  late         an app on the bus at once, its menu 1.5 s later: found when it comes
   none         a pid with nothing: source "none"
   gone         the app quits: the menu goes with it
 """
@@ -210,6 +212,25 @@ try:
         helper.send({"cmd": "activate", "id": find(m["menus"], "New")["id"]})
         check("module activate", mod.wait_for(lambda l: l == "ACTION unity.-New") is not None)
     mod.stop()
+
+    # ---- two commands in one write (focus leaving and coming back at once) ----
+    q = fake("qt")
+    helper.p.stdin.write(json.dumps({"cmd": "focus", "pid": 0, "app": ""}) + "\n" + json.dumps({"cmd": "focus", "pid": q.p.pid, "app": "q"}) + "\n")
+    helper.p.stdin.flush()
+    both = helper.wait_for(lambda l: '"menu"' in l and json.loads(l)["pid"] == q.p.pid and json.loads(l)["source"] == "dbusmenu", 5)
+    check("two-in-one", both is not None, "the second of two commands written together was never read")
+    q.stop()
+
+    # ---- an app that exports its menu seconds after it appears ----
+    env = dict(os.environ, FAKE_DELAY="1.5")
+    late = subprocess.Popen([sys.executable, str(FAKE), "gtkapp", "menubar"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+    time.sleep(0.3)
+    first = menu_for(late.pid, "org.example.App")
+    later = helper.wait_for(lambda l: '"menu"' in l and json.loads(l)["pid"] == late.pid and json.loads(l)["source"] == "gmenu", 8)
+    check("late", first is not None and first["source"] == "none" and later is not None,
+          "first %s, then %s" % (first and first["source"], "gmenu" if later else "nothing within 8 s"))
+    late.kill()
+    late.wait()
 
     # ---- nothing ----
     plain = subprocess.Popen(["sleep", "30"])

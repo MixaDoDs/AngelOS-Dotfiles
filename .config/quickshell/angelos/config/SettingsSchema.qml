@@ -268,6 +268,7 @@ JsonAdapter {
         property bool hellByCircle: false   // the old default "angelOS-Hell" became "circle" once (services/Cursors)
         property string beforeHell: ""      // never picked one: the cursor she replaced, put back by the angel
         property int beforeHellSize: 0
+        property string beforeMac: ""       // the cursor the Golden Gate skin's arrow replaced (services/Cursors)
     }
 
     property JsonObject updates: JsonObject {
@@ -412,6 +413,8 @@ JsonAdapter {
         property bool dockRecents: true     // recently used apps after the divider
         property var dockApps: []           // desktop ids in the Dock; empty: Start's pinned apps
         property string font: ""            // "" = Inter (open, drawn close to SF Pro); any installed family
+        property bool wallpaper: true       // the skin's own wallpaper (scripts/goldengate-wallpaper.py), light or dark with the theme
+        property var wallBefore: ({})       // the wallpapers it replaced, given back when the skin goes
     }
 
     property JsonObject developer: JsonObject {

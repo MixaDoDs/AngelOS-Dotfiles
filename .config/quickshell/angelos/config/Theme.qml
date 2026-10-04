@@ -339,7 +339,73 @@ Singleton {
     }
     readonly property var flavor: (flavors[Config.appearance.flavor] || flavors.overdose)[dark ? "dark" : "light"]
 
+    // ---- the Golden Gate skin (Config.settingsUi.skin "goldengate"): macOS 27's colours ----
+    // While the skin is on and the demon doesn't rule, the palette is a Mac's — light or dark,
+    // the accent picked in its Appearance — so everything that follows angelOS's colours (GTK,
+    // Qt, the terminals, Telegram, Steam, the browsers, the shell's own pixel windows) looks like
+    // a Mac too. services/GoldenGate takes its accent from here.
+    readonly property bool macLook: Config.ready && Config.settingsUi.skin === "goldengate" && realm !== "hell"
+    readonly property var macAccents: ({
+            "blue": ["#0088ff", "#0091ff"],
+            "purple": ["#a550a7", "#bf5af2"],
+            "pink": ["#f74f9e", "#ff6aa8"],
+            "red": ["#ff5257", "#ff6961"],
+            "orange": ["#f7821b", "#ff9f0a"],
+            "yellow": ["#ffc600", "#ffd60a"],
+            "green": ["#62ba46", "#4cd964"],
+            "graphite": ["#8c8c8c", "#98989d"]
+        })
+    readonly property color macAccent: (macAccents[Config.mac.accent] || macAccents.blue)[dark ? 1 : 0]
+    readonly property var macBase: dark ? ({
+            desk: "#1c1c1e",
+            face: "#242426",
+            faceAlt: "#2c2c2e",
+            sunken: "#1a1a1c",
+            text: "#f5f5f7",
+            textDim: "#98989d",
+            titleText: "#ffffff",
+            hi: "#3a3a3c",
+            lo: "#141416",
+            edge: "#0a0a0b",
+            accent: "#0091ff",
+            accent2: "#5e5ce6",
+            accent3: "#ff9f0a",
+            accent4: "#bf5af2",
+            title1: "#0091ff",
+            title2: "#5e5ce6",
+            danger: "#ff453a",
+            ok: "#30d158",
+            selectText: "#ffffff",
+            shadow: "#000000",
+            // Terminal.app's "Basic" colours, dark
+            ansi: ["#000000", "#c23621", "#25bc24", "#adad27", "#492ee1", "#d338d3", "#33bbc8", "#cbcccd", "#818383", "#fc391f", "#31e722", "#eaec23", "#5833ff", "#f935f8", "#14f0f0", "#e9ebeb"]
+        }) : ({
+            desk: "#e8e8ea",
+            face: "#f5f5f7",
+            faceAlt: "#ececee",
+            sunken: "#ffffff",
+            text: "#1d1d1f",
+            textDim: "#86868b",
+            titleText: "#1d1d1f",
+            hi: "#ffffff",
+            lo: "#d2d2d7",
+            edge: "#b8b8bd",
+            accent: "#0088ff",
+            accent2: "#5856d6",
+            accent3: "#ff9500",
+            accent4: "#af52de",
+            title1: "#0088ff",
+            title2: "#5856d6",
+            danger: "#ff3b30",
+            ok: "#28c840",
+            selectText: "#ffffff",
+            shadow: "#000000",
+            // Terminal.app's "Basic" colours
+            ansi: ["#000000", "#990000", "#00a600", "#999900", "#0000b2", "#b200b2", "#00a6b2", "#bfbfbf", "#666666", "#e50000", "#00d900", "#e5e500", "#0000ff", "#e500e5", "#00e5e5", "#e5e5e5"]
+        })
     readonly property var base: {
+        if (macLook)
+            return macBase;
         if (!flavor.desk)
             return legacyBase;
         return Object.assign({}, legacyBase, flavor, {
@@ -368,12 +434,12 @@ Singleton {
     readonly property color hi: base.hi
     readonly property color lo: base.lo
     readonly property color edge: base.edge
-    readonly property color accent: flavor.accent
-    readonly property color accent2: flavor.accent2
+    readonly property color accent: macLook ? macAccent : flavor.accent
+    readonly property color accent2: macLook ? macBase.accent2 : flavor.accent2
     readonly property color accent3: base.accent3
     readonly property color accent4: base.accent4
-    readonly property color title1: flavor.title1
-    readonly property color title2: flavor.title2
+    readonly property color title1: macLook ? macAccent : flavor.title1
+    readonly property color title2: macLook ? macBase.title2 : flavor.title2
     readonly property color danger: base.danger
     readonly property color ok: base.ok
     readonly property color select: accent
@@ -602,7 +668,7 @@ Singleton {
     function exportPalette() {
         const p = {
             mode: dark ? "dark" : "light",
-            flavor: Config.appearance.flavor
+            flavor: macLook ? "goldengate" : Config.appearance.flavor
         };
         const keys = ["desk", "face", "faceAlt", "sunken", "text", "textDim", "titleText", "hi", "lo", "edge", "accent", "accent2", "accent3", "accent4", "title1", "title2", "danger", "ok", "select", "selectText", "shadow"];
         for (const k of keys)

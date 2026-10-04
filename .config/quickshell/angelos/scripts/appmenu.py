@@ -43,8 +43,10 @@ stdout, one JSON object a line:
             the shell then uses an item's shortcut (it reaches the focused window) and leaves
             out what has none.
 """
+import faulthandler
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -160,6 +162,7 @@ class Bus:
         conn.signal_subscribe("org.freedesktop.DBus", "org.freedesktop.DBus", "NameOwnerChanged",
                               "/org/freedesktop/DBus", None, Gio.DBusSignalFlags.NONE, self._owner_changed)
         self.on_gone = None
+        self.on_new = None
 
     def call(self, dest, path, iface, method, args=None, sig=None, timeout=TIMEOUT):
         r = self.conn.call_sync(dest, path, iface, method, args, GLib.VariantType(sig) if sig else None,
@@ -173,6 +176,12 @@ class Bus:
             self.walks.pop(name, None)
             if self.on_gone:
                 self.on_gone(name)
+        elif not name.startswith(":") and new:
+            # an app took its well-known name (org.gnome.Nautilus): it has just exported its
+            # objects, what was looked at on its connection before is stale
+            self.walks.pop(new, None)
+            if self.on_new:
+                self.on_new(new)
 
     def pid_of(self, name):
         if name not in self.pids:
@@ -220,7 +229,9 @@ class Bus:
                     child = path.rstrip("/") + "/" + n.get("name")
                     if not child.startswith(SKIP):
                         todo.append((child, depth + 1))
-        self.walks[dest] = (time.monotonic(), found, sni)
+        # nothing yet (an app still starting) is not kept: the next look is a fresh one
+        if found or sni:
+            self.walks[dest] = (time.monotonic(), found, sni)
         return found, sni
 
 
@@ -626,6 +637,7 @@ class Server:
         self.registrar = Registrar(self.bus, self._registered) if own_registrar else None
         self.finder = Finder(self.bus, self.registrar)
         self.bus.on_gone = self._gone
+        self.bus.on_new = self._new_name
         self.pid, self.app, self.src = 0, "", None
         self.pending = 0        # a debounced re-send
         self.retries = 0
@@ -637,6 +649,11 @@ class Server:
             self.registrar.gone(name)
         if self.src and getattr(self.src, "dest", None) == name:
             self._focus(self.pid, self.app, True)
+
+    def _new_name(self, owner):
+        # the focused app, still without a menu, took a name: look again
+        if self.pid and not self.src and self.bus.pid_of(owner) == self.pid:
+            GLib.timeout_add(200, lambda: (self.pid and not self.src and self._focus(self.pid, self.app, True), False)[1])
 
     def _registered(self, sender):
         if self.bus.pid_of(sender) == self.pid:
@@ -673,11 +690,13 @@ class Server:
             except GLib.Error as e:
                 log("find", pid, e)
         self._send()
-        # an app that just started may export its menu a moment later
-        if pid > 0 and not self.src and self.retries < 3:
+        # an app that just started may export its menu a moment later (Nautilus in a fresh home
+        # takes seconds): look again after 0.5, 1, 2, 4 and 8 s
+        if pid > 0 and not self.src and self.retries < 5:
+            delay = 500 * (2 ** self.retries)
             self.retries += 1
             wanted = pid
-            GLib.timeout_add(600 * self.retries, lambda: (self.pid == wanted and self._focus(wanted, app, True), False)[1])
+            GLib.timeout_add(delay, lambda: (self.pid == wanted and not self.src and self._focus(wanted, app, True), False)[1])
 
     def command(self, msg):
         cmd = msg.get("cmd")
@@ -705,23 +724,34 @@ class Server:
 
     def run(self):
         loop = GLib.MainLoop()
-        stdin = GLib.IOChannel.unix_new(sys.stdin.fileno())
+        fd = sys.stdin.fileno()
+        os.set_blocking(fd, False)
+        pending = b""
 
+        # the raw fd, not sys.stdin: two commands arriving together would leave the second in
+        # Python's buffer, where the watch never sees it
         def readable(ch, cond):
-            if cond & (GLib.IO_HUP | GLib.IO_ERR):
-                loop.quit()
-                return False
-            line = sys.stdin.readline()
-            if not line:
-                loop.quit()
-                return False
+            nonlocal pending
             try:
-                self.command(json.loads(line))
-            except (ValueError, TypeError) as e:
-                log("bad command", line.strip(), e)
+                data = os.read(fd, 65536)
+            except BlockingIOError:
+                return True
+            if not data:
+                loop.quit()
+                return False
+            pending += data
+            *lines, pending = pending.split(b"\n")
+            for raw in lines:
+                line = raw.decode(errors="replace").strip()
+                if not line:
+                    continue
+                try:
+                    self.command(json.loads(line))
+                except (ValueError, TypeError) as e:
+                    log("bad command", line, e)
             return True
 
-        GLib.io_add_watch(stdin, GLib.PRIORITY_DEFAULT, GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, readable)
+        GLib.io_add_watch(GLib.IOChannel.unix_new(fd), GLib.PRIORITY_DEFAULT, GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, readable)
         loop.run()
 
 
@@ -768,6 +798,8 @@ def main():
         print(__doc__.strip().split("\n\n")[0])
         return 0
     if args[0] == "serve":
+        # kill -USR1 <pid>: where it is right now, on stderr (the shell's log)
+        faulthandler.register(signal.SIGUSR1, all_threads=True)
         Server(own_registrar="--no-registrar" not in args).run()
         return 0
     if args[0] == "dump":
