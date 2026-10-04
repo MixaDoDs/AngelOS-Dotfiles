@@ -13,7 +13,7 @@ PanelWindow {
     id: win
 
     screen: Shell.focusedScreen
-    visible: Updates.askRestart
+    visible: Updates.askRestart && !Shell.setupLocked
     anchors {
         top: true
         bottom: true

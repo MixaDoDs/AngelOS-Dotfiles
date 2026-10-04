@@ -1,6 +1,6 @@
 #!/bin/sh
 # angelOS control. `angelos help` lists IPC functions.
-#   angelos launcher | settings [page] | lock | session | clipboard | lyrics
+#   angelos launcher | settings [page] | setup [skip] | lock | session | clipboard | lyrics
 #   angelos settingsView win11|sidebar|controlpanel|properties|tiles | settingsSkin classic|windose|stream
 #   angelos theme light|dark|auto|toggle | wallpaper <path|random> | bar taskbar|top|island
 #   angelos startMenu | sidebar | idle | lockPreview | fontPreset arcade|soft|block|angelos
@@ -12,6 +12,8 @@
 #   sounds; off = no animations at all (the shell, niri, hell), an optimisation mode
 #   angelos author status|fetch|login — the author's own tools (the chapter editor), only for
 #   the GitHub account with access to the author's private repository; gh keeps the login
+#   angelos setup — the setup wizard again (a window); `angelos setup skip` — out of the
+#   first-run wizard at once, also from a text console (Ctrl+Alt+F3) when it is broken
 #   angelos updates [status] | check | update — Settings → Updates from the terminal: follows the
 #   run to its end and says what happened (without a running shell the update runs right here)
 SHELL_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/angelos"
@@ -185,6 +187,10 @@ case "$1" in
   sprites) shift; [ $# -gt 0 ] || set -- skins; exec python3 "$SHELL_DIR/scripts/sprite-rig.py" "$@" ;;
   switch)  shift; exec python3 "$SHELL_DIR/scripts/switch.py" "$@" ;;
   settings) exec qs -c angelos ipc call angelos settings "${2:-}" ;;
+  setup)
+    [ $# -eq 1 ] && exec qs -c angelos ipc call angelos setup
+    shift
+    exec python3 "$SHELL_DIR/scripts/setup-cli.py" "$@" ;;
   ws)
     # workspace switch through the shell (animated transitions), niri directly as a fallback
     target="$(printf '%s' "${2:-}" | tr -cd 'a-z0-9-')"

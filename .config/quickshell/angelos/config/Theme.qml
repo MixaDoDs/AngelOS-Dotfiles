@@ -292,43 +292,51 @@ Singleton {
             }
         })
 
-    readonly property var legacyBase: dark ? ({
-            desk: "#1a0f24",
-            face: "#241432",
-            faceAlt: "#2f1a42",
-            sunken: "#150b1e",
-            text: "#ffe1f1",
-            textDim: "#a987b8",
-            titleText: "#ffffff",
-            hi: "#4a2c63",
-            lo: "#0e0716",
-            edge: "#07030b",
-            accent3: "#ffe066",
-            accent4: "#a57cff",
-            danger: "#ff4f6d",
-            ok: "#57e3a2",
-            selectText: "#1a0d24",
-            shadow: "#000000",
-            ansi: ["#2a1838", "#ff4f6d", "#57e3a2", "#ffe066", "#7b8cff", "#ff5cad", "#4fe3ff", "#e8cfe0", "#6b4f7d", "#ff7a93", "#8af0c0", "#fff0a0", "#a3b0ff", "#ff9fd0", "#9ff0ff", "#ffffff"]
-        }) : ({
-            desk: "#ffd1e8",
-            face: "#fff3f9",
-            faceAlt: "#ffe3f1",
-            sunken: "#ffffff",
-            text: "#3b1f4a",
-            textDim: "#9a7aa8",
-            titleText: "#ffffff",
-            hi: "#ffffff",
-            lo: "#e7a6cc",
-            edge: "#5a2e6e",
-            accent3: "#ffc93c",
-            accent4: "#b895ff",
-            danger: "#ff3d64",
-            ok: "#2fbf7f",
-            selectText: "#ffffff",
-            shadow: "#5a2e6e",
-            ansi: ["#3b1f4a", "#e0305a", "#1f9e6a", "#c98a00", "#4b5fd6", "#e0308a", "#1b9ec2", "#b89cb0", "#9a7aa8", "#ff5c80", "#34c28a", "#e0a82e", "#6f80f0", "#ff5cad", "#3cc0e0", "#fff3f9"]
-        })
+    readonly property var legacyBase: legacyFor(dark)
+    function legacyFor(isDark) {
+        return isDark ? ({
+                desk: "#1a0f24",
+                face: "#241432",
+                faceAlt: "#2f1a42",
+                sunken: "#150b1e",
+                text: "#ffe1f1",
+                textDim: "#a987b8",
+                titleText: "#ffffff",
+                hi: "#4a2c63",
+                lo: "#0e0716",
+                edge: "#07030b",
+                accent3: "#ffe066",
+                accent4: "#a57cff",
+                danger: "#ff4f6d",
+                ok: "#57e3a2",
+                selectText: "#1a0d24",
+                shadow: "#000000",
+                ansi: ["#2a1838", "#ff4f6d", "#57e3a2", "#ffe066", "#7b8cff", "#ff5cad", "#4fe3ff", "#e8cfe0", "#6b4f7d", "#ff7a93", "#8af0c0", "#fff0a0", "#a3b0ff", "#ff9fd0", "#9ff0ff", "#ffffff"]
+            }) : ({
+                desk: "#ffd1e8",
+                face: "#fff3f9",
+                faceAlt: "#ffe3f1",
+                sunken: "#ffffff",
+                text: "#3b1f4a",
+                textDim: "#9a7aa8",
+                titleText: "#ffffff",
+                hi: "#ffffff",
+                lo: "#e7a6cc",
+                edge: "#5a2e6e",
+                accent3: "#ffc93c",
+                accent4: "#b895ff",
+                danger: "#ff3d64",
+                ok: "#2fbf7f",
+                selectText: "#ffffff",
+                shadow: "#5a2e6e",
+                ansi: ["#3b1f4a", "#e0305a", "#1f9e6a", "#c98a00", "#4b5fd6", "#e0308a", "#1b9ec2", "#b89cb0", "#9a7aa8", "#ff5c80", "#34c28a", "#e0a82e", "#6f80f0", "#ff5cad", "#3cc0e0", "#fff3f9"]
+            });
+    }
+    // the chosen flavour's colours in either mode, whichever is on now (the wizard's previews)
+    function paletteFor(isDark) {
+        const f = (flavors[Config.appearance.flavor] || flavors.overdose)[isDark ? "dark" : "light"];
+        return f.desk ? f : Object.assign({}, legacyFor(isDark), f);
+    }
     readonly property var flavor: (flavors[Config.appearance.flavor] || flavors.overdose)[dark ? "dark" : "light"]
 
     readonly property var base: {

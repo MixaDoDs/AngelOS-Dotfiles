@@ -107,7 +107,7 @@ Singleton {
     property int serial: 0                   // bumps per open (the window restarts its intro)
 
     function step(dir) {
-        if (!ours || Shell.locked)
+        if (!ours || Shell.locked || Shell.setupLocked)
             return;
         if (!active) {
             const list = candidates();

@@ -75,7 +75,7 @@ Singleton {
         {
             "key": "end",
             "title": I18n.t("Готово ♡", "That's it ♡"),
-            "text": I18n.t("Mod+S — настройки. Подсказки можно пройти снова: Настройки → Внешний вид.", "Mod+S opens settings. Replay these tips from Settings → Account.")
+            "text": I18n.t("Mod+S — настройки. Подсказки можно пройти снова: Настройки → Аккаунт.", "Mod+S opens settings. Replay these tips from Settings → Account.")
         }
     ]
     // only steps whose element exists (bar layout is configurable)

@@ -78,6 +78,14 @@ else
   fail "browser themes: tests/browsers/test_browser_theme.py"
 fi
 
+# the way out of the first-run wizard: `angelos setup skip` works with no shell answering
+if python3 "$ROOT/.config/quickshell/angelos/tests/setup/test_cli.py" >"$WORK/setup.log" 2>&1; then
+  pass "setup wizard: \`angelos setup skip\` gets out, with or without a running shell"
+else
+  sed 's/^/    /' "$WORK/setup.log" >&2
+  fail "setup wizard: tests/setup/test_cli.py"
+fi
+
 # the settings tree: every group on one page, no setting lost since the rebuild, every direct link
 if python3 "$ROOT/.config/quickshell/angelos/tests/settings/test_tree.py" >"$WORK/tree.log" 2>&1; then
   pass "settings tree: every group once, no setting lost, every direct link leads somewhere"
@@ -264,6 +272,15 @@ else
     fi
     expect_line default "$input" '^[[:space:]]*layout "us,ru"$'                  "installer: default layouts us,ru"
     expect_line default "$input" '^[[:space:]]*options "grp:alt_shift_toggle"$'  "installer: default switch Alt+Shift"
+    # what the installer asked ("with the game?", the layouts) the first-run wizard won't ask again;
+    # the default run asked nothing, so it wrote nothing
+    if install_case nogame ANGELOS_GAME=0 KB_LAYOUTS=us,de &&
+       python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); s = d["setup"]; sys.exit(0 if d["game"]["enabled"] is False and s["gameAsked"] is True and s["keyboardAsked"] is True else 1)' \
+         "$WORK/nogame/.config/angelos/settings.json" 2>/dev/null && [[ ! -e "$WORK/default/.config/angelos/settings.json" ]]; then
+      pass "installer: ANGELOS_GAME=0 and KB_LAYOUTS are kept, the wizard won't ask them again"
+    else
+      fail "installer: ANGELOS_GAME=0 and KB_LAYOUTS are kept, the wizard won't ask them again"
+    fi
     if grep -rEq '@(HOME|KB_LAYOUT|KB_OPTIONS|KB_VARIANT|VOXTYPE_LANG)@' \
          "$WORK/default/.config" "$WORK/default/.local/bin" 2>/dev/null; then
       fail "installer: unresolved @PLACEHOLDER@ left in installed files"

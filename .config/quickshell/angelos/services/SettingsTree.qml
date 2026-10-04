@@ -181,6 +181,20 @@ Singleton {
             "to": ""
         };
     }
+    // the page file a block comes from: "keyboard/…" -> pages/KeyboardPage.qml
+    function fileOf(src) {
+        return Qt.resolvedUrl("../modules/settings/pages/" + src.charAt(0).toUpperCase() + src.slice(1) + "Page.qml");
+    }
+    // one group of the tree on its own ("keyboard/keyboard-layouts"), for the setup wizard:
+    // its file, and the page the tree puts it on (wherever tree.json moves it)
+    function blockPart(block) {
+        const [src, name] = block.split("/");
+        return {
+            "file": fileOf(src),
+            "only": name ? [name] : [],
+            "page": pageOfGroup(src, name)
+        };
+    }
     // the parts a page is put together from: one per run of blocks from the same file
     // [{file, only: [names] (empty: all), loose}] — "monitor" is the whole file
     function partsOf(id) {
@@ -199,7 +213,6 @@ Singleton {
                 continue;
             }
             const [src, name] = b.split("/");
-            const fileOf = s => Qt.resolvedUrl("../modules/settings/pages/" + s.charAt(0).toUpperCase() + s.slice(1) + "Page.qml");
             const last = out.length ? out[out.length - 1] : null;
             if (last && last.src === src && name && last.only.length) {
                 last.only.push(name);

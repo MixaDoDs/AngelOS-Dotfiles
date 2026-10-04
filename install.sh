@@ -267,6 +267,8 @@ kb_toggle_option() {
 choose_keyboard() {
   local reply bad n code i entry id label opt
 
+  # asked here or given: the setup wizard won't ask again (apply_setup_answers)
+  if ((INTERACTIVE)) || given KB_LAYOUTS; then KB_ASKED=1; fi
   if ((INTERACTIVE)) && ! given KB_LAYOUTS; then
     hr
     _ "Keyboard layouts" "Раскладки клавиатуры"; echo
@@ -954,21 +956,35 @@ install_flatpak() {
 
 # angelOS: CLI on PATH, theme files for kitty/foot/gtk/niri, shell wiring.
 # On the first login angelOS opens its setup wizard and then the interface tips.
-# the game on or off (ANGELOS_GAME, only when it was asked or given): settings.json →
-# game.enabled, the rest of the file as it is. The player's save (save.json) is never touched.
-apply_game_choice() {
-  given ANGELOS_GAME || return 0
-  [[ "$ANGELOS_GAME" == 0 || "$ANGELOS_GAME" == 1 ]] || die "ANGELOS_GAME must be 0 or 1"
+# What was asked here is not asked again by angelOS's setup wizard: the game on or off
+# (ANGELOS_GAME, when asked or given) → settings.json game.enabled and setup.gameAsked; the
+# keyboard layouts (asked or KB_LAYOUTS given) → setup.keyboardAsked. The rest of the file
+# stays as it is; the player's save (save.json) is never touched.
+apply_setup_answers() {
+  local game=""
+  if given ANGELOS_GAME; then
+    [[ "$ANGELOS_GAME" == 0 || "$ANGELOS_GAME" == 1 ]] || die "ANGELOS_GAME must be 0 or 1"
+    game="$ANGELOS_GAME"
+  fi
+  [[ -n "$game" || -n "${KB_ASKED:-}" ]] || return 0
   local f="$HOME_DIR/.config/angelos/settings.json"
   mkdir -p -- "${f%/*}"
-  python3 - "$f" "$ANGELOS_GAME" <<'PY' || warn "$(_ 'Could not write the game choice into settings.json' 'Не удалось записать выбор игры в settings.json')"
+  python3 - "$f" "$game" "${KB_ASKED:-}" <<'PY' || warn "$(_ 'Could not write the answers into settings.json' 'Не удалось записать ответы в settings.json')"
 import json, os, sys, tempfile
-path, on = sys.argv[1], sys.argv[2] == "1"
+path, game, kb = sys.argv[1], sys.argv[2], sys.argv[3] == "1"
 d = {}
 if os.path.exists(path):
     with open(path) as f:
         d = json.load(f)
-d.setdefault("game", {})["enabled"] = on
+before = json.dumps(d, sort_keys=True)
+if game:
+    d.setdefault("game", {})["enabled"] = game == "1"
+    d.setdefault("setup", {})["gameAsked"] = True
+# only before the wizard is done (an update passes the layouts on too: nothing to write then)
+if kb and not d.get("setup", {}).get("complete"):
+    d.setdefault("setup", {})["keyboardAsked"] = True
+if json.dumps(d, sort_keys=True) == before:
+    sys.exit(0)
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".settings-")
 with os.fdopen(fd, "w") as f:
     json.dump(d, f, ensure_ascii=False, indent=4)
@@ -981,7 +997,7 @@ install_shell() {
   [[ "$DESKTOP_SHELL" != none && -d "$shell_dir" ]] || return 0
   if [[ "$DESKTOP_SHELL" == angelos ]]; then
     say "$(_ 'Setting up angelOS…' 'Настройка angelOS…')"
-    apply_game_choice
+    apply_setup_answers
     ln -sfn "$shell_dir/bin/angelos" "$HOME_DIR/.local/bin/angelos"
     mkdir -p -- "$HOME_DIR/.config/angelos"
     printf 'angelos\n' > "$HOME_DIR/.config/angelos/active"

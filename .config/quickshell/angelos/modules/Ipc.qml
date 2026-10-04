@@ -8,14 +8,21 @@ import qs.services
 IpcHandler {
     target: "angelos"
 
+    // While the first-run wizard holds the desktop (Shell.setupLocked) the shell's hotkeys —
+    // niri's binds call these — and the other ways in wait until it is done or skipped.
     function settings(page: string): void {
+        if (Shell.setupLocked)
+            return;
         Shell.toggleSettings(page);
     }
     function showLyrics(): void {
+        if (Shell.setupLocked)
+            return;
         Config.lyrics.enabled = true;
         Config.lyrics.screens = [];
         Lyrics.visibleToggle = true;
     }
+    // the setup wizard again, as a window that holds nothing (the first run opens by itself)
     function setup(): void {
         Shell.setupOpen = true;
     }
@@ -24,8 +31,15 @@ IpcHandler {
         Shell.setupOpen = true;
         Shell.setupStepRequested(step);
     }
+    // the way out of the first-run wizard, also when its window is broken: `angelos setup
+    // skip` (scripts/setup-cli.py) leaves ~/.config/angelos/setup-skipped first, then asks here
+    function setupSkip(): void {
+        Shell.setupSkipRequested();
+    }
     // Start menu on a screen (default: focused); what a Meta tap does
     function startMenu(screen: string): void {
+        if (Shell.setupLocked)
+            return;
         Shell.toggleStart(screen);
     }
     // the owner check: GitHub's answer for the dotfiles repo (services/Owner)
@@ -46,6 +60,8 @@ IpcHandler {
     }
     // open Start with its search filled in: `angelos startText "2+2"` (classic Start: the launcher)
     function startText(text: string): void {
+        if (Shell.setupLocked)
+            return;
         if (Config.bar.startStyle === "classic" || !Config.bar.startStyle) {
             launcherText(text);
             return;
@@ -345,16 +361,24 @@ IpcHandler {
         return "ok";
     }
     function launcher(): void {
+        if (Shell.setupLocked)
+            return;
         Shell.launcherOpen = !Shell.launcherOpen;
     }
     function launcherWith(text: string): void {
+        if (Shell.setupLocked)
+            return;
         Shell.launcherPrefill = text;
         Shell.launcherOpen = true;
     }
     function session(): void {
+        if (Shell.setupLocked)
+            return;
         Shell.sessionOpen = !Shell.sessionOpen;
     }
     function clipboard(): void {
+        if (Shell.setupLocked)
+            return;
         Shell.clipboardOpen = !Shell.clipboardOpen;
     }
     // toggle a desktop widget: angelos widget clock DP-1 (types: clock sysmon cava nowplaying plugin:<id>)
@@ -440,9 +464,13 @@ IpcHandler {
     }
     // the configured system monitor, floating (Settings → System → Task Manager)
     function taskManager(): void {
+        if (Shell.setupLocked)
+            return;
         DesktopActions.launchMonitor();
     }
     function settingsPage(page: string): void {
+        if (Shell.setupLocked)
+            return;
         Shell.openSettings(page);
     }
     // how Settings lay the pages out: `angelos settingsView controlpanel` (no argument: which one)
@@ -506,6 +534,8 @@ IpcHandler {
         });
     }
     function settingsQuery(text: string): void {
+        if (Shell.setupLocked)
+            return;
         Shell.openSettings();
         Qt.callLater(() => {
             if (Shell.settingsView)
@@ -514,6 +544,8 @@ IpcHandler {
     }
     // open settings at the best match: `angelos openSetting blur`
     function openSetting(text: string): string {
+        if (Shell.setupLocked)
+            return "the setup wizard holds the desktop (angelos setup skip)";
         Shell.openSettings();
         const r = SettingsSearch.search(text, 1)[0];
         if (!r)
@@ -525,12 +557,16 @@ IpcHandler {
         return r.title + (r.crumb ? " · " + r.crumb : "");
     }
     function launcherText(text: string): void {
+        if (Shell.setupLocked)
+            return;
         if (!Shell.launcherOpen)
             Shell.launcherOpen = true;
         Shell.launcherText = text;
     }
     // open the right-click desktop menu (x, y in screen pixels); sub: "" | view | new | open | more
     function desktopMenu(screen: string, x: int, y: int, sub: string): string {
+        if (Shell.setupLocked)
+            return "the setup wizard holds the desktop (angelos setup skip)";
         const m = Shell.desktopMenus[screen || (Shell.focusedScreen ? Shell.focusedScreen.name : "")];
         if (!m)
             return "no desktop on " + screen;
@@ -551,13 +587,19 @@ IpcHandler {
         Tour.stop();
     }
     function tour(): void {
+        if (Shell.setupLocked)
+            return;
         Tour.start();
     }
     function lock(): void {
+        if (Shell.setupLocked)
+            return;
         Shell.lock();
     }
     // show the lock screen without locking (Esc or any password closes it)
     function lockPreview(): void {
+        if (Shell.setupLocked)
+            return;
         Shell.lockPreview = !Shell.lockPreview;
     }
     // preview only: "" shows the wrong-password reaction, any text the unlock
@@ -567,6 +609,8 @@ IpcHandler {
     }
     // experimental sidebar (Settings → Bar → Sidebar)
     function sidebar(): string {
+        if (Shell.setupLocked)
+            return "the setup wizard holds the desktop (angelos setup skip)";
         if (!Sidebar.enabled)
             return "sidebar is off (Settings → Taskbar → Sidebar)";
         Sidebar.toggle();
@@ -574,6 +618,8 @@ IpcHandler {
     }
     // screensaver: animated ASCII art until any input
     function idle(): void {
+        if (Shell.setupLocked)
+            return;
         Idle.toggle();
     }
     // look the current song up again, skipping the caches
@@ -581,9 +627,13 @@ IpcHandler {
         Lyrics.refetch();
     }
     function lyrics(): void {
+        if (Shell.setupLocked)
+            return;
         Config.lyrics.enabled = !Config.lyrics.enabled;
     }
     function theme(mode: string): void {
+        if (Shell.setupLocked)
+            return;
         Config.appearance.mode = mode === "toggle" ? (Theme.dark ? "light" : "dark") : mode;
     }
     function flavor(name: string): void {

@@ -10,6 +10,8 @@
   the tour, the helper, Start, `angelos settings …`) leads somewhere: a page of the tree, an
   old id in "legacy", a plugin page or a view's own home
 - two levels: category › page; ids unique; every name in both languages
+- the setup wizard's questions that show groups from Settings (SetupFlow.qml, "blocks")
+  name groups that are on a page of the tree
 Run: python3 tests/settings/test_tree.py   (scripts/check.sh runs it)
 """
 import importlib.util
@@ -91,6 +93,15 @@ class Tree(unittest.TestCase):
                 if pid not in known and not pid.startswith("plugin"):
                     bad.append(f"{f.relative_to(ROOT)}: {pid}")
         self.assertEqual(bad, [], "links to settings pages that are nowhere")
+
+    def test_wizard_blocks_in_tree(self):
+        text = (ROOT / "modules/settings/SetupFlow.qml").read_text()
+        wanted = [b for m in re.finditer(r'"blocks":\s*\[([^\]]*)\]', text) for b in re.findall(r'"([^"]+)"', m.group(1))]
+        self.assertTrue(wanted, "the wizard shows no group from Settings")
+        on = {b for _, b in blocks()}
+        for b in wanted:
+            src = b.split("/")[0]
+            self.assertTrue(b in on or src in on, f"the wizard's {b!r} is on no page of the tree")
 
     def test_shape(self):
         seen = set()

@@ -59,6 +59,11 @@ import "../../widgets/IconSets.js" as IconSets
 //             hidden and shown with the same config (B4: the lock, sleep, a fullscreen game)
 //   rmb       a right-click menu opens where the button went down (B2); a right click into
 //             the window's corner pixel does not crash Qt
+//   setup     the first-run wizard holds the desktop (Start, the launcher, the clipboard, the
+//             session menu, Settings, Alt+Tab wait; the screens count as unseen) and
+//             `angelos setup skip` lets it go; opened again it is a window holding nothing,
+//             every question shows (the keyboard's from Settings, through the tree) and the
+//             last one finishes
 // Prints "TEST <name> PASS|FAIL [detail]" and "TEST-PAGE <id>" markers (the
 // script ties log errors to the page that caused them), "TEST DONE <n>" last.
 Scope {
@@ -68,6 +73,26 @@ Scope {
     property int rigStep: 0                 // the sprite-rig phase: which look, asked yet, what it saw
     property bool rigAsked: false
     property var rigSeen: []
+    SetupFlow {
+        id: wizard
+    }
+    property var setupSeen: []
+    property int setupBack: -1
+    function named(item, name) {
+        // the first item under `item` with this PxGroup name
+        if (!item)
+            return null;
+        if (item.name === name && item.advanced !== undefined)
+            return item;
+        for (const c of item.children || []) {
+            const f = named(c, name);
+            if (f)
+                return f;
+        }
+        if (item.contentItem && item.contentItem !== item)
+            return named(item.contentItem, name);
+        return null;
+    }
     function report(name, ok, detail) {
         if (!ok)
             failures++;
@@ -1876,7 +1901,72 @@ Scope {
         }
         if (phase === "rmb-alive") {
             report("rmb-corner", true, "still alive (focus item: " + bare.activeFocusItem + ")");
-            finish();
+            phase = "setup";
+            return;
+        }
+        // the first run holds the desktop until the wizard is done or skipped
+        if (phase === "setup") {
+            Config.setup.complete = false;
+            Shell.setupFirstRun = true;
+            Shell.setupOpen = true;
+            const held = Shell.setupLocked && !Shell.settingsOpen;
+            Shell.launcherOpen = true;
+            Shell.clipboardOpen = true;
+            Shell.sessionOpen = true;
+            Shell.openStart("test");
+            Shell.openSettings("theme");
+            AltTab.step(1);
+            const quiet = !Shell.launcherOpen && !Shell.clipboardOpen && !Shell.sessionOpen && Shell.startScreen === "" && !Shell.settingsOpen && !AltTab.active;
+            report("setup-lock", held && quiet && Shell.hiddenScreen("test"), "held " + held + "; launcher, clipboard, session, Start, Settings, Alt+Tab stay shut " + quiet + "; screens unseen " + Shell.hiddenScreen("test"));
+            // `angelos setup skip` (the IPC half; tests/setup covers the marker)
+            Shell.setupSkipRequested();
+            const out = !Shell.setupOpen && !Shell.setupLocked && Config.setup.complete;
+            Shell.launcherOpen = true;
+            const free = Shell.launcherOpen;
+            Shell.launcherOpen = false;
+            Shell.settingsOpen = true;
+            report("setup-skip", out && free && Shell.settingsOpen, "out " + out + ", the launcher opens again " + free);
+            // again from Settings: a window, nothing held
+            wizard.go(0);
+            Shell.setupOpen = true;
+            setupSeen = [];
+            setupBack = -1;
+            started = Date.now();
+            phase = "setup-walk";
+            return;
+        }
+        if (phase === "setup-walk") {
+            const a = wizard.assistant;
+            const cur = wizard.cur;
+            const ready = !!a && !!a.shown && a.shown.id === cur.id && !!a.answer && !!a.answer.item;
+            if (!ready && Date.now() - started < 4000)
+                return;
+            let ok = ready && !Shell.setupLocked;
+            if (ready && cur.blocks)
+                for (const b of cur.blocks) {
+                    const g = named(a.answer.item, b.split("/")[1]);
+                    ok = ok && !!g && g.visible && SettingsTree.blockPart(b).page !== "";
+                }
+            setupSeen.push(cur.id + (ok ? "" : "✕"));
+            // Back once, from the second question
+            if (ok && wizard.step === 1 && setupBack < 0) {
+                setupBack = 1;
+                wizard.back();
+                started = Date.now();
+                return;
+            }
+            if (setupBack === 1 && wizard.step === 0)
+                setupBack = 2;
+            if (!ok || wizard.step >= wizard.last) {
+                wizard.tipsAfter = false;
+                wizard.next();
+                const done = !Shell.setupOpen && Config.setup.complete;
+                report("setup-again", ok && done && setupBack === 2 && setupSeen.every(s => !s.endsWith("✕")), setupSeen.join(" → ") + "; back works " + (setupBack === 2) + "; finished " + done);
+                finish();
+                return;
+            }
+            wizard.next();
+            started = Date.now();
         }
     }
 }

@@ -163,7 +163,7 @@ PxPage {
         SettingRow {
             visible: !Shell.setupOpen
             label: I18n.t("Мастер первого запуска", "The setup wizard")
-            hint: I18n.t("пройти ещё раз: вид, панель, обои, ангел", "Go through it again: the look, the bar, wallpaper, the angel")
+            hint: I18n.t("пройти ещё раз в окне: язык, игра, раскладки, тема, движение", "Go through it again in a window: language, the game, layouts, theme, motion")
             PxButton {
                 compact: true
                 text: I18n.t("Открыть", "Open")

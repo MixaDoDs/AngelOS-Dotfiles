@@ -145,7 +145,9 @@ JsonAdapter {
     }
 
     property JsonObject setup: JsonObject {
-        property bool complete: false
+        property bool complete: false       // the first-run wizard done or set up later (it holds the desktop until then)
+        property bool gameAsked: false      // the installer already asked "with the game?" (ANGELOS_GAME): the wizard does not ask again
+        property bool keyboardAsked: false  // …and the keyboard layouts (KB_LAYOUTS)
     }
 
     property JsonObject notifications: JsonObject {

@@ -13,6 +13,19 @@ Singleton {
     property var barViews: ({})
     property bool setupOpen: false
     signal setupStepRequested(int step)
+    signal setupSkipRequested()       // `angelos setup skip`: out of the wizard at once
+    // The first run (modules/settings/SetupWizard): until the wizard is done it covers every
+    // screen and the desktop waits — Start, the launcher, Settings, the menus and the shell's
+    // hotkeys do nothing. "Set up later" and `angelos setup skip` let it go at once. Opened
+    // again from Settings (or `angelos setup`) it is a window that holds nothing.
+    property bool setupFirstRun: false
+    readonly property bool setupLocked: setupOpen && setupFirstRun
+    onSetupLockedChanged: if (setupLocked) {
+        closeTransient("");
+        settingsOpen = false;
+    }
+    onSettingsOpenChanged: if (settingsOpen && setupLocked)
+        settingsOpen = false
     signal resumed()                  // the machine woke from sleep (Lock: logind PrepareForSleep false)
     property bool settingsOpen: false
     property string settingsPage: "appearance"
@@ -79,12 +92,24 @@ Singleton {
         if (keep !== "session")
             sessionOpen = false;
     }
-    onLauncherOpenChanged: if (launcherOpen)
-        closeTransient("launcher")
-    onClipboardOpenChanged: if (clipboardOpen)
-        closeTransient("clipboard")
-    onSessionOpenChanged: if (sessionOpen)
-        closeTransient("session")
+    onLauncherOpenChanged: {
+        if (launcherOpen && setupLocked)
+            launcherOpen = false;
+        else if (launcherOpen)
+            closeTransient("launcher");
+    }
+    onClipboardOpenChanged: {
+        if (clipboardOpen && setupLocked)
+            clipboardOpen = false;
+        else if (clipboardOpen)
+            closeTransient("clipboard");
+    }
+    onSessionOpenChanged: {
+        if (sessionOpen && setupLocked)
+            sessionOpen = false;
+        else if (sessionOpen)
+            closeTransient("session");
+    }
 
     // ---- Start menu: a layer-shell overlay per screen (xdg popups opened without
     // a click are dismissed by the compositor, so Meta taps could not use them) ----
@@ -109,7 +134,7 @@ Singleton {
     function openStart(screen) {
         // nothing said where (a Meta tap, IPC): the look's "open on" (StartPrefs)
         screen = screen || StartPrefs.screenFor() || (focusedScreen ? focusedScreen.name : "");
-        if (!screen || locked)
+        if (!screen || locked || setupLocked)
             return;
         launcherOpen = false;
         startScreen = screen;
@@ -151,10 +176,10 @@ Singleton {
         const size = w && w.layout ? w.layout.window_size : null;
         return !!size && size[0] >= s.width && size[1] >= s.height;
     }
-    // nobody looks at this screen: locked, or a fullscreen window on top.
-    // Timers that only animate things (angel, cava, clocks) pause then.
+    // nobody looks at this screen: locked, the first-run wizard over it, or a fullscreen
+    // window on top. Timers that only animate things (angel, cava, clocks) pause then.
     function hiddenScreen(name) {
-        return locked || fullscreenOn(name);
+        return locked || setupLocked || fullscreenOn(name);
     }
 
     // with no page given Settings open where they were left, like macOS
