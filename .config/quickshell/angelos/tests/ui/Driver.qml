@@ -446,9 +446,9 @@ Scope {
         running: true
         onTriggered: root.step()
     }
-    // a whole run must not hang CI
+    // a whole run must not hang CI (test-ui.sh gives the whole shell 150 s)
     Timer {
-        interval: 100000
+        interval: 140000
         running: true
         onTriggered: {
             root.report("timeout", false, "phase " + root.phase);
@@ -789,7 +789,12 @@ Scope {
         }
         if (phase === "nav") {
             // ◀ ▶: account → sound → its sub-page System sounds → its "Clicks" group, back
-            // twice lands on sound, forward once on System sounds again
+            // twice lands on sound, forward once on System sounds again. Each step waits until
+            // the last one is in the history (recordLoc runs later, Qt.callLater): on a slow
+            // machine the next tick came first and a page never got into it
+            if (navStep > 0 && view.lastLoc !== Shell.settingsPage + "|" + Shell.settingsSub && Date.now() - started < 3000)
+                return;
+            started = Date.now();
             if (navStep === 0) {
                 Shell.settingsPage = "account";
                 navStep = 1;
@@ -1676,7 +1681,8 @@ Scope {
             return;
         }
         if (phase === "pace") {
-            if (Angel.transition && Date.now() - started < 8000)
+            // the shows take longer on a slow machine (GitHub's): wait for them, not a clock
+            if (Angel.transition && Date.now() - started < 25000)
                 return;
             const shown = Angel.demon && CircleFx.runs === paceRuns + 1;
             // back and forth right after: at once, no splash, no burn
@@ -1694,7 +1700,7 @@ Scope {
             return;
         }
         if (phase === "pace-slow") {
-            if ((Angel.transition || DesktopWidgets.burning) && Date.now() - started < 10000)
+            if ((Angel.transition || DesktopWidgets.burning) && Date.now() - started < 25000)
                 return;
             report("pace-slow", paceSlow && !Angel.demon && Theme.realm === "heaven", "a switch " + (Story.quickSwitchMs / 1000 + 1) + " s after the last: the full show " + paceSlow + ", heaven again " + (Theme.realm === "heaven"));
             // D2 in heaven: the angel shows the paper, no way out to list
