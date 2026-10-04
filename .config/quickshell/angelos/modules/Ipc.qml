@@ -520,6 +520,26 @@ IpcHandler {
         }));
         return "ok";
     }
+    // ⌘M of the Golden Gate skin's Mac shortcuts: the frontmost window goes to the Dock
+    // (services/Minimize); with a window id: that one. "restore <id>" brings one back.
+    function macMinimize(): string {
+        if (!GoldenGate.on || !AppMenu.window)
+            return "nothing to minimize";
+        Minimize.minimize(AppMenu.window.id);
+        return "ok";
+    }
+    function macMinimized(): string {
+        return JSON.stringify(Minimize.windows.map(w => ({
+                    "id": w.id,
+                    "app_id": w.app_id,
+                    "title": w.title,
+                    "shot": Minimize.shots[w.id] || ""
+                })));
+    }
+    function macRestore(id: string): string {
+        Minimize.restore(parseInt(id));
+        return "ok";
+    }
     // what the menu bar shows now, as JSON (the report's table, tests): the app, where its menus
     // come from, the titles and their items
     function macMenuState(): string {

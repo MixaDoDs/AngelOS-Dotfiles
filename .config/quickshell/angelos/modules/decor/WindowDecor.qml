@@ -17,8 +17,8 @@ import qs.widgets
 // The bar sits right above the window (inside its top edge when there is no room), hides
 // where another floating window covers it, in the overview, under fullscreen and while
 // a workspace switch slides past. In hell (Theme.hell) it is obsidian and blackletter. In the
-// Golden Gate skin it is a Mac's: the traffic lights on the left (close; minimize, grey — niri
-// has none; full screen), the title in the middle, double-click to zoom.
+// Golden Gate skin it is a Mac's: the traffic lights on the left (close; minimize — to the Dock,
+// services/Minimize; full screen), the title in the middle, double-click to zoom.
 // The bars live in a ListModel keyed by window id, not in a JS array: every focus change
 // and every step of a move rebuilt an array model, the bar being held was destroyed and
 // the drag let go at once. While held, the bar follows the pointer itself and niri moves
@@ -367,8 +367,8 @@ Variants {
                     }
                 }
 
-                // the traffic lights: close, minimize (grey: niri has no minimizing — the way macOS
-                // draws a light the window can't use), full screen; their glyphs under the pointer
+                // the traffic lights: close, minimize (services/Minimize: niri has none of its own),
+                // full screen; their glyphs under the pointer
                 Row {
                     id: lights
                     visible: win.mac
@@ -384,7 +384,7 @@ Variants {
                         Rectangle {
                             id: light
                             required property var modelData
-                            readonly property bool usable: modelData[0] !== "minimize"
+                            readonly property bool usable: true
                             // 14 pt as on macOS 26/27 (12 before Tahoe), 9 between them
                             width: GoldenGate.px(14)
                             height: width
@@ -405,7 +405,7 @@ Variants {
                             MacIcon {
                                 visible: lightsHover.hovered && light.usable
                                 anchors.centerIn: parent
-                                name: light.modelData[0] === "close" ? "x" : "maximize-2"
+                                name: light.modelData[0] === "close" ? "x" : light.modelData[0] === "minimize" ? "minus" : "maximize-2"
                                 size: parent.width * 0.7
                                 stroke: 3
                                 color: Qt.rgba(0, 0, 0, 0.55)
@@ -416,6 +416,8 @@ Variants {
                                 onClicked: {
                                     if (light.modelData[0] === "close")
                                         Niri.closeWindow(bar.wid);
+                                    else if (light.modelData[0] === "minimize")
+                                        Minimize.minimize(bar.wid);
                                     else
                                         Niri.fullscreenWindow(bar.wid);
                                 }

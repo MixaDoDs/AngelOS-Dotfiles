@@ -9,8 +9,9 @@ import qs.services
 
 // What the Golden Gate Dock holds (MacDock draws it): the apps kept in it (Config.mac.dockApps; by
 // default the file manager, Apps, the browser, the terminal, Start's pinned apps and System
-// Settings), then the apps that run but are not kept, a divider, Downloads and the Trash. An app
-// is running when niri has a window whose app id leads to its .desktop file.
+// Settings), then the apps that run but are not kept, a divider, the minimized windows
+// (services/Minimize), Downloads and the Trash. An app is running when niri has a window whose
+// app id leads to its .desktop file — a minimized one counts.
 Singleton {
     id: root
 
@@ -100,6 +101,20 @@ Singleton {
         }
         return out;
     }
+    // the minimized windows, oldest first: a snapshot each, its app's icon in the corner
+    readonly property var minimized: Minimize.windows.map(w => {
+        const e = entryOf(w.app_id);
+        return {
+            "kind": "window",
+            "id": "@w" + w.id,
+            "wid": w.id,
+            "entry": e,
+            "name": Niri.titleOf(w) || (e && e.name ? e.name : AppMenu.prettyName(w.app_id)),
+            "icon": e ? e.icon : w.app_id,
+            "shot": Minimize.shots[w.id] || "",
+            "windows": []
+        };
+    })
     function isKept(id) {
         return keptIds.includes(id);
     }
@@ -137,10 +152,21 @@ Singleton {
             Shell.openSettings();
             return;
         }
-        if (it.windows.length) {
+        if (it.kind === "window") {
+            Minimize.restore(it.wid);
+            return;
+        }
+        // only minimized windows: the last one comes back
+        const shown = it.windows.filter(w => !Minimize.isMinimized(w));
+        if (it.windows.length && !shown.length) {
+            const m = Minimize.windows.filter(w => it.windows.some(x => x.id === w.id));
+            Minimize.restore((m[m.length - 1] || it.windows[0]).id);
+            return;
+        }
+        if (shown.length) {
             // the app in front already: its next window; otherwise its last used one
             const front = AppMenu.window;
-            const mine = it.windows;
+            const mine = shown;
             const i = front ? mine.findIndex(w => w.id === front.id) : -1;
             Niri.focusWindow(i >= 0 ? mine[(i + 1) % mine.length].id : mine[0].id);
             return;
@@ -190,9 +216,12 @@ Singleton {
     }
     // the Dock menu of an app (right click): its windows, New Window, Keep in Dock, Quit
     function menuFor(it) {
+        if (it.kind === "window")
+            return AppMenu.tidy([MacMenus.fn("d:open", I18n.t("Открыть", "Open"), () => Minimize.restore(it.wid)), AppMenu.sep("d1"), MacMenus.fn("d:close", I18n.t("Закрыть", "Close"), () => Niri.closeWindow(it.wid))]);
         const out = [];
+        // a minimized one with a diamond, as on a Mac (Niri.focusWindow brings it back)
         for (const w of it.windows)
-            out.push(MacMenus.fn("d:w" + w.id, root.short(Niri.titleOf(w) || it.name), () => Niri.focusWindow(w.id), {
+            out.push(MacMenus.fn("d:w" + w.id, (Minimize.isMinimized(w) ? "◆ " : "") + root.short(Niri.titleOf(w) || it.name), () => Niri.focusWindow(w.id), {
                 "toggle": "check",
                 "checked": AppMenu.window && AppMenu.window.id === w.id
             }));

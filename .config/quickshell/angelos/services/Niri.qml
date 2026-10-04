@@ -12,7 +12,15 @@ Singleton {
     readonly property string socketPath: Quickshell.env("NIRI_SOCKET")
     readonly property bool available: socketPath !== ""
 
-    property var workspaces: []       // sorted by output, idx
+    property var workspaces: []       // sorted by output, idx; without the hidden ones (below)
+    // every workspace, the hidden ones too: a workspace named hiddenPrefix + output holds the
+    // windows minimized on that output (services/Minimize — niri itself has no minimizing); the
+    // shell's lists of desktops leave it out
+    property var allWorkspaces: []
+    readonly property string hiddenPrefix: "angelos-minimized-"
+    function isHidden(ws) {
+        return !!ws && String(ws.name || "").indexOf(hiddenPrefix) === 0;
+    }
     property var windows: []
     property int focusedWindowId: -1
     // A title alone changes many times a second (a terminal's spinner, a player's track):
@@ -29,7 +37,7 @@ Singleton {
     property bool overviewOpen: false
     property bool ready: false
     readonly property string focusedOutput: {
-        const ws = workspaces.find(w => w.is_focused);
+        const ws = allWorkspaces.find(w => w.is_focused) || workspaces.find(w => w.is_focused);
         return ws ? ws.output : "";
     }
     readonly property var focusedWindow: windows.find(w => w.id === focusedWindowId) || null
@@ -38,6 +46,10 @@ Singleton {
 
     // emitted only after the initial state arrived (never on startup)
     signal workspaceActivated(var ws, bool focused)
+    // a hidden workspace came to the front (scrolled to, the overview): services/Minimize
+    signal hiddenActivated(var ws, var from)
+    // the shell asked to focus a minimized window: services/Minimize brings it back
+    signal restoreRequested(int id)
     signal layoutSwitched(string name)
     signal configLoaded(bool failed)
     signal windowClosed(int id)
@@ -72,7 +84,7 @@ Singleton {
         return windows.filter(w => w.workspace_id === wsId);
     }
     function workspaceById(id) {
-        return workspaces.find(w => w.id === id) || null;
+        return workspaces.find(w => w.id === id) || allWorkspaces.find(w => w.id === id) || null;
     }
     function sortedWindows(list) {
         return list.slice().sort((a, b) => {
@@ -103,6 +115,11 @@ Singleton {
         });
     }
     function focusWindow(id) {
+        const w = windows.find(x => x.id === id);
+        if (w && isHidden(workspaceById(w.workspace_id))) {
+            restoreRequested(id);
+            return;
+        }
         action("FocusWindow", {
             "id": id
         });
@@ -258,7 +275,8 @@ Singleton {
     }
 
     function _setWorkspaces(list) {
-        workspaces = list.slice().sort((a, b) => a.output === b.output ? a.idx - b.idx : (a.output < b.output ? -1 : 1));
+        allWorkspaces = list.slice().sort((a, b) => a.output === b.output ? a.idx - b.idx : (a.output < b.output ? -1 : 1));
+        workspaces = allWorkspaces.filter(w => !isHidden(w));
     }
 
     function _handle(line) {
@@ -280,11 +298,12 @@ Singleton {
             break;
         case "WorkspaceActivated":
             {
-                const target = workspaces.find(w => w.id === d.id);
+                const target = allWorkspaces.find(w => w.id === d.id);
                 if (!target)
                     break;
                 const switched = !target.is_active; // focus moving to another monitor is not a switch
-                _setWorkspaces(workspaces.map(w => {
+                const from = allWorkspaces.find(w => w.output === target.output && w.is_active) || null;
+                _setWorkspaces(allWorkspaces.map(w => {
                     const c = Object.assign({}, w);
                     if (w.output === target.output)
                         c.is_active = w.id === d.id;
@@ -292,17 +311,19 @@ Singleton {
                         c.is_focused = w.id === d.id;
                     return c;
                 }));
-                if (ready && switched)
+                if (ready && switched && isHidden(target))
+                    hiddenActivated(target, from);
+                else if (ready && switched)
                     workspaceActivated(workspaces.find(w => w.id === d.id), d.focused);
                 break;
             }
         case "WorkspaceActiveWindowChanged":
-            _setWorkspaces(workspaces.map(w => w.id === d.workspace_id ? Object.assign({}, w, {
+            _setWorkspaces(allWorkspaces.map(w => w.id === d.workspace_id ? Object.assign({}, w, {
                     "active_window_id": d.active_window_id
                 }) : w));
             break;
         case "WorkspaceUrgencyChanged":
-            _setWorkspaces(workspaces.map(w => w.id === d.id ? Object.assign({}, w, {
+            _setWorkspaces(allWorkspaces.map(w => w.id === d.id ? Object.assign({}, w, {
                     "is_urgent": d.urgent
                 }) : w));
             break;

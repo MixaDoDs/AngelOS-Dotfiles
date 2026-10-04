@@ -93,6 +93,7 @@ Singleton {
         const keys = !Config.mac.keys ? "" : ["binds {",
             "    Mod+Q hotkey-overlay-title=\"Golden Gate: quit the app\" { spawn-sh \"" + ipc + "macQuit\"; }",
             "    Mod+W hotkey-overlay-title=\"Golden Gate: close the window\" { close-window; }",
+            "    Mod+M hotkey-overlay-title=\"Golden Gate: minimize the window\" { spawn-sh \"" + ipc + "macMinimize\"; }",
             "    Mod+Space hotkey-overlay-title=\"Golden Gate: Spotlight\" { spawn-sh \"" + ipc + "startMenu ''\"; }",
             "    Mod+Comma hotkey-overlay-title=\"Golden Gate: System Settings\" { spawn-sh \"" + ipc + "settings ''\"; }",
             "    Ctrl+Up hotkey-overlay-title=\"Golden Gate: Mission Control\" { toggle-overview; }",

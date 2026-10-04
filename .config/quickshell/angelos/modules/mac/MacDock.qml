@@ -9,11 +9,13 @@ import qs.widgets
 
 // The Golden Gate Dock: a glass slab floating over the bottom of the screen with the apps
 // (MacDockModel), a small dot under each one that runs, its name in a bubble above the one under
-// the pointer, a divider, Downloads and the Trash — in MacTahoe's icons drawn like macOS
-// (DockIcons) when they are there. Click: bring the app's windows to the front (its next window
-// if it is in front already) or start it — it bounces until its window comes; right click: the
-// Dock menu (its windows, its .desktop actions, Keep in Dock, Quit). Settings: size,
-// magnification and how big, hiding (Config.mac.dock*). Input on the Dock only, blur on the slab.
+// the pointer, a divider, the minimized windows (services/Minimize: a snapshot each, its app's
+// icon in the corner; a click brings it back), Downloads and the Trash — in MacTahoe's icons
+// drawn like macOS (DockIcons) when they are there. Click: bring the app's windows to the front
+// (its next window if it is in front already; its last minimized one if that is all it has) or
+// start it — it bounces until its window comes; right click: the Dock menu (its windows, its
+// .desktop actions, Keep in Dock, Quit). Settings: size, magnification and how big, hiding
+// (Config.mac.dock*). Input on the Dock only, blur on the slab.
 //
 // Magnification as on a Mac: each icon grows by its distance from the pointer, measured in the
 // Dock at rest (so sizes never feed back into themselves); the grown row is laid out so the spot
@@ -48,12 +50,13 @@ PanelWindow {
         }
     }
 
-    // ---- what is in it: the apps, the divider, Downloads, the Trash ----
+    // ---- what is in it: the apps, the divider, the minimized windows, Downloads, the Trash ----
     readonly property var items: MacDockModel.apps.concat([
         {
             "kind": "divider",
             "id": "@divider"
-        },
+        }
+    ], MacDockModel.minimized, [
         {
             "kind": "downloads",
             "id": "@downloads",
@@ -240,6 +243,7 @@ PanelWindow {
         readonly property bool hovered: mouse.containsMouse
         readonly property bool bouncing: !!MacDockModel.bouncing[item.id]
         readonly property string mac: DockIcons.forItem(item)
+        readonly property bool isWin: item.kind === "window"
         width: size
         height: size
 
@@ -273,7 +277,7 @@ PanelWindow {
             // MacTahoe's icon (DockIcons), else the theme's; else drawn here, in the squircle
             // every Mac icon has: System Settings, Apps, Downloads, the Trash — and an app whose
             // icon the theme doesn't have (its initial)
-            readonly property bool drawn: !cell.mac && (cell.item.kind !== "app" || appIcon.status === Image.Error || appIcon.source.toString() === "")
+            readonly property bool drawn: !cell.mac && !appIcon.badge && (cell.item.kind !== "app" && !cell.isWin || appIcon.status === Image.Error || appIcon.source.toString() === "")
             Rectangle {
                 visible: art.drawn
                 anchors.fill: parent
@@ -300,7 +304,7 @@ PanelWindow {
                     color: cell.item.kind === "downloads" ? "#ffffff" : "#4a4a52"
                 }
                 MacText {
-                    visible: cell.item.kind === "app"
+                    visible: cell.item.kind === "app" || cell.isWin
                     anchors.centerIn: parent
                     text: String(cell.item.name || "?").charAt(0).toUpperCase()
                     size: parent.width * 0.5
@@ -350,10 +354,37 @@ PanelWindow {
                     }
                 }
             }
+            // a minimized window: its snapshot, the app's icon (appIcon) small in the corner
+            Item {
+                visible: cell.isWin && shot.status === Image.Ready
+                anchors.fill: parent
+                anchors.margins: parent.width * 0.06
+                Rectangle {
+                    anchors.centerIn: shot
+                    width: shot.paintedWidth + 2
+                    height: shot.paintedHeight + 2
+                    radius: GoldenGate.px(4)
+                    color: Qt.rgba(0, 0, 0, 0.18)
+                }
+                Image {
+                    id: shot
+                    anchors.fill: parent
+                    source: cell.isWin ? cell.item.shot || "" : ""
+                    sourceSize: Qt.size(Math.ceil(win.big) * 2, Math.ceil(win.big) * 2)
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    mipmap: true
+                    asynchronous: true
+                }
+            }
             Image {
                 id: appIcon
+                readonly property bool badge: cell.isWin && shot.status === Image.Ready
                 visible: !art.drawn
-                anchors.fill: parent
+                width: badge ? parent.width * 0.42 : parent.width
+                height: width
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
                 // drawn once at the grown size (twice that for sharpness), scaled down at rest
                 sourceSize: Qt.size(Math.ceil(win.big) * 2, Math.ceil(win.big) * 2)
                 smooth: true
@@ -364,7 +395,7 @@ PanelWindow {
                     if (cell.mac)
                         return cell.mac;
                     const n = String(cell.item.icon || "");
-                    if (cell.item.kind !== "app" || !n)
+                    if (cell.item.kind !== "app" && !cell.isWin || !n)
                         return "";
                     if (n.startsWith("/"))
                         return "file://" + n;

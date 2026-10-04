@@ -657,6 +657,13 @@ Singleton {
         // a profile's window-level items (next/previous tab)
         for (const m of profileMenus().filter(m => m.window))
             out.push(...m.items, sep("w:p" + m.title));
+        // to the Dock (services/Minimize: niri has no minimizing of its own)
+        out.push(item("w:min", I18n.t("Свернуть", "Minimize"), {
+            "kind": "niri",
+            "action": "minimize"
+        }, Config.mac.keys ? {
+            "keys": ["logo", "m"]
+        } : {}), sep("w:0"));
         out.push(item("w:fill", I18n.t("Заполнить", "Fill"), {
             "kind": "niri",
             "action": "fill"
@@ -766,6 +773,9 @@ Singleton {
         switch (act.action) {
         case "close":
             Niri.closeWindow(w.id);
+            break;
+        case "minimize":
+            Minimize.minimize(w.id);
             break;
         case "fill":
             Niri.maximizeWindow(w.id);
