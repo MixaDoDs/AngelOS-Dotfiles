@@ -224,13 +224,13 @@ PanelWindow {
             readonly property var items: level.modelData.handle ? win.trayItems(opener.children ? opener.children.values : []) : level.modelData.items
             readonly property real wantX: {
                 if (!parentItem) {
-                    const x0 = MacMenus.alignRight ? MacMenus.x - view.width : MacMenus.x - GoldenGate.px(2);
+                    const x0 = MacMenus.bottom >= 0 ? MacMenus.x - view.width / 2 : MacMenus.alignRight ? MacMenus.x - view.width : MacMenus.x - GoldenGate.px(2);
                     return Math.max(GoldenGate.px(4), Math.min(win.width - view.width - GoldenGate.px(4), x0));
                 }
                 const right = parentItem.x + parentItem.view.width - GoldenGate.px(4);
                 return right + view.width <= win.width - GoldenGate.px(4) ? right : Math.max(GoldenGate.px(4), parentItem.x - view.width + GoldenGate.px(4));
             }
-            readonly property real wantY: parentItem ? Math.max(GoldenGate.barHeight, Math.min(win.height - view.height - GoldenGate.px(4), parentItem.y + level.modelData.rowY - view.pad)) : level.modelData.y
+            readonly property real wantY: parentItem ? Math.max(GoldenGate.barHeight, Math.min(win.height - view.height - GoldenGate.px(4), parentItem.y + level.modelData.rowY - view.pad)) : MacMenus.bottom >= 0 ? Math.max(GoldenGate.barHeight, MacMenus.bottom - view.height) : level.modelData.y
             x: wantX
             y: wantY
             width: view.width

@@ -24,6 +24,8 @@ Singleton {
     property bool alignRight: false
     property var titleX: ({})                // screen -> [left x of each title], from the bar
     property bool fromKeyboard: false        // opened from the keyboard: the first item is selected
+    property real bottom: -1                 // a Dock menu: its bottom edge (it opens upwards, centred on x)
+    property var dockItem: null              // the Dock item whose menu is open
     readonly property var barMenus: [angelMenu].concat(AppMenu.menus)
     readonly property var menu: screen === "" ? null : index >= 0 ? barMenus[index] || null : statusKind ? statusMenu(statusKind) : null
     readonly property bool isOpen: menu !== null
@@ -35,6 +37,8 @@ Singleton {
             Shell.closeTransient();
         fromKeyboard = !!keyboard;
         statusKind = "";
+        bottom = -1;
+        dockItem = null;
         x = xPos;
         alignRight = false;
         index = i;
@@ -46,10 +50,29 @@ Singleton {
             Shell.closeTransient();
         fromKeyboard = false;
         index = -1;
+        bottom = -1;
+        dockItem = null;
         trayItem = tray || null;
         statusKind = kind;
         x = rightX;
         alignRight = true;
+        screen = screenName;
+    }
+    // a Dock item's menu: above it, centred on it
+    function openDock(screenName, item, centerX, bottomY) {
+        if (isOpen && screen === screenName && dockItem && item && dockItem.id === item.id) {
+            close();
+            return;
+        }
+        if (!isOpen)
+            Shell.closeTransient();
+        fromKeyboard = false;
+        index = -1;
+        dockItem = item;
+        statusKind = item.kind === "trash" ? "dock-trash" : item.kind === "downloads" ? "dock-downloads" : "dock";
+        x = centerX;
+        bottom = bottomY;
+        alignRight = false;
         screen = screenName;
     }
     function close() {
@@ -57,6 +80,8 @@ Singleton {
         index = -1;
         statusKind = "";
         trayItem = null;
+        dockItem = null;
+        bottom = -1;
     }
     function toggle(screenName, i, xPos) {
         if (isOpen && screen === screenName && index === i)
@@ -165,6 +190,25 @@ Singleton {
                 "id": "s:tray",
                 "tray": trayItem.menu
             } : null;
+        case "dock":
+            {
+                // the live item (its windows change while the menu is open)
+                const it = dockItem ? MacDockModel.apps.find(a => a.id === dockItem.id) || dockItem : null;
+                return it ? {
+                    "id": "s:dock:" + it.id,
+                    "items": MacDockModel.menuFor(it)
+                } : null;
+            }
+        case "dock-trash":
+            return {
+                "id": "s:dock:trash",
+                "items": MacDockModel.trashMenu()
+            };
+        case "dock-downloads":
+            return {
+                "id": "s:dock:downloads",
+                "items": [fn("dl:open", I18n.t("Открыть «Загрузки»", "Open Downloads"), () => MacDockModel.openDownloads())]
+            };
         }
         return null;
     }

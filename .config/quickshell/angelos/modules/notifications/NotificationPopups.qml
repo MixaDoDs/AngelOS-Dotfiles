@@ -7,9 +7,11 @@ import Quickshell.Services.Notifications
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.mac
 import "../../widgets/Place.js" as Place
 
-// Stack of notification cards in the top-right corner of the chosen screen.
+// Stack of notification cards in the top-right corner of the chosen screen. The Golden Gate skin
+// has banners of its own (modules/mac/MacBanner), right under its menu bar.
 PanelWindow {
     id: win
 
@@ -21,19 +23,20 @@ PanelWindow {
     anchors.bottom: Place.bottom(pos)
     anchors.left: Place.left(pos)
     anchors.right: Place.right(pos)
-    margins.top: Theme.u * 4
-    margins.bottom: Theme.u * 4
-    margins.left: Theme.u * 4
-    margins.right: Theme.u * 4
-    implicitWidth: Theme.u * 175
-    implicitHeight: Math.max(1, col.implicitHeight + Theme.u * 3)
+    readonly property bool mac: GoldenGate.on
+    margins.top: mac ? GoldenGate.px(8) : Theme.u * 4
+    margins.bottom: mac ? GoldenGate.px(8) : Theme.u * 4
+    margins.left: mac ? GoldenGate.px(10) : Theme.u * 4
+    margins.right: mac ? GoldenGate.px(10) : Theme.u * 4
+    implicitWidth: mac ? GoldenGate.px(356) + GoldenGate.px(12) : Theme.u * 175
+    implicitHeight: Math.max(1, col.implicitHeight + (mac ? GoldenGate.px(40) : Theme.u * 3))
     exclusionMode: ExclusionMode.Normal
     exclusiveZone: 0
     color: "transparent"
     WlrLayershell.namespace: "angelos-notifications"
     WlrLayershell.layer: WlrLayer.Overlay
 
-    BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
+    BackgroundEffect.blurRegion: Config.appearance.blur && !mac ? blurRegion : null
     Region {
         id: blurRegion
         item: col
@@ -41,12 +44,22 @@ PanelWindow {
 
     Column {
         id: col
-        width: parent.width - Theme.u * 3
-        spacing: Theme.u * 5
+        x: win.mac ? GoldenGate.px(6) : 0
+        y: win.mac ? GoldenGate.px(6) : 0
+        width: parent.width - (win.mac ? GoldenGate.px(12) : Theme.u * 3)
+        spacing: win.mac ? GoldenGate.px(10) : Theme.u * 5
 
         Repeater {
-            model: Notifs.popups
+            model: win.mac ? [] : Notifs.popups
             NotificationCard {
+                required property var modelData
+                notification: modelData
+                width: col.width
+            }
+        }
+        Repeater {
+            model: win.mac ? Notifs.popups : []
+            MacBanner {
                 required property var modelData
                 notification: modelData
                 width: col.width

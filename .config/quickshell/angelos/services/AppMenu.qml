@@ -560,7 +560,7 @@ Singleton {
         if (mine.length > 1) {
             out.push(sep("w:2"));
             for (const x of mine)
-                out.push(item("w:win" + x.id, Niri.titleOf(x) || appName, {
+                out.push(item("w:win" + x.id, String(Niri.titleOf(x) || appName).slice(0, 60), {
                     "kind": "niri",
                     "action": "focus",
                     "id": x.id

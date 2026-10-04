@@ -83,6 +83,32 @@ Singleton {
     readonly property var lights: ["#ff5f57", "#febc2e", "#28c840"]
     readonly property var lightRims: ["#e0443e", "#dea123", "#1aab29"]
 
+    // ---- Control Center ("cc") and Notification Center ("nc"): one of them open on one screen ----
+    property string panel: ""
+    property string panelScreen: ""
+    function openPanel(kind, screenName) {
+        Shell.closeTransient();
+        panelScreen = screenName;
+        panel = kind;
+    }
+    function closePanel() {
+        panel = "";
+    }
+    function togglePanel(kind, screenName) {
+        if (panel === kind && panelScreen === screenName)
+            closePanel();
+        else
+            openPanel(kind, screenName);
+    }
+    Connections {
+        target: Shell
+        function onDismissMenus() {
+            root.closePanel();
+        }
+    }
+    onOnChanged: if (!on)
+        closePanel()
+
     // ---- the menu bar's ink: black over a light wallpaper, white over a dark one ----
     // (it has no background of its own unless Config.mac.barBackground)
     property var barLight: ({})                  // screen name -> 0…1, from wallpaper-color.py --bar

@@ -524,6 +524,25 @@ IpcHandler {
                     }))
         });
     }
+    // Control Center (cc) or Notification Center (nc) on the focused screen, open or closed
+    function macPanel(kind: string): string {
+        if (!GoldenGate.on)
+            return "the Golden Gate skin is off";
+        const scr = Shell.focusedScreen;
+        GoldenGate.togglePanel(kind, scr ? scr.name : "");
+        return GoldenGate.panel === kind ? "open" : "closed";
+    }
+    // the Dock menu of its item `index` (0 = the first app), as a right click would open it
+    function macDockMenu(index: int): string {
+        if (!GoldenGate.on)
+            return "the Golden Gate skin is off";
+        const it = MacDockModel.apps[index];
+        const scr = Shell.focusedScreen;
+        if (!it || !scr)
+            return "no item " + index;
+        MacMenus.openDock(scr.name, it, scr.width / 2, scr.height - GoldenGate.px(Config.mac.dockSize) - GoldenGate.px(30));
+        return it.name;
+    }
     // a status item's menu on the focused screen: wifi | bluetooth | sound | input
     function macStatus(kind: string): string {
         if (!GoldenGate.on)

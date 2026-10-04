@@ -1,0 +1,220 @@
+pragma Singleton
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import Qt.labs.folderlistmodel
+import qs.config
+import qs.services
+
+// What the Golden Gate Dock holds (MacDock draws it): the apps kept in it (Config.mac.dockApps; by
+// default the file manager, Apps, the browser, the terminal, Start's pinned apps and System
+// Settings), then the apps that run but are not kept, a divider, Downloads and the Trash. An app
+// is running when niri has a window whose app id leads to its .desktop file.
+Singleton {
+    id: root
+
+    Component.onCompleted: if (!DefaultApps.data || !DefaultApps.data.files)
+        DefaultApps.refresh()
+
+    function entryOf(id) {
+        if (!id)
+            return null;
+        const bare = String(id).replace(/\.desktop$/, "");
+        return DesktopEntries.byId(bare) || DesktopEntries.heuristicLookup(bare);
+    }
+    function defaultId(cat) {
+        const d = DefaultApps.data && DefaultApps.data[cat];
+        return d && d.current ? String(d.current).replace(/\.desktop$/, "") : "";
+    }
+    // the ids kept in the Dock ("@apps" — the Apps grid, "@settings" — System Settings)
+    readonly property var keptIds: {
+        const own = Config.mac.dockApps || [];
+        if (own.length)
+            return own;
+        const out = [defaultId("files") || "org.gnome.Nautilus", "@apps", defaultId("browser"), defaultId("terminal")];
+        for (const id of Config.bar.startPinned || [])
+            out.push(String(id).replace(/\.desktop$/, ""));
+        out.push("@settings");
+        return out.filter((id, i) => id && out.indexOf(id) === i);
+    }
+    // the windows of each running app: entry id (or app id) -> [window], most recent first
+    readonly property var running: {
+        const out = {};
+        const ts = w => w.focus_timestamp ? w.focus_timestamp.secs * 1e9 + w.focus_timestamp.nanos : 0;
+        for (const w of Niri.windows.slice().sort((a, b) => ts(b) - ts(a))) {
+            const e = entryOf(w.app_id);
+            const key = e ? e.id : String(w.app_id || "");
+            if (!key)
+                continue;
+            (out[key] = out[key] || []).push(w);
+        }
+        return out;
+    }
+    function appItem(id, kept) {
+        if (id === "@apps")
+            return {
+                "kind": "apps",
+                "id": id,
+                "name": I18n.t("Приложения", "Apps"),
+                "kept": true,
+                "windows": []
+            };
+        if (id === "@settings")
+            return {
+                "kind": "settings",
+                "id": id,
+                "name": I18n.t("Системные настройки", "System Settings"),
+                "kept": true,
+                "windows": Niri.windows.filter(w => w.app_id === "org.quickshell" && String(w.title).indexOf("angelOS") === 0)
+            };
+        const e = entryOf(id);
+        const key = e ? e.id : id;
+        return {
+            "kind": "app",
+            "id": key,
+            "entry": e,
+            "name": e && e.name ? e.name : AppMenu.prettyName(id),
+            "icon": e ? e.icon : id,
+            "kept": kept,
+            "windows": running[key] || []
+        };
+    }
+    readonly property var apps: {
+        const out = [];
+        const seen = {};
+        for (const id of keptIds) {
+            const it = appItem(id, true);
+            if (it.kind === "app" && !it.entry)
+                continue;           // uninstalled since
+            if (seen[it.id])
+                continue;
+            seen[it.id] = true;
+            out.push(it);
+        }
+        for (const key in running) {
+            if (seen[key] || key === "org.quickshell")
+                continue;
+            seen[key] = true;
+            out.push(appItem(key, false));
+        }
+        return out;
+    }
+    function isKept(id) {
+        return keptIds.includes(id);
+    }
+    function setKept(id, on) {
+        const ids = keptIds.slice();
+        const i = ids.indexOf(id);
+        if (on && i < 0)
+            ids.splice(Math.max(0, ids.indexOf("@settings")), 0, id);
+        else if (!on && i >= 0)
+            ids.splice(i, 1);
+        Config.mac.dockApps = ids;
+    }
+
+    // ---- Downloads and the Trash ----
+    readonly property string downloads: Config.home + "/Downloads"
+    readonly property string trashFiles: Config.home + "/.local/share/Trash/files"
+    readonly property bool trashFull: trashModel.count > 0
+    FolderListModel {
+        id: trashModel
+        folder: "file://" + root.trashFiles
+        showHidden: true
+        showDirs: true
+        showDotAndDotDot: false
+    }
+
+    // ---- what a click does ----
+    property var bouncing: ({})             // entry id -> true while it starts
+    function open(it) {
+        if (it.kind === "apps") {
+            Shell.openApps(Shell.focusedScreen ? Shell.focusedScreen.name : "");
+            return;
+        }
+        if (it.kind === "settings") {
+            Shell.openSettings();
+            return;
+        }
+        if (it.windows.length) {
+            // the app in front already: its next window; otherwise its last used one
+            const front = AppMenu.window;
+            const mine = it.windows;
+            const i = front ? mine.findIndex(w => w.id === front.id) : -1;
+            Niri.focusWindow(i >= 0 ? mine[(i + 1) % mine.length].id : mine[0].id);
+            return;
+        }
+        if (it.entry) {
+            StartApps.launch(it.entry);
+            const b = Object.assign({}, bouncing);
+            b[it.id] = true;
+            bouncing = b;
+            bounceStop.restart();
+        }
+    }
+    // a window of a bouncing app came: it stops (or after 8 s anyway)
+    onRunningChanged: {
+        let changed = false;
+        const b = Object.assign({}, bouncing);
+        for (const id in b)
+            if (running[id]) {
+                delete b[id];
+                changed = true;
+            }
+        if (changed)
+            bouncing = b;
+    }
+    Timer {
+        id: bounceStop
+        interval: 8000
+        onTriggered: root.bouncing = ({})
+    }
+    function quit(it) {
+        for (const w of it.windows)
+            Niri.closeWindow(w.id);
+    }
+    function openTrash() {
+        Quickshell.execDetached(["gio", "open", "trash:///"]);
+    }
+    function emptyTrash() {
+        Quickshell.execDetached(["gio", "trash", "--empty"]);
+    }
+    function openDownloads() {
+        Shell.openPath(downloads);
+    }
+
+    function short(s) {
+        s = String(s);
+        return s.length > 48 ? s.slice(0, 46) + "…" : s;
+    }
+    // the Dock menu of an app (right click): its windows, New Window, Keep in Dock, Quit
+    function menuFor(it) {
+        const out = [];
+        for (const w of it.windows)
+            out.push(MacMenus.fn("d:w" + w.id, root.short(Niri.titleOf(w) || it.name), () => Niri.focusWindow(w.id), {
+                "toggle": "check",
+                "checked": AppMenu.window && AppMenu.window.id === w.id
+            }));
+        if (it.windows.length)
+            out.push(AppMenu.sep("d1"));
+        const acts = it.entry && it.entry.actions ? it.entry.actions : [];
+        for (let i = 0; i < acts.length; i++)
+            out.push(MacMenus.fn("d:a" + i, acts[i].name, () => acts[i].execute()));
+        if (acts.length)
+            out.push(AppMenu.sep("d2"));
+        if (it.kind === "app") {
+            out.push(MacMenus.fn("d:keep", I18n.t("Оставить в Dock", "Keep in Dock"), () => root.setKept(it.id, !root.isKept(it.id)), {
+                "toggle": "check",
+                "checked": root.isKept(it.id)
+            }));
+            if (!it.windows.length)
+                out.push(MacMenus.fn("d:open", I18n.t("Открыть", "Open"), () => root.open(it)));
+        }
+        if (it.windows.length)
+            out.push(AppMenu.sep("d3"), MacMenus.fn("d:quit", I18n.t("Завершить", "Quit"), () => root.quit(it)));
+        return AppMenu.tidy(out);
+    }
+    function trashMenu() {
+        return AppMenu.tidy([MacMenus.fn("t:open", I18n.t("Открыть", "Open"), root.openTrash), AppMenu.sep("t1"), AppMenu.submenu("t:empty", I18n.t("Очистить Корзину", "Empty Trash"), trashFull ? [MacMenus.fn("t:yes", I18n.t("Удалить всё в Корзине навсегда", "Delete Everything in the Trash Permanently"), root.emptyTrash)] : [])]);
+    }
+}

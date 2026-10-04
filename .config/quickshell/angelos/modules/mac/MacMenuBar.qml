@@ -12,8 +12,8 @@ import qs.widgets
 // wallpaper shows through; Config.mac.barBackground puts one under it), ink black or white by
 // the wallpaper under it. Leading: angelOS's emblem where the Apple logo is (its menu: About,
 // Settings, Force Quit, Sleep…), the focused app's name in bold and its menus (services/AppMenu).
-// Trailing, right to left: the date and time, Spotlight, the input source, sound, Bluetooth,
-// Wi-Fi and the apps' tray icons. While the demon rules: hell's ink and her horns on the emblem.
+// Trailing, right to left: the date and time (Notification Center), Control Center, Spotlight,
+// the input source, sound, Bluetooth, Wi-Fi and the apps' tray icons. While the demon rules: hell's ink and her horns on the emblem.
 PanelWindow {
     id: win
 
@@ -165,6 +165,8 @@ PanelWindow {
         StatusButton {
             id: clock
             property date now: new Date()
+            active: GoldenGate.panel === "nc" && GoldenGate.panelScreen === win.screenName
+            onClicked: GoldenGate.togglePanel("nc", win.screenName)
             Timer {
                 interval: 1000
                 running: !Shell.hiddenScreen(win.screenName)
@@ -179,6 +181,16 @@ PanelWindow {
                 }
                 color: win.ink
             }
+        }
+        // Control Center
+        StatusButton {
+            active: GoldenGate.panel === "cc" && GoldenGate.panelScreen === win.screenName
+            MacIcon {
+                name: "control-center"
+                color: win.ink
+                stroke: 1.8
+            }
+            onClicked: GoldenGate.togglePanel("cc", win.screenName)
         }
         // Spotlight
         StatusButton {

@@ -32,7 +32,8 @@ import "../../widgets/IconSets.js" as IconSets
 //   alttab    the Alt+Tab switcher styles (and hell's own) load and follow the pick
 //   bar       bar widgets (Wi-Fi, Bluetooth, wired, tray, desk sprites) load, their panels open
 //   wrap      long switch labels wrap inside a narrow group instead of running past it
-//   start     every Start look (the bodies of StartOverlay) loads, searches, walks with the keys, Esc closes
+//   start     every Start look (the bodies of StartOverlay, the Golden Gate Spotlight too) loads,
+//             searches, walks with the keys, Esc closes
 //   heaven-menus  heaven's own right-click menus (wings, harp) build round a pointer; all
 //             16 entries fit and stay apart at every size on landscape and portrait screens at
 //             scale 1–2, middle and corner; their ink reads in every heaven palette
@@ -329,7 +330,8 @@ Scope {
                     "xmb": stXmb,
                     "windose": stWindose,
                     "wii": stWii,
-                    "spotlight": stSpot
+                    "spotlight": stSpot,
+                    "mac": stMac
                 })[style] || null
         }
         Component {
@@ -357,6 +359,11 @@ Scope {
         Component {
             id: stWindose
             StartWindose {}
+        }
+        // the Golden Gate skin's Spotlight (StartOverlay's look while the skin is on)
+        Component {
+            id: stMac
+            MacSpotlight {}
         }
         Component {
             id: stWii
@@ -1060,7 +1067,7 @@ Scope {
             report("toggle-wrap", bad.length === 0, bad.length ? "overflow/one line: " + bad.join(", ") : "long labels wrap in " + Math.round(w.direct.width) + " px, short and free stay " + Math.round(w.short.height) + " px tall");
             wrapStage.active = false;
             console.log("TEST-PAGE start-styles");
-            startStyles = ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight"];
+            startStyles = ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight", "mac"];
             startSeen = [];
             phase = "start";
             return;

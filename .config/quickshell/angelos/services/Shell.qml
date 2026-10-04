@@ -142,6 +142,15 @@ Singleton {
     function closeStart() {
         startScreen = "";
     }
+    // the Golden Gate skin's Spotlight in a browsing mode ("apps": every app as a grid — the
+    // Dock's Apps, macOS's successor of Launchpad); the look takes it when it opens
+    property string startMode: ""
+    function openApps(screen) {
+        startMode = "apps";
+        if (startScreen !== "")
+            closeStart();
+        openStart(screen);
+    }
     function toggleStart(screen) {
         screen = screen || StartPrefs.screenFor() || (focusedScreen ? focusedScreen.name : "");
         if (startScreen === screen)

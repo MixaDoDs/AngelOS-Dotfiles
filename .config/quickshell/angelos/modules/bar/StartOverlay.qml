@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.mac
 
 // Start menu as a layer-shell overlay: opens from the Start button, from a
 // Meta tap or over IPC, takes the keyboard and closes on a click outside.
@@ -29,13 +30,14 @@ Variants {
         // "hell" — hell's own menu (StartHell), "" — untouched
         readonly property bool hellish: Angel.demon && Config.y2k.hellStart === "hell"
         readonly property bool hellSkin: Angel.demon && Config.y2k.hellStart === "skin"
-        readonly property string style: hellish ? "hell" : ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight"].includes(Config.bar.startStyle) ? Config.bar.startStyle : "classic"
+        // the Golden Gate skin: its own Spotlight (modules/mac/MacSpotlight)
+        readonly property string style: hellish ? "hell" : GoldenGate.on ? "mac" : ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight"].includes(Config.bar.startStyle) ? Config.bar.startStyle : "classic"
         readonly property bool full: style === "fullscreen" || style === "xmb" || style === "wii"
-        readonly property bool spot: style === "spotlight"
+        readonly property bool spot: style === "spotlight" || style === "mac"
         property bool shown: false
         property real reveal: 0
         // this look's deep settings (services/StartPrefs: Settings → Bar → Start → Fine-tune)
-        readonly property var prefs: StartPrefs.of(style === "hell" ? "classic" : style)
+        readonly property var prefs: StartPrefs.of(style === "hell" ? "classic" : style === "mac" ? "spotlight" : style)
 
         screen: modelData
         visible: shown
@@ -184,6 +186,7 @@ Variants {
                     "win11": win11Comp,
                     "windose": windoseComp,
                     "spotlight": spotComp,
+                    "mac": macComp,
                     "hell": hellComp
                 })[win.style] || classicComp
             // hell's version of whatever look this is
@@ -257,6 +260,10 @@ Variants {
         Component {
             id: spotComp
             StartSpotlight {}
+        }
+        Component {
+            id: macComp
+            MacSpotlight {}
         }
         Component {
             id: hellComp
