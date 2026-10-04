@@ -5,9 +5,10 @@ import Quickshell
 import qs.config
 import qs.services
 
-// One bar per screen; style picks the window flavour (BarLayout.style).
+// One bar per screen; style picks the window flavour (BarLayout.style). The Golden Gate skin
+// has a menu bar and a Dock of its own instead (modules/mac/MacDesktop).
 Variants {
-    model: Shell.screens.filter(s => !Config.bar.screens || Config.bar.screens.length === 0 || Config.bar.screens.includes(s.name))
+    model: GoldenGate.on ? [] : Shell.screens.filter(s => !Config.bar.screens || Config.bar.screens.length === 0 || Config.bar.screens.includes(s.name))
 
     Scope {
         id: scope

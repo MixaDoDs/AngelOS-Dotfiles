@@ -1,0 +1,150 @@
+pragma Singleton
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import Quickshell.Io
+import qs.config
+
+// The Golden Gate skin (Config.settingsUi.skin "goldengate"): the whole desktop like macOS 27
+// for people coming from a Mac — the menu bar with the focused app's menus, the Dock, Spotlight,
+// Control Center, System Settings, windows with traffic lights (modules/mac). This is its switch,
+// its measures and its colours. The measures are Apple's (Human Interface Guidelines; the
+// reference shots behind them: docs/GOLDEN-GATE.md) in logical pixels, grown with the font
+// scale (Theme.fs). While the demon rules the skin stays, in a hell version of its own
+// (`hell`): obsidian glass and blood — like every bar style has one.
+Singleton {
+    id: root
+
+    // the skin is chosen (also while the first-run wizard holds the desktop)
+    readonly property bool chosen: Config.ready && Config.settingsUi.skin === "goldengate"
+    readonly property bool on: chosen
+    readonly property bool hell: on && Angel.demon
+    readonly property bool dark: hell || Theme.dark
+
+    // ---- measures (HIG: menu bar 24 pt, body text 13 pt, menus 13 pt on 22 pt rows) ----
+    readonly property real s: Theme.fs
+    function px(v) {
+        return Math.round(v * s);
+    }
+    readonly property int barHeight: px(24)
+    readonly property int textSize: px(13)
+    readonly property int smallSize: px(11)
+    readonly property int menuRow: px(22)
+    readonly property int menuRadius: px(12)
+    readonly property int menuPad: px(5)            // the rounded highlight sits this far inside the menu
+    readonly property int windowRadius: 16          // niri's geometry-corner-radius (logical px, not scaled)
+    readonly property int panelRadius: px(26)       // Control Center, Notification Center, Spotlight's results
+    readonly property int iconSize: px(16)
+
+    // Inter: open (SIL OFL), drawn close to SF Pro — the fonts catalog installs it with the skin
+    // (scripts/fonts.py "inter"); Config.mac.font takes any installed family instead
+    readonly property var families: Qt.fontFamilies()
+    readonly property string font: Config.mac.font && families.includes(Config.mac.font) ? Config.mac.font : families.includes("Inter") ? "Inter" : families.includes("Inter Variable") ? "Inter Variable" : families.includes("Noto Sans") ? "Noto Sans" : "sans-serif"
+    readonly property string monoFont: families.includes("JetBrains Mono") ? "JetBrains Mono" : families.includes("Noto Sans Mono") ? "Noto Sans Mono" : "monospace"
+
+    // ---- colours ----
+    // the accent colours of Appearance (macOS 26/27 values), and graphite
+    readonly property var accents: ({
+            "blue": ["#0088ff", "#0091ff"],
+            "purple": ["#a550a7", "#bf5af2"],
+            "pink": ["#f74f9e", "#ff6aa8"],
+            "red": ["#ff5257", "#ff6961"],
+            "orange": ["#f7821b", "#ff9f0a"],
+            "yellow": ["#ffc600", "#ffd60a"],
+            "green": ["#62ba46", "#4cd964"],
+            "graphite": ["#8c8c8c", "#98989d"]
+        })
+    readonly property color accent: hell ? Theme.hellAccent : (accents[Config.mac.accent] || accents.blue)[dark ? 1 : 0]
+    readonly property color accentText: "#ffffff"
+    readonly property color label: hell ? Theme.hellText : dark ? Qt.rgba(1, 1, 1, 0.88) : Qt.rgba(0, 0, 0, 0.86)
+    readonly property color secondaryLabel: hell ? Theme.hellTextDim : dark ? Qt.rgba(1, 1, 1, 0.55) : Qt.rgba(0, 0, 0, 0.5)
+    readonly property color tertiaryLabel: dark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.26)
+    readonly property color separator: dark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.1)
+    readonly property color windowBg: hell ? Theme.hellBody : dark ? "#1e1e1e" : "#f5f5f5"
+    readonly property color contentBg: hell ? Theme.hellFace : dark ? "#232323" : "#ffffff"
+    readonly property color sidebarBg: hell ? Theme.hellSunken : dark ? "#2a2a2a" : "#e9e9e9"
+    readonly property color groupBg: hell ? Theme.hellFaceAlt : dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)
+    readonly property color controlBg: dark ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0, 0, 0.06)
+    readonly property color hoverBg: dark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.07)
+    // Liquid Glass: the material of menus, the Dock, Control Center. Golden Gate's slider goes from
+    // clear to tinted (Config.mac.glass); behind it niri's blur (BackgroundEffect)
+    readonly property real tint: Math.max(0, Math.min(1, Config.mac.glass))
+    function glass(extra) {
+        const a = 0.42 + tint * 0.5 + (extra || 0);
+        return hell ? Qt.rgba(0.07, 0.03, 0.03, Math.min(0.97, a + 0.1)) : dark ? Qt.rgba(0.12, 0.12, 0.13, Math.min(0.97, a)) : Qt.rgba(0.97, 0.97, 0.975, Math.min(0.97, a));
+    }
+    readonly property color glassFill: glass(0)
+    // a darker edge and a brighter highlight (Golden Gate's "more depth and separation")
+    readonly property color glassEdge: hell ? Qt.alpha(Theme.hellBlood, 0.55) : dark ? Qt.rgba(0, 0, 0, 0.55) : Qt.rgba(0, 0, 0, 0.14)
+    readonly property color glassHighlight: hell ? Qt.alpha(Theme.hellEmber, 0.35) : dark ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.75)
+    readonly property color shadow: Qt.rgba(0, 0, 0, dark ? 0.5 : 0.22)
+    // the traffic lights (close, minimize, zoom) and their rims
+    readonly property var lights: ["#ff5f57", "#febc2e", "#28c840"]
+    readonly property var lightRims: ["#e0443e", "#dea123", "#1aab29"]
+
+    // ---- the menu bar's ink: black over a light wallpaper, white over a dark one ----
+    // (it has no background of its own unless Config.mac.barBackground)
+    property var barLight: ({})                  // screen name -> 0…1, from wallpaper-color.py --bar
+    function barInk(screenName) {
+        if (hell)
+            return Theme.hellText;
+        if (Config.mac.barBackground)
+            return label;
+        const l = barLight[screenName];
+        return l === undefined ? (dark ? "#ffffff" : "#000000") : l > 0.6 ? Qt.rgba(0, 0, 0, 0.86) : "#ffffff";
+    }
+    function barBand(screenName) {
+        return Config.mac.barBackground ? glass(0.1) : "transparent";
+    }
+    // which wallpaper is under each bar right now
+    readonly property var barWalls: {
+        if (!on)
+            return [];
+        const out = [];
+        for (const sc of Shell.screens) {
+            const ws = Niri.activeWorkspace(sc.name);
+            const p = Wallpapers.resolve(sc.name, ws ? ws.idx : 1);
+            if (p)
+                out.push([sc.name, Wallpapers.display(p)]);
+        }
+        return out;
+    }
+    onBarWallsChanged: probeNext()
+    property var _probing: null
+    property var _probed: ({})                    // path -> lightness
+    function probeNext() {
+        if (probe.running)
+            return;
+        const next = {};
+        let todo = null;
+        for (const [name, path] of barWalls) {
+            if (_probed[path] !== undefined)
+                next[name] = _probed[path];
+            else if (!todo)
+                todo = [name, path];
+        }
+        barLight = next;
+        if (todo) {
+            _probing = todo;
+            probe.command = ["python3", Quickshell.shellDir + "/scripts/wallpaper-color.py", todo[1], "--bar"];
+            probe.running = true;
+        }
+    }
+    Process {
+        id: probe
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const path = root._probing ? root._probing[1] : "";
+                let v = 0.4;
+                try {
+                    v = JSON.parse(text).bar;
+                } catch (e) {}
+                const p = Object.assign({}, root._probed);
+                p[path] = v;
+                root._probed = p;
+            }
+        }
+        onExited: Qt.callLater(root.probeNext)
+    }
+}

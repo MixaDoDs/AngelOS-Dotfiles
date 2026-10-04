@@ -397,6 +397,23 @@ JsonAdapter {
         property var usage: ({})            // page id -> visits; "Everyday" on the home page follows it
     }
 
+    // the Golden Gate skin (settingsUi.skin "goldengate"; services/GoldenGate, modules/mac): the
+    // whole desktop like macOS 27 for people coming from a Mac
+    property JsonObject mac: JsonObject {
+        property real glass: 0.35           // Liquid Glass: 0 clear … 1 tinted (like Appearance → Liquid Glass)
+        property string accent: "blue"      // blue | purple | pink | red | orange | yellow | green | graphite
+        property bool barBackground: false  // the menu bar on a band of its own ("Show menu bar background")
+        property bool appMenus: true        // the focused app's own menus in the menu bar (scripts/appmenu.py)
+        property bool keys: false           // Mac-style shortcuts (niri cfg/angelos-mac.kdl) — offered, never imposed
+        property bool floating: true        // new windows float and overlap like on a Mac (off: niri's columns)
+        property int dockSize: 48           // Dock icons, logical px
+        property bool dockMagnify: false    // icons grow under the pointer
+        property bool dockAutohide: false
+        property bool dockRecents: true     // recently used apps after the divider
+        property var dockApps: []           // desktop ids in the Dock; empty: Start's pinned apps
+        property string font: ""            // "" = Inter (open, drawn close to SF Pro); any installed family
+    }
+
     property JsonObject developer: JsonObject {
         property bool enabled: false
         property string provider: "claude-cli" // claude-cli | codex-cli (browser login) | openai | anthropic (API key)

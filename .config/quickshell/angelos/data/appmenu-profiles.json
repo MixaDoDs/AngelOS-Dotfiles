@@ -1,0 +1,353 @@
+{
+  "_comment": [
+    "Menus for apps that give the Golden Gate menu bar nothing of their own (services/AppMenu.qml).",
+    "Every item does something real: \"keys\" presses the app's own shortcut in the focused window",
+    "(wtype), \"seq\" runs steps one after another (keys, or text typed into a field the step before",
+    "opened), \"run\" starts a command. Shortcuts are the apps' stock ones; tests/appmenu/test_profiles.py",
+    "checks that no item lacks an action. \"$edit\" and \"$termedit\" are the shared Edit menus.",
+    "Labels: [Russian, English]."
+  ],
+  "match": {
+    "firefox": ["firefox", "firefox-esr", "librewolf", "zen", "floorp", "waterfox", "org.mozilla.firefox"],
+    "chromium": ["chromium", "google-chrome", "helium", "brave-browser", "vivaldi-stable", "vivaldi", "microsoft-edge", "thorium-browser", "net.imput.helium"],
+    "kitty": ["kitty"],
+    "alacritty": ["Alacritty", "alacritty"],
+    "foot": ["foot", "footclient"],
+    "nautilus": ["org.gnome.Nautilus"],
+    "steam": ["steam"],
+    "obsidian": ["obsidian", "md.obsidian.Obsidian"],
+    "discord": ["discord", "vesktop", "com.discordapp.Discord", "dev.vencord.Vesktop"],
+    "code": ["code", "code-oss", "Code", "cursor", "codium", "vscodium"],
+    "electron": ["electron", "slack", "signal", "element", "spotify", "chatgpt", "claude", "claude-desktop"],
+    "gtk": []
+  },
+  "menus": {
+    "$edit": {
+      "title": ["Правка", "Edit"],
+      "items": [
+        {"label": ["Отменить", "Undo"], "keys": ["ctrl", "z"]},
+        {"label": ["Повторить", "Redo"], "keys": ["ctrl", "shift", "z"]},
+        "-",
+        {"label": ["Вырезать", "Cut"], "keys": ["ctrl", "x"]},
+        {"label": ["Копировать", "Copy"], "keys": ["ctrl", "c"]},
+        {"label": ["Вставить", "Paste"], "keys": ["ctrl", "v"]},
+        {"label": ["Выбрать все", "Select All"], "keys": ["ctrl", "a"]}
+      ]
+    },
+    "$termedit": {
+      "title": ["Правка", "Edit"],
+      "items": [
+        {"label": ["Копировать", "Copy"], "keys": ["ctrl", "shift", "c"]},
+        {"label": ["Вставить", "Paste"], "keys": ["ctrl", "shift", "v"]}
+      ]
+    }
+  },
+  "profiles": {
+    "firefox": {
+      "prefs": {"seq": [{"keys": ["ctrl", "l"]}, {"type": "about:preferences"}, {"keys": ["Return"]}]},
+      "menus": [
+        {"title": ["Файл", "File"], "items": [
+          {"label": ["Новая вкладка", "New Tab"], "keys": ["ctrl", "t"]},
+          {"label": ["Новое окно", "New Window"], "keys": ["ctrl", "n"]},
+          {"label": ["Новое приватное окно", "New Private Window"], "keys": ["ctrl", "shift", "p"]},
+          "-",
+          {"label": ["Открыть файл…", "Open File…"], "keys": ["ctrl", "o"]},
+          {"label": ["Открыть адрес…", "Open Location…"], "keys": ["ctrl", "l"]},
+          "-",
+          {"label": ["Закрыть вкладку", "Close Tab"], "keys": ["ctrl", "w"]},
+          {"label": ["Закрыть окно", "Close Window"], "keys": ["ctrl", "shift", "w"]},
+          "-",
+          {"label": ["Сохранить страницу как…", "Save Page As…"], "keys": ["ctrl", "s"]},
+          {"label": ["Напечатать…", "Print…"], "keys": ["ctrl", "p"]}
+        ]},
+        {"ref": "$edit", "extra": [
+          "-",
+          {"label": ["Найти на странице…", "Find in Page…"], "keys": ["ctrl", "f"]},
+          {"label": ["Найти далее", "Find Again"], "keys": ["ctrl", "g"]}
+        ]},
+        {"title": ["Вид", "View"], "items": [
+          {"label": ["Перезагрузить страницу", "Reload Page"], "keys": ["ctrl", "r"]},
+          {"label": ["Перезагрузить без кэша", "Reload Ignoring Cache"], "keys": ["ctrl", "shift", "r"]},
+          "-",
+          {"label": ["Увеличить", "Zoom In"], "keys": ["ctrl", "equal"]},
+          {"label": ["Уменьшить", "Zoom Out"], "keys": ["ctrl", "minus"]},
+          {"label": ["Реальный размер", "Actual Size"], "keys": ["ctrl", "0"]},
+          "-",
+          {"label": ["Боковая панель закладок", "Bookmarks Sidebar"], "keys": ["ctrl", "b"]},
+          {"label": ["Боковая панель истории", "History Sidebar"], "keys": ["ctrl", "h"]},
+          {"label": ["Режим чтения", "Reader View"], "keys": ["ctrl", "alt", "r"]},
+          {"label": ["Исходный код страницы", "Page Source"], "keys": ["ctrl", "u"]}
+        ]},
+        {"title": ["История", "History"], "items": [
+          {"label": ["Назад", "Back"], "keys": ["alt", "Left"]},
+          {"label": ["Вперёд", "Forward"], "keys": ["alt", "Right"]},
+          {"label": ["Домой", "Home"], "keys": ["alt", "Home"]},
+          "-",
+          {"label": ["Вернуть закрытую вкладку", "Reopen Closed Tab"], "keys": ["ctrl", "shift", "t"]},
+          {"label": ["Вернуть закрытое окно", "Reopen Closed Window"], "keys": ["ctrl", "shift", "n"]},
+          "-",
+          {"label": ["Вся история", "Show All History"], "keys": ["ctrl", "shift", "h"]}
+        ]},
+        {"title": ["Закладки", "Bookmarks"], "items": [
+          {"label": ["Добавить страницу в закладки", "Bookmark This Page"], "keys": ["ctrl", "d"]},
+          {"label": ["Все закладки", "Show All Bookmarks"], "keys": ["ctrl", "shift", "o"]},
+          {"label": ["Панель закладок", "Bookmarks Toolbar"], "keys": ["ctrl", "shift", "b"]}
+        ]},
+        {"title": ["Инструменты", "Tools"], "items": [
+          {"label": ["Загрузки", "Downloads"], "keys": ["ctrl", "shift", "y"]},
+          {"label": ["Дополнения и темы", "Add-ons and Themes"], "keys": ["ctrl", "shift", "a"]},
+          "-",
+          {"label": ["Инструменты разработчика", "Web Developer Tools"], "keys": ["ctrl", "shift", "i"]},
+          {"label": ["Консоль браузера", "Browser Console"], "keys": ["ctrl", "shift", "j"]}
+        ]},
+        {"title": ["Вкладка", "Tab"], "window": true, "items": [
+          {"label": ["Следующая вкладка", "Show Next Tab"], "keys": ["ctrl", "Tab"]},
+          {"label": ["Предыдущая вкладка", "Show Previous Tab"], "keys": ["ctrl", "shift", "Tab"]}
+        ]}
+      ],
+      "help": [{"label": ["Справка Firefox", "Firefox Help"], "run": ["xdg-open", "https://support.mozilla.org"]}]
+    },
+    "chromium": {
+      "prefs": {"seq": [{"keys": ["ctrl", "l"]}, {"type": "chrome://settings"}, {"keys": ["Return"]}]},
+      "menus": [
+        {"title": ["Файл", "File"], "items": [
+          {"label": ["Новая вкладка", "New Tab"], "keys": ["ctrl", "t"]},
+          {"label": ["Новое окно", "New Window"], "keys": ["ctrl", "n"]},
+          {"label": ["Новое окно инкогнито", "New Incognito Window"], "keys": ["ctrl", "shift", "n"]},
+          "-",
+          {"label": ["Открыть файл…", "Open File…"], "keys": ["ctrl", "o"]},
+          {"label": ["Открыть адрес…", "Open Location…"], "keys": ["ctrl", "l"]},
+          "-",
+          {"label": ["Закрыть вкладку", "Close Tab"], "keys": ["ctrl", "w"]},
+          {"label": ["Закрыть окно", "Close Window"], "keys": ["ctrl", "shift", "w"]},
+          "-",
+          {"label": ["Сохранить страницу как…", "Save Page As…"], "keys": ["ctrl", "s"]},
+          {"label": ["Напечатать…", "Print…"], "keys": ["ctrl", "p"]}
+        ]},
+        {"ref": "$edit", "extra": [
+          "-",
+          {"label": ["Найти…", "Find…"], "keys": ["ctrl", "f"]},
+          {"label": ["Найти далее", "Find Next"], "keys": ["ctrl", "g"]}
+        ]},
+        {"title": ["Вид", "View"], "items": [
+          {"label": ["Перезагрузить страницу", "Reload This Page"], "keys": ["ctrl", "r"]},
+          {"label": ["Перезагрузить без кэша", "Force Reload This Page"], "keys": ["ctrl", "shift", "r"]},
+          "-",
+          {"label": ["Увеличить", "Zoom In"], "keys": ["ctrl", "equal"]},
+          {"label": ["Уменьшить", "Zoom Out"], "keys": ["ctrl", "minus"]},
+          {"label": ["Реальный размер", "Actual Size"], "keys": ["ctrl", "0"]},
+          "-",
+          {"label": ["Инструменты разработчика", "Developer Tools"], "keys": ["ctrl", "shift", "i"]},
+          {"label": ["Консоль JavaScript", "JavaScript Console"], "keys": ["ctrl", "shift", "j"]},
+          {"label": ["Исходный код страницы", "View Source"], "keys": ["ctrl", "u"]}
+        ]},
+        {"title": ["История", "History"], "items": [
+          {"label": ["Назад", "Back"], "keys": ["alt", "Left"]},
+          {"label": ["Вперёд", "Forward"], "keys": ["alt", "Right"]},
+          {"label": ["Домашняя страница", "Home"], "keys": ["alt", "Home"]},
+          "-",
+          {"label": ["Вернуть закрытую вкладку", "Reopen Closed Tab"], "keys": ["ctrl", "shift", "t"]},
+          {"label": ["Вся история", "Show Full History"], "keys": ["ctrl", "h"]}
+        ]},
+        {"title": ["Закладки", "Bookmarks"], "items": [
+          {"label": ["Добавить вкладку в закладки…", "Bookmark This Tab…"], "keys": ["ctrl", "d"]},
+          {"label": ["Добавить все вкладки…", "Bookmark All Tabs…"], "keys": ["ctrl", "shift", "d"]},
+          {"label": ["Диспетчер закладок", "Bookmark Manager"], "keys": ["ctrl", "shift", "o"]},
+          {"label": ["Панель закладок", "Bookmarks Bar"], "keys": ["ctrl", "shift", "b"]}
+        ]},
+        {"title": ["Инструменты", "Tools"], "items": [
+          {"label": ["Загрузки", "Downloads"], "keys": ["ctrl", "j"]},
+          {"label": ["Диспетчер задач", "Task Manager"], "keys": ["shift", "Escape"]},
+          {"label": ["Очистить историю…", "Clear Browsing Data…"], "keys": ["ctrl", "shift", "Delete"]}
+        ]},
+        {"title": ["Вкладка", "Tab"], "window": true, "items": [
+          {"label": ["Следующая вкладка", "Select Next Tab"], "keys": ["ctrl", "Tab"]},
+          {"label": ["Предыдущая вкладка", "Select Previous Tab"], "keys": ["ctrl", "shift", "Tab"]}
+        ]}
+      ]
+    },
+    "kitty": {
+      "prefs": {"keys": ["ctrl", "shift", "F2"]},
+      "menus": [
+        {"title": ["Оболочка", "Shell"], "items": [
+          {"label": ["Новое окно", "New Window"], "keys": ["ctrl", "shift", "n"]},
+          {"label": ["Новая вкладка", "New Tab"], "keys": ["ctrl", "shift", "t"]},
+          {"label": ["Разделить окно", "Split Window"], "keys": ["ctrl", "shift", "Return"]},
+          "-",
+          {"label": ["Закрыть панель", "Close Pane"], "keys": ["ctrl", "shift", "w"]},
+          {"label": ["Закрыть вкладку", "Close Tab"], "keys": ["ctrl", "shift", "q"]}
+        ]},
+        {"ref": "$termedit", "extra": [
+          "-",
+          {"label": ["Очистить экран", "Clear Screen"], "keys": ["ctrl", "shift", "Delete"]},
+          {"label": ["История прокрутки", "Show Scrollback"], "keys": ["ctrl", "shift", "h"]}
+        ]},
+        {"title": ["Вид", "View"], "items": [
+          {"label": ["Крупнее", "Bigger"], "keys": ["ctrl", "shift", "equal"]},
+          {"label": ["Мельче", "Smaller"], "keys": ["ctrl", "shift", "minus"]},
+          {"label": ["Обычный размер", "Default Size"], "keys": ["ctrl", "shift", "BackSpace"]},
+          "-",
+          {"label": ["Перечитать настройки", "Reload Settings"], "keys": ["ctrl", "shift", "F5"]}
+        ]},
+        {"title": ["Вкладка", "Tab"], "window": true, "items": [
+          {"label": ["Следующая вкладка", "Show Next Tab"], "keys": ["ctrl", "shift", "Right"]},
+          {"label": ["Предыдущая вкладка", "Show Previous Tab"], "keys": ["ctrl", "shift", "Left"]}
+        ]}
+      ]
+    },
+    "alacritty": {
+      "menus": [
+        {"title": ["Оболочка", "Shell"], "items": [
+          {"label": ["Новое окно", "New Window"], "keys": ["ctrl", "shift", "n"]}
+        ]},
+        {"ref": "$termedit", "extra": [
+          "-",
+          {"label": ["Найти…", "Find…"], "keys": ["ctrl", "shift", "f"]}
+        ]},
+        {"title": ["Вид", "View"], "items": [
+          {"label": ["Крупнее", "Bigger"], "keys": ["ctrl", "equal"]},
+          {"label": ["Мельче", "Smaller"], "keys": ["ctrl", "minus"]},
+          {"label": ["Обычный размер", "Default Size"], "keys": ["ctrl", "0"]}
+        ]}
+      ]
+    },
+    "foot": {
+      "menus": [
+        {"title": ["Оболочка", "Shell"], "items": [
+          {"label": ["Новое окно", "New Window"], "keys": ["ctrl", "shift", "n"]}
+        ]},
+        {"ref": "$termedit", "extra": [
+          "-",
+          {"label": ["Найти…", "Find…"], "keys": ["ctrl", "shift", "r"]}
+        ]},
+        {"title": ["Вид", "View"], "items": [
+          {"label": ["Крупнее", "Bigger"], "keys": ["ctrl", "plus"]},
+          {"label": ["Мельче", "Smaller"], "keys": ["ctrl", "minus"]},
+          {"label": ["Обычный размер", "Default Size"], "keys": ["ctrl", "0"]}
+        ]}
+      ]
+    },
+    "nautilus": {
+      "menus": [
+        {"title": ["Файл", "File"], "items": [
+          {"label": ["Новая папка", "New Folder"], "keys": ["ctrl", "shift", "n"]},
+          {"label": ["Переименовать…", "Rename…"], "keys": ["F2"]},
+          {"label": ["Свойства", "Get Info"], "keys": ["ctrl", "i"]},
+          "-",
+          {"label": ["Переместить в корзину", "Move to Trash"], "keys": ["Delete"]}
+        ]},
+        {"ref": "$edit", "extra": [
+          "-",
+          {"label": ["Найти…", "Find…"], "keys": ["ctrl", "f"]}
+        ]},
+        {"title": ["Вид", "View"], "items": [
+          {"label": ["Списком", "as List"], "keys": ["ctrl", "1"]},
+          {"label": ["Значками", "as Icons"], "keys": ["ctrl", "2"]},
+          "-",
+          {"label": ["Показать скрытые файлы", "Show Hidden Files"], "keys": ["ctrl", "h"]},
+          "-",
+          {"label": ["Увеличить", "Zoom In"], "keys": ["ctrl", "plus"]},
+          {"label": ["Уменьшить", "Zoom Out"], "keys": ["ctrl", "minus"]},
+          {"label": ["Обычный размер", "Actual Size"], "keys": ["ctrl", "0"]}
+        ]},
+        {"title": ["Переход", "Go"], "items": [
+          {"label": ["Назад", "Back"], "keys": ["alt", "Left"]},
+          {"label": ["Вперёд", "Forward"], "keys": ["alt", "Right"]},
+          {"label": ["Вложенная папка", "Enclosing Folder"], "keys": ["alt", "Up"]},
+          "-",
+          {"label": ["Документы", "Documents"], "seq": [{"keys": ["ctrl", "l"]}, {"type": "~/Documents"}, {"keys": ["Return"]}]},
+          {"label": ["Рабочий стол", "Desktop"], "seq": [{"keys": ["ctrl", "l"]}, {"type": "~/Desktop"}, {"keys": ["Return"]}]},
+          {"label": ["Загрузки", "Downloads"], "seq": [{"keys": ["ctrl", "l"]}, {"type": "~/Downloads"}, {"keys": ["Return"]}]},
+          {"label": ["Домой", "Home"], "keys": ["alt", "Home"]},
+          {"label": ["Корзина", "Trash"], "seq": [{"keys": ["ctrl", "l"]}, {"type": "trash:///"}, {"keys": ["Return"]}]},
+          "-",
+          {"label": ["Перейти к папке…", "Go to Folder…"], "keys": ["ctrl", "l"]}
+        ]}
+      ]
+    },
+    "steam": {
+      "menus": []
+    },
+    "obsidian": {
+      "prefs": {"keys": ["ctrl", "comma"]},
+      "menus": [
+        {"title": ["Файл", "File"], "items": [
+          {"label": ["Новая заметка", "New Note"], "keys": ["ctrl", "n"]},
+          {"label": ["Быстрый переход…", "Quick Switcher…"], "keys": ["ctrl", "o"]},
+          {"label": ["Палитра команд…", "Command Palette…"], "keys": ["ctrl", "p"]}
+        ]},
+        {"ref": "$edit", "extra": [
+          "-",
+          {"label": ["Найти…", "Find…"], "keys": ["ctrl", "f"]},
+          {"label": ["Найти во всех файлах…", "Search in All Files…"], "keys": ["ctrl", "shift", "f"]}
+        ]},
+        {"title": ["Вид", "View"], "items": [
+          {"label": ["Режим чтения / правки", "Toggle Reading View"], "keys": ["ctrl", "e"]},
+          "-",
+          {"label": ["Увеличить", "Zoom In"], "keys": ["ctrl", "equal"]},
+          {"label": ["Уменьшить", "Zoom Out"], "keys": ["ctrl", "minus"]},
+          {"label": ["Реальный размер", "Actual Size"], "keys": ["ctrl", "0"]}
+        ]}
+      ]
+    },
+    "discord": {
+      "menus": [
+        {"ref": "$edit"},
+        {"title": ["Вид", "View"], "items": [
+          {"label": ["Быстрый переход…", "Quick Switcher…"], "keys": ["ctrl", "k"]},
+          "-",
+          {"label": ["Перезагрузить", "Reload"], "keys": ["ctrl", "r"]},
+          "-",
+          {"label": ["Увеличить", "Zoom In"], "keys": ["ctrl", "equal"]},
+          {"label": ["Уменьшить", "Zoom Out"], "keys": ["ctrl", "minus"]},
+          {"label": ["Реальный размер", "Actual Size"], "keys": ["ctrl", "0"]}
+        ]}
+      ]
+    },
+    "code": {
+      "prefs": {"keys": ["ctrl", "comma"]},
+      "menus": [
+        {"title": ["Файл", "File"], "items": [
+          {"label": ["Новый файл", "New Text File"], "keys": ["ctrl", "n"]},
+          {"label": ["Новое окно", "New Window"], "keys": ["ctrl", "shift", "n"]},
+          "-",
+          {"label": ["Открыть файл…", "Open File…"], "keys": ["ctrl", "o"]},
+          "-",
+          {"label": ["Сохранить", "Save"], "keys": ["ctrl", "s"]},
+          {"label": ["Сохранить как…", "Save As…"], "keys": ["ctrl", "shift", "s"]},
+          "-",
+          {"label": ["Закрыть редактор", "Close Editor"], "keys": ["ctrl", "w"]}
+        ]},
+        {"ref": "$edit", "extra": [
+          "-",
+          {"label": ["Найти", "Find"], "keys": ["ctrl", "f"]},
+          {"label": ["Заменить", "Replace"], "keys": ["ctrl", "h"]},
+          {"label": ["Найти в файлах", "Find in Files"], "keys": ["ctrl", "shift", "f"]}
+        ]},
+        {"title": ["Вид", "View"], "items": [
+          {"label": ["Палитра команд…", "Command Palette…"], "keys": ["ctrl", "shift", "p"]},
+          "-",
+          {"label": ["Проводник", "Explorer"], "keys": ["ctrl", "shift", "e"]},
+          {"label": ["Терминал", "Terminal"], "keys": ["ctrl", "grave"]},
+          "-",
+          {"label": ["Увеличить", "Zoom In"], "keys": ["ctrl", "equal"]},
+          {"label": ["Уменьшить", "Zoom Out"], "keys": ["ctrl", "minus"]}
+        ]},
+        {"title": ["Переход", "Go"], "items": [
+          {"label": ["Перейти к файлу…", "Go to File…"], "keys": ["ctrl", "p"]},
+          {"label": ["Перейти к строке…", "Go to Line…"], "keys": ["ctrl", "g"]}
+        ]}
+      ]
+    },
+    "electron": {
+      "menus": [
+        {"ref": "$edit"}
+      ]
+    },
+    "gtk": {
+      "menus": [
+        {"ref": "$edit"}
+      ]
+    }
+  }
+}

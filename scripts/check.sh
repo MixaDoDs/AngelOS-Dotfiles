@@ -78,6 +78,11 @@ case $? in
   77) skip "global menu: $(tail -1 "$WORK/appmenu.log")" ;;
   *) sed 's/^/    /' "$WORK/appmenu.log" >&2; fail "global menu: tests/appmenu/test_appmenu.py" ;;
 esac
+if python3 "$ROOT/.config/quickshell/angelos/tests/appmenu/test_profiles.py" >"$WORK/profiles.log" 2>&1; then
+  pass "global menu: standard menus for apps without their own — every item runnable"
+else
+  sed 's/^/    /' "$WORK/profiles.log" >&2; fail "global menu: tests/appmenu/test_profiles.py"
+fi
 
 if python3 "$ROOT/.config/quickshell/angelos/tests/browsers/test_browser_theme.py" >"$WORK/browsers.log" 2>&1; then
   pass "browser themes: profile edits, undo, gentle restart (stand-in browsers)"

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.config
 import qs.services
+import qs.modules.mac
 
 // `qs -c angelos ipc call angelos <fn> [args]` — the `angelos` CLI wraps this.
 IpcHandler {
@@ -486,7 +487,7 @@ IpcHandler {
     }
     // what Settings wear: `angelos settingsSkin windose` (no argument: which one)
     function settingsSkin(skin: string): string {
-        const skins = ["classic", "windose", "stream"];
+        const skins = ["classic", "windose", "stream", "goldengate"];
         const s = String(skin || "").trim().toLowerCase();
         if (s === "")
             return Config.settingsUi.skin + "  (" + skins.join(" | ") + ")";
@@ -495,6 +496,41 @@ IpcHandler {
         Config.settingsUi.skin = s;
         Config.settingsUi.skinChosen = true;
         return "ok";
+    }
+    // the Golden Gate menu bar from the keyboard (macOS: Control-F2): the menu `index` of the
+    // focused screen's bar opens with its first item selected (0 = angelOS's, 1 = the app's,
+    // -1: the app's); ←/→, ↑/↓, Enter and Esc from there
+    function macMenu(index: int): string {
+        if (Shell.setupLocked || !GoldenGate.on)
+            return "the Golden Gate skin is off";
+        const scr = Shell.focusedScreen ? Shell.focusedScreen.name : "";
+        const i = index < 0 ? 1 : index;
+        const xs = MacMenus.titleX[scr] || [];
+        MacMenus.open(scr, i, xs[i] || 0, true);
+        return MacMenus.isOpen ? "ok" : "no menu " + i;
+    }
+    // what the menu bar shows now, as JSON (the report's table, tests): the app, where its menus
+    // come from, the titles and their items
+    function macMenuState(): string {
+        return JSON.stringify({
+            "app": AppMenu.appId,
+            "name": AppMenu.appName,
+            "source": AppMenu.source,
+            "ambiguous": !!AppMenu.report.ambiguous,
+            "registrar": AppMenu.registrar,
+            "menus": AppMenu.menus.map(m => ({
+                        "title": m.title,
+                        "items": m.items.map(it => it.type === "separator" ? "—" : (it.label || "") + (it.type === "submenu" ? " ›" : "") + (it.enabled === false ? " (off)" : "") + (it.act ? " [" + it.act.kind + "]" : ""))
+                    }))
+        });
+    }
+    // a status item's menu on the focused screen: wifi | bluetooth | sound | input
+    function macStatus(kind: string): string {
+        if (!GoldenGate.on)
+            return "the Golden Gate skin is off";
+        const scr = Shell.focusedScreen;
+        MacMenus.openStatus(scr ? scr.name : "", kind, scr ? scr.width - GoldenGate.px(120) : 0);
+        return MacMenus.isOpen ? "ok" : "no menu " + kind;
     }
     // a key on the open Settings window, for tests and scripts (ANGELOS_DEV only):
     // `angelos settingsKey down` — what the view's navigation does with it

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Pick a usable saturated accent from a wallpaper without modifying it."""
+"""Pick a usable saturated accent from a wallpaper without modifying it.
+
+  wallpaper-color.py IMAGE          {"accent": "#rrggbb"}
+  wallpaper-color.py IMAGE --bar    {"bar": 0.0…1.0}: how light the strip under a top bar is
+                                    (the Golden Gate menu bar writes black on light, white on dark)
+"""
 import colorsys
 import json
 import sys
@@ -13,6 +18,13 @@ try:
     with Image.open(sys.argv[1]) as source:
         source.seek(0)  # first frame of animated images
         image = ImageOps.exif_transpose(source).convert("RGB")
+        if "--bar" in sys.argv[2:]:
+            # the top 3 % (a 24 px bar on a 1080 px screen), as the wallpaper is cropped to fill
+            w, h = image.size
+            strip = image.crop((0, 0, w, max(1, round(h * 0.03)))).resize((64, 4))
+            lum = [0.2126 * r + 0.7152 * g + 0.0722 * b for r, g, b in strip.getdata()]
+            print(json.dumps({"bar": round(sum(lum) / len(lum) / 255, 3)}))
+            sys.exit(0)
         image.thumbnail((160, 160))
         image = image.quantize(colors=12)
         palette = image.getpalette()

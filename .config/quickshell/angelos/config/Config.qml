@@ -50,6 +50,7 @@ Singleton {
     property alias game: adapter.game
     property alias decor: adapter.decor
     property alias windows: adapter.windows
+    property alias mac: adapter.mac
     // the same schema, never loaded: every setting's default value
     readonly property SettingsSchema defaults: SettingsSchema {}
 

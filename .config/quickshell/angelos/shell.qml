@@ -28,6 +28,7 @@ import qs.modules.lens
 import qs.modules.decor
 import qs.modules.novel
 import qs.modules.debug
+import qs.modules.mac
 import qs.widgets
 
 // angelOS — pixel pink shell for niri.
@@ -37,6 +38,7 @@ ShellRoot {
 
     Background {}
     Bar {}
+    MacDesktop {}
     StartOverlay {}
     SidebarHost {}
     WorkspaceFx {}
