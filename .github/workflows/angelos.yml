@@ -44,12 +44,13 @@ jobs:
       # Studio's checks need; shellcheck and ripgrep make check.sh run in full.
       # diffutils: the image has no diff/cmp, which the installer and the update
       # tests use. qt6-multimedia: the harp menu (and the angel's voice) import
-      # QtMultimedia, as on a real install (packages/angelos.txt).
+      # QtMultimedia, as on a real install (packages/angelos.txt). python-gobject: the Golden Gate
+      # menu bar's helper talks D-Bus through it (packages/pacman.txt), and its test needs it.
       # scripts/ci-local.sh runs this job locally in the same image —
       # the publish script and the pre-push hook do that before every push.
       - name: Packages
         run: |
-          pacman -Syu --noconfirm --needed git dbus diffutils python python-pillow python-numpy \
+          pacman -Syu --noconfirm --needed git dbus diffutils python python-pillow python-numpy python-gobject \
             quickshell qt6-declarative qt6-5compat qt6-imageformats qt6-svg qt6-multimedia \
             qt6-multimedia-ffmpeg niri noto-fonts \
             shellcheck ripgrep

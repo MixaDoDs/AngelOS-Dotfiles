@@ -71,6 +71,14 @@ else
   fail "cava's audio tap: no hangs"
 fi
 
+# the Golden Gate menu bar's helper: menus found by the window's pid, on a private bus (77 = no gi / dbus)
+python3 "$ROOT/.config/quickshell/angelos/tests/appmenu/test_appmenu.py" >"$WORK/appmenu.log" 2>&1
+case $? in
+  0) pass "global menu: Qt, GTK, appmenu-gtk-module and X11 menus found by pid, clicks reach the app" ;;
+  77) skip "global menu: $(tail -1 "$WORK/appmenu.log")" ;;
+  *) sed 's/^/    /' "$WORK/appmenu.log" >&2; fail "global menu: tests/appmenu/test_appmenu.py" ;;
+esac
+
 if python3 "$ROOT/.config/quickshell/angelos/tests/browsers/test_browser_theme.py" >"$WORK/browsers.log" 2>&1; then
   pass "browser themes: profile edits, undo, gentle restart (stand-in browsers)"
 else
