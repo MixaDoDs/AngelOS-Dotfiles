@@ -53,6 +53,7 @@ var icons = {
 "key-round": "<path d=\"M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z\"/><circle cx=\"16.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\"/>",
 "keyboard": "<path d=\"M10 8h.01\"/><path d=\"M12 12h.01\"/><path d=\"M14 8h.01\"/><path d=\"M16 12h.01\"/><path d=\"M18 8h.01\"/><path d=\"M6 8h.01\"/><path d=\"M7 16h10\"/><path d=\"M8 12h.01\"/><rect width=\"20\" height=\"16\" x=\"2\" y=\"4\" rx=\"2\"/>",
 "languages": "<path d=\"m5 8 6 6\"/><path d=\"m4 14 6-6 2-3\"/><path d=\"M2 5h12\"/><path d=\"M7 2h1\"/><path d=\"m22 22-5-10-5 10\"/><path d=\"M14 18h6\"/>",
+"layers": "<path d=\"M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z\"/><path d=\"M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12\"/><path d=\"M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17\"/>",
 "layout-dashboard": "<rect width=\"7\" height=\"9\" x=\"3\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"14\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"9\" x=\"14\" y=\"12\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"3\" y=\"16\" rx=\"1\"/>",
 "layout-grid": "<rect width=\"7\" height=\"7\" x=\"3\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"7\" x=\"14\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"7\" x=\"14\" y=\"14\" rx=\"1\"/><rect width=\"7\" height=\"7\" x=\"3\" y=\"14\" rx=\"1\"/>",
 "list-filter": "<path d=\"M2 5h20\"/><path d=\"M6 12h12\"/><path d=\"M9 19h6\"/>",
@@ -132,4 +133,23 @@ function url(name, color, stroke, fill) {
 }
 function has(name) {
     return !!icons[name];
+}
+
+// angelOS's pixel icon names (widgets/Icons.js) → the line icon of the same meaning, for
+// controls and pages drawn in the Golden Gate look; "" when there is none
+var fromPixelMap = {
+    "bell": "bell", "bluetooth": "bluetooth", "camera": "camera", "chip": "cpu", "cursor": "mouse-pointer-2",
+    "document": "file-text", "download": "download", "gamepad": "gamepad-2", "gear": "settings", "grid": "layout-grid",
+    "heart": "heart", "image": "image", "keyboard": "keyboard", "layers": "layers", "lock": "lock", "mic": "mic",
+    "monitor": "monitor", "mouse": "mouse", "package": "puzzle", "palette": "palette", "pentagram": "star",
+    "plug": "plug-zap", "sparkle": "sparkles", "speaker": "volume-2", "star": "star", "wifi": "wifi",
+    "window": "app-window", "refresh": "refresh-cw", "trash": "trash-2", "folder": "folder", "plus": "plus",
+    "search": "search", "play": "play", "close": "x", "check": "check", "power": "power", "terminal": "terminal",
+    "music": "music", "fire": "zap", "arrowLeft": "chevron-left", "arrowRight": "chevron-right",
+    "arrowUp": "chevron-up", "arrowDown": "chevron-down", "sun": "sun", "moon": "moon", "calendar": "calendar",
+    "clock": "clock", "globe": "globe", "user": "user", "info": "info", "help": "circle-help", "home": "house"
+};
+function fromPixel(name) {
+    const n = fromPixelMap[name] || (icons[name] ? name : "");
+    return n;
 }

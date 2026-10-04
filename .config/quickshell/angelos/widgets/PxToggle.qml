@@ -9,6 +9,7 @@ Item {
     property bool checked: false
     property string text: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
+    readonly property bool mac: settingsSkin === "goldengate"
     signal toggled(bool checked)
 
     // Long labels wrap instead of running off a narrow page (the grimoire's right
@@ -29,11 +30,41 @@ Item {
     width: Math.max(track.width, Math.min(implicitWidth, room))
     opacity: enabled ? 1 : 0.45
 
+    // the Golden Gate skin's System Settings: a Mac switch — the accent when on, a white knob
+    Rectangle {
+        visible: root.mac
+        width: track.width
+        height: track.height
+        anchors.verticalCenter: parent.verticalCenter
+        radius: height / 2
+        color: root.checked ? GoldenGate.accent : GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.1)
+        Behavior on color {
+            ColorAnimation {
+                duration: Motion.ms(150)
+            }
+        }
+        Rectangle {
+            width: parent.height - GoldenGate.px(4)
+            height: width
+            radius: width / 2
+            y: GoldenGate.px(2)
+            x: root.checked ? parent.width - width - GoldenGate.px(2) : GoldenGate.px(2)
+            color: "#ffffff"
+            border.width: 1
+            border.color: Qt.rgba(0, 0, 0, 0.08)
+            Behavior on x {
+                NumberAnimation {
+                    duration: Motion.ms(160)
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+    }
     PxBox {
         id: track
         visible: root.settingsSkin === "classic"
-        width: Theme.u * 26
-        height: Theme.u * 13
+        width: root.mac ? GoldenGate.px(38) : Theme.u * 26
+        height: root.mac ? GoldenGate.px(22) : Theme.u * 13
         anchors.verticalCenter: parent.verticalCenter
         sunken: true
         color: root.checked ? Theme.mix(Theme.sunken, Theme.accent, 0.55) : Theme.sunken
@@ -62,7 +93,7 @@ Item {
     }
 
     Rectangle {
-        visible: root.settingsSkin !== "classic"
+        visible: root.settingsSkin !== "classic" && !root.mac
         width: track.width
         height: track.height
         anchors.verticalCenter: parent.verticalCenter

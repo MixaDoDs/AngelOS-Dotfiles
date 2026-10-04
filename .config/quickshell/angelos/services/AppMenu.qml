@@ -36,7 +36,14 @@ Singleton {
     readonly property int pid: window && window.pid ? window.pid : 0
     readonly property string appId: window ? String(window.app_id || "") : ""
     readonly property var entry: appId ? (DesktopEntries.byId(appId) || DesktopEntries.heuristicLookup(appId)) : null
-    readonly property string appName: !window ? I18n.t("Рабочий стол", "Desktop") : entry && entry.name ? entry.name : prettyName(appId)
+    // angelOS's own Settings window: macOS's System Settings here, with menus of its own
+    readonly property bool shellSettings: !!window && appId === "org.quickshell" && String(window.title || "").indexOf("angelOS") === 0
+    // no window in front (the desktop): the file manager's menus, as a Mac shows Finder's
+    readonly property var filesEntry: {
+        const d = DefaultApps.data && DefaultApps.data.files ? String(DefaultApps.data.files.current || "").replace(/\.desktop$/, "") : "";
+        return DesktopEntries.byId(d || "org.gnome.Nautilus") || null;
+    }
+    readonly property string appName: shellSettings ? I18n.t("Системные настройки", "System Settings") : !window ? (filesEntry && filesEntry.name ? filesEntry.name : I18n.t("Файлы", "Files")) : entry && entry.name ? entry.name : prettyName(appId)
 
     // what the helper reported for the focused window
     property var report: ({
@@ -334,7 +341,9 @@ Singleton {
     readonly property var menus: build(report, profile, window, Niri.workspaces, Niri.windows, entry, I18n.english)
     function build() {
         if (!window)
-            return [];
+            return desktopMenus();
+        if (shellSettings)
+            return settingsMenus();
         const name = appName;
         // the app's own menus (a copy: items get moved)
         const own = source === "dbusmenu" || source === "gmenu" ? fromApp(report.menus).filter(m => m.type === "submenu").map(m => Object.assign({}, m, {
@@ -417,6 +426,132 @@ Singleton {
                 "owner": help
             });
         return out;
+    }
+
+    // the desktop: the file manager's app menu, a new window of it, Go to the usual places
+    function desktopMenus() {
+        const name = appName;
+        const places = [["Домой", "Home", Config.home], ["Документы", "Documents", Config.home + "/Documents"], ["Рабочий стол", "Desktop", Config.home + "/Desktop"], ["Загрузки", "Downloads", Config.home + "/Downloads"], ["Изображения", "Pictures", Config.home + "/Pictures"]];
+        const go = places.map((p, i) => item("dg:" + i, I18n.t(p[0], p[1]), {
+                "kind": "fn",
+                "fn": () => Shell.openPath(p[2])
+            }));
+        go.push(sep("dg"), item("dg:trash", I18n.t("Корзина", "Trash"), {
+            "kind": "run",
+            "argv": ["gio", "open", "trash:///"]
+        }));
+        const fe = filesEntry;
+        return [
+            {
+                "id": "m:app",
+                "title": name,
+                "bold": true,
+                "items": tidy([fe ? item("d:about", I18n.t("О программе ", "About ") + name, {
+                        "kind": "fn",
+                        "fn": () => root.aboutApp = {
+                                "name": name,
+                                "id": fe.id,
+                                "icon": fe.icon,
+                                "comment": fe.comment || fe.genericName || "",
+                                "pid": 0
+                            }
+                    }) : sep("d0"), sep("d1"), item("d:settings", I18n.t("Системные настройки…", "System Settings…"), {
+                        "kind": "fn",
+                        "fn": () => Shell.openSettings()
+                    })])
+            },
+            {
+                "id": "m:file",
+                "title": I18n.t("Файл", "File"),
+                "items": fe ? [item("d:new", I18n.t("Новое окно «", "New ") + name + I18n.t("»", " Window"), {
+                            "kind": "fn",
+                            "fn": () => StartApps.launch(fe)
+                        })] : []
+            },
+            {
+                "id": "m:go",
+                "title": I18n.t("Переход", "Go"),
+                "items": go
+            }
+        ].filter(m => m.items.length > 0);
+    }
+
+    // angelOS's Settings as System Settings: View lists the panes like macOS's does
+    function settingsMenus() {
+        const panes = [];
+        for (const c of SettingsTree.categories || []) {
+            for (const id of c.pages || []) {
+                const pg = SettingsTree.pages[id];
+                if (pg && SettingsTree.shown(pg))
+                    panes.push(item("sp:" + id, pg.label, {
+                        "kind": "fn",
+                        "fn": () => Shell.openSettings(id)
+                    }, {
+                        "toggle": "check",
+                        "checked": Shell.settingsPage === id
+                    }));
+            }
+            panes.push(sep("sc:" + c.id));
+        }
+        const name = appName;
+        return [
+            {
+                "id": "m:app",
+                "title": name,
+                "bold": true,
+                "items": tidy([item("s:about", I18n.t("О программе «", "About ") + name + I18n.t("»", ""), {
+                        "kind": "fn",
+                        "fn": () => Shell.openSettings("about")
+                    }), sep("s1"), item("s:quit", I18n.t("Завершить «", "Quit ") + name + I18n.t("»", ""), {
+                        "kind": "fn",
+                        "fn": () => Shell.settingsOpen = false
+                    })])
+            },
+            {
+                "id": "m:file",
+                "title": I18n.t("Файл", "File"),
+                "items": [item("s:close", I18n.t("Закрыть окно", "Close Window"), {
+                        "kind": "fn",
+                        "fn": () => Shell.settingsOpen = false
+                    })]
+            },
+            {
+                "id": "m:edit",
+                "title": I18n.t("Правка", "Edit"),
+                "items": tidy([item("s:undo", I18n.t("Отменить", "Undo"), {
+                        "kind": "fn",
+                        "fn": () => Config.undo()
+                    }, {
+                        "enabled": Config.canUndo,
+                        "keys": ["ctrl", "z"]
+                    }), item("s:find", I18n.t("Найти", "Find"), {
+                        "kind": "fn",
+                        "fn": () => Shell.settingsView && Shell.settingsView.focusSearch()
+                    }, {
+                        "keys": ["ctrl", "f"]
+                    })])
+            },
+            {
+                "id": "m:view",
+                "title": I18n.t("Вид", "View"),
+                "items": tidy([item("s:back", I18n.t("Назад", "Back"), {
+                        "kind": "fn",
+                        "fn": () => Shell.settingsView && Shell.settingsView.back()
+                    }, {
+                        "keys": ["alt", "Left"]
+                    }), item("s:fwd", I18n.t("Вперёд", "Forward"), {
+                        "kind": "fn",
+                        "fn": () => Shell.settingsView && Shell.settingsView.forward()
+                    }, {
+                        "keys": ["alt", "Right"]
+                    }), sep("sv")].concat(panes))
+            },
+            {
+                "id": "m:window",
+                "title": I18n.t("Окно", "Window"),
+                "items": windowMenu([])
+            }
+        ];
     }
 
     function standardMenus() {

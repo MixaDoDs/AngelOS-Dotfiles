@@ -427,6 +427,8 @@ Scope {
     property int index: -1
     property double started: 0
     property var macItems: []
+    property var macPages: []
+    property var macSeen: []
     property bool expertPass: false
     property int navStep: 0
     property int switchStep: 0
@@ -1980,9 +1982,39 @@ Scope {
             const keys = AppMenu.keyText(["ctrl", "shift", "t"]);
             report("mac-view", !!v && v.implicitWidth >= v.minWidth && v.implicitHeight > GoldenGate.menuRow * 3 && skipped && past && keys === "⌃⇧T" && angelOk, "size " + (v ? Math.round(v.implicitWidth) + "×" + Math.round(v.implicitHeight) : "none") + ", separator skipped " + skipped + ", greyed skipped " + past + ", keys " + keys + ", angelOS menu " + angel.length + " items runnable " + angelOk);
             macStage.active = false;
+            // angelOS's Settings window: System Settings with its panes in View
+            Niri.windows = [{ "id": 7, "pid": 4244, "app_id": "org.quickshell", "title": "angelOS · Настройки", "workspace_id": 1, "is_floating": true }];
+            const ss = AppMenu.menus;
+            const viewMenu = ss.find(m => m.id === "m:view");
+            const ssOk = ss.length > 3 && ss[0].title === I18n.t("Системные настройки", "System Settings") && !!viewMenu && viewMenu.items.filter(i => i.type === "item").length > 10;
+            // nothing in front: the file manager's menus, Go to the usual places
             Niri.windows = [];
-            Niri.workspaces = [];
+            Niri.workspaces = [{ "id": 1, "idx": 1, "output": "T", "is_focused": true, "is_active": true, "active_window_id": null }];
             Niri.focusedWindowId = -1;
+            const desk = AppMenu.menus;
+            const go = desk.find(m => m.id === "m:go");
+            report("mac-settings-desktop", ssOk && !!go && go.items.length >= 5 && desk[0].bold, "settings " + ss.map(m => m.title).join(",") + "; desktop " + desk.map(m => m.title).join(","));
+            Niri.workspaces = [];
+            // System Settings: a few pages of every kind in the Mac view
+            macPages = ["theme", "sound", "display", "keyboard", "taskbar", "start", "about", "updates", "cat:system"];
+            macSeen = [];
+            Shell.settingsPage = macPages[0];
+            started = Date.now();
+            phase = "mac-pages";
+            return;
+        }
+        if (phase === "mac-pages") {
+            const d = view.diagnostics();
+            const want = macPages[macSeen.length];
+            if ((d.status !== Loader.Ready || d.page !== want || d.view !== "mac") && Date.now() - started < 6000)
+                return;
+            macSeen.push(want + (d.status === Loader.Ready && d.view === "mac" && (d.settingsSkin === "goldengate" || want.startsWith("cat:")) ? "" : "✕(" + d.view + "/" + d.settingsSkin + "/" + d.status + ")"));
+            if (macSeen.length < macPages.length) {
+                Shell.settingsPage = macPages[macSeen.length];
+                started = Date.now();
+                return;
+            }
+            report("mac-pages", macSeen.every(s => s.indexOf("✕") < 0) && Theme.macWindow !== null, macSeen.join(", ") + "; the window marked for the Mac font " + (Theme.macWindow !== null));
             AppMenu.report = { "pid": 0, "source": "none", "menus": [], "actions": [], "ambiguous": false };
             Config.settingsUi.skin = "classic";
             phase = "setup";

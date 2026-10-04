@@ -14,6 +14,9 @@ Item {
     readonly property bool streamLayout: settingsSkin === "stream"
     // Settings in the Windows 11 look: every row a card of its own, the control on its right
     readonly property bool fluent: Theme.fluentFor(root.parent)
+    // the Golden Gate skin's System Settings: no card of its own — a row of its group's box with
+    // a hairline between rows, the label regular
+    readonly property bool mac: settingsSkin === "goldengate"
     property int labelWidth: streamLayout ? width - Theme.u * 10 : Math.min(Theme.u * 120, width * 0.45)
     default property alias control: slot.data
     property string preview: ""
@@ -37,7 +40,14 @@ Item {
 
     // Windows 11: the row's card
     Rectangle {
-        visible: root.fluent
+        visible: root.mac && root.y > 0
+        x: Theme.u * 5
+        width: parent.width - x * 2
+        height: 1
+        color: Theme.dark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.07)
+    }
+    Rectangle {
+        visible: root.fluent && !root.mac
         width: parent.width
         height: root.rowHeight
         color: Theme.mix(Theme.face, Theme.faceAlt, 0.55)
@@ -53,7 +63,7 @@ Item {
         color: Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.55)
     }
     Rectangle {
-        visible: root.settingsSkin !== "classic"
+        visible: root.settingsSkin !== "classic" && !root.mac
         width: parent.width
         height: root.rowHeight
         radius: root.streamLayout ? Theme.u * 3 : 0
@@ -62,7 +72,7 @@ Item {
         border.color: root.streamLayout ? Theme.mix(Theme.streamLive, Theme.streamPanel, 0.55) : Theme.mix(Theme.windoseInk, Theme.windosePaper, 0.55)
     }
     Rectangle {
-        visible: root.settingsSkin !== "classic"
+        visible: root.settingsSkin !== "classic" && !root.mac
         width: root.streamLayout ? Theme.u * 2 : Theme.u * 3
         height: root.rowHeight - Theme.u * 2
         x: Theme.u
@@ -80,7 +90,7 @@ Item {
             width: parent.width
             text: root.label
             wrapMode: Text.Wrap
-            font.bold: root.settingsSkin !== "classic"
+            font.bold: root.settingsSkin !== "classic" && !root.mac
         }
         PxText {
             visible: root.hint !== ""

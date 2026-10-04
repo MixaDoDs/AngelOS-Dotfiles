@@ -1,5 +1,7 @@
 import QtQuick
 import qs.config
+import qs.services
+import "MacIcons.js" as MacIcons
 
 // A group of settings. Classic: like macOS's System Settings — a caption above a raised
 // pixel card that holds the rows (SettingRow draws the hairlines between them); Windose
@@ -20,6 +22,8 @@ Item {
     // Settings in the Windows 11 look: a caption over a container whose rows are cards of
     // their own (SettingRow); a sub-page (`advanced`) is a card that unfolds in place
     readonly property bool fluent: Theme.fluentFor(root.parent)
+    // the Golden Gate skin's System Settings: the rows in one rounded box, a shade off the page
+    readonly property bool mac: settingsSkin === "goldengate"
     property bool unfolded: false
     readonly property bool folded: fluent && advanced && !unfolded && openSub !== title
     property int spacing: Theme.u * 5
@@ -64,8 +68,9 @@ Item {
         y: root.advanced ? fold.y : head.height + Theme.u * 2
         width: root.width
         height: root.height - y
-        color: Theme.mix(Theme.face, Theme.sunken, Theme.dark ? 0.45 : 0.3)
-        border.width: Math.max(1, Theme.u / 2)
+        radius: root.mac ? Theme.u * 5 : 0
+        color: root.mac ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)) : Theme.mix(Theme.face, Theme.sunken, Theme.dark ? 0.45 : 0.3)
+        border.width: root.mac ? 0 : Math.max(1, Theme.u / 2)
         border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.85 : 0.45)
     }
     Rectangle {
@@ -73,8 +78,9 @@ Item {
         visible: root.fluent && root.advanced
         width: root.width
         height: Math.max(Theme.fit(22), foldText.implicitHeight + Theme.u * 8)
-        color: foldMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.12) : Theme.mix(Theme.face, Theme.faceAlt, 0.55)
-        border.width: Math.max(1, Theme.u / 2)
+        radius: root.mac ? Theme.u * 5 : 0
+        color: root.mac ? (foldMouse.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(0, 0, 0, 0.06)) : (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035))) : foldMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.12) : Theme.mix(Theme.face, Theme.faceAlt, 0.55)
+        border.width: root.mac ? 0 : Math.max(1, Theme.u / 2)
         border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.5)
         SettingsTile {
             id: foldTile
@@ -82,6 +88,23 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             icon: root.icon || "gear"
             tint: Theme.mix(Theme.accent, Theme.face, 0.25)
+            opacity: root.mac ? 0 : 1
+        }
+        // …a Mac's coloured icon square instead
+        Rectangle {
+            visible: root.mac
+            anchors.centerIn: foldTile
+            width: GoldenGate.px(24)
+            height: width
+            radius: GoldenGate.px(6)
+            color: Theme.accent
+            MacIcon {
+                anchors.centerIn: parent
+                name: MacIcons.fromPixel(root.icon || "gear") || "settings"
+                size: parent.width * 0.66
+                stroke: 2
+                color: "#ffffff"
+            }
         }
         Column {
             id: foldText
@@ -110,7 +133,7 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: Theme.u * 5
             anchors.verticalCenter: parent.verticalCenter
-            text: root.folded ? "▾" : "▴"
+            text: root.mac ? (root.folded ? "›" : "⌄") : root.folded ? "▾" : "▴"
             kind: "title"
             dim: true
         }
@@ -177,8 +200,9 @@ Item {
         spacing: Theme.u * 3
         leftPadding: root.classic ? 0 : Theme.u * 2
         rightPadding: Theme.u * 2
+        // the Golden Gate skin: no icon by a group's caption, as in System Settings
         PxIcon {
-            visible: root.icon !== ""
+            visible: root.icon !== "" && !root.mac
             name: root.icon || "heart"
             anchors.verticalCenter: parent.verticalCenter
             pixel: root.classic ? Math.max(1, Theme.u - 1) : Theme.u

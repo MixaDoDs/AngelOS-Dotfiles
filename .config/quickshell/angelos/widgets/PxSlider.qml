@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import qs.services
 
 // Pixel slider: sunken track, pink fill, heart thumb.
 Item {
@@ -14,6 +15,9 @@ Item {
     property int decimals: 0
     property bool showValue: true
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
+    // the Golden Gate skin's System Settings: a Mac slider — a thin track, the accent up to a
+    // round white knob
+    readonly property bool mac: settingsSkin === "goldengate"
     property real valueScale: 1
     readonly property bool dragging: mouse.pressed
     signal moved(real value)
@@ -54,7 +58,22 @@ Item {
     }
 
     Rectangle {
-        visible: root.settingsSkin !== "classic"
+        visible: root.mac
+        x: track.x
+        anchors.verticalCenter: track.verticalCenter
+        width: track.width
+        height: GoldenGate.px(4)
+        radius: height / 2
+        color: GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(0, 0, 0, 0.12)
+        Rectangle {
+            width: Math.max(parent.height, thumb.x - track.x + thumb.width / 2)
+            height: parent.height
+            radius: parent.radius
+            color: GoldenGate.accent
+        }
+    }
+    Rectangle {
+        visible: root.settingsSkin !== "classic" && !root.mac
         x: track.x
         y: track.y
         width: track.width
@@ -88,7 +107,18 @@ Item {
         }
     }
     Rectangle {
-        visible: root.settingsSkin !== "classic"
+        visible: root.mac
+        width: GoldenGate.px(20)
+        height: width
+        radius: width / 2
+        anchors.verticalCenter: track.verticalCenter
+        x: thumb.x + (thumb.width - width) / 2
+        color: "#ffffff"
+        border.width: 1
+        border.color: Qt.rgba(0, 0, 0, mouse.pressed ? 0.25 : 0.14)
+    }
+    Rectangle {
+        visible: root.settingsSkin !== "classic" && !root.mac
         width: thumb.width
         height: thumb.height
         anchors.verticalCenter: track.verticalCenter

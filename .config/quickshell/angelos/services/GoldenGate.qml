@@ -37,11 +37,9 @@ Singleton {
     readonly property int panelRadius: px(26)       // Control Center, Notification Center, Spotlight's results
     readonly property int iconSize: px(16)
 
-    // Inter: open (SIL OFL), drawn close to SF Pro — the fonts catalog installs it with the skin
-    // (scripts/fonts.py "inter"); Config.mac.font takes any installed family instead
-    readonly property var families: Qt.fontFamilies()
-    readonly property string font: Config.mac.font && families.includes(Config.mac.font) ? Config.mac.font : families.includes("Inter") ? "Inter" : families.includes("Inter Variable") ? "Inter Variable" : families.includes("Noto Sans") ? "Noto Sans" : "sans-serif"
-    readonly property string monoFont: families.includes("JetBrains Mono") ? "JetBrains Mono" : families.includes("Noto Sans Mono") ? "Noto Sans Mono" : "monospace"
+    // Inter (open, close to SF Pro) or Config.mac.font: Theme.macFont, which PxText uses too
+    readonly property string font: Theme.macFont
+    readonly property string monoFont: Theme.macMono
 
     // ---- colours ----
     // the accent of Appearance (macOS 26/27 values, Theme.macAccents); hell's own in hell

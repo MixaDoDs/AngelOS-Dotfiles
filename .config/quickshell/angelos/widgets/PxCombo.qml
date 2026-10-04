@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Templates as T
 import qs.config
+import qs.services
 
 // Dropdown. model: array of strings or {label, value, icon}.
 Item {
@@ -10,6 +11,8 @@ Item {
     property var currentValue
     property string placeholder: "—"
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
+    // the Golden Gate skin's System Settings: a Mac pop-up button (the value and ⌃⌄), a glass menu
+    readonly property bool mac: settingsSkin === "goldengate"
     signal activated(var value)
 
     readonly property var items: (model || []).map(m => typeof m === "object" ? m : {
@@ -20,7 +23,7 @@ Item {
     readonly property string currentLabel: currentIndex >= 0 ? items[currentIndex].label : placeholder
 
     implicitWidth: Theme.u * 100
-    implicitHeight: Theme.sizeBody + Theme.u * 10
+    implicitHeight: mac ? GoldenGate.px(28) : Theme.sizeBody + Theme.u * 10
 
     PxBox {
         anchors.fill: parent
@@ -29,7 +32,33 @@ Item {
         color: Theme.sunken
     }
     Rectangle {
-        visible: root.settingsSkin !== "classic"
+        visible: root.mac
+        anchors.fill: parent
+        radius: GoldenGate.px(7)
+        color: GoldenGate.dark ? Qt.rgba(1, 1, 1, mouse.containsMouse ? 0.18 : 0.12) : mouse.containsMouse ? "#fafafa" : "#ffffff"
+        border.width: 1
+        border.color: GoldenGate.separator
+        Column {
+            anchors.right: parent.right
+            anchors.rightMargin: GoldenGate.px(8)
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: -GoldenGate.px(4)
+            MacIcon {
+                name: "chevron-up"
+                size: GoldenGate.px(11)
+                stroke: 2.6
+                color: GoldenGate.secondaryLabel
+            }
+            MacIcon {
+                name: "chevron-down"
+                size: GoldenGate.px(11)
+                stroke: 2.6
+                color: GoldenGate.secondaryLabel
+            }
+        }
+    }
+    Rectangle {
+        visible: root.settingsSkin !== "classic" && !root.mac
         anchors.fill: parent
         radius: root.settingsSkin === "stream" ? Theme.u * 2 : 0
         color: root.settingsSkin === "stream" ? Theme.streamPanel : Theme.windoseSticker
@@ -60,7 +89,7 @@ Item {
         }
     }
     PxIcon {
-        visible: root.settingsSkin !== "classic"
+        visible: root.settingsSkin !== "classic" && !root.mac
         anchors.centerIn: arrow
         name: "arrowDown"
         ink: root.settingsSkin === "stream" ? Theme.streamLive : Theme.windoseInk
@@ -82,9 +111,19 @@ Item {
         focus: true
         closePolicy: T.Popup.CloseOnEscape | T.Popup.CloseOnPressOutside
 
-        background: PxBox {
-            color: Theme.face
-            shadow: true
+        background: Item {
+            PxBox {
+                anchors.fill: parent
+                visible: !root.mac
+                color: Theme.face
+                shadow: true
+            }
+            MacGlass {
+                anchors.fill: parent
+                visible: root.mac
+                radius: GoldenGate.px(10)
+                fill: GoldenGate.glass(0.3)
+            }
         }
         contentItem: ListView {
             id: list
@@ -97,7 +136,8 @@ Item {
                 required property int index
                 width: list.width
                 height: Theme.sizeBody + Theme.u * 7
-                color: optMouse.containsMouse ? Theme.select : index === root.currentIndex ? Theme.faceAlt : "transparent"
+                radius: root.mac ? GoldenGate.px(6) : 0
+                color: optMouse.containsMouse ? (root.mac ? GoldenGate.accent : Theme.select) : index === root.currentIndex && !root.mac ? Theme.faceAlt : "transparent"
                 Row {
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.u * 4

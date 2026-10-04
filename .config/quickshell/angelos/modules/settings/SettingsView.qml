@@ -36,6 +36,7 @@ Item {
         Shell.settingsView = win;
         Theme.scriptWindow = scriptHost;
         Theme.inkWindow = inkHost;
+        Theme.macWindow = macHost;
         if (typeof SettingsSearch.reload === "function")
             SettingsSearch.reload();
         else
@@ -49,6 +50,8 @@ Item {
             Theme.scriptWindow = null;
         if (Theme.inkWindow === win.Window.window)
             Theme.inkWindow = null;
+        if (Theme.macWindow === win.Window.window)
+            Theme.macWindow = null;
     }
     function diagnostics() {
         return {
@@ -70,7 +73,7 @@ Item {
         };
     }
     property var hostWindow: null
-    readonly property alias frame: frame
+    readonly property Item frame: mac ? macFrame : pxFrame
     readonly property var pageItem: atHome ? null : page.item
     // while the demon rules (Y2K → Angel or demon → Settings in hell): a grimoire (GrimoireBook)
     // or a circle's own dress (HellLook.settingsPick)
@@ -84,9 +87,14 @@ Item {
     onScriptHostChanged: Theme.scriptWindow = scriptHost
     readonly property var inkHost: hellDress ? win.Window.window : null
     onInkHostChanged: Theme.inkWindow = inkHost
-    // Classic stays the default; Windose and Stream are optional settings skins.
-    readonly property string skin: ["classic", "windose", "stream"].includes(Config.settingsUi.skin) ? Config.settingsUi.skin : "classic"
-    readonly property string settingsSkin: hellDress || fluent ? "classic" : skin
+    // Classic stays the default; Windose and Stream are optional settings skins. Golden Gate is
+    // the whole desktop's skin (services/GoldenGate): here it is macOS's System Settings — its
+    // own view (views/MacView.qml), the Windows 11 look's cards drawn as a Mac's grouped rows
+    readonly property string skin: ["classic", "windose", "stream", "goldengate"].includes(Config.settingsUi.skin) ? Config.settingsUi.skin : "classic"
+    readonly property bool mac: skin === "goldengate" && !hellDress
+    readonly property string settingsSkin: hellDress ? "classic" : mac ? "goldengate" : fluent ? "classic" : skin
+    readonly property var macHost: mac ? win.Window.window : null
+    onMacHostChanged: Theme.macWindow = macHost
     // (there is no simple view or Expert any more: every page is a click away)
     readonly property bool expert: true
 
@@ -123,10 +131,10 @@ Item {
             "hint": I18n.t("крупный поиск и большие плитки", "a big search and big tiles")
         }
     ]
-    readonly property string viewId: views.some(v => v.id === Config.settingsUi.view) ? Config.settingsUi.view : "win11"
+    readonly property string viewId: mac ? "mac" : views.some(v => v.id === Config.settingsUi.view) ? Config.settingsUi.view : "win11"
     // the Windows 11 look: a category with several pages has a page of its own ("cat:<id>",
     // CategoryPage), sub-pages unfold in place (PxGroup), every setting is a card (SettingRow)
-    readonly property bool fluent: viewId === "win11"
+    readonly property bool fluent: viewId === "win11" || viewId === "mac"
     readonly property var viewItem: viewLoader.item
     // a folder of icons / the tiles: "home" is the view's own screen, no page on it
     readonly property bool hasHome: viewId === "controlpanel" || viewId === "tiles"
@@ -776,9 +784,21 @@ Item {
         }
     }
 
+    // the Golden Gate skin: a Mac window — niri rounds and shadows it (templates/niri-mac.kdl), the
+    // view draws the traffic lights and the toolbar
+    Rectangle {
+        id: macFrame
+        visible: win.mac
+        anchors.fill: parent
+        color: GoldenGate.contentBg
+        Item {
+            id: macHost
+            anchors.fill: parent
+        }
+    }
     PxWindow {
-        id: frame
-        visible: !win.hellDress
+        id: pxFrame
+        visible: !win.hellDress && !win.mac
         anchors.fill: parent
         anchors.rightMargin: Config.appearance.shadows ? Theme.u * 2 : 0
         anchors.bottomMargin: Config.appearance.shadows ? Theme.u * 2 : 0
@@ -823,12 +843,14 @@ Item {
     }
     Loader {
         id: viewLoader
-        parent: !win.hellDress ? viewHost : win.spread ? offstage : win.dressed ? (dressLoader.item ? dressLoader.item.viewSlot : offstage) : book.viewSlot
+        parent: win.mac ? macHost : !win.hellDress ? viewHost : win.spread ? offstage : win.dressed ? (dressLoader.item ? dressLoader.item.viewSlot : offstage) : book.viewSlot
         anchors.fill: parent
         layer.enabled: (win.grimoire && !win.spread) || win.dressed
         layer.effect: inkFx
         function load() {
-            const v = win.views.find(x => x.id === win.viewId) || win.views[0];
+            const v = win.viewId === "mac" ? {
+                "file": "MacView.qml"
+            } : win.views.find(x => x.id === win.viewId) || win.views[0];
             setSource(Qt.resolvedUrl("views/" + v.file), {
                 "view": win
             });

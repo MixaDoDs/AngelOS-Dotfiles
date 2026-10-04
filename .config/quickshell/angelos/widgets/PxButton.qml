@@ -1,5 +1,7 @@
 import QtQuick
 import qs.config
+import qs.services
+import "MacIcons.js" as MacIcons
 
 Item {
     id: root
@@ -19,6 +21,10 @@ Item {
     // the strike of "off")
     property bool barInk: false
     readonly property string settingsSkin: root.hell ? "classic" : Theme.settingsSkinFor(root.parent)
+    // the Golden Gate skin's System Settings: a Mac push button (white, a hairline, the accent when
+    // it is the default or picked), line icons where angelOS's pixel ones have a match
+    readonly property bool mac: settingsSkin === "goldengate" && !root.barInk
+    readonly property string macIcon: mac && icon !== "" ? MacIcons.fromPixel(icon) : ""
     property int iconPixel: Theme.u
     property bool middleButton: false      // also report middle clicks (task buttons close windows with them)
     property string kind: "body"
@@ -31,8 +37,8 @@ Item {
 
     // left + right padding; -1 = by `compact` (the bar's dense right side sets it)
     property real hpad: -1
-    implicitWidth: row.implicitWidth + (hpad >= 0 ? hpad : compact ? Theme.u * 6 : Theme.pad * 2 + Theme.u * 2)
-    implicitHeight: Math.max(row.implicitHeight + Theme.u * (compact ? 5 : 8), Theme.u * (compact ? 11 : 15))
+    implicitWidth: row.implicitWidth + (hpad >= 0 ? hpad : mac ? GoldenGate.px(compact ? 16 : 24) : compact ? Theme.u * 6 : Theme.pad * 2 + Theme.u * 2)
+    implicitHeight: mac ? Math.max(row.implicitHeight + GoldenGate.px(10), GoldenGate.px(compact ? 24 : 28)) : Math.max(row.implicitHeight + Theme.u * (compact ? 5 : 8), Theme.u * (compact ? 11 : 15))
     opacity: enabled ? 1 : 0.45
 
     Rectangle {
@@ -48,6 +54,14 @@ Item {
         color: root.hell ? (root.accent ? (mouse.containsMouse ? Qt.lighter(Theme.hellBlood, 1.15) : Theme.hellBlood) : root.checked ? Theme.mix(Theme.hellFace, Theme.hellBlood, 0.45) : mouse.containsMouse ? Theme.mix(Theme.hellFace, Theme.hellEmber, 0.2) : Theme.hellFace) : root.accent ? (mouse.containsMouse ? Qt.lighter(Theme.accent, 1.08) : Theme.accent) : root.danger && mouse.containsMouse ? Theme.danger : root.checked ? Theme.mix(Theme.face, Theme.accent, Theme.dark ? 0.4 : 0.3) : mouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.12) : Theme.face
     }
 
+    Rectangle {
+        visible: root.mac && (!root.flat || mouse.containsMouse || root.checked)
+        anchors.fill: parent
+        radius: GoldenGate.px(7)
+        color: root.accent || root.checked ? (mouse.pressed ? Qt.darker(GoldenGate.accent, 1.12) : GoldenGate.accent) : mouse.pressed ? GoldenGate.hoverBg : GoldenGate.dark ? Qt.rgba(1, 1, 1, mouse.containsMouse ? 0.18 : 0.12) : mouse.containsMouse ? "#fafafa" : "#ffffff"
+        border.width: root.accent || root.checked ? 0 : 1
+        border.color: GoldenGate.separator
+    }
     Rectangle {
         visible: root.settingsSkin === "windose" && !root.barInk
         x: Theme.u
@@ -87,12 +101,20 @@ Item {
     Row {
         id: row
         anchors.centerIn: parent
-        anchors.horizontalCenterOffset: root.down && !root.barInk ? Theme.u : 0
-        anchors.verticalCenterOffset: root.down && !root.barInk ? Theme.u : 0
-        spacing: Theme.u * 3
+        anchors.horizontalCenterOffset: root.down && !root.barInk && !root.mac ? Theme.u : 0
+        anchors.verticalCenterOffset: root.down && !root.barInk && !root.mac ? Theme.u : 0
+        spacing: root.mac ? GoldenGate.px(6) : Theme.u * 3
 
+        MacIcon {
+            visible: root.macIcon !== ""
+            name: root.macIcon || "circle-help"
+            size: GoldenGate.px(15)
+            stroke: 1.9
+            anchors.verticalCenter: parent.verticalCenter
+            color: root.accent || root.checked ? "#ffffff" : root.danger ? GoldenGate.lights[0] : GoldenGate.label
+        }
         PxIcon {
-            visible: root.icon !== ""
+            visible: root.icon !== "" && root.macIcon === ""
             name: root.icon || "heart"
             pixel: root.iconPixel
             anchors.verticalCenter: parent.verticalCenter
@@ -112,8 +134,8 @@ Item {
             text: root.text
             kind: root.kind
             anchors.verticalCenter: parent.verticalCenter
-            color: root.barInk ? (root.checked ? Theme.hellAccent : Theme.hellText) : root.hell ? Theme.hellText : root.settingsSkin !== "classic" ? (root.danger ? "#ffffff" : root.accent || root.checked ? Theme.selectText : Theme.text) : root.accent ? Theme.selectText : root.danger && mouse.containsMouse ? "#ffffff" : Theme.text
-            font.bold: root.checked
+            color: root.barInk ? (root.checked ? Theme.hellAccent : Theme.hellText) : root.hell ? Theme.hellText : root.mac ? (root.accent || root.checked ? "#ffffff" : root.danger ? GoldenGate.lights[0] : GoldenGate.label) : root.settingsSkin !== "classic" ? (root.danger ? "#ffffff" : root.accent || root.checked ? Theme.selectText : Theme.text) : root.accent ? Theme.selectText : root.danger && mouse.containsMouse ? "#ffffff" : Theme.text
+            font.bold: root.checked && !root.mac
         }
     }
 

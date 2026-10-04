@@ -579,6 +579,14 @@ Singleton {
     // the window whose content is re-inked on paper (the grimoire, a circle's dress): its
     // pictures come out as engravings the right way round (widgets/GrimoirePhoto)
     property var inkWindow: null
+    // the window in the Golden Gate skin's System Settings look (SettingsView): every PxText in it
+    // is set in the skin's font at macOS's sizes (widgets/PxText)
+    property var macWindow: null
+    // the skin's font: Inter (open, drawn close to SF Pro; the fonts catalog fetches it), or
+    // Config.mac.font if installed, else a plain sans
+    readonly property var macFamilies: Qt.fontFamilies()
+    readonly property string macFont: Config.mac.font && macFamilies.includes(Config.mac.font) ? Config.mac.font : macFamilies.includes("Inter") ? "Inter" : macFamilies.includes("Inter Variable") ? "Inter Variable" : macFamilies.includes("Noto Sans") ? "Noto Sans" : "sans-serif"
+    readonly property string macMono: macFamilies.includes("JetBrains Mono") ? "JetBrains Mono" : macFamilies.includes("Noto Sans Mono") ? "Noto Sans Mono" : "monospace"
     function scriptPx(px) {
         return Math.round(px * 1.38);
     }
