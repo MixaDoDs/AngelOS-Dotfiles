@@ -40,21 +40,152 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Оформление. Классика angelOS — исходное. Дополнительно: Windose с ярлыками рабочего стола и Стрим с панелью эфира. Подходит к любому виду и следует за выбранными цветами.", "Skin. angelOS classic is the original. Also: Windose with desktop shortcuts, Stream with a broadcast panel. Fits any view and follows your colours.")
+            text: I18n.t("Оформление. Классика angelOS — исходное. Дополнительно: Windose с ярлыками рабочего стола и Стрим с панелью эфира — они подходят к любому виду и следуют за выбранными цветами. Golden Gate меняет весь рабочий стол: он как macOS 27 — строка меню с меню программ, Dock, Spotlight, окна со светофором, «Системные настройки».", "Skin. angelOS classic is the original. Also: Windose with desktop shortcuts and Stream with a broadcast panel — they fit any view and follow your colours. Golden Gate changes the whole desktop into macOS 27's: a menu bar with the apps' menus, the Dock, Spotlight, windows with traffic lights, System Settings.")
         }
         Flow {
             width: parent.width
             spacing: Theme.u * 4
             Repeater {
-                model: ["classic", "windose", "stream"]
+                model: ["classic", "windose", "stream", "goldengate"]
                 SettingsSkinCard {
                     required property string modelData
                     skin: modelData
-                    width: Math.min(Theme.u * 100, (skinGroup.width - Theme.u * 12) / 3)
+                    width: Math.min(Theme.u * 100, (skinGroup.width - Theme.u * 16) / 4)
                 }
             }
         }
     }
+    // the Golden Gate skin's own settings (services/GoldenGate, modules/mac), while it is on
+    PxGroup {
+        name: "goldengate"
+        title: "Golden Gate"
+        icon: "window"
+        width: parent.width
+        shown: Config.settingsUi.skin === "goldengate"
+
+        SettingRow {
+            label: "Liquid Glass"
+            hint: I18n.t("меню, Dock, Пункт управления: от прозрачного до тонированного", "menus, the Dock, Control Center: from clear to tinted")
+            PxSlider {
+                width: parent.width
+                from: 0
+                to: 1
+                stepSize: 0.05
+                value: Config.mac.glass
+                valueScale: 100
+                suffix: "%"
+                onMoved: v => Config.mac.glass = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Акцент", "Accent colour")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Синий", "Blue"),
+                        "value": "blue"
+                    },
+                    {
+                        "label": I18n.t("Фиолетовый", "Purple"),
+                        "value": "purple"
+                    },
+                    {
+                        "label": I18n.t("Розовый", "Pink"),
+                        "value": "pink"
+                    },
+                    {
+                        "label": I18n.t("Красный", "Red"),
+                        "value": "red"
+                    },
+                    {
+                        "label": I18n.t("Оранжевый", "Orange"),
+                        "value": "orange"
+                    },
+                    {
+                        "label": I18n.t("Жёлтый", "Yellow"),
+                        "value": "yellow"
+                    },
+                    {
+                        "label": I18n.t("Зелёный", "Green"),
+                        "value": "green"
+                    },
+                    {
+                        "label": I18n.t("Графит", "Graphite"),
+                        "value": "graphite"
+                    }
+                ]
+                currentValue: Config.mac.accent
+                onActivated: v => Config.mac.accent = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Меню программ в строке меню", "App menus in the menu bar")
+            hint: I18n.t("Файл, Правка, Вид программы в фокусе (Qt, GTK, стандартные наборы); программы, запущенные раньше, — после перезапуска", "the focused app's File, Edit, View (Qt, GTK, standard sets); apps started before — after a restart")
+            PxToggle {
+                checked: Config.mac.appMenus
+                onToggled: v => Config.mac.appMenus = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Фон строки меню", "Menu bar background")
+            hint: I18n.t("своя полоса вместо обоев под строкой", "a band of its own instead of the wallpaper under it")
+            PxToggle {
+                checked: Config.mac.barBackground
+                onToggled: v => Config.mac.barBackground = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Сочетания клавиш как на Mac", "Mac keyboard shortcuts")
+            hint: I18n.t("⌘ — клавиша Windows: ⌘Q завершить, ⌘W закрыть окно, ⌘Пробел Spotlight, ⌘, настройки, ⌃↑ и F3 Mission Control, ⌘⇧3/4/5 снимки экрана, ⌃⌘Q блокировка, ⌃⌘F полный экран, ⌥⌘⎋ завершить принудительно, ⌃F2 строка меню. Заменяют сочетания angelOS на тех же клавишах.", "⌘ is the Windows key: ⌘Q quit, ⌘W close window, ⌘Space Spotlight, ⌘, settings, ⌃↑ and F3 Mission Control, ⌘⇧3/4/5 screenshots, ⌃⌘Q lock, ⌃⌘F full screen, ⌥⌘⎋ force quit, ⌃F2 the menu bar. They replace angelOS's on the same keys.")
+            PxToggle {
+                checked: Config.mac.keys
+                onToggled: v => Config.mac.keys = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Окна плавают, как на Mac", "Windows float like on a Mac")
+            hint: I18n.t("новые окна поверх друг друга; выключено — колонки niri", "new windows overlap; off — niri's columns")
+            PxToggle {
+                checked: Config.mac.floating
+                onToggled: v => Config.mac.floating = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Размер Dock", "Dock size")
+            PxSlider {
+                width: parent.width
+                from: 32
+                to: 96
+                stepSize: 4
+                value: Config.mac.dockSize
+                suffix: " px"
+                onMoved: v => Config.mac.dockSize = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Увеличение в Dock", "Dock magnification")
+            PxToggle {
+                checked: Config.mac.dockMagnify
+                onToggled: v => Config.mac.dockMagnify = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Автоматически скрывать Dock", "Automatically hide the Dock")
+            PxToggle {
+                checked: Config.mac.dockAutohide
+                onToggled: v => Config.mac.dockAutohide = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Обои Golden Gate", "Golden Gate wallpaper")
+            hint: I18n.t("светлые или тёмные вместе с темой; прежние вернутся, когда скин выключат", "light or dark with the theme; the ones before come back when the skin is off")
+            PxToggle {
+                checked: Config.mac.wallpaper
+                onToggled: v => Config.mac.wallpaper = v
+            }
+        }
+    }
+
     PxGroup {
         name: "theme"
         title: I18n.t("Тема", "Theme")

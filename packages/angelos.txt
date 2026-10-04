@@ -3,6 +3,9 @@ quickshell
 qt6-declarative
 qt6-5compat
 qt6-imageformats
+# the Golden Gate skin's menu bar: GTK 3 apps' menus go there (gtk-modules, only while the
+# skin is on; .config/quickshell/angelos/docs/GLOBAL-MENU.md)
+appmenu-gtk-module
 # the angel's voice and the harp menu's strings (QtMultimedia SoundEffect)
 qt6-multimedia
 qt6-multimedia-ffmpeg

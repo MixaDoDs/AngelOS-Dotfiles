@@ -87,8 +87,27 @@ Singleton {
                 rules += "    exclude app-id=r#\"" + s + "\"#\n";
             rules += "    geometry-corner-radius 0 0 16 16\n}\n";
         }
+        // Mac shortcuts, only when asked for (Config.mac.keys): ⌘ is the Windows key (Mod); they
+        // replace angelOS's binds on the same keys (this file is read after cfg/keybinds.kdl)
+        const ipc = "qs -c angelos ipc call angelos ";
+        const keys = !Config.mac.keys ? "" : ["binds {",
+            "    Mod+Q hotkey-overlay-title=\"Golden Gate: quit the app\" { spawn-sh \"" + ipc + "macQuit\"; }",
+            "    Mod+W hotkey-overlay-title=\"Golden Gate: close the window\" { close-window; }",
+            "    Mod+Space hotkey-overlay-title=\"Golden Gate: Spotlight\" { spawn-sh \"" + ipc + "startMenu ''\"; }",
+            "    Mod+Comma hotkey-overlay-title=\"Golden Gate: System Settings\" { spawn-sh \"" + ipc + "settings ''\"; }",
+            "    Ctrl+Up hotkey-overlay-title=\"Golden Gate: Mission Control\" { toggle-overview; }",
+            "    F3 { toggle-overview; }",
+            "    Mod+Shift+3 hotkey-overlay-title=\"Golden Gate: screenshot of the screen\" { screenshot-screen; }",
+            "    Mod+Shift+4 hotkey-overlay-title=\"Golden Gate: screenshot of a part\" { screenshot; }",
+            "    Mod+Shift+5 { screenshot-window; }",
+            "    Mod+Ctrl+Q hotkey-overlay-title=\"Golden Gate: lock the screen\" { spawn-sh \"" + ipc + "lock\"; }",
+            "    Mod+Ctrl+F hotkey-overlay-title=\"Golden Gate: full screen\" { fullscreen-window; }",
+            "    Mod+Alt+Escape hotkey-overlay-title=\"Golden Gate: force quit\" { spawn-sh \"" + ipc + "macMenu 0\"; }",
+            "    Ctrl+F2 hotkey-overlay-title=\"Golden Gate: the menu bar\" { spawn-sh \"" + ipc + "macMenu -1\"; }",
+            "}", ""].join("\n");
         return {
             "skin": "goldengate",
+            "macBinds": keys,
             "macAccent": h(Theme.macAccent),
             "macWindow": d ? "#1e1e1e" : "#f5f5f5",
             "macContent": d ? "#232323" : "#ffffff",

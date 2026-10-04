@@ -29,9 +29,11 @@ What does not work, and why:
   as key presses; the rest are left out rather than risk acting on another window.
 - **Flatpak apps** talk to the bus through `xdg-dbus-proxy`: the pid on the bus is the proxy's, not
   the window's. They get the standard menus.
-- **GTK 3 apps need `appmenu-gtk-module` installed** (`extra/appmenu-gtk-module`); the installer
-  installs it with the skin. Without it GTK 3 apps keep their menu bars in their windows, and the
-  menu bar gets the standard menus or the app's actions.
+- **GTK 3 apps need `appmenu-gtk-module` installed** (`extra/appmenu-gtk-module`, in
+  `packages/angelos.txt`, so the installer puts it); the skin adds it to GTK 3's `gtk-modules`
+  only while it is on (`scripts/goldengate.py`), and GTK reads that when an app starts. Without
+  it GTK 3 apps keep their menu bars in their windows, and the menu bar gets the standard menus or
+  the app's actions.
 
 ## The helper and the menu bar
 

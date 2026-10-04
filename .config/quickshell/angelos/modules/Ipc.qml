@@ -509,6 +509,17 @@ IpcHandler {
         MacMenus.open(scr, i, xs[i] || 0, true);
         return MacMenus.isOpen ? "ok" : "no menu " + i;
     }
+    // ⌘Q of the Golden Gate skin's Mac shortcuts: the frontmost app quits — its own Quit when it
+    // has one (by D-Bus), else every window of it closes through niri (the app may still ask)
+    function macQuit(): string {
+        if (!GoldenGate.on || !AppMenu.window)
+            return "nothing to quit";
+        const app = AppMenu.menus.length ? AppMenu.menus[0].items.find(it => it.id === "app:quit" || /^(Завершить|Quit) /.test(it.label || "")) : null;
+        AppMenu.trigger(app || AppMenu.item("app:quit", "", {
+            "kind": "quit"
+        }));
+        return "ok";
+    }
     // what the menu bar shows now, as JSON (the report's table, tests): the app, where its menus
     // come from, the titles and their items
     function macMenuState(): string {

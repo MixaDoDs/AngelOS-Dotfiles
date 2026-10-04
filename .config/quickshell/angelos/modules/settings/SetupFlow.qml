@@ -41,6 +41,13 @@ Scope {
             "when": !(Shell.setupFirstRun && Config.setup.gameAsked)
         },
         {
+            // the Golden Gate skin for people coming from a Mac (services/GoldenGate)
+            "id": "mac",
+            "icon": "window",
+            "title": I18n.t("Переходите с Mac?", "Coming from a Mac?"),
+            "text": I18n.t("angelOS может выглядеть и вести себя как macOS 27 Golden Gate: строка меню с меню программ, Dock, Spotlight, окна со светофором, «Системные настройки». Пиксельный angelOS всегда можно вернуть в Настройках.", "angelOS can look and work like macOS 27 Golden Gate: a menu bar with the apps' menus, the Dock, Spotlight, windows with traffic lights, System Settings. The pixel angelOS is always one setting away.")
+        },
+        {
             "id": "screens",
             "icon": "monitor",
             "title": I18n.t("Какой экран главный?", "Which screen is the main one?"),

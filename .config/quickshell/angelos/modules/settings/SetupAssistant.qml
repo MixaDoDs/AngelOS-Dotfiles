@@ -142,6 +142,7 @@ Item {
                     sourceComponent: !root.shown ? null : ({
                             "hello": hello,
                             "game": game,
+                            "mac": mac,
                             "screens": screens,
                             "look": look,
                             "motion": motion,
@@ -300,6 +301,58 @@ Item {
                         text: modelData[0] === "ru" ? "Аа" : "Aa"
                     }
                 }
+            }
+        }
+    }
+
+    // coming from a Mac: the Golden Gate skin, and its Mac shortcuts only if asked for
+    Component {
+        id: mac
+        Column {
+            spacing: Theme.u * 6
+            Choices {
+                width: parent.width
+                n: 2
+                Choice {
+                    width: parent.cardWidth
+                    label: I18n.t("Да, как на Mac", "Yes, like a Mac")
+                    hint: I18n.t("Golden Gate: строка меню, Dock, Spotlight, «Системные настройки», шрифт и курсор как на Mac. Игра остаётся.", "Golden Gate: the menu bar, the Dock, Spotlight, System Settings, a Mac's font and pointer. The game stays.")
+                    checked: Config.settingsUi.skin === "goldengate"
+                    onPicked: {
+                        Config.settingsUi.skin = "goldengate";
+                        Config.settingsUi.skinChosen = true;
+                    }
+                    GoldenGateMini {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: Theme.u * 64
+                        height: Theme.u * 40
+                    }
+                }
+                Choice {
+                    width: parent.cardWidth
+                    label: I18n.t("Нет, angelOS как есть", "No, angelOS as it is")
+                    hint: I18n.t("Пиксельный стол, панель задач и «Пуск» angelOS.", "angelOS's pixel desktop, taskbar and Start.")
+                    checked: Config.settingsUi.skin !== "goldengate"
+                    onPicked: {
+                        if (Config.settingsUi.skin === "goldengate")
+                            Config.settingsUi.skin = "classic";
+                        Config.settingsUi.skinChosen = true;
+                    }
+                    AngelLogo {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        pixel: Theme.u
+                        fontSize: Theme.sizeBig
+                    }
+                }
+            }
+            // offered, never imposed: off unless switched on here or in Settings
+            PxToggle {
+                visible: Config.settingsUi.skin === "goldengate"
+                width: parent.width
+                // (spelt out: the pixel font has no ⌘)
+                text: I18n.t("Сочетания клавиш как на Mac: Command — это клавиша Windows (Win+Q завершить, Win+W закрыть окно, Win+Пробел Spotlight, Ctrl+↑ Mission Control…)", "Mac keyboard shortcuts: Command is the Windows key (Win+Q quit, Win+W close window, Win+Space Spotlight, Ctrl+↑ Mission Control…)")
+                checked: Config.mac.keys
+                onToggled: v => Config.mac.keys = v
             }
         }
     }

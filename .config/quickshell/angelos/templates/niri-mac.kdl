@@ -69,3 +69,4 @@ window-rule {
     }
 }
 {{macWindowRules}}
+{{macBinds}}

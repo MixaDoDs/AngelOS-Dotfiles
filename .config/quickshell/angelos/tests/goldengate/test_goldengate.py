@@ -12,7 +12,8 @@ gsettings and fc-list on PATH (nothing of the real session is touched):
                 Adwaita icons in qt6ct.conf; without it (and no pixel style): qt6ct.conf as before
   variants      render-templates.py: the gtk3/gtk4/niri entries render their Golden Gate files
                 with skin goldengate, the usual ones without
-  niri-valid    the rendered niri-mac.kdl passes `niri validate` (when niri is installed)
+  niri-valid    the rendered niri-mac.kdl — floating rules and Mac shortcuts in it — passes
+                `niri validate` (when niri is installed)
 """
 import json
 import os
@@ -118,6 +119,7 @@ macp = dict(base, skin="goldengate", macAccent="#0088ff", macWindow="#f5f5f5", m
             macPopover="#f6f6f6", macText="#1d1d1f", macLine="rgba(0,0,0,0.12)", macLineHex="#0000001f",
             macControl="rgba(0,0,0,0.05)", macControlHover="rgba(0,0,0,0.09)", macSelectedSidebar="rgba(0,0,0,0.08)",
             macLightOff="#d1d1d6", macOverview="#2c2c30",
+            macBinds='binds {\n    Mod+Q { spawn-sh "qs -c angelos ipc call angelos macQuit"; }\n    Ctrl+Up { toggle-overview; }\n    Mod+Shift+3 { screenshot-screen; }\n}\n',
             macWindowRules='window-rule {\n    open-floating true\n}\nwindow-rule {\n    match is-floating=true\n    exclude app-id=r#"^firefox$"#\n    geometry-corner-radius 0 0 16 16\n}\n')
 tpl.write_text(json.dumps(macp))
 # only the plain templates (the command entries would run the real hooks)

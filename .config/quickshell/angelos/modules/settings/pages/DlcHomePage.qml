@@ -182,11 +182,11 @@ PxPage {
         Row {
             spacing: Theme.u * 4
             Repeater {
-                model: ["classic", "windose", "stream"]
+                model: ["classic", "windose", "stream", "goldengate"]
                 SettingsSkinCard {
                     required property string modelData
                     skin: modelData
-                    width: Math.min(Theme.u * 100, (page.innerWidth - Theme.u * 8) / 3)
+                    width: Math.min(Theme.u * 100, (page.innerWidth - Theme.u * 12) / 4)
                 }
             }
         }
