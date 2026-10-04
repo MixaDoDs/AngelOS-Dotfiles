@@ -140,7 +140,7 @@ Column {
         SettingRow {
             label: I18n.t("Вид", "View")
             PxSegmented {
-                model: ["sidebar", "controlpanel", "properties", "tiles"].map(v => ({
+                model: ["win11", "sidebar", "controlpanel", "properties", "tiles"].map(v => ({
                             "label": v,
                             "value": v
                         }))

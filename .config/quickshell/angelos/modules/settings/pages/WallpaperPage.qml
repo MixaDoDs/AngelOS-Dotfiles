@@ -82,6 +82,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "destination"
         title: I18n.t("Куда", "Destination")
         icon: "monitor"
         width: parent.width
@@ -161,6 +162,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "transition"
         title: I18n.t("Переход", "Transition")
         icon: "sparkle"
         width: parent.width
@@ -228,6 +230,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "images"
         title: I18n.t("Картинки (", "Images (") + page.filtered.length + ")"
         icon: "image"
         width: parent.width

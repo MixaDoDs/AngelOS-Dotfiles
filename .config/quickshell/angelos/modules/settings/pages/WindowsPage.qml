@@ -18,8 +18,78 @@ PxPage {
 
     heading: I18n.t("Окна", "Windows")
     subtitle: I18n.t("niri располагает окна в прокручиваемых колонках. Изменения сохраняются с бэкапом и проверкой.", "niri arranges windows in scrolling columns. Changes are backed up and validated.")
+    PxGroup {
+        name: "closing-windows"
+        width: parent.width
+        title: I18n.t("Закрытие окон", "Closing windows")
+        advanced: true
+        icon: "close"
+        SettingRow {
+            id: rightRow
+            preview: "TaskClose"
+            label: I18n.t("ПКМ по кнопке окна на панели", "Right-click a window button")
+            hint: ({
+                    "menu": I18n.t("меню: во весь экран, плавающее, на другой стол или монитор, закрыть, завершить процесс", "A menu: fullscreen, floating, another desk or monitor, close, end task"),
+                    "close": I18n.t("закрывает окно сразу, без вопросов", "Closes the window at once"),
+                    "none": I18n.t("ничего не делает", "Does nothing")
+                })[Config.bar.taskRightClick] || ""
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Меню", "Menu"),
+                        "value": "menu"
+                    },
+                    {
+                        "label": I18n.t("Закрыть", "Close"),
+                        "value": "close"
+                    },
+                    {
+                        "label": I18n.t("Ничего", "Nothing"),
+                        "value": "none"
+                    }
+                ]
+                currentValue: Config.bar.taskRightClick || "menu"
+                onActivated: v => {
+                    Config.bar.taskRightClick = v;
+                    rightRow.show(v, ({
+                            "menu": I18n.t("меню", "menu"),
+                            "close": I18n.t("закрыть сразу", "close at once"),
+                            "none": I18n.t("ничего", "nothing")
+                        })[v]);
+                }
+            }
+        }
+        SettingRow {
+            id: middleRow
+            preview: "TaskClose"
+            label: I18n.t("Средняя кнопка закрывает", "Middle click closes")
+            hint: I18n.t("колёсиком по кнопке окна на панели, как в браузере по вкладке", "Click the wheel on a window button, like on a browser tab")
+            PxToggle {
+                checked: Config.bar.taskMiddleClose
+                onToggled: c => {
+                    Config.bar.taskMiddleClose = c;
+                    middleRow.show(c ? "middle-on" : "middle-off", c ? I18n.t("закрывает", "closes") : I18n.t("не закрывает", "does not close"));
+                }
+            }
+        }
+        SettingRow {
+            id: hoverRow
+            preview: "TaskClose"
+            label: I18n.t("Крестик при наведении", "× on hover")
+            hint: I18n.t("на кнопке окна под курсором появляется крестик", "A close button appears on the hovered window button")
+            PxToggle {
+                checked: Config.bar.taskHoverClose
+                onToggled: c => {
+                    Config.bar.taskHoverClose = c;
+                    hoverRow.show(c ? "hover-on" : "hover-off", c ? I18n.t("крестик есть", "with ×") : I18n.t("без крестика", "no ×"));
+                }
+            }
+        }
+    }
+
     // window decorations: angelOS title bars (modules/decor), GTK's buttons (scripts/gtk-live.py), browsers
     PxGroup {
+        name: "window-decorations"
         id: decorGroup
         width: parent.width
         title: I18n.t("Декорации окон", "Window decorations")
@@ -371,75 +441,8 @@ PxPage {
             }
         }
     }
-
     PxGroup {
-        width: parent.width
-        title: I18n.t("Закрытие окон", "Closing windows")
-        advanced: true
-        icon: "close"
-        SettingRow {
-            id: rightRow
-            preview: "TaskClose"
-            label: I18n.t("ПКМ по кнопке окна на панели", "Right-click a window button")
-            hint: ({
-                    "menu": I18n.t("меню: во весь экран, плавающее, на другой стол или монитор, закрыть, завершить процесс", "A menu: fullscreen, floating, another desk or monitor, close, end task"),
-                    "close": I18n.t("закрывает окно сразу, без вопросов", "Closes the window at once"),
-                    "none": I18n.t("ничего не делает", "Does nothing")
-                })[Config.bar.taskRightClick] || ""
-            PxSegmented {
-                model: [
-                    {
-                        "label": I18n.t("Меню", "Menu"),
-                        "value": "menu"
-                    },
-                    {
-                        "label": I18n.t("Закрыть", "Close"),
-                        "value": "close"
-                    },
-                    {
-                        "label": I18n.t("Ничего", "Nothing"),
-                        "value": "none"
-                    }
-                ]
-                currentValue: Config.bar.taskRightClick || "menu"
-                onActivated: v => {
-                    Config.bar.taskRightClick = v;
-                    rightRow.show(v, ({
-                            "menu": I18n.t("меню", "menu"),
-                            "close": I18n.t("закрыть сразу", "close at once"),
-                            "none": I18n.t("ничего", "nothing")
-                        })[v]);
-                }
-            }
-        }
-        SettingRow {
-            id: middleRow
-            preview: "TaskClose"
-            label: I18n.t("Средняя кнопка закрывает", "Middle click closes")
-            hint: I18n.t("колёсиком по кнопке окна на панели, как в браузере по вкладке", "Click the wheel on a window button, like on a browser tab")
-            PxToggle {
-                checked: Config.bar.taskMiddleClose
-                onToggled: c => {
-                    Config.bar.taskMiddleClose = c;
-                    middleRow.show(c ? "middle-on" : "middle-off", c ? I18n.t("закрывает", "closes") : I18n.t("не закрывает", "does not close"));
-                }
-            }
-        }
-        SettingRow {
-            id: hoverRow
-            preview: "TaskClose"
-            label: I18n.t("Крестик при наведении", "× on hover")
-            hint: I18n.t("на кнопке окна под курсором появляется крестик", "A close button appears on the hovered window button")
-            PxToggle {
-                checked: Config.bar.taskHoverClose
-                onToggled: c => {
-                    Config.bar.taskHoverClose = c;
-                    hoverRow.show(c ? "hover-on" : "hover-off", c ? I18n.t("крестик есть", "with ×") : I18n.t("без крестика", "no ×"));
-                }
-            }
-        }
-    }
-    PxGroup {
+        name: "alt-tab"
         width: parent.width
         title: "Alt+Tab"
         advanced: true
@@ -560,6 +563,7 @@ PxPage {
         }
     }
     PxGroup {
+        name: "window-animations"
         width: parent.width
         title: I18n.t("Анимации окон", "Window animations")
         advanced: true
@@ -649,6 +653,7 @@ PxPage {
         }
     }
     PxGroup {
+        name: "layout"
         width: parent.width
         title: I18n.t("Размещение", "Layout")
         advanced: true
@@ -702,6 +707,7 @@ PxPage {
         }
     }
     PxGroup {
+        name: "window-widths"
         width: parent.width
         title: I18n.t("Ширина окон", "Window widths")
         advanced: true
@@ -813,6 +819,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "window-menu-experimental"
         title: I18n.t("Меню окна (эксперимент)", "Window menu (experimental)")
         advanced: true
         icon: "layers"

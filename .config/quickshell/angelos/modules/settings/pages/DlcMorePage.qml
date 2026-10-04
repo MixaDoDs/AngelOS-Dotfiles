@@ -20,6 +20,7 @@ PxPage {
     Repeater {
         model: Shell.settingsView ? Shell.settingsView.visibleGroups : []
         PxGroup {
+            name: "tiles"
             id: grp
             required property var modelData
             width: page.innerWidth

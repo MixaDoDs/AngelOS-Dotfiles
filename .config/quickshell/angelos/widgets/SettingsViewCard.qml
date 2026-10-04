@@ -7,11 +7,12 @@ import qs.config
 Item {
     id: root
 
-    property string view: "sidebar"
-    readonly property bool checked: (Config.settingsUi.view || "sidebar") === view
+    property string view: "win11"
+    readonly property bool checked: (Config.settingsUi.view || "win11") === view
     signal picked
 
     readonly property var names: ({
+            "win11": [I18n.t("Как в Windows 11", "Like Windows 11"), I18n.t("категории слева, карточки справа", "categories on the left, cards on the right")],
             "sidebar": [I18n.t("Боковая панель", "Sidebar"), I18n.t("разделы слева, как в macOS", "sections on the left, like macOS")],
             "controlpanel": [I18n.t("Панель управления", "Control Panel"), I18n.t("папка значков, как в Win98", "a folder of icons, like Win98")],
             "properties": [I18n.t("Свойства", "Properties"), I18n.t("раздел сверху, страницы — вкладки", "a section on top, pages as tabs")],
@@ -53,6 +54,81 @@ Item {
             width: parent.width - 2
             height: pic.g(3)
             color: Theme.menuHeader
+        }
+
+        // Windows 11: you, the search and the categories on the left; big crumbs and cards
+        Item {
+            visible: root.view === "win11"
+            anchors.fill: parent
+            Rectangle {
+                x: pic.g(1)
+                y: pic.g(4)
+                width: pic.g(3)
+                height: pic.g(3)
+                color: Theme.accent
+            }
+            Rectangle {
+                x: pic.g(5)
+                y: pic.g(5)
+                width: pic.g(6)
+                height: pic.g(1)
+                color: Theme.textDim
+            }
+            Rectangle {
+                x: pic.g(1)
+                y: pic.g(8)
+                width: pic.g(10)
+                height: pic.g(2)
+                color: Theme.sunken
+            }
+            Repeater {
+                model: 5
+                Item {
+                    required property int index
+                    Rectangle {
+                        x: pic.g(1)
+                        y: pic.g(11 + index * 3)
+                        width: pic.g(2)
+                        height: pic.g(2)
+                        color: root.tints[index]
+                    }
+                    Rectangle {
+                        x: pic.g(4)
+                        y: pic.g(11.5 + index * 3)
+                        width: pic.g(7)
+                        height: pic.g(1)
+                        color: index === 1 ? Theme.accent : Theme.textDim
+                    }
+                }
+            }
+            Rectangle {
+                x: pic.g(13)
+                y: pic.g(4.5)
+                width: pic.g(16)
+                height: pic.g(2)
+                color: Theme.text
+            }
+            Repeater {
+                model: 5
+                Rectangle {
+                    required property int index
+                    x: pic.g(13)
+                    y: pic.g(8 + index * 3.3)
+                    width: pic.g(26)
+                    height: pic.g(2.8)
+                    color: Theme.mix(Theme.face, Theme.faceAlt, 0.6)
+                    border.width: 1
+                    border.color: Qt.alpha(Theme.lo, 0.6)
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.rightMargin: pic.g(1)
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: pic.g(3)
+                        height: pic.g(1.4)
+                        color: index % 2 ? Theme.accent : Theme.sunken
+                    }
+                }
+            }
         }
 
         // sidebar: the sections on the left, the page on the right

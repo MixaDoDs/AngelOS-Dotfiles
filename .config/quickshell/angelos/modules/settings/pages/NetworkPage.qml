@@ -35,6 +35,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "status"
         title: I18n.t("Состояние", "Status")
         icon: "gauge"
         width: parent.width
@@ -73,6 +74,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "wifi"
         visible: Wifi.available
         title: "Wi-Fi"
         icon: Wifi.enabled ? "wifi" : "wifiOff"

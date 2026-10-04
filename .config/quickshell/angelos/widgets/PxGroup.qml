@@ -12,8 +12,16 @@ Item {
     id: root
 
     property string title: ""
+    // the group's key in the settings tree (modules/settings/tree.json: "page/name"): pages are
+    // put together from groups by it, the search and old links find it by it
+    property string name: ""
     property string icon: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
+    // Settings in the Windows 11 look: a caption over a container whose rows are cards of
+    // their own (SettingRow); a sub-page (`advanced`) is a card that unfolds in place
+    readonly property bool fluent: Theme.fluentFor(root.parent)
+    property bool unfolded: false
+    readonly property bool folded: fluent && advanced && !unfolded && openSub !== title
     property int spacing: Theme.u * 5
     property bool advanced: false
     property bool shown: true
@@ -27,24 +35,112 @@ Item {
         return null;
     }
     readonly property string openSub: page ? page.focusGroup : ""
+    // a part of a page put together from groups shows only the groups it was given
+    readonly property bool leftOut: !!page && !!page.wants && !page.wants(root)
     // a sub-page that isn't the one open, or another group while a sub-page is open
-    readonly property bool steppedAside: !!page && (openSub !== "" ? title !== openSub : advanced)
+    readonly property bool steppedAside: leftOut || (!fluent && !!page && (openSub !== "" ? title !== openSub : advanced))
+    // a group's own `visible: …` (a page's) or this one comes back after stepping aside — a
+    // binding, never a value: the value read then is the item's effective visibility, false
+    // while the page is hidden for a moment (moved into another dress's frame), and the group
+    // would stay hidden for good
+    visible: root.shown
     Binding {
         target: root
         property: "visible"
         value: root.shown && !root.steppedAside
         when: root.steppedAside || (root.advanced && root.openSub === root.title)
-        restoreMode: Binding.RestoreBindingOrValue
+        restoreMode: Binding.RestoreBinding
     }
 
-    readonly property bool classic: settingsSkin === "classic"
+    readonly property bool classic: settingsSkin === "classic" && !fluent
     readonly property int b: Math.max(1, Theme.u / 2)
     implicitWidth: col.implicitWidth + Theme.pad * 2
-    implicitHeight: classic ? card.y + col.implicitHeight + Theme.pad * 2 : col.y + col.implicitHeight + Theme.pad
+    implicitHeight: fluent ? (advanced ? fold.y + fold.height + (folded ? 0 : col.implicitHeight + Theme.u * 4) : container.y + col.implicitHeight + Theme.u * 6) : classic ? card.y + col.implicitHeight + Theme.pad * 2 : col.y + col.implicitHeight + Theme.pad
+
+    // ---- Windows 11: the container under the caption, or the card that unfolds ----
+    Rectangle {
+        id: container
+        visible: root.fluent
+        y: root.advanced ? fold.y : head.height + Theme.u * 2
+        width: root.width
+        height: root.height - y
+        color: Theme.mix(Theme.face, Theme.sunken, Theme.dark ? 0.45 : 0.3)
+        border.width: Math.max(1, Theme.u / 2)
+        border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.85 : 0.45)
+    }
+    Rectangle {
+        id: fold
+        visible: root.fluent && root.advanced
+        width: root.width
+        height: Math.max(Theme.fit(22), foldText.implicitHeight + Theme.u * 8)
+        color: foldMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.12) : Theme.mix(Theme.face, Theme.faceAlt, 0.55)
+        border.width: Math.max(1, Theme.u / 2)
+        border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.5)
+        SettingsTile {
+            id: foldTile
+            x: Theme.u * 5
+            anchors.verticalCenter: parent.verticalCenter
+            icon: root.icon || "gear"
+            tint: Theme.mix(Theme.accent, Theme.face, 0.25)
+        }
+        Column {
+            id: foldText
+            anchors.left: foldTile.right
+            anchors.leftMargin: Theme.u * 5
+            anchors.right: foldArrow.left
+            anchors.rightMargin: Theme.u * 4
+            anchors.verticalCenter: parent.verticalCenter
+            PxText {
+                width: parent.width
+                text: root.title
+                elide: Text.ElideRight
+            }
+            // what is inside: the first few rows' names
+            PxText {
+                visible: text !== ""
+                width: parent.width
+                text: root.summary
+                kind: "tiny"
+                dim: true
+                elide: Text.ElideRight
+            }
+        }
+        PxText {
+            id: foldArrow
+            anchors.right: parent.right
+            anchors.rightMargin: Theme.u * 5
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.folded ? "▾" : "▴"
+            kind: "title"
+            dim: true
+        }
+        MouseArea {
+            id: foldMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                const open = root.folded;
+                root.unfolded = open;
+                if (!open && root.openSub === root.title)
+                    Shell.settingsSub = "";
+            }
+        }
+    }
+    // the names of the rows inside a folded card
+    readonly property string summary: {
+        if (!fluent || !advanced)
+            return "";
+        const names = [];
+        for (const c of col.children)
+            if (c.label !== undefined && c.hint !== undefined && c.label && names.length < 4)
+                names.push(c.label);
+        return names.join(", ");
+    }
 
     // ---- Windose / Stream ----
     Rectangle {
-        visible: !root.classic
+        visible: !root.classic && !root.fluent
         anchors.fill: parent
         radius: root.settingsSkin === "stream" ? Theme.u * 3 : 0
         color: root.settingsSkin === "stream" ? Theme.streamPanel : Theme.windosePaper
@@ -52,7 +148,7 @@ Item {
         border.color: root.settingsSkin === "stream" ? Theme.mix(Theme.streamLive, Theme.streamPanel, 0.38) : Theme.windoseLine
     }
     Rectangle {
-        visible: !root.classic
+        visible: !root.classic && !root.fluent
         x: Theme.u
         y: Theme.u
         width: root.width - Theme.u * 2
@@ -73,8 +169,8 @@ Item {
 
     Row {
         id: head
-        // open as a sub-page, its title is the page's heading already
-        visible: root.openSub !== root.title
+        // open as a sub-page, its title is the page's heading already (the folding card says it)
+        visible: root.openSub !== root.title && !(root.fluent && root.advanced) && root.title !== ""
         height: visible ? implicitHeight : 0
         x: root.classic ? Theme.u * 2 : Theme.u * 6
         y: root.classic ? 0 : Theme.u * 3
@@ -90,7 +186,7 @@ Item {
         }
         PxText {
             text: root.title
-            kind: root.classic ? "body" : "title"
+            kind: root.classic || root.fluent ? "body" : "title"
             color: root.settingsSkin === "stream" ? Theme.streamText : root.settingsSkin === "windose" ? Theme.windoseInk : Theme.textDim
             font.bold: true
             anchors.verticalCenter: parent.verticalCenter
@@ -100,9 +196,10 @@ Item {
     Column {
         id: col
         readonly property bool fixedWidth: true // PxToggle wraps its label to fit
-        x: Theme.pad
-        y: root.classic ? card.y + Theme.pad : head.y + head.height + Theme.u * 4
-        width: root.width - Theme.pad * 2
-        spacing: root.spacing
+        visible: !root.folded
+        x: root.fluent ? Theme.u * 3 : Theme.pad
+        y: root.fluent ? (root.advanced ? fold.y + fold.height + Theme.u * 3 : container.y + Theme.u * 3) : root.classic ? card.y + Theme.pad : head.y + head.height + Theme.u * 4
+        width: root.width - (root.fluent ? Theme.u * 6 : Theme.pad * 2)
+        spacing: root.fluent ? Theme.u * 2 : root.spacing
     }
 }

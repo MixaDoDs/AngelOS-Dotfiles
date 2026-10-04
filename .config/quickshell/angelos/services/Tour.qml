@@ -40,7 +40,7 @@ Singleton {
         {
             "key": "bar:workspaces",
             "title": I18n.t("Воркспейсы", "Workspaces"),
-            "text": I18n.t("Клик — перейти, колесо — листать. Сердечки или иконки открытых приложений выбираются в Настройки → Панель.", "Click to switch, scroll to flip. Hearts or app icons: Settings → Bar.")
+            "text": I18n.t("Клик — перейти, колесо — листать. Сердечки или иконки открытых приложений выбираются в Настройки → Панель задач.", "Click to switch, scroll to flip. Hearts or app icons: Settings → Taskbar.")
         },
         {
             "key": "bar:tasks",
@@ -60,7 +60,7 @@ Singleton {
         {
             "key": "bar:tray",
             "title": I18n.t("Трей", "Tray"),
-            "text": I18n.t("Значки приложений. Их можно перекрасить под тему — Настройки → Панель → Иконки.", "App icons. Recolor them to the theme in Settings → Bar → Icons.")
+            "text": I18n.t("Значки приложений. Их можно перекрасить под тему — Настройки → Панель задач → Иконки.", "App icons. Recolor them to the theme in Settings → Taskbar → Icons.")
         },
         {
             "key": "bar:clock",
@@ -75,7 +75,7 @@ Singleton {
         {
             "key": "end",
             "title": I18n.t("Готово ♡", "That's it ♡"),
-            "text": I18n.t("Mod+S — настройки. Подсказки можно пройти снова: Настройки → Внешний вид.", "Mod+S opens settings. Replay these tips from Settings → Appearance.")
+            "text": I18n.t("Mod+S — настройки. Подсказки можно пройти снова: Настройки → Внешний вид.", "Mod+S opens settings. Replay these tips from Settings → Account.")
         }
     ]
     // only steps whose element exists (bar layout is configurable)

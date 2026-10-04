@@ -35,12 +35,13 @@ PxPage {
     }
 
     PxGroup {
+        name: "look"
         title: I18n.t("Вид", "Look")
         icon: "palette"
         width: parent.width
         SettingRow {
             label: I18n.t("Стиль", "Style")
-            hint: DeskMenu.hellish ? I18n.t("сейчас правит демоница — её «", "the demon rules now — her “") + DeskMenu.styleLabel(DeskMenu.style) + I18n.t("» (Y2K → Ангел или демон)", "” (Y2K → Angel or demon)") : ({
+            hint: DeskMenu.hellish ? I18n.t("сейчас правит демоница — её «", "the demon rules now — her “") + DeskMenu.styleLabel(DeskMenu.style) + I18n.t("» («Помощница» → «Ангел или демон»)", "” (Helper → Angel or demon)") : ({
                     "list": I18n.t("список как в Windows 11: быстрые кнопки сверху, подменю сбоку", "a Windows 11-like list: quick buttons on top, flyouts at the side"),
                     "radial": I18n.t("кольцо вокруг курсора, подменю веером снаружи; 1–9 и стрелки", "a ring around the pointer, flyouts fan out outside; 1–9 and the arrows"),
                     "y2k": I18n.t("глянцевый хромовый пузырь с радугой и блёстками", "a glossy chrome bubble with a rainbow and sparkles"),
@@ -137,6 +138,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "quick-buttons"
         title: I18n.t("Быстрые кнопки", "Quick buttons")
         icon: "star"
         width: parent.width
@@ -202,6 +204,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "entries"
         title: I18n.t("Пункты", "Entries")
         icon: "layers"
         width: parent.width
@@ -290,6 +293,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "your-own-entries"
         title: I18n.t("Свои пункты", "Your own entries")
         advanced: true
         icon: "plus"

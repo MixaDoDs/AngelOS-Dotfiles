@@ -128,6 +128,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "new-shortcut"
         title: I18n.t("Новое сочетание", "New shortcut")
         icon: "plus"
         width: parent.width
@@ -247,6 +248,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "all-shortcuts"
         title: I18n.t("Все сочетания", "All shortcuts") + " (" + Keybinds.binds.length + ")"
         icon: "keyboard"
         width: parent.width

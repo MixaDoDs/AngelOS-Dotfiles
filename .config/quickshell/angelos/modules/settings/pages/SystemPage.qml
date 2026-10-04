@@ -11,82 +11,7 @@ PxPage {
     heading: "System"
 
     PxGroup {
-        title: I18n.t("Разработка", "Development")
-        advanced: true
-        icon: "sparkle"
-        width: parent.width
-        SettingRow {
-            label: I18n.t("Режим разработчика", "Developer mode")
-            hint: I18n.t("Добавляет мастер плагинов в настройки и меню «Пуск». Установленные плагины работают и без этого режима.", "Adds Plugin Studio to Settings and Start. Installed plugins keep working when this mode is off.")
-            PxToggle {
-                checked: Config.developer.enabled
-                onToggled: c => Config.developer.enabled = c
-            }
-        }
-        PxButton {
-            visible: Config.developer.enabled
-            text: I18n.t("Открыть мастер плагинов", "Open Plugin Studio")
-            icon: "sparkle"
-            onClicked: Shell.openSettings("studio")
-        }
-    }
-
-    // ---- the game (services/Story): accessibility, and the way back in once it was switched off ----
-    PxGroup {
-        title: I18n.t("Игра", "The game")
-        icon: "heart"
-        width: parent.width
-        // the calm mode is one of the three motion levels now (config/Motion, C4): one place
-        SettingRow {
-            label: I18n.t("Спокойный режим", "Calm mode")
-            hint: I18n.t("теперь в «Внешний вид → Движение»: полное, спокойное (без вспышек, тряски и резких звуков) или выключено. Сейчас: ", "Now in Appearance → Motion: full, calm (no flashes, shaking or sudden loud sounds) or off. Now: ") + ({
-                    "full": I18n.t("полное", "full"),
-                    "calm": I18n.t("спокойное", "calm"),
-                    "off": I18n.t("выключено", "off")
-                })[Motion.level]
-            PxButton {
-                icon: "sparkle"
-                text: I18n.t("Открыть", "Open")
-                onClicked: Shell.openSettings("appearance")
-            }
-        }
-        SettingRow {
-            visible: !Config.game.enabled
-            label: I18n.t("Игра выключена", "The game is off")
-            hint: I18n.t("angelOS работает как обычные дотфайлы: без ангела, демоницы, новеллы и ада. Включить — и в углу снова появится ангел.", "angelOS works as plain dotfiles: no angel, demon, novel or hell. Switch it on and the angel is back in the corner.")
-            PxButton {
-                icon: "heart"
-                accent: true
-                text: I18n.t("Включить игру", "Turn the game on")
-                onClicked: Story.setEnabled(true)
-            }
-        }
-    }
-
-    // ---- developer mode: see and steer the story — the game's debug panel (GameDebug) ----
-    PxGroup {
-        title: I18n.t("Игра: инструменты разработчика", "The game: developer tools")
-        advanced: true
-        shown: Config.developer.enabled
-        icon: "chip"
-        width: parent.width
-        SettingRow {
-            label: I18n.t("Панель отладки игры", "The game's debug panel")
-            hint: I18n.t("Всё состояние игры и любая переменная, любой круг и сцена, эффекты, облики и звуки, снимок сохранения — в отдельном окне. Или `angelos debug`.", "The whole state of the game and every variable, any circle and scene, the effects, looks and sounds, a snapshot of the save — in a window of its own. Or `angelos debug`.")
-            PxButton {
-                icon: "chip"
-                text: I18n.t("Открыть", "Open")
-                onClicked: GameDebug.open = true
-            }
-        }
-    }
-
-    Component.onCompleted: {
-        SystemInfo.refresh();
-        DesktopActions.refresh();
-    }
-
-    PxGroup {
+        name: "rendering"
         title: I18n.t("Отрисовка", "Rendering")
         advanced: true
         icon: "monitor"
@@ -155,6 +80,265 @@ PxPage {
     }
 
     PxGroup {
+        name: "power"
+        visible: SystemInfo.powerProfile !== ""
+        title: I18n.t("Питание", "Power")
+        icon: "power"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Профиль", "Profile")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Экономия", "Power saver"),
+                        "value": "power-saver"
+                    },
+                    {
+                        "label": I18n.t("Баланс", "Balanced"),
+                        "value": "balanced"
+                    },
+                    {
+                        "label": I18n.t("Мощность", "Performance"),
+                        "value": "performance"
+                    }
+                ]
+                currentValue: SystemInfo.powerProfile
+                onActivated: v => SystemInfo.setPowerProfile(v)
+            }
+        }
+    }
+
+    PxGroup {
+        name: "this-computer"
+        title: I18n.t("Этот компьютер", "This computer")
+        icon: "chip"
+        width: parent.width
+
+        Row {
+            spacing: Theme.u * 8
+            width: parent.width
+            PxIcon {
+                name: "ghost"
+                pixel: Theme.u * 5
+            }
+            Grid {
+                columns: 2
+                columnSpacing: Theme.u * 8
+                rowSpacing: Theme.u * 2
+                Repeater {
+                    model: [[I18n.t("Система", "System"), "os"], [I18n.t("Ядро", "Kernel"), "kernel"], [I18n.t("Хост", "Host"), "host"], [I18n.t("Процессор", "CPU"), "cpu"], [I18n.t("Видеокарта", "GPU"), "gpu"], [I18n.t("Память", "Memory"), "mem"], ["Работает", "uptime"], ["niri", "niri"], ["Quickshell", "qs"], [I18n.t("Шелл", "Shell"), "shell"]].reduce((a, r) => a.concat([
+                            {
+                                "t": r[0],
+                                "dim": true
+                            },
+                            {
+                                "t": SystemInfo.info[r[1]] || "—",
+                                "dim": false
+                            }
+                        ]), [])
+                    PxText {
+                        required property var modelData
+                        text: modelData.t
+                        dim: modelData.dim
+                    }
+                }
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        SystemInfo.refresh();
+        DesktopActions.refresh();
+    }
+
+    // the expensive toys: shown only when a popular model over $100 is plugged in
+    PxGroup {
+        name: "your-setup"
+        visible: SystemInfo.gear.length > 0
+        title: I18n.t("Твой сетап ✧", "Your setup ✧")
+        icon: "star"
+        width: parent.width
+        Repeater {
+            model: SystemInfo.gear
+            Row {
+                id: gearRow
+                required property var modelData
+                spacing: Theme.u * 4
+                PxIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    name: ({
+                            "keyboard": "keyboard",
+                            "mouse": "mouse",
+                            "mic": "mic"
+                        })[gearRow.modelData.kind] || "star"
+                    pixel: Theme.u * 2
+                }
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    PxText {
+                        text: gearRow.modelData.name
+                        font.bold: true
+                    }
+                    PxText {
+                        text: ({
+                                "keyboard": I18n.t("Клавиатура", "Keyboard"),
+                                "mouse": I18n.t("Мышь", "Mouse"),
+                                "mic": I18n.t("Микрофон", "Microphone")
+                            })[gearRow.modelData.kind] + " · ~$" + Math.round(gearRow.modelData.usd)
+                        kind: "tiny"
+                        dim: true
+                    }
+                }
+            }
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            text: I18n.t("Популярные клавиатуры, мыши и микрофоны дороже $", "Popular keyboards, mice and microphones over $") + Math.round(SystemInfo.gearThreshold) + I18n.t(" (примерная цена на старте продаж). Их же показывает fastfetch.", " (roughly their launch price). fastfetch shows them too.")
+        }
+        PxButton {
+            compact: true
+            icon: "refresh"
+            text: I18n.t("Проверить снова", "Check again")
+            onClicked: SystemInfo.refresh()
+        }
+    }
+
+    PxGroup {
+        name: "angelos"
+        title: "angelOS"
+        icon: "heart"
+        width: parent.width
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            text: I18n.t("angelOS — пиксельная оболочка на Quickshell для niri. Конфиг: ", "angelOS is a pixel shell built with Quickshell for niri. Config: ") + Quickshell.shellDir + I18n.t(", настройки: ", ", settings: ") + Config.dir
+            dim: true
+        }
+        Flow {
+            width: parent.width
+            spacing: Theme.u * 4
+            PxButton {
+                text: I18n.t("Перезапустить оболочку", "Restart shell")
+                icon: "refresh"
+                onClicked: Quickshell.reload(true)
+            }
+            PxButton {
+                text: I18n.t("Перечитать niri", "Reload niri")
+                icon: "refresh"
+                onClicked: Niri.action("LoadConfigFile", {})
+            }
+            PxButton {
+                text: I18n.t("Папка настроек", "Settings folder")
+                icon: "folder"
+                onClicked: Shell.openPath(Config.dir)
+            }
+            PxButton {
+                text: I18n.t("Бэкапы", "Backups")
+                icon: "package"
+                onClicked: Shell.openPath(Config.stateDir + "/backups")
+            }
+        }
+    }
+
+    PxGroup {
+        name: "report-problem"
+        id: reportGroup
+        title: I18n.t("Сообщить о проблеме", "Report a problem")
+        advanced: true
+        icon: "warn"
+        width: parent.width
+        property var result: null
+        property bool busy: false
+        SettingRow {
+            label: I18n.t("Отчёт для issue", "A report for an issue")
+            hint: reportGroup.result ? I18n.t("готово: ", "done: ") + reportGroup.result.archive.replace(Config.home, "~") + I18n.t(" — прикрепи его к issue на GitHub", " — attach it to a GitHub issue") : I18n.t("версии, лог оболочки, краш-отчёты и настройки в одном архиве; путь к дому и имя заменены, личное (история запусков, имена столов, данные плагинов) не попадает. То же в терминале: angelos report", "Versions, the shell log, crash reports and settings in one archive; your home path and name are replaced, personal bits (launch history, workspace names, plugin data) stay out. Same in a terminal: angelos report")
+            PxButton {
+                enabled: !reportGroup.busy
+                icon: "package"
+                text: reportGroup.busy ? I18n.t("Собираю…", "Packing…") : I18n.t("Собрать отчёт", "Make a report")
+                onClicked: {
+                    reportGroup.busy = true;
+                    reportProc.running = true;
+                }
+            }
+        }
+        Row {
+            visible: !!reportGroup.result
+            spacing: Theme.u * 4
+            PxButton {
+                icon: "folder"
+                text: I18n.t("Показать архив", "Show the archive")
+                onClicked: Shell.openPath(reportGroup.result.archive.replace(/\/[^\/]*$/, ""))
+            }
+            PxButton {
+                accent: true
+                icon: "bell"
+                text: I18n.t("Открыть форму issue", "Open the issue form")
+                onClicked: Shell.exec(["xdg-open", reportGroup.result.issue])
+            }
+        }
+        Process {
+            id: reportProc
+            command: ["python3", Quickshell.shellDir + "/scripts/report.py", "--json"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        reportGroup.result = JSON.parse(text);
+                    } catch (e) {
+                        reportGroup.result = null;
+                    }
+                }
+            }
+            onExited: reportGroup.busy = false
+        }
+    }
+
+    PxGroup {
+        name: "development"
+        title: I18n.t("Разработка", "Development")
+        advanced: true
+        icon: "sparkle"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Режим разработчика", "Developer mode")
+            hint: I18n.t("Добавляет мастер плагинов в настройки и меню «Пуск». Установленные плагины работают и без этого режима.", "Adds Plugin Studio to Settings and Start. Installed plugins keep working when this mode is off.")
+            PxToggle {
+                checked: Config.developer.enabled
+                onToggled: c => Config.developer.enabled = c
+            }
+        }
+        PxButton {
+            visible: Config.developer.enabled
+            text: I18n.t("Открыть мастер плагинов", "Open Plugin Studio")
+            icon: "sparkle"
+            onClicked: Shell.openSettings("studio")
+        }
+    }
+
+    // ---- developer mode: see and steer the story — the game's debug panel (GameDebug) ----
+    PxGroup {
+        name: "game-developer-tools"
+        title: I18n.t("Игра: инструменты разработчика", "The game: developer tools")
+        advanced: true
+        shown: Config.developer.enabled
+        icon: "chip"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Панель отладки игры", "The game's debug panel")
+            hint: I18n.t("Всё состояние игры и любая переменная, любой круг и сцена, эффекты, облики и звуки, снимок сохранения — в отдельном окне. Или `angelos debug`.", "The whole state of the game and every variable, any circle and scene, the effects, looks and sounds, a snapshot of the save — in a window of its own. Or `angelos debug`.")
+            PxButton {
+                icon: "chip"
+                text: I18n.t("Открыть", "Open")
+                onClicked: GameDebug.open = true
+            }
+        }
+    }
+
+    PxGroup {
+        name: "task-manager"
         title: I18n.t("Диспетчер задач", "Task Manager")
         advanced: true
         icon: "chip"
@@ -293,125 +477,7 @@ PxPage {
     }
 
     PxGroup {
-        title: I18n.t("Этот компьютер", "This computer")
-        icon: "chip"
-        width: parent.width
-
-        Row {
-            spacing: Theme.u * 8
-            width: parent.width
-            PxIcon {
-                name: "ghost"
-                pixel: Theme.u * 5
-            }
-            Grid {
-                columns: 2
-                columnSpacing: Theme.u * 8
-                rowSpacing: Theme.u * 2
-                Repeater {
-                    model: [[I18n.t("Система", "System"), "os"], [I18n.t("Ядро", "Kernel"), "kernel"], [I18n.t("Хост", "Host"), "host"], [I18n.t("Процессор", "CPU"), "cpu"], [I18n.t("Видеокарта", "GPU"), "gpu"], [I18n.t("Память", "Memory"), "mem"], ["Работает", "uptime"], ["niri", "niri"], ["Quickshell", "qs"], [I18n.t("Шелл", "Shell"), "shell"]].reduce((a, r) => a.concat([
-                            {
-                                "t": r[0],
-                                "dim": true
-                            },
-                            {
-                                "t": SystemInfo.info[r[1]] || "—",
-                                "dim": false
-                            }
-                        ]), [])
-                    PxText {
-                        required property var modelData
-                        text: modelData.t
-                        dim: modelData.dim
-                    }
-                }
-            }
-        }
-    }
-
-    // the expensive toys: shown only when a popular model over $100 is plugged in
-    PxGroup {
-        visible: SystemInfo.gear.length > 0
-        title: I18n.t("Твой сетап ✧", "Your setup ✧")
-        icon: "star"
-        width: parent.width
-        Repeater {
-            model: SystemInfo.gear
-            Row {
-                id: gearRow
-                required property var modelData
-                spacing: Theme.u * 4
-                PxIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    name: ({
-                            "keyboard": "keyboard",
-                            "mouse": "mouse",
-                            "mic": "mic"
-                        })[gearRow.modelData.kind] || "star"
-                    pixel: Theme.u * 2
-                }
-                Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    PxText {
-                        text: gearRow.modelData.name
-                        font.bold: true
-                    }
-                    PxText {
-                        text: ({
-                                "keyboard": I18n.t("Клавиатура", "Keyboard"),
-                                "mouse": I18n.t("Мышь", "Mouse"),
-                                "mic": I18n.t("Микрофон", "Microphone")
-                            })[gearRow.modelData.kind] + " · ~$" + Math.round(gearRow.modelData.usd)
-                        kind: "tiny"
-                        dim: true
-                    }
-                }
-            }
-        }
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            kind: "tiny"
-            dim: true
-            text: I18n.t("Популярные клавиатуры, мыши и микрофоны дороже $", "Popular keyboards, mice and microphones over $") + Math.round(SystemInfo.gearThreshold) + I18n.t(" (примерная цена на старте продаж). Их же показывает fastfetch.", " (roughly their launch price). fastfetch shows them too.")
-        }
-        PxButton {
-            compact: true
-            icon: "refresh"
-            text: I18n.t("Проверить снова", "Check again")
-            onClicked: SystemInfo.refresh()
-        }
-    }
-
-    PxGroup {
-        visible: SystemInfo.powerProfile !== ""
-        title: I18n.t("Питание", "Power")
-        icon: "power"
-        width: parent.width
-        SettingRow {
-            label: I18n.t("Профиль", "Profile")
-            PxSegmented {
-                model: [
-                    {
-                        "label": I18n.t("Экономия", "Power saver"),
-                        "value": "power-saver"
-                    },
-                    {
-                        "label": I18n.t("Баланс", "Balanced"),
-                        "value": "balanced"
-                    },
-                    {
-                        "label": I18n.t("Мощность", "Performance"),
-                        "value": "performance"
-                    }
-                ]
-                currentValue: SystemInfo.powerProfile
-                onActivated: v => SystemInfo.setPowerProfile(v)
-            }
-        }
-    }
-
-    PxGroup {
+        name: "programs"
         title: I18n.t("Программы", "Programs")
         advanced: true
         icon: "terminal"
@@ -439,90 +505,36 @@ PxPage {
         }
     }
 
+    // ---- the game (services/Story): accessibility, and the way back in once it was switched off ----
     PxGroup {
-        title: "angelOS"
+        name: "game"
+        title: I18n.t("Игра", "The game")
         icon: "heart"
         width: parent.width
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            text: I18n.t("angelOS — пиксельная оболочка на Quickshell для niri. Конфиг: ", "angelOS is a pixel shell built with Quickshell for niri. Config: ") + Quickshell.shellDir + I18n.t(", настройки: ", ", settings: ") + Config.dir
-            dim: true
-        }
-        Row {
-            spacing: Theme.u * 4
-            PxButton {
-                text: I18n.t("Перезапустить оболочку", "Restart shell")
-                icon: "refresh"
-                onClicked: Quickshell.reload(true)
-            }
-            PxButton {
-                text: I18n.t("Перечитать niri", "Reload niri")
-                icon: "refresh"
-                onClicked: Niri.action("LoadConfigFile", {})
-            }
-            PxButton {
-                text: I18n.t("Папка настроек", "Settings folder")
-                icon: "folder"
-                onClicked: Shell.openPath(Config.dir)
-            }
-            PxButton {
-                text: I18n.t("Бэкапы", "Backups")
-                icon: "package"
-                onClicked: Shell.openPath(Config.stateDir + "/backups")
-            }
-        }
-    }
-
-    PxGroup {
-        id: reportGroup
-        title: I18n.t("Сообщить о проблеме", "Report a problem")
-        advanced: true
-        icon: "warn"
-        width: parent.width
-        property var result: null
-        property bool busy: false
+        // the calm mode is one of the three motion levels now (config/Motion, C4): one place
         SettingRow {
-            label: I18n.t("Отчёт для issue", "A report for an issue")
-            hint: reportGroup.result ? I18n.t("готово: ", "done: ") + reportGroup.result.archive.replace(Config.home, "~") + I18n.t(" — прикрепи его к issue на GitHub", " — attach it to a GitHub issue") : I18n.t("версии, лог оболочки, краш-отчёты и настройки в одном архиве; путь к дому и имя заменены, личное (история запусков, имена столов, данные плагинов) не попадает. То же в терминале: angelos report", "Versions, the shell log, crash reports and settings in one archive; your home path and name are replaced, personal bits (launch history, workspace names, plugin data) stay out. Same in a terminal: angelos report")
+            label: I18n.t("Спокойный режим", "Calm mode")
+            hint: I18n.t("теперь в «Тема и цвета → Движение»: полное, спокойное (без вспышек, тряски и резких звуков) или выключено. Сейчас: ", "Now in Theme and colours → Motion: full, calm (no flashes, shaking or sudden loud sounds) or off. Now: ") + ({
+                    "full": I18n.t("полное", "full"),
+                    "calm": I18n.t("спокойное", "calm"),
+                    "off": I18n.t("выключено", "off")
+                })[Motion.level]
             PxButton {
-                enabled: !reportGroup.busy
-                icon: "package"
-                text: reportGroup.busy ? I18n.t("Собираю…", "Packing…") : I18n.t("Собрать отчёт", "Make a report")
-                onClicked: {
-                    reportGroup.busy = true;
-                    reportProc.running = true;
-                }
+                icon: "sparkle"
+                text: I18n.t("Открыть", "Open")
+                onClicked: Shell.openSettings("appearance")
             }
         }
-        Row {
-            visible: !!reportGroup.result
-            spacing: Theme.u * 4
+        SettingRow {
+            visible: !Config.game.enabled
+            label: I18n.t("Игра выключена", "The game is off")
+            hint: I18n.t("angelOS работает как обычные дотфайлы: без ангела, демоницы, новеллы и ада. Включить — и в углу снова появится ангел.", "angelOS works as plain dotfiles: no angel, demon, novel or hell. Switch it on and the angel is back in the corner.")
             PxButton {
-                icon: "folder"
-                text: I18n.t("Показать архив", "Show the archive")
-                onClicked: Shell.openPath(reportGroup.result.archive.replace(/\/[^\/]*$/, ""))
-            }
-            PxButton {
+                icon: "heart"
                 accent: true
-                icon: "bell"
-                text: I18n.t("Открыть форму issue", "Open the issue form")
-                onClicked: Shell.exec(["xdg-open", reportGroup.result.issue])
+                text: I18n.t("Включить игру", "Turn the game on")
+                onClicked: Story.setEnabled(true)
             }
-        }
-        Process {
-            id: reportProc
-            command: ["python3", Quickshell.shellDir + "/scripts/report.py", "--json"]
-            stdout: StdioCollector {
-                onStreamFinished: {
-                    try {
-                        reportGroup.result = JSON.parse(text);
-                    } catch (e) {
-                        reportGroup.result = null;
-                    }
-                }
-            }
-            onExited: reportGroup.busy = false
         }
     }
 }

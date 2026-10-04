@@ -31,6 +31,7 @@ PxPage {
     readonly property int widgetsElsewhere: DesktopWidgets.widgets.filter(w => w.screen !== Shell.primaryName).length
     readonly property string angelOwn: Config.y2k.helperScreen && Config.y2k.helperScreen !== "focus" && Config.y2k.helperScreen !== Shell.primaryName ? Config.y2k.helperScreen : ""
     PxGroup {
+        name: "main-screen"
         title: I18n.t("Главный экран", "Main screen")
         icon: "star"
         width: parent.width
@@ -73,24 +74,19 @@ PxPage {
                 onClicked: DesktopWidgets.moveAllTo(Shell.primaryName)
             }
         }
-        SettingRow {
+        // her screen and the sidebar's are set on their own pages: links there
+        SettingLink {
             visible: page.angelOwn !== ""
             label: I18n.t("У ангела свой экран: ", "The angel has her own screen: ") + page.angelOwn
-            hint: I18n.t("Y2K → «На каком экране»; с главным её трещины и лучи тоже уйдут туда", "Y2K → Screen; with the main one her cracks and rays move there too")
-            PxButton {
-                compact: true
-                text: I18n.t("Тоже на главный", "Main screen too")
-                onClicked: Config.y2k.helperScreen = ""
-            }
+            hint: I18n.t("«На каком экране»; пусто — главный, и её трещины и лучи тоже уйдут туда", "“Screen”; empty is the main one, and her cracks and rays move there too")
+            page: "helper"
+            group: "demon-corner"
         }
-        SettingRow {
+        SettingLink {
             visible: !!Config.sidebar.screen && Config.sidebar.screen !== Shell.primaryName
             label: I18n.t("У сайдбара свой экран: ", "The sidebar has its own screen: ") + Config.sidebar.screen
-            PxButton {
-                compact: true
-                text: I18n.t("Тоже на главный", "Main screen too")
-                onClicked: Config.sidebar.screen = ""
-            }
+            page: "taskbar"
+            group: "sidebar-experimental"
         }
         PxText {
             width: parent.width
@@ -106,11 +102,12 @@ PxPage {
             kind: "tiny"
             dim: true
             visible: StreamMode.active && Config.stream.hideAngel && StreamMode.onStream(Shell.primaryName)
-            text: I18n.t("Сейчас идёт эфир: ангел и её эффекты ушли с этого экрана (Y2K → Стрим-режим)", "You're live: the angel and her effects have left this screen (Y2K → Stream mode)")
+            text: I18n.t("Сейчас идёт эфир: ангел и её эффекты ушли с этого экрана (Система → Стрим-режим)", "You're live: the angel and her effects have left this screen (System → Stream mode)")
         }
     }
 
     PxGroup {
+        name: "brightness-colour"
         title: I18n.t("Яркость и цвет", "Brightness and colour")
         icon: "sun"
         width: parent.width
@@ -174,6 +171,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "arrangement"
         title: I18n.t("Расположение", "Arrangement")
         icon: "monitor"
         width: parent.width
@@ -289,6 +287,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "output"
         visible: !!page.d
         title: page.selected + (page.o ? "  ·  " + (page.o.make || "") + " " + (page.o.model || "") : "")
         icon: "gear"
@@ -315,7 +314,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Масштаб", "Scale")
-            hint: page.d && Math.abs(page.d.scale - Math.round(page.d.scale)) > 0.001 ? I18n.t("Дробный масштаб размывает пиксельные шрифты и рамки angelOS: их пиксели ложатся между пикселями экрана. Чётко — целый масштаб (1, 2), а крупнее — размером пикселя и масштабом шрифтов (Внешний вид → Стекло и пиксели).", "A fractional scale blurs angelOS's pixel fonts and frames: their pixels fall between the screen's. Crisp: a whole scale (1, 2), and bigger with the pixel size and the font scale (Appearance → Glass and pixels).") : ""
+            hint: page.d && Math.abs(page.d.scale - Math.round(page.d.scale)) > 0.001 ? I18n.t("Дробный масштаб размывает пиксельные шрифты и рамки angelOS: их пиксели ложатся между пикселями экрана. Чётко — целый масштаб (1, 2), а крупнее — размером пикселя и масштабом шрифтов («Тема и цвета» → «Размер пикселя», «Шрифты» → «Масштаб шрифтов»).", "A fractional scale blurs angelOS's pixel fonts and frames: their pixels fall between the screen's. Crisp: a whole scale (1, 2), and bigger with the pixel size and the font scale (Theme and colours → Pixel size, Fonts → Font scale).") : ""
             PxSpin {
                 from: 0.5
                 to: 3

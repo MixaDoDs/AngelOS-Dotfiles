@@ -135,6 +135,7 @@ PxPage {
 
     // in hell the pointer is hers (Cursors.hellOn): only hell's themes are offered
     PxGroup {
+        name: "pixel-themes"
         visible: !(Angel.demon && !!Config.cursor.hell)
         title: I18n.t("Пиксельные темы", "Pixel themes")
         icon: "cursor"
@@ -156,6 +157,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "cursor-hell"
         visible: Angel.hellShown
         title: I18n.t("Курсор в аду", "Cursor in hell")
         icon: "fire"
@@ -205,6 +207,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "shake-find-pointer"
         title: I18n.t("Найти курсор встряхиванием", "Shake to find the pointer")
         advanced: true
         icon: "search"
@@ -268,6 +271,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "size-compatibility"
         title: I18n.t("Размер и совместимость", "Size and compatibility")
         advanced: true
         icon: "gear"

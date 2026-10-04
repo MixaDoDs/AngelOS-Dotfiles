@@ -92,6 +92,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "add"
         title: I18n.t("Добавить", "Add")
         icon: "plus"
         width: parent.width
@@ -124,6 +125,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "on-desktop"
         title: I18n.t("На рабочем столе", "On the desktop") + " (" + DesktopWidgets.widgets.length + ")"
         icon: "layers"
         width: parent.width
@@ -254,6 +256,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "behavior"
         title: I18n.t("Поведение", "Behavior")
         icon: "gear"
         width: parent.width

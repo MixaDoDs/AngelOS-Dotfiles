@@ -13,6 +13,7 @@ PxPage {
     subtitle: I18n.t("Скорость и ускорение мыши пишутся в ~/.config/niri/cfg/input.kdl точечно, с бэкапом и проверкой. Ниже — лупа у курсора.", "Mouse speed and acceleration go to input.kdl, with a backup and validation. Below: the lens at the pointer.")
 
     PxGroup {
+        name: "mouse"
         title: I18n.t("Мышь", "Mouse")
         icon: "mouse"
         width: parent.width
@@ -49,19 +50,18 @@ PxPage {
                     })
             }
         }
-        SettingRow {
+        // set where the windows are laid out (Windows → Layout); here a link to it
+        SettingLink {
             label: I18n.t("Фокус следует за мышью", "Focus follows mouse")
-            PxToggle {
-                checked: InputConfig.focusFollowsMouse
-                onToggled: c => InputConfig.save({
-                        "focusFollowsMouse": c
-                    })
-            }
+            hint: InputConfig.focusFollowsMouse ? I18n.t("включено", "on") : I18n.t("выключено", "off")
+            page: "windows"
+            group: "layout"
         }
     }
 
     // the lens at the pointer (services/Lens)
     PxGroup {
+        name: "lens-at-pointer"
         width: parent.width
         title: I18n.t("Лупа у курсора", "Lens at the pointer")
         icon: "search"

@@ -15,12 +15,27 @@ PxScroll {
     property string heading: ""
     property string subtitle: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
+    // the Windows 11 look: the view says where you are (big crumbs), sub-pages unfold in place
+    readonly property bool fluent: Theme.fluentFor(root.parent)
     property color headingColor: settingsSkin === "windose" ? Theme.windoseTitle : settingsSkin === "stream" ? Theme.streamLive : Theme.dark ? Theme.accent : Theme.edge
     property color subtitleColor: Theme.textDim
     default property alias items: col.data
     readonly property int innerWidth: col.width
+    // Put together from groups (modules/settings/ComposedPage.qml, the tree in tree.json):
+    // this page shown as a part of another one — only the groups named in `only`, no heading,
+    // links or reset of its own, as tall as its content (the page it is in scrolls).
+    property bool embedded: false
+    property var only: []                   // group names (PxGroup.name) to show; empty: all
+    property bool loose: true               // what sits outside the groups (a note, buttons)
+    property string partOf: ""              // the page it is a part of (Shell.settingsPage)
+    property var unfold: []                 // groups that are the whole page: never a sub-page here
+    scrolls: !embedded
+    implicitHeight: embedded ? contentHeight : 0
+    function wants(g) {
+        return !only || only.length === 0 || only.indexOf(g.name) >= 0;
+    }
     // the settings page this is (plugin pages and the home tiles have nothing to reset)
-    property string pageId: Shell.settingsPage
+    property string pageId: partOf || Shell.settingsPage
     readonly property var changed: SettingsKeys.loaded ? SettingsKeys.changedOn(pageId) : []
     property bool confirming: false
     property int resetCount: -1
@@ -45,8 +60,19 @@ PxScroll {
         } : null;
     }
     // the links at the top: the section's other pages, then this page's advanced groups
-    readonly property var advancedGroups: Array.from(col.children).filter(c => c.advanced === true && c.title && c.shown !== false)
-    readonly property var links: focusGroup !== "" || tabsOutside ? [] : (view && view.subpagesOf ? view.subpagesOf(pageId) : []).map(p => ({
+    // (a page put together from parts: theirs, in order)
+    readonly property var advancedGroups: {
+        const out = [];
+        for (const c of col.children) {
+            if (c.advanced === true && c.title && c.shown !== false && root.wants(c))
+                out.push(c);
+            else if (c.item && c.item.embedded === true)
+                for (const g of c.item.advancedGroups)
+                    out.push(g);
+        }
+        return out;
+    }
+    readonly property var links: focusGroup !== "" || tabsOutside || embedded || fluent ? [] : (view && view.subpagesOf ? view.subpagesOf(pageId) : []).map(p => ({
                 "label": p.label,
                 "icon": p.icon,
                 "tint": view.tintOf(p.id),
@@ -79,12 +105,13 @@ PxScroll {
     property var _aside: []
     function bindAside() {
         for (const c of col.children) {
-            if (c === head || c === linkCard || c.advanced !== undefined || root._aside.indexOf(c) >= 0)
+            // groups step aside themselves; the parts of a page put together do it inside
+            if (c === head || c === linkCard || c.advanced !== undefined || c.item !== undefined || c.itemAt !== undefined || root._aside.indexOf(c) >= 0)
                 continue;
             root._aside.push(c);
             asideBinding.createObject(root, {
                 "target": c,
-                "when": Qt.binding(() => root.focusGroup !== "")
+                "when": Qt.binding(() => (root.focusGroup !== "" && !root.fluent) || (root.embedded && !root.loose))
             });
         }
     }
@@ -95,24 +122,24 @@ PxScroll {
         }
     }
 
-    contentHeight: col.implicitHeight + (footer.visible ? footer.height + Theme.u * 8 : 0) + Theme.u * 10
+    contentHeight: embedded ? col.implicitHeight : col.implicitHeight + (footer.visible ? footer.height + Theme.u * 8 : 0) + Theme.u * 10
 
     Column {
         id: col
-        x: Theme.u * 4
-        y: Theme.u * 4
-        width: parent.width - Theme.u * 8
+        x: root.embedded ? 0 : Theme.u * 4
+        y: root.embedded ? 0 : Theme.u * 4
+        width: parent.width - (root.embedded ? 0 : Theme.u * 8)
         spacing: Theme.u * (root.settingsSkin === "stream" ? 6 : 8)
 
         Column {
             id: head
-            visible: root.heading !== ""
+            visible: root.heading !== "" && !root.embedded && (!root.fluent || root.subtitle !== "")
             width: parent.width
             spacing: Theme.u * (root.settingsSkin === "classic" ? 1 : 2)
             // "‹ Sound": up to the page or the section this is part of
             PxText {
                 id: upLink
-                visible: !!root.up && !root.tabsOutside
+                visible: !!root.up && !root.tabsOutside && !root.fluent
                 text: "‹ " + (root.up ? root.up.label : "")
                 color: upMouse.containsMouse ? Theme.accent : Theme.textDim
                 font.bold: true
@@ -134,6 +161,7 @@ PxScroll {
             }
             PxText {
                 // a long heading in big fonts wraps instead of running off the page
+                visible: !root.fluent
                 width: Math.min(implicitWidth, parent.width)
                 wrapMode: Text.Wrap
                 text: root.focusGroup || root.heading
@@ -221,7 +249,7 @@ PxScroll {
 
     Row {
         id: footer
-        visible: root.pageId !== "home" && root.pageId !== "more" && SettingsKeys.keysOf(root.pageId).length > 0 && (root.changed.length > 0 || root.resetCount >= 0)
+        visible: !root.embedded && root.pageId !== "home" && root.pageId !== "more" && SettingsKeys.keysOf(root.pageId).length > 0 && (root.changed.length > 0 || root.resetCount >= 0)
         x: col.x
         y: col.y + col.implicitHeight + Theme.u * 8
         spacing: Theme.u * 4
@@ -255,6 +283,10 @@ PxScroll {
     }
     Component.onCompleted: {
         SettingsKeys.load();
+        // a sub-page that is all the page shows is just the page (Stream mode, Hell…)
+        for (const c of col.children)
+            if (c.advanced === true && unfold && unfold.indexOf(c.name) >= 0)
+                c.advanced = false;
         bindAside();
     }
 }

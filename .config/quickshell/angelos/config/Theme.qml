@@ -408,6 +408,13 @@ Singleton {
                 return p.settingsSkin;
         return "classic";
     }
+    // inside the Settings window in its Windows 11 look (SettingsView.fluent): cards
+    function fluentFor(item) {
+        for (let p = item; p; p = p.parent)
+            if (p.fluent !== undefined)
+                return p.fluent === true;
+        return false;
+    }
 
     // ---- the two dimensions: heaven and hell ----
     // The desktop widgets live in one of them: heaven (the usual look) or hell while

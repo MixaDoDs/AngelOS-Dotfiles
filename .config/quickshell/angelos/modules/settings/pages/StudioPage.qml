@@ -138,6 +138,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "improving"
         id: editBanner
         visible: page.editing
         title: I18n.t("Доработка: ", "Improving: ") + (page.editPlugin ? I18n.label(page.editPlugin.name) : PluginStudio.target)
@@ -194,6 +195,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "improve-another-plugin"
         id: editPick
         // a sub-page while a conversation is open (`shown` then, PxGroup), a plain group before
         readonly property bool any: page.userPlugins.length > 0 && !(page.editing && page.userPlugins.length === 1)
@@ -242,6 +244,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "ai-connection"
         title: I18n.t("Подключение ИИ", "AI connection")
         icon: "sparkle"
         width: parent.width
@@ -465,6 +468,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "what-change"
         title: page.editing ? I18n.t("Что изменить", "What to change") : I18n.t("Твоя идея", "Your idea")
         icon: "heart"
         width: parent.width
@@ -542,6 +546,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "what-will-change"
         id: planGroup
         visible: !!page.plan
         title: page.editing ? I18n.t("Что изменится", "What will change") : I18n.t("Как будет работать", "How it will work")
@@ -666,6 +671,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "changes-files"
         id: resultGroup
         visible: !!page.draft
         title: page.editing ? I18n.t("Изменения и файлы", "Changes and files") : I18n.t("Результат", "Result")
@@ -906,6 +912,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "plugin-installed"
         id: installedGroup
         visible: page.installed
         title: I18n.t("Плагин установлен ♡", "Plugin installed ♡")

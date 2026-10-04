@@ -12,6 +12,7 @@ PxPage {
     subtitle: I18n.t("Экран блокировки с сердечками и заставка-«простой» как в Omarchy: ASCII-арт с анимациями, любая клавиша возвращает рабочий стол.", "A heart-filled lock screen and an Omarchy-style idle screen: animated ASCII art, any key brings the desktop back.")
 
     PxGroup {
+        name: "lock-screen"
         title: I18n.t("Экран блокировки", "Lock screen")
         icon: "lock"
         width: parent.width
@@ -147,6 +148,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "idle-screen"
         title: I18n.t("Заставка (Idle)", "Idle screen")
         advanced: true
         icon: "moon"

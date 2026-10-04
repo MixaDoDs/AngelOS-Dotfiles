@@ -9,6 +9,9 @@ Item {
     property alias contentHeight: flick.contentHeight
     property alias contentY: flick.contentY
     default property alias content: flick.flickableData
+    // false: as tall as its content, the wheel and drags go to the scroll it sits in (a part
+    // of a settings page put together from groups, ComposedPage)
+    property bool scrolls: true
 
     // The bar takes width from the content. A page that gets no taller when it is
     // narrower (a grid that changes its columns, text that rewraps) can fit once the
@@ -22,6 +25,10 @@ Item {
     onOverflowsChanged: Qt.callLater(decideBar)
     Component.onCompleted: Qt.callLater(decideBar)
     function decideBar() {
+        if (!scrolls) {
+            barVisible = false;
+            return;
+        }
         if (overflows === barVisible)
             return;
         if (!overflows && barFlips >= 2)
@@ -64,12 +71,14 @@ Item {
         clip: true
         contentWidth: width
         boundsBehavior: Flickable.StopAtBounds
+        interactive: root.scrolls
         flickDeceleration: 4000
         maximumFlickVelocity: 3000
         pixelAligned: true
 
         WheelHandler {
             target: null
+            enabled: root.scrolls
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
             onWheel: e => {
                 if (flick.contentHeight <= flick.height)

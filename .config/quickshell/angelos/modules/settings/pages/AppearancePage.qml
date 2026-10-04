@@ -12,6 +12,7 @@ PxPage {
     // How Settings lay the pages out (the view) and what they wear (the skin): two
     // separate choices, any view in any skin; colours follow the theme either way.
     PxGroup {
+        name: "settings-look"
         id: skinGroup
         title: I18n.t("Вид настроек", "Settings look")
         advanced: true
@@ -27,11 +28,11 @@ PxPage {
             width: parent.width
             spacing: Theme.u * 4
             Repeater {
-                model: ["sidebar", "controlpanel", "properties", "tiles"]
+                model: ["win11", "sidebar", "controlpanel", "properties", "tiles"]
                 SettingsViewCard {
                     required property string modelData
                     view: modelData
-                    width: Math.min(Theme.u * 100, (skinGroup.width - Theme.u * 16) / 4)
+                    width: Math.min(Theme.u * 100, (skinGroup.width - Theme.u * 20) / 5)
                 }
             }
         }
@@ -55,6 +56,7 @@ PxPage {
         }
     }
     PxGroup {
+        name: "theme"
         title: I18n.t("Тема", "Theme")
         icon: "palette"
         width: parent.width
@@ -182,6 +184,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "motion"
         title: I18n.t("Движение", "Motion")
         icon: "sparkle"
         width: parent.width
@@ -218,6 +221,7 @@ PxPage {
 
     // D3: the shell's icons — ours, pixelarticons or HackerNoon's (widgets/IconSets.js)
     PxGroup {
+        name: "icons"
         title: I18n.t("Значки", "Icons")
         icon: "grid"
         width: parent.width
@@ -230,6 +234,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "window-titles"
         title: I18n.t("Подписи окон", "Window titles")
         icon: "monitor"
         width: parent.width
@@ -250,6 +255,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "glass-pixels"
         title: I18n.t("Стекло и пиксели", "Glass and pixels")
 
         advanced: true
@@ -336,18 +342,6 @@ PxPage {
             }
         }
         SettingRow {
-            label: I18n.t("Масштаб шрифтов", "Font scale")
-            hint: I18n.t("Пиксельный шрифт чёток только в целое число своих клеток, поэтому шрифты растут ступенями, каждый в свой момент: на ×1.25 крупнеют заголовки, на ×1.5 — и основной текст. Строки, панель и меню растут вместе с текстом.", "A pixel font is crisp only at a whole number of its cells, so the fonts grow in steps, each at its own: at 1.25× the headings grow, at 1.5× the body text too. Rows, the bar and the menus grow with the text.")
-            PxSegmented {
-                model: [1, 1.25, 1.5, 1.75, 2].map(v => ({
-                            "label": "×" + v,
-                            "value": v
-                        }))
-                currentValue: Config.appearance.fontScale
-                onActivated: v => Config.appearance.fontScale = v
-            }
-        }
-        SettingRow {
             label: I18n.t("Жёсткие пиксельные тени", "Pixel shadows")
             PxToggle {
                 checked: Config.appearance.shadows
@@ -357,6 +351,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "application-theme"
         title: I18n.t("Тема для приложений", "Application theme")
 
         advanced: true

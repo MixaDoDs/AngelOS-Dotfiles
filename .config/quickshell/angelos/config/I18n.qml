@@ -468,7 +468,7 @@ Singleton {
         "уведомление": "notification",
         "Пункты ПКМ-меню рабочего стола: терминал, файлы, случайные обои, скриншот, тема. Пример декларативного меню.": "Desktop menu shortcuts for apps, wallpaper and screenshots.",
         "Окошко статов в духе NGO на рабочем столе: «стресс» = загрузка CPU, «тьма» = занятая память, «любовь» = аптайм. Плюс сердечко на панели. Пример виджетов, сервиса и страницы настроек.": "Pixel heart indicators for stream activity.",
-        "Тёплый экран вечером (6600K днём → 3900K ночью): свои гамма-таблицы angelOS, вместе с яркостью мониторов из Настроек → Монитор.": "A warmer screen in the evening (6600K by day, 3900K at night): angelOS's own gamma tables, together with the monitor brightness in Settings → Monitor.",
+        "Тёплый экран вечером (6600K днём → 3900K ночью): свои гамма-таблицы angelOS, вместе с яркостью мониторов из Настроек → Экран.": "A warmer screen in the evening (6600K by day, 3900K at night): angelOS's own gamma tables, together with the monitor brightness in Settings → Display.",
         "Поиск в интернете и любимые сайты прямо из лаунчера: «web запрос» или просто набери название сайта.": "Search the web and open favorite sites from the launcher.",
         "Пиксельный котик на панели: спит, гуляет или бежит — в зависимости от загрузки процессора. В аду — щенок-цербер. Клик — котик покрупнее.": "An animated pixel cat. Its pace follows CPU usage; in hell it is a puppy Cerberus.",
         "Замер скорости интернета со спидометром и историей. Кнопка на панели, работает через speedtest-cli.": "Measure download, upload and latency, with recent results.",

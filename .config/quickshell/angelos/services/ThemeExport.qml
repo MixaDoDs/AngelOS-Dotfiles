@@ -143,7 +143,7 @@ Singleton {
             },
             "hellLines": Lines.demonTerminal.map(l => I18n.english ? l[1] : l[0]),
             "fastfetch": fastfetchHell(),
-            "kittyExtra": "# hell (Settings → Y2K → Terminal in hell): a scorched background, nothing moving\ncursor_trail 0\ncursor_blink_interval -1\nbackground_image " + bgImage + "\nbackground_image_layout scaled\nbackground_tint 0.7"
+            "kittyExtra": "# hell (Settings → The angel → Hell → Terminal in hell): a scorched background, nothing moving\ncursor_trail 0\ncursor_blink_interval -1\nbackground_image " + bgImage + "\nbackground_image_layout scaled\nbackground_tint 0.7"
         };
     }
 

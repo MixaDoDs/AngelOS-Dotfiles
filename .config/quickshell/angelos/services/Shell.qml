@@ -159,9 +159,10 @@ Singleton {
 
     // with no page given Settings open where they were left, like macOS
     function openSettings(page, sub) {
+        // an old page id leads to its page in the tree (SettingsTree.resolve: "bar" → taskbar…);
         // the views with a home of their own (a folder of icons, the tiles) open there
         if (page)
-            settingsPage = page;
+            settingsPage = SettingsTree.resolve(page).page;
         else if (!settingsOpen && ["controlpanel", "tiles"].includes(Config.settingsUi.view))
             settingsPage = "home";
         if (sub)

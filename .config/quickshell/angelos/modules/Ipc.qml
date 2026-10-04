@@ -105,7 +105,7 @@ IpcHandler {
             return Story.status();
         }
         if (!Shell.dev && !Config.developer.enabled)
-            return "off | on | calm on|off | status | reset" + " (circle, scene, sin, outcome, try: developer mode — Settings → System)";
+            return "off | on | calm on|off | status | reset" + " (circle, scene, sin, outcome, try: developer mode — Settings → System → For developers)";
         switch (a[0]) {
         case "circle":
             return Story.jump(a[1] || "");
@@ -138,7 +138,7 @@ IpcHandler {
     // (scripts/theme-cycles.py waits for "settled" before it compares the files)
     function debug(line: string): string {
         if (!GameDebug.allowed)
-            return "developer mode only (Settings → System)";
+            return "developer mode only (Settings → System → For developers)";
         const a = String(line || "").trim().split(/\s+/);
         switch (a[0]) {
         case "":
@@ -447,7 +447,7 @@ IpcHandler {
     }
     // how Settings lay the pages out: `angelos settingsView controlpanel` (no argument: which one)
     function settingsView(view: string): string {
-        const views = ["sidebar", "controlpanel", "properties", "tiles"];
+        const views = ["win11", "sidebar", "controlpanel", "properties", "tiles"];
         const v = String(view || "").trim().toLowerCase();
         if (v === "")
             return Config.settingsUi.view + "  (" + views.join(" | ") + ")";
@@ -568,7 +568,7 @@ IpcHandler {
     // experimental sidebar (Settings → Bar → Sidebar)
     function sidebar(): string {
         if (!Sidebar.enabled)
-            return "sidebar is off (Settings → Bar → Sidebar)";
+            return "sidebar is off (Settings → Taskbar → Sidebar)";
         Sidebar.toggle();
         return Sidebar.open ? "open" : "closed";
     }

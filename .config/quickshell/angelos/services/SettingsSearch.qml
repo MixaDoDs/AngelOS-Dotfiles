@@ -46,18 +46,22 @@ Singleton {
     // everyday words per page, both languages (also used for completion)
     readonly property var aliases: ({
             // only words the page itself doesn't say (its rows are found by their own names)
-            "appearance": ["тема", "цвет", "цвета", "палитра", "акцент", "язык", "оформление", "theme", "color", "colour", "palette", "accent", "language", "look"],
+            // the pages of the settings tree (modules/settings/tree.json)
+            "account": ["аккаунт", "имя", "аватарка", "язык", "мастер", "подсказки", "account", "name", "avatar", "language", "wizard", "tips"],
+            "theme": ["тема", "цвет", "цвета", "палитра", "акцент", "оформление", "внешний вид", "theme", "color", "colour", "palette", "accent", "look", "appearance"],
             "fonts": ["шрифт", "текст", "размер текста", "буквы", "font", "text size", "typeface"],
             "wallpaper": ["обои", "фон", "картинка", "заставка стола", "wallpaper", "background", "picture", "image"],
             "capture": ["скриншот", "снимок экрана", "запись экрана", "screenshot", "recording", "capture"],
             "cursor": ["курсор", "указатель", "cursor", "pointer"],
             "widgets": ["виджет", "часы", "визуализатор", "cava", "widget", "clock", "visualizer"],
             "deskmenu": ["пкм", "правая кнопка", "контекстное меню", "меню рабочего стола", "меню обоев", "кольцо", "радиальное меню", "right click", "context menu", "desktop menu", "radial menu", "pie menu"],
-            "bar": ["панель", "таскбар", "пуск", "трей", "меню пуск", "кнопки окон", "taskbar", "panel", "start", "start menu", "tray", "dock"],
+            "taskbar": ["панель", "таскбар", "трей", "кнопки окон", "часы", "taskbar", "panel", "tray", "dock", "clock"],
+            "start": ["пуск", "меню пуск", "кнопка пуск", "start", "start menu", "start button"],
             "workspaces": ["рабочие столы", "воркспейсы", "столы", "сердечки", "переход", "desks", "virtual desktops", "workspaces", "transition"],
             "lyrics": ["лирика", "текст песни", "караоке", "песня", "музыка", "lyrics", "song", "karaoke", "music"],
-            "monitor": ["экран", "дисплей", "монитор", "разрешение", "частота", "герцы", "масштаб", "display", "screen", "monitor", "resolution", "refresh rate", "hz", "scale"],
-            "keyboard": ["клавиатура", "мышь", "мышка", "раскладка", "тачпад", "чувствительность", "лупа", "увеличение", "зум", "приблизить", "keyboard", "mouse", "layout", "touchpad", "sensitivity", "lens", "magnifier", "zoom"],
+            "display": ["экран", "дисплей", "монитор", "разрешение", "частота", "герцы", "масштаб", "display", "screen", "monitor", "resolution", "refresh rate", "hz", "scale"],
+            "keyboard": ["клавиатура", "раскладка", "голосовой ввод", "диктовка", "keyboard", "layout", "voice typing", "dictation"],
+            "mouse": ["мышь", "мышка", "тачпад", "чувствительность", "лупа", "увеличение", "зум", "приблизить", "mouse", "touchpad", "sensitivity", "lens", "magnifier", "zoom"],
             "shortcuts": ["горячие клавиши", "хоткеи", "сочетания", "бинды", "клавиши", "shortcuts", "hotkeys", "keybinds", "bindings", "keys"],
             "windows": ["окна", "закрытие окон", "анимация закрытия", "отступы", "колонки", "диспетчер", "windows", "close", "gaps", "columns"],
             "sound": ["звук", "громкость", "микрофон", "аудио", "колонки", "наушники", "sound", "audio", "volume", "microphone", "speakers", "headphones"],
@@ -65,13 +69,19 @@ Singleton {
             "network": ["сеть", "интернет", "вайфай", "wifi", "network", "internet"],
             "bluetooth": ["блютуз", "беспроводные", "bluetooth", "wireless"],
             "gamepad": ["геймпад", "джойстик", "контроллер", "gamepad", "controller", "joystick"],
-            "defaults": ["по умолчанию", "браузер", "терминал", "редактор", "файловый менеджер", "default apps", "browser", "terminal", "editor", "file manager"],
+            "defaults": ["по умолчанию", "браузер", "терминал", "редактор", "файловый менеджер", "диспетчер задач", "default apps", "browser", "terminal", "editor", "file manager", "task manager"],
             "notifications": ["уведомления", "не беспокоить", "notifications", "do not disturb", "dnd"],
             "plugins": ["плагины", "расширения", "plugins", "extensions", "addons"],
             "lock": ["блокировка", "заставка", "пароль", "экран блокировки", "lock", "idle", "lock screen", "screensaver"],
             "updates": ["обновления", "версия", "updates", "upgrade", "version"],
-            "system": ["система", "диспетчер задач", "производительность", "отрисовка", "system", "task manager", "performance", "renderer"],
-            "y2k": ["y2k", "блёстки", "блестки", "ангел", "ангелочек", "помощник", "звуки", "загрузка", "загрузочный экран", "диск", "glitter", "sparkles", "angel", "helper", "sounds", "boot", "loading screen"]
+            "about": ["система", "о системе", "компьютер", "отчёт", "system", "about", "computer", "report"],
+            "power": ["питание", "производительность", "отрисовка", "power", "performance", "renderer"],
+            "developer": ["разработчик", "режим разработчика", "отладка", "developer", "debug"],
+            "stream": ["стрим", "эфир", "obs", "трансляция", "stream", "broadcast", "on air"],
+            "game": ["игра", "спокойный режим", "выключить игру", "game", "calm"],
+            "helper": ["y2k", "ангел", "ангелочек", "помощник", "помощница", "демоница", "облик", "angel", "helper", "demon", "looks"],
+            "hell": ["ад", "круги", "демоница", "hell", "circles", "demon"],
+            "novel": ["новелла", "истории", "сюжет", "novel", "stories", "story"]
         })
     // words that mean the same thing; a query word pulls in its whole group
     readonly property var synonyms: [
@@ -287,14 +297,20 @@ Singleton {
             const e = heaven && raw.kind !== "page" ? _inHeaven(raw) : raw;
             if (!e)
                 continue;
-            const info = pageInfo[e.page];
+            // the page of the tree it is on now (services/SettingsTree): a group by its name, a
+            // page file by where its groups went (its old heading stays a word to find it by)
+            const page = e.kind === "page" ? SettingsTree.resolve(e.page).page : SettingsTree.pageOfGroup(e.page, e.name || "");
+            const info = pageInfo[page];
             if (!info)
                 continue;   // hidden (owner/developer) or unknown pages
             const title = e.kind === "page" ? info.label : (e[lang] || e[other]);
-            if (e.kind === "page")
-                seenPages[e.page] = true;
+            if (e.kind === "page") {
+                if (seenPages[page])
+                    continue;
+                seenPages[page] = true;
+            }
             out.push({
-                "page": e.page,
+                "page": page,
                 "kind": e.kind,
                 "title": title,
                 "target": e.kind === "page" ? "" : e[lang],
@@ -303,8 +319,8 @@ Singleton {
                 "icon": info.icon,
                 "primary": words(title + (e.kind === "page" ? " " + (e[lang] || "") : "")),
                 "other": words(e[other] || ""),
-                "aliasNames": e.kind === "page" ? (aliases[e.page] || []).map(a => norm(a)) : [],
-                "alias": e.kind === "page" ? words((aliases[e.page] || []).join(" ")) : [],
+                "aliasNames": e.kind === "page" ? (aliases[page] || []).map(a => norm(a)) : [],
+                "alias": e.kind === "page" ? words((aliases[page] || []).join(" ")) : [],
                 "secondary": words((e.hint ? e.hint[lang] + " " + e.hint[other] : "") + " " + (e.words ? e.words[lang].join(" ") + " " + e.words[other].join(" ") : "")),
                 "context": words(e.kind === "row" && e.group ? e.group[lang] + " " + e.group[other] : "")
             });

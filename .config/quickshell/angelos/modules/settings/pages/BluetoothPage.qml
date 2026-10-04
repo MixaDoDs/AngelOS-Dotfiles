@@ -82,6 +82,7 @@ PxPage {
 
     // ---- no adapter / service off ----
     PxGroup {
+        name: "adapter"
         visible: !Bt.available
         title: I18n.t("Адаптер", "Adapter")
         icon: "bluetooth"
@@ -102,6 +103,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "power"
         visible: Bt.available
         title: Bt.adapter ? Bt.adapter.name || "Bluetooth" : "Bluetooth"
         icon: "bluetooth"
@@ -134,6 +136,7 @@ PxPage {
 
     // ---- a pairing question from the agent ----
     PxGroup {
+        name: "pairing"
         visible: !!Bt.request
         title: I18n.t("Сопряжение", "Pairing")
         icon: "lock"
@@ -177,6 +180,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "my-devices"
         visible: Bt.available && Bt.enabled
         title: I18n.t("Мои устройства", "My devices")
         icon: "heart"
@@ -197,6 +201,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "nearby"
         visible: Bt.available && Bt.enabled && (Bt.discovering || Bt.nearby.length > 0)
         title: I18n.t("Рядом", "Nearby")
         icon: "search"

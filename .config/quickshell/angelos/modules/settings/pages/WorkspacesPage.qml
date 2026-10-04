@@ -12,6 +12,7 @@ PxPage {
     subtitle: I18n.t("Анимации при переключении: сердечки на панели, переход между столами, NGO-попап и полоска сердечек.", "Switching animations: the hearts on the bar, the transition between desks, the popup and the heart strip.")
 
     PxGroup {
+        name: "desk-sprite-animation"
         id: heartsGroup
         title: I18n.t("Значок и его анимация", "Desk sprite and its animation")
         icon: "heart"
@@ -288,6 +289,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "switch-animation"
         title: I18n.t("Анимация переключения", "Switch animation")
         icon: "layers"
         width: parent.width
@@ -386,6 +388,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "workspace-switching"
         title: I18n.t("Смена воркспейса", "Workspace switching")
         icon: "sparkle"
         width: parent.width
@@ -455,6 +458,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "names"
         title: I18n.t("Имена", "Names")
         icon: "heart"
         width: parent.width

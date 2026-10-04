@@ -383,11 +383,12 @@ JsonAdapter {
 
     property JsonObject settingsUi: JsonObject {
         property bool expert: false         // false: home tiles, main settings only; true: every page in a sidebar
-        // how the window lays the same pages out (modules/settings/views): sidebar (macOS-like,
-        // what every older install had) | controlpanel (Win98: a folder of icons, a page fills
-        // the window) | properties (a Win98 properties sheet: a section's pages are tabs) |
-        // tiles (big tiles under a big search field)
-        property string view: "sidebar"
+        // how the window lays the same pages out (modules/settings/views): win11 (like Windows
+        // 11: categories on the left, cards on the right — the default) | sidebar (macOS-like,
+        // what older installs had) | controlpanel (Win98: a folder of icons, a page fills the
+        // window) | properties (a Win98 properties sheet: a section's pages are tabs) | tiles
+        property string view: "win11"
+        property bool win11Once: false      // an install still on the old default (sidebar) moved to win11 once
         property string viewPicked: ""      // the view picked in the setup wizard — the player's first choice, kept when changed later
         property string skin: "classic"     // classic angelOS | Windose desktop | stream studio
         property bool skinChosen: false     // the look was picked (the wizard, or the banner on the settings home)

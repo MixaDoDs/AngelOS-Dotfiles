@@ -11,7 +11,8 @@ import qs.config
 Singleton {
     id: root
 
-    property var pages: ({})                 // page id -> ["section.key", …]
+    property var pages: ({})                 // page file id -> ["section.key", …]
+    property var groups: ({})                // "file/group" -> ["section.key", …]
     property var labels: ({})                // "section.key" -> {ru, en, page}
     property bool loaded: false
 
@@ -19,8 +20,17 @@ Singleton {
         if (!loaded && !proc.running)
             proc.running = true;
     }
+    // a page of the settings tree: the keys of the groups it is put together from
     function keysOf(page) {
-        return pages[page] || [];
+        const p = SettingsTree.page(page);
+        if (!p || !p.blocks.length)
+            return pages[page] || [];
+        const out = [];
+        for (const b of p.blocks)
+            for (const k of (b.indexOf("/") > 0 ? groups[b] : pages[b]) || [])
+                if (!out.includes(k))
+                    out.push(k);
+        return out;
     }
     // what differs from the default on a page
     function changedOn(page) {
@@ -44,7 +54,8 @@ Singleton {
             "appearance.fontTitle": ["Шрифты", "Fonts"],
             "appearance.fontBody": ["Шрифты", "Fonts"],
             "appearance.fontMono": ["Шрифты", "Fonts"],
-            "settingsUi.skin": ["Вид настроек", "Settings look"]
+            "settingsUi.skin": ["Вид настроек", "Settings look"],
+            "settingsUi.view": ["Вид настроек", "Settings look"]
         })
     function labelOf(path) {
         const e = extraLabels[path];
@@ -74,6 +85,7 @@ Singleton {
                 try {
                     const d = JSON.parse(text);
                     root.pages = d.pages || {};
+                    root.groups = d.groups || {};
                     root.labels = d.labels || {};
                     root.loaded = true;
                 } catch (e) {}

@@ -163,6 +163,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "general"
         width: parent.width
         title: I18n.t("Общее", "General")
         icon: "speaker"
@@ -271,6 +272,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "mouse-keyboard"
         width: parent.width
         title: I18n.t("Мышь и клавиатура", "Mouse and keyboard")
         advanced: true
@@ -326,6 +328,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "system-events"
         width: parent.width
         title: I18n.t("События системы", "System events")
         icon: "bell"
@@ -336,6 +339,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "angel-demon"
         width: parent.width
         title: Angel.hellShown ? I18n.t("Ангел и демоница", "Angel and demon") : I18n.t("Ангелочек", "The angel")
         icon: "heart"
@@ -364,6 +368,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "your-own-sounds"
         width: parent.width
         title: I18n.t("Свои звуки", "Your own sounds")
         advanced: true

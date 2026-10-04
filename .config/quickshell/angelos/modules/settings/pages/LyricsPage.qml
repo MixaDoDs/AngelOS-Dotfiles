@@ -10,6 +10,7 @@ PxPage {
     id: page
 
     PxGroup {
+        name: "display"
         title: I18n.t("Показ", "Display")
         icon: "mic"
         width: parent.width
@@ -93,6 +94,7 @@ PxPage {
 
     // the line dims with the volume (services/LyricsGlow)
     PxGroup {
+        name: "brightness-follows-volume"
         id: glowGroup
         title: I18n.t("Яркость от громкости", "Brightness follows the volume")
         advanced: true
@@ -199,6 +201,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "sources"
         title: I18n.t("Источники", "Sources")
         advanced: true
         icon: "search"
@@ -274,6 +277,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "current"
         title: I18n.t("Сейчас", "Current")
         icon: "music"
         width: parent.width
@@ -317,6 +321,7 @@ PxPage {
         }
     }
     PxGroup {
+        name: "search-by-title"
         title: I18n.t("Найти по названию", "Search by title")
         icon: "search"
         width: parent.width
@@ -381,6 +386,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "song-lyrics"
         width: parent.width
         title: I18n.t("Текст песни", "Song lyrics")
         visible: Lyrics.plainText !== ""

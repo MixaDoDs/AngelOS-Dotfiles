@@ -384,6 +384,7 @@ Scope {
     property double started: 0
     property bool expertPass: false
     property int navStep: 0
+    property int switchStep: 0
     property string navNote: ""
     property var settingsSkins: ["classic", "windose", "stream"]
     property int settingsSkinIndex: 0
@@ -462,7 +463,7 @@ Scope {
     }
     function startViews() {
         viewCases = [];
-        for (const v of ["sidebar", "controlpanel", "properties", "tiles"])
+        for (const v of ["win11", "sidebar", "controlpanel", "properties", "tiles"])
             for (const skin of settingsSkins)
                 viewCases.push([v, skin]);
         viewCase = -1;
@@ -547,6 +548,24 @@ Scope {
             if (v === "controlpanel" || v === "tiles") {
                 ok = view.navKeyForTest(Qt.Key_Down) && view.navKeyForTest(Qt.Key_Right) && view.navKeyForTest(Qt.Key_Return);
                 ok = ok && !view.atHome;
+            } else if (v === "win11") {
+                // ↓↓ categories, → a category's first page, Enter the next page, ← back up to the
+                // category, ↑, End the last category, Home the first (your account, at the top)
+                const at = s => s.pages.length > 1 ? "cat:" + s.id : s.pages[0];
+                const last = view.navSections[view.navSections.length - 1];
+                const steps = [[Qt.Key_Down, "cat:system"], [Qt.Key_Down, "cat:devices"], [Qt.Key_Right, "bluetooth"], [Qt.Key_Return, "mouse"], [Qt.Key_Left, "cat:devices"], [Qt.Key_Up, "cat:system"], [Qt.Key_End, at(last)], [Qt.Key_Home, at(view.navSections[0])]];
+                const went = [];
+                ok = true;
+                for (const [key, want] of steps) {
+                    view.navKeyForTest(key);
+                    went.push(Shell.settingsPage);
+                    ok = ok && Shell.settingsPage === want;
+                }
+                report(name + ":keys", ok, before + " → " + went.join(" → "));
+                Shell.settingsOpen = true;
+                Shell.openSettings("lyrics");
+                next();
+                return;
             } else {
                 ok = view.navKeyForTest(Qt.Key_Down);
                 ok = ok && Shell.settingsPage + "|" + Shell.settingsSub !== before;
@@ -639,8 +658,8 @@ Scope {
             if (Config.ready && view.allPages.length > 0) {
                 report("settings-default-classic", Config.settingsUi.skin === "classic" && view.skin === "classic",
                        "saved default " + Config.settingsUi.skin + ", view " + view.skin);
-                // a settings.json from before the views (no settingsUi.view): the sidebar stays
-                report("settings-default-sidebar", Config.settingsUi.view === "sidebar" && view.viewId === "sidebar",
+                // a settings.json with no settingsUi.view: the Windows 11 look, the default since 2026-10-04
+                report("settings-default-win11", Config.settingsUi.view === "win11" && view.viewId === "win11",
                        "saved " + Config.settingsUi.view + ", shown " + view.viewId);
                 Config.settingsUi.skin = "windose";
                 report("windose-app-windows", appWindow.skin === "windose" && appWindow.windose && appWindow.settingsSkin === "windose" && appAction.settingsSkin === "windose",
@@ -742,7 +761,7 @@ Scope {
                 navStep = 1;
                 return;
             }
-            const go = [["sound", ""], ["sfx", ""], ["bar", "Иконки"]];
+            const go = [["sound", ""], ["sfx", ""], ["taskbar", "Иконки"]];
             if (navStep <= go.length) {
                 Shell.settingsPage = go[navStep - 1][0];
                 Shell.settingsSub = go[navStep - 1][1];
@@ -752,9 +771,15 @@ Scope {
             if (navStep === go.length + 1) {
                 const it = view.diagnostics();
                 const pg = view.pageItem;
-                // the sub-page: its heading is the group, the page's other groups stepped aside
-                const others = pg && pg.advancedGroups ? pg.advancedGroups.filter(c => c.title !== "Иконки") : [];
-                report("subpage", it.sub === "Иконки" && !!pg && pg.focusGroup === "Иконки" && others.length > 0 && others.every(c => !c.visible), "bar › " + it.sub + ", " + others.filter(c => c.visible).length + " other groups still shown");
+                // the sub-page: in the Windows 11 look its card unfolds in place, the others stay
+                // folded; in the older views its heading is the group, the other groups step aside
+                const groups = pg && pg.advancedGroups ? pg.advancedGroups : [];
+                const own = groups.find(c => c.title === "Иконки");
+                const others = groups.filter(c => c.title !== "Иконки");
+                if (view.fluent)
+                    report("subpage", it.sub === "Иконки" && !!own && !own.folded && others.length > 0 && others.every(c => c.visible && c.folded), "taskbar › " + it.sub + ": unfolded " + (own ? !own.folded : "none") + ", others folded " + others.filter(c => c.folded).length + "/" + others.length);
+                else
+                    report("subpage", it.sub === "Иконки" && !!pg && pg.focusGroup === "Иконки" && others.length > 0 && others.every(c => !c.visible), "taskbar › " + it.sub + ", " + others.filter(c => c.visible).length + " other groups still shown");
                 view.back();
                 navStep++;
                 return;
@@ -771,7 +796,46 @@ Scope {
                 navNote = afterBack;
                 return;
             }
-            report("nav-back", navNote === "sound" && Shell.settingsPage === "sfx" && view.sectionOf("sfx") === "sound", "bar›Иконки → ◀ ◀ " + navNote + " → ▶ " + Shell.settingsPage + " (section " + view.sectionOf(Shell.settingsPage) + ")");
+            report("nav-back", navNote === "sound" && Shell.settingsPage === "sfx" && view.sectionOf("sfx") === "system", "taskbar›Иконки → ◀ ◀ " + navNote + " → ▶ " + Shell.settingsPage + " (section " + view.sectionOf(Shell.settingsPage) + ")");
+            phase = "view-switch";
+            switchStep = 0;
+            started = Date.now();
+            return;
+        }
+        if (phase === "view-switch") {
+            // Windows 11 → the sidebar → Windows 11 on one page (a hell dress moves the page into
+            // its frame the same way): the folded cards come back, and a sub-page unfolds in place
+            if (switchStep === 0) {
+                Shell.settingsPage = "taskbar";
+                Shell.settingsSub = "";
+                Config.settingsUi.view = "win11";
+                switchStep = 1;
+                started = Date.now();
+                return;
+            }
+            const d = view.diagnostics();
+            const want = switchStep === 2 ? "sidebar" : "win11";
+            if ((d.view !== want || d.status !== Loader.Ready || d.page !== "taskbar" || Date.now() - started < 300) && Date.now() - started < 6000)
+                return;
+            if (switchStep <= 2) {
+                Config.settingsUi.view = switchStep === 1 ? "sidebar" : "win11";
+                switchStep++;
+                started = Date.now();
+                return;
+            }
+            const groups = view.pageItem && view.pageItem.advancedGroups ? view.pageItem.advancedGroups : [];
+            if (switchStep === 3) {
+                report("view-switch", view.fluent && groups.length > 0 && groups.every(g => g.visible && g.folded), "win11 → sidebar → win11 on taskbar: " + groups.filter(g => g.visible && g.folded).length + "/" + groups.length + " folded cards shown");
+                Shell.settingsSub = "Иконки";
+                switchStep++;
+                started = Date.now();
+                return;
+            }
+            const own = groups.find(c => c.title === "Иконки");
+            const others = groups.filter(c => c.title !== "Иконки");
+            report("subpage-win11", !!own && own.visible && !own.folded && others.length > 0 && others.every(c => c.visible && c.folded), "taskbar › Иконки: unfolded " + (own ? !own.folded : "none") + ", others folded " + others.filter(c => c.visible && c.folded).length + "/" + others.length);
+            Shell.settingsSub = "";
+            Config.settingsUi.view = "sidebar";
             // settings undo puts a changed setting back
             const before = Config.appearance.shadows;
             phase = "undo";

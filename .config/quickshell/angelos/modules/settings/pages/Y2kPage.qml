@@ -26,6 +26,233 @@ PxPage {
     }
 
     PxGroup {
+        name: "stream-mode"
+        width: parent.width
+        title: I18n.t("Стрим-режим", "Stream mode")
+        advanced: true
+        icon: "monitor"
+        SettingRow {
+            label: I18n.t("Сейчас", "Now")
+            hint: StreamMode.active ? I18n.t("эфир: angelOS не лезет в кадр", "Live: angelOS stays out of the picture") : Config.stream.auto ? (StreamMode.obsUp ? I18n.t("OBS на связи, эфира нет", "OBS connected, not streaming") : StreamMode.obsAuth ? I18n.t("OBS просит пароль WebSocket — включи вход без пароля или сохрани пароль в OBS", "OBS wants a WebSocket password") : I18n.t("OBS не запущен или WebSocket-сервер выключен (Инструменты → Настройки WebSocket)", "OBS isn't running or its WebSocket server is off (Tools → WebSocket Server Settings)")) : I18n.t("выключен", "Off")
+            PxButton {
+                icon: StreamMode.active ? "close" : "play"
+                accent: !StreamMode.active
+                text: StreamMode.active ? I18n.t("Выключить", "Switch off") : I18n.t("Включить вручную", "Switch on by hand")
+                onClicked: StreamMode.set("toggle")
+            }
+        }
+        SettingRow {
+            label: I18n.t("Сам по OBS", "Follow OBS")
+            hint: I18n.t("включается, пока OBS ведёт трансляцию (obs-websocket, порт ", "On while OBS is streaming (obs-websocket, port ") + Config.stream.port + ")"
+            PxToggle {
+                checked: Config.stream.auto
+                onToggled: c => Config.stream.auto = c
+            }
+        }
+        SettingRow {
+            visible: page.screenNames.length > 1
+            label: I18n.t("Экраны в эфире", "Streamed screens")
+            hint: I18n.t("ничего не выбрано — все; остальные экраны живут как обычно", "Nothing picked means all; the others carry on as usual")
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 2
+                Repeater {
+                    model: page.screenNames
+                    PxButton {
+                        required property string modelData
+                        compact: true
+                        checkable: true
+                        checked: (Config.stream.screens || []).includes(modelData)
+                        text: modelData
+                        onClicked: Config.stream.screens = page.toggleIn(Config.stream.screens, modelData, checked)
+                    }
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Ангелочек уходит с экрана", "The angel leaves the screen")
+            hint: I18n.t("на другой экран, а если его нет — прячется", "To another screen, or hides if there is none")
+            PxToggle {
+                checked: Config.stream.hideAngel
+                onToggled: c => Config.stream.hideAngel = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("Тишина", "Quiet")
+            hint: I18n.t("звуки angelOS не попадут в эфир", "angelOS sounds stay off the stream")
+            PxToggle {
+                checked: Config.stream.mute
+                onToggled: c => Config.stream.mute = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("«Не беспокоить»", "Do not disturb")
+            hint: I18n.t("уведомления копятся в истории; после эфира всё как было", "Notifications wait in the history; back to normal after the stream")
+            PxToggle {
+                checked: Config.stream.dnd
+                onToggled: c => Config.stream.dnd = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("Без эффектов", "No effects")
+            hint: Angel.hellShown ? I18n.t("ни блёсток, ни загрузочного экрана, ни лучей и трещин на экранах в эфире", "No sparkles, loading screen, rays or cracks on streamed screens") : I18n.t("ни блёсток, ни загрузочного экрана, ни лучей на экранах в эфире", "No sparkles, loading screen or rays on streamed screens")
+            PxToggle {
+                checked: Config.stream.effects
+                onToggled: c => Config.stream.effects = c
+            }
+        }
+    }
+
+    // the helper's versions (four each), for each of them apart
+    component LookCard: PxButton {
+        id: card
+        required property var modelData
+        property string who: "angel"
+        readonly property string current: who === "demon" ? Config.y2k.demonLook || "glitch" : Config.y2k.angelLook || "glitch"
+        width: Math.max(Theme.u * 64, lookLabel.implicitWidth + Theme.u * 8)
+        height: Theme.u * 78
+        checked: current === modelData.value
+        onClicked: {
+            if (who === "demon")
+                Config.y2k.demonLook = modelData.value;
+            else
+                Config.y2k.angelLook = modelData.value;
+        }
+        Item {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: Theme.u * 4
+            width: parent.width - Theme.u * 6
+            height: parent.height - lookLabel.height - Theme.u * 10
+            SpriteRig {
+                visible: card.modelData.value === "chibi" || card.modelData.value === "glitch"
+                anchors.centerIn: parent
+                who: card.who
+                variant: card.modelData.value === "glitch" ? "glitch" : ""
+                px: Math.max(0.5, Theme.u / 4)
+                width: implicitWidth
+                height: implicitHeight
+            }
+            PxIcon {
+                visible: card.modelData.value === "adult" || card.modelData.value === "mini"
+                anchors.centerIn: parent
+                readonly property bool mini: card.modelData.value === "mini"
+                bitmap: mini ? (card.who === "demon" ? DemonMini.up : AngelMini.up) : (card.who === "demon" ? DemonArt.up : AngelArt.up)
+                pixel: mini ? Math.max(1, Theme.u) : Math.max(1, Math.round(Theme.u * 0.75))
+                ink: card.who === "demon" ? "#1a0a14" : (Theme.dark ? Theme.text : Theme.edge)
+                body: card.who === "demon" ? "#f7d9e3" : "#ffd9c7"
+                fill: card.who === "demon" ? "#ff3b6b" : Theme.accent
+                fill2: "#3a1a46"
+                fill3: Theme.dark ? "#ffe07a" : "#f5c542"
+                light: card.who === "demon" ? "#7a1e46" : "#ffffff"
+                bad: "#d8203a"
+                palette: mini ? ({}) : card.who === "demon" ? DemonArt.palette : Object.assign({}, AngelArt.palette, {
+                    "o": Theme.hex(Theme.accent)
+                })
+            }
+        }
+        PxText {
+            id: lookLabel
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Theme.u * 3
+            kind: "tiny"
+            font.bold: card.checked
+            text: (card.checked ? "♡ " : "") + card.modelData.label
+        }
+    }
+
+    PxGroup {
+        name: "glitter"
+        width: parent.width
+        title: I18n.t("Блёстки", "Glitter")
+        advanced: true
+        icon: "sparkle"
+        SettingRow {
+            label: I18n.t("Шлейф за курсором", "Sparkle trail")
+            hint: I18n.t("видно, пока курсор над рабочим столом (над окнами он чужой — там блестит сам курсор)", "Shows while the pointer is over the desktop; over windows only the glitter cursor sparkles")
+            PxToggle {
+                checked: Config.y2k.sparkles
+                onToggled: c => Config.y2k.sparkles = c
+            }
+        }
+        SettingRow {
+            visible: Config.y2k.sparkles && page.screenNames.length > 1
+            label: I18n.t("На экранах", "On screens")
+            hint: I18n.t("ничего не выбрано — на всех; например, убери стримовый", "Nothing picked means all; e.g. leave out the streaming one")
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 2
+                Repeater {
+                    model: page.screenNames
+                    PxButton {
+                        required property string modelData
+                        compact: true
+                        checkable: true
+                        checked: (Config.y2k.sparkleScreens || []).includes(modelData)
+                        text: modelData
+                        onClicked: Config.y2k.sparkleScreens = page.toggleIn(Config.y2k.sparkleScreens, modelData, checked)
+                    }
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Блестящий курсор", "Glitter cursor")
+            hint: Cursors.theme === "angelOS-Glitter" ? I18n.t("стоит ♡ другие курсоры — на странице «Курсор»", "In use ♡ other cursors are on the Cursor page") : I18n.t("angelOS Pixel с мерцающими искорками, везде: niri, GTK, X11, Steam", "angelOS Pixel with twinkling sparkles, everywhere: niri, GTK, X11, Steam")
+            PxButton {
+                enabled: !Cursors.busy && Cursors.theme !== "angelOS-Glitter"
+                icon: "cursor"
+                text: Cursors.busy ? I18n.t("Ставлю…", "Installing…") : I18n.t("Поставить", "Use it")
+                onClicked: Cursors.install("glitter", true)
+            }
+        }
+    }
+
+    PxGroup {
+        name: "loading-screen"
+        width: parent.width
+        title: I18n.t("Загрузочный экран", "Loading screen")
+        advanced: true
+        icon: "monitor"
+        SettingRow {
+            label: I18n.t("При входе в систему", "On login")
+            hint: I18n.t("крутится диск, «Вставьте диск 1…», полоска загрузки; один раз за вход, клик — пропустить", "A spinning disc, “insert disc 1…”, a loading bar; once per login, click to skip")
+            PxToggle {
+                checked: Config.y2k.boot
+                onToggled: c => Config.y2k.boot = c
+            }
+        }
+        SettingRow {
+            visible: Config.y2k.boot && page.screenNames.length > 1
+            label: I18n.t("На экранах", "On screens")
+            hint: I18n.t("ничего не выбрано — на всех", "Nothing picked means all")
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 2
+                Repeater {
+                    model: page.screenNames
+                    PxButton {
+                        required property string modelData
+                        compact: true
+                        checkable: true
+                        checked: (Config.y2k.bootScreens || []).includes(modelData)
+                        text: modelData
+                        onClicked: Config.y2k.bootScreens = page.toggleIn(Config.y2k.bootScreens, modelData, checked)
+                    }
+                }
+            }
+        }
+        PxButton {
+            icon: "play"
+            text: I18n.t("Показать сейчас", "Show it now")
+            onClicked: {
+                Shell.settingsOpen = false;
+                Shell.bootOpen = true;
+            }
+        }
+    }
+
+    PxGroup {
+        name: "demon-corner"
         width: parent.width
         title: Angel.demon ? I18n.t("Демоница в углу", "The demon in the corner") : I18n.t("Ангелочек-помощник", "Helper angel")
         icon: Angel.demon ? "fire" : "heart"
@@ -144,65 +371,8 @@ PxPage {
         }
     }
 
-    // the helper's versions (four each), for each of them apart
-    component LookCard: PxButton {
-        id: card
-        required property var modelData
-        property string who: "angel"
-        readonly property string current: who === "demon" ? Config.y2k.demonLook || "glitch" : Config.y2k.angelLook || "glitch"
-        width: Math.max(Theme.u * 64, lookLabel.implicitWidth + Theme.u * 8)
-        height: Theme.u * 78
-        checked: current === modelData.value
-        onClicked: {
-            if (who === "demon")
-                Config.y2k.demonLook = modelData.value;
-            else
-                Config.y2k.angelLook = modelData.value;
-        }
-        Item {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: Theme.u * 4
-            width: parent.width - Theme.u * 6
-            height: parent.height - lookLabel.height - Theme.u * 10
-            SpriteRig {
-                visible: card.modelData.value === "chibi" || card.modelData.value === "glitch"
-                anchors.centerIn: parent
-                who: card.who
-                variant: card.modelData.value === "glitch" ? "glitch" : ""
-                px: Math.max(0.5, Theme.u / 4)
-                width: implicitWidth
-                height: implicitHeight
-            }
-            PxIcon {
-                visible: card.modelData.value === "adult" || card.modelData.value === "mini"
-                anchors.centerIn: parent
-                readonly property bool mini: card.modelData.value === "mini"
-                bitmap: mini ? (card.who === "demon" ? DemonMini.up : AngelMini.up) : (card.who === "demon" ? DemonArt.up : AngelArt.up)
-                pixel: mini ? Math.max(1, Theme.u) : Math.max(1, Math.round(Theme.u * 0.75))
-                ink: card.who === "demon" ? "#1a0a14" : (Theme.dark ? Theme.text : Theme.edge)
-                body: card.who === "demon" ? "#f7d9e3" : "#ffd9c7"
-                fill: card.who === "demon" ? "#ff3b6b" : Theme.accent
-                fill2: "#3a1a46"
-                fill3: Theme.dark ? "#ffe07a" : "#f5c542"
-                light: card.who === "demon" ? "#7a1e46" : "#ffffff"
-                bad: "#d8203a"
-                palette: mini ? ({}) : card.who === "demon" ? DemonArt.palette : Object.assign({}, AngelArt.palette, {
-                    "o": Theme.hex(Theme.accent)
-                })
-            }
-        }
-        PxText {
-            id: lookLabel
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Theme.u * 3
-            kind: "tiny"
-            font.bold: card.checked
-            text: (card.checked ? "♡ " : "") + card.modelData.label
-        }
-    }
-
     PxGroup {
+        name: "looks"
         width: parent.width
         title: I18n.t("Внешность", "Looks")
         icon: "palette"
@@ -278,6 +448,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "angel-or-demon"
         width: parent.width
         title: Angel.hellShown ? I18n.t("Ангел или демон", "Angel or demon") : I18n.t("Ангел и портал", "Angel and the portal")
         icon: Angel.hellShown ? "fire" : "heart"
@@ -340,8 +511,22 @@ PxPage {
         }
     }
 
+    PxGroup {
+        name: "sounds"
+        width: parent.width
+        title: I18n.t("Звуки", "Sounds")
+        icon: "speaker"
+        // the sounds and her voice are set in one place: System sounds
+        SettingLink {
+            label: Angel.hellShown ? I18n.t("Звуки angelOS, голос ангела и демоницы", "angelOS sounds, the angel's and the demon's voice") : I18n.t("Звуки angelOS и голос ангела", "angelOS sounds and the angel's voice")
+            hint: I18n.t("включить, набор, громкость, каждый звук отдельно", "on or off, the pack, the volume, every sound on its own")
+            page: "sfx"
+        }
+    }
+
     // hell's versions of everything, a sub-page of its own (only while the demon is about)
     PxGroup {
+        name: "hell"
         width: parent.width
         title: I18n.t("Ад", "Hell")
         icon: "pentagram"
@@ -679,6 +864,7 @@ PxPage {
 
     // the novel (services/Novel): chapters written in the editor, played out on the desktop
     PxGroup {
+        name: "novel"
         width: parent.width
         title: I18n.t("Новелла", "The novel")
         advanced: true
@@ -782,257 +968,6 @@ PxPage {
                 text: Config.novel.name || ""
                 placeholder: StartApps.userName
                 onEdited: Config.novel.name = text.trim()
-            }
-        }
-    }
-
-    PxGroup {
-        width: parent.width
-        title: I18n.t("Стрим-режим", "Stream mode")
-        advanced: true
-        icon: "monitor"
-        SettingRow {
-            label: I18n.t("Сейчас", "Now")
-            hint: StreamMode.active ? I18n.t("эфир: angelOS не лезет в кадр", "Live: angelOS stays out of the picture") : Config.stream.auto ? (StreamMode.obsUp ? I18n.t("OBS на связи, эфира нет", "OBS connected, not streaming") : StreamMode.obsAuth ? I18n.t("OBS просит пароль WebSocket — включи вход без пароля или сохрани пароль в OBS", "OBS wants a WebSocket password") : I18n.t("OBS не запущен или WebSocket-сервер выключен (Инструменты → Настройки WebSocket)", "OBS isn't running or its WebSocket server is off (Tools → WebSocket Server Settings)")) : I18n.t("выключен", "Off")
-            PxButton {
-                icon: StreamMode.active ? "close" : "play"
-                accent: !StreamMode.active
-                text: StreamMode.active ? I18n.t("Выключить", "Switch off") : I18n.t("Включить вручную", "Switch on by hand")
-                onClicked: StreamMode.set("toggle")
-            }
-        }
-        SettingRow {
-            label: I18n.t("Сам по OBS", "Follow OBS")
-            hint: I18n.t("включается, пока OBS ведёт трансляцию (obs-websocket, порт ", "On while OBS is streaming (obs-websocket, port ") + Config.stream.port + ")"
-            PxToggle {
-                checked: Config.stream.auto
-                onToggled: c => Config.stream.auto = c
-            }
-        }
-        SettingRow {
-            visible: page.screenNames.length > 1
-            label: I18n.t("Экраны в эфире", "Streamed screens")
-            hint: I18n.t("ничего не выбрано — все; остальные экраны живут как обычно", "Nothing picked means all; the others carry on as usual")
-            Flow {
-                width: parent.width
-                spacing: Theme.u * 2
-                Repeater {
-                    model: page.screenNames
-                    PxButton {
-                        required property string modelData
-                        compact: true
-                        checkable: true
-                        checked: (Config.stream.screens || []).includes(modelData)
-                        text: modelData
-                        onClicked: Config.stream.screens = page.toggleIn(Config.stream.screens, modelData, checked)
-                    }
-                }
-            }
-        }
-        SettingRow {
-            label: I18n.t("Ангелочек уходит с экрана", "The angel leaves the screen")
-            hint: I18n.t("на другой экран, а если его нет — прячется", "To another screen, or hides if there is none")
-            PxToggle {
-                checked: Config.stream.hideAngel
-                onToggled: c => Config.stream.hideAngel = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Тишина", "Quiet")
-            hint: I18n.t("звуки angelOS не попадут в эфир", "angelOS sounds stay off the stream")
-            PxToggle {
-                checked: Config.stream.mute
-                onToggled: c => Config.stream.mute = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("«Не беспокоить»", "Do not disturb")
-            hint: I18n.t("уведомления копятся в истории; после эфира всё как было", "Notifications wait in the history; back to normal after the stream")
-            PxToggle {
-                checked: Config.stream.dnd
-                onToggled: c => Config.stream.dnd = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Без эффектов", "No effects")
-            hint: Angel.hellShown ? I18n.t("ни блёсток, ни загрузочного экрана, ни лучей и трещин на экранах в эфире", "No sparkles, loading screen, rays or cracks on streamed screens") : I18n.t("ни блёсток, ни загрузочного экрана, ни лучей на экранах в эфире", "No sparkles, loading screen or rays on streamed screens")
-            PxToggle {
-                checked: Config.stream.effects
-                onToggled: c => Config.stream.effects = c
-            }
-        }
-    }
-
-    PxGroup {
-        width: parent.width
-        title: I18n.t("Блёстки", "Glitter")
-        advanced: true
-        icon: "sparkle"
-        SettingRow {
-            label: I18n.t("Шлейф за курсором", "Sparkle trail")
-            hint: I18n.t("видно, пока курсор над рабочим столом (над окнами он чужой — там блестит сам курсор)", "Shows while the pointer is over the desktop; over windows only the glitter cursor sparkles")
-            PxToggle {
-                checked: Config.y2k.sparkles
-                onToggled: c => Config.y2k.sparkles = c
-            }
-        }
-        SettingRow {
-            visible: Config.y2k.sparkles && page.screenNames.length > 1
-            label: I18n.t("На экранах", "On screens")
-            hint: I18n.t("ничего не выбрано — на всех; например, убери стримовый", "Nothing picked means all; e.g. leave out the streaming one")
-            Flow {
-                width: parent.width
-                spacing: Theme.u * 2
-                Repeater {
-                    model: page.screenNames
-                    PxButton {
-                        required property string modelData
-                        compact: true
-                        checkable: true
-                        checked: (Config.y2k.sparkleScreens || []).includes(modelData)
-                        text: modelData
-                        onClicked: Config.y2k.sparkleScreens = page.toggleIn(Config.y2k.sparkleScreens, modelData, checked)
-                    }
-                }
-            }
-        }
-        SettingRow {
-            label: I18n.t("Блестящий курсор", "Glitter cursor")
-            hint: Cursors.theme === "angelOS-Glitter" ? I18n.t("стоит ♡ другие курсоры — на странице «Курсор»", "In use ♡ other cursors are on the Cursor page") : I18n.t("angelOS Pixel с мерцающими искорками, везде: niri, GTK, X11, Steam", "angelOS Pixel with twinkling sparkles, everywhere: niri, GTK, X11, Steam")
-            PxButton {
-                enabled: !Cursors.busy && Cursors.theme !== "angelOS-Glitter"
-                icon: "cursor"
-                text: Cursors.busy ? I18n.t("Ставлю…", "Installing…") : I18n.t("Поставить", "Use it")
-                onClicked: Cursors.install("glitter", true)
-            }
-        }
-    }
-
-    PxGroup {
-        width: parent.width
-        title: I18n.t("Звуки", "Sounds")
-        advanced: true
-        icon: "speaker"
-        SettingRow {
-            label: I18n.t("Звуки angelOS", "angelOS sounds")
-            hint: I18n.t("молчат в стрим-режиме", "Quiet in stream mode")
-            PxToggle {
-                checked: Config.y2k.sounds
-                onToggled: c => Config.y2k.sounds = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Набор", "Sound pack")
-            hint: Config.y2k.soundPack === "overdose" ? (Sounds.downloading ? I18n.t("скачиваю с GitHub (Plasma-Overdose)…", "Downloading from GitHub (Plasma-Overdose)…") : Sounds.overdoseError ? Sounds.overdoseError : I18n.t("звуки Windose из NEEDY GIRL OVERDOSE; скачиваются один раз из Plasma-Overdose, принадлежат авторам игры", "Windose sounds from NEEDY GIRL OVERDOSE, fetched once from Plasma-Overdose; they belong to the game's authors")) : I18n.t("свои, синтезированные: без чужих сэмплов", "Our own, synthesised: no borrowed samples")
-            PxSegmented {
-                model: [
-                    {
-                        "label": "Y2K",
-                        "value": "y2k"
-                    },
-                    {
-                        "label": "Overdose ♡",
-                        "value": "overdose"
-                    }
-                ]
-                currentValue: Config.y2k.soundPack
-                onActivated: v => {
-                    Config.y2k.soundPack = v;
-                    Sounds.preview("notify");
-                }
-            }
-        }
-        SettingRow {
-            label: I18n.t("Милые мелочи", "Cute little sounds")
-            hint: I18n.t("«Пуск», переключатели, скриншоты, громкость, закрытие окон", "Start, switches, screenshots, volume, closing windows")
-            PxToggle {
-                checked: Config.y2k.cuteSounds
-                onToggled: c => Config.y2k.cuteSounds = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Громкость", "Volume")
-            PxSlider {
-                width: parent.width
-                from: 0
-                to: 100
-                stepSize: 5
-                suffix: " %"
-                value: Math.round(Config.y2k.soundVolume * 100)
-                live: false
-                onReleased: v => {
-                    Config.y2k.soundVolume = v / 100;
-                    Sounds.preview("notify");
-                }
-            }
-        }
-        SettingRow {
-            label: Angel.hellShown ? I18n.t("Голос ангела и демоницы", "The angel's and the demon's voice") : I18n.t("Голос ангела", "The angel's voice")
-            hint: Angel.hellShown ? I18n.t("её «пип» на каждую букву, «хех», хор, трещины и камни — доля от общей громкости", "Her pip on every letter, the “heh”, the choir, cracks and rocks — a share of the volume above") : I18n.t("её «пип» на каждую букву, «хех» и хор — доля от общей громкости", "Her pip on every letter, the “heh” and the choir — a share of the volume above")
-            PxSlider {
-                width: parent.width
-                from: 0
-                to: 100
-                stepSize: 5
-                suffix: " %"
-                value: Math.round(Config.y2k.helperVolume * 100)
-                live: false
-                onReleased: v => {
-                    Config.y2k.helperVolume = v / 100;
-                    Sounds.preview("voice");
-                }
-            }
-        }
-        SettingRow {
-            label: I18n.t("Каждый звук отдельно", "Every sound on its own")
-            hint: I18n.t("вкл/выкл, громкость и свой звук у каждого: клики, клавиши, окна, столы, блокировка", "On/off, volume and a sound of your own for each: clicks, keys, windows, desks, the lock")
-            PxButton {
-                text: I18n.t("Звуки системы →", "System sounds →")
-                icon: "bell"
-                onClicked: Shell.settingsPage = "sfx"
-            }
-        }
-    }
-
-    PxGroup {
-        width: parent.width
-        title: I18n.t("Загрузочный экран", "Loading screen")
-        advanced: true
-        icon: "monitor"
-        SettingRow {
-            label: I18n.t("При входе в систему", "On login")
-            hint: I18n.t("крутится диск, «Вставьте диск 1…», полоска загрузки; один раз за вход, клик — пропустить", "A spinning disc, “insert disc 1…”, a loading bar; once per login, click to skip")
-            PxToggle {
-                checked: Config.y2k.boot
-                onToggled: c => Config.y2k.boot = c
-            }
-        }
-        SettingRow {
-            visible: Config.y2k.boot && page.screenNames.length > 1
-            label: I18n.t("На экранах", "On screens")
-            hint: I18n.t("ничего не выбрано — на всех", "Nothing picked means all")
-            Flow {
-                width: parent.width
-                spacing: Theme.u * 2
-                Repeater {
-                    model: page.screenNames
-                    PxButton {
-                        required property string modelData
-                        compact: true
-                        checkable: true
-                        checked: (Config.y2k.bootScreens || []).includes(modelData)
-                        text: modelData
-                        onClicked: Config.y2k.bootScreens = page.toggleIn(Config.y2k.bootScreens, modelData, checked)
-                    }
-                }
-            }
-        }
-        PxButton {
-            icon: "play"
-            text: I18n.t("Показать сейчас", "Show it now")
-            onClicked: {
-                Shell.settingsOpen = false;
-                Shell.bootOpen = true;
             }
         }
     }

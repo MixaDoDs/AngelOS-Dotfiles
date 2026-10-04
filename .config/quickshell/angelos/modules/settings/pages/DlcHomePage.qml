@@ -177,7 +177,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Потом можно сменить в «Внешний вид» → «Вид настроек».", "You can change it later in Appearance → Settings look.")
+            text: I18n.t("Потом можно сменить в «Тема и цвета» → «Вид настроек».", "You can change it later in Theme and colours → Settings look.")
         }
         Row {
             spacing: Theme.u * 4

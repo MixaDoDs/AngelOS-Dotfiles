@@ -208,6 +208,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "controller"
         title: I18n.t("Контроллер", "Controller")
         icon: "gamepad"
         width: parent.width
@@ -442,6 +443,7 @@ PxPage {
 
     // ---- every button and axis the device reports ----
     PxGroup {
+        name: "all-buttons-axes"
         visible: !!page.pad
         title: I18n.t("Все кнопки и оси", "All buttons and axes")
         icon: "layers"

@@ -1,0 +1,586 @@
+{
+  "_comment": [
+    "The settings tree: categories on the left, their pages, and what each page is made of.",
+    "A page is a list of blocks: \"monitor\" = everything on modules/settings/pages/MonitorPage.qml,",
+    "\"bar/style\" = only its group named \"style\" (PxGroup { name: \"style\" }). Every group is in",
+    "exactly one page (tests/settings checks it, and that no setting of the old tree got lost).",
+    "Blocks of one source file show in that file's order. Two levels only: category › page.",
+    "\"legacy\": the old page ids (links in the wizard, the tour, the helper, `angelos settings`)",
+    "and where they lead now; \"to\" may name a group, the page scrolls to it.",
+    "\"developer\"/\"owner\": shown only in developer mode / to the owner. \"plugins\": the category",
+    "where plugins' own settings pages are listed (\"after\": a plugin page that goes after a page)."
+  ],
+  "account": {
+    "page": "account",
+    "ru": "Аккаунт",
+    "en": "Account",
+    "icon": "heart",
+    "hintRu": "имя, аватарка, язык, мастер и подсказки",
+    "hintEn": "name, avatar, language, the wizard and the tips",
+    "blocks": [
+      "account"
+    ]
+  },
+  "categories": [
+    {
+      "id": "system",
+      "ru": "Система",
+      "en": "System",
+      "icon": "chip",
+      "tint": "#2f7de8",
+      "hintRu": "экран, звук, уведомления, питание",
+      "hintEn": "display, sound, notifications, power",
+      "pages": [
+        {
+          "id": "display",
+          "ru": "Экран",
+          "en": "Display",
+          "icon": "monitor",
+          "hintRu": "мониторы, главный экран, яркость и цвет",
+          "hintEn": "monitors, the main screen, brightness and colour",
+          "blocks": [
+            "monitor"
+          ]
+        },
+        {
+          "id": "sound",
+          "ru": "Звук",
+          "en": "Sound",
+          "icon": "speaker",
+          "hintRu": "выход, микрофон, громкость приложений, индикаторы",
+          "hintEn": "output, microphone, app volume, indicators",
+          "blocks": [
+            "sound/output",
+            "sound/input",
+            "sound/applications",
+            "sound/osd"
+          ]
+        },
+        {
+          "id": "sfx",
+          "ru": "Звуки системы",
+          "en": "System sounds",
+          "icon": "bell",
+          "hintRu": "звуки angelOS, щелчки, события, голос помощницы",
+          "hintEn": "angelOS sounds, clicks, events, the helper's voice",
+          "blocks": [
+            "sfx"
+          ]
+        },
+        {
+          "id": "notifications",
+          "ru": "Уведомления",
+          "en": "Notifications",
+          "icon": "bell",
+          "hintRu": "не беспокоить, где и сколько висят, история",
+          "hintEn": "do not disturb, where and how long, history",
+          "blocks": [
+            "notifications"
+          ]
+        },
+        {
+          "id": "capture",
+          "ru": "Скриншоты и запись",
+          "en": "Screenshots and recording",
+          "icon": "camera",
+          "hintRu": "как выглядит снимок экрана",
+          "hintEn": "how the screenshot tool looks",
+          "blocks": [
+            "capture"
+          ]
+        },
+        {
+          "id": "stream",
+          "ru": "Стрим-режим",
+          "en": "Stream mode",
+          "icon": "camera",
+          "hintRu": "эфир по OBS: тишина, без эффектов, экраны",
+          "hintEn": "on air with OBS: quiet, no effects, screens",
+          "blocks": [
+            "y2k/stream-mode"
+          ]
+        },
+        {
+          "id": "power",
+          "ru": "Питание и отрисовка",
+          "en": "Power and rendering",
+          "icon": "chip",
+          "hintRu": "профиль питания, движок отрисовки",
+          "hintEn": "power profile, the renderer",
+          "blocks": [
+            "system/rendering",
+            "system/power"
+          ]
+        },
+        {
+          "id": "about",
+          "ru": "О системе",
+          "en": "About",
+          "icon": "heart",
+          "hintRu": "этот компьютер, твой сетап, отчёт о проблеме",
+          "hintEn": "this computer, your setup, reporting a problem",
+          "blocks": [
+            "system/this-computer",
+            "system/your-setup",
+            "system/angelos",
+            "system/report-problem"
+          ]
+        },
+        {
+          "id": "developer",
+          "ru": "Для разработчиков",
+          "en": "For developers",
+          "icon": "gear",
+          "hintRu": "режим разработчика, отладка игры",
+          "hintEn": "developer mode, the game's debug tools",
+          "blocks": [
+            "system/development",
+            "system/game-developer-tools"
+          ],
+          "open": [
+            "system/development"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "devices",
+      "ru": "Bluetooth и устройства",
+      "en": "Bluetooth and devices",
+      "icon": "bluetooth",
+      "tint": "#2f62d6",
+      "hintRu": "Bluetooth, мышь, клавиатура, горячие клавиши, геймпад",
+      "hintEn": "Bluetooth, mouse, keyboard, shortcuts, gamepad",
+      "pages": [
+        {
+          "id": "bluetooth",
+          "ru": "Bluetooth",
+          "en": "Bluetooth",
+          "icon": "bluetooth",
+          "hintRu": "устройства рядом и сопряжённые",
+          "hintEn": "devices nearby and paired",
+          "blocks": [
+            "bluetooth"
+          ]
+        },
+        {
+          "id": "mouse",
+          "ru": "Мышь и лупа",
+          "en": "Mouse and lens",
+          "icon": "mouse",
+          "hintRu": "ускорение, чувствительность, лупа у курсора",
+          "hintEn": "acceleration, sensitivity, the lens at the pointer",
+          "blocks": [
+            "mouse"
+          ]
+        },
+        {
+          "id": "keyboard",
+          "ru": "Клавиатура и ввод",
+          "en": "Keyboard and typing",
+          "icon": "keyboard",
+          "hintRu": "раскладки, повтор клавиш, голосовой ввод",
+          "hintEn": "layouts, key repeat, voice typing",
+          "blocks": [
+            "keyboard",
+            "sound/voice-typing-voxtype"
+          ]
+        },
+        {
+          "id": "shortcuts",
+          "ru": "Горячие клавиши",
+          "en": "Shortcuts",
+          "icon": "keyboard",
+          "hintRu": "все сочетания и свои",
+          "hintEn": "every shortcut, and your own",
+          "blocks": [
+            "shortcuts"
+          ]
+        },
+        {
+          "id": "gamepad",
+          "ru": "Геймпад",
+          "en": "Gamepad",
+          "icon": "gamepad",
+          "hintRu": "контроллер, кнопки и оси",
+          "hintEn": "the controller, buttons and axes",
+          "blocks": [
+            "gamepad"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "network",
+      "ru": "Сеть и интернет",
+      "en": "Network and internet",
+      "icon": "wifi",
+      "tint": "#3a86ff",
+      "hintRu": "Wi-Fi и кабель",
+      "hintEn": "Wi-Fi and cable",
+      "pages": [
+        {
+          "id": "network",
+          "ru": "Сеть и интернет",
+          "en": "Network and internet",
+          "icon": "wifi",
+          "hintRu": "Wi-Fi и кабель",
+          "hintEn": "Wi-Fi and cable",
+          "blocks": [
+            "network"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "personalization",
+      "ru": "Персонализация",
+      "en": "Personalization",
+      "icon": "palette",
+      "tint": "#6b5bd6",
+      "hintRu": "тема, обои, шрифты, курсор, панель задач, «Пуск», блокировка",
+      "hintEn": "theme, wallpaper, fonts, cursor, taskbar, Start, lock screen",
+      "pages": [
+        {
+          "id": "theme",
+          "ru": "Тема и цвета",
+          "en": "Theme and colours",
+          "icon": "palette",
+          "hintRu": "светлая и тёмная, палитра, движение, стекло, вид настроек",
+          "hintEn": "light and dark, palette, motion, glass, the settings' look",
+          "blocks": [
+            "appearance"
+          ]
+        },
+        {
+          "id": "wallpaper",
+          "ru": "Обои",
+          "en": "Wallpaper",
+          "icon": "image",
+          "hintRu": "картинки, мониторы и столы, переход",
+          "hintEn": "pictures, monitors and desks, the transition",
+          "blocks": [
+            "wallpaper"
+          ]
+        },
+        {
+          "id": "fonts",
+          "ru": "Шрифты",
+          "en": "Fonts",
+          "icon": "document",
+          "hintRu": "наборы, шрифты интерфейса, масштаб",
+          "hintEn": "presets, interface fonts, scale",
+          "blocks": [
+            "fonts"
+          ]
+        },
+        {
+          "id": "cursor",
+          "ru": "Курсор",
+          "en": "Cursor",
+          "icon": "cursor",
+          "hintRu": "тема, размер, встряхивание, блёстки, курсор в аду",
+          "hintEn": "theme, size, shake, glitter, the cursor in hell",
+          "blocks": [
+            "cursor",
+            "y2k/glitter"
+          ]
+        },
+        {
+          "id": "taskbar",
+          "ru": "Панель задач",
+          "en": "Taskbar",
+          "icon": "window",
+          "hintRu": "вид панели, кнопки окон, трей, часы, сайдбар",
+          "hintEn": "the bar's look, window buttons, tray, clock, sidebar",
+          "blocks": [
+            "bar/style",
+            "bar/contents",
+            "bar/layout",
+            "bar/icons",
+            "bar/sidebar-experimental",
+            "windows/closing-windows"
+          ]
+        },
+        {
+          "id": "start",
+          "ru": "«Пуск»",
+          "en": "Start",
+          "icon": "sparkle",
+          "hintRu": "вид меню, его кнопка, логотип, аватарка и тонкая настройка",
+          "hintEn": "the menu's look, its button, the logo, avatar and fine-tuning",
+          "blocks": [
+            "bar/start-button",
+            "bar/start-avatar-fine",
+            "bar/angelos-logo"
+          ],
+          "open": [
+            "bar/start-button"
+          ]
+        },
+        {
+          "id": "widgets",
+          "ru": "Виджеты",
+          "en": "Widgets",
+          "icon": "layers",
+          "hintRu": "часы, монитор, плеер на рабочем столе",
+          "hintEn": "clock, monitor, player on the desktop",
+          "blocks": [
+            "widgets"
+          ]
+        },
+        {
+          "id": "deskmenu",
+          "ru": "Меню правой кнопки",
+          "en": "Right-click menu",
+          "icon": "grid",
+          "hintRu": "вид меню на рабочем столе, его пункты",
+          "hintEn": "the desktop menu's look and its entries",
+          "blocks": [
+            "deskmenu"
+          ]
+        },
+        {
+          "id": "lock",
+          "ru": "Блокировка и заставка",
+          "en": "Lock screen and idle",
+          "icon": "lock",
+          "hintRu": "экран блокировки, заставка, экран загрузки",
+          "hintEn": "lock screen, idle screen, loading screen",
+          "blocks": [
+            "lock",
+            "y2k/loading-screen"
+          ]
+        },
+        {
+          "id": "lyrics",
+          "ru": "Лирика",
+          "en": "Lyrics",
+          "icon": "mic",
+          "hintRu": "строки песни на панели",
+          "hintEn": "the song's lines on the bar",
+          "blocks": [
+            "lyrics"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "windows",
+      "ru": "Окна и рабочие столы",
+      "en": "Windows and desks",
+      "icon": "layers",
+      "tint": "#13a596",
+      "hintRu": "размещение, ширина, анимации, Alt+Tab, рабочие столы",
+      "hintEn": "layout, widths, animations, Alt+Tab, desks",
+      "pages": [
+        {
+          "id": "windows",
+          "ru": "Окна",
+          "en": "Windows",
+          "icon": "window",
+          "hintRu": "заголовки, размещение, ширина, анимации, Alt+Tab",
+          "hintEn": "title bars, layout, widths, animations, Alt+Tab",
+          "blocks": [
+            "windows/window-decorations",
+            "windows/alt-tab",
+            "windows/window-animations",
+            "windows/layout",
+            "windows/window-widths",
+            "windows/window-menu-experimental"
+          ]
+        },
+        {
+          "id": "workspaces",
+          "ru": "Рабочие столы",
+          "en": "Desks",
+          "icon": "layers",
+          "hintRu": "значок стола, переключение, имена",
+          "hintEn": "the desk icon, switching, names",
+          "blocks": [
+            "workspaces"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "apps",
+      "ru": "Приложения",
+      "en": "Apps",
+      "icon": "star",
+      "tint": "#5b6b80",
+      "hintRu": "по умолчанию, плагины",
+      "hintEn": "defaults, plugins",
+      "plugins": true,
+      "pages": [
+        {
+          "id": "defaults",
+          "ru": "Приложения по умолчанию",
+          "en": "Default apps",
+          "icon": "star",
+          "hintRu": "браузер, файлы, терминал, диспетчер задач",
+          "hintEn": "browser, files, terminal, task manager",
+          "blocks": [
+            "defaults",
+            "system/task-manager",
+            "system/programs"
+          ]
+        },
+        {
+          "id": "plugins",
+          "ru": "Плагины",
+          "en": "Plugins",
+          "icon": "plug",
+          "hintRu": "установленные, удалённые, новый",
+          "hintEn": "installed, removed, a new one",
+          "blocks": [
+            "plugins"
+          ]
+        },
+        {
+          "id": "studio",
+          "ru": "Мастер плагинов",
+          "en": "Plugin Studio",
+          "icon": "sparkle",
+          "developer": true,
+          "hintRu": "плагин из описания словами",
+          "hintEn": "a plugin from a description in words",
+          "blocks": [
+            "studio"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "angel",
+      "ru": "Ангелочек ✧",
+      "en": "The angel ✧",
+      "ruHell": "Демоница ⛧",
+      "enHell": "The demon ⛧",
+      "icon": "sparkle",
+      "iconHell": "pentagram",
+      "tint": "#f06aa8",
+      "tintHell": "#b3142b",
+      "hintRu": "игра, помощница в углу, ад, новелла",
+      "hintEn": "the game, the helper in the corner, hell, the novel",
+      "pages": [
+        {
+          "id": "game",
+          "ru": "Игра",
+          "en": "The game",
+          "icon": "heart",
+          "hintRu": "включить, выключить, спокойный режим",
+          "hintEn": "on, off, the calm mode",
+          "blocks": [
+            "system/game"
+          ]
+        },
+        {
+          "id": "helper",
+          "ru": "Помощница",
+          "en": "The helper",
+          "icon": "sparkle",
+          "hintRu": "кто в углу, внешность, размер, болтовня, эффекты",
+          "hintEn": "who is in the corner, looks, size, chatter, effects",
+          "blocks": [
+            "y2k/demon-corner",
+            "y2k/looks",
+            "y2k/angel-or-demon",
+            "y2k/sounds"
+          ]
+        },
+        {
+          "id": "hell",
+          "ru": "Ад",
+          "en": "Hell",
+          "icon": "pentagram",
+          "hintRu": "что меняется в аду: меню, настройки, панель, обои",
+          "hintEn": "what changes in hell: menus, settings, bar, wallpaper",
+          "blocks": [
+            "y2k/hell"
+          ]
+        },
+        {
+          "id": "novel",
+          "ru": "Новелла",
+          "en": "The novel",
+          "icon": "document",
+          "hintRu": "истории ангела, кто ты",
+          "hintEn": "the angel's stories, who you are",
+          "blocks": [
+            "y2k/novel"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "updates",
+      "ru": "Обновления",
+      "en": "Updates",
+      "icon": "download",
+      "tint": "#0e95d6",
+      "hintRu": "новые версии angelOS",
+      "hintEn": "new versions of angelOS",
+      "pages": [
+        {
+          "id": "updates",
+          "ru": "Обновления",
+          "en": "Updates",
+          "icon": "download",
+          "hintRu": "проверить, обновить, вернуть как было",
+          "hintEn": "check, update, restore",
+          "blocks": [
+            "updates"
+          ]
+        },
+        {
+          "id": "dotfiles",
+          "ru": "Dotfiles",
+          "en": "Dotfiles",
+          "icon": "package",
+          "owner": true,
+          "hintRu": "публикация (только автору)",
+          "hintEn": "publishing (the author only)",
+          "blocks": [
+            "@owner/DotfilesPage.qml"
+          ]
+        }
+      ]
+    }
+  ],
+  "skinHomes": [
+    "home",
+    "more",
+    "dlcHome",
+    "dlcMore"
+  ],
+  "plugins": {
+    "category": "apps",
+    "after": {
+      "nightlight": "display"
+    }
+  },
+  "legacy": {
+    "appearance": {
+      "page": "theme"
+    },
+    "monitor": {
+      "page": "display"
+    },
+    "bar": {
+      "page": "taskbar"
+    },
+    "y2k": {
+      "page": "helper"
+    },
+    "system": {
+      "page": "about"
+    },
+    "dlcHome": {
+      "page": "account"
+    },
+    "dlcMore": {
+      "page": "account"
+    }
+  }
+}

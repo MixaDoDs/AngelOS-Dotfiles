@@ -86,12 +86,18 @@ Item {
     onInkHostChanged: Theme.inkWindow = inkHost
     // Classic stays the default; Windose and Stream are optional settings skins.
     readonly property string skin: ["classic", "windose", "stream"].includes(Config.settingsUi.skin) ? Config.settingsUi.skin : "classic"
-    readonly property string settingsSkin: hellDress ? "classic" : skin
+    readonly property string settingsSkin: hellDress || fluent ? "classic" : skin
     // (there is no simple view or Expert any more: every page is a click away)
     readonly property bool expert: true
 
     // ---- the views ----
     readonly property var views: [
+        {
+            "id": "win11",
+            "file": "Win11View.qml",
+            "label": I18n.t("Как в Windows 11", "Like Windows 11"),
+            "hint": I18n.t("категории слева, карточки справа", "categories on the left, cards on the right")
+        },
         {
             "id": "sidebar",
             "file": "SidebarView.qml",
@@ -117,7 +123,10 @@ Item {
             "hint": I18n.t("крупный поиск и большие плитки", "a big search and big tiles")
         }
     ]
-    readonly property string viewId: views.some(v => v.id === Config.settingsUi.view) ? Config.settingsUi.view : "sidebar"
+    readonly property string viewId: views.some(v => v.id === Config.settingsUi.view) ? Config.settingsUi.view : "win11"
+    // the Windows 11 look: a category with several pages has a page of its own ("cat:<id>",
+    // CategoryPage), sub-pages unfold in place (PxGroup), every setting is a card (SettingRow)
+    readonly property bool fluent: viewId === "win11"
     readonly property var viewItem: viewLoader.item
     // a folder of icons / the tiles: "home" is the view's own screen, no page on it
     readonly property bool hasHome: viewId === "controlpanel" || viewId === "tiles"
@@ -128,165 +137,19 @@ Item {
     readonly property bool spread: grimoire && viewId === "sidebar"
 
     // ---- every page, by id: titles, the page loader, the search's crumbs ----
-    readonly property var pageList: [
-        {
-            "id": "account",
-            "label": I18n.t("Аккаунт", "Account"),
-            "icon": "heart"
-        },
-        {
-            "id": "network",
-            "label": I18n.t("Wi-Fi и сеть", "Wi-Fi and network"),
-            "icon": "wifi"
-        },
-        {
-            "id": "bluetooth",
-            "label": "Bluetooth",
-            "icon": "bluetooth"
-        },
-        {
-            "id": "notifications",
-            "label": I18n.t("Уведомления", "Notifications"),
-            "icon": "bell"
-        },
-        {
-            "id": "sound",
-            "label": I18n.t("Звук", "Sound"),
-            "icon": "speaker"
-        },
-        {
-            "id": "sfx",
-            "label": I18n.t("Звуки системы", "System sounds"),
-            "icon": "bell"
-        },
-        {
-            "id": "appearance",
-            "label": I18n.t("Внешний вид", "Appearance"),
-            "icon": "palette"
-        },
-        {
-            "id": "fonts",
-            "label": I18n.t("Шрифты", "Fonts"),
-            "icon": "document"
-        },
-        {
-            "id": "cursor",
-            "label": I18n.t("Курсор", "Cursor"),
-            "icon": "cursor"
-        },
-        {
-            "id": "wallpaper",
-            "label": I18n.t("Обои", "Wallpaper"),
-            "icon": "image"
-        },
-        {
-            "id": "widgets",
-            "label": I18n.t("Виджеты", "Widgets"),
-            "icon": "layers"
-        },
-        {
-            "id": "deskmenu",
-            "label": I18n.t("ПКМ-меню", "Right-click menu"),
-            "icon": "grid"
-        },
-        {
-            "id": "bar",
-            "label": I18n.t("Панель и «Пуск»", "Bar and Start"),
-            "icon": "window"
-        },
-        {
-            "id": "lyrics",
-            "label": I18n.t("Лирика", "Lyrics"),
-            "icon": "mic"
-        },
-        {
-            "id": "y2k",
-            "label": Angel.demon ? I18n.t("Демоница ⛧", "The demon ⛧") : I18n.t("Ангелочек ✧", "The angel ✧"),
-            "icon": Angel.demon ? "pentagram" : "sparkle"
-        },
-        {
-            "id": "monitor",
-            "label": I18n.t("Экран", "Display"),
-            "icon": "monitor"
-        },
-        {
-            "id": "windows",
-            "label": I18n.t("Окна", "Windows"),
-            "icon": "window"
-        },
-        {
-            "id": "workspaces",
-            "label": I18n.t("Воркспейсы", "Workspaces"),
-            "icon": "layers"
-        },
-        {
-            "id": "keyboard",
-            "label": I18n.t("Клавиатура", "Keyboard"),
-            "icon": "keyboard"
-        },
-        {
-            "id": "shortcuts",
-            "label": I18n.t("Горячие клавиши", "Shortcuts"),
-            "icon": "keyboard"
-        },
-        {
-            "id": "mouse",
-            "label": I18n.t("Мышь и лупа", "Mouse and lens"),
-            "icon": "mouse"
-        },
-        {
-            "id": "gamepad",
-            "label": I18n.t("Геймпад", "Gamepad"),
-            "icon": "gamepad"
-        },
-        {
-            "id": "lock",
-            "label": I18n.t("Блокировка и заставка", "Lock and idle"),
-            "icon": "lock"
-        },
-        {
-            "id": "capture",
-            "label": I18n.t("Скриншоты и запись", "Screenshots and recording"),
-            "icon": "camera"
-        },
-        {
-            "id": "defaults",
-            "label": I18n.t("Приложения по умолчанию", "Default apps"),
-            "icon": "star"
-        },
-        {
-            "id": "plugins",
-            "label": I18n.t("Плагины", "Plugins"),
-            "icon": "plug"
-        },
-        {
-            "id": "studio",
-            "label": I18n.t("Мастер плагинов", "Plugin Studio"),
-            "icon": "sparkle",
-            "developer": true
-        },
-        {
-            "id": "updates",
-            "label": I18n.t("Обновления", "Updates"),
-            "icon": "download"
-        },
-        {
-            "id": "dotfiles",
-            "label": "Dotfiles",
-            "icon": "package",
-            "owner": true
-        },
-        {
-            "id": "system",
-            "label": I18n.t("Система", "System"),
-            "icon": "chip"
-        }
-    ].concat(Plugins.settingsPages.map(p => ({
-                "id": "plugin:" + p.id,
-                "label": I18n.label(p.name),
-                "icon": p.icon || "plug"
-            })))
+    // The tree (services/SettingsTree, modules/settings/tree.json): your account, the
+    // categories and their pages, each put together from groups of the page files
+    // (ComposedPage); plugins' own pages are in it too.
+    readonly property var pageList: Object.keys(SettingsTree.pages).map(id => SettingsTree.pages[id])
     function pageEntry(id) {
+        if (String(id).startsWith("cat:")) {
+            const c = SettingsTree.categories.find(x => x.id === id.slice(4));
+            return c ? {
+                "id": id,
+                "label": c.label,
+                "icon": c.icon
+            } : null;
+        }
         return pageList.find(p => p.id === id) || null;
     }
     function labelOf(id) {
@@ -295,170 +158,14 @@ Item {
     }
     // owner-only pages vanish in the public version, Plugin Studio is for developers
     function pageShown(id) {
-        const p = pageEntry(id);
-        return !!p && (!p.owner || Owner.enabled) && (!p.developer || Config.developer.enabled);
+        return SettingsTree.shown(pageEntry(id));
     }
 
-    // ---- the sections, in runs (the sidebar's lines, the folder's groups) ----
-    readonly property string nightPage: Plugins.settingsPages.some(p => p.id === "nightlight") ? "plugin:nightlight" : ""
+    // ---- the sections: the tree's categories (the sidebar's lines, the folder's icons) ----
     readonly property var runs: [
         {
-            "title": I18n.t("Связь", "Connections"),
-            "sections": [
-                {
-                    "id": "network",
-                    "label": I18n.t("Wi-Fi и сеть", "Wi-Fi and network"),
-                    "icon": "wifi",
-                    "tint": "#3a86ff",
-                    "pages": ["network"]
-                },
-                {
-                    "id": "bluetooth",
-                    "label": "Bluetooth",
-                    "icon": "bluetooth",
-                    "tint": "#2f62d6",
-                    "pages": ["bluetooth"]
-                }
-            ]
-        },
-        {
-            "title": I18n.t("Уведомления и звук", "Notifications and sound"),
-            "sections": [
-                {
-                    "id": "notifications",
-                    "label": I18n.t("Уведомления", "Notifications"),
-                    "icon": "bell",
-                    "tint": "#e8404f",
-                    "pages": ["notifications"]
-                },
-                {
-                    "id": "sound",
-                    "label": I18n.t("Звук", "Sound"),
-                    "icon": "speaker",
-                    "tint": "#e94f96",
-                    "pages": ["sound", "sfx"]
-                }
-            ]
-        },
-        {
-            "title": I18n.t("Вид", "Look"),
-            "sections": [
-                {
-                    "id": "appearance",
-                    "label": I18n.t("Внешний вид", "Appearance"),
-                    "icon": "palette",
-                    "tint": "#6b5bd6",
-                    "pages": ["appearance", "fonts", "cursor"]
-                },
-                {
-                    "id": "wallpaper",
-                    "label": I18n.t("Обои и стол", "Wallpaper and desktop"),
-                    "icon": "image",
-                    "tint": "#1fa7bd",
-                    "pages": ["wallpaper", "widgets", "deskmenu"]
-                },
-                {
-                    "id": "bar",
-                    "label": I18n.t("Панель и «Пуск»", "Bar and Start"),
-                    "icon": "window",
-                    "tint": "#565e6b",
-                    "pages": ["bar"]
-                },
-                {
-                    "id": "lyrics",
-                    "label": I18n.t("Лирика", "Lyrics"),
-                    "icon": "mic",
-                    "tint": "#b04cc8",
-                    "pages": ["lyrics"]
-                },
-                {
-                    "id": "y2k",
-                    "label": Angel.demon ? I18n.t("Демоница ⛧", "The demon ⛧") : I18n.t("Ангелочек ✧", "The angel ✧"),
-                    "icon": Angel.demon ? "pentagram" : "sparkle",
-                    "tint": Angel.demon ? "#b3142b" : "#f06aa8",
-                    "pages": ["y2k"]
-                }
-            ]
-        },
-        {
-            "title": I18n.t("Устройства", "Devices"),
-            "sections": [
-                {
-                    "id": "monitor",
-                    "label": I18n.t("Экран", "Display"),
-                    "icon": "monitor",
-                    "tint": "#2f7de8",
-                    "pages": ["monitor"].concat(win.nightPage ? [win.nightPage] : [])
-                },
-                {
-                    "id": "windows",
-                    "label": I18n.t("Окна и столы", "Windows and desks"),
-                    "icon": "layers",
-                    "tint": "#13a596",
-                    "pages": ["windows", "workspaces"]
-                },
-                {
-                    "id": "keyboard",
-                    "label": I18n.t("Клавиатура", "Keyboard"),
-                    "icon": "keyboard",
-                    "tint": "#7b818c",
-                    "pages": ["keyboard", "shortcuts"]
-                },
-                {
-                    "id": "mouse",
-                    "label": I18n.t("Мышь и геймпад", "Mouse and gamepad"),
-                    "icon": "mouse",
-                    "tint": "#6a717c",
-                    "pages": ["mouse", "gamepad"]
-                },
-                {
-                    "id": "lock",
-                    "label": I18n.t("Блокировка и заставка", "Lock and idle"),
-                    "icon": "lock",
-                    "tint": "#e8930b",
-                    "pages": ["lock"]
-                },
-                {
-                    "id": "capture",
-                    "label": I18n.t("Скриншоты и запись", "Screenshots and recording"),
-                    "icon": "camera",
-                    "tint": "#ef6c1a",
-                    "pages": ["capture"]
-                }
-            ]
-        },
-        {
-            "title": I18n.t("Система", "System"),
-            "sections": [
-                {
-                    "id": "defaults",
-                    "label": I18n.t("Приложения", "Apps"),
-                    "icon": "star",
-                    "tint": "#5b6b80",
-                    "pages": ["defaults"]
-                },
-                {
-                    "id": "plugins",
-                    "label": I18n.t("Плагины", "Plugins"),
-                    "icon": "plug",
-                    "tint": "#1fae55",
-                    "pages": ["plugins", "studio"].concat(Plugins.settingsPages.map(p => "plugin:" + p.id).filter(id => id !== win.nightPage))
-                },
-                {
-                    "id": "updates",
-                    "label": I18n.t("Обновления", "Updates"),
-                    "icon": "download",
-                    "tint": "#0e95d6",
-                    "pages": ["updates", "dotfiles"]
-                },
-                {
-                    "id": "system",
-                    "label": I18n.t("Система", "System"),
-                    "icon": "chip",
-                    "tint": "#5f6672",
-                    "pages": ["system"]
-                }
-            ]
+            "title": "",
+            "sections": SettingsTree.categories
         }
     ]
     // what is shown: pages the user may see, sections with something left
@@ -473,10 +180,10 @@ Item {
     // properties' first entry)
     readonly property var accountSection: ({
             "id": "account",
-            "label": I18n.t("Аккаунт", "Account"),
+            "label": labelOf(SettingsTree.accountPage),
             "icon": "heart",
             "tint": Theme.accent,
-            "pages": ["account"]
+            "pages": [SettingsTree.accountPage]
         })
     // the views with a home show every section in its run, your account first
     readonly property var homeRuns: [
@@ -497,13 +204,15 @@ Item {
             }))
     readonly property var allPages: [pageEntry("account")].concat(visibleSections.reduce((a, s) => a.concat(s.pages.map(id => win.pageEntry(id))), [])).filter(p => !!p)
     readonly property string currentId: Shell.settingsPage === "home" || Shell.settingsPage === "more" ? "account" : Shell.settingsPage
-    readonly property var currentPage: allPages.find(p => p.id === currentId) || null
+    readonly property var currentPage: currentId.startsWith("cat:") ? pageEntry(currentId) : allPages.find(p => p.id === currentId) || null
     function sectionFor(id) {
         return visibleSections.find(s => s.pages.includes(id)) || null;
     }
     function sectionOf(id) {
         if (id === "home" || id === "more" || id === "account")
             return "account";
+        if (String(id).startsWith("cat:"))
+            return id.slice(4);
         const s = sectionFor(id);
         return s ? s.id : "";
     }
@@ -519,15 +228,20 @@ Item {
     // the section's first page for its other pages ("‹ Sound" on System sounds)
     function parentOf(id) {
         const s = sectionFor(id);
+        // the Windows 11 look: up from a page is its category's own page
+        if (fluent)
+            return s && s.pages.length > 1 ? "cat:" + s.id : "";
         return s && s.pages[0] !== id ? s.pages[0] : "";
     }
     // a section's first page lists the others as links
     function subpagesOf(id) {
+        if (fluent)
+            return [];
         const s = sectionFor(id);
         return s && s.pages[0] === id ? s.pages.slice(1).map(p => win.pageEntry(p)).filter(p => !!p) : [];
     }
     function openSection(s) {
-        Shell.settingsPage = s.pages[0];
+        Shell.settingsPage = fluent && s.pages.length > 1 ? "cat:" + s.id : s.pages[0];
         Shell.settingsSub = "";
     }
     // the page's advanced groups: its sub-pages ("Title ›")
@@ -559,6 +273,31 @@ Item {
         if (Shell.settingsPage !== l.page)
             Shell.settingsPage = l.page;
         Shell.settingsSub = l.sub || "";
+    }
+
+    // ---- old page ids (the wizard, the tour, the helper, scripts) → their places in the tree ----
+    Connections {
+        target: Shell
+        function onSettingsPageChanged() {
+            win.redirect();
+        }
+    }
+    function redirect() {
+        const r = SettingsTree.resolve(Shell.settingsPage);
+        if (r.page === Shell.settingsPage)
+            return;
+        Shell.settingsPage = r.page;
+        if (r.to)
+            showGroup(r.to);
+    }
+    // scroll to a group ("src/name") once the page is there, opening it if it is a sub-page
+    function showGroup(ref) {
+        pendingTarget = {
+            "kind": "name",
+            "target": String(ref).split("/").slice(-1)[0],
+            "crumb": ""
+        };
+        targetTimer.restart();
     }
 
     // ---- moving around: the same keys in every view ----
@@ -609,7 +348,13 @@ Item {
     }
     // the pages opened most (the account's "Everyday", the tiles' row)
     function frequent(n) {
-        const usage = Config.settingsUi.usage || {};
+        // visits counted under old page ids count for their pages in the tree
+        const raw = Config.settingsUi.usage || {};
+        const usage = {};
+        for (const id in raw) {
+            const to = SettingsTree.resolve(id).page;
+            usage[to] = (usage[to] || 0) + raw[id];
+        }
         return Object.keys(usage).filter(id => usage[id] >= 2 && allPages.some(p => p.id === id)).sort((a, b) => usage[b] - usage[a]).slice(0, n).map(id => pageEntry(id));
     }
 
@@ -637,8 +382,9 @@ Item {
         if (!travelling) {
             backStack = backStack.filter(l => l !== loc).concat([lastLoc]).slice(-30);
             forwardStack = [];
-            // how often each page is opened: the account page's "Everyday" follows it
-            if (Config.ready && Shell.settingsOpen && Shell.settingsSub === "" && Shell.settingsPage !== "home" && Shell.settingsPage !== "more") {
+            // how often each page is opened: the account page's "Everyday" follows it (a
+            // category's own page is a way through, not a page anyone wants back)
+            if (Config.ready && Shell.settingsOpen && Shell.settingsSub === "" && Shell.settingsPage !== "home" && Shell.settingsPage !== "more" && !Shell.settingsPage.startsWith("cat:")) {
                 const u = Object.assign({}, Config.settingsUi.usage || {});
                 u[Shell.settingsPage] = (u[Shell.settingsPage] || 0) + 1;
                 Config.settingsUi.usage = u;
@@ -700,6 +446,20 @@ Item {
     // where you are, for the toolbar: Section › Page › Sub-page
     readonly property var crumbs: {
         const out = [];
+        if (fluent) {
+            const c = String(currentId).startsWith("cat:") ? SettingsTree.categories.find(x => x.id === currentId.slice(4)) : sectionFor(currentId);
+            if (currentId === "account" || !c)
+                out.push(labelOf(currentId));
+            else {
+                if (c.pages.length > 1 || currentId.startsWith("cat:"))
+                    out.push(c.label);
+                if (!currentId.startsWith("cat:"))
+                    out.push(labelOf(currentId));
+            }
+            if (Shell.settingsSub)
+                out.push(Shell.settingsSub);
+            return out;
+        }
         if (hasHome)
             out.push(homeLabel);
         if (atHome)
@@ -719,6 +479,14 @@ Item {
     }
     // a crumb clicked: up to that level (the home, the section's first page, the page)
     function crumbClicked(index) {
+        if (fluent) {
+            const c = sectionFor(currentId) || navSectionOf(currentId);
+            if (index === 0 && c && c.pages.length > 1 && !currentId.startsWith("cat:"))
+                openSection(c);
+            else
+                Shell.settingsSub = "";
+            return;
+        }
         const at = hasHome ? index - 1 : index;
         if (at < 0)
             return goHome();
@@ -807,6 +575,8 @@ Item {
         if (r.kind === "row" && item.label === r.target && item.hint !== undefined)
             return item;
         if (r.kind === "group" && item.title === r.target && item.spacing !== undefined)
+            return item;
+        if (r.kind === "name" && item.name === r.target && item.advanced !== undefined)
             return item;
         for (const c of item.children) {
             const f = findItem(c, r, any);
@@ -1074,6 +844,7 @@ Item {
 
     // ---- what every view shares: one search field, one results list, one page ----
     readonly property int searchFieldHeight: searchInput.implicitHeight
+    readonly property bool searchFocused: searchInput.input.activeFocus
     Item {
         id: searchArea
         parent: win.spread ? book.fieldSlot : win.viewItem && win.viewItem.searchSlot ? win.viewItem.searchSlot : offstage
@@ -1233,21 +1004,38 @@ Item {
         active: win.hostWindow ? win.hostWindow.visible : true
         onLoaded: if (win.pendingTarget)
             targetTimer.restart()
-        source: {
+        // the page to show: a page of the tree is put together (ComposedPage) — the same file
+        // for every one of them, so it is loaded anew with its key whenever the page changes
+        readonly property string want: {
             const id = Shell.settingsPage;
             if (id === "home" || id === "more") {
                 // the folder and the tiles show their own home, no page
                 if (win.hasHome)
                     return "";
                 // the old home: your account in Classic, Windose and Stream keep their own
-                return win.skin === "classic" || win.hellDress || win.viewId !== "sidebar" ? "pages/AccountPage.qml" : id === "home" ? "pages/HomePage.qml" : "pages/MorePage.qml";
+                return win.skin === "classic" || win.hellDress || win.viewId !== "sidebar" ? "tree:" + SettingsTree.accountPage : id === "home" ? "pages/HomePage.qml" : "pages/MorePage.qml";
             }
             if (id.startsWith("plugin:"))
                 return "pages/PluginSettingsPage.qml";
-            if (id === "dotfiles")
-                return Owner.enabled ? "file://" + Owner.dir + "/DotfilesPage.qml" : "pages/AccountPage.qml";
-            const name = id.charAt(0).toUpperCase() + id.slice(1);
-            return "pages/" + (win.allPages.find(p => p.id === id) ? name : "Account") + "Page.qml";
+            if (id.startsWith("cat:"))
+                return id;
+            if (id === "dotfiles" && !Owner.enabled)
+                return "tree:" + SettingsTree.accountPage;
+            return "tree:" + (win.allPages.find(p => p.id === id) ? id : SettingsTree.accountPage);
+        }
+        onWantChanged: reload()
+        Component.onCompleted: reload()
+        function reload() {
+            if (want.startsWith("tree:"))
+                setSource(Qt.resolvedUrl("ComposedPage.qml"), {
+                    "pageKey": want.slice(5)
+                });
+            else if (want.startsWith("cat:"))
+                setSource(Qt.resolvedUrl("CategoryPage.qml"), {
+                    "categoryId": want.slice(4)
+                });
+            else
+                source = want;
         }
     }
 }

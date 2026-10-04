@@ -22,6 +22,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "keyboard-layouts"
         title: I18n.t("Раскладки", "Keyboard layouts")
         icon: "keyboard"
         width: parent.width
@@ -83,6 +84,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "key-repeat"
         title: I18n.t("Повтор клавиш", "Key repeat")
 
         advanced: true

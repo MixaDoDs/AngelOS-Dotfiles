@@ -20,6 +20,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "status"
         title: I18n.t("Состояние", "Status")
         icon: "download"
         width: parent.width
@@ -149,6 +150,7 @@ PxPage {
 
     // the last attempt went wrong: what, where its snapshot is, the way back
     PxGroup {
+        name: "restored"
         id: failedGroup
         visible: Updates.canRestore || Updates.lastStatus === "restored" && Updates.conflicts.length > 0
         title: Updates.lastStatus === "restored" ? I18n.t("Возвращено как было", "Restored") : Updates.lastStatus === "restore-failed" ? I18n.t("Вернуть не получилось", "The restore failed") : I18n.t("Обновление не установлено", "The update is not installed")
@@ -213,6 +215,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "what-s-new"
         visible: Updates.incoming.length > 0
         title: I18n.t("Что нового", "What's new")
         icon: "sparkle"
@@ -229,6 +232,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "log"
         visible: Updates.log.length > 0
         title: I18n.t("Журнал", "Log")
         icon: "terminal"

@@ -49,6 +49,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "skin"
         title: I18n.t("Скин", "Skin")
         icon: "image"
         width: parent.width

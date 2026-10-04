@@ -15,6 +15,7 @@ PxPage {
     readonly property string sample: I18n.t("Привет, ангел ♡ 0123", "Hello, angel ♡ 0123")
 
     PxGroup {
+        name: "presets"
         title: I18n.t("Готовые наборы", "Presets")
         icon: "sparkle"
         width: parent.width
@@ -42,9 +43,22 @@ PxPage {
     }
 
     PxGroup {
+        name: "interface"
         title: I18n.t("Интерфейс", "Interface")
         icon: "document"
         width: parent.width
+        SettingRow {
+            label: I18n.t("Масштаб шрифтов", "Font scale")
+            hint: I18n.t("Пиксельный шрифт чёток только в целое число своих клеток, поэтому шрифты растут ступенями, каждый в свой момент: на ×1.25 крупнеют заголовки, на ×1.5 — и основной текст. Строки, панель и меню растут вместе с текстом.", "A pixel font is crisp only at a whole number of its cells, so the fonts grow in steps, each at its own: at 1.25× the headings grow, at 1.5× the body text too. Rows, the bar and the menus grow with the text.")
+            PxSegmented {
+                model: [1, 1.25, 1.5, 1.75, 2].map(v => ({
+                            "label": "×" + v,
+                            "value": v
+                        }))
+                currentValue: Config.appearance.fontScale
+                onActivated: v => Config.appearance.fontScale = v
+            }
+        }
         Repeater {
             model: [
                 {
@@ -93,11 +107,12 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("♡ — шрифт хорошо подходит для этой роли. Масштаб ×1/×2 — на странице «Внешний вид».", "♡ marks fonts that suit the role. Use Appearance → Font scale for ×1/×2.")
+            text: I18n.t("♡ — шрифт хорошо подходит для этой роли. Масштаб шрифтов — вверху этой страницы.", "♡ marks fonts that suit the role. The font scale is at the top of this page.")
         }
     }
 
     PxGroup {
+        name: "pixel-fonts"
         title: I18n.t("Пиксельные шрифты", "Pixel fonts")
         icon: "package"
         width: parent.width

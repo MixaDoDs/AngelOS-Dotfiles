@@ -308,9 +308,9 @@ Singleton {
     readonly property var intents: [
         {
             "re": /крупн|больше|мельч|мелк|масштаб|bigger|larger|smaller|zoom|scale/,
-            "page": "home",
-            "ru": "Всё делается крупнее или мельче кнопками «Крупнее» и «Мельче» на главной настроек.",
-            "en": "Make everything bigger or smaller with “Bigger” and “Smaller” on the settings home."
+            "page": "theme",
+            "ru": "Крупнее или мельче всё — «Тема и цвета» → «Размер пикселя», а текст — «Шрифты» → «Масштаб шрифтов».",
+            "en": "Everything bigger or smaller: Theme and colours → Pixel size; the text: Fonts → Font scale."
         },
         {
             "re": /обо(и|ев|ям)|картинк|фон |wallpaper|background/,
@@ -326,9 +326,9 @@ Singleton {
         },
         {
             "re": /тёмн|темн|светл|тема|dark|light mode|theme/,
-            "page": "appearance",
-            "ru": "Светлая или тёмная тема — «Внешний вид», или просто Mod+Alt+T.",
-            "en": "Light or dark theme: Appearance, or just Mod+Alt+T."
+            "page": "theme",
+            "ru": "Светлая или тёмная тема — «Тема и цвета», или просто Mod+Alt+T.",
+            "en": "Light or dark theme: Theme and colours, or just Mod+Alt+T."
         },
         {
             "re": /горяч|сочетан|клавиш|хоткей|shortcut|hotkey|keybind/,
@@ -1145,8 +1145,8 @@ Singleton {
             "value": () => "light",
             "can": () => Theme.dark,
             "page": "appearance",
-            "ru": "Ослепила? Светлая тема! Обратно — Mod+Alt+T или «Внешний вид».",
-            "en": "Blinded? Light theme! Back with Mod+Alt+T or in Appearance."
+            "ru": "Ослепила? Светлая тема! Обратно — Mod+Alt+T или «Тема и цвета».",
+            "en": "Blinded? Light theme! Back with Mod+Alt+T or in Theme and colours."
         },
         {
             "id": "taskLabels",

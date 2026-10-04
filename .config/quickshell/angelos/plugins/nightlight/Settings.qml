@@ -15,7 +15,7 @@ Column {
         wrapMode: Text.Wrap
         kind: "tiny"
         color: ScreenTune.error || ScreenTune.anyFailed ? Theme.danger : Theme.textDim
-        text: ScreenTune.error ? ScreenTune.error : ScreenTune.anyFailed ? I18n.t("гамму держит другая программа (wlsunset, gammastep?) — закрой её, ночной свет подхватит сам", "Another program holds the gamma (wlsunset, gammastep?): close it and the night light takes over") : ScreenTune.night ? I18n.t("сейчас ", "Now ") + ScreenTune.kelvin + " K" + I18n.t(" · яркость мониторов — Настройки → Монитор", " · monitor brightness: Settings → Monitor") : ""
+        text: ScreenTune.error ? ScreenTune.error : ScreenTune.anyFailed ? I18n.t("гамму держит другая программа (wlsunset, gammastep?) — закрой её, ночной свет подхватит сам", "Another program holds the gamma (wlsunset, gammastep?): close it and the night light takes over") : ScreenTune.night ? I18n.t("сейчас ", "Now ") + ScreenTune.kelvin + " K" + I18n.t(" · яркость мониторов — Настройки → Экран", " · monitor brightness: Settings → Display") : ""
     }
 
     PxGroup {

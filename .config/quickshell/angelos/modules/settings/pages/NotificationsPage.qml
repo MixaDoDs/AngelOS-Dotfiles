@@ -8,6 +8,7 @@ PxPage {
     heading: I18n.t("Уведомления", "Notifications")
 
     PxGroup {
+        name: "behavior"
         title: I18n.t("Поведение", "Behavior")
         icon: "bell"
         width: parent.width
@@ -73,6 +74,7 @@ PxPage {
         }
     }
     PxGroup {
+        name: "history"
         title: I18n.t("История (", "History (") + Notifs.history.length + ")"
         icon: "calendar"
         width: parent.width

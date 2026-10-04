@@ -78,6 +78,14 @@ else
   fail "browser themes: tests/browsers/test_browser_theme.py"
 fi
 
+# the settings tree: every group on one page, no setting lost since the rebuild, every direct link
+if python3 "$ROOT/.config/quickshell/angelos/tests/settings/test_tree.py" >"$WORK/tree.log" 2>&1; then
+  pass "settings tree: every group once, no setting lost, every direct link leads somewhere"
+else
+  sed 's/^/    /' "$WORK/tree.log" >&2
+  fail "settings tree: tests/settings/test_tree.py"
+fi
+
 if python3 "$ROOT/.config/quickshell/angelos/tests/qt/test_qt_theme.py" >"$WORK/qt.log" 2>&1; then
   pass "Qt look: Telegram's own fields left to it, running apps told (throw-away HOME)"
 else

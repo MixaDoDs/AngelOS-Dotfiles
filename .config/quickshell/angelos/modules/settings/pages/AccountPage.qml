@@ -31,9 +31,15 @@ PxPage {
     ]
     // the four most visited pages (Config.settingsUi.usage); the defaults while there is no history
     readonly property var frequent: {
-        const usage = Config.settingsUi.usage || {};
+        // visits counted under old page ids count for their pages in the tree
+        const raw = Config.settingsUi.usage || {};
+        const usage = {};
+        for (const k in raw) {
+            const to = SettingsTree.resolve(k).page;
+            usage[to] = (usage[to] || 0) + raw[k];
+        }
         const all = Shell.settingsView ? Shell.settingsView.allPages : [];
-        const top = Object.keys(usage).filter(id => id !== "wallpaper" && id !== "updates" && id !== "account" && usage[id] >= 2 && all.some(p => p.id === id)).sort((a, b) => usage[b] - usage[a]).slice(0, 4).map(id => {
+        const top = Object.keys(usage).filter(id => id !== "wallpaper" && id !== "theme" && id !== "updates" && id !== "account" && usage[id] >= 2 && all.some(p => p.id === id)).sort((a, b) => usage[b] - usage[a]).slice(0, 4).map(id => {
             const p = all.find(x => x.id === id);
             return {
                 "id": id,
@@ -48,6 +54,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "you"
         width: parent.width
         title: I18n.t("Ты", "You")
         icon: "heart"
@@ -132,6 +139,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "language-getting-started"
         width: parent.width
         title: I18n.t("Язык и знакомство", "Language and getting started")
         icon: "info"
@@ -179,6 +187,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "everyday"
         width: parent.width
         title: I18n.t("Частое", "Everyday")
         icon: "star"
@@ -190,22 +199,11 @@ PxPage {
                 text: I18n.t("Сменить обои", "Change wallpaper")
                 onClicked: Shell.settingsPage = "wallpaper"
             }
+            // the theme and the size are set in one place (Theme and colours): a link to it
             PxButton {
-                icon: Theme.dark ? "sun" : "moon"
-                text: Theme.dark ? I18n.t("Светлая тема", "Light theme") : I18n.t("Тёмная тема", "Dark theme")
-                onClicked: Config.appearance.mode = Theme.dark ? "light" : "dark"
-            }
-            PxButton {
-                icon: "plus"
-                enabled: Config.appearance.px < 4
-                text: I18n.t("Крупнее", "Bigger")
-                onClicked: Config.appearance.px = Math.min(4, Config.appearance.px + 1)
-            }
-            PxButton {
-                icon: "minus"
-                enabled: Config.appearance.px > 1
-                text: I18n.t("Мельче", "Smaller")
-                onClicked: Config.appearance.px = Math.max(1, Config.appearance.px - 1)
+                icon: "palette"
+                text: I18n.t("Тема и размер ›", "Theme and size ›")
+                onClicked: Shell.settingsPage = "theme"
             }
             PxButton {
                 icon: "download"

@@ -38,6 +38,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "installed"
         title: I18n.t("Установленные (", "Installed (") + Plugins.plugins.length + ")"
         icon: "plug"
         width: parent.width
@@ -160,6 +161,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "removed"
         visible: Plugins.removed.length > 0 || page.removeLog !== ""
         title: I18n.t("Удалённые (", "Removed (") + Plugins.removed.length + ")"
         icon: "trash"
@@ -237,6 +239,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "new-plugin"
         title: I18n.t("Новый плагин", "New plugin")
         icon: "plus"
         width: parent.width

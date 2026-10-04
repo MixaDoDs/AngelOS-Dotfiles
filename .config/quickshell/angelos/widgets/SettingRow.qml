@@ -12,13 +12,15 @@ Item {
     property string hint: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
     readonly property bool streamLayout: settingsSkin === "stream"
+    // Settings in the Windows 11 look: every row a card of its own, the control on its right
+    readonly property bool fluent: Theme.fluentFor(root.parent)
     property int labelWidth: streamLayout ? width - Theme.u * 10 : Math.min(Theme.u * 120, width * 0.45)
     default property alias control: slot.data
     property string preview: ""
     property string previewVariant: ""
     property string previewCaption: ""
     property bool previewOpen: false
-    readonly property int rowHeight: streamLayout ? labels.implicitHeight + slot.childrenRect.height + Theme.u * 12 : Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (settingsSkin === "windose" ? 8 : 2)
+    readonly property int rowHeight: streamLayout ? labels.implicitHeight + slot.childrenRect.height + Theme.u * 12 : fluent ? Math.max(Theme.fit(20), Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * 8) : Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (settingsSkin === "windose" ? 8 : 2)
 
     function show(value, caption) {
         if (!preview)
@@ -33,9 +35,18 @@ Item {
     width: parent ? parent.width : implicitWidth
     implicitHeight: rowHeight + (gif.item ? gif.item.implicitHeight + Theme.u * 3 : 0)
 
+    // Windows 11: the row's card
+    Rectangle {
+        visible: root.fluent
+        width: parent.width
+        height: root.rowHeight
+        color: Theme.mix(Theme.face, Theme.faceAlt, 0.55)
+        border.width: Math.max(1, Theme.u / 2)
+        border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.5)
+    }
     // classic: a hairline between the rows of a card, in the middle of the gap above
     Rectangle {
-        visible: root.settingsSkin === "classic" && root.y > 0 && !!root.parent && root.parent.fixedWidth === true
+        visible: !root.fluent && root.settingsSkin === "classic" && root.y > 0 && !!root.parent && root.parent.fixedWidth === true
         y: -Math.round((root.parent && root.parent.spacing ? root.parent.spacing : Theme.u * 4) / 2) - height / 2
         width: parent.width
         height: Math.max(1, Theme.u / 2)
@@ -62,7 +73,7 @@ Item {
 
     Column {
         id: labels
-        x: root.settingsSkin === "classic" ? 0 : Theme.u * 6
+        x: root.fluent ? Theme.u * 5 : root.settingsSkin === "classic" ? 0 : Theme.u * 6
         width: root.labelWidth
         y: root.streamLayout ? Theme.u * 4 : (root.rowHeight - implicitHeight) / 2
         PxText {
@@ -83,8 +94,8 @@ Item {
     Item {
         id: slot
         readonly property bool fixedWidth: true // PxToggle wraps its label to fit
-        x: root.streamLayout ? Theme.u * 6 : root.labelWidth + Theme.u * (root.settingsSkin === "classic" ? 6 : 12)
-        width: root.width - x - (root.settingsSkin === "classic" ? 0 : Theme.u * 5)
+        x: root.streamLayout ? Theme.u * 6 : root.labelWidth + Theme.u * (root.fluent ? 10 : root.settingsSkin === "classic" ? 6 : 12)
+        width: root.width - x - (root.fluent ? Theme.u * 5 : root.settingsSkin === "classic" ? 0 : Theme.u * 5)
         y: root.streamLayout ? labels.y + labels.implicitHeight + Theme.u * 3 : (root.rowHeight - height) / 2
         height: childrenRect.height
     }

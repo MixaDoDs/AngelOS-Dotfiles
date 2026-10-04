@@ -16,6 +16,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "files-nautilus"
         title: I18n.t("Файлы · Nautilus", "Files · Nautilus")
         icon: "folder"
         width: parent.width
@@ -82,6 +83,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "defaults"
         title: I18n.t("По умолчанию", "Defaults")
         icon: "star"
         width: parent.width

@@ -1,7 +1,7 @@
 #!/bin/sh
 # angelOS control. `angelos help` lists IPC functions.
 #   angelos launcher | settings [page] | lock | session | clipboard | lyrics
-#   angelos settingsView sidebar|controlpanel|properties|tiles | settingsSkin classic|windose|stream
+#   angelos settingsView win11|sidebar|controlpanel|properties|tiles | settingsSkin classic|windose|stream
 #   angelos theme light|dark|auto|toggle | wallpaper <path|random> | bar taskbar|top|island
 #   angelos startMenu | sidebar | idle | lockPreview | fontPreset arcade|soft|block|angelos
 #   angelos ws <n|up|down|prev> | alttab next|prev|cancel | lens in|out|close|toggle | start | restart | stop | run | status | log | report | sprites | switch angelos|noctalia

@@ -10,6 +10,7 @@ PxPage {
     subtitle: I18n.t("Меняется только то, что ты трогаешь здесь. Маршрутизацию пульта angelOS не касается.", "Only controls you change here are applied. Audio routing is preserved.")
 
     PxGroup {
+        name: "output"
         title: I18n.t("Выход", "Output")
         icon: "speaker"
         width: parent.width
@@ -49,6 +50,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "input"
         title: I18n.t("Вход", "Input")
         icon: "mic"
         width: parent.width
@@ -114,6 +116,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "applications"
         title: I18n.t("Приложения", "Applications")
         icon: "music"
         width: parent.width
@@ -143,6 +146,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "osd"
         title: "OSD"
 
         advanced: true
@@ -186,6 +190,7 @@ PxPage {
     }
 
     PxGroup {
+        name: "voice-typing-voxtype"
         title: I18n.t("Голосовой ввод (VoxType)", "Voice typing (VoxType)")
 
         advanced: true
