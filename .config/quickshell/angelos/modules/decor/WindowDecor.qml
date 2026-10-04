@@ -375,7 +375,7 @@ Variants {
                     z: 2
                     x: GoldenGate.px(13)
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: GoldenGate.px(8)
+                    spacing: GoldenGate.px(9)
                     HoverHandler {
                         id: lightsHover
                     }
@@ -385,7 +385,8 @@ Variants {
                             id: light
                             required property var modelData
                             readonly property bool usable: modelData[0] !== "minimize"
-                            width: GoldenGate.px(12)
+                            // 14 pt as on macOS 26/27 (12 before Tahoe), 9 between them
+                            width: GoldenGate.px(14)
                             height: width
                             radius: width / 2
                             color: !bar.active || !usable ? (GoldenGate.dark ? "#4a4a4d" : "#d1d1d6") : GoldenGate.lights[modelData[1]]

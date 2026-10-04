@@ -1,24 +1,24 @@
 /* angelOS Golden Gate window buttons — GTK 4 / libadwaita, generated (templates/gtk4-decor-mac.css).
-   macOS's traffic lights on the leading side (button layout close,minimize,maximize:): 12 px
-   circles with Golden Gate's glass shading, their glyphs when the pointer is over them, grey in
-   an inactive window. niri has no minimizing: the middle light stays grey, the way macOS draws a
-   light whose action a window doesn't have. */
+   macOS's traffic lights on the leading side (button layout close,minimize,maximize:): 14 px
+   circles 9 px apart (as on macOS 26/27) with Golden Gate's glass shading, their glyphs when the
+   pointer is over them, grey in an inactive window. niri has no minimizing: the middle light
+   stays grey, the way macOS draws a light whose action a window doesn't have. */
 windowcontrols {
     margin: 0 6px;
 }
 /* by class: libadwaita sizes window buttons in rules with classes (.image-button), which
    outweigh plain element selectors. GTK stretches the buttons to the header's height, so the
-   circle is a 12 px background in the middle of a transparent button */
+   circle is a 14 px background in the middle of a transparent button */
 windowcontrols > button.close,
 windowcontrols > button.minimize,
 windowcontrols > button.maximize,
 windowcontrols > button.image-button.close,
 windowcontrols > button.image-button.minimize,
 windowcontrols > button.image-button.maximize {
-    min-width: 12px;
-    min-height: 12px;
+    min-width: 14px;
+    min-height: 14px;
     padding: 0;
-    margin: 0 4px;
+    margin: 0 5px 0 4px;
     border: none;
     border-radius: 0;
     box-shadow: none;
@@ -26,15 +26,15 @@ windowcontrols > button.image-button.maximize {
     background-color: transparent;
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 12px 12px;
+    background-size: 14px 14px;
     background-image: radial-gradient(circle closest-side, {{macLightOff}} 0%, {{macLightOff}} 86%, rgba(0, 0, 0, 0.18) 92%, transparent 100%);
 }
 windowcontrols > button.close > image,
 windowcontrols > button.minimize > image,
 windowcontrols > button.maximize > image {
-    -gtk-icon-size: 8px;
-    min-width: 8px;
-    min-height: 8px;
+    -gtk-icon-size: 10px;
+    min-width: 10px;
+    min-height: 10px;
     margin: 0;
     padding: 0;
     color: rgba(0, 0, 0, 0.55);
