@@ -92,6 +92,13 @@ else
   sed 's/^/    /' "$WORK/goldengate.log" >&2; fail "Golden Gate: tests/goldengate/test_goldengate.py"
 fi
 
+# the Golden Gate Dock's icons: MacTahoe put together from its release, nothing executed, no link out
+if python3 "$ROOT/.config/quickshell/angelos/tests/goldengate/test_mac_icons.py" >"$WORK/macicons.log" 2>&1; then
+  pass "Golden Gate Dock icons: MacTahoe built from its archive, links kept inside, only ours removed"
+else
+  sed 's/^/    /' "$WORK/macicons.log" >&2; fail "Golden Gate Dock icons: tests/goldengate/test_mac_icons.py"
+fi
+
 if python3 "$ROOT/.config/quickshell/angelos/tests/browsers/test_browser_theme.py" >"$WORK/browsers.log" 2>&1; then
   pass "browser themes: profile edits, undo, gentle restart (stand-in browsers)"
 else

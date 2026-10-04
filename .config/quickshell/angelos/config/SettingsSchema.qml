@@ -408,7 +408,9 @@ JsonAdapter {
         property bool keys: false           // Mac-style shortcuts (the skin's binds in niri's angelos.kdl) — offered, never imposed
         property bool floating: true        // new windows float and overlap like on a Mac (off: niri's columns)
         property int dockSize: 48           // Dock icons, logical px
-        property bool dockMagnify: false    // icons grow under the pointer
+        property bool dockMagnify: true     // icons grow under the pointer
+        property int dockMagnifySize: 96    // the icon right under the pointer, logical px (dockSize..128)
+        property bool dockMacIcons: true    // MacTahoe's icons in the Dock (DockIcons, scripts/mac-icons.py)
         property bool dockAutohide: false
         property bool dockRecents: true     // recently used apps after the divider
         property var dockApps: []           // desktop ids in the Dock; empty: Start's pinned apps

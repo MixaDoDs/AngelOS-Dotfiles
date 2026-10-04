@@ -116,7 +116,8 @@ Singleton {
     // ---- Downloads and the Trash ----
     readonly property string downloads: Config.home + "/Downloads"
     readonly property string trashFiles: Config.home + "/.local/share/Trash/files"
-    readonly property bool trashFull: trashModel.count > 0
+    // (a folder that isn't there lists another one: the first file must be in the Trash)
+    readonly property bool trashFull: trashModel.count > 0 && String(trashModel.get(0, "filePath")).indexOf(trashFiles + "/") === 0
     FolderListModel {
         id: trashModel
         folder: "file://" + root.trashFiles

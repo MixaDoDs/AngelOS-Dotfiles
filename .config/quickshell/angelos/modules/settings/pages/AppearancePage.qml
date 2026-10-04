@@ -164,9 +164,40 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Увеличение в Dock", "Dock magnification")
+            hint: I18n.t("значки под указателем растут, соседние — чуть меньше", "icons under the pointer grow, their neighbours a little less")
             PxToggle {
                 checked: Config.mac.dockMagnify
                 onToggled: v => Config.mac.dockMagnify = v
+            }
+        }
+        SettingRow {
+            visible: Config.mac.dockMagnify
+            label: I18n.t("Размер при увеличении", "Magnified size")
+            PxSlider {
+                width: parent.width
+                from: 32
+                to: 128
+                stepSize: 4
+                value: Math.max(Config.mac.dockSize, Config.mac.dockMagnifySize)
+                suffix: " px"
+                onMoved: v => Config.mac.dockMagnifySize = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Значки в Dock как в macOS", "Mac-style icons in the Dock")
+            hint: DockIcons.busy ? I18n.t("скачиваются…", "downloading…") : DockIcons.error ? I18n.t("не скачались: ", "not downloaded: ") + DockIcons.error : I18n.t("свободная тема MacTahoe (GPL-3.0), скачивается один раз; выключено — значки вашей темы", "the free MacTahoe theme (GPL-3.0), downloaded once; off — your theme's icons")
+            Row {
+                spacing: Theme.u * 2
+                PxToggle {
+                    checked: Config.mac.dockMacIcons
+                    onToggled: v => Config.mac.dockMacIcons = v
+                }
+                PxButton {
+                    visible: Config.mac.dockMacIcons && !!DockIcons.error && !DockIcons.busy
+                    text: I18n.t("Повторить", "Try again")
+                    icon: "refresh"
+                    onClicked: DockIcons.install()
+                }
             }
         }
         SettingRow {

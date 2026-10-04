@@ -46,3 +46,11 @@ Source: <https://github.com/hackernoon/pixel-icon-library> (npm `@hackernoon/pix
 ink and are recoloured by the angelOS theme at runtime; only the icons listed below are included.
 
 Icons used (angelOS name): arrowDown, arrowLeft, arrowRight, arrowUp, bell, bellOff, calendar, camera, cd, chat, check, close, document, download, fire, folder, gear, grid, image, info, lock, logout, maximize, minimize, minus, monitor, moon, music, package, palette, pin, plus, refresh, search, sparkle, sparkleStar, speaker, speakerMute, star, sun, terminal, trash, warn, window.
+
+## MacTahoe (the Golden Gate Dock)
+
+Source: <https://github.com/vinceliuice/MacTahoe-icon-theme>, release `2026-09-10`, © Vince Liuice,
+GPL-3.0. Not in this repository: `scripts/mac-icons.py` downloads the pinned release (SHA-256
+checked) when the Golden Gate skin is on and puts its default variant together in
+`~/.local/share/angelos/icons/MacTahoe`, its `COPYING` and `AUTHORS` included. Only the Dock reads
+it (`services/DockIcons.qml`), unchanged.
