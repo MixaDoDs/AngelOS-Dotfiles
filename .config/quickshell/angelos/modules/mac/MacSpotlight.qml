@@ -17,6 +17,15 @@ Item {
 
     signal closeRequested
     property int current: 0
+    // the pointer takes the selection only when it moves, as on a Mac: results appearing under
+    // a still pointer leave the top hit selected
+    property point lastPointer: Qt.point(-1, -1)
+    function pointed(area, m, index) {
+        const p = area.mapToItem(null, m.x, m.y);
+        if (lastPointer.x >= 0 && (Math.abs(p.x - lastPointer.x) > 1 || Math.abs(p.y - lastPointer.y) > 1))
+            current = index;
+        lastPointer = p;
+    }
     property string query: ""
     property string mode: ""                  // "" search | apps | files | actions | clipboard
     property real room: 0                     // StartOverlay: the screen's room for it
@@ -350,7 +359,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
-                    onEntered: root.current = row.index
+                    onPositionChanged: m => root.pointed(this, m, row.index)
                     onClicked: root.runRow(row.modelData)
                 }
             }
@@ -398,7 +407,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
-                    onEntered: root.current = cell.index
+                    onPositionChanged: m => root.pointed(this, m, cell.index)
                     onClicked: root.runRow(cell.modelData)
                 }
             }

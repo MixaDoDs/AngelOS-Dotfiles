@@ -59,7 +59,9 @@ Singleton {
     // clear to tinted (Config.mac.glass); behind it niri's blur (BackgroundEffect)
     readonly property real tint: Math.max(0, Math.min(1, Config.mac.glass))
     function glass(extra) {
-        const a = 0.42 + tint * 0.5 + (extra || 0);
+        // no blur behind it (Settings → blur off): nearly opaque, as macOS's Reduce Transparency —
+        // clear glass over unblurred windows can't be read
+        const a = (Config.appearance.blur ? 0.42 + tint * 0.5 : 0.9) + (extra || 0);
         return hell ? Qt.rgba(0.07, 0.03, 0.03, Math.min(0.97, a + 0.1)) : dark ? Qt.rgba(0.12, 0.12, 0.13, Math.min(0.97, a)) : Qt.rgba(0.97, 0.97, 0.975, Math.min(0.97, a));
     }
     readonly property color glassFill: glass(0)

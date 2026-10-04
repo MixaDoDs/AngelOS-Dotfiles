@@ -405,7 +405,7 @@ JsonAdapter {
         property string accent: "blue"      // blue | purple | pink | red | orange | yellow | green | graphite
         property bool barBackground: false  // the menu bar on a band of its own ("Show menu bar background")
         property bool appMenus: true        // the focused app's own menus in the menu bar (scripts/appmenu.py)
-        property bool keys: false           // Mac-style shortcuts (niri cfg/angelos-mac.kdl) — offered, never imposed
+        property bool keys: false           // Mac-style shortcuts (the skin's binds in niri's angelos.kdl) — offered, never imposed
         property bool floating: true        // new windows float and overlap like on a Mac (off: niri's columns)
         property int dockSize: 48           // Dock icons, logical px
         property bool dockMagnify: false    // icons grow under the pointer
