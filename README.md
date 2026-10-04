@@ -90,7 +90,7 @@ A real window laid out like Windows 11's Settings: categories with tiles on the 
 
 ### ♡ tips.exe
 
-The first login opens a short setup wizard (monitors, keyboard, theme, bar, windows, desktop, default apps) and then **interface tips**: each part of the screen is circled in pixels and explained. Replay them any time from Settings → Appearance.
+The first login opens a setup wizard like macOS's — full screen, one question at a time: language, the game or just the desktop, the main screen, keyboard layouts, light or dark, how much moves. The desktop waits until it is done; *Set up later* (or `angelos setup skip`, even from a text console) lets it go at once. Then come the **interface tips**: each part of the screen is circled in pixels and explained. Replay both any time from Settings → Account.
 
 ![Interface tips circling the start button, workspaces, Claude, clock and more](docs/demo/tips.gif)
 
@@ -100,8 +100,8 @@ angelOS is also a game played over your real desktop: an angel lives in the corn
 
 - **Out of the game at once, any time:** `angelos game off` or **Mod+Ctrl+Shift+Escape** — angelOS stays as plain dotfiles. Back: `angelos game on`.
 - **Looking for the way out of hell?** The demon's menu → Ask… → “Seek the way out” (or just type it, in your own words). The button shows the circle and the minutes until the next try; `angelos game status` shows where you are.
-- **Without the game from the start:** the installer asks (`ANGELOS_GAME=0`), and so does the first-run wizard.
-- **Motion** (Settings → Appearance → Motion, the setup wizard, `angelos motion full|calm|off`): *calm* — no flashes, screen shaking or sudden loud sounds; *off* — no animations at all, the shell's, niri's and hell's (an optimisation mode; the angel and the demon only breathe).
+- **Without the game from the start:** the installer asks (`ANGELOS_GAME=0`); when it didn't, the first-run wizard does.
+- **Motion** (Settings → Personalization → Theme and colours → Motion, the setup wizard, `angelos motion full|calm|off`): *calm* — no flashes, screen shaking or sudden loud sounds; *off* — no animations at all, the shell's, niri's and hell's (an optimisation mode; the angel and the demon only breathe).
 - Progress lives in its own file, `~/.config/angelos/save.json` (updates never touch it); `angelos game reset` starts over.
 - **Not sure where you stand?** Ask her — “what did I sign?”, in any words — and she shows it on paper, with the way out in numbers.
 - How the story works inside: [`docs/STORY.md`](.config/quickshell/angelos/docs/STORY.md) — **spoilers**.
