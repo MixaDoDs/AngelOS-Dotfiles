@@ -101,7 +101,7 @@ else
 fi
 
 if command -v shellcheck >/dev/null 2>&1; then
-  if shellcheck -S warning "$ROOT/install.sh" "$ROOT/scripts/check.sh" "$ROOT/scripts/test-update.sh" "$ROOT/scripts/ci-local.sh" \
+  if shellcheck -S warning "$ROOT/install.sh" "$ROOT/scripts/check.sh" "$ROOT/scripts/test-update.sh" "$ROOT/scripts/test-update-old.sh" "$ROOT/scripts/ci-local.sh" \
        "$ROOT/.config/quickshell/angelos/scripts/dotfiles-update.sh" "$ROOT/.config/quickshell/angelos/tests/updates/run.sh" &&
      shellcheck -s sh -S warning "$ROOT/.config/quickshell/angelos/bin/angelos" "$ROOT/.config/quickshell/angelos/scripts/author-tools.sh"; then
     pass "shellcheck"
@@ -459,35 +459,55 @@ else
     rm -rf "${WORK:?}/bad"
   done
 
-  # Arch Linux and CachyOS only: anything else is refused before a file changes
+  # Arch Linux and CachyOS only: an install with packages on anything else is refused before
+  # a file changes. pacman and sudo are stand-ins here: a refusal that slipped would reach them
   printf 'NAME="Ubuntu"\nID=ubuntu\nID_LIKE=debian\nPRETTY_NAME="Ubuntu 26.04 LTS"\n' > "$WORK/os-ubuntu"
   printf 'NAME="EndeavourOS"\nID=endeavouros\nID_LIKE=arch\nPRETTY_NAME="EndeavourOS"\n' > "$WORK/os-eos"
+  printf 'NAME="Arch Linux ARM"\nID=archarm\nID_LIKE=arch\nPRETTY_NAME="Arch Linux ARM"\n' > "$WORK/os-alarm"
   printf 'NAME="Arch Linux"\nID=arch\nPRETTY_NAME="Arch Linux"\n' > "$WORK/os-arch"
-  if ! install_case distro DOTFILES_OS_RELEASE="$WORK/os-ubuntu" && grep -q 'Only Arch Linux and CachyOS are supported' "$WORK/distro.log" &&
+  mkdir -p "$WORK/nopkg"
+  for c in pacman sudo; do printf '#!/bin/sh\necho "%s must not run in this test" >&2\nexit 1\n' "$c" >"$WORK/nopkg/$c"; done
+  chmod +x "$WORK/nopkg"/*
+  PKG=(SKIP_PACKAGES=0 PATH="$WORK/nopkg:$PATH")
+  if ! install_case distro "${PKG[@]}" DOTFILES_OS_RELEASE="$WORK/os-ubuntu" && grep -q 'Only Arch Linux and CachyOS are supported' "$WORK/distro.log" &&
      [[ -z "$(find "$WORK/distro" -mindepth 1 -print -quit)" ]]; then
     pass "installer refuses Ubuntu, nothing written"
   else
     fail "installer refuses Ubuntu, nothing written"; sed 's/^/    /' "$WORK/distro.log" >&2
   fi
   rm -rf "${WORK:?}/distro"
-  if ! install_case distro DOTFILES_OS_RELEASE="$WORK/os-eos" && grep -q 'based on Arch, but only Arch Linux and CachyOS' "$WORK/distro.log"; then
+  if ! install_case distro "${PKG[@]}" DOTFILES_OS_RELEASE="$WORK/os-eos" && grep -q 'based on Arch, but only Arch Linux and CachyOS' "$WORK/distro.log"; then
     pass "installer refuses an Arch-based distribution with its own repositories (EndeavourOS)"
   else
     fail "installer refuses EndeavourOS"; sed 's/^/    /' "$WORK/distro.log" >&2
   fi
   rm -rf "${WORK:?}/distro"
   # forced past the check (then stopped by bad input, so the run stays short)
-  if ! install_case distro DOTFILES_OS_RELEASE="$WORK/os-ubuntu" DOTFILES_FORCE_DISTRO=1 KB_TOGGLE=nonsense &&
+  if ! install_case distro "${PKG[@]}" DOTFILES_OS_RELEASE="$WORK/os-ubuntu" DOTFILES_FORCE_DISTRO=1 KB_TOGGLE=nonsense &&
      grep -q 'going on because DOTFILES_FORCE_DISTRO=1' "$WORK/distro.log" && ! grep -q 'Only Arch Linux' "$WORK/distro.log"; then
     pass "installer: DOTFILES_FORCE_DISTRO=1 goes on with a warning"
   else
     fail "installer: DOTFILES_FORCE_DISTRO=1"; sed 's/^/    /' "$WORK/distro.log" >&2
   fi
   rm -rf "${WORK:?}/distro"
-  if install_case distro DOTFILES_OS_RELEASE="$WORK/os-arch" KB_TOGGLE=nonsense; grep -qE 'Only Arch|not supported' "$WORK/distro.log"; then
+  if install_case distro "${PKG[@]}" DOTFILES_OS_RELEASE="$WORK/os-arch" KB_TOGGLE=nonsense; grep -qE 'Only Arch|not supported' "$WORK/distro.log"; then
     fail "installer accepts Arch Linux"
   else
     pass "installer accepts Arch Linux"
+  fi
+  rm -rf "${WORK:?}/distro"
+  # configs only (SKIP_PACKAGES=1, the way Settings → Updates runs it) installs no packages: a system
+  # set up with DOTFILES_FORCE_DISTRO=1 (Arch Linux ARM, issue #36) must be able to update
+  if install_case distro DOTFILES_OS_RELEASE="$WORK/os-alarm" && grep -q 'SKIP_PACKAGES=1 installs no packages' "$WORK/distro.log" &&
+     [[ -f "$WORK/distro/.config/quickshell/angelos/shell.qml" ]]; then
+    pass "installer: configs only (SKIP_PACKAGES=1) on Arch Linux ARM goes on with a warning"
+  else
+    fail "installer: configs only on Arch Linux ARM"; sed 's/^/    /' "$WORK/distro.log" >&2
+  fi
+  if ! grep -q $'\033' "$WORK/distro.log"; then
+    pass "installer: no colour codes when the output is not a terminal (the Updates log)"
+  else
+    fail "installer: colour codes in a log that is not a terminal"
   fi
   rm -rf "${WORK:?}/distro"
 fi
@@ -505,6 +525,17 @@ elif bash "$ROOT/scripts/test-update.sh" >"$WORK/update.log" 2>&1; then
 else
   sed 's/^/    /' "$WORK/update.log" >&2
   fail "updates: scripts/test-update.sh"
+fi
+# the way a user meets it: installed from older commits, their own old script updating to
+# this tree, then the new one once more (scripts/test-update-old.sh; issue #36 among them)
+if [[ "${SKIP_INSTALL_TEST:-0}" == 1 ]]; then
+  skip "old installs → update (SKIP_INSTALL_TEST=1)"
+elif bash "$ROOT/scripts/test-update-old.sh" >"$WORK/update-old.log" 2>&1; then
+  grep -E '^\[update-old\] SKIP' "$WORK/update-old.log" || true
+  pass "updates: old installs (2026-09-30, 10-01, 10-02 on Arch Linux ARM) → this tree → UPDATED"
+else
+  sed 's/^/    /' "$WORK/update-old.log" >&2
+  fail "updates: scripts/test-update-old.sh"
 fi
 
 # ── Hygiene ──────────────────────────────────────────────────────────────────

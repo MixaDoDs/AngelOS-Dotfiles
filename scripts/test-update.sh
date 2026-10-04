@@ -267,7 +267,140 @@ sed -i '/NIRI-INVALID/d' "$H/.config/niri/cfg/input.kdl"
 restore "$BACKUP"
 check "restore after fixing niri: exit 0, repository back on v1" bash -c "[[ $RC == 0 ]] && [[ \$(git -C '$REPO' rev-parse HEAD) == $V1 ]]"
 
-# ── 7. Settings → Updates reads the results right ────────────────────────────
+# ── 7. stopped before the snapshot: the reason and the way on, nothing changed ─
+refused() { # CASE-LABEL EXIT STAGE: the run stopped early, told why, changed nothing
+  local label="$1" want="$2" stage="$3"
+  if ((RC == want)); then pass "$label: exit $want"; else fail "$label: exit $RC (want $want)"; show "$W/$CASE.out"; fi
+  check "$label: FAILED $stage is the last line, with a reason" \
+    bash -c "tail -n 1 '$W/$CASE.out' | grep -qE '^FAILED $stage .{20,}'"
+  check "$label: no snapshot, no UPDATED" bash -c "! grep -qE '^(BACKUP|UPDATED) ' '$W/$CASE.out'"
+  fingerprint >"$W/after"
+  check "$label: no installed file changed" diff -q "$W/before" "$W/after"
+}
+new_case local-changes
+v2_edits
+publish v2
+echo '// my experiment' >>"$REPO/install.sh"
+fingerprint >"$W/before"
+update
+refused "own edits in the clone" 3 local-changes
+check "own edits in the clone: the edit is still there, the files are listed" \
+  bash -c "grep -q 'my experiment' '$REPO/install.sh' && grep -q 'install.sh' '$W/$CASE.out'"
+
+new_case local-commits
+"${G[@]}" -C "$REPO" commit -q --allow-empty -m "mine"
+fingerprint >"$W/before"
+update
+refused "own commits, nothing new" 7 local-commits
+check "own commits, nothing new: says there is nothing to update" grep -qi 'nothing to update' "$W/$CASE.out"
+
+new_case diverged
+v2_edits
+publish v2
+"${G[@]}" -C "$REPO" commit -q --allow-empty -m "mine"
+MINE="$(git -C "$REPO" rev-parse HEAD)"
+fingerprint >"$W/before"
+update
+refused "own commits and new ones" 7 local-commits
+check "own commits and new ones: suggests pull --rebase, the clone stays on its commit" \
+  bash -c "grep -q 'pull --rebase' '$W/$CASE.out' && [[ \$(git -C '$REPO' rev-parse HEAD) == $MINE ]]"
+
+new_case untrusted
+v2_edits
+publish v2
+git -C "$REPO" remote set-url origin https://example.invalid/someone-else/dotfiles
+fingerprint >"$W/before"
+update
+refused "a foreign origin" 4 untrusted
+
+new_case offline
+v2_edits
+publish v2
+mv "$W/origin.git" "$W/origin.away"                      # the network is gone
+fingerprint >"$W/before"
+update
+refused "no network" 6 pull
+check "no network: git's own reason is in the message" bash -c "tail -n 1 '$W/$CASE.out' | grep -qiE 'repository|does not|not found|exist'"
+mv "$W/origin.away" "$W/origin.git"
+
+# ── 8. failures after the snapshot say why, and are undone ───────────────────
+new_case install-dies
+v2_edits
+python3 - "$W/work/install.sh" <<'PY2'
+import sys
+p = sys.argv[1]
+t = open(p).read()
+assert "install_configs\ninstall_shell\n" in t
+open(p, "w").write(t.replace("install_configs\ninstall_shell\n", 'install_configs\ndie "the test stops here: disk on fire"\ninstall_shell\n'))
+PY2
+publish "v2 whose installer dies"
+fingerprint >"$W/before"
+update
+check "installer error: exit 10, FAILED install carries the installer's own reason" \
+  bash -c "[[ $RC == 10 ]] && tail -n 1 '$W/$CASE.out' | grep -q '^FAILED install .*the test stops here: disk on fire'"
+check "installer error: no colour codes in the output, its whole output kept in the snapshot" \
+  bash -c "! grep -q \$'\\033' '$W/$CASE.out' && grep -q 'disk on fire' '$BACKUP/install.log'"
+"${ENVS[@]}" bash "$SCRIPT" --last >"$W/last" 2>&1 || true
+check "installer error: --last gives the reason as MESSAGE" grep -q '^MESSAGE .*disk on fire' "$W/last"
+restore "$BACKUP"
+fingerprint >"$W/after"
+check "installer error: the restore puts every file back" bash -c "[[ $RC == 0 ]] && diff -q '$W/before' '$W/after' >/dev/null"
+
+new_case integration-fails
+v2_edits
+printf 'import sys\nprint("switch.py: the test breaks the wiring", file=sys.stderr)\nsys.exit(1)\n' \
+  >"$W/work/.config/quickshell/angelos/scripts/switch.py"
+publish "v2 whose switch.py fails"
+fingerprint >"$W/before"
+update
+check "niri wiring fails: exit 11, FAILED niri-integration, no UPDATED" \
+  bash -c "[[ $RC == 11 ]] && grep -q '^FAILED niri-integration ' '$W/$CASE.out' && ! grep -q '^UPDATED ' '$W/$CASE.out'"
+restore "$BACKUP"
+fingerprint >"$W/after"
+check "niri wiring fails: the restore puts every file back, the repository on v1" \
+  bash -c "[[ $RC == 0 ]] && diff -q '$W/before' '$W/after' >/dev/null && [[ \$(git -C '$REPO' rev-parse HEAD) == $V1 ]]"
+
+new_case merge-fails
+v2_edits
+publish v2
+mkdir -p "$W/gitstub"
+cat >"$W/gitstub/git" <<SH
+#!/bin/sh
+# git whose merge breaks (a full disk, a lock): everything else is the real one
+for a in "\$@"; do [ "\$a" = merge ] && { echo "fatal: Unable to create '.git/index.lock': File exists." >&2; exit 128; }; done
+exec $(command -v git) "\$@"
+SH
+chmod +x "$W/gitstub/git"
+fingerprint >"$W/before"
+update PATH="$W/gitstub:$STUBS:$PATH"
+check "merge fails: exit 6, FAILED pull with git's reason, after a snapshot" \
+  bash -c "[[ $RC == 6 ]] && tail -n 1 '$W/$CASE.out' | grep -q '^FAILED pull .*index.lock' && [[ -d '$BACKUP' ]]"
+fingerprint >"$W/after"
+check "merge fails: nothing installed, the repository on v1" \
+  bash -c "diff -q '$W/before' '$W/after' >/dev/null && [[ \$(git -C '$REPO' rev-parse HEAD) == $V1 ]]"
+
+# a failed attempt that wasn't undone left the repository on v2: the same commit again
+new_case retry-same-commit
+v2_edits
+publish v2
+update NIRI_BIN=/nonexistent/niri                       # fails after the installer ran
+echo '// left half-installed' >>"$H/$QML_FILE"
+NOW="$(git -C "$REPO" rev-parse HEAD)"
+update
+check "same commit again: UPDATED old=new, CHANGED says the shell's files changed" \
+  bash -c "[[ $RC == 0 ]] && grep -q '^UPDATED $NOW $NOW 0\$' '$W/$CASE.out' && grep -qE '^CHANGED [1-9][0-9]* 1\$' '$W/$CASE.out'"
+
+# ── 9. issue #36: a system installed with DOTFILES_FORCE_DISTRO=1 updates ────
+new_case unsupported-distro
+v2_edits
+publish v2
+printf 'NAME="Arch Linux ARM"\nID=archarm\nID_LIKE=arch\nPRETTY_NAME="Arch Linux ARM"\n' >"$W/os-alarm"
+update DOTFILES_OS_RELEASE="$W/os-alarm"
+if ((RC == 0)); then pass "Arch Linux ARM (configs only): exit 0"; else fail "Arch Linux ARM: exit $RC"; show "$W/$CASE.out"; fi
+check "Arch Linux ARM: UPDATED, the new version installed, the warning in the log" \
+  bash -c "tail -n 1 '$W/$CASE.out' | grep -q '^UPDATED ' && grep -q '// v2' '$H/$QML_FILE' && grep -q 'installs no packages' '$W/$CASE.out'"
+
+# ── 10. Settings → Updates reads the results right ────────────────────────────
 if [[ "${UPDATE_UI:-1}" == 0 ]]; then
   skip "UI (UPDATE_UI=0)"
 elif bash "$SHELL_SRC/tests/updates/run.sh" "$SHELL_SRC" >"$W/ui.out" 2>&1; then

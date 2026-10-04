@@ -45,7 +45,10 @@
 #   DOTFILES_STAMP=YYYYMMDD-HHMMSS suffix of this run's *.bak.<stamp> backups (default: now);
 #                                  Settings → Updates passes the stamp of its snapshot
 #   DOTFILES_FORCE_DISTRO=0|1      run on a distribution other than Arch Linux or CachyOS anyway
-#                                  (refused by default: the packages come from Arch's repositories)
+#                                  (refused by default: the packages come from Arch's repositories;
+#                                  a config-only run, SKIP_PACKAGES=1 — Settings → Updates — goes on
+#                                  with a warning, since it installs no packages)
+#   ANGELOS_LANG=ru|en             the language of the messages (default: the locale's)
 #   GITHUB_LOGIN=0|1               angelOS: log in to GitHub (gh) and fetch the author's tools
 #                                  (the chapter editor) if this account can see the author's
 #                                  private repository. Only the author has use for it; for
@@ -123,13 +126,18 @@ INTERACTIVE=0
 
 # ── Output helpers (English, or Russian when the locale is ru_*) ─────────────
 
-case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in ru*) UI=ru ;; *) UI=en ;; esac
+# ANGELOS_LANG: angelOS's own language, passed by Settings → Updates
+case "${ANGELOS_LANG:-${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}}" in ru*) UI=ru ;; *) UI=en ;; esac
 _() { if [[ "$UI" == ru ]]; then printf '%s' "$2"; else printf '%s' "$1"; fi; }
 
-say()  { printf '\033[1;36m[dotfiles]\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m[dotfiles] WARNING:\033[0m %s\n' "$*" >&2; }
-die()  { printf '\033[1;31m[dotfiles] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
-hr()   { printf '\033[2m%s\033[0m\n' '──────────────────────────────────────────────────────────'; }
+# colours only on a terminal: Settings → Updates shows this output in its log
+c1() { [[ -t 1 && -z "${NO_COLOR:-}" ]] && printf '\033[%sm' "$1"; return 0; }
+c2() { [[ -t 2 && -z "${NO_COLOR:-}" ]] && printf '\033[%sm' "$1"; return 0; }
+C_SAY="$(c1 '1;36')" C_DIM="$(c1 2)" C_OFF="$(c1 0)" C_WARN="$(c2 '1;33')" C_ERR="$(c2 '1;31')" C_OFF2="$(c2 0)"
+say()  { printf '%s[dotfiles]%s %s\n' "$C_SAY" "$C_OFF" "$*"; }
+warn() { printf '%s[dotfiles] WARNING:%s %s\n' "$C_WARN" "$C_OFF2" "$*" >&2; }
+die()  { printf '%s[dotfiles] ERROR:%s %s\n' "$C_ERR" "$C_OFF2" "$*" >&2; exit 1; }
+hr()   { printf '%s%s%s\n' "$C_DIM" '──────────────────────────────────────────────────────────' "$C_OFF"; }
 
 TMP_FILES=()
 cleanup() { ((${#TMP_FILES[@]})) && rm -f -- "${TMP_FILES[@]}"; return 0; }
@@ -164,6 +172,14 @@ check_distro() {
   [[ -r "$file" ]] && { id=$(sed -n 's/^ID=//p' "$file" | tr -d '"'); like=$(sed -n 's/^ID_LIKE=//p' "$file" | tr -d '"');
                         name=$(sed -n 's/^PRETTY_NAME=//p' "$file" | tr -d '"'); }
   case "$id" in arch|cachyos) return 0 ;; esac
+  # configs only (SKIP_PACKAGES=1, as Settings → Updates runs it): nothing comes from the
+  # distribution's repositories, so its own repositories don't matter. Updates of a system
+  # installed with DOTFILES_FORCE_DISTRO=1 (Arch Linux ARM, EndeavourOS…) get here
+  if [[ "$SKIP_PACKAGES" == 1 ]]; then
+    warn "$(_ "${name:-This system} is not Arch Linux or CachyOS; going on: SKIP_PACKAGES=1 installs no packages, only the configs" \
+             "${name:-Эта система} — не Arch Linux и не CachyOS; продолжаю: SKIP_PACKAGES=1 ставит только конфиги, без пакетов")"
+    return 0
+  fi
   [[ "${DOTFILES_FORCE_DISTRO:-0}" == 1 ]] && { warn "$(_ "${name:-This system} is not supported; going on because DOTFILES_FORCE_DISTRO=1" \
                                                         "${name:-Эта система} не поддерживается; продолжаю, потому что DOTFILES_FORCE_DISTRO=1")"; return 0; }
   if [[ " $like " == *" arch "* ]]; then
