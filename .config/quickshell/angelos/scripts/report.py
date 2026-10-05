@@ -4,8 +4,9 @@
   report.py [--out DIR] [--open] [--json]
 
 Collects versions (angelOS, Quickshell, Qt, niri, kernel, GPU), the shell's
-service state and restarts, the log of the running shell, the last Quickshell
-crash reports, the niri config check, plugins and the settings — with personal
+service state and restarts, what it costs (CPU, memory, helpers) and daemons
+running twice, the log of the running shell, the last Quickshell crash
+reports, the niri config check, plugins and the settings — with personal
 bits taken out: the home path and user name become ~ and <user>, launcher
 history, workspace names, plugin data and free texts are left out. Nothing is
 sent anywhere; the archive lands in ~/ (or --out) and the path is printed with
@@ -23,6 +24,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import time
 from pathlib import Path
 
 HOME = str(Path.home())
@@ -136,6 +138,37 @@ def crash_reports(limit=3):
     return out
 
 
+def load(seconds=2):
+    """What the shell costs (CPU measured over a moment, memory, its helpers) and daemons running
+    twice: a shell that eats a core at idle, or Voxtype started both by niri and by its service
+    (the service then restarting every 5 s for good), show up here."""
+    lines = []
+    pid = run(["systemctl", "--user", "show", "-p", "MainPID", "--value", "angelos.service"])
+    if pid.isdigit() and pid != "0":
+        def ticks():   # utime + stime of the shell's process
+            f = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+            return int(f[11]) + int(f[12])
+        try:
+            t0, a = time.monotonic(), ticks()
+            time.sleep(seconds)
+            t1, b = time.monotonic(), ticks()
+            lines.append(f"shell CPU over {t1 - t0:.1f} s: {100 * (b - a) / os.sysconf('SC_CLK_TCK') / (t1 - t0):.0f}% of one core")
+        except (OSError, ValueError, IndexError) as e:
+            lines.append(f"shell CPU: <{e}>")
+        lines += ["", run(["ps", "-o", "pid,ppid,pcpu,rss,etime,args", "--sort=-pcpu", "-p", pid, "--ppid", pid])]
+    else:
+        lines.append("angelos.service is not running")
+    procs = run(["ps", "-u", USER, "-o", "args="]).splitlines()
+    lines.append("")
+    for what, rx in (("Voxtype daemon", r"voxtype\s+daemon"), ("Quickshell", r"^\S*\b(qs|quickshell)(\s(?!.*\b(ipc|log|list|kill)\b)|$)"),
+                     ("clipboard watcher", r"wl-paste\s+--watch.*clipboard\.py"), ("USB watcher", r"usb-watch\.py")):
+        n = sum(1 for p in procs if re.search(rx, p))
+        lines.append(f"{what}: {n} running" + ("  ← more than one" if n > 1 else ""))
+    vox = run(["systemctl", "--user", "show", "voxtype.service", "-p", "ActiveState", "-p", "NRestarts", "-p", "UnitFileState"])
+    lines.append("voxtype.service: " + " ".join(vox.split()))
+    return "\n".join(lines)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(Path.home()))
@@ -152,6 +185,7 @@ def main():
                              run(["systemctl", "--user", "status", "angelos.service", "--no-pager", "-n", "0"]) + "\n\n" +
                              run(["journalctl", "--user", "-u", "angelos.service", "-n", "300", "--no-pager", "-o", "short-iso"])),
         "shell-log.txt": scrub(run([shutil.which("qs") or "qs", "log", "-c", "angelos", "--no-color", "-t", "4000"], timeout=20)),
+        "load.txt": scrub(load()),
         "niri-validate.txt": scrub(run(["niri", "validate"])),
         "settings.json": settings(),
         "plugins.txt": scrub("\n".join(sorted(p.name for p in (CONF / "angelos/plugins").glob("*") if p.is_dir())) or "(none)"),
