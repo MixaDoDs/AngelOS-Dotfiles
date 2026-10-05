@@ -71,21 +71,9 @@ Singleton {
     readonly property color shadow: Qt.rgba(0, 0, 0, dark ? 0.5 : 0.22)
     // window title bars (modules/decor, Settings → Windows): the skin keeps its own set
     // (Config.mac.titlebars, decorSkip), the other skins Config.decor's — switching skins brings
-    // back each one's
+    // back each one's (Settings → Windows writes them)
     readonly property bool titlebars: on ? Config.mac.titlebars : Config.decor.titlebars
     readonly property var decorSkip: on ? (Config.mac.decorSkip || []) : (Config.decor.skip || [])
-    function setTitlebars(v) {
-        if (on)
-            Config.mac.titlebars = v;
-        else
-            Config.decor.titlebars = v;
-    }
-    function setDecorSkip(list) {
-        if (on)
-            Config.mac.decorSkip = list;
-        else
-            Config.decor.skip = list;
-    }
 
     // the traffic lights (close, minimize, zoom) and their rims
     readonly property var lights: ["#ff5f57", "#febc2e", "#28c840"]

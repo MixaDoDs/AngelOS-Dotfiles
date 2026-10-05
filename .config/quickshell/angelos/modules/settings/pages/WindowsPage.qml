@@ -113,7 +113,13 @@ PxPage {
             hint: I18n.t("над плавающими окнами без своей рамки (niri её не рисует): значок, название, «развернуть» и «закрыть», как у настроек. Тяни — окно едет, двойной клик — развернуть, средняя кнопка — закрыть. В аду — обсидиан и пламя", "Over floating windows without a frame of their own (niri draws none): icon, title, maximize and close, like Settings. Drag to move, double-click to maximize, middle-click to close. In hell: obsidian and flames")
             PxToggle {
                 checked: GoldenGate.titlebars
-                onToggled: c => GoldenGate.setTitlebars(c)
+                // Golden Gate keeps its own set (GoldenGate.titlebars), the other skins Config.decor's
+                onToggled: c => {
+                    if (GoldenGate.on)
+                        Config.mac.titlebars = c;
+                    else
+                        Config.decor.titlebars = c;
+                }
             }
         }
         SettingRow {
@@ -142,7 +148,10 @@ PxPage {
                                 const list = GoldenGate.decorSkip.filter(k => String(k).toLowerCase() !== low);
                                 if (!c)
                                     list.push(modelData);
-                                GoldenGate.setDecorSkip(list);
+                                if (GoldenGate.on)
+                                    Config.mac.decorSkip = list;
+                                else
+                                    Config.decor.skip = list;
                             }
                         }
                     }
