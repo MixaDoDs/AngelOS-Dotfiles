@@ -1,197 +1,157 @@
-/* angelOS Golden Gate / dark (GTK 4 / libadwaita) — generated (templates/gtk4-mac.css).
-   The Golden Gate skin: macOS 27's colours and shapes — a light (or dark) window, a white
-   content area, an edge-to-edge sidebar a shade darker with icons in the accent, rounded
-   controls, the accent on selections. The window buttons (traffic lights) come with
-   angelos-decor.css (templates/gtk4-decor-mac.css). */
+/* angelOS wallpaper / dark (GTK4) — generated */
 @import url("angelos-decor.css");
-@define-color accent_color #ff9f0a;
-@define-color accent_bg_color #ff9f0a;
-@define-color accent_fg_color #ffffff;
-@define-color destructive_bg_color #ff3b30;
+@define-color accent_color #5787b3;
+@define-color accent_bg_color #5787b3;
+@define-color accent_fg_color #131922;
+@define-color destructive_bg_color #ff4f6d;
 @define-color destructive_fg_color #ffffff;
-@define-color error_bg_color #ff3b30;
+@define-color error_bg_color #ff4f6d;
 @define-color error_fg_color #ffffff;
-@define-color window_bg_color #1e1e1e;
-@define-color window_fg_color #f5f5f7;
-@define-color view_bg_color #232323;
-@define-color view_fg_color #f5f5f7;
-@define-color headerbar_bg_color #1e1e1e;
-@define-color headerbar_fg_color #f5f5f7;
-@define-color headerbar_backdrop_color #1e1e1e;
-@define-color popover_bg_color #2b2b2d;
-@define-color popover_fg_color #f5f5f7;
-@define-color card_bg_color #232323;
-@define-color card_fg_color #f5f5f7;
-@define-color dialog_bg_color #1e1e1e;
-@define-color dialog_fg_color #f5f5f7;
-@define-color sidebar_bg_color #2a2a2c;
-@define-color sidebar_fg_color #f5f5f7;
-@define-color secondary_sidebar_bg_color #1e1e1e;
-@define-color secondary_sidebar_fg_color #f5f5f7;
+@define-color window_bg_color #131922;
+@define-color window_fg_color #fafafa;
+@define-color view_bg_color #131922;
+@define-color view_fg_color #fafafa;
+@define-color headerbar_bg_color #141d29;
+@define-color headerbar_fg_color #fafafa;
+@define-color headerbar_backdrop_color @window_bg_color;
+@define-color popover_bg_color #141d29;
+@define-color popover_fg_color #fafafa;
+@define-color card_bg_color #141d29;
+@define-color card_fg_color #fafafa;
+@define-color dialog_bg_color #131922;
+@define-color dialog_fg_color #fafafa;
+@define-color sidebar_bg_color #141d29;
+@define-color sidebar_fg_color #fafafa;
 @define-color theme_selected_bg_color @accent_bg_color;
 @define-color theme_selected_fg_color @accent_fg_color;
+@define-color theme_unfocused_selected_bg_color @accent_bg_color;
+@define-color theme_unfocused_selected_fg_color @accent_fg_color;
+@define-color overview_bg_color #141d29;
+@define-color overview_fg_color #fafafa;
+@define-color secondary_sidebar_bg_color #131922;
+@define-color secondary_sidebar_fg_color #fafafa;
 :root {
-    --accent-color: #ff9f0a;
-    --accent-bg-color: #ff9f0a;
-    --accent-fg-color: #ffffff;
-    --destructive-bg-color: #ff3b30;
+    --accent-color: #5787b3;
+    --accent-bg-color: #5787b3;
+    --accent-fg-color: #131922;
+    --destructive-bg-color: #ff4f6d;
     --destructive-fg-color: #ffffff;
-    --error-color: #ff3b30;
-    --success-color: #28c840;
-    --warning-color: #febc2e;
-    --window-bg-color: #1e1e1e;
-    --window-fg-color: #f5f5f7;
-    --view-bg-color: #232323;
-    --view-fg-color: #f5f5f7;
-    --headerbar-bg-color: #1e1e1e;
-    --headerbar-fg-color: #f5f5f7;
-    --headerbar-backdrop-color: #1e1e1e;
-    --headerbar-shade-color: rgba(255,255,255,0.14);
-    --popover-bg-color: #2b2b2d;
-    --popover-fg-color: #f5f5f7;
-    --card-bg-color: #232323;
-    --card-fg-color: #f5f5f7;
-    --dialog-bg-color: #1e1e1e;
-    --dialog-fg-color: #f5f5f7;
-    --sidebar-bg-color: #2a2a2c;
-    --sidebar-fg-color: #f5f5f7;
-    --sidebar-backdrop-color: #2a2a2c;
-    --border-color: rgba(255,255,255,0.14);
-    --window-radius: 16px;
+    --error-bg-color: #ff4f6d;
+    --error-fg-color: #ffffff;
+    --error-color: #ff4f6d;
+    --window-bg-color: #131922;
+    --window-fg-color: #fafafa;
+    --view-bg-color: #131922;
+    --view-fg-color: #fafafa;
+    --headerbar-bg-color: #141d29;
+    --headerbar-fg-color: #fafafa;
+    --popover-bg-color: #141d29;
+    --popover-fg-color: #fafafa;
+    --card-bg-color: #141d29;
+    --card-fg-color: #fafafa;
+    --dialog-bg-color: #131922;
+    --dialog-fg-color: #fafafa;
+    --sidebar-bg-color: #141d29;
+    --sidebar-fg-color: #fafafa;
+    --success-color: #57e3a2;
+    --warning-color: #90afcc;
+    --window-radius: 0px;
 }
 
-/* niri rounds and clips every window by 16 px (templates/niri-mac.kdl): the window's own
-   corner follows */
+/* Windows stay square in GTK: niri rounds every window by 4 px (templates/niri.kdl, it clips
+   them), so GTK, Qt and the rest meet the same corner. */
 window {
-    --window-radius: 16px;
-    font-feature-settings: "cv11", "ss03";
+    --window-radius: 0px;
 }
 
-/* the toolbar: one with the window, a hairline under it */
+/* angelOS pixel frames, like the shell's own boxes (PxBox): a 2 px outline whose corners step
+   in by one art pixel, and a 2 px bevel inside — light top-left, dark bottom-right on buttons,
+   the other way round on fields and pressed buttons. The outline is an image
+   (assets/frame-*.svg, drawn by scripts/gtk-live.py in the palette's edge colour) laid 4 px wide
+   over a 2 px border: the pixels outside the step fall on the border, where nothing is painted,
+   so what is behind shows and the corner looks round in pixels. Qt apps get the same frames
+   (scripts/qt-theme.py). */
+window,
+window.csd,
+window.solid-csd,
 headerbar,
-.titlebar {
-    background: #1e1e1e;
-    box-shadow: inset 0 -1px rgba(255,255,255,0.14);
-    min-height: 46px;
-}
-headerbar:backdrop,
-.titlebar:backdrop {
-    background: #1e1e1e;
-}
-headerbar .title,
-.titlebar .title {
-    font-weight: 700;
-}
-
-/* buttons: rounded; in the toolbar soft capsules like Golden Gate's */
-button,
-menubutton > button,
-splitbutton > button {
-    border-radius: 7px;
-}
-/* (only the toolbar's own buttons: the window buttons sit in windowcontrols, styled apart) */
-headerbar .start > button,
-headerbar .end > button,
-headerbar .start > menubutton > button,
-headerbar .end > menubutton > button,
-headerbar .start > splitbutton > button,
-headerbar .end > splitbutton > button {
-    border-radius: 999px;
-    min-height: 28px;
-    min-width: 28px;
-    background-color: rgba(255,255,255,0.10);
-}
-headerbar .start > button:hover,
-headerbar .end > button:hover,
-headerbar .start > menubutton > button:hover,
-headerbar .end > menubutton > button:hover {
-    background-color: rgba(255,255,255,0.16);
-}
-button.suggested-action,
-button.default {
-    background-color: #ff9f0a;
-    color: #ffffff;
+.titlebar,
+windowcontrols button,
+floating-sheet > sheet,
+dialog sheet,
+dialog sheet > outline,
+list,
+list > row,
+list.boxed-list > row,
+.navigation-sidebar > row,
+notebook,
+progressbar > trough,
+progressbar > trough > progress,
+scale > trough,
+scale > trough > highlight,
+checkbutton > check,
+switch,
+searchbar > revealer > box,
+.osd {
+    border-radius: 0;
 }
 
-/* fields: rounded, a hairline, the accent ring when focused */
+button:not(.flat):not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill),
+splitbutton > button,
+menubutton:not(.flat) > button,
+popover > contents,
+tooltip,
+tooltip.background,
+switch > slider,
+scale > trough > slider {
+    border: 2px solid transparent;
+    border-image: url("assets/frame-raised.svg") 4 / 4px stretch;
+    border-radius: 0;
+    background-clip: padding-box;
+    box-shadow: none;
+}
+headerbar button:not(.flat):not(.titlebutton):not(.link) {
+    border-image: url("assets/frame-raised.svg") 4 / 4px stretch;
+}
+button:not(.flat):not(.titlebutton):not(.link):active,
+button:not(.flat):not(.titlebutton):not(.link):checked,
+splitbutton > button:active,
+menubutton > button:checked {
+    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+}
 entry,
 spinbutton,
-searchbar > revealer > box > entry {
-    border-radius: 7px;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);
-    background-color: #232323;
-}
-entry:focus-within,
-spinbutton:focus-within {
-    outline: 3px solid alpha(#ff9f0a, 0.45);
-    outline-offset: 0;
-}
-
-/* the sidebar: edge to edge, a shade darker, icons in the accent, the selection a grey pill */
-.navigation-sidebar,
-.sidebar-pane,
-.sidebar {
-    background-color: #2a2a2c;
-}
-.navigation-sidebar > row,
-.sidebar-pane row {
-    border-radius: 7px;
-    margin: 1px 8px;
-    min-height: 28px;
-}
-.navigation-sidebar > row image,
-.sidebar-pane row image {
-    color: #ff9f0a;
-}
-.navigation-sidebar > row:selected,
-.sidebar-pane row:selected {
-    background-color: rgba(255,255,255,0.10);
-    color: #f5f5f7;
-}
-
-/* lists and views: the accent on what is picked */
-list > row:selected,
-gridview > child:selected,
-columnview > listview > row:selected {
-    background-color: #ff9f0a;
-    color: #ffffff;
-    border-radius: 6px;
-}
 list.boxed-list,
 .boxed-list,
-.card {
-    border-radius: 10px;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.14);
+.card,
+switch,
+searchbar > revealer > box > entry {
+    border: 2px solid transparent;
+    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+    border-radius: 0;
+    background-clip: padding-box;
+    box-shadow: none;
+    outline-offset: -2px;
 }
-
-/* menus and popovers: glass-like, rounded, the accent highlight */
-popover > contents,
-popover.menu > contents {
-    border-radius: 12px;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.14), 0 12px 32px rgba(0, 0, 0, 0.25);
+/* inside a spin button the box around the text and the buttons is the frame */
+spinbutton > text,
+spinbutton > button.up,
+spinbutton > button.down {
+    border-image: none;
+    border-style: none;
+    border-radius: 0;
+    box-shadow: none;
 }
-popover.menu modelbutton:hover,
-popover.menu modelbutton:selected {
-    background-color: #ff9f0a;
-    color: #ffffff;
-    border-radius: 6px;
+spinbutton > button.up,
+spinbutton > button.down {
+    border-left: 2px solid alpha(#fafafa, 0.2);
+    background-clip: padding-box;
 }
-
-/* switches and checks in the accent */
-switch {
-    border-radius: 999px;
+scale > trough > slider {
+    min-width: 16px;
+    min-height: 16px;
+    margin: -8px;
 }
-switch:checked {
-    background-color: #ff9f0a;
-}
-checkbutton > check {
-    border-radius: 4px;
-}
-checkbutton > check:checked,
-checkbutton > radio:checked {
-    background-color: #ff9f0a;
-    color: #ffffff;
-}
-scale > trough > highlight {
-    background-color: #ff9f0a;
+switch > slider {
+    margin: 0;
 }

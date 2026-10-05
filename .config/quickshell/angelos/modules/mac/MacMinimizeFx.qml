@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.config
 import qs.services
+import qs.widgets
 
 // Minimizing as macOS does it, Genie or Scale (Config.mac.minimizeEffect): the window's snapshot
 // (services/Minimize took it with grim) bends and pours into its place in the Dock (shaders/genie.vert)
@@ -127,4 +128,6 @@ PanelWindow {
             }
         }
     }
+
+    RightClickGuard {}
 }

@@ -1,24 +1,24 @@
-# angelOS goldengate / dark
+# angelOS wallpaper / dark
 [colors-dark]
-foreground=f5f5f7
-background=1c1c1e
-regular0=000000
-regular1=c23621
-regular2=25bc24
-regular3=adad27
-regular4=492ee1
-regular5=d338d3
-regular6=33bbc8
-regular7=cbcccd
-bright0=818383
-bright1=fc391f
-bright2=31e722
-bright3=eaec23
-bright4=5833ff
-bright5=f935f8
-bright6=14f0f0
-bright7=e9ebeb
-selection-foreground=ffffff
-selection-background=ff9f0a
-cursor=1c1c1e ff9f0a
-urls=5e5ce6
+foreground=fafafa
+background=131922
+regular0=131922
+regular1=e36b78
+regular2=8eaf73
+regular3=d8b56b
+regular4=90afcc
+regular5=5787b3
+regular6=72b7b0
+regular7=fafafa
+bright0=b4b5b7
+bright1=f58b98
+bright2=aacf93
+bright3=efd18b
+bright4=90afcc
+bright5=5787b3
+bright6=92d7d0
+bright7=fafafa
+selection-foreground=131922
+selection-background=5787b3
+cursor=131922 5787b3
+urls=90afcc
