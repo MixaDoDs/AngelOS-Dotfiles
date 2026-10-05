@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Tell the Alt+Tab switcher when Alt is let go.
+"""Tell the Alt+Tab switcher when Alt is let go (with --mod meta: the ⌘Tab one, when the
+Windows key — ⌘ of the Golden Gate skin's Mac keys — is let go).
 
 niri runs `angelos alttab next` on every Tab while Alt is held, but it has no
 bind for a key release — so this reads the keyboards (evdev, the `input`
@@ -25,7 +26,9 @@ import sys
 import time
 
 KEY_TAB, KEY_LEFTALT, KEY_RIGHTALT = 15, 56, 100
-ALT = (KEY_LEFTALT, KEY_RIGHTALT)
+KEY_LEFTMETA, KEY_RIGHTMETA = 125, 126
+MODS = {"alt": (KEY_LEFTALT, KEY_RIGHTALT), "meta": (KEY_LEFTMETA, KEY_RIGHTMETA)}
+ALT = MODS["alt"]
 EV_KEY = 1
 KEY_BYTES = 96                                  # KEY_MAX 0x2ff → 768 bits
 EVIOCGKEY = (2 << 30) | (KEY_BYTES << 16) | (ord("E") << 8) | 0x18
@@ -55,11 +58,14 @@ def alt_down(fd):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--timeout", type=float, default=30.0)
+    parser.add_argument("--mod", choices=sorted(MODS), default="alt")
     args = parser.parse_args()
+    global ALT
+    ALT = MODS[args.mod]
     fds, denied = [], 0
     for event_dir in glob.glob("/sys/class/input/event*"):
-        # a keyboard: Tab and an Alt key (skips mice, audio jacks, power buttons…)
-        if not (has_keys(event_dir, (KEY_TAB, KEY_LEFTALT)) or has_keys(event_dir, (KEY_TAB, KEY_RIGHTALT))):
+        # a keyboard: Tab and an Alt (⌘) key (skips mice, audio jacks, power buttons…)
+        if not (has_keys(event_dir, (KEY_TAB, ALT[0])) or has_keys(event_dir, (KEY_TAB, ALT[1]))):
             continue
         try:
             fds.append(os.open("/dev/input/" + os.path.basename(event_dir), os.O_RDONLY | os.O_NONBLOCK))

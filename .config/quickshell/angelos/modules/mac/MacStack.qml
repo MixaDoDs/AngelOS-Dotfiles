@@ -19,6 +19,9 @@ Item {
     property real anchorX: 0                 // the Dock icon's centre (overlay coordinates)
     property real bottomY: 0                 // the panel's bottom edge
     property real areaWidth: 0               // the overlay's width (the panel stays inside it)
+    property real areaHeight: 0
+    property string side: ""                 // a Dock on the left / right: beside it, x its near edge,
+    property real sideY: 0                   // centred on sideY
     readonly property alias panel: panel
     readonly property var files: MacDockModel.recent
     readonly property int columns: Math.max(1, Math.min(5, files.length <= 4 ? files.length : files.length <= 9 ? 3 : files.length <= 12 ? 4 : 5))
@@ -56,8 +59,8 @@ Item {
 
     width: panel.width
     height: panel.height
-    x: Math.max(GoldenGate.px(4), Math.min(areaWidth - width - GoldenGate.px(4), anchorX - width / 2))
-    y: Math.max(GoldenGate.barHeight + GoldenGate.px(4), bottomY - height)
+    x: Math.max(GoldenGate.px(4), Math.min(areaWidth - width - GoldenGate.px(4), side === "left" ? anchorX : side === "right" ? anchorX - width : anchorX - width / 2))
+    y: side ? Math.max(GoldenGate.barHeight + GoldenGate.px(4), Math.min(areaHeight - height - GoldenGate.px(4), sideY - height / 2)) : Math.max(GoldenGate.barHeight + GoldenGate.px(4), bottomY - height)
 
     function open(i) {
         const f = files[i];

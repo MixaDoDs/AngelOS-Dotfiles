@@ -8,7 +8,8 @@
     "\"legacy\": the old page ids (links in the wizard, the tour, the helper, `angelos settings`)",
     "and where they lead now; \"to\" may name a group, the page scrolls to it.",
     "\"developer\"/\"owner\": shown only in developer mode / to the owner. \"plugins\": the category",
-    "where plugins' own settings pages are listed (\"after\": a plugin page that goes after a page)."
+    "where plugins' own settings pages are listed (\"after\": a plugin page that goes after a page).",
+    "\"mac\": the Golden Gate skin's own tree (services/GoldenGate.on): its look-and-feel pages (modules/settings/pages/MacPage.qml and the groups of the other files that fit a Mac) and the system pages without the pixel skins' groups. Its own \"legacy\" leads the old ids there; an id it doesn't know goes to \"fallback\". The pixel tree's pages are not shown while the skin is on."
   ],
   "account": {
     "page": "account",
@@ -581,6 +582,316 @@
     },
     "dlcMore": {
       "page": "account"
+    }
+  },
+  "mac": {
+    "fallback": "mac-look",
+    "plugins": {
+      "category": "mac-system",
+      "after": {
+        "nightlight": "display"
+      }
+    },
+    "categories": [
+      {
+        "id": "mac-theme",
+        "ru": "Оформление",
+        "en": "Look and feel",
+        "icon": "palette",
+        "tint": "#0a84ff",
+        "hintRu": "Dock, внешний вид, обои, виджеты, клавиатура, окна",
+        "hintEn": "the Dock, appearance, wallpaper, widgets, keyboard, windows",
+        "pages": [
+          {
+            "id": "mac-dock",
+            "ru": "Dock",
+            "en": "Dock",
+            "icon": "grid",
+            "hintRu": "размер, увеличение, положение, автоскрытие, порядок значков",
+            "hintEn": "size, magnification, position, hiding, the icons' order",
+            "blocks": [
+              "mac/dock",
+              "mac/dock-apps"
+            ]
+          },
+          {
+            "id": "mac-look",
+            "ru": "Внешний вид",
+            "en": "Appearance",
+            "icon": "palette",
+            "hintRu": "светлое, тёмное, авто, акцент, прозрачность, сброс",
+            "hintEn": "light, dark, auto, accent, transparency, reset",
+            "blocks": [
+              "mac/look",
+              "mac/skin",
+              "mac/reset"
+            ]
+          },
+          {
+            "id": "mac-wallpaper",
+            "ru": "Обои",
+            "en": "Wallpaper",
+            "icon": "image",
+            "hintRu": "обои Golden Gate или свои картинки",
+            "hintEn": "Golden Gate's wallpaper or your pictures",
+            "blocks": [
+              "mac/wallpaper",
+              "wallpaper/images",
+              "wallpaper/destination",
+              "wallpaper/transition"
+            ]
+          },
+          {
+            "id": "mac-widgets",
+            "ru": "Виджеты",
+            "en": "Widgets",
+            "icon": "layers",
+            "hintRu": "виджеты на рабочем столе",
+            "hintEn": "widgets on the desktop",
+            "blocks": [
+              "widgets/add",
+              "widgets/on-desktop",
+              "widgets/behavior"
+            ]
+          },
+          {
+            "id": "mac-input",
+            "ru": "Клавиатура и мышь",
+            "en": "Keyboard and mouse",
+            "icon": "keyboard",
+            "hintRu": "клавиши Mac, раскладки, мышь, курсор, сочетания",
+            "hintEn": "Mac keys, layouts, the mouse, the pointer, shortcuts",
+            "blocks": [
+              "mac/keys",
+              "keyboard/keyboard-layouts",
+              "keyboard/key-repeat",
+              "mouse/mouse",
+              "cursor/shake-find-pointer",
+              "cursor/size-compatibility",
+              "mouse/lens-at-pointer",
+              "shortcuts/all-shortcuts",
+              "shortcuts/new-shortcut"
+            ]
+          },
+          {
+            "id": "mac-windows",
+            "ru": "Окна",
+            "en": "Windows",
+            "icon": "window",
+            "hintRu": "плавающие окна, заголовки, колонки niri",
+            "hintEn": "floating windows, title bars, niri's columns",
+            "blocks": [
+              "mac/windows",
+              "windows/layout",
+              "windows/window-widths",
+              "windows/window-animations"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mac-system",
+        "ru": "Система",
+        "en": "System",
+        "icon": "chip",
+        "tint": "#8e8e93",
+        "hintRu": "экран, звук, сеть, программы, обновления",
+        "hintEn": "display, sound, network, apps, updates",
+        "pages": [
+          {
+            "id": "display",
+            "ru": "Экран",
+            "en": "Display",
+            "icon": "monitor",
+            "hintRu": "мониторы, главный экран, яркость и цвет",
+            "hintEn": "monitors, the main screen, brightness and colour",
+            "blocks": [
+              "monitor"
+            ]
+          },
+          {
+            "id": "sound",
+            "ru": "Звук",
+            "en": "Sound",
+            "icon": "speaker",
+            "hintRu": "выход, микрофон, громкость приложений, индикаторы",
+            "hintEn": "output, microphone, app volume, indicators",
+            "blocks": [
+              "sound/output",
+              "sound/input",
+              "sound/applications"
+            ]
+          },
+          {
+            "id": "notifications",
+            "ru": "Уведомления",
+            "en": "Notifications",
+            "icon": "bell",
+            "hintRu": "не беспокоить, где и сколько висят, история",
+            "hintEn": "do not disturb, where and how long, history",
+            "blocks": [
+              "notifications"
+            ]
+          },
+          {
+            "id": "bluetooth",
+            "ru": "Bluetooth",
+            "en": "Bluetooth",
+            "icon": "bluetooth",
+            "hintRu": "устройства рядом и сопряжённые",
+            "hintEn": "devices nearby and paired",
+            "blocks": [
+              "bluetooth"
+            ]
+          },
+          {
+            "id": "network",
+            "ru": "Сеть и интернет",
+            "en": "Network and internet",
+            "icon": "wifi",
+            "hintRu": "Wi-Fi и кабель",
+            "hintEn": "Wi-Fi and cable",
+            "blocks": [
+              "network"
+            ]
+          },
+          {
+            "id": "defaults",
+            "ru": "Приложения по умолчанию",
+            "en": "Default apps",
+            "icon": "star",
+            "hintRu": "браузер, файлы, терминал, диспетчер задач",
+            "hintEn": "browser, files, terminal, task manager",
+            "blocks": [
+              "defaults",
+              "system/task-manager",
+              "system/programs"
+            ]
+          },
+          {
+            "id": "plugins",
+            "ru": "Плагины",
+            "en": "Plugins",
+            "icon": "plug",
+            "hintRu": "установленные, удалённые, новый",
+            "hintEn": "installed, removed, a new one",
+            "blocks": [
+              "plugins"
+            ]
+          },
+          {
+            "id": "power",
+            "ru": "Питание и отрисовка",
+            "en": "Power and rendering",
+            "icon": "chip",
+            "hintRu": "профиль питания, движок отрисовки",
+            "hintEn": "power profile, the renderer",
+            "blocks": [
+              "system/rendering",
+              "system/power"
+            ]
+          },
+          {
+            "id": "updates",
+            "ru": "Обновления",
+            "en": "Updates",
+            "icon": "download",
+            "hintRu": "проверить, обновить, вернуть как было",
+            "hintEn": "check, update, restore",
+            "blocks": [
+              "updates"
+            ]
+          },
+          {
+            "id": "about",
+            "ru": "О системе",
+            "en": "About",
+            "icon": "heart",
+            "hintRu": "этот компьютер, твой сетап, отчёт о проблеме",
+            "hintEn": "this computer, your setup, reporting a problem",
+            "blocks": [
+              "system/this-computer",
+              "system/your-setup",
+              "system/angelos",
+              "system/report-problem"
+            ]
+          },
+          {
+            "id": "developer",
+            "ru": "Для разработчиков",
+            "en": "For developers",
+            "icon": "gear",
+            "hintRu": "режим разработчика, отладка игры",
+            "hintEn": "developer mode, the game's debug tools",
+            "blocks": [
+              "system/development",
+              "system/game-developer-tools"
+            ],
+            "open": [
+              "system/development"
+            ]
+          }
+        ]
+      }
+    ],
+    "legacy": {
+      "appearance": {
+        "page": "mac-look"
+      },
+      "theme": {
+        "page": "mac-look"
+      },
+      "fonts": {
+        "page": "mac-look"
+      },
+      "goldengate": {
+        "page": "mac-look"
+      },
+      "personalization": {
+        "page": "mac-look"
+      },
+      "taskbar": {
+        "page": "mac-dock"
+      },
+      "bar": {
+        "page": "mac-dock"
+      },
+      "start": {
+        "page": "mac-dock"
+      },
+      "dock": {
+        "page": "mac-dock"
+      },
+      "wallpaper": {
+        "page": "mac-wallpaper"
+      },
+      "widgets": {
+        "page": "mac-widgets"
+      },
+      "keyboard": {
+        "page": "mac-input"
+      },
+      "mouse": {
+        "page": "mac-input"
+      },
+      "shortcuts": {
+        "page": "mac-input"
+      },
+      "cursor": {
+        "page": "mac-input"
+      },
+      "windows": {
+        "page": "mac-windows"
+      },
+      "workspaces": {
+        "page": "mac-windows"
+      },
+      "monitor": {
+        "page": "display"
+      },
+      "system": {
+        "page": "about"
+      }
     }
   }
 }

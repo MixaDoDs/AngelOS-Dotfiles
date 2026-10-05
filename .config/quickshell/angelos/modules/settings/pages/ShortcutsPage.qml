@@ -12,7 +12,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Горячие клавиши", "Shortcuts")
-    subtitle: I18n.t("Все сочетания niri из cfg/keybinds.kdl. Нажми на сочетание, чтобы поменять его; изменения проверяются niri и сохраняются с бэкапом.", "Every niri binding from cfg/keybinds.kdl. Click a combination to change it; changes are validated by niri and backed up.")
+    subtitle: I18n.t("Все сочетания niri из cfg/keybinds.kdl. Нажми на сочетание, чтобы поменять его; изменения проверяются niri и сохраняются с бэкапом. Внизу — сочетания, которые angelOS пишет сам (Alt+Tab, лупа, «как на Mac»): их клавиши заняты.", "Every niri binding from cfg/keybinds.kdl. Click a combination to change it; changes are validated by niri and backed up. Below: the ones angelOS writes itself (Alt+Tab, the lens, Mac keys) — their keys are taken.")
 
     Component.onCompleted: Keybinds.refresh()
 
@@ -375,8 +375,10 @@ PxPage {
                             }
                             PxText {
                                 width: parent.width
-                                visible: entry.info.detail !== entry.info.label
-                                text: entry.info.detail + (entry.modelData.editable ? "" : I18n.t("  · правится только в файле", "  · edit it in the file"))
+                                visible: entry.info.detail !== entry.info.label || !!entry.modelData.file
+                                // the binds angelOS writes into its own files (Keybinds: cfg/angelos-windows.kdl,
+                                // angelos.kdl) change on their pages, named in the section
+                                text: entry.info.detail + (entry.modelData.editable ? "" : entry.modelData.file ? I18n.t("  · пишет angelOS (", "  · written by angelOS (") + entry.modelData.file + ")" : I18n.t("  · правится только в файле", "  · edit it in the file"))
                                 kind: "tiny"
                                 dim: true
                                 elide: Text.ElideMiddle

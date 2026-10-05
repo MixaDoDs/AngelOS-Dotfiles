@@ -15,8 +15,8 @@ included — change at once. The user's own gtk-3.0/angelos.css becomes a stub t
 would outrank the theme with stale colours). GTK 4 / libadwaita ignores themes: it gets
 ~/.config/gtk-4.0/angelos-decor.css (templates/gtk4-decor.css), read when an app starts.
 Off: gtk-theme goes back to adw-gtk3(-dark), the stub and the GTK 4 file are emptied.
-Also sets the title bar buttons (org.gnome.desktop.wm.preferences button-layout) to
-decorButtons, e.g. "maximize,close" (niri has no minimizing).
+Also sets the title bar buttons (org.gnome.desktop.wm.preferences button-layout and
+gtk-decoration-layout in gtk-3.0/gtk-4.0 settings.ini) to decorButtons, e.g. "maximize,close".
 The Golden Gate skin (palette key skin "goldengate"): the decorations are macOS's traffic lights
 (templates/gtk3-decor-mac.css, gtk4-decor-mac.css) on the leading side, close,minimize,maximize:
 — all three lit, their glyphs assets/mac-{close,minimize,maximize}.svg; off again, the leading
@@ -233,6 +233,14 @@ def main():
         want = left + ":" + layout
     if cur_layout != want:
         gsettings("org.gnome.desktop.wm.preferences", "button-layout", want)
+    # settings.ini says the same (apps that read it, not the portal: GTK under another session)
+    for folder in (GTK3, GTK4):
+        ini = folder / "settings.ini"
+        if ini.exists():
+            text = ini.read_text()
+            fixed = re.sub(r"(?m)^gtk-decoration-layout=.*$", "gtk-decoration-layout=" + want, text)
+            if fixed != text:
+                write(ini, fixed)
 
 
 if __name__ == "__main__":

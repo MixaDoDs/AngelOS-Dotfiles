@@ -41,6 +41,7 @@ Variants {
             WlrLayershell.namespace: "angelos-wallpaper"
 
             WallpaperView {
+                id: wallpaper
                 anchors.fill: parent
                 screenName: scope.modelData.name
             }
@@ -57,6 +58,7 @@ Variants {
                         uid: modelData
                         screenName: scope.modelData.name
                         area: faceArea
+                        backdrop: wallpaper
                     }
                 }
             }

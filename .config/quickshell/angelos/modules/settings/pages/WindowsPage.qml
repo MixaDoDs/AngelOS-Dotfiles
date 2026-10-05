@@ -87,77 +87,13 @@ PxPage {
         }
     }
 
-    // window decorations: angelOS title bars (modules/decor), GTK's buttons (scripts/gtk-live.py), browsers
+    // window decorations: the apps' own (client-side) — GTK's buttons (scripts/gtk-live.py), browsers
     PxGroup {
         name: "window-decorations"
         id: decorGroup
         width: parent.width
         title: I18n.t("Декорации окон", "Window decorations")
         icon: "window"
-        readonly property var floatingApps: {
-            const seen = {};
-            for (const w of Niri.windows)
-                if (w.is_floating && w.app_id && !seen[w.app_id])
-                    seen[w.app_id] = w;
-            return Object.keys(seen).sort();
-        }
-        function skipped(id) {
-            const low = String(id).toLowerCase();
-            return GoldenGate.decorSkip.some(k => {
-                const s = String(k).toLowerCase();
-                return s.endsWith("*") ? low.startsWith(s.slice(0, -1)) : low === s;
-            });
-        }
-        SettingRow {
-            label: I18n.t("Заголовки angelOS", "angelOS title bars")
-            hint: I18n.t("над плавающими окнами без своей рамки (niri её не рисует): значок, название, «развернуть» и «закрыть», как у настроек. Тяни — окно едет, двойной клик — развернуть, средняя кнопка — закрыть. В аду — обсидиан и пламя", "Over floating windows without a frame of their own (niri draws none): icon, title, maximize and close, like Settings. Drag to move, double-click to maximize, middle-click to close. In hell: obsidian and flames")
-            PxToggle {
-                checked: GoldenGate.titlebars
-                // Golden Gate keeps its own set (GoldenGate.titlebars), the other skins Config.decor's
-                onToggled: c => {
-                    if (GoldenGate.on)
-                        Config.mac.titlebars = c;
-                    else
-                        Config.decor.titlebars = c;
-                }
-            }
-        }
-        SettingRow {
-            visible: GoldenGate.titlebars
-            label: I18n.t("Плавающие окна сейчас", "Floating windows now")
-            hint: I18n.t("галочка — заголовок angelOS; сними у программ, что рисуют свой (браузеры, GTK4, Steam уже сняты)", "Checked: an angelOS title bar; uncheck apps that draw their own (browsers, GTK4, Steam already are)")
-            Column {
-                width: parent.width
-                spacing: Theme.u * 2
-                PxText {
-                    visible: decorGroup.floatingApps.length === 0
-                    text: I18n.t("нет плавающих окон", "no floating windows")
-                    dim: true
-                }
-                Flow {
-                    width: parent.width
-                    spacing: Theme.u * 4
-                    Repeater {
-                        model: decorGroup.floatingApps
-                        PxCheck {
-                            required property string modelData
-                            text: modelData
-                            checked: !decorGroup.skipped(modelData)
-                            onToggled: c => {
-                                const low = modelData.toLowerCase();
-                                const list = GoldenGate.decorSkip.filter(k => String(k).toLowerCase() !== low);
-                                if (!c)
-                                    list.push(modelData);
-                                if (GoldenGate.on)
-                                    Config.mac.decorSkip = list;
-                                else
-                                    Config.decor.skip = list;
-                            }
-                        }
-                    }
-                }
-            }
-        }
         SettingRow {
             label: I18n.t("Кнопки GTK-окон как в angelOS", "GTK window buttons like angelOS's")
             hint: (Angel.hellShown ? I18n.t("пиксельные «развернуть» и «закрыть», шапка цвета меню; в аду — обсидиан и кровь. ", "Pixel maximize and close, the header in the menu colour; obsidian and blood in hell. ") : I18n.t("пиксельные «развернуть» и «закрыть», шапка цвета меню. ", "Pixel maximize and close, the header in the menu colour. ")) + I18n.t("GTK 3 и Helium в режиме «GTK» меняются сразу (своя тема angelOS поверх adw-gtk3), GTK 4 — при следующем запуске программы", "GTK 3 and Helium in its GTK mode change at once (angelOS's own theme over adw-gtk3), GTK 4 the next time an app starts")

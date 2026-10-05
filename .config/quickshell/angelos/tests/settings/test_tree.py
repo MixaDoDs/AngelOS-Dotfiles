@@ -2,7 +2,9 @@
 """The settings tree (modules/settings/tree.json) against the pages it is put together from.
 
 - every group of every page file is on exactly one page of the tree (or the page file is
-  there whole); every block names a file and a group that exist
+  there whole); every block names a file and a group that exist. The Golden Gate skin's own
+  tree ("mac"): its page file (MacPage.qml) is all on it, each group once, and its blocks from
+  the other files exist; the pixel files' groups it borrows stay on the pixel tree too
 - no setting got lost: every configuration key the interface could change before the
   rebuild (ui-keys-before.txt, from scripts/settings-inventory.py --keys) is on a page of
   the tree
@@ -30,22 +32,25 @@ INV = inventory.inventory(ROOT / "modules/settings/pages")
 SKIN_HOMES = set(TREE.get("skinHomes", []))
 
 
-def tree_pages():
+MAC_FILES = {"mac"}                      # page files only the Golden Gate tree shows
+
+
+def tree_pages(tree=None):
     yield dict(TREE["account"], id=TREE["account"]["page"])
-    for c in TREE["categories"]:
+    for c in (tree or TREE)["categories"]:
         yield from c["pages"]
 
 
-def blocks():
-    for p in tree_pages():
+def blocks(tree=None):
+    for p in tree_pages(tree):
         for b in p["blocks"]:
             yield p["id"], b
 
 
 class Tree(unittest.TestCase):
     def test_every_group_once(self):
-        groups = {(g["page"], g["name"]) for g in INV if g["name"] != "(page)" and g["page"] not in SKIN_HOMES}
-        files = {g["page"] for g in INV if g["page"] not in SKIN_HOMES}
+        groups = {(g["page"], g["name"]) for g in INV if g["name"] != "(page)" and g["page"] not in SKIN_HOMES and g["page"] not in MAC_FILES}
+        files = {g["page"] for g in INV if g["page"] not in SKIN_HOMES and g["page"] not in MAC_FILES}
         seen = {}
         for pid, b in blocks():
             if b.startswith("@owner/"):
@@ -60,11 +65,34 @@ class Tree(unittest.TestCase):
         missing = sorted(f"{s}/{n}" for s, n in groups - set(seen))
         self.assertEqual(missing, [], "groups on no page of the tree")
 
+    def test_mac_tree(self):
+        mac = TREE["mac"]
+        groups = {(g["page"], g["name"]) for g in INV if g["name"] != "(page)"}
+        files = {g["page"] for g in INV}
+        own = {(s, n) for s, n in groups if s in MAC_FILES}
+        seen = {}
+        for pid, b in blocks(mac):
+            src, _, name = b.partition("/")
+            self.assertIn(src, files, f"mac {pid}: no page file {src!r}")
+            self.assertNotIn(src, SKIN_HOMES, f"mac {pid}: {src!r} is a view's home")
+            self.assertTrue(not name or (src, name) in groups, f"mac {pid}: no group {b!r}")
+            if (src, name) in own:
+                self.assertNotIn((src, name), seen, f"group {b} is on {seen.get((src, name))} and on {pid}")
+                seen[(src, name)] = pid
+        self.assertEqual(sorted(f"{s}/{n}" for s, n in own - set(seen)), [], "MacPage groups on no page of the mac tree")
+        ids = {p["id"] for p in tree_pages(mac)}
+        self.assertIn(mac["fallback"], ids)
+        for old, to in mac.get("legacy", {}).items():
+            self.assertIn(to["page"], ids, f"mac legacy {old!r} leads to no page")
+        # the pixel skins' own groups (the Win98 taskbar, desk hearts, flavours, bar layouts, decorations) stay out
+        for b in ("bar/style", "bar/layout", "workspaces/desk-sprite-animation", "appearance/theme", "windows/window-decorations", "windows/alt-tab"):
+            self.assertNotIn(b, {x for _, x in blocks(mac)}, f"{b} is on the Golden Gate tree")
+
     def test_no_setting_lost(self):
         before = set((ROOT / "tests/settings/ui-keys-before.txt").read_text().split())
         reached = set()
         by_group = {(g["page"], g["name"]): g for g in INV}
-        for _, b in blocks():
+        for _, b in list(blocks()) + list(blocks(TREE["mac"])):
             if b.startswith("@owner/"):
                 continue
             src, _, name = b.partition("/")
@@ -79,7 +107,7 @@ class Tree(unittest.TestCase):
         legacy = TREE.get("legacy", {})
         for old, to in legacy.items():
             self.assertIn(to["page"], ids, f"legacy {old!r} leads to no page")
-        known = ids | set(legacy) | {"home", "more", ""}
+        known = ids | set(legacy) | {"home", "more", ""} | {p["id"] for p in tree_pages(TREE["mac"])}
         pattern = re.compile(r'(?:openSettings\(\s*"([\w-]*)"|settingsPage\s*=\s*"([\w-]*)"|"page":\s*"([\w-]+)")')
         bad = []
         files = list(ROOT.glob("**/*.qml")) + list(ROOT.glob("**/*.js"))

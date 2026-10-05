@@ -21,6 +21,9 @@ import qs.widgets
 // Dragged by the title bar, double click on the title toggles edit mode, Ctrl +
 // wheel (or the wheel in edit mode) resizes it, a right click on a bare spot
 // opens the desktop menu.
+// macOS look (DesktopWidgets.macLook, Settings → Widgets → Style): a Golden Gate card
+// (MacWidgetCard) with no title bar — in edit mode the whole card is the handle, a double
+// click on a bare spot of it toggles edit mode, its face blurs the wallpaper (`backdrop`).
 // Heaven and hell (Theme.realm): in hell the frame is the circle's, with its rim
 // (PxWindow.hell, HellEdge) and the built-in widgets draw their own hell look; a plugin
 // that doesn't ("realms" in its manifest) is re-inked by shaders/hell_widget.
@@ -32,6 +35,10 @@ Item {
     required property string uid
     required property string screenName
     required property Item area
+    // the face's wallpaper (Background: WallpaperView), blurred under a macOS card
+    property Item backdrop: null
+    // a macOS card instead of the pixel window (not in hell: the circle's look stays)
+    readonly property bool mac: DesktopWidgets.macLook
     property string role: "input"            // input | face
     readonly property bool face: role === "face"
     readonly property var body: content.item
@@ -41,7 +48,11 @@ Item {
     readonly property var info: widget ? DesktopWidgets.typeInfo(widget.type) : null
     readonly property bool wants: !content.item || content.item.wantVisible === undefined || content.item.wantVisible
     readonly property bool dragging: DesktopWidgets.drag.uid === uid
-    readonly property alias frame: frame
+    // the frame on show: the pixel window or the macOS card
+    readonly property Item frame: mac ? macFrame : pxFrame
+    // what drags it: the pixel window's title bar, or the macOS card (in edit mode)
+    readonly property MouseArea grip: mac ? macFrame.dragArea : pxFrame.titleMouse
+    readonly property Item gripBar: mac ? macFrame : pxFrame.titleBar
     // ---- heaven / hell ----
     readonly property bool selfHell: !info || !info.plugin || (info.plugin.realms || []).includes("hell")
     readonly property bool fxOn: StreamMode.effectsOn(screenName)
@@ -141,7 +152,8 @@ Item {
         }
     }
 
-    // ---- dragging by the title bar (PxWindow's own title MouseArea) ----
+    // ---- dragging by the title bar (PxWindow's own title MouseArea), or by the whole
+    // macOS card in edit mode (MacWidgetCard.dragArea) ----
     property point dragStart
     property point dragOrigin
     function endDrag() {
@@ -158,10 +170,13 @@ Item {
             });
     }
     Connections {
-        target: frame.titleMouse
+        target: host.grip
         enabled: !host.face
         function onPressed(m) {
-            host.dragStart = frame.titleMouse.mapToItem(host.area, m.x, m.y);
+            // a card moves only in edit mode (outside it the press is the content's)
+            if (host.mac && !DesktopWidgets.editMode)
+                return;
+            host.dragStart = host.grip.mapToItem(host.area, m.x, m.y);
             host.dragOrigin = Qt.point(host.x, host.y);
             DesktopWidgets.drag = {
                 "uid": host.uid,
@@ -172,7 +187,7 @@ Item {
         function onPositionChanged(m) {
             if (!host.dragging)
                 return;
-            const p = frame.titleMouse.mapToItem(host.area, m.x, m.y);
+            const p = host.grip.mapToItem(host.area, m.x, m.y);
             DesktopWidgets.drag = {
                 "uid": host.uid,
                 "x": host.clampX(host.dragOrigin.x + p.x - host.dragStart.x),
@@ -191,9 +206,14 @@ Item {
         }
     }
     Binding {
-        target: frame.titleMouse
+        target: pxFrame.titleMouse
         property: "cursorShape"
         value: host.dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+    }
+    Binding {
+        target: macFrame.dragArea
+        property: "cursorShape"
+        value: host.dragging ? Qt.ClosedHandCursor : DesktopWidgets.editMode ? Qt.OpenHandCursor : Qt.ArrowCursor
     }
 
     // Anything clickable in the content? Buttons (PxButton), MouseAreas and tap
@@ -236,13 +256,15 @@ Item {
         return found;
     }
     function isTitleDrag(px, py) {
-        const p = host.mapToItem(frame.titleBar, px, py);
+        if (mac && !DesktopWidgets.editMode)
+            return false;
+        const p = host.mapToItem(gripBar, px, py);
         const t = targetAt(px, py, "clicked");
-        return p.x >= 0 && p.y >= 0 && p.x < frame.titleBar.width && p.y < frame.titleBar.height && (!t || t.item === frame.titleMouse);
+        return p.x >= 0 && p.y >= 0 && p.x < gripBar.width && p.y < gripBar.height && (!t || t.item === grip);
     }
     function takes(px, py, button) {
         const t = targetAt(px, py, "clicked");
-        return !!t && t.item !== frame.titleMouse && (t.item.acceptedButtons === undefined || !!(t.item.acceptedButtons & button));
+        return !!t && t.item !== grip && (t.item.acceptedButtons === undefined || !!(t.item.acceptedButtons & button));
     }
     function press(px, py, button) {
         sim.mousePress(host, px, py, button, Qt.NoModifier, -1);
@@ -262,7 +284,7 @@ Item {
     // dev (`angelos widgetDrag uid dx dy ms`): a real drag by the title bar, replayed
     function devDrag(dx, dy, ms) {
         // in the desk's coordinates: the widget itself moves under the pointer
-        const p = frame.titleBar.mapToItem(host.area, frame.titleBar.width / 3, frame.titleBar.height / 2);
+        const p = gripBar.mapToItem(host.area, gripBar.width / 3, Math.min(gripBar.height / 2, Theme.u * 8));
         const n = Math.max(2, Math.round(ms / 16));
         const path = [];
         for (let i = 1; i <= n; i++)
@@ -299,7 +321,7 @@ Item {
     // host's (0, 0)
     Item {
         id: canvas
-        readonly property int pad: Theme.u * 12
+        readonly property int pad: host.mac ? DesktopWidgets.mpx(44) : Theme.u * 12
         x: -pad
         y: -pad
         width: host.width + pad * 2
@@ -322,11 +344,12 @@ Item {
         }
 
         PxWindow {
-            id: frame
+            id: pxFrame
+            visible: !host.mac
             x: canvas.pad
             y: canvas.pad
             hell: Theme.hell
-            flamesLive: host.face ? !Shell.hiddenScreen(host.screenName) : host.shown
+            flamesLive: !host.mac && (host.face ? !Shell.hiddenScreen(host.screenName) : host.shown)
             trim: !host.overFace
             scale: host.zoom
             transformOrigin: Item.TopLeft
@@ -345,6 +368,8 @@ Item {
 
             Loader {
                 id: content
+                // the pixel window's body, or the card's
+                parent: host.mac ? macFrame.bodyItem : pxFrame.bodyItem
                 width: implicitWidth
                 height: implicitHeight
                 // the input copy of a widget with nothing to click runs nothing: the face shows it
@@ -375,6 +400,25 @@ Item {
                     }
                 }
             }
+        }
+
+        MacWidgetCard {
+            id: macFrame
+            visible: host.mac
+            x: canvas.pad
+            y: canvas.pad
+            scale: host.zoom
+            transformOrigin: Item.TopLeft
+            width: content.implicitWidth + padding * 2
+            height: content.implicitHeight + padding * 2
+            editing: DesktopWidgets.editMode && !host.face
+            closable: DesktopWidgets.editMode
+            glassBody: !host.overFace
+            shadow: Config.appearance.shadows && !host.overFace
+            backdrop: host.face ? host.backdrop : null
+            backdropOrigin: Qt.point(host.x, host.y)
+            backdropScale: host.zoom
+            onCloseClicked: DesktopWidgets.remove(host.uid)
         }
     }
 }

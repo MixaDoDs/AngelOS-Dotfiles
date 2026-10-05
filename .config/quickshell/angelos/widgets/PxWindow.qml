@@ -34,6 +34,7 @@ Item {
     readonly property int chrome: frame.inset + Theme.u
     property alias titleBar: bar
     property alias titleMouse: titleMouse
+    property alias bodyItem: body          // where the content goes (a host may put it there itself)
     default property alias content: body.data
 
     signal closeClicked

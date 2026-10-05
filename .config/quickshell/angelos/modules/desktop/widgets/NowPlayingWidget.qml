@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import qs.config
 import qs.services
 import qs.widgets
@@ -6,6 +7,8 @@ import qs.widgets
 // Cover, track and controls of the current MPRIS player.
 // In hell (Theme.realm) the cover is the label of a burning record: a pixel disc
 // that turns while the music plays, flames licking up from under it.
+// macOS look (DesktopWidgets.macLook): the cover with round corners, the track, a thin
+// progress line with the times and the controls in SF-like glyphs.
 Item {
     id: root
 
@@ -16,8 +19,9 @@ Item {
     readonly property bool playing: !!p && p.isPlaying
     readonly property bool live: visible && !Shell.hiddenScreen(screenName)
 
-    implicitWidth: Theme.u * 150
-    implicitHeight: Theme.u * 44
+    readonly property bool mac: DesktopWidgets.macLook
+    implicitWidth: mac ? DesktopWidgets.mpx(320) : Theme.u * 150
+    implicitHeight: mac ? DesktopWidgets.mpx(104) : Theme.u * 44
 
     Timer {
         interval: 1000
@@ -30,15 +34,195 @@ Item {
         }
     }
 
+    // ---- macOS look ----
+    function clock(sec) {
+        if (!(sec >= 0) || !isFinite(sec))
+            return "0:00";
+        const s = Math.floor(sec);
+        return Math.floor(s / 60) + ":" + ("0" + s % 60).slice(-2);
+    }
+    readonly property bool hasTrack: !!p && !!Lyrics.title
+    Row {
+        visible: root.mac && !root.hasTrack
+        anchors.centerIn: parent
+        spacing: DesktopWidgets.mpx(8)
+        MacIcon {
+            anchors.verticalCenter: parent.verticalCenter
+            name: "music"
+            size: DesktopWidgets.mpx(18)
+            color: DesktopWidgets.macSecondary
+        }
+        MacWidgetText {
+            anchors.verticalCenter: parent.verticalCenter
+            text: I18n.t("Ничего не играет", "Not Playing")
+            size: 15
+            weight: Font.DemiBold
+            role: "secondary"
+        }
+    }
+    Row {
+        visible: root.mac && root.hasTrack
+        anchors.fill: parent
+        spacing: DesktopWidgets.mpx(14)
+        Item {
+            id: macCover
+            width: parent.height
+            height: parent.height
+            Rectangle {
+                anchors.fill: parent
+                radius: DesktopWidgets.mpx(12)
+                color: DesktopWidgets.macSeparator
+                MacIcon {
+                    anchors.centerIn: parent
+                    visible: macArt.status !== Image.Ready
+                    name: "music"
+                    size: parent.width * 0.36
+                    color: DesktopWidgets.macTertiary
+                }
+            }
+            Image {
+                id: macArt
+                anchors.fill: parent
+                source: root.mac && root.p ? (root.p.trackArtUrl || "") : ""
+                sourceSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))
+                fillMode: Image.PreserveAspectCrop
+                smooth: true
+                mipmap: true
+                asynchronous: true
+                visible: false
+            }
+            MultiEffect {
+                anchors.fill: parent
+                visible: macArt.status === Image.Ready
+                source: macArt
+                maskEnabled: true
+                maskSource: coverMask
+                maskThresholdMin: 0.5
+                maskSpreadAtMin: 1
+            }
+            Item {
+                id: coverMask
+                anchors.fill: parent
+                visible: false
+                layer.enabled: true
+                Rectangle {
+                    anchors.fill: parent
+                    radius: DesktopWidgets.mpx(12)
+                    antialiasing: true
+                }
+            }
+        }
+        Column {
+            width: parent.width - macCover.width - parent.spacing
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: DesktopWidgets.mpx(2)
+            MacWidgetText {
+                width: parent.width
+                text: Lyrics.title
+                size: 15
+                weight: Font.DemiBold
+            }
+            MacWidgetText {
+                width: parent.width
+                text: Lyrics.artist
+                size: 13
+                role: "secondary"
+            }
+            Item {
+                width: 1
+                height: DesktopWidgets.mpx(6)
+            }
+            Rectangle {
+                width: parent.width
+                height: DesktopWidgets.mpx(4)
+                radius: height / 2
+                color: DesktopWidgets.macSeparator
+                Rectangle {
+                    height: parent.height
+                    radius: height / 2
+                    width: root.p && root.p.length > 0 ? Math.max(height, parent.width * Math.min(1, root.pos / root.p.length)) : 0
+                    color: DesktopWidgets.macLabel
+                    opacity: 0.85
+                }
+            }
+            Item {
+                width: parent.width
+                height: macTimes.implicitHeight
+                MacWidgetText {
+                    id: macTimes
+                    text: root.clock(root.pos)
+                    size: 11
+                    role: "tertiary"
+                }
+                MacWidgetText {
+                    anchors.right: parent.right
+                    text: root.p && root.p.length > 0 ? "−" + root.clock(root.p.length - root.pos) : ""
+                    size: 11
+                    role: "tertiary"
+                }
+            }
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: DesktopWidgets.mpx(14)
+                Repeater {
+                    model: [
+                        {
+                            "id": "prev",
+                            "icon": "skip-back",
+                            "size": 18
+                        },
+                        {
+                            "id": "play",
+                            "icon": root.playing ? "pause" : "play",
+                            "size": 24
+                        },
+                        {
+                            "id": "next",
+                            "icon": "skip-forward",
+                            "size": 18
+                        }
+                    ]
+                    Item {
+                        id: macBtn
+                        required property var modelData
+                        width: DesktopWidgets.mpx(32)
+                        height: width
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: DesktopWidgets.macLabel
+                            opacity: macBtnMouse.pressed ? 0.2 : macBtnMouse.containsMouse ? 0.1 : 0
+                        }
+                        MacIcon {
+                            anchors.centerIn: parent
+                            name: macBtn.modelData.icon
+                            size: DesktopWidgets.mpx(macBtn.modelData.size)
+                            filled: true
+                            stroke: 1.5
+                            color: DesktopWidgets.macLabel
+                        }
+                        MouseArea {
+                            id: macBtnMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: macBtn.modelData.id === "prev" ? root.p.previous() : macBtn.modelData.id === "next" ? root.p.next() : root.p.togglePlaying()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     PxText {
-        visible: !root.p || !Lyrics.title
+        visible: !root.mac && (!root.p || !Lyrics.title)
         anchors.centerIn: parent
         text: Theme.hell ? I18n.t("тишина", "silence") : I18n.t("ничего не играет ♡", "nothing is playing ♡")
         color: Theme.hell ? Theme.hellTextDim : Theme.textDim
     }
 
     Row {
-        visible: !!root.p && !!Lyrics.title
+        visible: !root.mac && !!root.p && !!Lyrics.title
         anchors.fill: parent
         spacing: Theme.u * 5
 

@@ -2,17 +2,21 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 import "."
 
 // Pixel meters for the plan limits: how much is LEFT and when it resets.
+// `mac` (the desktop card in the macOS look, DesktopWidgets.macLook): thin rounded bars in
+// SF Pro, and a problem (no login, an expired token) as a plain line of secondary text.
 Column {
     id: root
 
     property bool compact: false
     // hell's look (the desktop orb while the demon rules): fire meters, bone text
     property bool hell: false
-    spacing: Theme.u * (compact ? 2 : 4)
+    property bool mac: false
+    spacing: mac ? DesktopWidgets.mpx(8) : Theme.u * (compact ? 2 : 4)
 
     readonly property var rows: [
         {
@@ -33,12 +37,7 @@ Column {
         }
     ].filter(r => !!r.w)
 
-    PxText {
-        visible: !Usage.ok
-        width: root.width
-        wrapMode: Text.Wrap
-        dim: true
-        text: ({
+    readonly property string problem: ({
                 "idle": "…",
                 "loading": I18n.t("узнаю лимиты…", "Loading limits…"),
                 "expired": I18n.t("токен Claude Code истёк — он обновится при следующем запуске claude", "Claude Code token expired. It refreshes the next time you start Claude Code."),
@@ -46,10 +45,77 @@ Column {
                 "offline": I18n.t("нет связи с api.anthropic.com", "Cannot reach api.anthropic.com"),
                 "nologin": I18n.t("не нашёл ~/.claude/.credentials.json — войди в Claude Code", "Claude Code credentials not found. Sign in to Claude Code.")
             })[Usage.status] || Usage.status
+    PxText {
+        visible: !Usage.ok && !root.mac
+        width: root.width
+        wrapMode: Text.Wrap
+        dim: true
+        text: root.problem
+    }
+
+    // ---- macOS look ----
+    Row {
+        visible: !Usage.ok && root.mac
+        width: root.width
+        spacing: DesktopWidgets.mpx(6)
+        MacIcon {
+            id: macInfo
+            name: "info"
+            size: DesktopWidgets.mpx(14)
+            color: DesktopWidgets.macSecondary
+            y: DesktopWidgets.mpx(1)
+        }
+        MacWidgetText {
+            width: parent.width - macInfo.width - parent.spacing
+            text: root.problem.charAt(0).toUpperCase() + root.problem.slice(1)
+            size: 12
+            role: "secondary"
+            wrapMode: Text.Wrap
+            elide: Text.ElideNone
+        }
+    }
+    Repeater {
+        model: Usage.ok && root.mac ? root.rows : []
+        Column {
+            id: mr
+            required property var modelData
+            readonly property color c: DesktopWidgets.macInk(Usage.colorFor(modelData.w.left, Theme))
+            width: root.width
+            spacing: DesktopWidgets.mpx(4)
+            Item {
+                width: parent.width
+                height: mrLabel.implicitHeight
+                MacWidgetText {
+                    id: mrLabel
+                    text: mr.modelData.label
+                    size: 12
+                    role: "secondary"
+                }
+                MacWidgetText {
+                    anchors.right: parent.right
+                    text: I18n.t("осталось ", "") + mr.modelData.w.left + "%" + I18n.t("", " left")
+                    size: 12
+                    weight: Font.DemiBold
+                    color: mr.c
+                }
+            }
+            Rectangle {
+                width: parent.width
+                height: DesktopWidgets.mpx(6)
+                radius: height / 2
+                color: DesktopWidgets.macSeparator
+                Rectangle {
+                    height: parent.height
+                    radius: height / 2
+                    width: mr.modelData.w.left > 0 ? Math.max(height, parent.width * mr.modelData.w.left / 100) : 0
+                    color: mr.c
+                }
+            }
+        }
     }
 
     Repeater {
-        model: Usage.ok ? root.rows : []
+        model: Usage.ok && !root.mac ? root.rows : []
         Column {
             id: r
             required property var modelData
@@ -102,7 +168,7 @@ Column {
         }
     }
     PxText {
-        visible: Usage.ok && !root.compact
+        visible: Usage.ok && !root.compact && !root.mac
         text: I18n.t("план: ", "Plan: ") + (Usage.plan || "?") + I18n.t(" · обновлено ", " · updated ") + Qt.formatTime(Usage.updated, "HH:mm")
         kind: "tiny"
         dim: true

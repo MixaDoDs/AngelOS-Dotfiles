@@ -320,21 +320,6 @@ IpcHandler {
             "text": Angel.talking ? Angel.text : ""
         });
     }
-    // the angelOS title bars over floating windows, per screen (modules/decor)
-    function decor(): string {
-        return JSON.stringify({
-            "titlebars": GoldenGate.titlebars,
-            "bars": Shell.decor
-        });
-    }
-    // dev/owner: drag the angelOS title bar of window ID by DX, DY pixels over MS ms (a real
-    // press-move-release on the bar, replayed inside the shell)
-    function decorDrag(id: int, dx: int, dy: int, ms: int): string {
-        if (!Shell.dev && !Owner.enabled)
-            return "dev or owner only";
-        Shell.decorDrag(id, dx, dy, ms || 400);
-        return "ok";
-    }
     // dev only: run a shell command the way the shell starts apps (Shell.sh)
     function devExec(cmd: string): string {
         if (!Shell.dev)
@@ -512,7 +497,23 @@ IpcHandler {
     // ⌘Q of the Golden Gate skin's Mac shortcuts: the frontmost app quits — its own Quit when it
     // has one (by D-Bus), else every window of it closes through niri (the app may still ask)
     function macQuit(): string {
-        if (!GoldenGate.on || !AppMenu.window)
+        if (Shell.setupLocked || !GoldenGate.on)
+            return "the Golden Gate skin is off";
+        // ⌘Q while ⌘Tab is up (⌘ still held): the app picked there quits, the switcher stays
+        const picked = AltTab.pickedApp;
+        if (picked) {
+            for (const w of picked.windows)
+                Niri.closeWindow(w.id);
+            const rest = AltTab.items.filter(a => a !== picked);
+            if (!rest.length)
+                AltTab.cancel();
+            else {
+                AltTab.items = rest;
+                AltTab.index = Math.min(AltTab.index, rest.length - 1);
+            }
+            return "ok";
+        }
+        if (!AppMenu.window)
             return "nothing to quit";
         const app = AppMenu.menus.length ? AppMenu.menus[0].items.find(it => /^(app|s):quit$/.test(it.id)) : null;
         AppMenu.trigger(app || AppMenu.item("app:quit", "", {
@@ -528,6 +529,36 @@ IpcHandler {
         Minimize.request(AppMenu.window.id, "keys");
         return "ok";
     }
+    // ⌘H of the Golden Gate skin's Mac keys: the frontmost app hides (all its windows go,
+    // services/Minimize.hide; its Dock icon or ⌘Tab brings them back) — while ⌘Tab is up, the
+    // app picked there
+    function macHide(): string {
+        if (Shell.setupLocked || !GoldenGate.on)
+            return "the Golden Gate skin is off";
+        const picked = AltTab.pickedApp;
+        const w = picked ? picked.windows.find(x => !Minimize.isMinimized(x)) : AppMenu.window;
+        if (!w)
+            return "nothing to hide";
+        Minimize.hide(w.id);
+        if (picked)
+            AltTab.cancel();
+        return "ok";
+    }
+    // ⇧⌘5: the screenshot menu on the focused screen, above the Dock (MacMenus.openShot)
+    function macShotMenu(): string {
+        const scr = Shell.focusedScreen;
+        if (Shell.setupLocked || !GoldenGate.on || !scr)
+            return "the Golden Gate skin is off";
+        MacMenus.openShot(scr.name, scr.width / 2, scr.height - (GoldenGate.dockEdge === "bottom" ? Minimize.dockZone[scr.name] || 0 : 0) - GoldenGate.px(12));
+        return MacMenus.isOpen ? "ok" : "no menu";
+    }
+    function macHidden(): string {
+        return JSON.stringify(Minimize.hiddenWindows.map(w => ({
+                    "id": w.id,
+                    "app_id": w.app_id,
+                    "title": w.title
+                })));
+    }
     function macMinimized(): string {
         return JSON.stringify(Minimize.windows.map(w => ({
                     "id": w.id,
@@ -539,6 +570,23 @@ IpcHandler {
     function macRestore(id: string): string {
         Minimize.restore(parseInt(id));
         return "ok";
+    }
+    // Settings → Appearance → "Reset the theme's settings to the defaults" (GoldenGate.themeKeys);
+    // "Undo" in Settings brings them back. Returns how many changed
+    function macResetTheme(): string {
+        Config.flush();
+        return String(GoldenGate.resetTheme());
+    }
+    // a left click on the Dock's app `id` (its entry id or app id) on the focused screen, as the
+    // Dock's own click does it (tests)
+    function macDockOpen(id: string): string {
+        if (!GoldenGate.on)
+            return "the Golden Gate skin is off";
+        const it = MacDockModel.apps.find(a => a.id === id);
+        if (!it)
+            return "no app " + id;
+        MacDockModel.open(it, Niri.focusedOutput);
+        return it.name;
     }
     // what the menu bar shows now, as JSON (the report's table, tests): the app, where its menus
     // come from, the titles and their items

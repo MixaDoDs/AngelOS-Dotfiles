@@ -63,8 +63,6 @@ cursor.size
 cursor.theme
 decor.gtkButtons
 decor.gtkLayout
-decor.skip
-decor.titlebars
 desktop.menuAnim
 desktop.menuIcons
 desktop.menuItems

@@ -11,6 +11,7 @@ import qs.widgets
 // It exists only while it is shown, so a quick Alt+Tab tap never takes the
 // keyboard from the app. Keys: Tab / arrows move, Enter or letting Alt go
 // picks, Esc cancels, Delete closes the highlighted window; the mouse picks too.
+// ⌘Tab (AltTab.mode "apps") shows the apps the Mac way (AltTabMac); letting ⌘ go picks.
 Scope {
     LazyLoader {
         active: AltTab.shown
@@ -53,7 +54,7 @@ Scope {
                         AltTab.select((AltTab.index + 1) % AltTab.items.length);
                     else if (k === Qt.Key_Backtab || k === Qt.Key_Left || k === Qt.Key_Up)
                         AltTab.select((AltTab.index - 1 + AltTab.items.length) % AltTab.items.length);
-                    else if (k === Qt.Key_Delete && AltTab.current) {
+                    else if (k === Qt.Key_Delete && AltTab.current && AltTab.mode === "windows") {
                         // close the highlighted window, stay in the switcher
                         const id = AltTab.current.id;
                         Niri.closeWindow(id);
@@ -70,7 +71,8 @@ Scope {
                 }
                 // the fallback when the keyboard watcher is not allowed to read keys
                 Keys.onReleased: e => {
-                    if (e.key === Qt.Key_Alt || e.key === Qt.Key_AltGr) {
+                    const mod = AltTab.mode === "apps" ? [Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R] : [Qt.Key_Alt, Qt.Key_AltGr];
+                    if (mod.includes(e.key)) {
                         if (!AltTab.demo)
                             AltTab.commit();
                         e.accepted = true;
@@ -111,7 +113,7 @@ Scope {
                     id: view
                     anchors.fill: parent
                     anchors.topMargin: win.skinPad
-                    sourceComponent: win.hellOwn ? hell : AltTab.style === "ngo" ? ngo : AltTab.style === "y2k" ? y2k : angelos
+                    sourceComponent: AltTab.mode === "apps" ? mac : win.hellOwn ? hell : AltTab.style === "ngo" ? ngo : AltTab.style === "y2k" ? y2k : angelos
                     layer.enabled: win.hellSkin
                     layer.effect: ShaderEffect {
                         property real keep: 0.35
@@ -151,6 +153,12 @@ Scope {
             Component {
                 id: hell
                 AltTabHell {
+                    host: win
+                }
+            }
+            Component {
+                id: mac
+                AltTabMac {
                     host: win
                 }
             }

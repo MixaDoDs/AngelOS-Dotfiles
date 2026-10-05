@@ -25,6 +25,8 @@ Singleton {
     property var titleX: ({})                // screen -> [left x of each title], from the bar
     property bool fromKeyboard: false        // opened from the keyboard: the first item is selected
     property real bottom: -1                 // a Dock menu: its bottom edge (it opens upwards, centred on x)
+    property string side: ""                 // a Dock on the left or right: the menu opens beside it,
+    property real sideY: 0                   // x its near edge, centred on sideY (Config.mac.dockPosition)
     property var dockItem: null              // the Dock item whose menu is open
     property real top: -1                    // the desktop's menu: its top edge (x is its left, where the click was)
     readonly property var barMenus: [angelMenu].concat(AppMenu.menus)
@@ -40,6 +42,7 @@ Singleton {
         top = -1;
         statusKind = "";
         bottom = -1;
+        side = "";
         dockItem = null;
         x = xPos;
         alignRight = false;
@@ -54,6 +57,7 @@ Singleton {
         top = -1;
         index = -1;
         bottom = -1;
+        side = "";
         dockItem = null;
         trayItem = tray || null;
         statusKind = kind;
@@ -62,7 +66,9 @@ Singleton {
         screen = screenName;
     }
     // a Dock item's menu: above it, centred on it
-    function openDock(screenName, item, centerX, bottomY) {
+    // centerX, bottomY: above the icon of a Dock at the bottom; with `edge` "left"/"right" (a Dock
+    // there) centerX is the menu's near edge and bottomY the icon's middle
+    function openDock(screenName, item, centerX, bottomY, edge) {
         if (isOpen && screen === screenName && dockItem && item && dockItem.id === item.id) {
             close();
             return;
@@ -76,17 +82,23 @@ Singleton {
         statusKind = item.kind === "trash" ? "dock-trash" : item.kind === "downloads" ? "dock-downloads" : "dock";
         x = centerX;
         bottom = bottomY;
+        side = "";
+        if (edge === "left" || edge === "right") {
+            side = edge;
+            sideY = bottomY;
+            bottom = -1;
+        }
         alignRight = false;
         screen = screenName;
     }
     // a stack in the Dock (Downloads, a left click): its newest files in a grid above the icon,
     // MacMenuHost draws it (MacStack) — the same overlay as a menu: a click outside or Esc closes it
-    function openStack(screenName, item, centerX, bottomY) {
+    function openStack(screenName, item, centerX, bottomY, edge) {
         if (isOpen && screen === screenName && statusKind === "dock-stack") {
             close();
             return;
         }
-        openDock(screenName, item, centerX, bottomY);
+        openDock(screenName, item, centerX, bottomY, edge);
         statusKind = "dock-stack";
     }
     // the desktop's menu (a right click on the wallpaper), as Finder's: under the pointer
@@ -96,6 +108,7 @@ Singleton {
         fromKeyboard = false;
         index = -1;
         bottom = -1;
+        side = "";
         dockItem = null;
         trayItem = null;
         statusKind = "desk";
@@ -106,6 +119,27 @@ Singleton {
         screen = screenName;
     }
     property string deskScreen: ""
+    // ⇧⌘5: macOS's Screenshot toolbar as a menu, in the middle above the Dock, the first item
+    // selected (↑/↓, Enter, Esc)
+    function openShot(screenName, centerX, bottomY) {
+        if (isOpen && screen === screenName && statusKind === "shot") {
+            close();
+            return;
+        }
+        if (!isOpen)
+            Shell.closeTransient();
+        fromKeyboard = true;
+        top = -1;
+        index = -1;
+        dockItem = null;
+        trayItem = null;
+        statusKind = "shot";
+        x = centerX;
+        bottom = bottomY;
+        side = "";
+        alignRight = false;
+        screen = screenName;
+    }
     function close() {
         top = -1;
         screen = "";
@@ -114,6 +148,7 @@ Singleton {
         trayItem = null;
         dockItem = null;
         bottom = -1;
+        side = "";
     }
     function toggle(screenName, i, xPos) {
         if (isOpen && screen === screenName && index === i)
@@ -256,6 +291,11 @@ Singleton {
                 "stack": true,
                 "items": []
             };
+        case "shot":
+            return {
+                "id": "s:shot",
+                "items": shotItems()
+            };
         }
         return null;
     }
@@ -276,6 +316,17 @@ Singleton {
         if (DesktopWidgets.editMode || DesktopWidgets.uidsFor(scr).length > 0)
             out.push(fn("desk:edit", DesktopWidgets.editMode ? I18n.t("Закончить редактирование", "Done Editing Widgets") : I18n.t("Редактировать виджеты", "Edit Widgets"), () => DesktopWidgets.editMode = !DesktopWidgets.editMode));
         out.push(AppMenu.sep("desk2"), fn("desk:folder", I18n.t("Открыть папку «Рабочий стол»", "Open the Desktop Folder"), () => Quickshell.execDetached(["sh", "-c", 'exec xdg-open "$(xdg-user-dir DESKTOP)"'])));
+        return out;
+    }
+    // the screenshot menu (⇧⌘5): what Capture.mac does after the menu has gone
+    function shotItems() {
+        const k = keys => Config.mac.keys ? {
+            "keys": keys
+        } : {};
+        const out = [header("sh:h", I18n.t("Снимок экрана", "Screenshot")), fn("sh:screen", I18n.t("Снять весь экран", "Capture Entire Screen"), () => Capture.mac("screen"), k(["shift", "logo", "3"])), fn("sh:window", I18n.t("Снять окно", "Capture Selected Window"), () => Capture.mac("window")), fn("sh:region", I18n.t("Снять выбранную область", "Capture Selected Portion"), () => Capture.mac("region"), k(["shift", "logo", "4"]))];
+        if (Capture.canRecord)
+            out.push(AppMenu.sep("sh1"), fn("sh:record", I18n.t("Записать выбранную область", "Record Selected Portion"), () => Capture.mac("record")));
+        out.push(AppMenu.sep("sh2"), fn("sh:folder", I18n.t("Открыть папку «Снимки экрана»", "Open the Screenshots Folder"), () => Quickshell.execDetached(["sh", "-c", 'mkdir -p "$HOME/Pictures/Screenshots" && exec xdg-open "$HOME/Pictures/Screenshots"'])), settingsItem("sh:set", I18n.t("Настройки снимков…", "Screenshot Settings…"), "capture"));
         return out;
     }
     function wifiItems() {

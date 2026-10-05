@@ -14,6 +14,10 @@ Singleton {
     id: root
 
     property var data: ({})
+    // the Golden Gate skin has a tree of its own (tree.json "mac"): its look-and-feel pages and the
+    // system pages without the pixel skins' groups; the pixel tree is not shown meanwhile
+    readonly property bool mac: GoldenGate.on && !!data.mac
+    readonly property var tree: mac ? data.mac : data
     FileView {
         id: file
         path: Quickshell.shellDir + "/modules/settings/tree.json"
@@ -93,7 +97,7 @@ Singleton {
                 "blocks": acc.blocks || [],
                 "category": ""
             };
-        for (const c of data.categories || [])
+        for (const c of tree.categories || [])
             for (const p of c.pages || [])
                 m[p.id] = {
                     "id": p.id,
@@ -107,19 +111,19 @@ Singleton {
                     "developer": !!p.developer
                 };
         for (const p of pluginPages) {
-            const after = ((data.plugins || {}).after || {})[p.plugin];
+            const after = ((tree.plugins || {}).after || {})[p.plugin];
             m[p.id] = Object.assign({}, p, {
-                "category": after && m[after] ? m[after].category : (data.plugins || {}).category || ""
+                "category": after && m[after] ? m[after].category : (tree.plugins || {}).category || ""
             });
         }
         return m;
     }
     // the categories as they show: their visible pages, plugin pages put in, empty ones left out
     readonly property var categories: {
-        const pl = data.plugins || {};
+        const pl = tree.plugins || {};
         const after = pl.after || {};
         const out = [];
-        for (const c of data.categories || []) {
+        for (const c of tree.categories || []) {
             let ids = (c.pages || []).filter(p => root.shown(p)).map(p => p.id);
             for (const p of pluginPages) {
                 const a = after[p.plugin];
@@ -168,7 +172,7 @@ Singleton {
                 "page": id,
                 "to": ""
             };
-        const l = (data.legacy || {})[id];
+        const l = (tree.legacy || {})[id];
         if (l)
             return {
                 "page": l.page,
@@ -176,6 +180,12 @@ Singleton {
             };
         // a page file's id whose groups went to one page
         const p = groupPages[id];
+        // the Golden Gate tree: a page only the pixel skins have leads to its first page
+        if (!p && mac)
+            return {
+                "page": tree.fallback || accountPage,
+                "to": ""
+            };
         return {
             "page": p || id,
             "to": ""

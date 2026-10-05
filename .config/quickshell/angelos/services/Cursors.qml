@@ -40,11 +40,13 @@ Singleton {
     // sparkle (angelOS Pixel); cold for good, angelOS's own arrow frosts over (angelOS Frost).
     // Someone else's theme stays as it is.
     readonly property int angelStep: Story.ready ? Story.angelStep : 0
-    // the Golden Gate skin: macOS's black arrow — capitaine-cursors (drawn after macOS's cursors,
-    // LGPL-3.0, from the distribution) — while it is on and the demon doesn't rule; the cursor
-    // before it comes back when it goes (Config.cursor.beforeMac)
-    readonly property string macTheme: "capitaine-cursors"
-    readonly property bool macCursor: GoldenGate.on && !hellOn && other.includes(macTheme)
+    // the Golden Gate skin: macOS's black arrow — "macOS" (ful1e5/apple_cursor, redrawn, GPL-3.0,
+    // the catalog's "macos") when it is installed, else capitaine-cursors (drawn after macOS's
+    // cursors, LGPL-3.0, from the distribution) — while it is on and the demon doesn't rule; the
+    // cursor before it comes back when it goes (Config.cursor.beforeMac)
+    readonly property bool macInstalled: catalog.some(e => e.theme === "macOS" && e.installed)
+    readonly property string macTheme: macInstalled ? "macOS" : "capitaine-cursors"
+    readonly property bool macCursor: GoldenGate.on && !hellOn && (macInstalled || other.includes(macTheme))
     readonly property string heavenTheme: {
         if (macCursor)
             return macTheme;

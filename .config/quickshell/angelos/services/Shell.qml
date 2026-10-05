@@ -59,8 +59,6 @@ Singleton {
     // demo/recording mode: popups open from IPC without an input grab
     readonly property bool demo: Quickshell.env("ANGELOS_DEMO") === "1"
     property var desktopMenus: ({})   // screen name -> DesktopMenu
-    property var decor: ({})          // screen name -> the angelOS title bars it shows (modules/decor; `angelos decor`)
-    signal decorDrag(int id, real dx, real dy, int ms)   // dev/owner: a drag on a title bar, replayed (tests)
     property string launcherText: ""
     // plays the workspace heart animation on the bars without switching (settings preview, `angelos heartDemo`)
     signal heartDemo(int from, int to)
@@ -230,6 +228,16 @@ Singleton {
         if (Config.appearance.qtStyle)
             e.QT_QPA_PLATFORMTHEME = "qt6ct";
         e.ANGELOS_PRE_QT_QPA_PLATFORMTHEME = null;
+        // Qt's own title bars: the shell keeps them off for itself (bin/angelos); the apps draw
+        // theirs in Golden Gate (Adwaita's frame, the buttons in GTK's order — niri's
+        // prefer-no-csd is off there, templates/niri-mac.kdl), not in the pixel skins
+        if (GoldenGate.on) {
+            e.QT_WAYLAND_DISABLE_WINDOWDECORATION = null;
+            e.QT_WAYLAND_DECORATION = "adwaita";
+        } else if (Quickshell.env("ANGELOS_PRE_QT_WAYLAND_DISABLE_WINDOWDECORATION") != null) {
+            e.QT_WAYLAND_DISABLE_WINDOWDECORATION = _pre("QT_WAYLAND_DISABLE_WINDOWDECORATION");
+        }
+        e.ANGELOS_PRE_QT_WAYLAND_DISABLE_WINDOWDECORATION = null;
         // the systemd service's own variables are not the apps' business
         if (service) {
             for (const k of ["ANGELOS_SERVICE", "INVOCATION_ID", "JOURNAL_STREAM", "SYSTEMD_EXEC_PID", "MANAGERPID", "MANAGERPIDFDID", "MEMORY_PRESSURE_WATCH", "MEMORY_PRESSURE_WRITE"])

@@ -117,7 +117,7 @@ def render_keys(alttab, lens, quit=False):
     out += ["// angelOS keys (one binds node per file)", "binds {"]
     if alttab:
         out += [f'    Alt+Tab repeat=false hotkey-overlay-title="angelOS: Alt+Tab" {{ spawn-sh "{ANGELOS}next"; }}',
-                f'    Alt+Shift+Tab repeat=false {{ spawn-sh "{ANGELOS}prev"; }}']
+                f'    Alt+Shift+Tab repeat=false hotkey-overlay-title="angelOS: Alt+Tab назад" {{ spawn-sh "{ANGELOS}prev"; }}']
     if lens:
         out += [f'    Mod+Alt+Equal hotkey-overlay-title="angelOS: лупа ближе" {{ spawn-sh "{LENS}in"; }}',
                 f'    Mod+Alt+Minus hotkey-overlay-title="angelOS: лупа дальше" {{ spawn-sh "{LENS}out"; }}',

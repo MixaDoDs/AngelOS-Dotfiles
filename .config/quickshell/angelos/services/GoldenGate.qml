@@ -65,15 +65,73 @@ Singleton {
         return hell ? Qt.rgba(0.07, 0.03, 0.03, Math.min(0.97, a + 0.1)) : dark ? Qt.rgba(0.12, 0.12, 0.13, Math.min(0.97, a)) : Qt.rgba(0.97, 0.97, 0.975, Math.min(0.97, a));
     }
     readonly property color glassFill: glass(0)
+
+    // ---- the skin's settings: their limits, and "Reset the theme" (Settings → Appearance) ----
+    // every number has a range and every choice a list (Settings shows the same ones): a value out
+    // of them — settings.json edited by hand, an older version — goes back into them, never to 0
+    readonly property var limits: ({
+            "mac.glass": [0, 1],
+            "mac.dockSize": [32, 96],
+            "mac.dockMagnifySize": [32, 128],
+            "appearance.fontScale": [1, 2],
+            "appearance.lightFrom": [0, 23],
+            "appearance.darkFrom": [0, 23]
+        })
+    readonly property var choices: ({
+            "mac.accent": ["blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"],
+            "mac.minimizeEffect": ["genie", "scale"],
+            "mac.dockPosition": ["bottom", "left", "right"],
+            "appearance.mode": ["light", "dark", "auto"],
+            "desktop.widgetStyle": ["auto", "pixel", "mac"]
+        })
+    // the screen edge the Dock stands on
+    readonly property string dockEdge: choices["mac.dockPosition"].includes(Config.mac.dockPosition) ? Config.mac.dockPosition : "bottom"
+    function sanitize() {
+        if (!Config.ready)
+            return;
+        const fix = (path, v) => {
+            const [sec, key] = path.split(".");
+            if (JSON.stringify(Config[sec][key]) !== JSON.stringify(v))
+                Config[sec][key] = v;
+        };
+        for (const path in limits) {
+            const [sec, key] = path.split(".");
+            const [lo, hi] = limits[path];
+            const v = Number(Config[sec][key]);
+            fix(path, isFinite(v) ? Math.max(lo, Math.min(hi, v)) : Config.defaultOf(path));
+        }
+        if (Config.mac.dockMagnifySize < Config.mac.dockSize)
+            Config.mac.dockMagnifySize = Config.mac.dockSize;
+        for (const path in choices) {
+            const [sec, key] = path.split(".");
+            if (!choices[path].includes(Config[sec][key]))
+                fix(path, Config.defaultOf(path));
+        }
+    }
+    // (any of them changed, also from the file: checked once things settle)
+    readonly property string _watched: Config.ready ? JSON.stringify([Config.mac.glass, Config.mac.dockSize, Config.mac.dockMagnifySize, Config.mac.accent, Config.mac.minimizeEffect, Config.mac.dockPosition, Config.appearance.mode, Config.appearance.fontScale, Config.desktop.widgetStyle]) : ""
+    on_WatchedChanged: if (_watched)
+        Qt.callLater(sanitize)
+    // what "Reset the theme" puts back: what the skin's own pages show (Dock, Appearance,
+    // Wallpaper, Widgets' style, Windows, the Mac keys). The apps kept in the Dock stay (they are
+    // yours, not a setting: Dock → "Reset the order"), and so does the skin itself
+    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.appMenus", "mac.keys", "mac.floating", "mac.minimizeEffect", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
+    function resetTheme() {
+        return Config.resetKeys(themeKeys);
+    }
+    // the apps' own minimize buttons reach angelOS (extras/minimize-hook, Settings → Windows)
+    property bool hookInstalled: false
+    Process {
+        running: true
+        command: ["sh", "-c", '[ -f "$HOME/.local/lib/angelos/lib/libangelos-minimize.so" ] && echo yes || echo no']
+        stdout: SplitParser {
+            onRead: line => root.hookInstalled = line === "yes"
+        }
+    }
     // a darker edge and a brighter highlight (Golden Gate's "more depth and separation")
     readonly property color glassEdge: hell ? Qt.alpha(Theme.hellBlood, 0.55) : dark ? Qt.rgba(0, 0, 0, 0.55) : Qt.rgba(0, 0, 0, 0.14)
     readonly property color glassHighlight: hell ? Qt.alpha(Theme.hellEmber, 0.35) : dark ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.75)
     readonly property color shadow: Qt.rgba(0, 0, 0, dark ? 0.5 : 0.22)
-    // window title bars (modules/decor, Settings → Windows): the skin keeps its own set
-    // (Config.mac.titlebars, decorSkip), the other skins Config.decor's — switching skins brings
-    // back each one's (Settings → Windows writes them)
-    readonly property bool titlebars: on ? Config.mac.titlebars : Config.decor.titlebars
-    readonly property var decorSkip: on ? (Config.mac.decorSkip || []) : (Config.decor.skip || [])
 
     // the traffic lights (close, minimize, zoom) and their rims
     readonly property var lights: ["#ff5f57", "#febc2e", "#28c840"]

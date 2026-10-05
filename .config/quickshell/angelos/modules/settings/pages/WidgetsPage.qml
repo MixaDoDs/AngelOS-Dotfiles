@@ -11,7 +11,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Виджеты", "Widgets")
-    subtitle: I18n.t("Окошки на рабочем столе. Таскаются за заголовок; двойной клик по заголовку — режим правки с крестиками. Ещё их можно добавить через ПКМ → Вид.", "Little windows on the desktop. Drag them by the title; double-click the title for edit mode. You can also add them via right-click → View.")
+    subtitle: DesktopWidgets.macLook ? I18n.t("Карточки на рабочем столе. Двойной клик по карточке — режим правки: в нём карточку таскают за любое место, «−» убирает её. Ещё их можно добавить через ПКМ → Вид.", "Cards on the desktop. Double-click a card for edit mode: there you drag it anywhere, “−” removes it. You can also add them via right-click → View.") : I18n.t("Окошки на рабочем столе. Таскаются за заголовок; двойной клик по заголовку — режим правки с крестиками. Ещё их можно добавить через ПКМ → Вид.", "Little windows on the desktop. Drag them by the title; double-click the title for edit mode. You can also add them via right-click → View.")
 
     property string newType: DesktopWidgets.types.length ? DesktopWidgets.types[0].type : ""
     property string newScreen: Shell.primaryName || (Quickshell.screens[0] ? Quickshell.screens[0].name : "")
@@ -261,8 +261,30 @@ PxPage {
         icon: "gear"
         width: parent.width
         SettingRow {
+            label: I18n.t("Стиль виджетов", "Widget style")
+            hint: I18n.t("«Авто»: карточки macOS со скином Golden Gate, пиксельные окна с остальными. В аду — всегда адские", "Auto: macOS cards with the Golden Gate skin, pixel windows with the others. In hell always hell's own")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Авто", "Auto"),
+                        "value": "auto"
+                    },
+                    {
+                        "label": I18n.t("Пиксельный", "Pixel"),
+                        "value": "pixel"
+                    },
+                    {
+                        "label": "macOS",
+                        "value": "mac"
+                    }
+                ]
+                currentValue: DesktopWidgets.style
+                onActivated: v => Config.desktop.widgetStyle = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Режим правки", "Edit mode")
-            hint: I18n.t("крестики на виджетах и видны скрытые", "close buttons on widgets, hidden ones shown")
+            hint: DesktopWidgets.macLook ? I18n.t("«−» на карточках, их можно таскать за любое место, видны скрытые", "“−” on the cards, drag them anywhere, hidden ones shown") : I18n.t("крестики на виджетах и видны скрытые", "close buttons on widgets, hidden ones shown")
             PxToggle {
                 checked: DesktopWidgets.editMode
                 onToggled: c => DesktopWidgets.editMode = c

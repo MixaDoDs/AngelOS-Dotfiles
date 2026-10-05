@@ -10,7 +10,10 @@
       {"op": "add", "key": "Mod+Alt+K", "action": "spawn \\"gtk-launch\\" \\"kitty\\"", "title": "…"}
 
 Only one-line binds (`Key props { action; }`) are editable; anything else is shown
-read-only. The file is edited line by line, so comments and alignment stay. A copy
+read-only. The binds angelOS writes into the files niri reads after this one are listed
+read-only too, as their own sections ({"file": …}): cfg/angelos-windows.kdl (Alt+Tab, the
+lens) and angelos.kdl (the Golden Gate skin's Mac keys) — niri would let them replace a bind
+here on the same key, so a key they hold can't be given to a bind here either. The file is edited line by line, so comments and alignment stay. A copy
 of the niri config with the change must pass `niri validate` first; the old file is
 backed up under ~/.local/state/angelos/backups/keybinds-* and restored if the final
 validation fails. New binds go to an "angelOS: my shortcuts" section at the end.
@@ -29,6 +32,11 @@ CONFIG = Path.home() / ".config/niri/config.kdl"
 KEYBINDS = CONFIG.parent / "cfg/keybinds.kdl"
 BACKUPS = Path.home() / ".local/state/angelos/backups"
 MY_SECTION = "// ─── angelOS: мои хоткеи (Настройки → Горячие клавиши) ───"
+# files with binds niri reads after cfg/keybinds.kdl (config.kdl's include order), written by angelOS
+EXTRA = [
+    (CONFIG.parent / "cfg/angelos-windows.kdl", "angelOS: Alt+Tab, лупа (Настройки → Окна, Клавиатура и мышь)"),
+    (CONFIG.parent / "angelos.kdl", "Golden Gate: как на Mac (Настройки → Оформление)"),
+]
 
 BIND = re.compile(
     r'^(?P<indent>[ \t]*)(?P<key>[A-Za-z0-9_+\-]+)(?P<gap>[ \t]+)'
@@ -111,6 +119,20 @@ def parse(text):
     return lines, (start, end), binds, sections
 
 
+def extra_binds(first_id=0):
+    """the binds of EXTRA, read-only, numbered on from first_id"""
+    out = []
+    for path, section in EXTRA:
+        try:
+            _, _, binds, _ = parse(path.read_text())
+        except (OSError, ValueError):
+            continue
+        for b in binds:
+            b.update({"id": first_id + len(out), "section": section, "editable": False, "file": path.name})
+            out.append(b)
+    return out
+
+
 def render(indent, key, props, title, action, tail="", width=36):
     parts = []
     for k, v in props.items():
@@ -137,7 +159,7 @@ def check_action(action):
 def apply_ops(text, ops):
     lines, (start, end), binds, _ = parse(text)
     by_id = {b["id"]: b for b in binds}
-    delete, added = set(), []
+    delete, added, asked = set(), [], set()
     for op in ops:
         kind = op.get("op")
         if kind in ("set", "delete"):
@@ -150,6 +172,8 @@ def apply_ops(text, ops):
                 continue
             m = BIND.match(lines[b["line"]])
             key = check_key(op["key"]) if "key" in op else b["key"]
+            if "key" in op:
+                asked.add(norm_key(key))
             action = check_action(op["action"]) if "action" in op else b["action"]
             title = op["title"] if "title" in op else b["title"]
             props = {k: unquote(v) for k, v in PROP.findall(m.group("props")) if k != "hotkey-overlay-title"}
@@ -162,6 +186,7 @@ def apply_ops(text, ops):
             title = str(op.get("title") or "")
             props = {k: v for k, v in (op.get("props") or {}).items() if re.match(r'^[\w-]+$', k)}
             added.append({"key": key, "line": render("    ", key, props, title, action)})
+            asked.add(norm_key(key))
         else:
             raise ValueError("unknown op: " + str(kind))
     # one combination, one action
@@ -178,6 +203,12 @@ def apply_ops(text, ops):
         if k in seen:
             raise ValueError(f"{a['key']} is already used: {seen[k]}")
         seen[k] = a["key"]
+    # a key angelOS's own files hold would be taken over by them (only the keys asked for now:
+    # an old clash in the file doesn't stop other edits)
+    for b in extra_binds():
+        k = norm_key(b["key"])
+        if k in asked:
+            raise ValueError(f"{b['key']} is already used: {b['section']} → {b['title'] or b['action'][:60]}")
     out = [l for i, l in enumerate(lines) if i not in delete]
     if added:
         _, (_, end2), _, _ = parse("\n".join(out))
@@ -244,7 +275,9 @@ def main():
     try:
         if len(sys.argv) == 1:
             _, _, binds, sections = parse(KEYBINDS.read_text())
-            print(json.dumps({"file": str(KEYBINDS), "binds": binds, "sections": sections}, ensure_ascii=False))
+            extra = extra_binds(len(binds))
+            sections += [s for s in dict.fromkeys(b["section"] for b in extra) if s not in sections]
+            print(json.dumps({"file": str(KEYBINDS), "binds": binds + extra, "sections": sections}, ensure_ascii=False))
         else:
             ops = json.loads(sys.argv[1])
             print(json.dumps({"ok": save(ops if isinstance(ops, list) else [ops])}, ensure_ascii=False))

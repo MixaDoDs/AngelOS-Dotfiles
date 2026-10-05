@@ -19,6 +19,9 @@ import qs.config
 // switcher: it only appears after `delayMs` while Alt is still held.
 // Windows are in most-recently-used order: niri's focus timestamps, then every
 // focus change moves a window to the front.
+// ⌘Tab of the Golden Gate skin's Mac keys (`angelos alttab apps|appsback`) is the same switcher
+// in `mode` "apps": one item per app, every desktop, held by ⌘ (the Windows key) instead of Alt;
+// ⌘` (`angelos alttab appwin|appwinback`) steps through the front app's windows at once.
 Singleton {
     id: root
 
@@ -97,6 +100,7 @@ Singleton {
     }
 
     // ---- the switcher ----
+    property string mode: "windows"          // windows (Alt+Tab) | apps (⌘Tab)
     property bool active: false              // cycling (Alt held)
     property bool shown: false               // the switcher is on screen
     property bool demo: false                // settings "Try it": plays by itself, focuses nothing
@@ -113,6 +117,7 @@ Singleton {
             const list = candidates();
             if (list.length === 0)
                 return;
+            mode = "windows";
             items = list;
             index = list.length === 1 ? 0 : (dir < 0 ? list.length - 1 : 1);
             screenName = Niri.focusedOutput;
@@ -131,6 +136,103 @@ Singleton {
         if (!shown && !demo && watcherSaid === "down")
             reveal();
     }
+    // ---- ⌘Tab: the apps ----
+    // {id, appId, name, icon, entry, windows (most recent first)} per app id, the app used last first
+    function appCandidates() {
+        const byId = {};
+        for (const w of Niri.windows)
+            byId[w.id] = w;
+        const wins = mru.map(id => byId[id]).filter(w => !!w);
+        for (const w of Niri.windows)
+            if (!wins.includes(w))
+                wins.push(w);
+        const out = [];
+        const at = {};
+        for (const w of wins) {
+            const key = String(w.app_id || "");
+            if (!key)
+                continue;
+            if (at[key] === undefined) {
+                const e = DesktopEntries.byId(key) || DesktopEntries.heuristicLookup(key);
+                at[key] = out.length;
+                out.push({
+                    "kind": "app",
+                    "id": e ? e.id : key,
+                    "appId": key,
+                    "entry": e,
+                    "name": e && e.name ? e.name : AppMenu.prettyName(key),
+                    "icon": e ? e.icon : key,
+                    "windows": []
+                });
+            }
+            out[at[key]].windows.push(w);
+        }
+        return out;
+    }
+    function stepApps(dir) {
+        if (Shell.locked || Shell.setupLocked)
+            return;
+        if (!active) {
+            const list = appCandidates();
+            if (list.length === 0)
+                return;
+            mode = "apps";
+            items = list;
+            index = list.length === 1 ? 0 : (dir < 0 ? list.length - 1 : 1);
+            screenName = Niri.focusedOutput;
+            demo = false;
+            active = true;
+            serial++;
+            watcher.running = false;
+            watcher.running = true;
+            showTimer.restart();
+            guard.restart();
+            return;
+        }
+        if (items.length)
+            index = (index + (dir < 0 ? -1 : 1) + items.length) % items.length;
+        guard.restart();
+        if (!shown && !demo && watcherSaid === "down")
+            reveal();
+    }
+    // the app to the front: back from ⌘H if hidden, its last used window, else its last
+    // minimized one out of the Dock
+    function activateApp(app, output) {
+        if (!app || !app.windows)
+            return;
+        const ids = app.windows.map(w => w.id);
+        const live = Niri.windows.filter(w => ids.includes(w.id));
+        if (!live.length)
+            return;
+        if (live.some(w => Minimize.isAppHidden(w))) {
+            Minimize.unhide(app.appId, -1, output || "");
+            return;
+        }
+        const ts = w => w.focus_timestamp ? w.focus_timestamp.secs * 1e9 + w.focus_timestamp.nanos : 0;
+        const shown = live.filter(w => !Minimize.isMinimized(w)).sort((a, b) => ts(b) - ts(a));
+        if (shown.length) {
+            if (shown[0].id !== Niri.focusedWindowId)
+                Niri.focusWindow(shown[0].id);
+            return;
+        }
+        const m = Minimize.windows.filter(w => ids.includes(w.id));
+        Minimize.restore((m[m.length - 1] || live[0]).id, false, output || "");
+    }
+    // ⌘Q / ⌘H while ⌘Tab is up act on the app picked there (macOS does so)
+    readonly property var pickedApp: active && mode === "apps" ? current : null
+    // ⌘`: the next window of the app in front, at once (minimized and hidden ones are skipped)
+    function cycleAppWindows(dir) {
+        if (Shell.locked || Shell.setupLocked)
+            return;
+        const f = Niri.focusedWindow;
+        if (!f)
+            return;
+        const mine = Niri.windows.filter(w => w.app_id === f.app_id && !Minimize.isMinimized(w)).sort((a, b) => a.id - b.id);
+        if (mine.length < 2)
+            return;
+        const i = mine.findIndex(w => w.id === f.id);
+        Niri.focusWindow(mine[(i + (dir < 0 ? -1 : 1) + mine.length) % mine.length].id);
+    }
     function select(i) {
         if (active && i >= 0 && i < items.length)
             index = i;
@@ -139,9 +241,13 @@ Singleton {
     function commit() {
         if (!active)
             return;
-        const w = current, wasDemo = demo;
+        const w = current, wasDemo = demo, apps = mode === "apps", out = screenName;
         close();
-        if (w && !wasDemo && w.id !== Niri.focusedWindowId)
+        if (!w || wasDemo)
+            return;
+        if (apps)
+            activateApp(w, out);
+        else if (w.id !== Niri.focusedWindowId)
             Niri.focusWindow(w.id);
     }
     function cancel() {
@@ -156,6 +262,7 @@ Singleton {
         demoTimer.stop();
         watcher.running = false;
         watcherSaid = "";
+        mode = "windows";
     }
     function reveal() {
         if (active && !shown)
@@ -217,7 +324,8 @@ Singleton {
     property string watcherStatus: ""        // last non-empty answer, for the settings page
     Process {
         id: watcher
-        command: ["python3", Quickshell.shellDir + "/scripts/alt-watch.py", "--timeout", "30"]
+        // ⌘Tab waits for ⌘ (the Windows key), Alt+Tab for Alt
+        command: ["python3", Quickshell.shellDir + "/scripts/alt-watch.py", "--timeout", "30"].concat(root.mode === "apps" ? ["--mod", "meta"] : [])
         stdout: SplitParser {
             onRead: line => {
                 const l = line.trim();

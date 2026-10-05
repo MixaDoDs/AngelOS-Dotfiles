@@ -32,16 +32,24 @@ Singleton {
     function record() {
         launch(recordTool, 'notify-send -a angelOS "niri-record-region не найден"');
     }
-    function launch(tool, fallback) {
+    // the Golden Gate skin's ⇧⌘3 / ⇧⌘4 / ⇧⌘5 menu (scripts/mac-screenshot.sh: screen | region |
+    // window | record): a picture of the screen, of a part, of the focused window, a video
+    readonly property string macTool: Quickshell.shellDir + "/scripts/mac-screenshot.sh"
+    function mac(kind) {
+        launch(macTool, "niri msg action screenshot", [kind]);
+    }
+    function launch(tool, fallback, args) {
         later.tool = tool;
         later.fallback = fallback;
+        later.args = args || [];
         later.restart();
     }
     Timer {
         id: later
         property string tool: ""
         property string fallback: ""
+        property var args: []
         interval: 220
-        onTriggered: Quickshell.execDetached(["sh", "-c", '[ -x "$1" ] || exec sh -c "$2"; niri msg action spawn -- "$1" >/dev/null 2>&1 || exec "$1"', "sh", tool, fallback])
+        onTriggered: Quickshell.execDetached(["sh", "-c", 't="$1"; f="$2"; shift 2; [ -x "$t" ] || exec sh -c "$f"; niri msg action spawn -- "$t" "$@" >/dev/null 2>&1 || exec "$t" "$@"', "sh", tool, fallback].concat(args))
     }
 }

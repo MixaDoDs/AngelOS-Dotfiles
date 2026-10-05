@@ -290,6 +290,13 @@ Item {
             win.redirect();
         }
     }
+    // the skin changed the tree (SettingsTree.mac): a page the other one has leads to its place
+    Connections {
+        target: SettingsTree
+        function onMacChanged() {
+            win.redirect();
+        }
+    }
     function redirect() {
         const r = SettingsTree.resolve(Shell.settingsPage);
         if (r.page === Shell.settingsPage)

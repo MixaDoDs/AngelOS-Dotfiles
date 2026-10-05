@@ -20,17 +20,53 @@ alternatives): an update's snapshot takes them too, so «Вернуть как �
 or restores them (scripts/update-txn.py).
 "variants" swaps an entry's template by the palette's "skin": {"goldengate": "gtk3-mac.css"}
 renders the Golden Gate skin's version into the same target (services/ThemeExport.macPalette).
+A target in niri's config (~/.config/niri/*.kdl: angelos.kdl — the borders, the Golden Gate
+skin's window rules and Mac keys) is written as Settings → Windows writes niri's files
+(window-config.py): the old one backed up to ~/.local/state/angelos/backups/niri-render-*,
+`niri validate`, and put back if niri says no.
 """
 import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
 
 SHELL = Path(__file__).resolve().parent.parent
 USER = Path.home() / ".config/angelos/templates"
+NIRI = Path.home() / ".config/niri"
+BACKUPS = Path.home() / ".local/state/angelos/backups"
+
+
+def write_niri(dst, out):
+    """Write a niri config file: backup, validate, roll back. False when niri refused it."""
+    BACKUPS.mkdir(parents=True, exist_ok=True)
+    backup = Path(tempfile.mkdtemp(prefix="niri-render-%s-" % time.strftime("%Y%m%d-%H%M%S"), dir=BACKUPS))
+    had = dst.exists()
+    if had:
+        shutil.copy2(dst, backup / dst.name)
+    tmp = dst.with_suffix(dst.suffix + ".angelos-tmp")
+    tmp.write_text(out)
+    tmp.replace(dst)
+    if shutil.which("niri") and (NIRI / "config.kdl").exists():
+        p = subprocess.run(["niri", "validate", "-c", str(NIRI / "config.kdl")], capture_output=True, text=True)
+        (backup / "validate.log").write_text(p.stdout + p.stderr)
+        if p.returncode != 0:
+            if had:
+                shutil.copy2(backup / dst.name, dst)
+            else:
+                dst.unlink()
+            print(f"niri validate failed for {dst}, rolled back (backup {backup}): " + p.stderr.strip()[-300:], file=sys.stderr)
+            return False
+    # only the newest twenty
+    olds = sorted(BACKUPS.glob("niri-render-*"))
+    for d in olds[:-20]:
+        shutil.rmtree(d, ignore_errors=True)
+    return True
 
 
 def load_entries():
@@ -96,10 +132,14 @@ def main():
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 out = render(src.read_text(), p)
                 if not dst.exists() or dst.read_text() != out:
-                    tmp = dst.with_suffix(dst.suffix + ".angelos-tmp")
-                    tmp.write_text(out)
-                    tmp.replace(dst)
-                    print(f"wrote {dst}")
+                    if dst.suffix == ".kdl" and NIRI in dst.resolve().parents:
+                        if write_niri(dst, out):
+                            print(f"wrote {dst}")
+                    else:
+                        tmp = dst.with_suffix(dst.suffix + ".angelos-tmp")
+                        tmp.write_text(out)
+                        tmp.replace(dst)
+                        print(f"wrote {dst}")
             for key in ("command", "reload"):
                 if e.get(key):
                     subprocess.run(["sh", "-c", render(e[key], p, shlex.quote)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)

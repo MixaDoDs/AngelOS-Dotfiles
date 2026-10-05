@@ -6,43 +6,83 @@ import Quickshell
 import Quickshell.Io
 import qs.config
 
-// Minimizing for niri, which has none (the Golden Gate skin: the yellow light of angelOS's title
-// bars, Window → Minimize, ⌘M, the Dock). A minimized window moves to a workspace of its own on
+// Minimizing for niri, which has none (the Golden Gate skin: the apps' own yellow light through
+// extras/minimize-hook, System Settings' light, Window → Minimize, ⌘M, the Dock). A minimized window moves to a workspace of its own on
 // its output, named Niri.hiddenPrefix + output — the shell's lists of desktops leave it out — and
 // shows on the right of the Dock as a snapshot of itself (grim, taken just before it goes: niri
 // gives screencopy of whole outputs only, and ScreencopyView crashes Quickshell 0.3.1 on several
-// monitors). It comes back to the desktop it left: a click in the Dock, its app's icon when it
-// has no other window, Alt+Tab, the overview, the Dock menu. Scrolling through the desktops steps
-// over the hidden one; it is kept last on its output and given up when empty. When the skin goes
-// every minimized window comes back.
+// monitors). It comes back to the desktop in front now, focused: a click in the Dock (on that
+// screen), its app's icon when it has no other window, Alt+Tab / ⌘Tab, the overview, the Dock
+// menu. ⌘H hides an app: all its windows go the same way, without a place in the Dock; its icon
+// brings them all back. Scrolling through the desktops steps over the hidden one; it is kept last
+// on its output and given up when empty. When the skin goes every minimized window comes back.
+// What is minimized is niri's state (the windows on that workspace), so it outlives a restart of
+// the shell; the snapshots, the order and which ones are hidden are kept in `stateFile`.
 Singleton {
     id: root
 
-    property var origin: ({})               // window id -> {ws, output}: where it came back to
+    property var origin: ({})               // window id -> {ws, output, rect}: where it was
     property var shots: ({})                // window id -> file url of its snapshot
     property var order: []                  // window ids, oldest minimized first
+    property var hidden: ({})               // window id -> true: gone with its app (⌘H), not in the Dock
+    property var lastDesk: ({})             // output -> id of the desktop last in front there
+    property var _to: ({})                  // window id -> id of the desktop it is coming back to
     readonly property string dir: Quickshell.env("XDG_RUNTIME_DIR") + "/angelos-minimized"
-    // the minimized windows, in the order they were minimized
+    // the minimized windows (the Dock's), in the order they were minimized
     readonly property var windows: {
-        const mine = Niri.windows.filter(w => Niri.isHidden(Niri.workspaceById(w.workspace_id)));
+        const mine = Niri.windows.filter(w => Niri.isHidden(Niri.workspaceById(w.workspace_id)) && !hidden[w.id]);
         const at = id => {
             const i = order.indexOf(id);
             return i < 0 ? 1e9 + id : i;
         };
         return mine.sort((a, b) => at(a.id) - at(b.id));
     }
+    // the windows of hidden apps (⌘H)
+    readonly property var hiddenWindows: Niri.windows.filter(w => Niri.isHidden(Niri.workspaceById(w.workspace_id)) && !!hidden[w.id])
+    // minimized or hidden: on a hidden workspace
     function isMinimized(w) {
         return !!w && Niri.isHidden(Niri.workspaceById(w.workspace_id));
     }
+    function isAppHidden(w) {
+        return isMinimized(w) && !!hidden[w.id];
+    }
+    // the desktop in front on an output (the hidden workspace never counts: the one before it).
+    // With the hidden one in front (the overview went to a minimized window) and no desktop noted
+    // yet (a restart of the shell) it is the desktop right before the hidden one — never simply
+    // the first desktop, where the window would show up and then jump away
+    function currentDesk(output) {
+        const act = Niri.activeWorkspace(output);
+        if (act)
+            return act;
+        const last = Niri.workspaceById(lastDesk[output]);
+        if (last && !Niri.isHidden(last) && last.output === output)
+            return last;
+        const list = Niri.workspacesOn(output);
+        const hid = hiddenOn(output);
+        return (hid ? list.slice().reverse().find(x => x.idx < hid.idx) : null) || list[list.length - 1] || null;
+    }
+    function noteDesks() {
+        const d = Object.assign({}, lastDesk);
+        let changed = false;
+        for (const ws of Niri.workspaces)
+            if (ws.is_active && d[ws.output] !== ws.id) {
+                d[ws.output] = ws.id;
+                changed = true;
+            }
+        if (changed)
+            lastDesk = d;
+    }
+    // where a tiled window stands is worked out from the layout (rectOf)
+    Component.onCompleted: WindowConfig.loaded
     function hiddenOn(output) {
         return Niri.allWorkspaces.find(x => x.output === output && x.name === Niri.hiddenPrefix + output) || null;
     }
 
-    // ---- the hook: every minimize button (the yellow light of angelOS's title bars and of System
-    // Settings, Window → Minimize, ⌘M) asks here. `requested` is the signal to hang your own
+    // ---- the hook: every minimize button (the apps' own yellow light, that of System
+    // Settings, Window → Minimize, ⌘M, the Dock menu) asks here. `requested` is the signal to hang your own
     // minimizing on: connect to it (Connections { target: Minimize; function onRequested(wid,
     // source) {…} }) and set `builtin` false to drop the hidden-workspace one below. wid is niri's
-    // window id (-1 when the window isn't known to niri), source who asked: "decor", "settings",
+    // window id (-1 when the window isn't known to niri), source who asked: "app", "settings",
     // "menu", "keys".
     signal requested(int wid, string source)
     property bool builtin: true
@@ -114,23 +154,51 @@ Singleton {
     function rectOf(w, output) {
         const s = Shell.screenByName(output);
         const l = w.layout;
-        if (!s || !l || !l.tile_pos_in_workspace_view || !l.tile_size)
+        if (!s || !l || !l.tile_size)
             return null;
-        const x = Math.round(s.x + l.tile_pos_in_workspace_view[0]);
-        let y = Math.round(s.y + l.tile_pos_in_workspace_view[1]);
+        const pos = l.tile_pos_in_workspace_view || tiledPos(w, s);
+        if (!pos)
+            return null;
+        const x = Math.round(s.x + pos[0]);
+        const y = Math.round(s.y + pos[1]);
         const wd = Math.round(l.tile_size[0]);
-        let ht = Math.round(l.tile_size[1]);
-        // angelOS's title bar over it (modules/decor) goes into the snapshot too: it is the window's
-        const bar = ((Shell.decor || {})[output] || []).find(b => b.id === w.id && !b.inside);
-        if (bar) {
-            const top = Math.round(s.y + bar.y);
-            ht += y - top;
-            y = top;
-        }
+        const ht = Math.round(l.tile_size[1]);
         // only what is on the screen
         const x0 = Math.max(x, s.x), y0 = Math.max(y, s.y);
         const x1 = Math.min(x + wd, s.x + s.width), y1 = Math.min(y + ht, s.y + s.height);
         return x1 - x0 < 8 || y1 - y0 < 8 ? null : [x0, y0, x1 - x0, y1 - y0];
+    }
+    // niri tells where floating windows are, not tiled ones. The focused column is where niri
+    // centres it (center-focused-column "always", Settings → Windows): in the middle across; down,
+    // its windows fill the working area — the screen less the Dock's zone (MacDock writes
+    // dockZone) and the gaps — so they are counted up from its bottom; across, the working area
+    // is narrower by the zone of a Dock on the left or right. Otherwise: no snapshot.
+    property var dockZone: ({})             // output -> the Dock's exclusive zone, px
+    property var dockEdge: ({})             // output -> the edge it stands on: bottom | left | right
+    function tiledPos(w, s) {
+        const l = w.layout;
+        const ws = Niri.workspaceById(w.workspace_id);
+        if (!ws || !ws.is_active || !w.is_focused || !l.pos_in_scrolling_layout)
+            return null;
+        const size = l.tile_size;
+        if (size[0] >= s.width && size[1] >= s.height)
+            return [0, 0];
+        const edge = dockEdge[ws.output] || "bottom";
+        const zone = dockZone[ws.output] || 0;
+        const zl = edge === "left" ? zone : 0, zr = edge === "right" ? zone : 0, zb = edge === "bottom" ? zone : 0;
+        if (WindowConfig.center !== "always" || size[0] > s.width - zl - zr)
+            return null;
+        const col = l.pos_in_scrolling_layout[0];
+        const column = Niri.windows.filter(x => x.workspace_id === w.workspace_id && !x.is_floating && x.layout && x.layout.pos_in_scrolling_layout && x.layout.pos_in_scrolling_layout[0] === col && x.layout.tile_size).sort((a, b) => a.layout.pos_in_scrolling_layout[1] - b.layout.pos_in_scrolling_layout[1]);
+        const gap = Math.max(0, WindowConfig.gaps);
+        const total = column.reduce((a, x) => a + x.layout.tile_size[1], 0) + gap * Math.max(0, column.length - 1);
+        let y = s.height - zb - gap - total;
+        for (const x of column) {
+            if (x.id === w.id)
+                break;
+            y += x.layout.tile_size[1] + gap;
+        }
+        return y < 0 ? null : [zl + (s.width - zl - zr - size[0]) / 2, y];
     }
     function _next() {
         // (one whose snapshot is in flight already waits for goTimer, not for another shot)
@@ -199,11 +267,77 @@ Singleton {
         _next();
     }
 
+    // ---- hidden with the app (⌘H) ----
+    // every window of the app (its app id) that is out goes at once, no snapshot, no flight, and
+    // gets no place of its own in the Dock; its minimized ones stay minimized
+    function hide(id) {
+        const w = Niri.windows.find(x => x.id === id);
+        if (!w)
+            return;
+        const mine = Niri.windows.filter(x => x.app_id === w.app_id && !isMinimized(x) && !_queue.some(q => q.id === x.id));
+        const h = Object.assign({}, hidden);
+        const o = Object.assign({}, origin);
+        const jobs = [];
+        for (const x of mine) {
+            const ws = Niri.workspaceById(x.workspace_id);
+            if (!ws)
+                continue;
+            h[x.id] = true;
+            o[x.id] = {
+                "ws": ws.id,
+                "output": ws.output,
+                "rect": null
+            };
+            jobs.push({
+                "id": x.id,
+                "output": ws.output,
+                "rect": null
+            });
+        }
+        hidden = h;
+        origin = o;
+        _queue = _queue.concat(jobs);
+        _next();
+    }
+    // all the hidden windows of an app come back to the desktop in front on `output`, the one
+    // used last (or `focusId`) focused
+    function unhide(appId, focusId, output) {
+        const mine = hiddenWindows.filter(w => w.app_id === appId);
+        if (!mine.length)
+            return false;
+        const ts = w => w.focus_timestamp ? w.focus_timestamp.secs * 1e9 + w.focus_timestamp.nanos : 0;
+        const front = mine.find(w => w.id === focusId) || mine.slice().sort((a, b) => ts(b) - ts(a))[0];
+        const to = currentDesk(output || Niri.focusedOutput);
+        if (!to)
+            return false;
+        for (const w of mine)
+            if (w.id !== front.id)
+                Niri.action("MoveWindowToWorkspace", {
+                    "window_id": w.id,
+                    "reference": {
+                        "Id": to.id
+                    },
+                    "focus": false
+                });
+        _setTo(front.id, to);
+        _restoreNow(front.id);
+        for (const w of mine)
+            forget(w.id);
+        return true;
+    }
+    function hiddenOf(appId) {
+        return hiddenWindows.filter(w => w.app_id === appId);
+    }
+
     // ---- back ----
-    // animated (a click in the Dock): the snapshot flies out of the Dock to where the window was,
-    // the window comes back under it as it lands; instant (Alt+Tab, the overview — niri has already
-    // gone to the window) when asked so or when there is nothing to fly
-    function restore(id, instant) {
+    // to the desktop in front on `output` (the Dock's screen; the focused one when not given),
+    // focused. Animated (a click in the Dock): the snapshot flies out of the Dock to where the
+    // window was, the window comes back under it as it lands — when it returns to the screen it
+    // left (a floating window keeps its place across that screen's desktops; a tiled one comes back
+    // centred, as it went). Instant (Alt+Tab, the overview — niri has already gone to the window)
+    // when asked so, on another screen, or with nothing to fly. A hidden app's window brings all
+    // of the app back.
+    function restore(id, instant, output) {
         const w = Niri.windows.find(x => x.id === id);
         if (!w)
             return;
@@ -211,33 +345,53 @@ Singleton {
             Niri.focusWindow(id);
             return;
         }
+        const out = output || Niri.focusedOutput || (origin[id] || {}).output || "";
+        if (hidden[id]) {
+            unhide(w.app_id, id, out);
+            return;
+        }
+        const to = currentDesk(out);
+        if (to)
+            _setTo(id, to);
         const o = origin[id];
-        if (!instant && flightMs > 0 && shots[id] && o && o.rect && o.output) {
+        if (!instant && flightMs > 0 && shots[id] && o && o.rect && o.output === out) {
             if (flying.indexOf(id) < 0)
                 fly(id, o.output, o.rect, true);
             return;
         }
         _restoreNow(id);
     }
+    function _setTo(id, ws) {
+        const t = Object.assign({}, _to);
+        t[id] = ws.id;
+        _to = t;
+    }
     function _restoreNow(id) {
         const w = Niri.windows.find(x => x.id === id);
         if (!w || !isMinimized(w))
             return;
         const hid = Niri.workspaceById(w.workspace_id);
-        const o = origin[id];
-        let to = o ? Niri.workspaceById(o.ws) : null;
+        let to = Niri.workspaceById(_to[id]);
         if (!to || Niri.isHidden(to))
-            to = Niri.activeWorkspace(o ? o.output : hid.output) || Niri.activeWorkspace(hid.output);
-        if (!to)
-            to = Niri.workspacesOn(hid.output)[0] || null;
+            to = currentDesk(Niri.focusedOutput) || currentDesk(hid.output);
         if (!to)
             return;
+        // First quietly onto the desktop (by id, focus false: niri switches no workspace — its
+        // `focus: true` is "smart" and, with the hidden workspace in front, would switch on its
+        // own), then focused there. A tiled window is a new column right of the focused one, and
+        // focusing it scrolls the view: niri slides it in from the side while its snapshot has
+        // landed in the middle. A screen transition freezes the screen (the snapshot where the
+        // window is going) over the move and the scroll and fades to the result.
+        if (!w.is_floating && to.is_active && Motion.ms(100) > 0)
+            Niri.action("DoScreenTransition", {
+                "delay_ms": 200
+            });
         Niri.action("MoveWindowToWorkspace", {
             "window_id": id,
             "reference": {
                 "Id": to.id
             },
-            "focus": true
+            "focus": false
         });
         Niri.action("FocusWindow", {
             "id": id
@@ -245,7 +399,13 @@ Singleton {
         forget(id);
     }
     function restoreAll() {
-        for (const w of windows)
+        const mins = windows.slice();
+        const apps = {};
+        for (const w of hiddenWindows)
+            apps[w.app_id] = true;
+        for (const a in apps)
+            unhide(a, -1, "");
+        for (const w of mins)
             restore(w.id, true);
     }
 
@@ -326,6 +486,16 @@ Singleton {
         }
         shots = s;
         order = order.filter(x => x !== id);
+        if (hidden[id]) {
+            const h = Object.assign({}, hidden);
+            delete h[id];
+            hidden = h;
+        }
+        if (_to[id] !== undefined) {
+            const t = Object.assign({}, _to);
+            delete t[id];
+            _to = t;
+        }
     }
     Connections {
         target: Niri
@@ -350,7 +520,7 @@ Singleton {
                 return;
             const f = Niri.focusedWindow;
             if (f && root.isMinimized(f))
-                root.restore(f.id);
+                root.restore(f.id, true);
             else
                 for (const ws of Niri.allWorkspaces)
                     if (Niri.isHidden(ws) && ws.is_active)
@@ -361,6 +531,9 @@ Singleton {
         }
         function onAllWorkspacesChanged() {
             tidyLater.restart();
+        }
+        function onWorkspacesChanged() {
+            root.noteDesks();
         }
         function onWindowsChanged() {
             tidyLater.restart();
@@ -412,6 +585,8 @@ Singleton {
         saveLater.restart()
     onOrderChanged: if (_loaded)
         saveLater.restart()
+    onHiddenChanged: if (_loaded)
+        saveLater.restart()
     Timer {
         id: saveLater
         interval: 300
@@ -419,7 +594,8 @@ Singleton {
             saver.command = ["sh", "-c", 'mkdir -p "$1" && printf "%s" "$2" > "$3.tmp" && mv "$3.tmp" "$3"', "sh", root.dir, JSON.stringify({
                     "shots": root.shots,
                     "origin": root.origin,
-                    "order": root.order
+                    "order": root.order,
+                    "hidden": root.hidden
                 }), root.stateFile];
             saver.running = true;
         }
@@ -446,6 +622,7 @@ Singleton {
                     };
                     root.shots = Object.assign(pick(st.shots), root.shots);
                     root.origin = Object.assign(pick(st.origin), root.origin);
+                    root.hidden = Object.assign(pick(st.hidden), root.hidden);
                     root.order = (st.order || []).filter(id => !Niri.ready || alive(id)).concat(root.order.filter(id => (st.order || []).indexOf(id) < 0));
                 } catch (e) {
                     console.warn("angelOS minimize: state", e);

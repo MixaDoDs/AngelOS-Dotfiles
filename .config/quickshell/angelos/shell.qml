@@ -25,7 +25,6 @@ import qs.modules.y2k
 import qs.modules.alttab
 import qs.modules.cursor
 import qs.modules.lens
-import qs.modules.decor
 import qs.modules.novel
 import qs.modules.debug
 import qs.modules.mac
@@ -66,7 +65,6 @@ ShellRoot {
     AltTabHost {}
     ShakeCursor {}
     LensOverlay {}
-    WindowDecor {}
     GameDebugWindow {}
     Ipc {}
 

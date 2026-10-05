@@ -77,38 +77,17 @@ Singleton {
             };
         const d = Theme.dark;
         const h = c => Theme.hex(c);
-        // windows float like on a Mac (Config.mac.floating); the ones that get angelOS's title
-        // bar (modules/decor: floating, not drawing their own) meet it with square top corners
-        const skip = (Config.mac.decorSkip || []).map(s => String(s).endsWith("*") ? "^" + String(s).slice(0, -1).replace(/\./g, "\\.") : "^" + String(s).replace(/\./g, "\\.") + "$");
-        let rules = Config.mac.floating ? "window-rule {\n    open-floating true\n}\n" : "";
-        if (Config.mac.titlebars) {
-            rules += "window-rule {\n    match is-floating=true\n";
-            for (const s of skip)
-                rules += "    exclude app-id=r#\"" + s + "\"#\n";
-            rules += "    geometry-corner-radius 0 0 16 16\n}\n";
-        }
-        // Mac shortcuts, only when asked for (Config.mac.keys): ⌘ is the Windows key (Mod); they
-        // replace angelOS's binds on the same keys (this file is read after cfg/keybinds.kdl)
-        const ipc = "qs -c angelos ipc call angelos ";
-        const keys = !Config.mac.keys ? "" : ["binds {",
-            "    Mod+Q hotkey-overlay-title=\"Golden Gate: quit the app\" { spawn-sh \"" + ipc + "macQuit\"; }",
-            "    Mod+W hotkey-overlay-title=\"Golden Gate: close the window\" { close-window; }",
-            "    Mod+M hotkey-overlay-title=\"Golden Gate: minimize the window\" { spawn-sh \"" + ipc + "macMinimize\"; }",
-            "    Mod+Space hotkey-overlay-title=\"Golden Gate: Spotlight\" { spawn-sh \"" + ipc + "startMenu ''\"; }",
-            "    Mod+Comma hotkey-overlay-title=\"Golden Gate: System Settings\" { spawn-sh \"" + ipc + "settings ''\"; }",
-            "    Ctrl+Up hotkey-overlay-title=\"Golden Gate: Mission Control\" { toggle-overview; }",
-            "    F3 { toggle-overview; }",
-            "    Mod+Shift+3 hotkey-overlay-title=\"Golden Gate: screenshot of the screen\" { screenshot-screen; }",
-            "    Mod+Shift+4 hotkey-overlay-title=\"Golden Gate: screenshot of a part\" { screenshot; }",
-            "    Mod+Shift+5 { screenshot-window; }",
-            "    Mod+Ctrl+Q hotkey-overlay-title=\"Golden Gate: lock the screen\" { spawn-sh \"" + ipc + "lock\"; }",
-            "    Mod+Ctrl+F hotkey-overlay-title=\"Golden Gate: full screen\" { fullscreen-window; }",
-            "    Mod+Alt+Escape hotkey-overlay-title=\"Golden Gate: force quit\" { spawn-sh \"" + ipc + "macMenu 0\"; }",
-            "    Ctrl+F2 hotkey-overlay-title=\"Golden Gate: the menu bar\" { spawn-sh \"" + ipc + "macMenu -1\"; }",
-            "}", ""].join("\n");
+        // windows float like on a Mac (Config.mac.floating)
+        const rules = Config.mac.floating ? "window-rule {\n    open-floating true\n}\n" : "";
+        // Mac shortcuts, only when asked for (Config.mac.keys): ⌘ is the Windows key (Mod). This
+        // file is read after cfg/keybinds.kdl, so a key here would replace angelOS's own there:
+        // cfg/keybinds.kdl keeps none of these keys (its tiling keys are on ⌘⌥, Settings →
+        // Shortcuts lists these as Golden Gate's and won't give their keys away)
+        const keys = !Config.mac.keys ? [] : macKeys().map(b => "    " + b[0] + (b[1] ? " " + b[1] : "") + " hotkey-overlay-title=" + JSON.stringify("Mac: " + b[2]) + " { " + b[3] + "; }");
+        const keysText = !Config.mac.keys ? "" : ["binds {"].concat(keys, ["}", ""]).join("\n");
         return {
             "skin": "goldengate",
-            "macBinds": keys,
+            "macBinds": keysText,
             "macAccent": h(Theme.macAccent),
             "macWindow": d ? "#1e1e1e" : "#f5f5f5",
             "macContent": d ? "#232323" : "#ffffff",
@@ -124,6 +103,39 @@ Singleton {
             "macOverview": d ? "#101012" : "#2c2c30",
             "macWindowRules": rules
         };
+    }
+
+    // the Golden Gate skin's Mac keys for niri, [key, props, title, action]: ⌘ = the Windows key.
+    // ⌘Tab / ⌘` and ⌃←/⌃→ go through the shell's control socket (bin/angelos: services/AltTab,
+    // services/WorkspaceAnim — the desktops step over the minimized windows' workspace)
+    function macKeys() {
+        const ipc = "spawn-sh \"qs -c angelos ipc call angelos ";
+        const ctl = "spawn-sh \"exec " + Quickshell.shellDir + "/bin/angelos ";
+        const shot = "spawn \"" + Quickshell.shellDir + "/scripts/mac-screenshot.sh\" ";
+        const t = (ru, en) => I18n.t(ru, en);
+        return [
+            ["Mod+Q", "", t("завершить программу", "quit the app"), ipc + "macQuit\""],
+            ["Mod+W", "", t("закрыть окно", "close the window"), "close-window"],
+            ["Mod+M", "", t("свернуть окно в Dock", "minimize the window to the Dock"), ipc + "macMinimize\""],
+            ["Mod+H", "", t("скрыть программу", "hide the app"), ipc + "macHide\""],
+            ["Mod+Tab", "repeat=false", t("переключатель программ", "app switcher"), ctl + "alttab apps\""],
+            ["Mod+Shift+Tab", "repeat=false", t("переключатель программ, назад", "app switcher, backwards"), ctl + "alttab appsback\""],
+            ["Mod+Grave", "", t("следующее окно этой программы", "next window of this app"), ctl + "alttab appwin\""],
+            ["Mod+Shift+Grave", "", t("предыдущее окно этой программы", "previous window of this app"), ctl + "alttab appwinback\""],
+            ["Mod+Space", "", "Spotlight", ipc + "startMenu ''\""],
+            ["Mod+Comma", "", t("Системные настройки angelOS", "angelOS System Settings"), ipc + "settings ''\""],
+            ["Mod+Ctrl+F", "", t("полноэкранный режим", "full screen"), "fullscreen-window"],
+            ["Mod+Shift+3", "repeat=false", t("снимок экрана", "screenshot of the screen"), shot + "\"screen\""],
+            ["Mod+Shift+4", "repeat=false", t("снимок области", "screenshot of a part"), shot + "\"region\""],
+            ["Mod+Shift+5", "repeat=false", t("меню снимков экрана", "screenshot menu"), ipc + "macShotMenu\""],
+            ["Ctrl+Left", "", t("рабочий стол слева", "desktop to the left"), ctl + "ws up\""],
+            ["Ctrl+Right", "", t("рабочий стол справа", "desktop to the right"), ctl + "ws down\""],
+            ["Ctrl+Up", "repeat=false", "Mission Control", "toggle-overview"],
+            ["F3", "repeat=false", "Mission Control", "toggle-overview"],
+            ["Mod+Ctrl+Q", "", t("заблокировать экран", "lock the screen"), ipc + "lock\""],
+            ["Mod+Alt+Escape", "", t("завершить принудительно", "force quit"), ipc + "macMenu 0\""],
+            ["Ctrl+F2", "", t("строка меню с клавиатуры", "the menu bar from the keyboard"), ipc + "macMenu -1\""]
+        ];
     }
 
     // window decorations (templates gtk3-decor/gtk4-decor, scripts/gtk-live.py, Helium):

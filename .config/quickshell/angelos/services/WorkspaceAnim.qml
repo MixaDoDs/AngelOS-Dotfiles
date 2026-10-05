@@ -184,7 +184,7 @@ Singleton {
         const active = list.find(w => w.is_active);
         const idx = active ? active.idx : -1;
         // nothing would change: no transition
-        const same = /^[0-9]+$/.test(target) ? parseInt(target) === idx : target === "up" ? idx <= (list[0] ? list[0].idx : 1) : target === "down" ? idx >= (list.length ? list[list.length - 1].idx : 1) : false;
+        const same = /^[0-9]+$/.test(target) ? !!list[parseInt(target) - 1] && list[parseInt(target) - 1].is_active : target === "up" ? idx <= (list[0] ? list[0].idx : 1) : target === "down" ? idx >= (list.length ? list[list.length - 1].idx : 1) : false;
         // leaving a fullscreen game or video: switch plainly, no grab of the game
         const plain = !screen || same || Idle.active || Shell.locked || MetaTap.coversOutput(Niri.focusedWindow);
         if (!captured || Motion.still) {
@@ -207,16 +207,33 @@ Singleton {
         if (captured)
             captureRequested(screen || Niri.focusedOutput, "");
     }
+    // up, down and numbers count the desktops the shell shows: the workspace that holds the
+    // minimized windows (services/Minimize) is stepped over, not even passed through for a frame
     function niriAct(target) {
         if (!target)
             return;
+        const out = Niri.focusedOutput;
+        const list = Niri.workspacesOn(out);
+        const active = list.find(w => w.is_active) || Niri.workspaceById(Minimize.lastDesk[out]);
+        const i = active ? list.findIndex(w => w.id === active.id) : -1;
+        let to = null;
+        if (/^[0-9]+$/.test(target))
+            to = list[parseInt(target) - 1] || null;
+        else if (target === "up" && i >= 0)
+            to = list[i - 1] || null;
+        else if (target === "down" && i >= 0)
+            to = list[i + 1] || null;
+        if (to) {
+            Niri.focusWorkspace(to.id);
+            return;
+        }
         if (/^[0-9]+$/.test(target))
             Niri.action("FocusWorkspace", {
                 "reference": {
                     "Index": parseInt(target)
                 }
             });
-        else
+        else if (target === "prev" || i < 0)
             Niri.action(({
                     "up": "FocusWorkspaceUp",
                     "down": "FocusWorkspaceDown",
@@ -242,7 +259,8 @@ Singleton {
                 onRead: line => {
                     const m = line.trim().match(/^ws ([0-9]{1,2}|up|down|prev)$/);
                     // Alt+Tab shares the socket (services/AltTab): one hop instead of `qs ipc`
-                    const a = line.trim().match(/^alttab (next|prev|cancel)$/);
+                    // (and ⌘Tab / ⌘` of the Golden Gate skin's Mac keys: apps, appsback, appwin, appwinback)
+                    const a = line.trim().match(/^alttab (next|prev|cancel|apps|appsback|appwin|appwinback)$/);
                     // the lens at the pointer, too (services/Lens)
                     const l = line.trim().match(/^lens (in|out|close|toggle|refresh)$/);
                     if (l) {
@@ -251,13 +269,18 @@ Singleton {
                         Lens.cmd(l[1], "");
                         return;
                     }
-                    const ok = !!m || !!a && AltTab.ours;
+                    const mac = !!a && /^app/.test(a[1]);
+                    const ok = !!m || !!a && (AltTab.ours || mac);
                     client.write(ok ? "ok\n" : "err\n");
                     client.flush();
                     if (m)
                         root.go(m[1]);
                     else if (ok && a[1] === "cancel")
                         AltTab.cancel();
+                    else if (ok && /^appwin/.test(a[1]))
+                        AltTab.cycleAppWindows(a[1] === "appwinback" ? -1 : 1);
+                    else if (ok && mac)
+                        AltTab.stepApps(a[1] === "appsback" ? -1 : 1);
                     else if (ok)
                         AltTab.step(a[1] === "prev" ? -1 : 1);
                 }

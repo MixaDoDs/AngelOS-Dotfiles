@@ -376,6 +376,13 @@ Singleton {
         if (p)
             app.push(p);
         app.push(sep("app2"));
+        // ⌘H: the app's windows go (services/Minimize.hide), its Dock icon brings them back
+        app.push(item("app:hide", I18n.t("Скрыть ", "Hide ") + name, {
+            "kind": "niri",
+            "action": "hide"
+        }, Config.mac.keys ? {
+            "keys": ["logo", "h"]
+        } : {}), sep("app3"));
         const gQuit = fromActions("app:quit", I18n.t("Завершить ", "Quit ") + name, ["quit"], ["ctrl", "q"]);
         app.push(quit ? Object.assign({}, quit, {
             "label": I18n.t("Завершить ", "Quit ") + name
@@ -776,6 +783,9 @@ Singleton {
             break;
         case "minimize":
             Minimize.request(w.id, "menu");
+            break;
+        case "hide":
+            Minimize.hide(w.id);
             break;
         case "fill":
             Niri.maximizeWindow(w.id);

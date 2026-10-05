@@ -86,8 +86,8 @@ Singleton {
         const seen = {};
         for (const id of keptIds) {
             const it = appItem(id, true);
-            if (it.kind === "app" && !it.entry)
-                continue;           // uninstalled since
+            if (it.kind === "app" && !it.entry && !it.windows.length)
+                continue;           // uninstalled since (one that runs without a .desktop file stays)
             if (seen[it.id])
                 continue;
             seen[it.id] = true;
@@ -115,17 +115,39 @@ Singleton {
             "windows": []
         };
     })
+    // a kept id as the Dock knows its app (the entry's own id: "nautilus" → org.gnome.Nautilus)
+    function keyOf(raw) {
+        const s = String(raw);
+        if (s.startsWith("@"))
+            return s;
+        const e = entryOf(s);
+        return e ? e.id : s;
+    }
     function isKept(id) {
-        return keptIds.includes(id);
+        return keptIds.some(k => keyOf(k) === id);
     }
     function setKept(id, on) {
         const ids = keptIds.slice();
-        const i = ids.indexOf(id);
-        if (on && i < 0)
-            ids.splice(Math.max(0, ids.indexOf("@settings")), 0, id);
-        else if (!on && i >= 0)
+        const i = ids.findIndex(k => keyOf(k) === id);
+        if (on && i < 0) {
+            const s = ids.indexOf("@settings");
+            ids.splice(s < 0 ? ids.length : s, 0, id);
+        } else if (!on && i >= 0) {
             ids.splice(i, 1);
+        }
         Config.mac.dockApps = ids;
+    }
+    // the kept apps in this order (an app dragged in the Dock: MacDock); kept ones the Dock doesn't
+    // show (uninstalled since) stay, at the end
+    function setOrder(ids) {
+        const shown = apps.map(a => a.id);
+        const rest = keptIds.filter(k => !shown.includes(keyOf(k)) && !ids.includes(keyOf(k)));
+        Config.mac.dockApps = ids.concat(rest);
+    }
+    // back to the Dock as it comes: the file manager, Apps, the browser, the terminal, Start's
+    // pinned apps, System Settings (Settings → Dock)
+    function resetOrder() {
+        Config.mac.dockApps = [];
     }
 
     // ---- Downloads and the Trash ----
@@ -203,8 +225,9 @@ Singleton {
     }
 
     // ---- what a click does ----
+    // (`screen`: the Dock's that was clicked — a minimized window comes back to the desktop in front there)
     property var bouncing: ({})             // entry id -> true while it starts
-    function open(it) {
+    function open(it, screen) {
         if (it.kind === "apps") {
             Shell.openApps(Shell.focusedScreen ? Shell.focusedScreen.name : "");
             return;
@@ -214,14 +237,21 @@ Singleton {
             return;
         }
         if (it.kind === "window") {
-            Minimize.restore(it.wid);
+            Minimize.restore(it.wid, false, screen);
+            return;
+        }
+        // a hidden app (⌘H): all of it comes back
+        const hiddenApps = [...new Set(it.windows.filter(w => Minimize.isAppHidden(w)).map(w => w.app_id))];
+        if (hiddenApps.length) {
+            for (const a of hiddenApps)
+                Minimize.unhide(a, -1, screen);
             return;
         }
         // only minimized windows: the last one comes back
         const shown = it.windows.filter(w => !Minimize.isMinimized(w));
         if (it.windows.length && !shown.length) {
             const m = Minimize.windows.filter(w => it.windows.some(x => x.id === w.id));
-            Minimize.restore((m[m.length - 1] || it.windows[0]).id);
+            Minimize.restore((m[m.length - 1] || it.windows[0]).id, false, screen);
             return;
         }
         if (shown.length) {

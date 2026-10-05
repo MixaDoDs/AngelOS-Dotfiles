@@ -69,6 +69,14 @@ CATALOG = [
      "about": "pixel-perfect Windows XP set, HiDPI sizes", "license": "GPL-3.0 (na0miluv/modernXP-cursor-theme)",
      "url": "https://github.com/na0miluv/modernXP-cursor-theme/releases/download/final/ModernXP.tar.gz",
      "sha256": "5b439d1b838f19b667d565f9bc7c5e435118a7ef60cb2975f4695ce216b6be03"},
+    # macOS's black arrow, redrawn from scratch as SVG (not Apple's files), HiDPI sizes 16…96: the
+    # Golden Gate skin's cursor (Cursors.macTheme). No open port of Golden Gate's own (its glove
+    # hand) exists; this is the closest open one
+    {"id": "macos", "theme": "macOS", "name": "macOS",
+     "about": "macOS-like black arrow and hands, HiDPI sizes", "license": "GPL-3.0 (ful1e5/apple_cursor)",
+     "url": "https://github.com/ful1e5/apple_cursor/releases/download/v2.0.1/macOS.tar.xz",
+     "sha256": "9c6e5e13b068ce51a9e90a9abd6ce232ec7d25d4ceb05aa8ac76efbb99c76762",
+     "subdir": "macOS"},  # the archive holds macOS-White too
     {"id": "pixel-linux", "theme": "Pixel-Linux-Cursor", "name": "Pixel Linux",
      "about": "black-and-white pixel set with a skull", "license": "BSD-3-Clause (da0ab/Pixel-Linux-Cursor)",
      "url": "https://codeload.github.com/da0ab/Pixel-Linux-Cursor/tar.gz/fdef33f8c87bff22812048c6060d6f36a12f1aaa",
@@ -229,9 +237,12 @@ def install_archive(entry):
             tar.extractall(tmp, members=list(safe_members(tar)), filter="data")
         # the theme root is the directory holding cursors/
         roots = [p.parent for p in Path(tmp).rglob("cursors") if p.is_dir()]
+        # an archive with several themes names the one wanted ("subdir")
+        if entry.get("subdir"):
+            roots = [p for p in roots if p.name == entry["subdir"]]
         if not roots:
             raise Fail("no cursors/ directory in the archive")
-        root = min(roots, key=lambda p: len(p.parts))
+        root = min(roots, key=lambda p: (len(p.parts), str(p)))
         index = root / "index.theme"
         if not index.exists():
             index.write_text(f"[Icon Theme]\nName={entry['name']}\nComment={entry['about']}\n")
@@ -810,6 +821,16 @@ def apply(theme, size, flatpak=True):
         subprocess.run(["dbus-update-activation-environment", "XCURSOR_THEME", "XCURSOR_SIZE"], env=env,
                        capture_output=True, timeout=20)
         done.append("dbus")
+    # the shell's own service reads the login's environment back from session.env (bin/angelos,
+    # scripts/session-env.py): without this a restart would bring the old cursor back to Qt
+    senv = Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}") / "angelos/session.env"
+    if senv.is_file():
+        text = senv.read_text()
+        for key, value in (("XCURSOR_THEME", theme), ("XCURSOR_SIZE", str(size))):
+            line = f'{key}="{value}"'
+            text = re.sub(rf"(?m)^{key}=.*$", line, text) if re.search(rf"(?m)^{key}=", text) else text.rstrip("\n") + "\n" + line + "\n"
+        senv.write_text(text)
+        done.append("session.env")
     if flatpak and shutil.which("flatpak"):
         # read-only access to ~/.local/share/icons only (where angelOS puts the themes)
         ok = run(["flatpak", "override", "--user", "--filesystem=xdg-data/icons:ro", "--nofilesystem=~/.icons",

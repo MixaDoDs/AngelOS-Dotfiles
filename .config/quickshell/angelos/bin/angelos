@@ -4,7 +4,7 @@
 #   angelos settingsView win11|sidebar|controlpanel|properties|tiles | settingsSkin classic|windose|stream
 #   angelos theme light|dark|auto|toggle | wallpaper <path|random> | bar taskbar|top|island
 #   angelos startMenu | sidebar | idle | lockPreview | fontPreset arcade|soft|block|angelos
-#   angelos ws <n|up|down|prev> | alttab next|prev|cancel | lens in|out|close|toggle | start | restart | stop | run | status | log | report | sprites | switch angelos|noctalia
+#   angelos ws <n|up|down|prev> | alttab next|prev|cancel|apps|appsback|appwin|appwinback | lens in|out|close|toggle | start | restart | stop | run | status | log | report | sprites | switch angelos|noctalia
 #   angelOS is also a game played over your desktop (an angel, a demon, a story that follows
 #   your choices). Out of it at once, any time: `angelos game off` or Mod+Ctrl+Shift+Escape;
 #   back: `angelos game on`. `angelos game status | reset` (the save, ~/.config/angelos/save.json).
@@ -31,6 +31,9 @@ UNIT_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/$UNIT"
 shell_env() {
   mode="$(cat "$CONF_DIR/renderer" 2>/dev/null | tr -cd 'a-z')"
   export ANGELOS_PRE_QT_PLUGIN_PATH="${QT_PLUGIN_PATH:-}" ANGELOS_PRE_QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-}"
+  # the shell's own windows (Settings…) draw their own title bars: never Qt's frame around them,
+  # also where the apps draw theirs (Golden Gate turns niri's prefer-no-csd off)
+  export ANGELOS_PRE_QT_WAYLAND_DISABLE_WINDOWDECORATION="${QT_WAYLAND_DISABLE_WINDOWDECORATION:-}" QT_WAYLAND_DISABLE_WINDOWDECORATION=1
   # Qt apps may use qt6ct (Settings → Appearance → Qt apps, scripts/qt-theme.py); the
   # shell keeps the GTK platform theme it was made with, apps get theirs back (Shell.childEnv)
   if [ "${QT_QPA_PLATFORMTHEME:-}" = qt6ct ]; then
@@ -206,14 +209,18 @@ case "$1" in
     esac
     ;;
   alttab)
-    # Alt+Tab through the shell's switcher (niri's binds from Settings → Windows),
-    # niri's "previous window" as a fallback when the shell is not running
+    # Alt+Tab through the shell's switcher (niri's binds from Settings → Windows), ⌘Tab (apps)
+    # and ⌘` (appwin) of the Golden Gate skin's Mac keys; niri's "previous window" as a
+    # fallback when the shell is not running
     dir="$(printf '%s' "${2:-next}" | tr -cd 'a-z')"
     sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/angelos/ctl.sock"
     if [ -S "$sock" ] && command -v socat >/dev/null 2>&1 && printf 'alttab %s\n' "$dir" | socat -t1 - "UNIX-CONNECT:$sock" 2>/dev/null | grep -q '^ok'; then
       exit 0
     fi
-    [ "$dir" = cancel ] || exec niri msg action focus-window-previous
+    case "$dir" in
+      cancel|appwin*) ;;
+      *) exec niri msg action focus-window-previous ;;
+    esac
     ;;
   novel)
     # the novel's dialogue editor runs without the shell (the author's tool: owner/, see

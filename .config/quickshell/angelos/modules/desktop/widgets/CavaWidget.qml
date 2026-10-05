@@ -16,6 +16,7 @@ import qs.widgets
 // and run only in a copy that is shown: the widget's face (DesktopWidgetHost) —
 // its hidden input copy would share the FIFO and the config. A watchdog restarts a
 // cava that stopped printing frames (B4).
+// macOS look (DesktopWidgets.macLook): round-capped capsules in the theme's two accents.
 Item {
     id: root
 
@@ -41,8 +42,11 @@ Item {
     readonly property string conf: Quickshell.env("HOME") + "/.cache/angelos/cava-" + (widget ? widget.uid : "x") + ".conf"
     readonly property string fifo: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos-cava-" + (widget ? widget.uid : "x") + ".fifo"
 
-    implicitWidth: Theme.u * 6 * bars / 2 + Theme.u * 4
-    implicitHeight: Theme.u * 44
+    readonly property bool mac: DesktopWidgets.macLook
+    readonly property int macBar: DesktopWidgets.mpx(bars > 40 ? 4 : 5)
+    readonly property int macGap: DesktopWidgets.mpx(3)
+    implicitWidth: mac ? bars * (macBar + macGap) - macGap : Theme.u * 6 * bars / 2 + Theme.u * 4
+    implicitHeight: mac ? DesktopWidgets.mpx(88) : Theme.u * 44
 
     FileView {
         id: confFile
@@ -120,18 +124,63 @@ Item {
     }
 
     PxText {
-        visible: root.missing
+        visible: root.missing && !root.mac
         anchors.centerIn: parent
         text: I18n.t("нужен cava: sudo pacman -S cava", "needs cava: sudo pacman -S cava")
         dim: true
     }
 
+    // ---- macOS look ----
+    MacWidgetText {
+        visible: root.missing && root.mac
+        anchors.centerIn: parent
+        width: parent.width
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.Wrap
+        text: I18n.t("Нужен cava: sudo pacman -S cava", "Needs cava: sudo pacman -S cava")
+        role: "secondary"
+    }
     Row {
+        visible: root.mac && !root.missing
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: root.macGap
+        Repeater {
+            model: root.mac ? root.bars : 0
+            Item {
+                id: capsule
+                required property int index
+                width: root.macBar
+                height: root.height
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    width: parent.width
+                    height: Math.max(width, (root.levels[capsule.index] || 0) * parent.height)
+                    radius: width / 2
+                    antialiasing: true
+                    gradient: Gradient {
+                        GradientStop {
+                            position: 0
+                            color: DesktopWidgets.macColors[0]
+                        }
+                        GradientStop {
+                            position: 1
+                            color: DesktopWidgets.macColors[1]
+                        }
+                    }
+                    opacity: (root.levels[capsule.index] || 0) > 0.01 ? 1 : 0.35
+                }
+            }
+        }
+    }
+
+    Row {
+        visible: !root.mac
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: Theme.u
         Repeater {
-            model: root.bars
+            model: root.mac ? 0 : root.bars
             Item {
                 id: bar
                 required property int index

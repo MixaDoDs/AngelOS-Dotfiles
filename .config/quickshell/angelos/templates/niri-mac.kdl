@@ -2,6 +2,17 @@
 // The Golden Gate skin: windows like macOS 27's — one corner radius for all, no coloured frame,
 // a soft shadow that is deeper under the active window. Back to templates/niri.kdl when the
 // skin is off or the demon rules.
+// The apps draw their own title bars (client-side decorations, as on a Mac every window has its
+// own): GTK's traffic lights on the left (gtk-live.py: button-layout close,minimize,maximize:),
+// Qt's Adwaita frame with the same order, kitty's, the browsers'. niri draws none and angelOS
+// none over them. This file comes after cfg/misc.kdl: its prefer-no-csd (the pixel skins') and
+// QT_WAYLAND_DISABLE_WINDOWDECORATION are turned back here. The yellow light reaches angelOS
+// through extras/minimize-hook (niri 26.04 drops xdg_toplevel.set_minimized).
+prefer-no-csd false
+environment {
+    QT_WAYLAND_DISABLE_WINDOWDECORATION null
+    QT_WAYLAND_DECORATION "adwaita"
+}
 layout {
     focus-ring {
         off

@@ -100,11 +100,10 @@ JsonAdapter {
         property var names: ({})            // "DP-1:1" -> "работа"
     }
 
-    // window decorations (modules/decor, Settings → Windows → Decorations): niri draws no
-    // title bars (prefer-no-csd), so apps without their own get angelOS's
+    // the apps' own window buttons (their client-side decorations; Settings → Windows → Decorations,
+    // the pixel skins only — Golden Gate always has the traffic lights): angelOS draws no title
+    // bars over windows
     property JsonObject decor: JsonObject {
-        property bool titlebars: true       // angelOS title bars over floating windows without a frame of their own
-        property var skip: ["helium", "chromium", "google-chrome", "brave-browser", "firefox", "zen", "librewolf", "org.gnome.*", "org.quickshell", "quickshell", "steam", "discord", "vesktop", "spotify", "code", "code-oss", "cursor", "obsidian", "org.telegram.desktop", "com.mitchellh.ghostty"] // app ids that draw their own (a * at the end: a prefix)
         property bool gtkButtons: true      // GTK 3/4 window buttons drawn like angelOS's (templates gtk3/gtk4)
         property string gtkLayout: "maximize,close" // GTK title bar buttons, in order (gsettings button-layout, right side)
     }
@@ -170,6 +169,7 @@ JsonAdapter {
         property bool initialized: false
         property bool snap: true
         property string titleSuffix: "exe"  // every angelOS window, widget and caption ends in .exe | .sh | .bin (I18n.exe)
+        property string widgetStyle: "auto" // desktop widgets: auto (macOS cards with the Golden Gate skin, pixel windows otherwise) | pixel | mac (DesktopWidgets.macStyle)
         // the right-click menu on the wallpaper (services/DeskMenu, Settings → Right-click menu)
         property string menuStyle: "list"   // list (the usual, Windows 11-like) | radial (a ring) | y2k (glossy bubble) | tiles (Control Center) | wings | harp (heaven's own; in hell the circle's own takes their place) | pentagram
         property var menuQuick: ["terminal", "files", "monitor", "wallpaperPick", "settings"] // the list's top row, the ring's first slots (up to 6)
@@ -407,19 +407,13 @@ JsonAdapter {
         property bool appMenus: true        // the focused app's own menus in the menu bar (scripts/appmenu.py)
         property bool keys: false           // Mac-style shortcuts (the skin's binds in niri's angelos.kdl) — offered, never imposed
         property bool floating: true        // new windows float and overlap like on a Mac (off: niri's columns)
-        // the skin's own window title bars (modules/decor), apart from Config.decor (the other skins'):
-        // on, a Mac title bar with the traffic lights over every floating window that draws none of
-        // its own; decorSkip are the ones that do (browsers with their own frame, GTK/libadwaita,
-        // Electron and Steam) — Helium with the system frame has none, so it gets one
-        property bool titlebars: true
         property string minimizeEffect: "genie" // genie | scale — how a window goes to the Dock (modules/mac/MacMinimizeFx)
-        property var decorSkip: ["firefox", "zen", "librewolf", "chromium", "google-chrome", "brave-browser", "org.gnome.*", "io.missioncenter.*", "org.pipewire.Helvum", "org.pulseaudio.pavucontrol", "com.shellyorg.shelly", "localsend*", "com.mitchellh.ghostty", "org.quickshell", "quickshell", "steam", "discord", "vesktop", "spotify", "code", "code-oss", "cursor", "obsidian", "org.telegram.desktop"]
         property int dockSize: 48           // Dock icons, logical px
         property bool dockMagnify: true     // icons grow under the pointer
         property int dockMagnifySize: 96    // the icon right under the pointer, logical px (dockSize..128)
         property bool dockMacIcons: true    // MacTahoe's icons in the Dock (DockIcons, scripts/mac-icons.py)
         property bool dockAutohide: false
-        property bool dockRecents: true     // recently used apps after the divider
+        property string dockPosition: "bottom" // bottom | left | right — the screen's edge the Dock stands on
         property var dockApps: []           // desktop ids in the Dock; empty: Start's pinned apps
         property string font: ""            // "" = Inter (open, drawn close to SF Pro); any installed family
         property bool wallpaper: true       // the skin's own wallpaper (scripts/goldengate-wallpaper.py), light or dark with the theme

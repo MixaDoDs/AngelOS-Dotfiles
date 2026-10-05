@@ -10,6 +10,8 @@ import qs.widgets
 // CPU / GPU / RAM / temperatures / network in pixel meters (paused while the
 // desk is out of sight: locked or under a fullscreen window). In hell (Theme.realm)
 // the same numbers as Heat, Inferno, Souls and Cauldron, in meters of fire.
+// macOS look (DesktopWidgets.macLook): four rings with the load in the middle, the network
+// on a line of its own under them.
 Item {
     id: root
 
@@ -30,8 +32,9 @@ Item {
     property var _netLast: null
     property string cpuTempPath: ""
 
-    implicitWidth: Theme.u * 130
-    implicitHeight: col.implicitHeight
+    readonly property bool mac: DesktopWidgets.macLook
+    implicitWidth: mac ? macCol.implicitWidth : Theme.u * 130
+    implicitHeight: mac ? macCol.implicitHeight : col.implicitHeight
 
     function human(bps) {
         const k = bps / 1024;
@@ -132,8 +135,119 @@ Item {
         }
     }
 
+    // ---- macOS look ----
+    readonly property real vram: vramText ? parseFloat(vramText) / Math.max(1, parseFloat(vramText.split("/")[1])) : -1
+    function pct(v) {
+        return v < 0 ? "—" : Math.round(v * 100) + "%";
+    }
+    function deg(t) {
+        return t > 0 ? Math.round(t) + "°C" : "";
+    }
+    Column {
+        id: macCol
+        visible: root.mac
+        spacing: DesktopWidgets.mpx(12)
+        Row {
+            spacing: DesktopWidgets.mpx(10)
+            Repeater {
+                model: [
+                    {
+                        "k": "CPU",
+                        "v": root.cpu,
+                        "d": root.deg(root.cpuTemp)
+                    },
+                    {
+                        "k": "GPU",
+                        "v": root.gpu,
+                        "d": root.deg(root.gpuTemp)
+                    },
+                    {
+                        "k": I18n.t("ОЗУ", "RAM"),
+                        "v": root.ram,
+                        "d": root.ramText
+                    },
+                    {
+                        "k": "VRAM",
+                        "v": root.vram,
+                        "d": root.vramText
+                    }
+                ]
+                Column {
+                    id: gauge
+                    required property var modelData
+                    required property int index
+                    width: DesktopWidgets.mpx(72)
+                    spacing: DesktopWidgets.mpx(2)
+                    MacRing {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: DesktopWidgets.mpx(60)
+                        height: width
+                        lineWidth: DesktopWidgets.mpx(7)
+                        value: gauge.modelData.v
+                        color: DesktopWidgets.macColors[gauge.index]
+                        MacWidgetText {
+                            anchors.centerIn: parent
+                            text: root.pct(gauge.modelData.v)
+                            size: 13
+                            weight: Font.DemiBold
+                        }
+                    }
+                    Item {
+                        width: 1
+                        height: DesktopWidgets.mpx(4)
+                    }
+                    MacWidgetText {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: gauge.modelData.k
+                        size: 11
+                        weight: Font.DemiBold
+                        role: "secondary"
+                    }
+                    MacWidgetText {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: gauge.modelData.d || " "
+                        size: 11
+                        role: "tertiary"
+                    }
+                }
+            }
+        }
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: DesktopWidgets.macSeparator
+        }
+        Row {
+            width: parent.width
+            MacWidgetText {
+                width: parent.width * 0.3
+                text: I18n.t("Сеть", "Network")
+                size: 12
+                weight: Font.DemiBold
+                role: "secondary"
+            }
+            MacWidgetText {
+                width: parent.width * 0.35
+                horizontalAlignment: Text.AlignRight
+                text: "↓ " + root.human(root.rx)
+                size: 12
+                weight: Font.Medium
+            }
+            MacWidgetText {
+                width: parent.width * 0.35
+                horizontalAlignment: Text.AlignRight
+                text: "↑ " + root.human(root.tx)
+                size: 12
+                weight: Font.Medium
+            }
+        }
+    }
+
     Column {
         id: col
+        visible: !root.mac
         width: parent.width
         spacing: Theme.u * 3
 
