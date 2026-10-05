@@ -129,6 +129,13 @@ else
   fail "Qt look: tests/qt/test_qt_theme.py"
 fi
 
+if python3 "$ROOT/.config/quickshell/angelos/tests/theme/test_switch.py" >"$WORK/switch.log" 2>&1; then
+  pass "switch.py on an update: the user's palette, not the stock one; one Voxtype (throw-away HOME)"
+else
+  sed 's/^/    /' "$WORK/switch.log" >&2
+  fail "switch.py: tests/theme/test_switch.py"
+fi
+
 if bash "$ROOT/.config/quickshell/angelos/tests/author/run.sh" >"$WORK/author.log" 2>&1; then
   pass "author's tools: only for an account GitHub lets in (stand-in gh)"
 else

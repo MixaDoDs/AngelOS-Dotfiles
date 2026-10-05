@@ -26,6 +26,8 @@ HOME = Path.home()
 SHELL = Path(__file__).resolve().parent.parent
 STATE = HOME / ".local/state/angelos"
 MARK = HOME / ".config/angelos/active"
+SETTINGS = HOME / ".config/angelos/settings.json"
+PALETTE = HOME / ".cache/angelos/palette.json"   # the user's palette (services/ThemeExport)
 NIRI = HOME / ".config/niri"
 FILES = [
     NIRI / "config.kdl", NIRI / "cfg/autostart.kdl", NIRI / "cfg/keybinds.kdl", NIRI / "cfg/rules.kdl",
@@ -144,15 +146,50 @@ def patch_rules(t):
     return t.rstrip() + "\n" + RULES
 
 
+def render_themes():
+    """The theme files (kitty, foot, Alacritty, GTK, niri's angelos.kdl…) in the user's own
+    colours: the palette the shell exported last (services/ThemeExport), without the templates
+    switched off in Settings → Appearance. The stock palette only before there is one (a first
+    install): Settings → Updates runs this on every update, and when the shell wasn't restarted
+    after it nothing rendered the user's palette again — the apps stayed in the stock pink."""
+    try:
+        appearance = json.loads(SETTINGS.read_text()).get("appearance") or {}
+    except (OSError, ValueError, AttributeError):
+        appearance = {}
+    kdl = (NIRI / "angelos.kdl").exists()
+    if appearance.get("themeApps") is False and kdl:
+        log("темы приложений выключены в настройках — не трогаю")
+        return
+    try:
+        own = isinstance(json.loads(PALETTE.read_text()), dict)
+    except (OSError, ValueError):
+        own = False
+    palette = PALETTE if own else SHELL / "templates/palette-default.json"
+    disabled = {str(i) for i in appearance.get("disabledTemplates") or [] if re.fullmatch(r"[\w.-]+", str(i))}
+    if not kdl:
+        disabled.discard("niri")
+    log("темы:", palette.relative_to(HOME) if own else "палитра по умолчанию")
+    subprocess.run([sys.executable, str(SHELL / "scripts/render-templates.py"), str(palette), ",".join(sorted(disabled))], check=False)
+
+
+def one_voxtype(t):
+    """Voxtype has one owner, its user service (the installer enables it): installs from before
+    2026-10-04 also spawned the daemon from niri, and the service then failed on the lock and
+    restarted every 5 s for as long as the session ran."""
+    if not any((HOME / ".config/systemd/user").glob("*.wants/voxtype.service")):
+        return t
+    return re.sub(r'^[ \t]*spawn-at-startup[ \t]+"[^"\n]*/voxtype"[ \t]+"daemon"[ \t]*\n', "", t, flags=re.M)
+
+
 def to_angelos(restart=True, validate=True):
     backup("switch")
     # theme files first: niri must never include a missing file
-    subprocess.run([sys.executable, str(SHELL / "scripts/render-templates.py"), str(SHELL / "templates/palette-default.json")], check=False)
+    render_themes()
     if not (NIRI / "angelos.kdl").exists():
         sys.exit("angelos.kdl не создан — отмена")
     # `angelos start` runs the shell as a systemd user service (restarted when it dies);
     # `angelos run` inside it sets the renderer environment (bin/angelos) before qs
-    edit(NIRI / "cfg/autostart.kdl", lambda t: re.sub(r'spawn-at-startup\s+(?:"noctalia"|"qs"\s+"-c"\s+"angelos"\s+"-n"|"angelos"\s+"run")', 'spawn-at-startup "angelos" "start"', t))
+    edit(NIRI / "cfg/autostart.kdl", lambda t: one_voxtype(re.sub(r'spawn-at-startup\s+(?:"noctalia"|"qs"\s+"-c"\s+"angelos"\s+"-n"|"angelos"\s+"run")', 'spawn-at-startup "angelos" "start"', t)))
     edit(NIRI / "config.kdl", lambda t: t.replace('include "noctalia.kdl"', 'include "angelos.kdl"'))
     edit(NIRI / "cfg/keybinds.kdl", patch_keys)
     edit(NIRI / "cfg/rules.kdl", patch_rules)
