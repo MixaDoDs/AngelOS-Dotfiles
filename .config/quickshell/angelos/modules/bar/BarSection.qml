@@ -30,4 +30,13 @@ RowLayout {
             centered: root.centered
         }
     }
+    // the stretched left side without a "Windows" that takes the room (hidden, or "compact"):
+    // the rest goes here, after the widgets — a RowLayout with nothing to stretch spreads the
+    // room between its cells, and the workspaces after Start slid to the middle of the bar
+    Item {
+        visible: root.fillTasks && !(root.ids.includes("tasks") && Config.bar.tasksWidth !== "compact")
+        Layout.fillWidth: true
+        Layout.preferredWidth: 0
+        implicitHeight: 1
+    }
 }
