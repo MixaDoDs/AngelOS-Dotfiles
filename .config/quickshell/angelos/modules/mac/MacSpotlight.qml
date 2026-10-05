@@ -18,14 +18,30 @@ Item {
     signal closeRequested
     property int current: 0
     // the pointer takes the selection only when it moves, as on a Mac: results appearing under
-    // a still pointer leave the top hit selected
-    property point lastPointer: Qt.point(-1, -1)
+    // a still pointer leave the top hit selected. Moved = away from where it stood when these
+    // results came (not between two events: a 1000 Hz mouse moves a pixel or less per event, and
+    // the selection stuck until a fast flick); from then on it follows the pointer every event
+    property var _anchor: null
+    property bool _pointerMoved: false
     function pointed(area, m, index) {
-        const p = area.mapToItem(null, m.x, m.y);
-        if (lastPointer.x >= 0 && (Math.abs(p.x - lastPointer.x) > 1 || Math.abs(p.y - lastPointer.y) > 1))
+        if (!_pointerMoved) {
+            const p = area.mapToItem(null, m.x, m.y);
+            if (!_anchor) {
+                _anchor = p;
+                return;
+            }
+            if (Math.abs(p.x - _anchor.x) + Math.abs(p.y - _anchor.y) < 3)
+                return;
+            _pointerMoved = true;
+        }
+        if (current !== index)
             current = index;
-        lastPointer = p;
     }
+    function _stillPointer() {
+        _anchor = null;
+        _pointerMoved = false;
+    }
+    onRowsChanged: _stillPointer()
     property string query: ""
     property string mode: ""                  // "" search | apps | files | actions | clipboard
     property real room: 0                     // StartOverlay: the screen's room for it
@@ -121,6 +137,7 @@ Item {
         current = 0;
     }
     function reset() {
+        _stillPointer();
         query = "";
         field.text = "";
         current = 0;

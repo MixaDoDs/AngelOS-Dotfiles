@@ -44,6 +44,12 @@ Item {
         }
         return false;
     }
+    // this window in niri (for the minimize hook): by its title, -1 if niri doesn't list it
+    function nativeId() {
+        const t = view.hostWindow ? String(view.hostWindow.title) : "";
+        const w = Niri.windows.find(x => x.app_id === "org.quickshell" && x.title === t);
+        return w ? w.id : -1;
+    }
     // a page's line icon on its category's colour
     function iconOf(id) {
         const p = view.pageEntry(id);
@@ -80,12 +86,12 @@ Item {
                 id: lightsHover
             }
             Repeater {
-                // close, minimize (grey: niri has none), zoom
+                // close, minimize (services/Minimize.request — the hook), zoom
                 model: [["close", 0], ["minimize", 1], ["zoom", 2]]
                 Rectangle {
                     id: light
                     required property var modelData
-                    readonly property bool usable: modelData[0] !== "minimize"
+                    readonly property bool usable: true
                     width: GoldenGate.px(12)
                     height: width
                     radius: width / 2
@@ -104,7 +110,7 @@ Item {
                     MacIcon {
                         visible: lightsHover.hovered && light.usable
                         anchors.centerIn: parent
-                        name: light.modelData[0] === "close" ? "x" : "maximize-2"
+                        name: light.modelData[0] === "close" ? "x" : light.modelData[0] === "minimize" ? "minus" : "maximize-2"
                         size: parent.width * 0.7
                         stroke: 3
                         color: Qt.rgba(0, 0, 0, 0.55)
@@ -115,6 +121,8 @@ Item {
                         onClicked: {
                             if (light.modelData[0] === "close")
                                 Shell.settingsOpen = false;
+                            else if (light.modelData[0] === "minimize")
+                                Minimize.request(root.nativeId(), "settings");
                             else if (root.view.hostWindow)
                                 root.view.hostWindow.maximized = !root.view.hostWindow.maximized;
                         }

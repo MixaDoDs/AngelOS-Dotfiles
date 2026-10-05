@@ -64,7 +64,7 @@ Singleton {
     // ---- set up once: the file, the include, the ring width ----
     Process {
         id: setup
-        running: Config.ready && Config.decor.titlebars && !Shell.dev
+        running: Config.ready && GoldenGate.titlebars && !Shell.dev
         command: ["sh", "-c", `
 d="$1"; f="$d/cfg/angelos-drag.kdl"; c="$d/config.kdl"
 [ -f "$c" ] || { echo "noconfig"; exit 0; }

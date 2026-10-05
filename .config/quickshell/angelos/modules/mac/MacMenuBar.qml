@@ -58,11 +58,13 @@ PanelWindow {
 
         Repeater {
             id: titleRep
-            model: MacMenus.barMenus
+            model: titleModel
 
             Item {
                 id: title
-                required property var modelData
+                // the title's own row (key, title, bold, emblem), kept in place by syncTitles
+                required property var model
+                readonly property var modelData: model
                 required property int index
                 readonly property bool isOpen: win.menuHere && MacMenus.index === index
                 width: modelData.emblem ? GoldenGate.px(38) : label.implicitWidth + GoldenGate.px(20)
@@ -104,6 +106,40 @@ PanelWindow {
             }
         }
     }
+    // the titles as a model updated in place: AppMenu.menus is built anew on every change of
+    // niri's windows (focus, layout — the menu overlay taking the keyboard is one), and a
+    // Repeater over a new array makes all its titles again — the bar blinked each time
+    ListModel {
+        id: titleModel
+    }
+    function syncTitles() {
+        const menus = MacMenus.barMenus || [];
+        for (let i = 0; i < menus.length; i++) {
+            const m = menus[i] || {};
+            const row = {
+                "key": String(m.id || i),
+                "title": String(m.title || ""),
+                "bold": m.bold === true,
+                "emblem": m.emblem === true
+            };
+            if (i < titleModel.count) {
+                const cur = titleModel.get(i);
+                for (const k in row)
+                    if (cur[k] !== row[k])
+                        titleModel.setProperty(i, k, row[k]);
+            } else
+                titleModel.append(row);
+        }
+        if (titleModel.count > menus.length)
+            titleModel.remove(menus.length, titleModel.count - menus.length);
+    }
+    Connections {
+        target: MacMenus
+        function onBarMenusChanged() {
+            win.syncTitles();
+        }
+    }
+    Component.onCompleted: syncTitles()
     function titleLeft(t) {
         return titles.x + t.x;
     }

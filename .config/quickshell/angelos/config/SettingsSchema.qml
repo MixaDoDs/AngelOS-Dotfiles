@@ -407,6 +407,13 @@ JsonAdapter {
         property bool appMenus: true        // the focused app's own menus in the menu bar (scripts/appmenu.py)
         property bool keys: false           // Mac-style shortcuts (the skin's binds in niri's angelos.kdl) — offered, never imposed
         property bool floating: true        // new windows float and overlap like on a Mac (off: niri's columns)
+        // the skin's own window title bars (modules/decor), apart from Config.decor (the other skins'):
+        // on, a Mac title bar with the traffic lights over every floating window that draws none of
+        // its own; decorSkip are the ones that do (browsers with their own frame, GTK/libadwaita,
+        // Electron and Steam) — Helium with the system frame has none, so it gets one
+        property bool titlebars: true
+        property string minimizeEffect: "genie" // genie | scale — how a window goes to the Dock (modules/mac/MacMinimizeFx)
+        property var decorSkip: ["firefox", "zen", "librewolf", "chromium", "google-chrome", "brave-browser", "org.gnome.*", "io.missioncenter.*", "org.pipewire.Helvum", "org.pulseaudio.pavucontrol", "com.shellyorg.shelly", "localsend*", "com.mitchellh.ghostty", "org.quickshell", "quickshell", "steam", "discord", "vesktop", "spotify", "code", "code-oss", "cursor", "obsidian", "org.telegram.desktop"]
         property int dockSize: 48           // Dock icons, logical px
         property bool dockMagnify: true     // icons grow under the pointer
         property int dockMagnifySize: 96    // the icon right under the pointer, logical px (dockSize..128)

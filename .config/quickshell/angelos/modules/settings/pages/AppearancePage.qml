@@ -201,6 +201,24 @@ PxPage {
             }
         }
         SettingRow {
+            label: I18n.t("Убирать в Dock с эффектом", "Minimise windows using")
+            hint: I18n.t("«Джин» — окно изгибается и втекает в значок, «Масштаб» — уменьшается в него; с движением «выкл» — сразу", "Genie — the window bends and pours into its icon, Scale — it shrinks into it; with Motion off — at once")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Джин", "Genie"),
+                        "value": "genie"
+                    },
+                    {
+                        "label": I18n.t("Масштаб", "Scale"),
+                        "value": "scale"
+                    }
+                ]
+                currentValue: Config.mac.minimizeEffect === "scale" ? "scale" : "genie"
+                onActivated: v => Config.mac.minimizeEffect = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Автоматически скрывать Dock", "Automatically hide the Dock")
             PxToggle {
                 checked: Config.mac.dockAutohide

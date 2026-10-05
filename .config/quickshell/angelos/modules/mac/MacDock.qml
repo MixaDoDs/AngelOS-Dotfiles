@@ -247,9 +247,32 @@ PanelWindow {
         width: size
         height: size
 
+        // where it is, for the minimize flight (services/Minimize.dockSlots, MacMinimizeFx): a
+        // minimized window's snapshot lands here; Downloads is where one goes before its own
+        // place is there. Written, not bound — the magnification moves it every frame.
+        readonly property bool reports: isWin || item.kind === "downloads"
+        function report() {
+            if (!reports || !cell.parent)
+                return;
+            const p = cell.mapToItem(null, cell.width / 2, cell.height / 2);
+            Minimize.dockSlots[win.screenName + "|" + item.id] = [p.x, win.modelData.height - win.height + p.y, cell.width];
+        }
+        onSizeChanged: report()
+        onYChanged: report()
+        Component.onCompleted: Qt.callLater(report)
+        Connections {
+            target: win
+            enabled: cell.reports
+            function onLayoutChanged() {
+                cell.report();
+            }
+        }
+
         Item {
             id: art
             anchors.fill: parent
+            // a snapshot in flight to (or out of) this place: the place stays empty meanwhile
+            opacity: cell.isWin && Minimize.flying.indexOf(cell.item.wid) >= 0 ? 0 : 1
             property real hop: 0
             transform: Translate {
                 y: -art.hop
@@ -441,16 +464,20 @@ PanelWindow {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: m => {
                 const it = cell.item;
+                // above the icon (grown, it stays so while the menu is open), in the screen's coordinates
+                const p = cell.mapToItem(null, cell.width / 2, 0);
+                const above = win.modelData.height - win.height + p.y - GoldenGate.px(8);
                 if (m.button === Qt.RightButton) {
-                    // above the icon (grown, it stays so while the menu is open), in the screen's coordinates
-                    const p = cell.mapToItem(null, cell.width / 2, 0);
-                    MacMenus.openDock(win.screenName, it, p.x, win.modelData.height - win.height + p.y - GoldenGate.px(8));
+                    MacMenus.openDock(win.screenName, it, p.x, above);
+                    return;
+                }
+                // Downloads: its stack (MacStack) — a second click closes it
+                if (it.kind === "downloads") {
+                    MacMenus.openStack(win.screenName, it, p.x, above);
                     return;
                 }
                 MacMenus.close();
-                if (it.kind === "downloads")
-                    MacDockModel.openDownloads();
-                else if (it.kind === "trash")
+                if (it.kind === "trash")
                     MacDockModel.openTrash();
                 else
                     MacDockModel.open(it);

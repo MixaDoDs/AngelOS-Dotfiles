@@ -1,44 +1,44 @@
-# angelOS wallpaper / dark
+# angelOS goldengate / dark
 [colors.primary]
-background = '#131922'
-foreground = '#fafafa'
+background = '#1c1c1e'
+foreground = '#f5f5f7'
 
 [colors.cursor]
-text = '#131922'
-cursor = '#5787b3'
+text = '#1c1c1e'
+cursor = '#ff9f0a'
 
 [colors.vi_mode_cursor]
-text = '#131922'
-cursor = '#90afcc'
+text = '#1c1c1e'
+cursor = '#5e5ce6'
 
 [colors.selection]
-text = '#131922'
-background = '#5787b3'
+text = '#ffffff'
+background = '#ff9f0a'
 
 [colors.search.matches]
-foreground = '#131922'
-background = '#90afcc'
+foreground = '#1c1c1e'
+background = '#5e5ce6'
 
 [colors.search.focused_match]
-foreground = '#131922'
-background = '#5787b3'
+foreground = '#1c1c1e'
+background = '#ff9f0a'
 
 [colors.normal]
-black   = '#131922'
-red     = '#e36b78'
-green   = '#8eaf73'
-yellow  = '#d8b56b'
-blue    = '#90afcc'
-magenta = '#5787b3'
-cyan    = '#72b7b0'
-white   = '#fafafa'
+black   = '#000000'
+red     = '#c23621'
+green   = '#25bc24'
+yellow  = '#adad27'
+blue    = '#492ee1'
+magenta = '#d338d3'
+cyan    = '#33bbc8'
+white   = '#cbcccd'
 
 [colors.bright]
-black   = '#b4b5b7'
-red     = '#f58b98'
-green   = '#aacf93'
-yellow  = '#efd18b'
-blue    = '#90afcc'
-magenta = '#5787b3'
-cyan    = '#92d7d0'
-white   = '#fafafa'
+black   = '#818383'
+red     = '#fc391f'
+green   = '#31e722'
+yellow  = '#eaec23'
+blue    = '#5833ff'
+magenta = '#f935f8'
+cyan    = '#14f0f0'
+white   = '#e9ebeb'

@@ -1,8 +1,12 @@
 /* angelOS Golden Gate window buttons — GTK 4 / libadwaita, generated (templates/gtk4-decor-mac.css).
    macOS's traffic lights on the leading side (button layout close,minimize,maximize:): 14 px
    circles 9 px apart (as on macOS 26/27) with Golden Gate's glass shading, their glyphs when the
-   pointer is over them, grey in an inactive window. niri has no minimizing: the middle light
-   stays grey, the way macOS draws a light whose action a window doesn't have. */
+   pointer is over the group, grey in an inactive window. All three are lit — close, minimize,
+   zoom; GTK sends minimize to the compositor (xdg_toplevel.set_minimized), which niri does not
+   act on yet.
+   As on a Mac the lights never move, grow or glow: only the glyphs show, a press darkens the
+   light. Every state is spelt out — libadwaita gives the glyph a light circle (15 % on hover,
+   30 % pressed) with a 200 ms transition and resets `background` on hover/active. */
 windowcontrols {
     margin: 0 6px;
 }
@@ -14,7 +18,16 @@ windowcontrols > button.minimize,
 windowcontrols > button.maximize,
 windowcontrols > button.image-button.close,
 windowcontrols > button.image-button.minimize,
-windowcontrols > button.image-button.maximize {
+windowcontrols > button.image-button.maximize,
+windowcontrols > button.image-button.close:hover,
+windowcontrols > button.image-button.minimize:hover,
+windowcontrols > button.image-button.maximize:hover,
+windowcontrols > button.image-button.close:active,
+windowcontrols > button.image-button.minimize:active,
+windowcontrols > button.image-button.maximize:active,
+windowcontrols > button.image-button.close:focus-visible,
+windowcontrols > button.image-button.minimize:focus-visible,
+windowcontrols > button.image-button.maximize:focus-visible {
     min-width: 14px;
     min-height: 14px;
     padding: 0;
@@ -23,6 +36,9 @@ windowcontrols > button.image-button.maximize {
     border-radius: 0;
     box-shadow: none;
     outline: none;
+    transition: none;
+    transform: none;
+    filter: none;
     background-color: transparent;
     background-repeat: no-repeat;
     background-position: center;
@@ -31,8 +47,16 @@ windowcontrols > button.image-button.maximize {
 }
 windowcontrols > button.close > image,
 windowcontrols > button.minimize > image,
-windowcontrols > button.maximize > image {
+windowcontrols > button.maximize > image,
+windowcontrols > button.close:hover > image,
+windowcontrols > button.minimize:hover > image,
+windowcontrols > button.maximize:hover > image,
+windowcontrols > button.close:active > image,
+windowcontrols > button.minimize:active > image,
+windowcontrols > button.maximize:active > image {
     -gtk-icon-size: 10px;
+    -gtk-icon-filter: none;
+    -gtk-icon-shadow: none;
     min-width: 10px;
     min-height: 10px;
     margin: 0;
@@ -41,22 +65,45 @@ windowcontrols > button.maximize > image {
     opacity: 0;
     background: none;
     box-shadow: none;
+    transition: none;
+    transform: none;
 }
-windowcontrols > button.close,
-windowcontrols > button.image-button.close {
+/* the lights of the active window */
+windowcontrols > button.image-button.close:not(:backdrop),
+windowcontrols > button.close:not(:backdrop) {
     background-image: radial-gradient(circle closest-side, #ff8e87 0%, #ff5f57 62%, #e0443e 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
 }
-windowcontrols > button.maximize,
-windowcontrols > button.image-button.maximize {
+windowcontrols > button.image-button.minimize:not(:backdrop),
+windowcontrols > button.minimize:not(:backdrop) {
+    background-image: radial-gradient(circle closest-side, #ffd56a 0%, #febc2e 62%, #dea123 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+}
+windowcontrols > button.image-button.maximize:not(:backdrop),
+windowcontrols > button.maximize:not(:backdrop) {
     background-image: radial-gradient(circle closest-side, #5fdc71 0%, #28c840 62%, #1aab29 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
 }
-windowcontrols:hover > button.close > image,
-windowcontrols:hover > button.maximize > image {
-    opacity: 1;
+/* the pointer over the group: all three glyphs, ×  −  + (GTK's own glyph stays hidden — zoom's
+   would be a square); pressed, the light a shade darker */
+windowcontrols:hover > button.image-button.close:not(:backdrop),
+windowcontrols:hover > button.close:not(:backdrop) {
+    background-image: url("assets/mac-close.svg"), radial-gradient(circle closest-side, #ff8e87 0%, #ff5f57 62%, #e0443e 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
 }
-windowcontrols > button.close:backdrop,
-windowcontrols > button.maximize:backdrop,
-windowcontrols > button.image-button.close:backdrop,
-windowcontrols > button.image-button.maximize:backdrop {
-    background-image: radial-gradient(circle closest-side, {{macLightOff}} 0%, {{macLightOff}} 86%, rgba(0, 0, 0, 0.18) 92%, transparent 100%);
+windowcontrols:hover > button.image-button.minimize:not(:backdrop),
+windowcontrols:hover > button.minimize:not(:backdrop) {
+    background-image: url("assets/mac-minimize.svg"), radial-gradient(circle closest-side, #ffd56a 0%, #febc2e 62%, #dea123 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+}
+windowcontrols:hover > button.image-button.maximize:not(:backdrop),
+windowcontrols:hover > button.maximize:not(:backdrop) {
+    background-image: url("assets/mac-maximize.svg"), radial-gradient(circle closest-side, #5fdc71 0%, #28c840 62%, #1aab29 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+}
+windowcontrols > button.image-button.close:active:not(:backdrop),
+windowcontrols:hover > button.image-button.close:active:not(:backdrop) {
+    background-image: url("assets/mac-close.svg"), radial-gradient(circle closest-side, #e0443e 0%, #c9302a 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
+}
+windowcontrols > button.image-button.minimize:active:not(:backdrop),
+windowcontrols:hover > button.image-button.minimize:active:not(:backdrop) {
+    background-image: url("assets/mac-minimize.svg"), radial-gradient(circle closest-side, #dea123 0%, #c4881a 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
+}
+windowcontrols > button.image-button.maximize:active:not(:backdrop),
+windowcontrols:hover > button.image-button.maximize:active:not(:backdrop) {
+    background-image: url("assets/mac-maximize.svg"), radial-gradient(circle closest-side, #1aab29 0%, #13921f 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
 }

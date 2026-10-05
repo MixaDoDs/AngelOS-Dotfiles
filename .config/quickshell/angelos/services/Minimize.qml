@@ -38,6 +38,56 @@ Singleton {
         return Niri.allWorkspaces.find(x => x.output === output && x.name === Niri.hiddenPrefix + output) || null;
     }
 
+    // ---- the hook: every minimize button (the yellow light of angelOS's title bars and of System
+    // Settings, Window → Minimize, ⌘M) asks here. `requested` is the signal to hang your own
+    // minimizing on: connect to it (Connections { target: Minimize; function onRequested(wid,
+    // source) {…} }) and set `builtin` false to drop the hidden-workspace one below. wid is niri's
+    // window id (-1 when the window isn't known to niri), source who asked: "decor", "settings",
+    // "menu", "keys".
+    signal requested(int wid, string source)
+    property bool builtin: true
+    function request(wid, source) {
+        requested(wid === undefined || wid === null ? -1 : wid, source || "");
+        if (builtin && wid >= 0)
+            minimize(wid);
+    }
+
+    // ---- the apps' own minimize buttons (GTK's yellow light, Qt's, Firefox's) ----
+    // extras/minimize-hook (LD_PRELOAD) catches their xdg_toplevel.set_minimized, which niri
+    // ignores, and sends "<pid>\t<title>" here; only while the skin is on (the socket is gone
+    // otherwise and the request goes to niri as before)
+    readonly property string socketPath: Quickshell.env("XDG_RUNTIME_DIR") + "/angelos-minimize.sock"
+    SocketServer {
+        active: GoldenGate.on
+        path: root.socketPath
+        handler: Socket {
+            parser: SplitParser {
+                onRead: line => root.fromApp(line)
+            }
+        }
+    }
+    // apps the session bus starts (Nautilus) get their environment from systemd's user manager;
+    // environment.d can't hold ld.so's literal $LIB, so the shell puts the preload there each
+    // login (extras/minimize-hook/install.sh puts it in angelos.service and niri's config)
+    readonly property string hookLib: Quickshell.env("HOME") + "/.local/lib/angelos/$LIB/libangelos-minimize.so"
+    Process {
+        running: true
+        command: ["sh", "-c", 'lib="$1"; [ -f "$(printf %s "$lib" | sed "s/\\$LIB/lib/")" ] || exit 0; cur=$(systemctl --user show-environment 2>/dev/null | sed -n "s/^LD_PRELOAD=//p" | sed "s/^\\$\x27\\(.*\\)\x27$/\\1/"); case "$cur" in *libangelos-minimize.so*) exit 0 ;; "") v="$lib" ;; *) v="$cur:$lib" ;; esac; systemctl --user set-environment "LD_PRELOAD=$v"', "sh", root.hookLib]
+    }
+    // which window of that process: the one with that title (Nautilus runs all its windows in one
+    // process), the focused one, the last focused
+    function fromApp(line) {
+        const tab = String(line).indexOf("\t");
+        const pid = parseInt(tab < 0 ? line : String(line).slice(0, tab));
+        const title = tab < 0 ? "" : String(line).slice(tab + 1);
+        const ts = w => w.focus_timestamp ? w.focus_timestamp.secs * 1e9 + w.focus_timestamp.nanos : 0;
+        const mine = Niri.windows.filter(w => w.pid === pid && !isMinimized(w)).sort((a, b) => (b.is_focused - a.is_focused) || ts(b) - ts(a));
+        const named = title ? mine.filter(w => w.title === title) : [];
+        const w = named[0] || mine[0];
+        if (w)
+            request(w.id, "app");
+    }
+
     // ---- away ----
     property var _queue: []
     function minimize(id) {
@@ -45,16 +95,18 @@ Singleton {
         const ws = w ? Niri.workspaceById(w.workspace_id) : null;
         if (!w || !ws || isMinimized(w) || _queue.some(q => q.id === id))
             return;
+        const rect = rectOf(w, ws.output);
         const o = Object.assign({}, origin);
         o[id] = {
             "ws": ws.id,
-            "output": ws.output
+            "output": ws.output,
+            "rect": rect
         };
         origin = o;
         _queue = _queue.concat([{
                 "id": id,
                 "output": ws.output,
-                "rect": rectOf(w, ws.output)
+                "rect": rect
             }]);
         _next();
     }
@@ -64,17 +116,27 @@ Singleton {
         const l = w.layout;
         if (!s || !l || !l.tile_pos_in_workspace_view || !l.tile_size)
             return null;
-        const x = Math.round(s.x + l.tile_pos_in_workspace_view[0]), y = Math.round(s.y + l.tile_pos_in_workspace_view[1]);
-        const wd = Math.round(l.tile_size[0]), ht = Math.round(l.tile_size[1]);
+        const x = Math.round(s.x + l.tile_pos_in_workspace_view[0]);
+        let y = Math.round(s.y + l.tile_pos_in_workspace_view[1]);
+        const wd = Math.round(l.tile_size[0]);
+        let ht = Math.round(l.tile_size[1]);
+        // angelOS's title bar over it (modules/decor) goes into the snapshot too: it is the window's
+        const bar = ((Shell.decor || {})[output] || []).find(b => b.id === w.id && !b.inside);
+        if (bar) {
+            const top = Math.round(s.y + bar.y);
+            ht += y - top;
+            y = top;
+        }
         // only what is on the screen
         const x0 = Math.max(x, s.x), y0 = Math.max(y, s.y);
         const x1 = Math.min(x + wd, s.x + s.width), y1 = Math.min(y + ht, s.y + s.height);
         return x1 - x0 < 8 || y1 - y0 < 8 ? null : [x0, y0, x1 - x0, y1 - y0];
     }
     function _next() {
-        if (shooter.running || !_queue.length)
+        // (one whose snapshot is in flight already waits for goTimer, not for another shot)
+        const q = _queue.find(x => !x.flown);
+        if (shooter.running || !q)
             return;
-        const q = _queue[0];
         if (!q.rect || Shell.dev) {
             _away(q);
             return;
@@ -105,25 +167,30 @@ Singleton {
         }
     }
     function _away(q) {
+        if (flightMs > 0 && shots[q.id] && q.rect && !q.flown) {
+            q.flown = true;
+            fly(q.id, q.output, q.rect, false);
+            Qt.callLater(() => goTimer.go(q));
+            return;
+        }
         _queue = _queue.filter(x => x !== q);
         const w = Niri.windows.find(x => x.id === q.id);
         const name = Niri.hiddenPrefix + q.output;
-        if (w) {
-            if (!hiddenOn(q.output)) {
-                // the output's last workspace (niri keeps an empty one there) becomes the hidden one
-                const last = Niri.allWorkspaces.filter(x => x.output === q.output).sort((a, b) => b.idx - a.idx)[0];
-                if (last)
-                    Niri.action("SetWorkspaceName", {
-                        "name": name,
-                        "workspace": {
-                            "Id": last.id
-                        }
-                    });
-            }
+        // the output's hidden workspace, or its last one (niri keeps an empty one there) named so;
+        // the window goes there by id — not by the name, which a moment ago was not there yet
+        const target = hiddenOn(q.output) || Niri.allWorkspaces.filter(x => x.output === q.output).sort((a, b) => b.idx - a.idx)[0];
+        if (w && target) {
+            if (!Niri.isHidden(target))
+                Niri.action("SetWorkspaceName", {
+                    "name": name,
+                    "workspace": {
+                        "Id": target.id
+                    }
+                });
             Niri.action("MoveWindowToWorkspace", {
                 "window_id": q.id,
                 "reference": {
-                    "Name": name
+                    "Id": target.id
                 },
                 "focus": false
             });
@@ -133,7 +200,10 @@ Singleton {
     }
 
     // ---- back ----
-    function restore(id) {
+    // animated (a click in the Dock): the snapshot flies out of the Dock to where the window was,
+    // the window comes back under it as it lands; instant (Alt+Tab, the overview — niri has already
+    // gone to the window) when asked so or when there is nothing to fly
+    function restore(id, instant) {
         const w = Niri.windows.find(x => x.id === id);
         if (!w)
             return;
@@ -141,6 +211,18 @@ Singleton {
             Niri.focusWindow(id);
             return;
         }
+        const o = origin[id];
+        if (!instant && flightMs > 0 && shots[id] && o && o.rect && o.output) {
+            if (flying.indexOf(id) < 0)
+                fly(id, o.output, o.rect, true);
+            return;
+        }
+        _restoreNow(id);
+    }
+    function _restoreNow(id) {
+        const w = Niri.windows.find(x => x.id === id);
+        if (!w || !isMinimized(w))
+            return;
         const hid = Niri.workspaceById(w.workspace_id);
         const o = origin[id];
         let to = o ? Niri.workspaceById(o.ws) : null;
@@ -164,7 +246,74 @@ Singleton {
     }
     function restoreAll() {
         for (const w of windows)
-            restore(w.id);
+            restore(w.id, true);
+    }
+
+    // ---- the flight: macOS's Scale effect (MacMinimizeFx draws it) ----
+    // a snapshot of the window shrinks into its place in the Dock (or grows out of it); the Dock
+    // tells where its items are (dockSlots, written by MacDock as it lays out — not a bound
+    // property: the magnification moves them every frame). Motion off: no flight, as before.
+    // Genie (the window bends and pours into the Dock) or Scale (it shrinks into it), as macOS's
+    // "Minimise windows using"; Genie takes a little longer, as there
+    readonly property string effect: Config.mac.minimizeEffect === "scale" ? "scale" : "genie"
+    readonly property int flightMs: Motion.ms(effect === "genie" ? 560 : 380)
+    property var flights: []                // [{key, id, output, rect, shot, back}]
+    readonly property var flying: flights.map(f => f.id)
+    property var dockSlots: ({})            // output + "|" + key -> [centre x, centre y, size], screen px
+    function slotOf(output, id) {
+        return dockSlots[output + "|@w" + id] || dockSlots[output + "|@downloads"] || null;
+    }
+    property int _flightN: 0
+    function fly(id, output, rect, back) {
+        _flightN++;
+        flights = flights.concat([{
+                "key": _flightN,
+                "id": id,
+                "output": output,
+                "rect": rect,
+                "shot": shots[id],
+                "back": back
+            }]);
+    }
+    // a flight ended: back home, the window returns under the snapshot (which goes a moment later)
+    function landed(key) {
+        const f = flights.find(x => x.key === key);
+        if (!f)
+            return;
+        if (!f.back) {
+            flights = flights.filter(x => x.key !== key);
+            return;
+        }
+        // the window is drawn a frame or two after niri moves it: the snapshot covers that
+        _restoreNow(f.id);
+        dropLater.keys = dropLater.keys.concat([key]);
+        dropLater.restart();
+    }
+    Timer {
+        id: dropLater
+        property var keys: []
+        interval: 150
+        onTriggered: {
+            const ks = keys;
+            keys = [];
+            root.flights = root.flights.filter(x => ks.indexOf(x.key) < 0);
+        }
+    }
+    // the window leaves a frame after its snapshot is up over it
+    Timer {
+        id: goTimer
+        property var jobs: []
+        interval: 30
+        function go(q) {
+            jobs = jobs.concat([q]);
+            restart();
+        }
+        onTriggered: {
+            const js = jobs;
+            jobs = [];
+            for (const q of js)
+                root._away(q);
+        }
     }
     function forget(id) {
         const o = Object.assign({}, origin);
@@ -181,7 +330,7 @@ Singleton {
     Connections {
         target: Niri
         function onRestoreRequested(id) {
-            root.restore(id);
+            root.restore(id, true);
         }
         // scrolled onto the hidden workspace: on to the next one the same way (back, if it is
         // the last); in the overview it may be looked at — what is focused there when the
@@ -250,6 +399,59 @@ Singleton {
                         "Id": ws.id
                     }
                 });
+        }
+    }
+
+    // ---- kept over a restart of the shell: the snapshots, where the windows came from, the order ----
+    // (in the runtime dir, as the snapshots: gone with the session, as the windows are)
+    readonly property string stateFile: dir + "/state.json"
+    property bool _loaded: false
+    onShotsChanged: if (_loaded)
+        saveLater.restart()
+    onOriginChanged: if (_loaded)
+        saveLater.restart()
+    onOrderChanged: if (_loaded)
+        saveLater.restart()
+    Timer {
+        id: saveLater
+        interval: 300
+        onTriggered: {
+            saver.command = ["sh", "-c", 'mkdir -p "$1" && printf "%s" "$2" > "$3.tmp" && mv "$3.tmp" "$3"', "sh", root.dir, JSON.stringify({
+                    "shots": root.shots,
+                    "origin": root.origin,
+                    "order": root.order
+                }), root.stateFile];
+            saver.running = true;
+        }
+    }
+    Process {
+        id: saver
+    }
+    Process {
+        id: loader
+        running: true
+        command: ["sh", "-c", 'cat "$1" 2>/dev/null; true', "sh", root.stateFile]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const st = text.trim() ? JSON.parse(text) : {};
+                    // only what is still there: niri keeps window ids for its session
+                    const alive = id => Niri.windows.some(w => String(w.id) === String(id));
+                    const pick = o => {
+                        const out = {};
+                        for (const k in o || {})
+                            if (!Niri.ready || alive(k))
+                                out[k] = o[k];
+                        return out;
+                    };
+                    root.shots = Object.assign(pick(st.shots), root.shots);
+                    root.origin = Object.assign(pick(st.origin), root.origin);
+                    root.order = (st.order || []).filter(id => !Niri.ready || alive(id)).concat(root.order.filter(id => (st.order || []).indexOf(id) < 0));
+                } catch (e) {
+                    console.warn("angelOS minimize: state", e);
+                }
+                root._loaded = true;
+            }
         }
     }
 

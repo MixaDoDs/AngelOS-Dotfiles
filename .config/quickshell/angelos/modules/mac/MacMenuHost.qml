@@ -61,6 +61,10 @@ PanelWindow {
             item: rep.count > 3 && rep.itemAt(3) ? rep.itemAt(3).view : null
             radius: GoldenGate.menuRadius
         }
+        Region {
+            item: stackLoader.item ? stackLoader.item.panel : null
+            radius: stackLoader.item ? stackLoader.item.panel.radius : 0
+        }
     }
 
     Item {
@@ -87,6 +91,12 @@ PanelWindow {
                 AppMenu.closed(l.owner);
         if (!menu) {
             levels = [];
+            return;
+        }
+        // a Dock stack (Downloads) is no menu: MacStack below draws it
+        if (menu.stack) {
+            levels = [];
+            Qt.callLater(() => keys.forceActiveFocus());
             return;
         }
         if (menu.owner)
@@ -260,6 +270,17 @@ PanelWindow {
         }
     }
 
+    // a Dock stack (MacMenus "dock-stack"): the newest files above the Dock's icon
+    Loader {
+        id: stackLoader
+        active: win.open && !!win.menu && !!win.menu.stack
+        sourceComponent: MacStack {
+            anchorX: MacMenus.x
+            bottomY: MacMenus.bottom
+            areaWidth: win.width
+        }
+    }
+
     // the keyboard
     Item {
         id: keys
@@ -269,6 +290,8 @@ PanelWindow {
             if (!lv) {
                 if (e.key === Qt.Key_Escape)
                     MacMenus.close();
+                else if (stackLoader.item && stackLoader.item.key(e))
+                    e.accepted = true;
                 return;
             }
             const v = lv.view;

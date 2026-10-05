@@ -11,7 +11,6 @@ import qs.modules.y2k
 import qs.modules.alttab
 import qs.modules.bar
 import qs.modules.bar.parts
-import qs.modules.mac
 import qs.widgets
 import "../../novel/NovelCore.js" as Core
 import "../../services/Intents.js" as Intents
@@ -32,8 +31,7 @@ import "../../widgets/IconSets.js" as IconSets
 //   alttab    the Alt+Tab switcher styles (and hell's own) load and follow the pick
 //   bar       bar widgets (Wi-Fi, Bluetooth, wired, tray, desk sprites) load, their panels open
 //   wrap      long switch labels wrap inside a narrow group instead of running past it
-//   start     every Start look (the bodies of StartOverlay, the Golden Gate Spotlight too) loads,
-//             searches, walks with the keys, Esc closes
+//   start     every Start look (the bodies of StartOverlay) loads, searches, walks with the keys, Esc closes
 //   heaven-menus  heaven's own right-click menus (wings, harp) build round a pointer; all
 //             16 entries fit and stay apart at every size on landscape and portrait screens at
 //             scale 1–2, middle and corner; their ink reads in every heaven palette
@@ -61,10 +59,6 @@ import "../../widgets/IconSets.js" as IconSets
 //             hidden and shown with the same config (B4: the lock, sleep, a fullscreen game)
 //   rmb       a right-click menu opens where the button went down (B2); a right click into
 //             the window's corner pixel does not crash Qt
-//   mac       the Golden Gate menu bar's menus: Firefox gets its standard menus (every item
-//             runnable), a Qt app's own About/Settings/Quit move to the app menu, an unknown
-//             focused window keeps only items with a shortcut; a menu level draws and walks
-//             with the keys past separators; the angelOS menu's items all do something
 //   setup     the first-run wizard holds the desktop (Start, the launcher, the clipboard, the
 //             session menu, Settings, Alt+Tab wait; the screens count as unseen) and
 //             `angelos setup skip` lets it go; opened again it is a window holding nothing,
@@ -220,13 +214,6 @@ Scope {
         }
         // switch labels on a page as narrow as the grimoire's right one
         Loader {
-            id: macStage
-            active: false
-            sourceComponent: MacMenuView {
-                items: root.macItems
-            }
-        }
-        Loader {
             id: wrapStage
             active: false
             sourceComponent: Column {
@@ -330,8 +317,7 @@ Scope {
                     "xmb": stXmb,
                     "windose": stWindose,
                     "wii": stWii,
-                    "spotlight": stSpot,
-                    "mac": stMac
+                    "spotlight": stSpot
                 })[style] || null
         }
         Component {
@@ -359,11 +345,6 @@ Scope {
         Component {
             id: stWindose
             StartWindose {}
-        }
-        // the Golden Gate skin's Spotlight (StartOverlay's look while the skin is on)
-        Component {
-            id: stMac
-            MacSpotlight {}
         }
         Component {
             id: stWii
@@ -426,9 +407,6 @@ Scope {
     property var list: []
     property int index: -1
     property double started: 0
-    property var macItems: []
-    property var macPages: []
-    property var macSeen: []
     property bool expertPass: false
     property int navStep: 0
     property int switchStep: 0
@@ -1069,7 +1047,7 @@ Scope {
             report("toggle-wrap", bad.length === 0, bad.length ? "overflow/one line: " + bad.join(", ") : "long labels wrap in " + Math.round(w.direct.width) + " px, short and free stay " + Math.round(w.short.height) + " px tall");
             wrapStage.active = false;
             console.log("TEST-PAGE start-styles");
-            startStyles = ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight", "mac"];
+            startStyles = ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight"];
             startSeen = [];
             phase = "start";
             return;
@@ -1929,100 +1907,6 @@ Scope {
         }
         if (phase === "rmb-alive") {
             report("rmb-corner", true, "still alive (focus item: " + bare.activeFocusItem + ")");
-            // a focused Firefox for the Golden Gate menu bar (no compositor: niri's state by hand)
-            Config.settingsUi.skin = "goldengate";
-            Niri.workspaces = [{ "id": 1, "idx": 1, "output": "T", "is_focused": true, "is_active": true, "active_window_id": 7 }];
-            Niri.windows = [{ "id": 7, "pid": 4242, "app_id": "firefox", "title": "Mozilla Firefox", "workspace_id": 1, "is_floating": false }];
-            Niri.focusedWindowId = 7;
-            started = Date.now();
-            phase = "mac";
-            return;
-        }
-        if (phase === "mac") {
-            if (!AppMenu.profiles.profiles && Date.now() - started < 3000)
-                return;
-            const titles = m => m.map(x => x.title).join(",");
-            const runnable = list => list.every(it => it.type === "separator" || it.type === "header" || (it.type === "submenu" ? runnable(it.children) : !!it.act));
-            const ff = AppMenu.menus;
-            const ffOk = AppMenu.profileId === "firefox" && ff.length >= 8 && ff[0].bold && ff[ff.length - 2].id === "m:window" && ff.every(m => m.items.length > 0 && runnable(m.items));
-            report("mac-standard", ffOk, titles(ff) + " · every item runnable " + ff.every(m => runnable(m.items)));
-            // a Qt app's own menu: About and Quit go to the app menu, File keeps the rest
-            Niri.windows = [{ "id": 7, "pid": 4243, "app_id": "org.example.Qt", "title": "Qt", "workspace_id": 1, "is_floating": true }];
-            const qtMenu = [{ "id": "d:1", "label": "File", "type": "submenu", "enabled": true, "children": [{ "id": "d:11", "label": "Open…", "type": "item", "enabled": true, "keys": ["ctrl", "o"] }, { "id": "d:12", "type": "separator" }, { "id": "d:13", "label": "Quit", "type": "item", "enabled": true, "keys": ["ctrl", "q"] }] }, { "id": "d:2", "label": "Help", "type": "submenu", "enabled": true, "children": [{ "id": "d:21", "label": "About Qt Thing", "type": "item", "enabled": true, "keys": [] }, { "id": "d:22", "label": "Manual", "type": "item", "enabled": true, "keys": [] }] }];
-            AppMenu.report = { "pid": 4243, "source": "dbusmenu", "menus": qtMenu, "actions": [], "ambiguous": false };
-            const qt = AppMenu.menus;
-            const app = qt[0].items;
-            const file = qt.find(m => m.title === "File");
-            const qtOk = app[0].act.kind === "app" && app[0].act.id === "d:21" && app[app.length - 1].act.id === "d:13" && !!file && file.items.length === 1 && file.items[0].label === "Open…" && qt[qt.length - 1].title === I18n.t("Справка", "Help");
-            report("mac-own", qtOk, titles(qt) + "; app menu " + app.map(x => x.label || "—").join(" | ") + "; File " + (file ? file.items.map(x => x.label || "—").join(" | ") : "none"));
-            AppMenu.report = Object.assign({}, AppMenu.report, { "ambiguous": true });
-            const amb = AppMenu.menus;
-            const ambFile = amb.find(m => m.title === "File");
-            const help = amb.find(m => m.id === "m:d:2");
-            const ambOk = !!ambFile && ambFile.items.length === 1 && ambFile.items[0].act.kind === "keys" && !help;
-            report("mac-ambiguous", ambOk, "File " + (ambFile ? ambFile.items.map(x => x.label + ":" + x.act.kind).join(",") : "none") + ", Help (no shortcuts) " + (help ? "kept" : "left out"));
-            // a menu level: rows, separators skipped by the keys, shortcuts as a Mac writes them
-            macItems = AppMenu.tidy([AppMenu.item("x1", "One", { "kind": "keys", "keys": ["ctrl", "shift", "t"] }), AppMenu.sep("s"), AppMenu.item("x2", "Two", { "kind": "fn", "fn": () => {} }), AppMenu.item("x3", "Three", { "kind": "fn", "fn": () => {} }, { "enabled": false })]);
-            macStage.active = true;
-            started = Date.now();
-            phase = "mac-view";
-            return;
-        }
-        if (phase === "mac-view") {
-            const v = macStage.item;
-            if ((!v || v.implicitWidth <= 0) && Date.now() - started < 3000)
-                return;
-            v.current = 0;
-            v.move(1);
-            const skipped = v.current === 2;
-            v.move(1);
-            const past = v.current === 0;      // "Three" is greyed out: back round to the first
-            const angel = MacMenus.angelMenu.items;
-            const angelOk = angel.length > 8 && angel.every(it => it.type === "separator" || it.type === "submenu" || (it.act && it.act.kind === "fn"));
-            const keys = AppMenu.keyText(["ctrl", "shift", "t"]);
-            report("mac-view", !!v && v.implicitWidth >= v.minWidth && v.implicitHeight > GoldenGate.menuRow * 3 && skipped && past && keys === "⌃⇧T" && angelOk, "size " + (v ? Math.round(v.implicitWidth) + "×" + Math.round(v.implicitHeight) : "none") + ", separator skipped " + skipped + ", greyed skipped " + past + ", keys " + keys + ", angelOS menu " + angel.length + " items runnable " + angelOk);
-            macStage.active = false;
-            // angelOS's Settings window: System Settings with its panes in View
-            Niri.windows = [{ "id": 7, "pid": 4244, "app_id": "org.quickshell", "title": "angelOS · Настройки", "workspace_id": 1, "is_floating": true }];
-            const ss = AppMenu.menus;
-            const viewMenu = ss.find(m => m.id === "m:view");
-            const ssOk = ss.length > 3 && ss[0].title === I18n.t("Системные настройки", "System Settings") && !!viewMenu && viewMenu.items.filter(i => i.type === "item").length > 10;
-            // nothing in front: the file manager's menus, Go to the usual places
-            Niri.windows = [];
-            Niri.workspaces = [{ "id": 1, "idx": 1, "output": "T", "is_focused": true, "is_active": true, "active_window_id": null }];
-            Niri.focusedWindowId = -1;
-            const desk = AppMenu.menus;
-            const go = desk.find(m => m.id === "m:go");
-            report("mac-settings-desktop", ssOk && !!go && go.items.length >= 5 && desk[0].bold, "settings " + ss.map(m => m.title).join(",") + "; desktop " + desk.map(m => m.title).join(","));
-            Niri.workspaces = [];
-            // a right click on the wallpaper: Finder's menu of what the desktop has, nothing greyed
-            MacMenus.deskScreen = "T";
-            const deskMenu = MacMenus.deskItems();
-            const wsub = deskMenu.find(i => i.id === "desk:widgets");
-            const deskOk = deskMenu.some(i => i.id === "desk:wall") && !!wsub && wsub.children.length > 0 && wsub.children.every(c => c.toggle === "check") && deskMenu.every(i => i.type === "separator" || (i.enabled !== false && (i.act || i.type === "submenu")));
-            report("mac-desk-menu", deskOk, deskMenu.filter(i => i.label).map(i => i.label + (i.type === "submenu" ? " (" + i.children.length + ")" : "")).join(", "));
-            // System Settings: a few pages of every kind in the Mac view
-            macPages = ["theme", "sound", "display", "keyboard", "taskbar", "start", "about", "updates", "cat:system"];
-            macSeen = [];
-            Shell.settingsPage = macPages[0];
-            started = Date.now();
-            phase = "mac-pages";
-            return;
-        }
-        if (phase === "mac-pages") {
-            const d = view.diagnostics();
-            const want = macPages[macSeen.length];
-            if ((d.status !== Loader.Ready || d.page !== want || d.view !== "mac") && Date.now() - started < 6000)
-                return;
-            macSeen.push(want + (d.status === Loader.Ready && d.view === "mac" && (d.settingsSkin === "goldengate" || want.startsWith("cat:")) ? "" : "✕(" + d.view + "/" + d.settingsSkin + "/" + d.status + ")"));
-            if (macSeen.length < macPages.length) {
-                Shell.settingsPage = macPages[macSeen.length];
-                started = Date.now();
-                return;
-            }
-            report("mac-pages", macSeen.every(s => s.indexOf("✕") < 0) && Theme.macWindow !== null, macSeen.join(", ") + "; the window marked for the Mac font " + (Theme.macWindow !== null));
-            AppMenu.report = { "pid": 0, "source": "none", "menus": [], "actions": [], "ambiguous": false };
-            Config.settingsUi.skin = "classic";
             phase = "setup";
             return;
         }

@@ -323,7 +323,7 @@ IpcHandler {
     // the angelOS title bars over floating windows, per screen (modules/decor)
     function decor(): string {
         return JSON.stringify({
-            "titlebars": Config.decor.titlebars,
+            "titlebars": GoldenGate.titlebars,
             "bars": Shell.decor
         });
     }
@@ -525,7 +525,7 @@ IpcHandler {
     function macMinimize(): string {
         if (!GoldenGate.on || !AppMenu.window)
             return "nothing to minimize";
-        Minimize.minimize(AppMenu.window.id);
+        Minimize.request(AppMenu.window.id, "keys");
         return "ok";
     }
     function macMinimized(): string {

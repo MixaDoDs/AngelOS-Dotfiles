@@ -19,7 +19,8 @@ Also sets the title bar buttons (org.gnome.desktop.wm.preferences button-layout)
 decorButtons, e.g. "maximize,close" (niri has no minimizing).
 The Golden Gate skin (palette key skin "goldengate"): the decorations are macOS's traffic lights
 (templates/gtk3-decor-mac.css, gtk4-decor-mac.css) on the leading side, close,minimize,maximize:
-— the minimize light stays grey, niri has no minimizing; off again, the leading side goes back.
+— all three lit, their glyphs assets/mac-{close,minimize,maximize}.svg; off again, the leading
+side goes back.
 Always (on or off): the pixel frames the palette CSS draws its buttons, fields and menus with
 (templates/gtk3.css, gtk4.css → assets/frame-raised.svg, frame-sunken.svg next to each CSS):
 the outline in the palette's edge colour with stepped corners, and the bevel.
@@ -129,11 +130,28 @@ def write(path, text):
     return True
 
 
+# the Golden Gate lights' glyphs (×, −, +), drawn over the light under the pointer: GTK's own
+# icons would give a square for zoom, and an icon is what adw-gtk3/libadwaita highlight
+MAC_GLYPHS = {
+    "close": "M4.6 4.6 9.4 9.4M9.4 4.6 4.6 9.4",
+    "minimize": "M3.9 7h6.2",
+    "maximize": "M7 3.9v6.2M3.9 7h6.2",
+}
+
+
+def mac_glyph(path):
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14">'
+            '<path d="%s" fill="none" stroke="#000000" stroke-opacity="0.6" stroke-width="1.5" '
+            'stroke-linecap="round"/></svg>\n') % path
+
+
 def assets(folder, pal):
     ink = pal.get("decorText", "#000000")
     for name, rows in ICONS.items():
         write(folder / "assets" / (name + ".svg"), svg(rows, ink))
     write(folder / "assets" / "close-hover.svg", svg(ICONS["close"], "#ffffff"))
+    for name, path in MAC_GLYPHS.items():
+        write(folder / "assets" / ("mac-" + name + ".svg"), mac_glyph(path))
 
 
 def gsettings(schema, key, value=None):

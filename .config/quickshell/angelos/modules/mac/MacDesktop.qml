@@ -26,6 +26,9 @@ Variants {
         MacDock {
             modelData: scope.modelData
         }
+        MacMinimizeFx {
+            modelData: scope.modelData
+        }
         MacControlCenter {
             modelData: scope.modelData
         }

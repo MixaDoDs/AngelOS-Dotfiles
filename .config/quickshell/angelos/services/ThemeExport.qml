@@ -79,9 +79,9 @@ Singleton {
         const h = c => Theme.hex(c);
         // windows float like on a Mac (Config.mac.floating); the ones that get angelOS's title
         // bar (modules/decor: floating, not drawing their own) meet it with square top corners
-        const skip = (Config.decor.skip || []).map(s => String(s).endsWith("*") ? "^" + String(s).slice(0, -1).replace(/\./g, "\\.") : "^" + String(s).replace(/\./g, "\\.") + "$");
+        const skip = (Config.mac.decorSkip || []).map(s => String(s).endsWith("*") ? "^" + String(s).slice(0, -1).replace(/\./g, "\\.") : "^" + String(s).replace(/\./g, "\\.") + "$");
         let rules = Config.mac.floating ? "window-rule {\n    open-floating true\n}\n" : "";
-        if (Config.decor.titlebars) {
+        if (Config.mac.titlebars) {
             rules += "window-rule {\n    match is-floating=true\n";
             for (const s of skip)
                 rules += "    exclude app-id=r#\"" + s + "\"#\n";

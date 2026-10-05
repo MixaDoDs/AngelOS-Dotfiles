@@ -775,7 +775,7 @@ Singleton {
             Niri.closeWindow(w.id);
             break;
         case "minimize":
-            Minimize.minimize(w.id);
+            Minimize.request(w.id, "menu");
             break;
         case "fill":
             Niri.maximizeWindow(w.id);

@@ -1,16 +1,30 @@
 /* angelOS Golden Gate window buttons — GTK 3, generated (templates/gtk3-decor-mac.css).
    macOS's traffic lights on the leading side (button layout close,minimize,maximize:) for GTK 3
    apps and for Firefox and Chromium drawing their title bars with GTK: 14 px circles 9 px apart
-   (as on macOS 26/27) with Golden Gate's glass shading, grey in an inactive window. niri has no
-   minimizing: the middle light stays grey, as macOS draws a light whose action a window doesn't
-   have. The selectors are long on purpose: adw-gtk3 styles title buttons with :not(.appmenu)
-   and resets them in :backdrop. */
+   (as on macOS 26/27) with Golden Gate's glass shading, grey in an inactive window. All three are
+   lit — close, minimize, zoom; GTK sends minimize to the compositor (xdg_toplevel.set_minimized),
+   which niri does not act on yet.
+   As on a Mac the lights never move, grow or glow: under the pointer only the glyph shows, a press
+   darkens the light. Every state is spelt out on purpose — adw-gtk3 gives buttons a 24 px size, a
+   light background in :hover/:active/:backdrop:hover (`background` resets the light's gradient),
+   -gtk-icon-effect: highlight (the glyph turns white) and a 200 ms transition, and its
+   `button.titlebutton:backdrop:hover:not(.appmenu)` outweighs a shorter selector. */
 headerbar button.titlebutton:not(.appmenu),
 .titlebar button.titlebutton:not(.appmenu),
+headerbar button.titlebutton:hover:not(.appmenu),
+.titlebar button.titlebutton:hover:not(.appmenu),
+headerbar button.titlebutton:active:not(.appmenu),
+.titlebar button.titlebutton:active:not(.appmenu),
+headerbar button.titlebutton:checked:not(.appmenu),
+.titlebar button.titlebutton:checked:not(.appmenu),
+headerbar button.titlebutton:focus:not(.appmenu),
+.titlebar button.titlebutton:focus:not(.appmenu),
 headerbar button.titlebutton:backdrop:not(.appmenu),
 .titlebar button.titlebutton:backdrop:not(.appmenu),
-headerbar button.titlebutton:hover:not(.appmenu),
-.titlebar button.titlebutton:hover:not(.appmenu) {
+headerbar button.titlebutton:backdrop:hover:not(.appmenu),
+.titlebar button.titlebutton:backdrop:hover:not(.appmenu),
+headerbar button.titlebutton:backdrop:active:not(.appmenu),
+.titlebar button.titlebutton:backdrop:active:not(.appmenu) {
     min-width: 14px;
     min-height: 14px;
     padding: 0;
@@ -18,39 +32,78 @@ headerbar button.titlebutton:hover:not(.appmenu),
     border: none;
     border-radius: 0;
     box-shadow: none;
+    text-shadow: none;
     -gtk-icon-shadow: none;
+    -gtk-icon-effect: none;
     outline: none;
+    transition: none;
+    color: rgba(0, 0, 0, 0.6);
     background-color: transparent;
     background-repeat: no-repeat;
     background-position: center;
     background-size: 14px 14px;
     background-image: radial-gradient(circle closest-side, {{macLightOff}} 0%, {{macLightOff}} 86%, rgba(0, 0, 0, 0.18) 92%, transparent 100%);
 }
+/* GTK's own glyph stays hidden (adw-gtk3 would highlight it); ours is a layer over the light */
 headerbar button.titlebutton:not(.appmenu) image,
-.titlebar button.titlebutton:not(.appmenu) image {
+.titlebar button.titlebutton:not(.appmenu) image,
+headerbar button.titlebutton:hover:not(.appmenu) image,
+.titlebar button.titlebutton:hover:not(.appmenu) image,
+headerbar button.titlebutton:active:not(.appmenu) image,
+.titlebar button.titlebutton:active:not(.appmenu) image {
     opacity: 0;
-    -gtk-icon-transform: scale(0.7);
+    -gtk-icon-effect: none;
+    -gtk-icon-shadow: none;
+    transition: none;
 }
-headerbar button.titlebutton.close:not(.appmenu),
-.titlebar button.titlebutton.close:not(.appmenu),
-headerbar button.titlebutton.close:hover:not(.appmenu),
-.titlebar button.titlebutton.close:hover:not(.appmenu) {
+/* the lights of the active window */
+headerbar button.titlebutton.close:not(:backdrop):not(.appmenu),
+.titlebar button.titlebutton.close:not(:backdrop):not(.appmenu) {
     background-image: radial-gradient(circle closest-side, #ff8e87 0%, #ff5f57 62%, #e0443e 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
 }
-headerbar button.titlebutton.maximize:not(.appmenu),
-.titlebar button.titlebutton.maximize:not(.appmenu),
-headerbar button.titlebutton.maximize:hover:not(.appmenu),
-.titlebar button.titlebutton.maximize:hover:not(.appmenu) {
+headerbar button.titlebutton.minimize:not(:backdrop):not(.appmenu),
+.titlebar button.titlebutton.minimize:not(:backdrop):not(.appmenu) {
+    background-image: radial-gradient(circle closest-side, #ffd56a 0%, #febc2e 62%, #dea123 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+}
+headerbar button.titlebutton.maximize:not(:backdrop):not(.appmenu),
+.titlebar button.titlebutton.maximize:not(:backdrop):not(.appmenu) {
     background-image: radial-gradient(circle closest-side, #5fdc71 0%, #28c840 62%, #1aab29 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
 }
-headerbar button.titlebutton.close:backdrop:not(.appmenu),
-.titlebar button.titlebutton.close:backdrop:not(.appmenu),
-headerbar button.titlebutton.maximize:backdrop:not(.appmenu),
-.titlebar button.titlebutton.maximize:backdrop:not(.appmenu) {
-    background-image: radial-gradient(circle closest-side, {{macLightOff}} 0%, {{macLightOff}} 86%, rgba(0, 0, 0, 0.18) 92%, transparent 100%);
+/* under the pointer (over the header bar, or the light itself where GTK 3 doesn't tell the bar):
+   the glyph, ×  −  +; pressed, the light a shade darker, as on a Mac */
+headerbar:hover button.titlebutton.close:not(:backdrop):not(.appmenu),
+.titlebar:hover button.titlebutton.close:not(:backdrop):not(.appmenu),
+headerbar button.titlebutton.close:hover:not(:backdrop):not(.appmenu),
+.titlebar button.titlebutton.close:hover:not(:backdrop):not(.appmenu) {
+    background-image: url("assets/mac-close.svg"), radial-gradient(circle closest-side, #ff8e87 0%, #ff5f57 62%, #e0443e 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
 }
-headerbar:hover button.titlebutton.close:not(.appmenu) image,
-headerbar:hover button.titlebutton.maximize:not(.appmenu) image {
-    opacity: 0.6;
-    color: rgba(0, 0, 0, 0.6);
+headerbar:hover button.titlebutton.minimize:not(:backdrop):not(.appmenu),
+.titlebar:hover button.titlebutton.minimize:not(:backdrop):not(.appmenu),
+headerbar button.titlebutton.minimize:hover:not(:backdrop):not(.appmenu),
+.titlebar button.titlebutton.minimize:hover:not(:backdrop):not(.appmenu) {
+    background-image: url("assets/mac-minimize.svg"), radial-gradient(circle closest-side, #ffd56a 0%, #febc2e 62%, #dea123 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+}
+headerbar:hover button.titlebutton.maximize:not(:backdrop):not(.appmenu),
+.titlebar:hover button.titlebutton.maximize:not(:backdrop):not(.appmenu),
+headerbar button.titlebutton.maximize:hover:not(:backdrop):not(.appmenu),
+.titlebar button.titlebutton.maximize:hover:not(:backdrop):not(.appmenu) {
+    background-image: url("assets/mac-maximize.svg"), radial-gradient(circle closest-side, #5fdc71 0%, #28c840 62%, #1aab29 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+}
+headerbar button.titlebutton.close:active:not(:backdrop):not(.appmenu),
+.titlebar button.titlebutton.close:active:not(:backdrop):not(.appmenu),
+headerbar:hover button.titlebutton.close:active:not(:backdrop):not(.appmenu),
+.titlebar:hover button.titlebutton.close:active:not(:backdrop):not(.appmenu) {
+    background-image: url("assets/mac-close.svg"), radial-gradient(circle closest-side, #e0443e 0%, #c9302a 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
+}
+headerbar button.titlebutton.minimize:active:not(:backdrop):not(.appmenu),
+.titlebar button.titlebutton.minimize:active:not(:backdrop):not(.appmenu),
+headerbar:hover button.titlebutton.minimize:active:not(:backdrop):not(.appmenu),
+.titlebar:hover button.titlebutton.minimize:active:not(:backdrop):not(.appmenu) {
+    background-image: url("assets/mac-minimize.svg"), radial-gradient(circle closest-side, #dea123 0%, #c4881a 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
+}
+headerbar button.titlebutton.maximize:active:not(:backdrop):not(.appmenu),
+.titlebar button.titlebutton.maximize:active:not(:backdrop):not(.appmenu),
+headerbar:hover button.titlebutton.maximize:active:not(:backdrop):not(.appmenu),
+.titlebar:hover button.titlebutton.maximize:active:not(:backdrop):not(.appmenu) {
+    background-image: url("assets/mac-maximize.svg"), radial-gradient(circle closest-side, #1aab29 0%, #13921f 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
 }

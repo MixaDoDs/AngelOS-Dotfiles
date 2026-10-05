@@ -79,6 +79,16 @@ Singleton {
         alignRight = false;
         screen = screenName;
     }
+    // a stack in the Dock (Downloads, a left click): its newest files in a grid above the icon,
+    // MacMenuHost draws it (MacStack) — the same overlay as a menu: a click outside or Esc closes it
+    function openStack(screenName, item, centerX, bottomY) {
+        if (isOpen && screen === screenName && statusKind === "dock-stack") {
+            close();
+            return;
+        }
+        openDock(screenName, item, centerX, bottomY);
+        statusKind = "dock-stack";
+    }
     // the desktop's menu (a right click on the wallpaper), as Finder's: under the pointer
     function openDesktop(screenName, xPos, yPos) {
         if (!isOpen)
@@ -232,9 +242,19 @@ Singleton {
                 "items": deskItems()
             };
         case "dock-downloads":
+            {
+                // where the menu is now: activating it closes the menu first
+                const at = [screen, dockItem, x, bottom];
+                return {
+                    "id": "s:dock:downloads",
+                    "items": [fn("dl:stack", I18n.t("Показать стопкой", "Show as Stack"), () => root.openStack(at[0], at[1], at[2], at[3])), fn("dl:open", I18n.t("Открыть в «%1»", "Open in %1").arg(MacDockModel.fileManagerName), () => MacDockModel.openDownloads())]
+                };
+            }
+        case "dock-stack":
             return {
-                "id": "s:dock:downloads",
-                "items": [fn("dl:open", I18n.t("Открыть «Загрузки»", "Open Downloads"), () => MacDockModel.openDownloads())]
+                "id": "s:dock:stack",
+                "stack": true,
+                "items": []
             };
         }
         return null;

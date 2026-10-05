@@ -103,7 +103,7 @@ PxPage {
         }
         function skipped(id) {
             const low = String(id).toLowerCase();
-            return (Config.decor.skip || []).some(k => {
+            return GoldenGate.decorSkip.some(k => {
                 const s = String(k).toLowerCase();
                 return s.endsWith("*") ? low.startsWith(s.slice(0, -1)) : low === s;
             });
@@ -112,12 +112,12 @@ PxPage {
             label: I18n.t("Заголовки angelOS", "angelOS title bars")
             hint: I18n.t("над плавающими окнами без своей рамки (niri её не рисует): значок, название, «развернуть» и «закрыть», как у настроек. Тяни — окно едет, двойной клик — развернуть, средняя кнопка — закрыть. В аду — обсидиан и пламя", "Over floating windows without a frame of their own (niri draws none): icon, title, maximize and close, like Settings. Drag to move, double-click to maximize, middle-click to close. In hell: obsidian and flames")
             PxToggle {
-                checked: Config.decor.titlebars
-                onToggled: c => Config.decor.titlebars = c
+                checked: GoldenGate.titlebars
+                onToggled: c => GoldenGate.setTitlebars(c)
             }
         }
         SettingRow {
-            visible: Config.decor.titlebars
+            visible: GoldenGate.titlebars
             label: I18n.t("Плавающие окна сейчас", "Floating windows now")
             hint: I18n.t("галочка — заголовок angelOS; сними у программ, что рисуют свой (браузеры, GTK4, Steam уже сняты)", "Checked: an angelOS title bar; uncheck apps that draw their own (browsers, GTK4, Steam already are)")
             Column {
@@ -139,10 +139,10 @@ PxPage {
                             checked: !decorGroup.skipped(modelData)
                             onToggled: c => {
                                 const low = modelData.toLowerCase();
-                                const list = (Config.decor.skip || []).filter(k => String(k).toLowerCase() !== low);
+                                const list = GoldenGate.decorSkip.filter(k => String(k).toLowerCase() !== low);
                                 if (!c)
                                     list.push(modelData);
-                                Config.decor.skip = list;
+                                GoldenGate.setDecorSkip(list);
                             }
                         }
                     }

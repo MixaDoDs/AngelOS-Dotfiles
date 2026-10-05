@@ -83,16 +83,19 @@ Item {
             widest = w;
         }
 
+        // rows by count, each reading its item: a live menu (the app's own, sound, Wi-Fi) is
+        // rebuilt as a new array on every change, and a Repeater over the array made every row
+        // again each time — the open menu blinked; now rows only come and go with the count
         Repeater {
             id: rep
-            model: root.items
+            model: root.items.length
             onItemAdded: Qt.callLater(col.measure)
             onItemRemoved: Qt.callLater(col.measure)
 
             Item {
                 id: row
-                required property var modelData
                 required property int index
+                readonly property var modelData: root.items[index] || ({})
                 readonly property string kind: modelData.type || "item"
                 readonly property bool sel: root.current === index && root.selectable(index)
                 readonly property bool on: modelData.enabled !== false

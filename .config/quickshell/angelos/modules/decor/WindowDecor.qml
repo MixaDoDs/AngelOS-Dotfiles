@@ -13,7 +13,8 @@ import qs.widgets
 // kitty, a Qt app or a game launcher had nothing to grab, close or maximize. Each gets a
 // bar like the angelOS settings window's — icon, title, ♡ ✦, maximize and close — on a
 // layer above it: drag it to move the window, double-click to maximize. Apps that draw
-// their own (browsers, GTK4, Steam…) are skipped: Config.decor.skip.
+// their own (browsers, GTK4, Steam…) are skipped: GoldenGate.decorSkip (Config.mac.decorSkip in the
+// Golden Gate skin, Config.decor.skip in the others).
 // The bar sits right above the window (inside its top edge when there is no room), hides
 // where another floating window covers it, in the overview, under fullscreen and while
 // a workspace switch slides past. In hell (Theme.hell) it is obsidian and blackletter. In the
@@ -24,7 +25,7 @@ import qs.widgets
 // the drag let go at once. While held, the bar follows the pointer itself and niri moves
 // the window after it (move-floating-window, by the pointer's steps).
 Variants {
-    model: Config.decor.titlebars ? Shell.screens : []
+    model: GoldenGate.titlebars ? Shell.screens : []
 
     PanelWindow {
         id: win
@@ -35,12 +36,14 @@ Variants {
         // the Golden Gate skin: a Mac's title bar (traffic lights, the title in the middle)
         readonly property bool mac: GoldenGate.on && !Theme.hell
         readonly property int barH: mac ? GoldenGate.px(30) : Theme.sizeBody + Theme.u * 7
+        // where a title bar may begin: under the skin's menu bar
+        readonly property int topLimit: mac ? GoldenGate.barHeight : 0
 
         function skipped(appId) {
             const id = String(appId || "").toLowerCase();
             if (!id)
                 return true;
-            for (const s of Config.decor.skip || []) {
+            for (const s of GoldenGate.decorSkip) {
                 const k = String(s).toLowerCase();
                 if (k.endsWith("*") ? id.startsWith(k.slice(0, -1)) : id === k)
                     return true;
@@ -65,6 +68,10 @@ Variants {
                 const [x, y] = w.layout.tile_pos_in_workspace_view;
                 const [tw] = w.layout.tile_size;
                 const inside = y - barH < 0;
+                // the Golden Gate skin: no room above the window (the menu bar, the screen's top) —
+                // no title bar at all, never one laid over the app's own top (its menus, toolbar)
+                if (mac && y - barH < topLimit)
+                    continue;
                 const r = {
                     "x": Math.round(x),
                     "y": Math.round(inside ? y : y - barH),
@@ -417,7 +424,7 @@ Variants {
                                     if (light.modelData[0] === "close")
                                         Niri.closeWindow(bar.wid);
                                     else if (light.modelData[0] === "minimize")
-                                        Minimize.minimize(bar.wid);
+                                        Minimize.request(bar.wid, "decor");
                                     else
                                         Niri.fullscreenWindow(bar.wid);
                                 }

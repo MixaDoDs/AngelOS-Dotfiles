@@ -141,6 +141,67 @@ Singleton {
         showDotAndDotDot: false
     }
 
+    // the Downloads stack (MacStack, a left click on Downloads): the folder's newest first
+    readonly property int stackMax: 15
+    property var recent: []                  // [{path, name, dir, suffix, modified}], newest first
+    property int recentMore: 0               // how many more are in the folder
+    FolderListModel {
+        id: downloadsModel
+        folder: "file://" + root.downloads
+        sortField: FolderListModel.Time      // QDir::Time: the newest first
+        showDirs: true
+        showDirsFirst: false
+        showHidden: false
+        showDotAndDotDot: false
+        onCountChanged: recentTimer.restart()
+        onStatusChanged: recentTimer.restart()
+    }
+    Timer {
+        id: recentTimer
+        interval: 150
+        onTriggered: root.refreshRecent()
+    }
+    function refreshRecent() {
+        const out = [];
+        let total = 0;
+        const n = downloadsModel.status === FolderListModel.Ready ? downloadsModel.count : 0;
+        for (let i = 0; i < n; i++) {
+            const path = String(downloadsModel.get(i, "filePath"));
+            // a folder that isn't there lists another one; half-downloaded files aren't shown
+            if (path.indexOf(downloads + "/") !== 0 || /\.(part|crdownload|download)$/i.test(path))
+                continue;
+            total++;
+            if (out.length < stackMax)
+                out.push({
+                    "path": path,
+                    "name": String(downloadsModel.get(i, "fileName")),
+                    "dir": !!downloadsModel.get(i, "fileIsDir"),
+                    "suffix": String(downloadsModel.get(i, "fileName")).indexOf(".") > 0 ? String(downloadsModel.get(i, "fileName")).split(".").pop().toLowerCase() : "",
+                    "modified": downloadsModel.get(i, "fileModified")
+                });
+        }
+        recent = out;
+        recentMore = total - out.length;
+    }
+    // a file of the stack: its default app (xdg-open)
+    function openFile(path) {
+        Quickshell.execDetached(["xdg-open", path]);
+    }
+    // the file manager of Settings → Default apps (DefaultApps "files"), at a folder
+    readonly property string fileManagerId: defaultId("files")
+    readonly property string fileManagerName: {
+        const e = entryOf(fileManagerId);
+        return e && e.name ? e.name : I18n.t("Файлы", "Files");
+    }
+    function openInFileManager(path) {
+        if (fileManagerId)
+            Quickshell.execDetached(["gtk-launch", fileManagerId, path]);
+        else if (Config.system.fileManager)
+            Quickshell.execDetached([Config.system.fileManager, path]);
+        else
+            Shell.openPath(path);
+    }
+
     // ---- what a click does ----
     property var bouncing: ({})             // entry id -> true while it starts
     function open(it) {
@@ -207,7 +268,7 @@ Singleton {
         Quickshell.execDetached(["gio", "trash", "--empty"]);
     }
     function openDownloads() {
-        Shell.openPath(downloads);
+        openInFileManager(downloads);
     }
 
     function short(s) {
