@@ -116,6 +116,14 @@ PxPage {
                     dim: true
                     text: Config.bar.avatar ? I18n.t("копия лежит в ~/.local/share/angelos", "a copy is kept in ~/.local/share/angelos") : StartPrefs.systemAvatar ? I18n.t("сейчас — картинка системы", "now the system's picture") : I18n.t("пока сердечко", "a heart for now")
                 }
+                PxText {
+                    width: page.innerWidth - face.width - Theme.u * 30
+                    visible: text !== ""
+                    wrapMode: Text.Wrap
+                    kind: "tiny"
+                    color: Theme.danger
+                    text: StartPrefs.pickError
+                }
             }
         }
         SettingRow {

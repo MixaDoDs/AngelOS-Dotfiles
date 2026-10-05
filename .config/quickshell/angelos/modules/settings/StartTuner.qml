@@ -124,6 +124,14 @@ Column {
                     onClicked: StartPrefs.clearAvatar()
                 }
             }
+            PxText {
+                width: parent.width
+                visible: text !== ""
+                wrapMode: Text.Wrap
+                kind: "tiny"
+                color: Theme.danger
+                text: StartPrefs.pickError
+            }
             PxToggle {
                 text: I18n.t("Пиксельная — крупными пикселями, как всё в angelOS", "Pixelated, in big pixels like the rest of angelOS")
                 checked: Config.bar.avatarPixel

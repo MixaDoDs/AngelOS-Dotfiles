@@ -129,6 +129,14 @@ else
   fail "Qt look: tests/qt/test_qt_theme.py"
 fi
 
+# the avatar's file chooser: the portal's, else zenity; a word when there is none (77 = no gi / dbus)
+python3 "$ROOT/.config/quickshell/angelos/tests/settings/test_pick_file.py" >"$WORK/pick.log" 2>&1
+case $? in
+  0) pass "file chooser: the XDG portal's, zenity when it can't, a reason when there is none" ;;
+  77) skip "file chooser: $(tail -1 "$WORK/pick.log")" ;;
+  *) sed 's/^/    /' "$WORK/pick.log" >&2; fail "file chooser: tests/settings/test_pick_file.py" ;;
+esac
+
 if python3 "$ROOT/.config/quickshell/angelos/tests/theme/test_switch.py" >"$WORK/switch.log" 2>&1; then
   pass "switch.py on an update: the user's palette, not the stock one; one Voxtype (throw-away HOME)"
 else

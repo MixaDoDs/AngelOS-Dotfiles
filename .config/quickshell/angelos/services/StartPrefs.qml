@@ -272,12 +272,16 @@ Singleton {
             onStreamFinished: faceProbe.found = text.trim()
         }
     }
-    // Settings → Bar → Start → Avatar: pick a picture; a copy is kept next to the settings
+    // Settings → Bar → Start → Avatar: pick a picture (scripts/pick-file.py: the desktop's own
+    // file chooser through the XDG portal, else zenity or kdialog); a copy is kept next to the
+    // settings. `pickError` says why nothing opened — there used to be no answer at all
     property bool picking: false
+    property string pickError: ""
     function pickAvatar() {
         if (picker.running)
             return;
         picking = true;
+        pickError = "";
         picker.running = true;
     }
     function clearAvatar() {
@@ -285,11 +289,15 @@ Singleton {
     }
     Process {
         id: picker
-        command: ["sh", "-c", 'f=$(zenity --file-selection --title="angelOS — аватарка" --file-filter="Картинки | *.png *.jpg *.jpeg *.webp *.gif *.bmp *.svg" 2>/dev/null) || exit 1; [ -n "$f" ] || exit 1; mkdir -p "$1"; ext="${f##*.}"; ext=$(printf %s "$ext" | tr A-Z a-z); t="$1/avatar-$(date +%s).$ext"; cp -f "$f" "$t" && { for o in "$1"/avatar-*; do [ "$o" = "$t" ] || rm -f "$o"; done; echo "$t"; }', "sh", root.avatarDir]
+        command: ["sh", "-c", 'f=$(python3 "$2" "$3" "$4" "*.png" "*.jpg" "*.jpeg" "*.webp" "*.gif" "*.bmp" "*.svg" 2>/dev/null); rc=$?; [ "$rc" = 2 ] && { echo "!none"; exit 2; }; [ -n "$f" ] || exit 1; mkdir -p "$1"; ext="${f##*.}"; ext=$(printf %s "$ext" | tr A-Z a-z); t="$1/avatar-$(date +%s).$ext"; cp -f "$f" "$t" || { echo "!copy"; exit 3; }; for o in "$1"/avatar-*; do [ "$o" = "$t" ] || rm -f "$o"; done; echo "$t"', "sh", root.avatarDir, Quickshell.shellDir + "/scripts/pick-file.py", I18n.t("angelOS — аватарка", "angelOS — avatar"), I18n.t("Картинки", "Pictures")]
         stdout: StdioCollector {
             onStreamFinished: {
                 const p = text.trim();
-                if (p)
+                if (p === "!none")
+                    root.pickError = I18n.t("Окно выбора файла не открылось: нет ни XDG-портала (xdg-desktop-portal-gnome), ни zenity. Поставь один из них.", "No file chooser opened: there is neither the XDG portal (xdg-desktop-portal-gnome) nor zenity. Install one of them.");
+                else if (p === "!copy")
+                    root.pickError = I18n.t("Не удалось скопировать картинку в ~/.local/share/angelos", "Couldn't copy the picture into ~/.local/share/angelos");
+                else if (p)
                     Config.bar.avatar = p;
             }
         }
