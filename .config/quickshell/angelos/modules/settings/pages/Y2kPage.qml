@@ -256,12 +256,19 @@ PxPage {
         width: parent.width
         title: Angel.demon ? I18n.t("Демоница в углу", "The demon in the corner") : I18n.t("Ангелочек-помощник", "Helper angel")
         icon: Angel.demon ? "fire" : "heart"
+        // with the game off (the setup wizard's "Just the desktop", `angelos game off`) nobody is
+        // in the corner whatever this says: the toggle shows that, and switching her on brings
+        // the game back — it used to stay on and show nothing
         SettingRow {
             label: I18n.t("Показывать", "Show her")
-            hint: Angel.demon ? I18n.t("сидит в правом нижнем углу, язвит, болтает и пакостит; клик по ней — меню", "Sits in the bottom-right corner, teases, chats and plays pranks; click her for a menu") : I18n.t("живёт в правом нижнем углу, подсказывает и радуется вместе с тобой; клик по ней — меню", "Lives in the bottom-right corner, gives tips and cheers you on; click her for a menu")
+            hint: !Story.enabled ? I18n.t("игра выключена (Система → «Игра выключена»), поэтому её нет; включишь — вернётся и игра", "The game is off (System → “The game is off”), so she isn't there; switch her on and the game comes back too") : Angel.demon ? I18n.t("сидит в правом нижнем углу, язвит, болтает и пакостит; клик по ней — меню", "Sits in the bottom-right corner, teases, chats and plays pranks; click her for a menu") : I18n.t("живёт в правом нижнем углу, подсказывает и радуется вместе с тобой; клик по ней — меню", "Lives in the bottom-right corner, gives tips and cheers you on; click her for a menu")
             PxToggle {
-                checked: Config.y2k.helper
-                onToggled: c => Config.y2k.helper = c
+                checked: Config.y2k.helper && Story.enabled
+                onToggled: c => {
+                    if (c && !Story.enabled)
+                        Story.setEnabled(true);
+                    Config.y2k.helper = c;
+                }
             }
         }
         SettingRow {
