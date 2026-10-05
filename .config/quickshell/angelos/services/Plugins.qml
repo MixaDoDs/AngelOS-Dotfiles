@@ -116,6 +116,51 @@ Singleton {
         Config.setIn(Config.plugins, "data", id, obj);
     }
 
+    // Optional manifest contributions to the same Appearance picker as built-in themes.
+    // Settings contributions are scoped to their own plugin; cursor contributions use
+    // the native cursor service and must already be installed on the system.
+    property string appearanceSelection: ""
+    readonly property var appearanceThemes: enabledPlugins.reduce((out, p) => {
+        const entries = Array.isArray(p.appearanceThemes) ? p.appearanceThemes : [];
+        const ids = {};
+        for (const entry of entries) {
+            if (!entry || typeof entry.id !== "string" || !/^[a-z0-9-]+$/.test(entry.id) || ids[entry.id]) continue;
+            if (!["cursor", "plugin-settings", "settings"].includes(entry.kind)) continue;
+            if (entry.kind === "cursor" && typeof entry.theme !== "string" && typeof entry.themeSetting !== "string") continue;
+            if (entry.kind === "plugin-settings" && (!entry.settings || typeof entry.settings !== "object" || Array.isArray(entry.settings))) continue;
+            ids[entry.id] = true;
+            out.push(Object.assign({}, entry, {pluginId: p.id, value: "plugin-theme:" + p.id + ":" + entry.id}));
+        }
+        return out;
+    }, [])
+    function applyAppearanceTheme(value) {
+        const entry = appearanceThemes.find(t => t.value === value);
+        const p = entry && byId(entry.pluginId);
+        if (!p || !isEnabled(p)) return false;
+        if (entry.kind === "cursor") {
+            const ctx = context(p);
+            const theme = entry.themeSetting ? ctx.get(entry.themeSetting, "") : entry.theme;
+            if (Cursors.busy || !Cursors.other.includes(theme)) return false;
+            ctx.set("theme", entry.themeSetting ? "wallpaper" : theme);
+            Cursors.apply(theme, Cursors.size);
+        } else if (entry.kind === "plugin-settings") {
+            const ctx = context(p);
+            for (const key of Object.keys(entry.settings)) {
+                if (["__proto__", "constructor", "prototype"].includes(key)) continue;
+                const v = entry.settings[key];
+                if (["string", "boolean", "number"].includes(typeof v)) ctx.set(key, v);
+            }
+        } else {
+            Shell.openSettings("plugin:" + p.id);
+        }
+        appearanceSelection = value;
+        return true;
+    }
+    Connections {
+        target: Config.appearance
+        function onFlavorChanged() { root.appearanceSelection = ""; }
+    }
+
     // context object handed to every plugin component as `plugin`
     property var _ctx: ({})
     function context(p) {

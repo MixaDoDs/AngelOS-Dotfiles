@@ -363,3 +363,20 @@ import Quickshell   // и остальное из Quickshell
 
 и файл шаблона рядом. Плейсхолдеры: `{{accent}}` → `#ff5cad`, `{{accent.strip}}` →
 `ff5cad`, `{{bg}} {{fg}} {{color0..15}} {{mode}} {{flavor}}` и все токены темы.
+
+## Contributions to the shared Appearance theme picker
+
+Enabled plugins can add optional `appearanceThemes` entries beside the built-in themes. Choices disappear when the plugin is disabled or removed. No scripts from the manifest are executed.
+
+```json
+"appearanceThemes": [
+  {"id": "ice", "name": "Bibata · Ice", "kind": "cursor", "theme": "Bibata-Modern-Ice"},
+  {"id": "wallpaper", "name": "Bibata · From Wallpaper", "kind": "cursor", "themeSetting": "wallpaperTheme"},
+  {"id": "dark", "name": "Emoji Picker · Dark", "kind": "plugin-settings", "settings": {"theme": "dark"}},
+  {"id": "custom", "name": "Emoji Picker · Custom…", "kind": "settings"}
+]
+```
+
+IDs must contain lowercase letters, digits or hyphens and be unique within the plugin. `name` supports the usual localized labels. `cursor` applies an already installed theme using the native Cursors service, with the current cursor size. `themeSetting` resolves a dynamic theme name from that plugin's saved settings (for example a color-specific wallpaper cursor); it also selects the plugin's `theme=wallpaper` preference. Static cursor contributions select the matching `theme` preference. Missing themes or a busy cursor worker leave the choice unchanged.
+
+`plugin-settings` updates primitive settings only in the contributing plugin's namespace. `settings` opens that plugin's own settings page. Choosing a built-in palette clears the last plugin selection; choosing a cursor or picker theme preserves the desktop color palette. Older AngelOS versions ignore the optional field, so plugins should retain their own settings controls.
