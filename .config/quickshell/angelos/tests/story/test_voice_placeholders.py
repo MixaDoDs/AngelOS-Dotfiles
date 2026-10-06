@@ -81,7 +81,7 @@ TestCase {
         runner = shutil.which('qmltestrunner6') or '/usr/lib/qt6/bin/qmltestrunner'
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'tst_voices.qml').write_text(qml)
-            result = subprocess.run([runner, '-input', tmp], capture_output=True, text=True,
+            result = subprocess.run([runner, '-input', tmp], capture_output=True, text=True, errors='replace',
                                     env={**os.environ, 'QT_QPA_PLATFORM': 'offscreen',
                                          'QT_QUICK_BACKEND': 'software'}, timeout=30)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
