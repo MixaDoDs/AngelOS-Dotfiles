@@ -380,3 +380,16 @@ Enabled plugins can add optional `appearanceThemes` entries beside the built-in 
 IDs must contain lowercase letters, digits or hyphens and be unique within the plugin. `name` supports the usual localized labels. `cursor` applies an already installed theme using the native Cursors service, with the current cursor size. `themeSetting` resolves a dynamic theme name from that plugin's saved settings (for example a color-specific wallpaper cursor); it also selects the plugin's `theme=wallpaper` preference. Static cursor contributions select the matching `theme` preference. Missing themes or a busy cursor worker leave the choice unchanged.
 
 `plugin-settings` updates primitive settings only in the contributing plugin's namespace. `settings` opens that plugin's own settings page. Choosing a built-in palette clears the last plugin selection; choosing a cursor or picker theme preserves the desktop color palette. Older AngelOS versions ignore the optional field, so plugins should retain their own settings controls.
+
+### Assistant panel in the angel/demon menu
+
+An enabled plugin service can register one optional helper panel:
+
+```qml
+Angel.registerAssistant(plugin.id, provider)
+// provider is a QObject with helperTitle (string) and helperUrl (QML URL).
+// On service destruction:
+Angel.unregisterAssistant(plugin.id, provider)
+```
+
+Registration returns false if another provider already owns the slot. Unregistration checks both ID and object identity. The helper adds a menu button and loads the plugin's panel only while its assistant menu is open; keyboard focus is enabled on demand. The panel supplies its own input, model requests and confirmation controls. The built-in Ask/settings search and story dialogue remain separate. Older shells have no hook: feature-detect `typeof Angel.registerAssistant === "function"` before registering.

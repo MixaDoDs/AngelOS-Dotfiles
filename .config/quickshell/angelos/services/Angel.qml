@@ -72,7 +72,26 @@ Singleton {
     property var actions: []                 // [{label, icon, run, choice}]: buttons in the bubble (choice: an answer, never singled out)
     property bool talking: false
     property bool menuOpen: false
-    property string menuMode: "main"         // main | ask
+    property string menuMode: "main"         // main | ask | assistant
+    // An optional plugin-owned assistant. No model endpoint or prompt is handled by the shell.
+    property var assistant: null
+    property string assistantId: ""
+    readonly property string assistantUrl: assistant && assistant.helperUrl ? assistant.helperUrl : ""
+    function registerAssistant(id, provider) {
+        if (!id || !provider || (assistant && assistant !== provider))
+            return false;
+        assistantId = id;
+        assistant = provider;
+        return true;
+    }
+    function unregisterAssistant(id, provider) {
+        if (assistantId !== id || assistant !== provider)
+            return;
+        assistant = null;
+        assistantId = "";
+        if (menuMode === "assistant")
+            hush();
+    }
     property double hiddenUntil: 0
     property double now: Date.now()
     // the game off (`angelos game off`): nobody in the corner; limbo: the demon is gone too

@@ -50,7 +50,7 @@ Scope {
             implicitHeight: body.height + headroom
             WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.namespace: "angelos-angel"
-            WlrLayershell.keyboardFocus: Angel.menuOpen && Angel.menuMode === "ask" ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: Angel.menuOpen && ["ask", "assistant"].includes(Angel.menuMode) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
             // the bubble's own `visible` follows the window's: the mask uses the state
             readonly property bool bubbleOn: (Angel.talking || Angel.menuOpen) && !Angel.transition
             mask: Region {
@@ -210,7 +210,7 @@ Scope {
                                 visible: Angel.menuOpen
                                 color: Angel.demon ? Theme.hellText : Theme.text
                                 width: parent.width - closeBtn.width - Theme.u * 2
-                                text: !Angel.menuOpen ? "" : Angel.menuMode === "ask" ? (Angel.demon ? I18n.t("Спрашивай. Может, отвечу.", "Go on, ask. Maybe I'll answer.") : I18n.t("Спроси что угодно — и про настройки тоже ♡", "Ask me anything, settings included ♡")) : (Angel.demon ? I18n.t("Ну? Чего тебе? Ангела хочешь — «Спросить…», и проси красиво.", "Well? What do you want? Want your angel — “Ask…”, and beg nicely.") : I18n.t("Чем помочь? ♡", "How can I help? ♡"))
+                                text: !Angel.menuOpen ? "" : Angel.menuMode === "assistant" ? (Angel.assistant && Angel.assistant.helperTitle || I18n.t("AI-помощник", "AI assistant")) : Angel.menuMode === "ask" ? (Angel.demon ? I18n.t("Спрашивай. Может, отвечу.", "Go on, ask. Maybe I'll answer.") : I18n.t("Спроси что угодно — и про настройки тоже ♡", "Ask me anything, settings included ♡")) : (Angel.demon ? I18n.t("Ну? Чего тебе? Ангела хочешь — «Спросить…», и проси красиво.", "Well? What do you want? Want your angel — “Ask…”, and beg nicely.") : I18n.t("Чем помочь? ♡", "How can I help? ♡"))
                                 wrapMode: Text.Wrap
                             }
                             PxButton {
@@ -262,6 +262,14 @@ Scope {
                                 icon: "chat"
                                 text: I18n.t("Спросить…", "Ask…")
                                 onClicked: Angel.openMenu("ask")
+                            }
+                            PxButton {
+                                hell: Angel.demon
+                                visible: !!Angel.assistantUrl
+                                compact: true
+                                icon: "bot"
+                                text: Angel.assistant && Angel.assistant.helperTitle || I18n.t("AI-помощник", "AI assistant")
+                                onClicked: Angel.openMenu("assistant")
                             }
                             PxButton {
                                 hell: Angel.demon
@@ -344,6 +352,15 @@ Scope {
                                     Config.y2k.helper = false;
                                 }
                             }
+                        }
+
+                        // Plugin-owned input/confirmation panel, in both heaven and hell.
+                        Loader {
+                            width: parent.width
+                            active: Angel.menuOpen && Angel.menuMode === "assistant" && !!Angel.assistantUrl
+                            visible: active
+                            source: active ? Angel.assistantUrl : ""
+                            height: active && item ? item.implicitHeight : 0
                         }
 
                         // ---- Ask… ----
