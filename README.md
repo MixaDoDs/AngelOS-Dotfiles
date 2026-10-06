@@ -1,6 +1,9 @@
 <div align="center">
 
-# ♡ angelOS ✧ PixelStreetArt ♡
+<img width="2046" height="769" alt="a30256b3-6dd4-4082-8b64-22c9f0894bb5" src="https://github.com/user-attachments/assets/ed73f41e-73ec-44ce-8a80-50751ccb66a6" />
+
+
+# ♡ angelOS ♡
 
 **`~ welcome back, internet angel ~ ● LIVE`**
 
