@@ -6,6 +6,8 @@ import "."
 import "Frames.js" as Frames
 
 // Animated cat: idle below walk threshold, walks, then runs faster with load.
+// In the Mac look (Skin.mac, the Theme API) it is MacCat: a smooth one-colour silhouette, no
+// pixels — `ink` colours it (the menu bar's ink there), `pixel` still sets its size (8 × pixel tall).
 // While the demon rules it is a puppy Cerberus (Frames.cerberus*): three heads, ember
 // eyes, in the circle's colours — walking and running the same way; asleep he lies still
 // (no zzz blinking: in hell things move rarely).
@@ -21,10 +23,13 @@ Item {
     readonly property int frameMs: pace === "walk" ? 380 - (cpu - walkAt) / Math.max(1, runAt - walkAt) * 200 : 160 - (cpu - runAt) / Math.max(1, 100 - runAt) * 105
     readonly property color fur: plugin && plugin.get("colorMode", "theme") === "custom" ? plugin.get("color", "#e8a24c") : Theme.accent4
     readonly property bool hell: Angel.demon
+    readonly property bool mac: Skin.mac
+    // the Mac cat's one colour: the fur unless a host gives another (the menu bar's ink)
+    property color ink: fur
     property int frame: 0
 
-    implicitWidth: hell ? cerberus.width : sprite.width
-    implicitHeight: (hell ? cerberus.height : sprite.height) + pixel
+    implicitWidth: mac ? macCat.implicitWidth : hell ? cerberus.width : sprite.width
+    implicitHeight: mac ? macCat.implicitHeight : (hell ? cerberus.height : sprite.height) + pixel
 
     Timer {
         interval: Math.max(50, root.frameMs)
@@ -35,14 +40,27 @@ Item {
     Timer {
         // slow zzz blink while asleep (the Cerberus sleeps without it)
         interval: 700
-        running: root.pace === "idle" && root.visible && !root.hell
+        running: root.pace === "idle" && root.visible && (!root.hell || root.mac)
         repeat: true
         onTriggered: root.frame = (root.frame + 1) % 2
     }
 
+    // (made only in the Mac look: the pixel one pays nothing for it)
+    Loader {
+        id: macCat
+        active: root.mac
+        visible: active
+        sourceComponent: MacCat {
+            size: root.pixel * 8
+            color: root.ink
+            frame: root.frame
+            pace: root.pace
+            blink: root.frame === 1
+        }
+    }
     PxIcon {
         id: sprite
-        visible: !root.hell
+        visible: !root.hell && !root.mac
         pixel: root.pixel
         bitmap: root.pace === "idle" ? Frames.sleep.map((r, i) => root.frame === 1 && i < 2 ? r.replace(/y/g, ".") : r) : Frames.run(root.frame)
         body: root.fur
@@ -53,7 +71,7 @@ Item {
     }
     CerberusSprite {
         id: cerberus
-        visible: root.hell
+        visible: root.hell && !root.mac
         pixel: root.pixel
         frame: root.frame
         asleep: root.pace === "idle"

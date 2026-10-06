@@ -268,8 +268,10 @@ Singleton {
     }
 
     // ---- hidden with the app (⌘H) ----
-    // every window of the app (its app id) that is out goes at once, no snapshot, no flight, and
-    // gets no place of its own in the Dock; its minimized ones stay minimized
+    // every window of the app (its app id) that is out goes the way ⌘M sends one — the snapshot
+    // flies (Genie or Scale) into the app's own Dock icon, not into a place of its own: hidden
+    // windows get no thumbnail in the Dock, the app keeps its running dot. Windows that are not on
+    // the screen go at once; its minimized ones stay minimized
     function hide(id) {
         const w = Niri.windows.find(x => x.id === id);
         if (!w)
@@ -283,15 +285,16 @@ Singleton {
             if (!ws)
                 continue;
             h[x.id] = true;
+            const rect = ws.is_active ? rectOf(x, ws.output) : null;
             o[x.id] = {
                 "ws": ws.id,
                 "output": ws.output,
-                "rect": null
+                "rect": rect
             };
             jobs.push({
                 "id": x.id,
                 "output": ws.output,
-                "rect": null
+                "rect": rect
             });
         }
         hidden = h;
@@ -421,6 +424,13 @@ Singleton {
     readonly property var flying: flights.map(f => f.id)
     property var dockSlots: ({})            // output + "|" + key -> [centre x, centre y, size], screen px
     function slotOf(output, id) {
+        // a hidden app's window (⌘H) flies into the app's icon (MacDock reports "@app:<app id>")
+        if (hidden[id]) {
+            const w = Niri.windows.find(x => x.id === id);
+            const s = w ? dockSlots[output + "|@app:" + w.app_id] : null;
+            if (s)
+                return s;
+        }
         return dockSlots[output + "|@w" + id] || dockSlots[output + "|@downloads"] || null;
     }
     property int _flightN: 0

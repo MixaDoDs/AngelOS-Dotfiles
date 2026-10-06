@@ -7,7 +7,7 @@ import qs.widgets
 import "."
 
 // Pixel meters for the plan limits: how much is LEFT and when it resets.
-// `mac` (the desktop card in the macOS look, DesktopWidgets.macLook): thin rounded bars in
+// `mac` (the macOS look: the desktop card, Skin.macWidgets; the menu bar popover, Skin.mac): thin rounded bars in
 // SF Pro, and a problem (no login, an expired token) as a plain line of secondary text.
 Column {
     id: root

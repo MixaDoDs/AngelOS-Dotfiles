@@ -498,7 +498,9 @@ class ScreenshotApp:
             while Gtk.events_pending():
                 Gtk.main_iteration_do(False)
             pling = os.path.expanduser("~/.local/share/sounds/screenshot-pling.ogg")
-            if os.path.isfile(pling):
+            # angelOS's Golden Gate plays its shutter from the notification (services/Sounds)
+            shutter = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "angelos", "shutter")
+            if os.path.isfile(pling) and not os.path.exists(shutter):
                 subprocess.Popen(
                     ["pw-play", "--volume", "0.75", pling],
                     stdout=subprocess.DEVNULL,

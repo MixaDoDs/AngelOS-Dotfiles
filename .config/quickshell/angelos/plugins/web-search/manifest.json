@@ -6,6 +6,7 @@
   "description": "Поиск в интернете и любимые сайты прямо из лаунчера: «web запрос» или просто набери название сайта.",
   "icon": "search",
   "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
   "launcher": "Launcher.qml",
   "settings": "Settings.qml"
 }

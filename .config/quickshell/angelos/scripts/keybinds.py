@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
-"""List or edit niri key bindings in cfg/keybinds.kdl (Settings → Shortcuts).
+"""List or edit the niri key bindings of the theme in front (Settings → Shortcuts).
 
-  keybinds.py                   -> JSON {"file", "binds": [...], "sections": [...]}
+Every theme has a key profile of its own (scripts/keyprofile.py): cfg/keybinds-pixel.kdl
+for the pixel theme, cfg/keybinds-macos.kdl for Golden Gate, cfg/keybinds-common.kdl for
+both. This edits only the profile in front, so a change in one theme never reaches the
+other; the common file is listed read-only (its section says so). A key of the common
+file may be bound again here: the profile is read after it and wins, for this theme.
+
+  keybinds.py                   -> JSON {"file", "profile", "binds": [...], "sections": [...]}
       bind: {"id", "line", "key", "action", "title", "props", "section", "editable"}
   keybinds.py '<json ops>'      -> apply a list of operations, then print {"ok"} / {"error"}
       {"op": "set", "id": 12, "key": "Mod+Shift+T"}               change the combination
@@ -28,14 +34,21 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import keyprofile  # noqa: E402
+
 CONFIG = Path.home() / ".config/niri/config.kdl"
-KEYBINDS = CONFIG.parent / "cfg/keybinds.kdl"
+PROFILE = keyprofile.current()          # "pixel" | "macos" | "" (a config from before profiles)
+KEYBINDS = keyprofile.path()            # the profile in front
 BACKUPS = Path.home() / ".local/state/angelos/backups"
 MY_SECTION = "// ─── angelOS: мои хоткеи (Настройки → Горячие клавиши) ───"
-# files with binds niri reads after cfg/keybinds.kdl (config.kdl's include order), written by angelOS
-EXTRA = [
-    (CONFIG.parent / "cfg/angelos-windows.kdl", "angelOS: Alt+Tab, лупа (Настройки → Окна, Клавиатура и мышь)"),
-    (CONFIG.parent / "angelos.kdl", "Golden Gate: как на Mac (Настройки → Оформление)"),
+THEMES = {"pixel": "пиксельная тема", "macos": "тема macOS (Golden Gate)"}
+# other files with binds, read-only here: (path, section, read after the profile?). Files niri
+# reads after the profile (config.kdl's include order) replace a key of it — their keys can't be
+# given to a bind here; the common file is read before it
+EXTRA = ([(CONFIG.parent / "cfg/keybinds-common.kdl", "Общие для обеих тем (cfg/keybinds-common.kdl)", False)] if PROFILE else []) + [
+    (CONFIG.parent / "cfg/angelos-windows.kdl", "angelOS: Alt+Tab, лупа (Настройки → Окна, Клавиатура и мышь)", True),
+    (CONFIG.parent / "angelos.kdl", "angelOS: сгенерировано темой", True),
 ]
 
 BIND = re.compile(
@@ -81,7 +94,7 @@ def block_range(lines):
         if depth <= 0:
             return start, i
     if start is None:
-        raise ValueError("binds block not found in cfg/keybinds.kdl")
+        raise ValueError("binds block not found")
     return start, len(lines) - 1
 
 
@@ -122,13 +135,13 @@ def parse(text):
 def extra_binds(first_id=0):
     """the binds of EXTRA, read-only, numbered on from first_id"""
     out = []
-    for path, section in EXTRA:
+    for path, section, after in EXTRA:
         try:
             _, _, binds, _ = parse(path.read_text())
         except (OSError, ValueError):
             continue
         for b in binds:
-            b.update({"id": first_id + len(out), "section": section, "editable": False, "file": path.name})
+            b.update({"id": first_id + len(out), "section": section, "editable": False, "file": path.name, "after": after})
             out.append(b)
     return out
 
@@ -207,7 +220,7 @@ def apply_ops(text, ops):
     # an old clash in the file doesn't stop other edits)
     for b in extra_binds():
         k = norm_key(b["key"])
-        if k in asked:
+        if k in asked and b["after"]:
             raise ValueError(f"{b['key']} is already used: {b['section']} → {b['title'] or b['action'][:60]}")
     out = [l for i, l in enumerate(lines) if i not in delete]
     if added:
@@ -260,7 +273,7 @@ def save(ops):
         backup = Path(tempfile.mkdtemp(prefix="keybinds-", dir=BACKUPS))
         shutil.copy2(KEYBINDS, backup / KEYBINDS.name)
         if KEYBINDS.read_text() != old:
-            raise RuntimeError("keybinds.kdl changed during validation; try again")
+            raise RuntimeError(KEYBINDS.name + " changed during validation; try again")
         atomic_write(KEYBINDS, new)
         try:
             validate(CONFIG)
@@ -277,7 +290,8 @@ def main():
             _, _, binds, sections = parse(KEYBINDS.read_text())
             extra = extra_binds(len(binds))
             sections += [s for s in dict.fromkeys(b["section"] for b in extra) if s not in sections]
-            print(json.dumps({"file": str(KEYBINDS), "binds": binds + extra, "sections": sections}, ensure_ascii=False))
+            print(json.dumps({"file": str(KEYBINDS), "profile": PROFILE, "theme": THEMES.get(PROFILE, ""),
+                              "binds": binds + extra, "sections": sections}, ensure_ascii=False))
         else:
             ops = json.loads(sys.argv[1])
             print(json.dumps({"ok": save(ops if isinstance(ops, list) else [ops])}, ensure_ascii=False))

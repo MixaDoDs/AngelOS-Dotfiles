@@ -1,0 +1,350 @@
+#!/usr/bin/env python3
+"""Region OCR with a Minecraft stone-block frame; copies recognized text to the clipboard."""
+from __future__ import annotations
+
+import os
+import random
+import signal
+import subprocess
+import sys
+
+import cairo
+import gi
+
+gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "3.0")
+gi.require_version("GtkLayerShell", "0.1")
+from gi.repository import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
+
+DIM = 0.35
+MIN_SIZE = 4
+CELL = 3                       # device px per texture pixel — chunky Minecraft look
+BLOCK = 16                     # texture pixels per stone block (size of the real stone.png)
+VARIETY = 3                    # NxN distinct block variants tiled to hide obvious repetition
+SUPER_PX = BLOCK * CELL * VARIETY
+
+LINE_CORE = 7                  # same visual weight as the rope screenshotter's line
+LINE_HALO = LINE_CORE + 2 * CELL
+
+TESSDATA_PREFIX = os.path.expanduser("~/.local/share/tessdata")
+OCR_LANGS = "rus+eng"
+GEOMETRY_ONLY = "--geometry" in sys.argv
+
+STONE_BASE = (0.49, 0.49, 0.49)
+STONE_LIGHT = (0.55, 0.55, 0.55)
+STONE_LIGHT2 = (0.60, 0.60, 0.60)
+STONE_DARK = (0.43, 0.43, 0.43)
+STONE_DARK2 = (0.36, 0.36, 0.36)
+MORTAR = (0.22, 0.22, 0.22)
+HALO_COLOR = (0.12, 0.12, 0.12, 1.0)
+
+STONE_PATTERN: "cairo.SurfacePattern | None" = None  # built in main() once cairo is ready
+
+
+def _make_block(seed: int) -> cairo.ImageSurface:
+    """One BLOCK x BLOCK stone block, rendered at CELL px/texel for a blocky pixel-art look."""
+    px = BLOCK * CELL
+    surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, px, px)
+    cr = cairo.Context(surf)
+    cr.set_antialias(cairo.ANTIALIAS_NONE)
+    rnd = random.Random(seed)
+    for ty in range(BLOCK):
+        for tx in range(BLOCK):
+            r = rnd.random()
+            if r < 0.05:
+                col = STONE_DARK2
+            elif r < 0.18:
+                col = STONE_DARK
+            elif r < 0.28:
+                col = STONE_LIGHT2
+            elif r < 0.42:
+                col = STONE_LIGHT
+            else:
+                col = STONE_BASE
+            cr.set_source_rgb(*col)
+            cr.rectangle(tx * CELL, ty * CELL, CELL, CELL)
+            cr.fill()
+    # mortar seam on the block's low edges, like grouted stone bricks
+    cr.set_source_rgb(*MORTAR)
+    cr.rectangle(px - CELL, 0, CELL, px)
+    cr.fill()
+    cr.rectangle(0, px - CELL, px, CELL)
+    cr.fill()
+    return surf
+
+
+def make_stone_pattern() -> cairo.SurfacePattern:
+    """A few distinct stone blocks tiled into one super-tile, then repeated —
+    reads as a stone wall instead of one 16px texture obviously copy-pasted."""
+    block_px = BLOCK * CELL
+    surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, SUPER_PX, SUPER_PX)
+    cr = cairo.Context(surf)
+    for by in range(VARIETY):
+        for bx in range(VARIETY):
+            block = _make_block(seed=bx * 97 + by * 131)
+            cr.set_source_surface(block, bx * block_px, by * block_px)
+            cr.paint()
+    pattern = cairo.SurfacePattern(surf)
+    pattern.set_extend(cairo.EXTEND_REPEAT)
+    pattern.set_filter(cairo.FILTER_NEAREST)
+    return pattern
+
+
+class ScreenOverlay(Gtk.Window):
+    """One output-sized interactive layer."""
+
+    def __init__(self, app: "OcrApp", monitor: Gdk.Monitor, geo):
+        super().__init__()
+        self.app = app
+        self.monitor = monitor
+        self.geo = geo
+        self.win_w = geo.width
+        self.win_h = geo.height
+
+        self.set_app_paintable(True)
+        self.set_decorated(False)
+        self.set_resizable(False)
+        self.set_size_request(self.win_w, self.win_h)
+
+        visual = self.get_screen().get_rgba_visual()
+        if visual is not None:
+            self.set_visual(visual)
+
+        GtkLayerShell.init_for_window(self)
+        GtkLayerShell.set_namespace(self, "niri-ocr-stone")
+        GtkLayerShell.set_layer(self, GtkLayerShell.Layer.OVERLAY)
+        GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.NONE)
+        GtkLayerShell.set_exclusive_zone(self, -1)
+        GtkLayerShell.set_monitor(self, monitor)
+        for edge in (
+            GtkLayerShell.Edge.LEFT,
+            GtkLayerShell.Edge.TOP,
+            GtkLayerShell.Edge.RIGHT,
+            GtkLayerShell.Edge.BOTTOM,
+        ):
+            GtkLayerShell.set_anchor(self, edge, True)
+            GtkLayerShell.set_margin(self, edge, 0)
+
+        self.add_events(
+            Gdk.EventMask.BUTTON_PRESS_MASK
+            | Gdk.EventMask.BUTTON_RELEASE_MASK
+            | Gdk.EventMask.POINTER_MOTION_MASK
+            | Gdk.EventMask.KEY_PRESS_MASK
+        )
+        self.connect("draw", self.on_draw)
+        self.connect("button-press-event", self.on_press)
+        self.connect("button-release-event", self.on_release)
+        self.connect("motion-notify-event", self.on_motion)
+        self.connect("key-press-event", self.on_key)
+        self.set_can_focus(True)
+        self.show_all()
+        self.grab_focus()
+
+    def to_global(self, lx: float, ly: float):
+        return self.geo.x + lx, self.geo.y + ly
+
+    def on_press(self, _w, event):
+        if event.button != 1:
+            return False
+        gx, gy = self.to_global(event.x, event.y)
+        self.app.begin_drag(gx, gy)
+        return True
+
+    def on_motion(self, _w, event):
+        if not self.app.dragging:
+            return False
+        gx, gy = self.to_global(event.x, event.y)
+        self.app.update_drag(gx, gy)
+        return True
+
+    def on_release(self, _w, event):
+        if event.button != 1:
+            return False
+        gx, gy = self.to_global(event.x, event.y)
+        self.app.end_drag(gx, gy)
+        return True
+
+    def on_key(self, _w, event):
+        if Gdk.keyval_name(event.keyval) in ("Escape", "Esc"):
+            self.app.cancel()
+            return True
+        return False
+
+    def on_draw(self, _w, cr):
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        cr.set_source_rgba(0, 0, 0, 0)
+        cr.paint()
+
+        cr.set_operator(cairo.OPERATOR_OVER)
+        cr.set_source_rgba(0, 0, 0, DIM)
+        cr.rectangle(0, 0, self.win_w, self.win_h)
+        cr.fill()
+
+        sel = self.app.selection_global()
+        if sel is not None:
+            self._draw_stone_frame(cr, sel)
+        return False
+
+    def _draw_stone_frame(self, cr, sel):
+        """Thin stone-textured outline, same weight as the rope screenshotter's line."""
+        x, y, w, h = sel
+        ox, oy = self.geo.x, self.geo.y
+        lx, ly = x - ox, y - oy
+
+        # clear a hole for the selection itself
+        cr.set_operator(cairo.OPERATOR_CLEAR)
+        cr.rectangle(lx, ly, w, h)
+        cr.fill()
+        cr.set_operator(cairo.OPERATOR_OVER)
+
+        cr.set_antialias(cairo.ANTIALIAS_NONE)
+        cr.set_line_join(cairo.LINE_JOIN_MITER)
+
+        # dark halo first, so the textured core reads crisply on any background
+        cr.set_line_width(LINE_HALO)
+        cr.set_source_rgba(*HALO_COLOR)
+        cr.rectangle(lx, ly, w, h)
+        cr.stroke()
+
+        # stone-textured core line, aligned to the global screen (not this window)
+        # so it doesn't appear to slide when the selection crosses monitor bounds
+        STONE_PATTERN.set_matrix(cairo.Matrix(1, 0, 0, 1, ox, oy))
+        cr.set_line_width(LINE_CORE)
+        cr.set_source(STONE_PATTERN)
+        cr.rectangle(lx, ly, w, h)
+        cr.stroke()
+
+        # small corner chips, like the rope version's corner pins
+        chip = CELL * 1.5
+        cr.set_source_rgb(*STONE_LIGHT2)
+        for cx, cy in ((lx, ly), (lx + w, ly), (lx + w, ly + h), (lx, ly + h)):
+            cr.rectangle(cx - chip / 2, cy - chip / 2, chip, chip)
+            cr.fill()
+
+
+class OcrApp:
+    def __init__(self):
+        self.dragging = False
+        self.x0 = self.y0 = 0.0
+        self.x1 = self.y1 = 0.0
+        self.windows: list[ScreenOverlay] = []
+        self._done = False
+        self._cancelled = False
+
+        display = Gdk.Display.get_default()
+        for i in range(display.get_n_monitors()):
+            mon = display.get_monitor(i)
+            geo = mon.get_geometry()
+            self.windows.append(ScreenOverlay(self, mon, geo))
+        if self.windows:
+            GtkLayerShell.set_keyboard_mode(self.windows[0], GtkLayerShell.KeyboardMode.EXCLUSIVE)
+            self.windows[0].grab_focus()
+
+    def selection_global(self):
+        if not self.dragging and self.x0 == self.x1 == self.y0 == self.y1 == 0.0:
+            return None
+        x, y = min(self.x0, self.x1), min(self.y0, self.y1)
+        w, h = abs(self.x1 - self.x0), abs(self.y1 - self.y0)
+        if w < 1 or h < 1:
+            return None
+        return int(x), int(y), int(w), int(h)
+
+    def _monitor_for_sel(self, sel):
+        cx, cy = sel[0] + sel[2] / 2, sel[1] + sel[3] / 2
+        for win in self.windows:
+            g = win.geo
+            if g.x <= cx < g.x + g.width and g.y <= cy < g.y + g.height:
+                return g
+        return self.windows[0].geo if self.windows else None
+
+    def begin_drag(self, gx, gy):
+        self.dragging = True
+        self.x0 = self.x1 = gx
+        self.y0 = self.y1 = gy
+        self.redraw(all_monitors=True)
+
+    def update_drag(self, gx, gy):
+        self.x1, self.y1 = gx, gy
+        self.redraw()
+
+    def end_drag(self, gx, gy):
+        self.x1, self.y1 = gx, gy
+        self.dragging = False
+        sel = self.selection_global()
+        if sel is None or sel[2] < MIN_SIZE or sel[3] < MIN_SIZE:
+            self.cancel()
+            return
+        for w in self.windows:
+            w.hide()
+        if GEOMETRY_ONLY:
+            x, y, w, h = sel
+            print(f"{x},{y} {w}x{h}", flush=True)
+            self._done = True
+            Gtk.main_quit()
+            return
+        GLib.timeout_add(60, lambda: self._run_ocr(sel) or False)
+
+    def _run_ocr(self, sel):
+        if self._done:
+            return False
+        self._done = True
+        x, y, w, h = sel
+        geom = f"{x},{y} {w}x{h}"
+        tmp = f"/tmp/niri-ocr-{os.getpid()}.png"
+        env = dict(os.environ, TESSDATA_PREFIX=TESSDATA_PREFIX)
+        try:
+            subprocess.run(["grim", "-g", geom, tmp], check=True)
+            result = subprocess.run(
+                ["tesseract", tmp, "stdout", "-l", OCR_LANGS, "--psm", "6"],
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+            text = "\n".join(line.rstrip() for line in result.stdout.splitlines() if line.strip())
+            if not text:
+                subprocess.run(["notify-send", "-a", "OCR", "OCR", "Текст не найден"], check=False)
+            else:
+                subprocess.run(["wl-copy"], input=text, text=True, check=False)
+                subprocess.run(["notify-send", "-a", "OCR", "OCR → буфер", text[:280]], check=False)
+        except Exception as e:
+            subprocess.run(["notify-send", "-a", "OCR", "Ошибка OCR", str(e)], check=False)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        Gtk.main_quit()
+        return False
+
+    def cancel(self):
+        if self._done:
+            return
+        self._done = True
+        self._cancelled = True
+        Gtk.main_quit()
+
+    def redraw(self, all_monitors: bool = False):
+        if all_monitors:
+            for w in self.windows:
+                w.queue_draw()
+            return
+        sel = self.selection_global()
+        g = self._monitor_for_sel(sel) if sel else None
+        for w in self.windows:
+            if g is None or (
+                w.geo.x == g.x and w.geo.y == g.y and w.geo.width == g.width and w.geo.height == g.height
+            ):
+                w.queue_draw()
+
+
+def main() -> int:
+    global STONE_PATTERN
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    STONE_PATTERN = make_stone_pattern()
+    app = OcrApp()
+    Gtk.main()
+    if GEOMETRY_ONLY and getattr(app, "_cancelled", False):
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

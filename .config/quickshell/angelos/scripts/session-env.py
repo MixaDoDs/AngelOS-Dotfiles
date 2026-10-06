@@ -14,6 +14,12 @@ Only what an app started from the shell should inherit is kept: the variables
 bin/angelos and the local quickshell wrapper add for the shell itself are put
 back, systemd's per-service variables, terminal ones and coding agents' markers
 are dropped.
+
+At login (`self`) the look-and-backend variables of niri's `environment {}` also go
+to the D-Bus / systemd activation environment (ACTIVATION): apps started by D-Bus
+— Nautilus for the file chooser portal or «show in folder», the portals themselves —
+otherwise start without them (GSK_RENDERER: Nautilus fell back to Vulkan and spammed
+VK_ERROR_OUT_OF_DATE_KHR on NVIDIA; QT_QPA_PLATFORMTHEME: Qt apps without qt6ct).
 """
 import os
 import re
@@ -30,6 +36,8 @@ DROP = {
 DROP_PREFIX = ("CLAUDE_", "CODEX_", "KITTY_", "WEZTERM_", "ALACRITTY_", "TERM_PROGRAM",
                "__QUICKSHELL_", "ANGELOS_PRE_", "BASH_FUNC_")
 NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+ACTIVATION = ("GSK_RENDERER", "GDK_BACKEND", "QT_QPA_PLATFORM", "QT_QPA_PLATFORMTHEME",
+              "ELECTRON_OZONE_PLATFORM_HINT", "MOZ_ENABLE_WAYLAND", "XCURSOR_THEME", "XCURSOR_SIZE")
 
 
 def read(src):
@@ -86,6 +94,21 @@ def main():
         for k in sorted(env):
             f.write(f"{k}={quote(env[k])}\n")
     os.replace(tmp, target)
+    if sys.argv[1] == "self":
+        export(env)
+
+
+def export(env):
+    """niri's look-and-backend variables for apps D-Bus starts (see the top)"""
+    pairs = [f"{k}={env[k]}" for k in ACTIVATION if env.get(k)]
+    if not pairs:
+        return
+    import subprocess
+    try:
+        subprocess.run(["dbus-update-activation-environment", "--systemd", *pairs],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
 
 
 if __name__ == "__main__":

@@ -5,48 +5,44 @@ import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
+import "../../../widgets/MacIcons.js" as MacIcons
 
+// Community Plugins — angelOS's one place for plugins (services/CommunityPlugins): everything
+// installed (bundled, from the community catalog, your own) next to the approved entries of
+// the registry. Install, switch on and off, update, remove; the removed ones and a new plugin
+// below. The launcher's "plugins …" does the same (plugins/community, a core plugin).
 PxPage {
     id: page
 
-    heading: I18n.t("Плагины", "Plugins")
-    subtitle: I18n.t("Папка ~/.config/angelos/plugins/<id>/ с manifest.json. Плагин может добавить пункты в ПКМ-меню, виджет на панель или рабочий стол, фоновый сервис и страницу настроек. Документация: docs/PLUGINS.md", "Plugins live in ~/.config/angelos/plugins/<id>/ with manifest.json. They can add menus, bar or desktop widgets, services, and settings pages. See docs/PLUGINS.md.")
+    heading: I18n.t("Плагины · Community", "Plugins · Community")
+    subtitle: I18n.t("Один каталог: встроенные плагины, плагины сообщества и твои собственные. Установка, включение, обновление и удаление — здесь. Плагин — папка ~/.config/angelos/plugins/<id>/ с manifest.json (docs/PLUGINS.md).", "One catalog: bundled plugins, community plugins and your own. Install, enable, update and remove them here. A plugin is a folder ~/.config/angelos/plugins/<id>/ with manifest.json (docs/PLUGINS.md).")
 
     property string createLog: ""
     property string removeLog: ""
-    property string confirmId: ""           // the card whose bin was clicked once
+    property string confirmId: ""           // the card whose bin was clicked once ("details:<id>" — its details open)
     property string confirmUpdateId: ""
-    property string communitySearch: ""
-    property string communityFilter: "all"
-    readonly property string communityError: CommunityPluginCatalog.error
-    readonly property string communityMessage: CommunityPluginCatalog.message
-    readonly property var communityEntries: CommunityPluginCatalog.entries
-    readonly property bool communityBusy: CommunityPluginCatalog.busy
-    readonly property var communityShown: communityEntries.filter(entry => {
-        if (!entry || entry.status !== "approved")
-            return false;
-        const query = communitySearch.trim().toLowerCase();
-        const haystack = [entry.name, entry.id, entry.author || "", entry.description || "", ...(entry.tags || [])].join(" ").toLowerCase();
-        const installed = installedCommunity(entry.id);
-        return (!query || haystack.includes(query))
-            && (communityFilter === "all" || communityFilter === "installed" && !!installed
-                || communityFilter === "updates" && !!installed && !installed.bundled && newerCommunity(installed.version, entry.version));
-    })
-    function installedCommunity(id) {
-        return Plugins.byId(id) || Plugins.removed.find(p => p.id === id && p.bundled) || null;
+    property string search: ""
+    property string filter: "all"           // all | installed | updates | available
+    readonly property var updateIds: CommunityPlugins.updates.map(e => e.id)
+    function matches(o) {
+        const q = search.trim().toLowerCase();
+        if (!q)
+            return true;
+        return [I18n.label(o.name), o.id, o.author || "", I18n.label(o.description || ""), o.category || "", ...(o.tags || [])].join(" ").toLowerCase().includes(q);
     }
-    function newerCommunity(oldVersion, newVersion) {
-        const oldParts = String(oldVersion || "0").split(".").map(Number);
-        const newParts = String(newVersion || "0").split(".").map(Number);
-        for (let i = 0; i < Math.max(oldParts.length, newParts.length); ++i) {
-            const oldNumber = Number.isFinite(oldParts[i]) ? oldParts[i] : 0;
-            const newNumber = Number.isFinite(newParts[i]) ? newParts[i] : 0;
-            if (newNumber !== oldNumber)
-                return newNumber > oldNumber;
-        }
-        return false;
+    // installed ones (with their catalog entry, if any), then the catalog's not installed ones
+    readonly property var installedShown: (filter === "available" ? [] : Plugins.plugins).filter(p => matches(p) && (filter !== "updates" || updateIds.includes(p.id)))
+    readonly property var availableShown: (filter === "all" || filter === "available" ? CommunityPlugins.entries : []).filter(e => !CommunityPlugins.installed(e.id) && matches(e))
+    function capabilities(p) {
+        return [p.menu ? I18n.t("ПКМ-меню", "menu") : "", p.menuComponent ? I18n.t("меню (QML)", "menu (QML)") : "", p.barWidget ? I18n.t("панель", "bar") : "", p.desktopWidget ? I18n.t("рабочий стол", "desktop") : "", p.launcher ? I18n.t("лаунчер", "launcher") : "", p.main ? I18n.t("сервис", "service") : "", p.settings ? I18n.t("настройки", "settings") : ""].filter(s => s).join(" · ");
     }
-    Component.onCompleted: if (Quickshell.env("ANGELOS_TEST") !== "1" && !communityEntries.length) CommunityPluginCatalog.refresh()
+    function originText(p) {
+        if (Plugins.isCore(p))
+            return I18n.t("часть angelOS", "part of angelOS");
+        const o = CommunityPlugins.origin(p);
+        return o === "bundled" ? I18n.t("встроенный", "bundled") : o === "community" ? I18n.t("из каталога", "from the catalog") : I18n.t("свой", "your own");
+    }
+    Component.onCompleted: if (Quickshell.env("ANGELOS_TEST") !== "1" && !CommunityPlugins.entries.length) CommunityPlugins.refresh()
     Timer {
         id: confirmReset
         interval: 4000
@@ -74,7 +70,7 @@ PxPage {
 
     PxGroup {
         name: "community"
-        title: I18n.t("Плагины сообщества", "Community plugins")
+        title: I18n.t("Каталог", "Catalog")
         icon: "package"
         width: parent.width
 
@@ -82,29 +78,14 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Только approved из официального registry. Плагины работают с твоими правами; без SHA-256 в записи registry неизменность ZIP после проверки автором не подтверждена.", "Only approved entries from the official registry. Plugins run with your user permissions; without a SHA-256 in the registry, the ZIP cannot be verified against the reviewed release.")
+            text: I18n.t("Каталог — только одобренные плагины из официального registry. Плагины работают с твоими правами; без SHA-256 в записи registry неизменность архива не подтверждена. Перед обновлением старая версия сохраняется, и если новая не загрузится, angelOS сам вернёт прежнюю.", "The catalog holds only approved plugins of the official registry. Plugins run with your user permissions; without a SHA-256 in the registry the archive cannot be verified. Before an update the old version is saved, and if the new one does not load angelOS puts the old one back by itself.")
         }
         PxField {
             width: parent.width
-            placeholder: I18n.t("Поиск по названию, автору, тегам", "Search name, author, tags")
-            text: page.communitySearch
-            onEdited: page.communitySearch = text
-        }
-        Flow {
-            width: parent.width
-            spacing: Theme.u * 3
-            PxButton {
-                icon: "refresh"
-                text: I18n.t("Обновить каталог", "Refresh catalog")
-                enabled: !page.communityBusy
-                onClicked: CommunityPluginCatalog.refresh()
-            }
-            PxButton {
-                compact: true
-                icon: "external"
-                text: I18n.t("Опубликовать плагин", "Publish a plugin")
-                onClicked: Quickshell.execDetached(["xdg-open", "https://github.com/futureUnd1ground/angelos-community-registry/blob/main/CONTRIBUTING.md"])
-            }
+            icon: "search"
+            placeholder: I18n.t("Поиск по названию, автору, описанию, тегам", "Search name, author, description, tags")
+            text: page.search
+            onEdited: page.search = text
         }
         Flow {
             width: parent.width
@@ -113,174 +94,171 @@ PxPage {
                 model: [
                     {key: "all", ru: "Все", en: "All"},
                     {key: "installed", ru: "Установленные", en: "Installed"},
-                    {key: "updates", ru: "Обновления", en: "Updates"}
+                    {key: "updates", ru: "Обновления", en: "Updates"},
+                    {key: "available", ru: "Доступные", en: "Available"}
                 ]
                 PxButton {
                     required property var modelData
                     compact: true
-                    text: I18n.label({ru: modelData.ru, en: modelData.en})
-                    checked: page.communityFilter === modelData.key
-                    onClicked: page.communityFilter = modelData.key
+                    text: I18n.label({ru: modelData.ru, en: modelData.en}) + (modelData.key === "updates" && page.updateIds.length ? " (" + page.updateIds.length + ")" : "")
+                    checked: page.filter === modelData.key
+                    onClicked: page.filter = modelData.key
                 }
             }
         }
-        PxText {
-            visible: CommunityPluginCatalog.busy
-            text: CommunityPluginCatalog.action === "install"
-                ? I18n.t("Устанавливаю плагин…", "Installing plugin…")
-                : I18n.t("Загружаю каталог…", "Loading catalog…")
-            dim: true
+        Flow {
+            width: parent.width
+            spacing: Theme.u * 3
+            PxButton {
+                icon: "refresh"
+                text: I18n.t("Проверить обновления", "Check for updates")
+                enabled: !CommunityPlugins.busy
+                onClicked: CommunityPlugins.refresh()
+            }
+            PxButton {
+                visible: page.updateIds.length > 0
+                accent: true
+                icon: "download"
+                text: I18n.t("Обновить все (", "Update all (") + page.updateIds.length + ")"
+                enabled: !CommunityPlugins.busy
+                onClicked: CommunityPlugins.updateAll()
+            }
+            PxButton {
+                compact: true
+                icon: "external"
+                text: I18n.t("Опубликовать плагин", "Publish a plugin")
+                onClicked: Quickshell.execDetached(["xdg-open", "https://github.com/futureUnd1ground/angelos-community-registry/blob/main/CONTRIBUTING.md"])
+            }
+        }
+        SettingRow {
+            label: I18n.t("Проверять обновления раз в день", "Check for updates once a day")
+            hint: I18n.t("Придёт уведомление; обновление — по кнопке в нём или здесь", "A notification tells you; update from it or here")
+            PxToggle {
+                checked: Config.plugins.autoCheck
+                onToggled: v => Config.plugins.autoCheck = v
+            }
         }
         PxText {
-            visible: page.communityError !== ""
+            visible: CommunityPlugins.busy
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: CommunityPlugins.action === "fetch" ? I18n.t("Загружаю каталог…", "Loading the catalog…")
+                : CommunityPlugins.action === "rollback" ? I18n.t("Возвращаю прежнюю версию…", "Putting the earlier version back…")
+                : (CommunityPlugins.action === "update" ? I18n.t("Обновляю ", "Updating ") : I18n.t("Устанавливаю ", "Installing ")) + CommunityPlugins.busyId + (CommunityPlugins.queue.length ? I18n.t(" · ещё в очереди: ", " · still queued: ") + CommunityPlugins.queue.length : "") + "…"
+        }
+        PxText {
+            visible: CommunityPlugins.error !== ""
             width: parent.width
             wrapMode: Text.Wrap
             color: Theme.danger
-            text: page.communityError
+            text: CommunityPlugins.error
         }
         PxText {
-            visible: page.communityMessage !== ""
+            visible: CommunityPlugins.message !== "" && !CommunityPlugins.busy
             width: parent.width
             wrapMode: Text.Wrap
-            text: I18n.t("Плагин установлен: ", "Plugin installed: ") + page.communityMessage
-                + I18n.t(". Перезапусти оболочку для применения изменений.", ". Restart the shell to apply changes.")
-        }
-        PxButton {
-            visible: page.communityMessage !== ""
-            compact: true
-            icon: "refresh"
-            text: I18n.t("Перезапустить AngelOS", "Restart AngelOS")
-            onClicked: Quickshell.execDetached([Quickshell.shellDir + "/bin/angelos", "restart"])
+            text: CommunityPlugins.message + " ♡"
         }
         PxText {
-            visible: !page.communityBusy && page.communityError === "" && page.communityShown.length === 0
-            text: page.communityEntries.length ? I18n.t("Ничего не найдено.", "No matching plugins.") : I18n.t("Каталог пуст. Нажми «Обновить каталог».", "Catalog is empty. Press Refresh catalog.")
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
             dim: true
-        }
-        Repeater {
-            model: page.communityShown
-            PxBox {
-                id: communityCard
-                required property var modelData
-                readonly property var installed: page.installedCommunity(modelData.id)
-                readonly property bool canUpdate: !!installed && !installed.bundled && page.newerCommunity(installed.version, modelData.version)
-                width: parent.width
-                height: communityCardColumn.implicitHeight + Theme.u * 8
-                color: Theme.face
-
-                Column {
-                    id: communityCardColumn
-                    x: Theme.u * 4
-                    y: Theme.u * 4
-                    width: parent.width - Theme.u * 8
-                    spacing: Theme.u * 2
-                    PxText {
-                        width: parent.width
-                        wrapMode: Text.Wrap
-                        font.bold: true
-                        text: communityCard.modelData.name + "  v" + communityCard.modelData.version
-                    }
-                    PxText {
-                        width: parent.width
-                        wrapMode: Text.Wrap
-                        kind: "tiny"
-                        dim: true
-                        text: (communityCard.modelData.author || "") + "  ·  " + (communityCard.modelData.category || "") + "  ·  " + (communityCard.modelData.tags || []).join(", ")
-                    }
-                    PxText {
-                        width: parent.width
-                        wrapMode: Text.Wrap
-                        dim: true
-                        text: communityCard.modelData.description || ""
-                    }
-                    Flow {
-                        width: parent.width
-                        spacing: Theme.u * 2
-                        PxButton {
-                            compact: true
-                            accent: !communityCard.installed
-                            icon: communityCard.installed ? (communityCard.canUpdate ? "download" : "check") : "download"
-                            text: communityCard.installed
-                                ? (communityCard.canUpdate ? (page.confirmUpdateId === communityCard.modelData.id ? I18n.t("Точно обновить?", "Confirm update?") : I18n.t("Обновить", "Update"))
-                                    : (communityCard.installed.bundled ? I18n.t("Встроенный", "Bundled") : I18n.t("Установлен", "Installed")))
-                                : I18n.t("Установить", "Install")
-                            enabled: !page.communityBusy && (!communityCard.installed || communityCard.canUpdate)
-                            onClicked: {
-                                if (communityCard.canUpdate && page.confirmUpdateId !== communityCard.modelData.id) {
-                                    page.confirmUpdateId = communityCard.modelData.id;
-                                    confirmReset.restart();
-                                    return;
-                                }
-                                page.confirmUpdateId = "";
-                                CommunityPluginCatalog.install(communityCard.modelData,
-                                                               communityCard.canUpdate ? communityCard.installed.version : undefined);
-                            }
-                        }
-                        PxButton {
-                            visible: !!communityCard.modelData.repository
-                            compact: true
-                            icon: "external"
-                            text: I18n.t("Исходники", "Source")
-                            onClicked: Quickshell.execDetached(["xdg-open", communityCard.modelData.repository])
-                        }
-                        PxButton {
-                            compact: true
-                            icon: "info"
-                            text: I18n.t("Подробности", "Details")
-                            onClicked: page.confirmId = page.confirmId === "details:" + communityCard.modelData.id ? "" : "details:" + communityCard.modelData.id
-                        }
-                    }
-                    PxText {
-                        visible: page.confirmId === "details:" + communityCard.modelData.id
-                        width: parent.width
-                        wrapMode: Text.Wrap
-                        text: I18n.t("Лицензия: ", "License: ") + (communityCard.modelData.license || "—")
-                            + I18n.t("\nЗависимости: ", "\nDependencies: ") + (communityCard.modelData.dependencies || []).join(", ")
-                            + I18n.t("\nРазрешения: ", "\nPermissions: ") + (communityCard.modelData.permissions || []).join(", ")
-                            + (communityCard.installed ? I18n.t("\nУстановлена версия: ", "\nInstalled version: ") + (communityCard.installed.version || "0") : "")
-                            + (communityCard.canUpdate ? I18n.t("\nСтарая версия при обновлении попадёт в корзину плагинов.", "\nUpdating moves the old version to the plugin trash.") : "")
-                            + (communityCard.modelData.sha256 ? I18n.t("\nSHA-256 релиза: проверяется", "\nRelease SHA-256: checked")
-                                : I18n.t("\nSHA-256 в registry отсутствует", "\nNo SHA-256 in the registry"))
-                        dim: true
-                    }
-                }
-            }
+            text: (CommunityPlugins.entries.length ? I18n.t("В каталоге: ", "In the catalog: ") + CommunityPlugins.entries.length : I18n.t("Каталог ещё не загружен", "The catalog is not loaded yet"))
+                + (Config.plugins.lastCheck ? I18n.t(" · проверено ", " · checked ") + new Date(Config.plugins.lastCheck).toLocaleString(Qt.locale(), "d MMM HH:mm") : "")
         }
     }
 
     PxGroup {
         name: "installed"
-        title: I18n.t("Установленные (", "Installed (") + Plugins.plugins.length + ")"
+        visible: page.filter !== "available"
+        title: (page.filter === "updates" ? I18n.t("Обновления (", "Updates (") : I18n.t("Установленные (", "Installed (")) + page.installedShown.length + ")"
         icon: "plug"
         width: parent.width
 
+        PxText {
+            visible: page.installedShown.length === 0
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: page.filter === "updates" ? I18n.t("Все плагины свежие.", "Every plugin is up to date.") : I18n.t("Ничего не найдено.", "Nothing found.")
+        }
         Repeater {
-            model: Plugins.plugins
-            PxBox {
+            model: page.installedShown
+            // a card: the pixel box, or a rounded group in the Mac look (SkinCard, the Theme API)
+            SkinCard {
                 id: card
                 required property var modelData
+                padding: 0
+                group: true
                 readonly property bool on: Plugins.isEnabled(modelData)
+                readonly property bool core: Plugins.isCore(modelData)
+                readonly property var entry: CommunityPlugins.entry(modelData.id)
+                readonly property bool canUpdate: page.updateIds.includes(modelData.id)
                 width: parent.width
                 height: cardCol.implicitHeight + Theme.u * 10
-                color: on ? Theme.mix(Theme.face, Theme.accent, 0.08) : Theme.face
+                pixelColor: on ? Theme.mix(Theme.face, Theme.accent, 0.08) : Theme.face
 
                 Row {
                     x: Theme.u * 4
                     y: Theme.u * 4
                     width: parent.width - Theme.u * 8
                     spacing: Theme.u * 5
-                    PxIcon {
+                    // its icon: the pixel one, a line icon in the Mac look
+                    Item {
                         id: cardIcon
-                        name: card.modelData.icon || "plug"
-                        pixel: Theme.u * 2
+                        readonly property bool mac: Skin.mac && !Skin.hell
+                        width: mac ? GoldenGate.px(24) : pxIcon.width
+                        height: mac ? GoldenGate.px(24) : pxIcon.height
+                        PxIcon {
+                            id: pxIcon
+                            visible: !cardIcon.mac
+                            name: card.modelData.icon || "plug"
+                            pixel: Theme.u * 2
+                        }
+                        MacIcon {
+                            visible: cardIcon.mac
+                            name: MacIcons.fromPixel(card.modelData.icon || "") || "puzzle"
+                            size: GoldenGate.px(24)
+                            color: Theme.accent
+                        }
                     }
                     Column {
                         id: cardCol
                         width: parent.width - cardIcon.width - cardSide.width - parent.spacing * 2
                         spacing: Theme.u
                         PxText {
-                            text: I18n.label(card.modelData.name) + "  v" + (card.modelData.version || "0") + (card.modelData.bundled ? I18n.t("  · встроенный", "  · bundled") : "")
+                            width: parent.width
+                            wrapMode: Text.Wrap
+                            text: I18n.label(card.modelData.name) + "  v" + (card.modelData.version || "0") + "  · " + page.originText(card.modelData)
                             font.bold: true
+                        }
+                        // which themes it draws (manifest "themes"), and a word when not this one
+                        PluginThemeBadge {
+                            plugin: card.modelData
+                        }
+                        PxText {
+                            visible: text !== ""
+                            width: parent.width
+                            wrapMode: Text.Wrap
+                            text: Plugins.themeWarning(card.modelData)
+                            color: Theme.danger
+                            kind: "tiny"
+                        }
+                        PxText {
+                            visible: card.canUpdate
+                            text: I18n.t("Доступна версия ", "Version available: ") + (card.entry ? card.entry.version : "")
+                            color: Theme.accent
+                            kind: "tiny"
+                        }
+                        PxText {
+                            visible: CommunityPlugins.failed.includes(card.modelData.id)
+                            width: parent.width
+                            wrapMode: Text.Wrap
+                            text: I18n.t("Последнее обновление не загрузилось — оставлена прежняя версия", "The last update did not load — the earlier version stays")
+                            color: Theme.danger
+                            kind: "tiny"
                         }
                         PxText {
                             width: parent.width
@@ -289,7 +267,9 @@ PxPage {
                             dim: true
                         }
                         PxText {
-                            text: [card.modelData.menu ? "ПКМ-меню" : "", card.modelData.menuComponent ? I18n.t("меню (QML)", "menu (QML)") : "", card.modelData.barWidget ? I18n.t("панель", "bar") : "", card.modelData.desktopWidget ? I18n.t("рабочий стол", "desktop") : "", card.modelData.main ? I18n.t("сервис", "service") : "", card.modelData.settings ? I18n.t("настройки", "settings") : ""].filter(s => s).join(" · ") + (card.modelData.author ? "  —  " + card.modelData.author : "")
+                            width: parent.width
+                            wrapMode: Text.Wrap
+                            text: page.capabilities(card.modelData) + (card.modelData.author ? "  —  " + card.modelData.author : "")
                             kind: "tiny"
                             dim: true
                         }
@@ -298,11 +278,29 @@ PxPage {
                         id: cardSide
                         spacing: Theme.u * 3
                         PxToggle {
+                            visible: !card.core
                             checked: card.on
                             onToggled: c => Plugins.setEnabled(card.modelData.id, c)
                         }
                         Row {
                             spacing: Theme.u * 2
+                            PxButton {
+                                visible: card.canUpdate
+                                compact: true
+                                accent: true
+                                icon: "download"
+                                text: page.confirmUpdateId === card.modelData.id ? I18n.t("Точно?", "Sure?") : I18n.t("Обновить", "Update")
+                                enabled: !CommunityPlugins.busy
+                                onClicked: {
+                                    if (page.confirmUpdateId !== card.modelData.id) {
+                                        page.confirmUpdateId = card.modelData.id;
+                                        confirmReset.restart();
+                                        return;
+                                    }
+                                    page.confirmUpdateId = "";
+                                    CommunityPlugins.update(card.modelData.id);
+                                }
+                            }
                             PxButton {
                                 visible: !!card.modelData.settings && card.on
                                 compact: true
@@ -314,9 +312,17 @@ PxPage {
                                 icon: "folder"
                                 onClicked: Shell.openPath(card.modelData.dir)
                             }
-                            // remove (a second click confirms): yours go to the trash, bundled ones hide
+                            PxButton {
+                                visible: !!card.entry && !!card.entry.repository
+                                compact: true
+                                icon: "external"
+                                onClicked: Quickshell.execDetached(["xdg-open", card.entry.repository])
+                            }
+                            // remove (a second click confirms): yours go to the trash, bundled ones hide;
+                            // angelOS's own part (core) stays
                             PxButton {
                                 readonly property bool asking: page.confirmId === card.modelData.id
+                                visible: !card.core
                                 compact: true
                                 danger: true
                                 icon: "trash"
@@ -365,6 +371,107 @@ PxPage {
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    PxGroup {
+        name: "available"
+        visible: page.filter === "all" || page.filter === "available"
+        title: I18n.t("Доступные в каталоге (", "Available in the catalog (") + page.availableShown.length + ")"
+        icon: "download"
+        width: parent.width
+
+        PxText {
+            visible: page.availableShown.length === 0 && !CommunityPlugins.busy
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: CommunityPlugins.entries.length ? I18n.t("Всё из каталога уже установлено (или ничего не нашлось).", "Everything in the catalog is installed (or nothing matched).") : I18n.t("Каталог пуст. Нажми «Проверить обновления».", "The catalog is empty. Press Check for updates.")
+        }
+        Repeater {
+            model: page.availableShown
+            SkinCard {
+                id: offer
+                required property var modelData
+                padding: 0
+                group: true
+                width: parent.width
+                height: offerCol.implicitHeight + Theme.u * 8
+                pixelColor: Theme.face
+
+                Column {
+                    id: offerCol
+                    x: Theme.u * 4
+                    y: Theme.u * 4
+                    width: parent.width - Theme.u * 8
+                    spacing: Theme.u * 2
+                    PxText {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        font.bold: true
+                        text: offer.modelData.name + "  v" + offer.modelData.version
+                    }
+                    PluginThemeBadge {
+                        plugin: offer.modelData
+                    }
+                    PxText {
+                        visible: text !== ""
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: Plugins.themeWarning(offer.modelData)
+                        color: Theme.danger
+                        kind: "tiny"
+                    }
+                    PxText {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        kind: "tiny"
+                        dim: true
+                        text: [offer.modelData.author || "", offer.modelData.category || "", (offer.modelData.tags || []).join(", ")].filter(s => s).join("  ·  ")
+                    }
+                    PxText {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        dim: true
+                        text: offer.modelData.description || ""
+                    }
+                    Flow {
+                        width: parent.width
+                        spacing: Theme.u * 2
+                        PxButton {
+                            compact: true
+                            accent: true
+                            icon: "download"
+                            text: I18n.t("Установить", "Install")
+                            enabled: !CommunityPlugins.busy
+                            onClicked: CommunityPlugins.install(offer.modelData)
+                        }
+                        PxButton {
+                            visible: !!offer.modelData.repository
+                            compact: true
+                            icon: "external"
+                            text: I18n.t("Исходники", "Source")
+                            onClicked: Quickshell.execDetached(["xdg-open", offer.modelData.repository])
+                        }
+                        PxButton {
+                            compact: true
+                            icon: "info"
+                            text: I18n.t("Подробности", "Details")
+                            onClicked: page.confirmId = page.confirmId === "details:" + offer.modelData.id ? "" : "details:" + offer.modelData.id
+                        }
+                    }
+                    PxText {
+                        visible: page.confirmId === "details:" + offer.modelData.id
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        dim: true
+                        text: I18n.t("Лицензия: ", "License: ") + (offer.modelData.license || "—")
+                            + I18n.t("\nЗависимости: ", "\nDependencies: ") + ((offer.modelData.dependencies || []).join(", ") || "—")
+                            + I18n.t("\nРазрешения: ", "\nPermissions: ") + ((offer.modelData.permissions || []).join(", ") || "—")
+                            + (offer.modelData.sha256 ? I18n.t("\nSHA-256 релиза: проверяется", "\nRelease SHA-256: checked") : I18n.t("\nSHA-256 в registry отсутствует", "\nNo SHA-256 in the registry"))
                     }
                 }
             }

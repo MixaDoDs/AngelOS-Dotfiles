@@ -6,6 +6,7 @@
   "description": "Пункты ПКМ-меню рабочего стола: терминал, файлы, случайные обои, скриншот, тема. Пример декларативного меню.",
   "icon": "sparkle",
   "enabledByDefault": false,
+  "themes": ["pixel", "mac"],
   "menu": [
     { "label": "Терминал", "icon": "terminal", "exec": "kitty" },
     { "label": "Файлы", "icon": "folder", "exec": "xdg-open ~" },

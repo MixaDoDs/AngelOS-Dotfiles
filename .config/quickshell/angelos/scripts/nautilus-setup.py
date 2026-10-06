@@ -6,7 +6,18 @@
                                             (open in terminal, mediafix) and the
                                             preference defaults below
   nautilus-setup.py remove               -> remove the angelOS extensions
+  nautilus-setup.py restart              -> quit a running Nautilus (`nautilus -q`); the next
+                                            window starts it fresh
   nautilus-setup.py mediafix [FILE…]     -> run mediafix in the angelOS terminal
+
+Why a restart: Nautilus loads its python extensions and the GTK 4 user CSS
+(~/.config/gtk-4.0/gtk.css → angelos.css) once, when it starts, and it keeps
+running in the background (D-Bus activation: the file chooser portal, «show in
+folder»). The gsettings keys reach it at once, but the folder view, zoom and the
+like only show in new windows. So `apply` says {"restart": true} when Nautilus is
+running and something it reads at start changed. Nautilus also writes two of the
+keys itself — the zoom when you zoom, the archive format when you compress — so
+«applied» can turn false later by your own hand; that is not an error.
 
 Replaced files (older copies of the same extensions) are moved into a new
 ~/.local/state/angelos/backups/<stamp>-nautilus folder, never deleted.
@@ -39,12 +50,25 @@ PYTHON_EXTENSION = [Path("/usr/lib/nautilus/extensions-4/libnautilus-python.so")
                     Path("/usr/lib64/nautilus/extensions-4/libnautilus-python.so")]
 
 
-def gsettings(*args):
+def gsettings(*args, errors=None):
     try:
         out = subprocess.run(["gsettings", *args], capture_output=True, text=True, timeout=10)
-        return out.stdout.strip() if out.returncode == 0 else None
-    except (OSError, subprocess.TimeoutExpired):
+    except (OSError, subprocess.TimeoutExpired) as error:
+        if errors is not None:
+            errors.append("gsettings " + " ".join(args[:3]) + ": " + str(error))
         return None
+    if out.returncode != 0:
+        if errors is not None:
+            errors.append("gsettings " + " ".join(args[:3]) + ": " + (out.stderr.strip() or "exit %d" % out.returncode))
+        return None
+    return out.stdout.strip()
+
+
+def running():
+    try:
+        return subprocess.run(["pgrep", "-x", "nautilus"], capture_output=True).returncode == 0
+    except OSError:
+        return False
 
 
 def status():
@@ -57,6 +81,8 @@ def status():
         "legacy": [name for name, marker in LEGACY.items() if is_legacy(EXTENSIONS / name, marker)],
         "prefs": {k: v for k, v in prefs.items()},
         "prefsApplied": all(prefs.get(f"{s} {k}") == v for s, k, v in PREFS),
+        "prefsWanted": {f"{s} {k}": v for s, k, v in PREFS},
+        "running": running(),
     }
 
 
@@ -98,12 +124,28 @@ def apply(prefs=True):
             tmp.write_text(text)
             tmp.replace(target)
             done.append("installed " + name)
+    errors = []
     if prefs:
         for schema, key, value in PREFS:
             if gsettings("get", schema, key) not in (None, value):
-                if gsettings("set", schema, key, value) is not None:
+                # read back: a set that dconf did not take (no session bus, a read-only
+                # profile) must not look like it worked
+                if gsettings("set", schema, key, value, errors=errors) is not None and gsettings("get", schema, key) == value:
                     done.append(f"set {schema} {key} {value}")
-    return {"ok": True, "changes": done, "status": status()}
+                elif not errors:
+                    errors.append(f"gsettings {schema} {key}: the value did not stick")
+    result = {"ok": not errors, "changes": done, "status": status()}
+    if errors:
+        result["errors"] = errors
+    result["restart"] = bool(done) and result["status"]["running"]
+    return result
+
+
+def restart():
+    was = running()
+    if was:
+        subprocess.run(["nautilus", "-q"], capture_output=True, timeout=15)
+    return {"ok": True, "quit": was, "status": status()}
 
 
 def remove():
@@ -156,10 +198,13 @@ def main():
             result = apply(prefs="--no-prefs" not in sys.argv)
         elif action == "remove":
             result = remove()
+            result["restart"] = bool(result["removed"]) and result["status"]["running"]
+        elif action == "restart":
+            result = restart()
         elif action == "mediafix":
             result = mediafix([f for f in sys.argv[2:] if os.path.exists(f)])
         else:
-            result = {"error": "usage: nautilus-setup.py status | apply [--no-prefs] | remove | mediafix [FILE…]"}
+            result = {"error": "usage: nautilus-setup.py status | apply [--no-prefs] | remove | restart | mediafix [FILE…]"}
     except OSError as error:
         result = {"error": str(error)}
     print(json.dumps(result, ensure_ascii=False))

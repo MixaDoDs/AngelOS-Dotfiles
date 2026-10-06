@@ -6,6 +6,7 @@
   "description": "Окошко статов в духе NGO на рабочем столе: «стресс» = загрузка CPU, «тьма» = занятая память, «любовь» = аптайм. Плюс сердечко на панели. Пример виджетов, сервиса и страницы настроек.",
   "icon": "heart",
   "enabledByDefault": false,
+  "themes": ["pixel", "mac"],
   "main": "Main.qml",
   "desktopTitle": "stats",
   "desktopWidget": "DesktopWidget.qml",

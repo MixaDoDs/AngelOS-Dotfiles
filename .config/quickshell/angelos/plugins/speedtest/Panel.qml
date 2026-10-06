@@ -2,17 +2,19 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 import "."
 
-// Speedometer + results + history.
+// Speedometer + results + history. Sizes and colours from the Theme API (services/Skin), the
+// controls (PxText, PxButton) take the look of the popup they are in.
 Column {
     id: root
 
     property var plugin
     readonly property var history: plugin ? plugin.get("history", []) : []
 
-    spacing: Theme.u * 4
+    spacing: Skin.px(8)
 
     Connections {
         target: Speed
@@ -30,7 +32,7 @@ Column {
         anchors.horizontalCenter: parent.horizontalCenter
         kind: "big"
         text: ({
-                "idle": root.history[0] ? root.history[0].down.toFixed(0) + I18n.t(" Мбит/с", " Mbps") : I18n.t("готов ♡", "Ready ♡"),
+                "idle": root.history[0] ? root.history[0].down.toFixed(0) + I18n.t(" Мбит/с", " Mbps") : (Skin.mac ? I18n.t("Готов", "Ready") : I18n.t("готов ♡", "Ready ♡")),
                 "config": I18n.t("настраиваюсь…", "Configuring…"),
                 "ping": I18n.t("ищу сервер…", "Finding a server…"),
                 "download": I18n.t("скачиваю…", "Downloading…"),
@@ -41,7 +43,7 @@ Column {
     }
     Row {
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Theme.u * 10
+        spacing: Skin.px(20)
         Repeater {
             model: [
                 {
@@ -78,7 +80,7 @@ Column {
         wrapMode: Text.Wrap
         dim: true
         text: Speed.error || [Speed.isp, Speed.server].filter(s => s).join(" · ")
-        color: Speed.error ? Theme.danger : Theme.textDim
+        color: Speed.error ? Skin.danger : Skin.textDim
     }
     PxButton {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -97,9 +99,9 @@ Column {
         model: root.history.slice(0, 6)
         Row {
             required property var modelData
-            spacing: Theme.u * 6
+            spacing: Skin.px(12)
             PxText {
-                width: Theme.u * 50
+                width: Skin.px(100)
                 text: Qt.formatDateTime(new Date(modelData.time), "dd.MM HH:mm")
                 dim: true
             }

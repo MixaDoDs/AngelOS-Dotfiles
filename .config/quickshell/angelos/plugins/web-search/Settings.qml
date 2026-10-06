@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 import "Engines.js" as Engines
 
@@ -10,7 +11,7 @@ Column {
     property var plugin
     readonly property var links: plugin ? plugin.get("links", Engines.defaultLinks) : []
     width: parent ? parent.width : 400
-    spacing: Theme.u * 5
+    spacing: Skin.px(10)
 
     PxGroup {
         title: I18n.t("Поисковик", "Search engine")
@@ -20,7 +21,7 @@ Column {
             label: I18n.t("Искать через", "Search with")
             hint: I18n.t("в лаунчере: web <запрос>", "In the launcher: web <query>")
             PxCombo {
-                width: Theme.u * 100
+                width: Skin.px(200)
                 model: Object.keys(Engines.engines).map(k => ({
                             "label": Engines.engines[k].label,
                             "value": k
@@ -42,14 +43,14 @@ Column {
                 id: row
                 required property string modelData
                 required property int index
-                spacing: Theme.u * 3
+                spacing: Skin.px(6)
                 PxField {
-                    width: Theme.u * 60
+                    width: Skin.px(120)
                     text: row.modelData.split("|")[0]
                     onAccepted: root.update(row.index, text + "|" + row.modelData.split("|").slice(1).join("|"))
                 }
                 PxField {
-                    width: Theme.u * 130
+                    width: Skin.px(260)
                     text: row.modelData.split("|").slice(1).join("|")
                     onAccepted: root.update(row.index, row.modelData.split("|")[0] + "|" + text)
                 }
@@ -61,15 +62,15 @@ Column {
             }
         }
         Row {
-            spacing: Theme.u * 3
+            spacing: Skin.px(6)
             PxField {
                 id: newName
-                width: Theme.u * 60
+                width: Skin.px(120)
                 placeholder: I18n.t("Название", "Name")
             }
             PxField {
                 id: newUrl
-                width: Theme.u * 130
+                width: Skin.px(260)
                 placeholder: "https://…"
             }
             PxButton {

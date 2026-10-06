@@ -5,6 +5,9 @@ import qs.widgets
 import qs.modules.bar
 import "."
 
+// Claude on the panel: the mascot, and the limit left when asked. Pixel: the pixel face. Mac
+// look (Skin.mac, the Golden Gate menu bar): the "bot" line icon in the bar's ink with a state
+// dot, the numbers in the bar's ink (red when the limit runs low); the popup a glass popover.
 Item {
     id: root
 
@@ -18,36 +21,40 @@ Item {
     property bool hellBar: false
     readonly property bool barOpen: popup.visible
     visible: !plugin || plugin.get("barAlways", true) || Pulse.state !== "none"
-    implicitWidth: visible ? Theme.u * (limitMode === "off" ? 14 : limitMode === "both" ? 50 : 32) : 0
-    implicitHeight: Theme.u * 13
+    readonly property bool mac: Skin.mac
+    implicitWidth: visible ? (mac ? row.implicitWidth + Skin.px(4) : Theme.u * (limitMode === "off" ? 14 : limitMode === "both" ? 50 : 32)) : 0
+    implicitHeight: mac ? Skin.px(18) : Theme.u * 13
 
     Row {
         id: row
         anchors.centerIn: parent
-        spacing: Theme.u * 2
+        spacing: Skin.px(4)
         Breath {
             anchors.verticalCenter: parent.verticalCenter
             plugin: root.plugin
             barLook: root.hellBar
+            pixel: root.mac ? GoldenGate.px(2) : Theme.u
+            mono: root.mac
+            monoColor: Skin.ink(root.screenName)
         }
         PxText {
             visible: root.limitMode !== "off"
-            width: Theme.u * (root.limitMode === "both" ? 36 : 18)
+            width: root.mac ? undefined : Theme.u * (root.limitMode === "both" ? 36 : 18)   // natural in the Mac look
             horizontalAlignment: Text.AlignHCenter
             anchors.verticalCenter: parent.verticalCenter
             text: !Usage.ok ? "—" : root.limitMode === "week" ? Usage.weekLeft + "%" : root.limitMode === "both" ? Usage.fiveLeft + "% · " + Usage.weekLeft + "%" : Usage.fiveLeft + "%"
             readonly property real remaining: root.limitMode === "week" ? Usage.weekLeft : Math.min(Usage.fiveLeft, root.limitMode === "both" ? Usage.weekLeft : 100)
             // the hell bar: the text colour, the accent once the limit runs low (a state)
-            color: root.hellBar ? (Usage.ok && remaining < 20 ? Theme.hellAccent : Theme.hellText) : Usage.colorFor(remaining, Theme)
-            font.bold: true
+            color: root.mac ? (Usage.ok && remaining < 20 ? Skin.danger : Skin.ink(root.screenName)) : root.hellBar ? (Usage.ok && remaining < 20 ? Theme.hellAccent : Theme.hellText) : Usage.colorFor(remaining, Theme)
+            font.bold: !root.mac
         }
         PxText {
             visible: root.limitMode !== "off" && (Pulse.state === "needs_attention" || Pulse.state === "error")
             anchors.verticalCenter: parent.verticalCenter
-            width: Theme.u * 5
+            width: root.mac ? undefined : Theme.u * 5
             text: "!"
             kind: "tiny"
-            color: root.hellBar ? Theme.hellAccent : Pulse.colorFor(Pulse.state, Theme)
+            color: root.mac ? Skin.danger : root.hellBar ? Theme.hellAccent : Pulse.colorFor(Pulse.state, Theme)
         }
     }
     MouseArea {
@@ -66,11 +73,11 @@ Item {
         id: popup
         panelId: "claude"
         anchorItem: root
-        above: BarLayout.bottom
-        title: I18n.exe("claude")
+        above: BarLayout.bottom && !root.mac
+        title: Skin.title(Skin.mac ? "Claude" : "claude")
         icon: "bot"
-        contentWidth: Theme.u * 190
-        contentHeight: Theme.u * 205
+        contentWidth: Skin.px(380)
+        contentHeight: Skin.px(410)
         PxScroll {
             anchors.fill: parent
             contentHeight: panel.implicitHeight

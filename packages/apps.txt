@@ -1,0 +1,10 @@
+# The author's apps (full profile, asked; INSTALL_APPS / APPS). Not part of the rice itself:
+# what is in the Dock and on the stream. Names your repositories don't have are skipped
+# (helium-browser-bin, qview and localsend are in CachyOS's repositories; on Arch, the AUR's).
+helium-browser-bin
+telegram-desktop
+spotify-launcher
+obsidian
+qview
+mpv
+localsend

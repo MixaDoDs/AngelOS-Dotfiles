@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import qs.services
+import qs.widgets
 
 // The Golden Gate skin's desktop pieces on every screen while it is chosen (GoldenGate.on): the
 // menu bar, the overlay its menus open in, the About panel for apps without one, the Dock,
@@ -29,11 +30,26 @@ Variants {
         MacMinimizeFx {
             modelData: scope.modelData
         }
-        MacControlCenter {
-            modelData: scope.modelData
+        // the panels are built when they open on this screen and go a while after closing
+        Linger {
+            id: ccKeep
+            when: GoldenGate.panel === "cc" && GoldenGate.panelScreen === scope.modelData.name
         }
-        MacNotificationCenter {
-            modelData: scope.modelData
+        LazyLoader {
+            active: ccKeep.alive
+            MacControlCenter {
+                modelData: scope.modelData
+            }
+        }
+        Linger {
+            id: ncKeep
+            when: GoldenGate.panel === "nc" && GoldenGate.panelScreen === scope.modelData.name
+        }
+        LazyLoader {
+            active: ncKeep.alive
+            MacNotificationCenter {
+                modelData: scope.modelData
+            }
         }
     }
 }

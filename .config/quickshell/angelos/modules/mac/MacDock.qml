@@ -358,7 +358,7 @@ PanelWindow {
         width: win.inputRect[2]
         height: win.inputRect[3]
     }
-    BackgroundEffect.blurRegion: Config.appearance.blur && win.shown ? blurRegion : null
+    BackgroundEffect.blurRegion: GoldenGate.blurOn && win.shown ? blurRegion : null
     Region {
         id: blurRegion
         x: win.slabRect[0]
@@ -526,15 +526,25 @@ PanelWindow {
         // where it is, for the minimize flight (services/Minimize.dockSlots, MacMinimizeFx): a
         // minimized window's snapshot lands here; Downloads is where one goes before its own
         // place is there. Written, not bound — the magnification moves it every frame.
-        readonly property bool reports: isWin || item.kind === "downloads"
+        // (and a running app's icon: where its windows fly when the app hides, ⌘H)
+        readonly property bool reports: isWin || item.kind === "downloads" || item.kind === "app"
         function report() {
             if (!reports || !cell.parent)
                 return;
             const p = win.toScreen(cell, cell.width / 2, cell.height / 2);
-            Minimize.dockSlots[win.screenName + "|" + item.id] = [p.x, p.y, cell.width];
+            const at = [p.x, p.y, cell.width];
+            if (item.kind === "app") {
+                for (const w of item.windows || [])
+                    Minimize.dockSlots[win.screenName + "|@app:" + w.app_id] = at;
+                return;
+            }
+            Minimize.dockSlots[win.screenName + "|" + item.id] = at;
         }
         onSizeChanged: report()
         onYChanged: report()
+        // a running app's windows come and go: their app ids are its keys
+        readonly property int windowCount: item && item.windows ? item.windows.length : 0
+        onWindowCountChanged: report()
         Component.onCompleted: Qt.callLater(report)
         Connections {
             target: win

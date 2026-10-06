@@ -42,7 +42,7 @@ PanelWindow {
             intersection: Intersection.Subtract
         }
     }
-    BackgroundEffect.blurRegion: Config.appearance.blur ? blur : null
+    BackgroundEffect.blurRegion: GoldenGate.blurOn ? blur : null
     Region {
         id: blur
         Region {

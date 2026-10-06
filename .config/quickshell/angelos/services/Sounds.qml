@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.UPower
 import qs.config
 
 // angelOS sounds, Settings → Y2K → Sounds. Two packs:
@@ -17,6 +18,10 @@ import qs.config
 // angel and the demon swap; circle: the low hit in the dark between hell's circles,
 // circleSoft its calm version; harp: the harp menu's strings, HarpLook). Quiet in stream
 // mode (StreamMode.quiet).
+// The Golden Gate skin has a pack of its own (macEvents, below): original Mac-like sounds in
+// data/sounds/macos (scripts/mac-sounds.py), yours of the same name in
+// ~/.local/share/angelos/sounds/macos first; its own switch, volume and volume "pop" switch
+// (Config.mac.sounds / soundVolume / volumeSound, Settings → Sound in Golden Gate).
 // Settings → System sounds (SfxPage) tunes each one (Config.y2k.soundTweaks,
 // {event: {on, vol, sound, vary}}): on/off, its own volume, another event's sound
 // ("notify") or a file ("file:/path", e.g. from sounds/custom), and for the input
@@ -136,7 +141,39 @@ Singleton {
     property var pending: []
     property var lastAt: ({})
 
+    // ---- the Golden Gate pack: event -> file name (unlock and the session's start both "log in") ----
+    readonly property bool mac: GoldenGate.on
+    readonly property var macEvents: ({
+            "notify": "notify",
+            "error": "error",
+            "volume": "volume",
+            "screenshot": "screenshot",
+            "trash": "trash",
+            "usbIn": "usbIn",
+            "usbOut": "usbOut",
+            "power": "power",
+            "lock": "lock",
+            "unlock": "login",
+            "startup": "login",
+            "login": "login"
+        })
+    readonly property string macDir: Quickshell.shellDir + "/data/sounds/macos"
+    readonly property string macUserDir: base + "/macos"
+    function macOwn(name) {
+        return mac && macEvents[name] !== undefined;
+    }
+    function macEnabled(name) {
+        return Config.mac.sounds && (name !== "volume" || Config.mac.volumeSound);
+    }
+    // one pw-play (paplay without it) per sound, gone when it ends: yours first, then the skin's
+    function _playMac(name, vol) {
+        const file = macEvents[name];
+        Quickshell.execDetached(["sh", "-c", 'for d in "$1" "$2"; do for e in ogg oga opus wav flac aiff aif caf mp3; do f="$d/$3.$e"; [ -f "$f" ] || continue; command -v pw-play >/dev/null && exec pw-play --volume "$4" "$f"; exec paplay --volume "$5" "$f"; done; done', "sh", macUserDir, macDir, file, String(vol), String(Math.round(vol * 65536))]);
+    }
+
     function enabled(name) {
+        if (macOwn(name))
+            return macEnabled(name);
         if (!Config.y2k.sounds || !isOn(name))
             return false;
         return !cute.includes(name) || Config.y2k.cuteSounds;
@@ -157,10 +194,20 @@ Singleton {
         _play(name, false, soft);
     }
     function _play(name, force, soft) {
+        const now = Date.now(), key = soft < 1 ? name + "-soft" : name;
+        if (macOwn(name)) {
+            // the volume pop as fast as the keys repeat; logging in once (the boot screen and the
+            // session's start may both ask)
+            const file = macEvents[name];
+            if (!force && now - (lastAt["mac:" + file] || 0) < (file === "volume" ? 80 : file === "login" ? 8000 : 90))
+                return;
+            lastAt["mac:" + file] = now;
+            _playMac(name, Math.max(0, Math.min(1, Config.mac.soundVolume * (soft || 1))));
+            return;
+        }
         if (!events.includes(name))
             return;
         // a burst of the same event (volume wheel, many toggles) plays once
-        const now = Date.now(), key = soft < 1 ? name + "-soft" : name;
         if (!force && now - (lastAt[key] || 0) < (name === "volume" ? 140 : name === "click" || name === "clickRight" ? 45 : name === "key" ? 25 : transitions.includes(name) ? Story.soundGapMs : 90))
             return;
         lastAt[key] = now;
@@ -279,6 +326,50 @@ Singleton {
         interval: 5000
         onTriggered: if (root.usbWanted)
             usb.running = true
+    }
+
+    // ---- Golden Gate: logged in (once a session: a marker in $XDG_RUNTIME_DIR, so `angelos
+    // restart` and crash restarts stay quiet, and a skin switched on later doesn't chime) ----
+    readonly property bool loginWanted: Config.ready && !Shell.dev && mac && Config.mac.sounds
+    property bool loginAsked: false
+    onLoginWantedChanged: if (loginWanted && !loginAsked && Date.now() - startedAt < 60000) {
+        loginAsked = true;
+        loginMark.running = true;
+    }
+    Process {
+        id: loginMark
+        command: ["sh", "-c", 'm="${XDG_RUNTIME_DIR:-/tmp}/angelos-login-sound"; [ -e "$m" ] && exit 1; : > "$m"']
+        onExited: code => {
+            if (code === 0)
+                loginDelay.start();
+        }
+    }
+    Timer {
+        id: loginDelay
+        interval: 1500                       // PipeWire is up by then
+        onTriggered: root.play("login")
+    }
+    // a charger plugged in (UPower; asked only while the sound can play — no battery: never changes)
+    readonly property bool powerWanted: Config.ready && !Shell.dev && mac && Config.mac.sounds
+    Connections {
+        target: root.powerWanted ? UPower : null
+        function onOnBatteryChanged() {
+            if (!UPower.onBattery && root.settled())
+                root.play("power");
+        }
+    }
+    // screenshot tools (mac-screenshot.sh, niri-screenshot-region) skip their own "pling" while
+    // the shutter plays here (its notification brings it): a marker in $XDG_RUNTIME_DIR/angelos
+    readonly property bool shutterHere: Config.ready && !Shell.dev && mac && macEnabled("screenshot")
+    onShutterHereChanged: markShutter()
+    Component.onCompleted: markShutter()
+    function markShutter() {
+        shutterMark.running = false;
+        shutterMark.command = ["sh", "-c", 'd="${XDG_RUNTIME_DIR:-/tmp}/angelos"; mkdir -p "$d"; if [ "$1" = 1 ]; then : > "$d/shutter"; else rm -f "$d/shutter"; fi', "sh", shutterHere ? "1" : "0"];
+        shutterMark.running = true;
+    }
+    Process {
+        id: shutterMark
     }
 
     // ---- the shell's own moments ----

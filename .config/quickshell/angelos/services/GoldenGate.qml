@@ -55,13 +55,33 @@ Singleton {
     readonly property color groupBg: hell ? Theme.hellFaceAlt : dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)
     readonly property color controlBg: dark ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0, 0, 0.06)
     readonly property color hoverBg: dark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.07)
-    // Liquid Glass: the material of menus, the Dock, Control Center. Golden Gate's slider goes from
-    // clear to tinted (Config.mac.glass); behind it niri's blur (BackgroundEffect)
+    // Liquid Glass: the material of the menu bar's menus, the Dock, Control Center, Spotlight, the
+    // banners and the widgets. Golden Gate's slider goes from clear to tinted (Config.mac.glass).
+    // Behind it niri blurs and saturates what is under the surface (BackgroundEffect +
+    // templates/niri-mac.kdl's layer rule); over the tint a static shader draws the rim — the edge
+    // highlight and the lens's light (shaders/liquid_glass.frag, widgets/MacGlass).
     readonly property real tint: Math.max(0, Math.min(1, Config.mac.glass))
+    // "Reduce transparency" (Accessibility, like macOS's): solid tint, no blur, no rim effect
+    readonly property bool reduceTransparency: Config.ready && Config.mac.reduceTransparency
+    // niri-game-mode is on (a fullscreen window; cfg/game-mode.kdl "effects off"): it turns niri's
+    // blur off for angelOS's layers too, the glass goes solid and the shader is unloaded
+    property bool gameMode: false
+    FileView {
+        path: Config.home + "/.config/niri/cfg/game-mode.kdl"
+        printErrors: false
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: root.gameMode = text().indexOf("effects off") >= 0
+        onLoadFailed: root.gameMode = false
+    }
+    // the glass itself (clear, rim, saturation) — else the solid fallback
+    readonly property bool glassFx: on && !reduceTransparency && !gameMode && !hell
+    // ask niri for blur behind Golden Gate's surfaces
+    readonly property bool blurOn: Config.appearance.blur && !reduceTransparency && !gameMode
     function glass(extra) {
-        // no blur behind it (Settings → blur off): nearly opaque, as macOS's Reduce Transparency —
-        // clear glass over unblurred windows can't be read
-        const a = (Config.appearance.blur ? 0.42 + tint * 0.5 : 0.9) + (extra || 0);
+        // no blur behind it (Settings → blur off, Reduce transparency, game mode): nearly opaque, as
+        // macOS's Reduce Transparency — clear glass over unblurred windows can't be read
+        const a = (blurOn ? 0.26 + tint * 0.62 : 0.94) + (extra || 0);
         return hell ? Qt.rgba(0.07, 0.03, 0.03, Math.min(0.97, a + 0.1)) : dark ? Qt.rgba(0.12, 0.12, 0.13, Math.min(0.97, a)) : Qt.rgba(0.97, 0.97, 0.975, Math.min(0.97, a));
     }
     readonly property color glassFill: glass(0)
@@ -71,6 +91,7 @@ Singleton {
     // of them — settings.json edited by hand, an older version — goes back into them, never to 0
     readonly property var limits: ({
             "mac.glass": [0, 1],
+            "mac.soundVolume": [0, 1],
             "mac.dockSize": [32, 96],
             "mac.dockMagnifySize": [32, 128],
             "appearance.fontScale": [1, 2],
@@ -109,13 +130,13 @@ Singleton {
         }
     }
     // (any of them changed, also from the file: checked once things settle)
-    readonly property string _watched: Config.ready ? JSON.stringify([Config.mac.glass, Config.mac.dockSize, Config.mac.dockMagnifySize, Config.mac.accent, Config.mac.minimizeEffect, Config.mac.dockPosition, Config.appearance.mode, Config.appearance.fontScale, Config.desktop.widgetStyle]) : ""
+    readonly property string _watched: Config.ready ? JSON.stringify([Config.mac.glass, Config.mac.soundVolume, Config.mac.dockSize, Config.mac.dockMagnifySize, Config.mac.accent, Config.mac.minimizeEffect, Config.mac.dockPosition, Config.appearance.mode, Config.appearance.fontScale, Config.desktop.widgetStyle]) : ""
     on_WatchedChanged: if (_watched)
         Qt.callLater(sanitize)
     // what "Reset the theme" puts back: what the skin's own pages show (Dock, Appearance,
     // Wallpaper, Widgets' style, Windows, the Mac keys). The apps kept in the Dock stay (they are
     // yours, not a setting: Dock → "Reset the order"), and so does the skin itself
-    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.appMenus", "mac.keys", "mac.floating", "mac.minimizeEffect", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
+    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.appMenus", "mac.keys", "mac.floating", "mac.minimizeEffect", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "mac.reduceTransparency", "mac.sounds", "mac.soundVolume", "mac.volumeSound", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
     function resetTheme() {
         return Config.resetKeys(themeKeys);
     }
@@ -185,13 +206,78 @@ Singleton {
             Fonts.install(want);
         }
     }
-    // its wallpaper (scripts/goldengate-wallpaper.py, drawn here once, light and dark): put on when
-    // the skin is chosen, the light or dark one with the theme; the ones it replaced come back
-    // when the skin goes — unless you picked another one meanwhile
+    // ---- wallpapers: every theme keeps its own ----
+    // The pixel theme and Golden Gate each have their own set — one picture everywhere, per monitor
+    // or per desktop (Config.wallpaper.themes.pixel / .mac). Config.wallpaper's fallback/outputs/
+    // workspaces are the set of the theme in front (Config.wallpaper.themeOf): switching the skin
+    // saves them into that theme's slot and puts the other theme's back, so a picture chosen in one
+    // never moves into the other. Golden Gate without a set of its own yet gets its wallpaper
+    // (scripts/goldengate.py wallpapers, light and dark, Config.mac.wallpaper); that one follows
+    // light and dark as long as you keep it. Hell's wallpaper is the save's (services/Wallpapers),
+    // untouched here.
+    readonly property string wallTheme: chosen ? "mac" : "pixel"
+    readonly property string _wallKey: live ? wallTheme : ""
+    // Config.ready turns true a moment before the file's values are in: settle first
+    on_WallKeyChanged: if (_wallKey)
+        wallSettle.restart()
+    Timer {
+        id: wallSettle
+        interval: 400
+        onTriggered: if (root._wallKey)
+            root.swapWalls()
+    }
     property var walls: ({})
+    property bool _wantDefault: false       // Golden Gate came without a set of its own: its picture
     function ours(p) {
         return !!p && String(p).indexOf("/angelos/wallpapers/goldengate-") >= 0;
     }
+    function _set(w) {
+        return {
+            "fallback": w.fallback || "",
+            "outputs": w.outputs || ({}),
+            "workspaces": w.workspaces || ({})
+        };
+    }
+    function _same(a, b) {
+        return JSON.stringify(_set(a)) === JSON.stringify(_set(b));
+    }
+    function swapWalls() {
+        const was = Config.wallpaper.themeOf || "";
+        const now = wallTheme;
+        if (was === now)
+            return;
+        const themes = Object.assign({}, Config.wallpaper.themes || {});
+        if (!was) {
+            // the first time (settings from before per-theme wallpapers): what the screens show is
+            // the set of the theme in front; the pixel set Golden Gate kept aside (mac.wallBefore)
+            // is the pixel theme's
+            const b = Config.mac.wallBefore || {};
+            if (b.saved && !themes.pixel)
+                themes.pixel = _set(b);
+            if (!themes[now] && !(now === "mac" && ours(Config.wallpaper.fallback)) && Config.wallpaper.fallback)
+                themes[now] = _set(Config.wallpaper);
+        } else {
+            themes[was] = _set(Config.wallpaper);
+        }
+        Config.wallpaper.themes = themes;
+        Config.wallpaper.themeOf = now;
+        if (Config.mac.wallBefore && Config.mac.wallBefore.saved)
+            Config.mac.wallBefore = ({});
+        const mine = themes[now];
+        if (mine) {
+            _wantDefault = false;
+            if (!_same(mine, Config.wallpaper)) {
+                Config.wallpaper.fallback = mine.fallback;
+                Config.wallpaper.outputs = mine.outputs;
+                Config.wallpaper.workspaces = mine.workspaces;
+            }
+        } else if (now === "mac") {
+            _wantDefault = true;
+            putWallpaper();
+        }
+    }
+    // Golden Gate's own picture: on a theme without a set of its own (or when the switch is turned
+    // on), else only the light one and the dark one swap with the theme while it is still in place
     function putWallpaper() {
         if (!on || !live || !Config.mac.wallpaper || hell)
             return;
@@ -199,31 +285,23 @@ Singleton {
         if (!want)
             return;
         const w = Config.wallpaper;
-        const before = Config.mac.wallBefore || {};
-        const first = !before.saved;
-        // the first time: what was there is kept; later only our own two swap with the theme
-        if (first)
-            Config.mac.wallBefore = {
-                "saved": true,
-                "fallback": w.fallback,
-                "outputs": w.outputs,
-                "workspaces": w.workspaces
-            };
-        else if (!ours(w.fallback) || Object.keys(w.outputs || {}).length || Object.keys(w.workspaces || {}).length)
+        const plain = !Object.keys(w.outputs || {}).length && !Object.keys(w.workspaces || {}).length;
+        if (!_wantDefault && !(ours(w.fallback) && plain))
             return;
-        if (w.fallback !== want || Object.keys(w.outputs || {}).length || Object.keys(w.workspaces || {}).length)
+        _wantDefault = false;
+        if (w.fallback !== want || !plain)
             Wallpapers.setEverywhere(want);
     }
+    // the switch turned off while Golden Gate's picture is on: the pixel theme's set as a start
     function giveBackWallpaper() {
-        const b = Config.mac.wallBefore || {};
-        if (!b.saved)
+        if (!on || !live || !ours(Config.wallpaper.fallback))
             return;
-        if (ours(Config.wallpaper.fallback)) {
-            Config.wallpaper.fallback = b.fallback || "";
-            Config.wallpaper.outputs = b.outputs || ({});
-            Config.wallpaper.workspaces = b.workspaces || ({});
-        }
-        Config.mac.wallBefore = ({});
+        const px = (Config.wallpaper.themes || {}).pixel;
+        if (!px)
+            return;
+        Config.wallpaper.fallback = px.fallback;
+        Config.wallpaper.outputs = px.outputs;
+        Config.wallpaper.workspaces = px.workspaces;
     }
     Process {
         id: wallMaker
@@ -244,12 +322,8 @@ Singleton {
     onOnChanged: {
         if (!on)
             closePanel();
-        if (live) {
-            if (on)
-                arrive();
-            else
-                giveBackWallpaper();
-        }
+        if (live && on)
+            arrive();
     }
     onLiveChanged: arrive()
     Component.onCompleted: arrive()
@@ -262,10 +336,12 @@ Singleton {
     Connections {
         target: Config.mac
         function onWallpaperChanged() {
-            if (Config.mac.wallpaper)
+            if (Config.mac.wallpaper) {
+                root._wantDefault = true;
                 root.putWallpaper();
-            else
+            } else {
                 root.giveBackWallpaper();
+            }
         }
     }
 

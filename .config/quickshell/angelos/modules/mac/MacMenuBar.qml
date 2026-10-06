@@ -13,7 +13,8 @@ import qs.widgets
 // the wallpaper under it. Leading: angelOS's emblem where the Apple logo is (its menu: About,
 // Settings, Force Quit, Sleep…), the focused app's name in bold and its menus (services/AppMenu).
 // Trailing, right to left: the date and time (Notification Center), Control Center, Spotlight,
-// the input source, sound, Bluetooth, Wi-Fi and the apps' tray icons. While the demon rules: hell's ink and her horns on the emblem.
+// the input source, sound, Bluetooth, Wi-Fi, the apps' tray icons and the plugins' panel widgets
+// (menu bar extras). While the demon rules: hell's ink and her horns on the emblem.
 PanelWindow {
     id: win
 
@@ -22,6 +23,9 @@ PanelWindow {
     readonly property color ink: GoldenGate.barInk(screenName)
     readonly property bool menuHere: MacMenus.isOpen && MacMenus.screen === screenName
     readonly property real h: GoldenGate.barHeight
+    // the plugins' panel widgets the panel would show (BarLayout: its order, hidden ones stay
+    // hidden), leftmost first — the status row runs right to left
+    readonly property var plugins: BarLayout.all.filter(id => id.startsWith("plugin:")).reverse()
 
     screen: modelData
     anchors {
@@ -35,7 +39,7 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.namespace: "angelos-macbar"
     WlrLayershell.layer: WlrLayer.Top
-    BackgroundEffect.blurRegion: Config.appearance.blur && Config.mac.barBackground ? blurRegion : null
+    BackgroundEffect.blurRegion: GoldenGate.blurOn && Config.mac.barBackground ? blurRegion : null
     Region {
         id: blurRegion
         item: band
@@ -316,6 +320,49 @@ PanelWindow {
                         MacMenus.toggleStatus(win.screenName, "tray", win.rightOf(extra), extra.modelData);
                     else
                         extra.modelData.activate();
+                }
+            }
+        }
+        // the plugins' panel widgets (manifest "barWidget") as menu bar extras. Their content sees
+        // settingsSkin "goldengate": a plugin on the Theme API (services/Skin) draws its Mac
+        // version — monochrome in Skin.ink(screenName), its popup a glass popover (BarPopup)
+        Repeater {
+            model: win.plugins
+            Item {
+                id: plugExtra
+                required property string modelData
+                readonly property var p: Plugins.byId(modelData.slice(7))
+                readonly property string settingsSkin: "goldengate"
+                visible: !!plug.item
+                width: plug.item ? Math.max(GoldenGate.px(22), Math.round(plug.item.implicitWidth) + GoldenGate.px(10)) : 0
+                height: win.h
+                // the open state under it, like the other extras
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.topMargin: GoldenGate.px(2)
+                    anchors.bottomMargin: GoldenGate.px(2)
+                    radius: height / 2
+                    color: Qt.alpha(win.ink, win.ink.r > 0.5 ? 0.22 : 0.1)
+                    visible: !!plug.item && plug.item.barOpen === true
+                }
+                Loader {
+                    id: plug
+                    anchors.centerIn: parent
+                    // a new path after the plugin was changed (Plugin Studio): load the new files
+                    readonly property string src: plugExtra.p ? Plugins.url(plugExtra.p, plugExtra.p.barWidget) : ""
+                    function load() {
+                        if (plugExtra.p && !item)
+                            setSource(src, {
+                                "plugin": Plugins.context(plugExtra.p),
+                                "screenName": win.screenName,
+                                "barWindow": win
+                            });
+                    }
+                    onSrcChanged: if (item) {
+                        source = "";
+                        load();
+                    }
+                    Component.onCompleted: load()
                 }
             }
         }

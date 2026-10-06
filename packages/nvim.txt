@@ -1,0 +1,15 @@
+# What LazyVim (.config/nvim) needs; the plugins install themselves on the first start of nvim.
+neovim
+git
+curl
+unzip
+gcc
+make
+ripgrep
+fd
+fzf
+lazygit
+tree-sitter-cli
+nodejs
+npm
+wl-clipboard

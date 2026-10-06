@@ -55,3 +55,5 @@ xdg-user-dirs
 xdg-utils
 curl
 git
+# the installer's interface
+gum

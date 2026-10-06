@@ -6,6 +6,7 @@
   "description": "Новый плагин angelOS",
   "icon": "heart",
   "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
   "menu": [
     { "label": "__NAME__: привет", "icon": "heart", "exec": "notify-send angelOS 'привет из плагина ♡'" }
   ],

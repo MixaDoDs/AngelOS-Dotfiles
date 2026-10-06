@@ -16,17 +16,19 @@ questions. Do not generate files during planning.
 The plan must specify:
 
 - A unique lowercase kebab-case id, name, purpose and integration point.
-- Content width/height in art pixels (multiples of Theme.u), when visual.
+- Content width/height in points (`Skin.px(n)`), when visual.
+- How it looks in both angelOS themes, pixel and macOS (section "Two looks").
 - Actual data sources, update frequency, empty/loading/error/offline states.
 - Settings, actions, dependencies and limitations; list "none" if none.
 - How it starts, stops, and releases timers/processes when disabled.
 - For a desktop widget: its heaven look and its hell look (section "Two realms").
 
 For a vague request, choose sensible defaults and explain them. Prefer a
-desktop widget at 150 × 80 art pixels (300 × 160 screen pixels at Theme.u=2).
-Keep desktop content within 70–300 × 30–220 art pixels; users can request
-another size during planning. Support smaller screens and long translated text.
-Bar widgets should be compact, at most 90 art pixels wide, adapting to the bar.
+desktop widget at `Skin.px(300)` × `Skin.px(160)`. Keep desktop content within
+140–600 × 60–440 points; users can request another size during planning.
+Support smaller screens and long translated text. Bar widgets should be
+compact, at most `Skin.px(180)` wide in pixel and one line of the 24 pt menu
+bar (`Skin.px(18)` tall) in macOS.
 
 ## Implementation
 
@@ -39,24 +41,25 @@ external Python libraries or modifications to the shell/configuration.
 Use Python's standard library for helper scripts when needed. The installer
 does not run any script. Scripts must be invoked explicitly via argv.
 
-Manifest: id/name/version/description/icon, enabledByDefault=false, settings,
-and the entry point for the selected kind (desktopWidget/barWidget/main/menu/
-launcher). A plugin may also add sidebarWidget (a compact Column that receives
+Manifest: id/name/version/description/icon, enabledByDefault=false,
+`"themes": ["pixel", "mac"]`, settings, and the entry point for the selected
+kind (desktopWidget/barWidget/main/menu/launcher). A plugin may also add sidebarWidget (a compact Column that receives
 plugin and width) for the experimental sidebar. Settings.qml is mandatory, even for a small plugin: explain the data
 source and allow useful preferences. Do not override any installed/bundled id.
-Give desktop widgets a desktopTitle such as "my-widget", without an ending: angelOS adds the one the user picked (.exe, .sh or .bin). Window titles in the plugin's own QML: I18n.exe("my-widget").
+Give desktop widgets a desktopTitle such as "my-widget", without an ending: angelOS adds the one the user picked (.exe, .sh or .bin) in the pixel theme and shows no title in macOS. Titles in the plugin's own QML (a BarPopup's `title`): `Skin.title("my-widget")` — "my-widget.exe" in pixel, plain words in macOS; never `I18n.exe` directly.
 
-Import qs.config for Theme, Config and I18n; qs.widgets for native controls;
-qs.services only for documented services. All user-facing labels use
-I18n.t("Русский", "English"). Manifest name/description must be strings.
-Use Theme colors (face, sunken, text, textDim, accent, accent2, edge, danger, ok)
-as reactive bindings, never a captured/exported palette or hardcoded colors.
-Theme.u controls spacing and geometry. Use PxText and the native controls.
+Import qs.config for Theme, Config and I18n; qs.services for the Theme API
+(`Skin`) and documented services; qs.widgets for the shared controls. All
+user-facing labels use I18n.t("Русский", "English"). Manifest
+name/description must be strings. Colours, fonts, sizes, radii and spacing
+come from the Theme API (`Skin`, section "Two looks") as reactive bindings —
+never a hex colour, a font family name, a pixel number or a captured palette.
+Use PxText and the shared controls; they change their look by themselves.
 Do not add a window frame around desktop content: DesktopWidgetHost owns
 title bar, drag, positioning, removal and monitor assignment.
 
 Desktop widget root: Item with property var plugin, property string screenName,
-property var widget; explicit finite implicitWidth/implicitHeight in Theme.u.
+property var widget; explicit finite implicitWidth/implicitHeight in Skin.px(…).
 It is content only, not PanelWindow, PopupWindow or Window. Optional wantVisible
 is boolean. The settings host sizes content using implicitHeight; use Column.
 Bar root receives plugin, screenName, barWindow. Service root receives plugin.
@@ -76,6 +79,64 @@ stderr should be consumed; failures visible in UI; no unbounded histories.
 Never interpolate prompt/user data into shell commands. No sudo, destructive
 commands, access to unrelated private files, or reading Studio credentials.
 Explain in the plan any access to network, local files or command execution.
+
+## Two looks: pixel and macOS (the Theme API)
+
+angelOS has two themes and the user switches between them while the shell
+runs: the original **pixel** look (Win98 / NEEDY GIRL OVERDOSE: square
+bevelled boxes, pixel fonts, sizes on the art-pixel grid, window titles
+"name.exe") and **macOS** (Golden Gate, macOS 27 Liquid Glass: rounded glass,
+the system font Inter/SF Pro, point sizes, no ".exe"). Every new plugin draws
+both. The API is the singleton `Skin` (`import qs.services`, services/Skin.qml,
+supplied in full):
+
+- Which look: `Skin.mac` / `Skin.pixel` (the theme), `Skin.macWidgets` (desktop
+  widgets: their own style setting — a desktopWidget checks this one, not
+  `Skin.mac`), `Skin.hell` (the demon's realm, see "Two realms"), `Skin.dark`.
+- Colours: `Skin.accent`, `accentText`, `text`, `textDim`, `textFaint`,
+  `surface` (a card's body: glass in macOS), `surfaceAlt`, `sunken`,
+  `separator`, `hover`, `danger`, `ok`, `warn`, `shadow`; `Skin.mix(a, b, t)`.
+  They follow light/dark, the user's accent colour and hell by themselves.
+- Bar ink: `Skin.ink(screenName)` — in macOS the menu bar is black or white by
+  the wallpaper under it; a bar widget is one colour in it, like a macOS menu
+  bar extra (a line icon `MacIcon { name; color: Skin.ink(screenName) }`, short
+  text), never a coloured box. In pixel it is the bar's text colour.
+- Type: `Skin.font`, `titleFont`, `mono`, `Skin.fontSize("small" | "body" |
+  "title" | "big" | "huge")`, `smallSize`, `textSize`, `titleSize`, `bigSize`,
+  `renderType`. Prefer `PxText { kind: … }`, which does this itself.
+- Sizes: `Skin.px(points)` for every length (macOS: points × font scale;
+  pixel: snapped to the art-pixel grid), `Skin.spacing`, `padding`, `radius`
+  (controls), `cardRadius`, `controlHeight`, `iconSize`. Radius is 0 in pixel —
+  bind to it, don't branch on it.
+- Transparency: `Skin.reduceTransparency` (macOS Accessibility "Reduce
+  transparency", blur off, a fullscreen game) and `Skin.glass` (glass allowed).
+  With reduce transparency draw solid surfaces: no translucent fills, no
+  blur, no glow — `Skin.surface` and `SkinCard` already do this.
+- Words and time: `Skin.title(name)`, `Skin.ms(duration)` (0 with motion off).
+
+Shared components that change by themselves (hosts set the look on plugin
+content): `PxButton`, `PxToggle`, `PxSlider`, `PxField`, `PxCombo`,
+`PxSegmented`, `PxCheck`, `PxText`, `PxScroll`, `SettingRow`, `PxGroup`, and
+`SkinCard` — the card of a widget, popup or group (pixel: bevelled box; macOS:
+Liquid Glass, solid with reduce transparency; `sunken`/`group` for a quiet
+inset group). A popup is `BarPopup` (`import qs.modules.bar`): a pixel window
+or a glass popover. Do not draw your own window frame, bevel, title bar or
+"name.exe" text, and no pixel art (PxIcon bitmaps, stepped canvases) in the
+macOS look: there use `MacIcon` line icons (Lucide names) and smooth shapes.
+
+Branch only where the looks really differ (a pixel sprite vs a smooth icon, a
+blocky meter vs a thin rounded bar), with `Skin.mac ? … : …` on bindings or a
+`Loader { active: Skin.mac }` for whole parts, so the unused look costs
+nothing. Everything else is the same code bound to the tokens.
+
+Memory and CPU (angelOS keeps its RAM low): load parts lazily (`Loader` with
+`active` only while shown, `LazyLoader` for windows), no work while hidden
+(`running: root.visible && …`), no polling faster than the data changes
+(local data ≥ 1 s, network ≥ 60 s with backoff), `Image` always with
+`sourceSize` set to the shown size and `asynchronous: true`, no `layer.enabled`
+/ `ShaderEffectSource` / `MultiEffect` unless the design needs them, no
+per-frame JavaScript animation, no growing arrays, models or caches without a
+bound. `Canvas` repaints only when its data changes (requestPaint on change).
 
 ## Two realms: heaven and hell
 
@@ -100,10 +161,10 @@ Widgets in hell). Every desktop widget you make is designed for both:
 - Hell palette (fixed, not from the flavour): `Theme.hellBody`, `hellFace`,
   `hellFaceAlt`, `hellSunken` (obsidian), `hellEdge`, `hellHi`, `hellLo`
   (bevels), `hellBlood`, `hellEmber`, `hellFlame`, `hellGold`, `hellText`
-  (bone), `hellTextDim`. In heaven keep the theme tokens (`Theme.accent` …).
-- Font: `Theme.fontHell` (Jacquard 24, a pixel blackletter) has Latin only —
-  use it when `Theme.latin(text)`, at `Theme.hellPx(n)` px (24·n); other
-  scripts keep the normal fonts.
+  (bone), `hellTextDim`. In heaven keep the Theme API (`Skin.accent` …).
+- Font: `Theme.fontHell` (Jacquard 12 Hell, a pixel blackletter with Latin
+  and Cyrillic) — use it when `Theme.hellCovers(text)`, at `Theme.hellPx(n)`
+  px (21·n); other text keeps `Theme.fontHellText` or the normal fonts.
 - Native controls follow with `PxBox { hell: Theme.hell }` and
   `PxButton { hell: Theme.hell }`. PxIcon names "skull", "pentagram" and "fire"
   suit hell.
@@ -196,11 +257,18 @@ that is already installed and in use; its current files are supplied.
    time; user text only as separate argv items.
 7. Timers ≥ 1000 ms and only running while the content is visible or the
    plugin needs them; no per-frame JavaScript animation loops.
-8. Colours and sizes come from Theme (`Theme.accent`, `Theme.text`,
-   `Theme.u` …); every label is `I18n.t("Русский", "English")`.
+8. Colours, fonts and sizes come from the Theme API (`Skin.accent`,
+   `Skin.text`, `Skin.px(n)` …) — no hex colours, font names or bare pixel
+   numbers; hell's own colours from `Theme.hell…` inside the hell look; every
+   label is `I18n.t("Русский", "English")`.
 9. `plugin` may arrive after creation: `plugin ? plugin.get("k", d) : d`.
 10. manifest.json is valid JSON, file names match exactly (case-sensitive),
     `enabledByDefault` is false, and the entry point of the plan's kind exists.
 11. A desktop widget declares `"realms": ["heaven", "hell"]` and has a real hell
     look bound to `Theme.hell` (palette, font and controls as in "Two realms"),
     readable in both realms. The check loads it in heaven and in hell.
+12. The manifest declares `"themes": ["pixel", "mac"]` and every visual entry
+    point reads the Theme API (`Skin.…`) and works in both looks: no ".exe" or
+    pixel art in macOS, a monochrome `Skin.ink(screenName)` bar widget in the
+    menu bar, `Skin.title()` for titles, `Image` with `sourceSize`. The check
+    loads every entry point in the pixel look and in the macOS look.

@@ -31,6 +31,8 @@ PALETTE = HOME / ".cache/angelos/palette.json"   # the user's palette (services/
 NIRI = HOME / ".config/niri"
 FILES = [
     NIRI / "config.kdl", NIRI / "cfg/autostart.kdl", NIRI / "cfg/keybinds.kdl", NIRI / "cfg/rules.kdl",
+    # the themes' key profiles (scripts/keyprofile.py; keybinds.kdl only picks one of them)
+    NIRI / "cfg/keybinds-common.kdl", NIRI / "cfg/keybinds-pixel.kdl", NIRI / "cfg/keybinds-macos.kdl",
     HOME / ".config/kitty/kitty.conf", HOME / ".config/foot/foot.ini",
     HOME / ".config/alacritty/alacritty.toml",
     HOME / ".config/gtk-3.0/gtk.css", HOME / ".config/gtk-4.0/gtk.css",
@@ -122,7 +124,7 @@ def edit(path, fn):
     return False
 
 
-def patch_keys(t):
+def patch_keys(t, extras=True):
     for pat, fn, title in KEYS:
         rx = re.compile(r'(hotkey-overlay-title="[^"]*"\s*)?\{\s*spawn-sh\s+"noctalia msg ' + pat + r'";\s*\}')
         repl = (f'hotkey-overlay-title="{title}" ' if title else "") + '{ spawn-sh "' + CLI + " " + fn + '"; }'
@@ -130,7 +132,9 @@ def patch_keys(t):
     # brightness keys have no target on desktop monitors: comment them out
     t = re.sub(r'^(\s*)(XF86MonBrightness\w+[^\n]*noctalia msg[^\n]*)$', r'\1// \2', t, flags=re.M)
     t = t.replace("// ─── noctalia-shell keybinds ───", "// ─── angelOS keybinds (were noctalia) ───")
-    if "angelOS extras" not in t:
+    # the extras go into a keybinds.kdl from before the key profiles only: the profiles
+    # (templates/keybinds) have these keys already, and the selector holds no binds block
+    if extras and "angelOS extras" not in t and re.search(r"^\s*binds\s*\{", t, re.M):
         t = t.rstrip()
         assert t.endswith("}")
         t = t[:-1].rstrip() + "\n" + EXTRA_BINDS + "}\n"
@@ -191,7 +195,8 @@ def to_angelos(restart=True, validate=True):
     # `angelos run` inside it sets the renderer environment (bin/angelos) before qs
     edit(NIRI / "cfg/autostart.kdl", lambda t: one_voxtype(re.sub(r'spawn-at-startup\s+(?:"noctalia"|"qs"\s+"-c"\s+"angelos"\s+"-n"|"angelos"\s+"run")', 'spawn-at-startup "angelos" "start"', t)))
     edit(NIRI / "config.kdl", lambda t: t.replace('include "noctalia.kdl"', 'include "angelos.kdl"'))
-    edit(NIRI / "cfg/keybinds.kdl", patch_keys)
+    for keys in ("keybinds.kdl", "keybinds-common.kdl", "keybinds-pixel.kdl", "keybinds-macos.kdl"):
+        edit(NIRI / "cfg" / keys, lambda t, k=keys: patch_keys(t, extras=k == "keybinds.kdl"))
     edit(NIRI / "cfg/rules.kdl", patch_rules)
     edit(HOME / ".config/kitty/kitty.conf", lambda t: t.replace("include themes/noctalia.conf", "include themes/angelos.conf"))
     edit(HOME / ".config/foot/foot.ini", lambda t: t.replace("include=~/.config/foot/themes/noctalia", "include=~/.config/foot/themes/angelos"))
@@ -234,7 +239,8 @@ def to_noctalia_forward():
     backup("switch-back")
     edit(NIRI / "cfg/autostart.kdl", lambda t: re.sub(r'spawn-at-startup\s+(?:"qs"\s+"-c"\s+"angelos"\s+"-n"|"angelos"\s+"(?:run|start)")', 'spawn-at-startup "noctalia"', t))
     edit(NIRI / "config.kdl", lambda t: t.replace('include "angelos.kdl"', 'include "noctalia.kdl"'))
-    edit(NIRI / "cfg/keybinds.kdl", unpatch_keys)
+    for keys in ("keybinds.kdl", "keybinds-common.kdl", "keybinds-pixel.kdl", "keybinds-macos.kdl"):
+        edit(NIRI / "cfg" / keys, unpatch_keys)
     edit(NIRI / "cfg/rules.kdl", unpatch_rules)
     edit(HOME / ".config/kitty/kitty.conf", lambda t: t.replace("include themes/angelos.conf", "include themes/noctalia.conf"))
     edit(HOME / ".config/foot/foot.ini", lambda t: t.replace("include=~/.config/foot/themes/angelos", "include=~/.config/foot/themes/noctalia"))

@@ -34,6 +34,7 @@ Item {
         id: hover
     }
 
+    readonly property Item glassItem: card         // NotificationPopups blurs under it
     MacGlass {
         id: card
         width: parent.width

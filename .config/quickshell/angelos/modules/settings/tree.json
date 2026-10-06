@@ -432,8 +432,8 @@
           "ru": "Плагины",
           "en": "Plugins",
           "icon": "plug",
-          "hintRu": "установленные, удалённые, новый",
-          "hintEn": "installed, removed, a new one",
+          "hintRu": "каталог сообщества, обновления, установленные",
+          "hintEn": "the community catalog, updates, installed",
           "blocks": [
             "plugins"
           ]
@@ -619,8 +619,8 @@
             "ru": "Внешний вид",
             "en": "Appearance",
             "icon": "palette",
-            "hintRu": "светлое, тёмное, авто, акцент, прозрачность, сброс",
-            "hintEn": "light, dark, auto, accent, transparency, reset",
+            "hintRu": "светлое, тёмное, авто, акцент, прозрачность, уменьшить прозрачность, сброс",
+            "hintEn": "light, dark, auto, accent, transparency, reduce transparency, reset",
             "blocks": [
               "mac/look",
               "mac/skin",
@@ -714,12 +714,13 @@
             "ru": "Звук",
             "en": "Sound",
             "icon": "speaker",
-            "hintRu": "выход, микрофон, громкость приложений, индикаторы",
-            "hintEn": "output, microphone, app volume, indicators",
+            "hintRu": "выход, микрофон, громкость приложений, индикаторы, звуковые эффекты",
+            "hintEn": "output, microphone, app volume, indicators, sound effects",
             "blocks": [
               "sound/output",
               "sound/input",
-              "sound/applications"
+              "sound/applications",
+              "mac/sounds"
             ]
           },
           {
@@ -773,8 +774,8 @@
             "ru": "Плагины",
             "en": "Plugins",
             "icon": "plug",
-            "hintRu": "установленные, удалённые, новый",
-            "hintEn": "installed, removed, a new one",
+            "hintRu": "каталог сообщества, обновления, установленные",
+            "hintEn": "the community catalog, updates, installed",
             "blocks": [
               "plugins"
             ]

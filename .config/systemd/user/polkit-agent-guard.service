@@ -1,0 +1,15 @@
+[Unit]
+Description=polkit agent guard: Noctalia's agent, hyprpolkitagent as fallback
+ConditionEnvironment=XDG_CURRENT_DESKTOP=niri
+PartOf=graphical-session.target
+After=graphical-session.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/polkit-agent-guard
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=graphical-session.target

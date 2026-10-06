@@ -34,7 +34,10 @@ PRESETS = {
 }
 CONFIG = Path.home() / ".config/niri/config.kdl"
 ANIMATIONS = CONFIG.parent / "cfg/animation.kdl"
-KEYBINDS = CONFIG.parent / "cfg/keybinds.kdl"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import keyprofile  # noqa: E402
+# the workspace keys of the theme in front (its key profile, scripts/keyprofile.py)
+KEYBINDS = keyprofile.path()
 BACKUPS = Path.home() / ".local/state/angelos/backups"
 BLOCK = re.compile(r"(?m)^([ \t]*)workspace-switch\s*\{([^{}]*)\}")
 ANGELOS = "exec ~/.config/quickshell/angelos/bin/angelos ws "

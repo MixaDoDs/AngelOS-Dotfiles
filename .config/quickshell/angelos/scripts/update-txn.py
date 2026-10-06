@@ -43,6 +43,7 @@ REPO_ROOTS = (".config/", ".local/bin/", ".local/share/", "Pictures/")
 EXTRAS = [
     ".local/bin/angelos", ".config/angelos/active", ".config/angelos/dotfiles-source",
     ".config/niri/config.kdl", ".config/niri/cfg/autostart.kdl", ".config/niri/cfg/keybinds.kdl",
+    ".config/niri/cfg/keybinds-common.kdl", ".config/niri/cfg/keybinds-pixel.kdl", ".config/niri/cfg/keybinds-macos.kdl",
     ".config/niri/cfg/rules.kdl", ".config/niri/noctalia.kdl", ".config/niri/angelos.kdl",
     ".config/kitty/kitty.conf", ".config/foot/foot.ini", ".config/alacritty/alacritty.toml",
     ".config/gtk-3.0/gtk.css", ".config/gtk-4.0/gtk.css",

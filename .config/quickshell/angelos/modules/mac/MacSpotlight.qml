@@ -5,6 +5,7 @@ import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
+import "../../widgets/MacIcons.js" as MacIcons
 
 // Spotlight of the Golden Gate skin (StartOverlay's look while the skin is on): a big dark glass
 // capsule a fifth down the screen, the results under it in a glass panel by section — the
@@ -69,6 +70,54 @@ Item {
             "run": () => StartApps.launch(a)
         };
     }
+    // ---- the plugins' launcher providers (manifest "launcher": web-search, claude-companion…) ----
+    // made with Spotlight (it lives only while it is open or lingers) — their results go in a
+    // section of their own; a provider's prefix ("web …", "claude …") narrows to it alone.
+    // Their pixel icon names become line icons (MacIcons.fromPixel), pictures stay pictures
+    property var providers: []
+    property int providerTick: 0
+    Instantiator {
+        model: Plugins.launcherProviders
+        delegate: LazyLoader {
+            required property var modelData
+            active: true
+            source: Plugins.url(modelData, modelData.launcher)
+            onItemChanged: {
+                if (!item)
+                    return;
+                if (item.hasOwnProperty("plugin"))
+                    item.plugin = Plugins.context(modelData);
+                item.pluginId = modelData.id;
+                if (item.changed)
+                    item.changed.connect(() => root.providerTick++);
+                root.providers = root.providers.filter(p => p.pluginId !== modelData.id).concat([item]);
+            }
+        }
+        onObjectRemoved: (i, obj) => root.providers = root.providers.filter(p => p.pluginId !== (obj.modelData ? obj.modelData.id : ""))
+    }
+    readonly property var activeProvider: {
+        const q = query.replace(/^\s+/, "");
+        return providers.find(p => p.prefix && (q === p.prefix || q.startsWith(p.prefix + " "))) || null;
+    }
+    function providerRows(p, text, prefixed) {
+        let list = [];
+        try {
+            list = p.query(text, prefixed) || [];
+        } catch (e) {
+            console.warn("spotlight provider", p.pluginId, e);
+        }
+        const pl = Plugins.byId(p.pluginId);
+        const section = pl ? I18n.label(pl.name) : p.pluginId;
+        return list.slice().sort((x, y) => (y.score === undefined ? 10 : y.score) - (x.score === undefined ? 10 : x.score)).map(r => ({
+                    "section": section,
+                    "label": String(r.title || ""),
+                    "sub": String(r.subtitle || ""),
+                    "mac": MacIcons.fromPixel(r.icon || "") || "puzzle",
+                    "image": r.image ? (String(r.image).startsWith("/") ? "file://" + r.image : String(r.image)) : "",
+                    "provider": p,
+                    "r": r
+                }));
+    }
     function plain(list, section, icon) {
         return list.map(r => ({
                     "section": section,
@@ -95,6 +144,9 @@ Item {
                     })).filter(r => !searching || matches(r.label, query.trim().toLowerCase()));
         if (!searching)
             return [];
+        providerTick;
+        if (activeProvider)
+            return providerRows(activeProvider, query.replace(/^\s+/, "").slice(activeProvider.prefix.length).trim(), true).slice(0, 40);
         const q = query.trim().toLowerCase();
         const out = [];
         for (const r of StartApps.searchAll(query, 24)) {
@@ -123,6 +175,10 @@ Item {
         for (const a of plain(StartItems.power, I18n.t("Действия", "Actions"), "zap"))
             if (matches(a.label, q))
                 out.push(a);
+        for (const p of providers)
+            if (p.global !== false)
+                for (const r of providerRows(p, query.trim(), false).slice(0, 6))
+                    out.push(r);
         const order = [];
         for (const r of out)
             if (!order.includes(r.section))
@@ -152,6 +208,18 @@ Item {
     function runRow(r) {
         if (!r)
             return;
+        // a plugin's result: its provider acts; true keeps Spotlight open (it changed the query…)
+        if (r.provider) {
+            let keep = false;
+            try {
+                keep = r.provider.activate(r.r.id, r.r) === true;
+            } catch (e) {
+                console.warn("spotlight provider", r.provider.pluginId, e);
+            }
+            if (!keep)
+                closeRequested();
+            return;
+        }
         closeRequested();
         Qt.callLater(r.run);
     }
@@ -212,13 +280,18 @@ Item {
         e.accepted = true;
     }
 
+    // the glass parts: StartOverlay asks niri to blur under them
+    readonly property Item capsuleItem: capsule
+    readonly property Item panelItem: panel
+
     // ---- the capsule ----
     MacGlass {
         id: capsule
         width: parent.width
         height: root.capH
         radius: height / 2
-        fill: GoldenGate.hell ? GoldenGate.glass(0.25) : Qt.rgba(0.08, 0.08, 0.09, 0.72 + GoldenGate.tint * 0.2)
+        // dark glass, clearer over niri's blur (solid without it)
+        fill: GoldenGate.hell ? GoldenGate.glass(0.25) : Qt.rgba(0.08, 0.08, 0.09, GoldenGate.blurOn ? 0.5 + GoldenGate.tint * 0.38 : 0.94)
         shadowSize: GoldenGate.px(36)
         shadowY: GoldenGate.px(10)
         MacIcon {
@@ -346,8 +419,20 @@ Item {
                     smooth: true
                     source: row.modelData.app && row.modelData.app.icon ? (String(row.modelData.app.icon).startsWith("/") ? "file://" + row.modelData.app.icon : Quickshell.iconPath(row.modelData.app.icon, true)) : ""
                 }
+                Image {
+                    id: favicon
+                    visible: !row.modelData.app && !!row.modelData.image && status === Image.Ready
+                    x: GoldenGate.px(12)
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: GoldenGate.px(20)
+                    height: width
+                    sourceSize: Qt.size(width * 2, height * 2)
+                    smooth: true
+                    asynchronous: true
+                    source: row.modelData.image || ""
+                }
                 MacIcon {
-                    visible: !row.modelData.app
+                    visible: !row.modelData.app && !favicon.visible
                     x: GoldenGate.px(12)
                     anchors.verticalCenter: parent.verticalCenter
                     name: row.modelData.mac || "circle-help"

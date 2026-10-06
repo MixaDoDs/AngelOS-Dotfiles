@@ -3,13 +3,14 @@ import qs.config
 
 // Text with pixel-font defaults. kind: tiny | body | title | big | huge | mono
 // In the grimoire's window (Theme.scriptWindow) it is handwritten instead (Theme.fontScript).
-// In the Golden Gate skin's System Settings (Theme.macWindow) it is set in the skin's font at
-// macOS's sizes: body 13, tiny 11, title 15, big 22, huge 26.
+// In the Golden Gate skin's System Settings (Theme.macWindow), and under any host that puts
+// settingsSkin "goldengate" on its content (plugin hosts in the Mac look: services/Skin), it is
+// set in the skin's font at macOS's sizes: body 13, tiny 11, title 15, big 22, huge 26.
 Text {
     property string kind: "body"
     property bool dim: false
     readonly property bool script: Theme.scriptWindow !== null && Window.window === Theme.scriptWindow && kind !== "mono"
-    readonly property bool mac: Theme.macWindow !== null && (Window.window === Theme.macWindow || Theme.settingsSkinFor(parent) === "goldengate")
+    readonly property bool mac: (Theme.macWindow !== null && Window.window === Theme.macWindow) || Theme.settingsSkinFor(parent) === "goldengate"
     readonly property int basePx: mac ? Math.round(Theme.fs * (kind === "tiny" ? 11 : kind === "mono" ? 12 : kind === "title" ? 15 : kind === "big" ? 22 : kind === "huge" ? 26 : 13)) : kind === "tiny" ? Theme.sizeTiny : kind === "mono" ? Theme.sizeMono : kind === "title" ? Theme.sizeTitle : kind === "big" ? Theme.sizeBig : kind === "huge" ? Theme.sizeHuge : Theme.sizeBody
 
     color: dim ? Theme.textDim : Theme.text

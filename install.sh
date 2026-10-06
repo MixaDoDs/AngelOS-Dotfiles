@@ -1,13 +1,33 @@
 #!/usr/bin/env bash
-# Installer for the PixelStreetArt Niri rice (CachyOS / Arch).
+# Installer for angelOS — the pastel Niri rice (CachyOS / Arch).
 #
-# Run it with no arguments for the interactive setup, or drive it with
-# environment variables (everything has a default, so it also works unattended):
+# Run it with no arguments for the interactive setup: a pastel "stream" in the terminal
+# (gum menus, a hearts progress bar; gum is installed first when it is missing). Or drive it
+# with environment variables (everything has a default, so it also works unattended):
 #
 #   DOTFILES_MODE=full|tech        full = styling + desktop shell + assets, tech = minimal
 #   DESKTOP_SHELL=angelos|noctalia|none
 #                                  desktop shell (default angelos; tech defaults to none).
 #                                  angelOS = the pixel Quickshell shell shipped in .config/quickshell/angelos
+#   ANGELOS_THEME=pixel|macos      angelOS's look: pixel = the pink pixel desktop, macos = Golden Gate
+#                                  (Dock, menu bar, Liquid Glass, Mac sounds and Mac keys). Asked
+#                                  interactively (default pixel); unattended runs leave the current
+#                                  one alone unless it is given. Later: Settings → Appearance
+#   MAC_KEYS=1|0                   with ANGELOS_THEME=macos: the Mac shortcuts (⌘Q ⌘W ⌘M ⌘Space ⌘Tab…,
+#                                  Super = ⌘, tiling on Super+Alt) in front of niri's keys. Asked with
+#                                  the theme (default yes); later: Settings → Appearance → Golden Gate
+#   FISH_DEFAULT=1|0               fish as the login shell. When fish is not installed yet it is
+#                                  installed, added to /etc/shells and made the login shell (chsh);
+#                                  asked interactively (default yes), unattended default 1. When fish
+#                                  is there already nothing changes, unless FISH_DEFAULT=1 is given.
+#                                  fish's look comes with it: the pure prompt, fastfetch, eza, fzf…
+#                                  (packages/fish.txt)
+#   INSTALL_APPS=0|1               the author's apps (full profile): APPS picks them, default all of
+#   APPS=helium,telegram,…         packages/apps.txt + packages/apps-flatpak.txt (Helium, Telegram,
+#                                  Spotify, Obsidian, qView, mpv, LocalSend, Discord). Asked
+#                                  interactively (all ticked); unattended default 0
+#   NO_TUI=1                       plain numbered prompts instead of the gum interface
+#   NO_ANIM=1                      no boot animation
 #   ANGELOS_GAME=1|0               angelOS is also a game played over the desktop (an angel, a demon,
 #                                  a story that follows your choices); 0 = plain dotfiles without it.
 #                                  Asked interactively; unattended runs leave the current choice alone.
@@ -77,7 +97,7 @@ VOXTYPE_FORCE="${VOXTYPE_FORCE:-0}"
 is_set() { [[ -n "${!1+x}" ]]; }
 for v in DOTFILES_MODE DESKTOP_SHELL NOCTALIA KB_LAYOUTS KB_TOGGLE INSTALL_VOXTYPE DOWNLOAD_VOXTYPE_MODEL \
          INSTALL_WALLPAPERS WALLPAPER_PACKS INSTALL_SDDM NOCTALIA_RESET_SETTINGS ANGELOS_GAME GITHUB_LOGIN \
-         INSTALL_FLATPAK INSTALL_TOOLS; do
+         INSTALL_FLATPAK INSTALL_TOOLS ANGELOS_THEME MAC_KEYS FISH_DEFAULT INSTALL_APPS APPS; do
   is_set "$v" && declare -r "GIVEN_$v=1"
 done
 given() { local n="GIVEN_$1"; [[ -n "${!n:-}" ]]; }
@@ -120,6 +140,14 @@ KB_LAYOUTS="${KB_LAYOUTS:-us,ru}"
 KB_TOGGLE="${KB_TOGGLE:-alt_shift}"
 KB_VARIANT="${KB_VARIANT:-}"
 VOXTYPE_LANGUAGE="${VOXTYPE_LANGUAGE:-}"
+ANGELOS_THEME="${ANGELOS_THEME:-pixel}"
+MAC_KEYS="${MAC_KEYS:-1}"
+FISH_DEFAULT="${FISH_DEFAULT:-1}"
+INSTALL_APPS="${INSTALL_APPS:-0}"
+APPS="${APPS:-all}"
+# fish before this run: a login shell someone already has is never changed behind their back
+FISH_WAS_INSTALLED=0
+command -v fish >/dev/null 2>&1 && FISH_WAS_INSTALLED=1
 
 INTERACTIVE=0
 [[ -t 0 && -t 1 ]] && INTERACTIVE=1
@@ -133,11 +161,21 @@ _() { if [[ "$UI" == ru ]]; then printf '%s' "$2"; else printf '%s' "$1"; fi; }
 # colours only on a terminal: Settings → Updates shows this output in its log
 c1() { [[ -t 1 && -z "${NO_COLOR:-}" ]] && printf '\033[%sm' "$1"; return 0; }
 c2() { [[ -t 2 && -z "${NO_COLOR:-}" ]] && printf '\033[%sm' "$1"; return 0; }
-C_SAY="$(c1 '1;36')" C_DIM="$(c1 2)" C_OFF="$(c1 0)" C_WARN="$(c2 '1;33')" C_ERR="$(c2 '1;31')" C_OFF2="$(c2 0)"
-say()  { printf '%s[dotfiles]%s %s\n' "$C_SAY" "$C_OFF" "$*"; }
+# pastel on a terminal (pink, lilac, a hot-pink warning); a log gets the plain [dotfiles] lines
+C_SAY="$(c1 '1;38;2;255;143;199')" C_DIM="$(c1 '38;2;201;167;255')" C_OFF="$(c1 0)"
+C_WARN="$(c2 '1;38;2;255;214;120')" C_ERR="$(c2 '1;38;2;255;79;163')" C_OFF2="$(c2 0)"
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  say()  { printf '%s♡%s %s\n' "$C_SAY" "$C_OFF" "$*"; }
+else
+  say()  { printf '%s[dotfiles]%s %s\n' "$C_SAY" "$C_OFF" "$*"; }
+fi
 warn() { printf '%s[dotfiles] WARNING:%s %s\n' "$C_WARN" "$C_OFF2" "$*" >&2; }
 die()  { printf '%s[dotfiles] ERROR:%s %s\n' "$C_ERR" "$C_OFF2" "$*" >&2; exit 1; }
-hr()   { printf '%s%s%s\n' "$C_DIM" '──────────────────────────────────────────────────────────' "$C_OFF"; }
+hr()   { printf '%s%s%s\n' "$C_DIM" '♡ ─────────────────────────────────────────────────────── ♡' "$C_OFF"; }
+
+# the interface (gum menus, hearts, the "stream chat"); plain prompts without a terminal
+# shellcheck source=installer/tui.sh
+source "$ROOT/installer/tui.sh"
 
 TMP_FILES=()
 cleanup() { ((${#TMP_FILES[@]})) && rm -f -- "${TMP_FILES[@]}"; return 0; }
@@ -269,7 +307,40 @@ choose_keyboard() {
 
   # asked here or given: the setup wizard won't ask again (apply_setup_answers)
   if ((INTERACTIVE)) || given KB_LAYOUTS; then KB_ASKED=1; fi
-  if ((INTERACTIVE)) && ! given KB_LAYOUTS; then
+  if ((INTERACTIVE)) && ! given KB_LAYOUTS && ((TUI)); then
+    tui_section "$(_ 'Keyboard layouts' 'Раскладки клавиатуры')" \
+      "$(_ 'Tick the ones you type in (space ticks, enter goes on).' 'Отметь те, на которых печатаешь (пробел — отметить, Enter — дальше).')"
+    local labels=() picked first other
+    for code in "${KB_MENU[@]}"; do labels+=("$(printf '%-3s %s' "$code" "${KB_NAME[$code]}")"); done
+    labels+=("$(_ '✎ another XKB code…' '✎ другой XKB-код…')")
+    while :; do
+      picked="$(ui_choose_many "$(_ 'Layouts' 'Раскладки')" "1 2" "${labels[@]}")"
+      reply=""
+      for n in $picked; do
+        if ((n == ${#labels[@]})); then
+          other="$(ui_input "$(_ 'XKB codes, e.g. se jp' 'XKB-коды, например se jp')" "")"
+          reply+=" $other"
+        else
+          reply+=" ${KB_MENU[n-1]}"
+        fi
+      done
+      reply="${reply# }"
+      [[ -n "$reply" ]] || reply="us ru"
+      if KB_LAYOUTS="$(kb_parse_layouts "$reply")"; then break; fi
+      bad="$KB_LAYOUTS"
+      warn "$(_ "Unknown layout: $bad" "Неизвестная раскладка: $bad")"
+      KB_LAYOUTS=us,ru
+    done
+    # the first one is active after login
+    IFS=, read -r -a picked <<<"$KB_LAYOUTS"
+    if ((${#picked[@]} > 1)); then
+      labels=()
+      for code in "${picked[@]}"; do labels+=("$code  ${KB_NAME[$code]:-}"); done
+      first="$(ui_choose "$(_ 'Which one is on after login?' 'Какая включена после входа?')" 1 "${labels[@]}")"
+      KB_LAYOUTS="${picked[first-1]}"
+      for i in "${!picked[@]}"; do ((i == first - 1)) || KB_LAYOUTS+=",${picked[i]}"; done
+    fi
+  elif ((INTERACTIVE)) && ! given KB_LAYOUTS; then
     hr
     _ "Keyboard layouts" "Раскладки клавиатуры"; echo
     _ "Pick the layouts you type in, in order. The first one is active after login." \
@@ -296,7 +367,13 @@ choose_keyboard() {
   IFS=, read -r -a KB_LIST <<<"$KB_LAYOUTS"
 
   if ((${#KB_LIST[@]} > 1)); then
-    if ((INTERACTIVE)) && ! given KB_TOGGLE; then
+    if ((INTERACTIVE)) && ! given KB_TOGGLE && ((TUI)); then
+      local toggles=()
+      for entry in "${KB_TOGGLES[@]}"; do IFS='|' read -r id label opt <<<"$entry"; toggles+=("$label"); done
+      tui_note "$(_ '(Win+Space is skipped on purpose: it opens the launcher.)' '(Win+Space намеренно не предлагается: это запуск лаунчера.)')"
+      reply="$(ui_choose "$(_ 'Shortcut to switch layouts' 'Сочетание для переключения раскладки')" 1 "${toggles[@]}")"
+      IFS='|' read -r KB_TOGGLE label opt <<<"${KB_TOGGLES[reply-1]}"
+    elif ((INTERACTIVE)) && ! given KB_TOGGLE; then
       hr
       _ "Shortcut to switch between layouts" "Сочетание для переключения раскладки"; echo
       for i in "${!KB_TOGGLES[@]}"; do
@@ -340,34 +417,45 @@ choose_keyboard() {
 ask_profile() {
   local answer
   ((INTERACTIVE)) || return 0
+  tui_boot
   if ! given DOTFILES_MODE; then
-    hr
-    _ "Profile" "Профиль"; echo
-    _ "  1) full  – desktop styling, angelOS shell, pixel fonts and icons, wallpapers" \
-      "  1) full  – оформление, оболочка angelOS, пиксельные шрифты и иконки, обои"; echo
-    _ "  2) tech  – minimal: Niri config and helper tools only" \
-      "  2) tech  – минимум: конфиг Niri и утилиты"; echo
-    read -r -p "$(_ 'Profile' 'Профиль') [1]: " answer || true
-    MODE="${answer:-1}"
+    answer="$(ui_choose "$(_ 'Profile' 'Профиль')" 1 \
+      "$(_ 'full  – the whole look: angelOS, fonts, icons, wallpapers, the apps' 'full  – весь образ: angelOS, шрифты, значки, обои, программы')" \
+      "$(_ 'tech  – minimal: the Niri config and helper tools only' 'tech  – минимум: конфиг Niri и утилиты')")"
+    MODE="$answer"
   fi
   if [[ "$MODE" == 1 || "$MODE" == full ]] && ! given DESKTOP_SHELL && ! given NOCTALIA; then
-    _ "Desktop shell" "Оболочка рабочего стола"; echo
-    _ "  1) angelOS  – pixel pink Quickshell shell: bar, lyrics, widgets, settings (recommended)" \
-      "  1) angelOS  – пиксельная розовая оболочка на Quickshell: панель, лирика, виджеты, настройки (рекомендуется)"; echo
-    _ "  2) Noctalia – the previous shell" \
-      "  2) Noctalia – прежняя оболочка"; echo
-    _ "  3) none     – plain niri" \
-      "  3) нет      – голый niri"; echo
-    read -r -p "$(_ 'Shell' 'Оболочка') [1]: " answer || true
-    case "${answer:-1}" in
-      2|noctalia) DESKTOP_SHELL=noctalia ;;
-      3|none) DESKTOP_SHELL=none ;;
+    answer="$(ui_choose "$(_ 'Desktop shell' 'Оболочка рабочего стола')" 1 \
+      "$(_ 'angelOS  – the pastel Quickshell shell: bar, Dock, widgets, settings (recommended)' 'angelOS  – пастельная оболочка на Quickshell: панель, Dock, виджеты, настройки (рекомендуется)')" \
+      "$(_ 'Noctalia – the previous shell' 'Noctalia – прежняя оболочка')" \
+      "$(_ 'none     – plain niri' 'нет      – голый niri')")"
+    case "$answer" in
+      2) DESKTOP_SHELL=noctalia ;;
+      3) DESKTOP_SHELL=none ;;
       *) DESKTOP_SHELL=angelos ;;
     esac
   fi
+  if [[ "${DESKTOP_SHELL:-angelos}" == angelos && ("$MODE" == 1 || "$MODE" == full) ]] && ! given ANGELOS_THEME; then
+    tui_section "$(_ 'Theme' 'Тема')" \
+      "$(_ 'Pixel: the pink pixel desktop — Start, lyrics, the angel. macOS (Golden Gate): Dock, menu bar,' 'Pixel: розовый пиксельный стол — «Пуск», лирика, ангел. macOS (Golden Gate): Dock, строка меню,')" \
+      "$(_ 'Liquid Glass, Mac sounds and ⌘ keys. Switch any time: Settings → Appearance.' 'Liquid Glass, маковские звуки и клавиши ⌘. Сменить можно когда угодно: Настройки → Оформление.')"
+    answer="$(ui_choose "$(_ 'Which look?' 'Какой образ?')" 1 \
+      "$(_ 'Pixel  – angelOS, pink pixels ♡' 'Pixel  – angelOS, розовые пиксели ♡')" \
+      "$(_ 'macOS  – Golden Gate: Dock, Liquid Glass, Mac keys' 'macOS  – Golden Gate: Dock, Liquid Glass, клавиши Mac')")"
+    [[ "$answer" == 2 ]] && ANGELOS_THEME=macos || ANGELOS_THEME=pixel
+    # shellcheck disable=SC2034  # read through given()
+    GIVEN_ANGELOS_THEME=1
+    if [[ "$ANGELOS_THEME" == macos ]] && ! given MAC_KEYS; then
+      ui_confirm "$(_ 'Mac shortcuts too? ⌘Q quits, ⌘W closes, ⌘M minimizes to the Dock, ⌘Space is Spotlight, ⌘Tab switches apps (⌘ = the Super key; tiling moves to Super+Alt)' \
+                      'И маковские сочетания? ⌘Q — завершить, ⌘W — закрыть, ⌘M — свернуть в Dock, ⌘Пробел — Spotlight, ⌘Tab — программы (⌘ — клавиша Super; тайлинг уходит на Super+Alt)')" y \
+        && MAC_KEYS=1 || MAC_KEYS=0
+      # shellcheck disable=SC2034  # read through given()
+      GIVEN_MAC_KEYS=1
+    fi
+  fi
   if [[ "${DESKTOP_SHELL:-angelos}" == angelos && ("$MODE" == 1 || "$MODE" == full) ]] && ! given ANGELOS_GAME; then
-    confirm "$(_ 'angelOS is also a game played over your desktop: an angel in the corner, and a story that follows your choices. Play it? (No = plain dotfiles; `angelos game on|off` changes it later)' \
-                 'angelOS — это ещё и игра поверх рабочего стола: ангел в углу и история, которая идёт за твоими выборами. Играть? (Нет — обычные дотфайлы; потом: `angelos game on|off`)')" y \
+    ui_confirm "$(_ 'angelOS is also a game played over your desktop: an angel in the corner, and a story that follows your choices. Play it? (No = plain dotfiles; `angelos game on|off` changes it later)' \
+                    'angelOS — это ещё и игра поверх рабочего стола: ангел в углу и история, которая идёт за твоими выборами. Играть? (Нет — обычные дотфайлы; потом: `angelos game on|off`)')" y \
       && ANGELOS_GAME=1 || ANGELOS_GAME=0
     # shellcheck disable=SC2034  # read through given()
     GIVEN_ANGELOS_GAME=1
@@ -375,34 +463,122 @@ ask_profile() {
   if [[ "$MODE" == 1 || "$MODE" == full ]] && ! given INSTALL_WALLPAPERS && ! given WALLPAPER_PACKS; then
     choose_wallpapers
   fi
+  if ! given FISH_DEFAULT && ((FISH_WAS_INSTALLED == 0)) && [[ "$SKIP_PACKAGES" != 1 ]]; then
+    ui_confirm "$(_ 'fish is not installed. Install it with the pure prompt, fastfetch, eza and fzf, and make it your login shell?' \
+                    'fish не установлен. Поставить его (prompt pure, fastfetch, eza, fzf) и сделать оболочкой входа?')" y \
+      && FISH_DEFAULT=1 || FISH_DEFAULT=0
+    # shellcheck disable=SC2034  # read through given()
+    GIVEN_FISH_DEFAULT=1
+  fi
+  if [[ "$MODE" == 1 || "$MODE" == full ]] && ! given INSTALL_APPS && ! given APPS && [[ "$SKIP_PACKAGES" != 1 ]]; then
+    choose_apps
+  fi
   if ! given INSTALL_VOXTYPE; then
-    confirm "$(_ 'Install offline voice input (Voxtype + ~1.6 GB Whisper model)?' \
-                 'Поставить голосовой ввод (Voxtype + модель Whisper ~1.6 ГБ)?')" y \
+    ui_confirm "$(_ 'Install offline voice input (Voxtype + ~1.6 GB Whisper model)?' \
+                    'Поставить голосовой ввод (Voxtype + модель Whisper ~1.6 ГБ)?')" y \
       && { INSTALL_VOXTYPE=1; DOWNLOAD_VOXTYPE_MODEL=1; } || { INSTALL_VOXTYPE=0; DOWNLOAD_VOXTYPE_MODEL=0; }
   fi
   if ! given INSTALL_SDDM; then
-    confirm "$(_ 'Install the SDDM login screen with the pixel-cyberpunk theme?' \
-                 'Поставить экран входа SDDM с темой pixel-cyberpunk?')" "$( ((INSTALL_SDDM)) && echo y || echo n)" \
+    ui_confirm "$(_ 'Install the SDDM login screen with the pixel-cyberpunk theme?' \
+                    'Поставить экран входа SDDM с темой pixel-cyberpunk?')" "$( ((INSTALL_SDDM)) && echo y || echo n)" \
       && INSTALL_SDDM=1 || INSTALL_SDDM=0
   fi
   if ! given INSTALL_TOOLS && [[ "$SKIP_PACKAGES" != 1 && -s "$ROOT/packages/tools.txt" ]]; then
     local tools
     tools="$(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/tools.txt" | head -8 | paste -sd',' - | sed 's/,/, /g')…"
-    confirm "$(_ "Also install small everyday tools ($tools, packages/tools.txt)?" \
-                 "Поставить ещё мелкие утилиты на каждый день ($tools, packages/tools.txt)?")" "$( ((INSTALL_TOOLS)) && echo y || echo n)" \
+    ui_confirm "$(_ "Also install small everyday tools ($tools, packages/tools.txt)?" \
+                    "Поставить ещё мелкие утилиты на каждый день ($tools, packages/tools.txt)?")" "$( ((INSTALL_TOOLS)) && echo y || echo n)" \
       && INSTALL_TOOLS=1 || INSTALL_TOOLS=0
   fi
   if [[ "$MODE" == 1 || "$MODE" == full ]] && ! given INSTALL_FLATPAK && [[ -s "$ROOT/packages/flatpak-apps.txt" ]]; then
-    confirm "$(_ "Also install these apps from Flathub: $(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/flatpak-apps.txt" | sed 's/.*\.//' | paste -sd, -)?" \
-                 "Поставить ещё и эти программы из Flathub: $(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/flatpak-apps.txt" | sed 's/.*\.//' | paste -sd, -)?")" n \
+    ui_confirm "$(_ "Also install these apps from Flathub: $(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/flatpak-apps.txt" | sed 's/.*\.//' | paste -sd, -)?" \
+                    "Поставить ещё и эти программы из Flathub: $(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/flatpak-apps.txt" | sed 's/.*\.//' | paste -sd, -)?")" n \
       && INSTALL_FLATPAK=1 || INSTALL_FLATPAK=0
   fi
+  local m="$MODE"; [[ "$m" == 1 ]] && m=full; [[ "$m" == 2 ]] && m=tech
+  tui_section "$(_ 'Ready to go live' 'Готовы к эфиру')" \
+    "$(_ "profile $m · shell ${DESKTOP_SHELL} · theme ${ANGELOS_THEME} · the layouts come next" \
+         "профиль $m · оболочка ${DESKTOP_SHELL} · тема ${ANGELOS_THEME} · дальше — раскладки")"
+}
+
+# ── The author's apps (full profile) ─────────────────────────────────────────
+
+# id|package|kind|English|Russian. The packages come from packages/apps.txt (pacman) and
+# packages/apps-flatpak.txt (Flathub); the labels for the menu live here (unknown ones show the name).
+declare -A APP_LABEL=(
+  [helium-browser-bin]="Helium — the browser in the Dock|Helium — браузер в Dock"
+  [telegram-desktop]="Telegram (angelOS themes it)|Telegram (angelOS его тематизирует)"
+  [spotify-launcher]="Spotify (the bar's lyrics follow it)|Spotify (лирика на панели идёт за ним)"
+  [obsidian]="Obsidian — notes|Obsidian — заметки"
+  [qview]="qView — the picture viewer|qView — просмотр картинок"
+  [mpv]="mpv — the video player|mpv — видеоплеер"
+  [localsend]="LocalSend — files to the phone|LocalSend — файлы на телефон"
+  [com.discordapp.Discord]="Discord (Flathub, as in the Dock)|Discord (Flathub, как в Dock)"
+)
+APP_LIST=()
+load_apps() {
+  local pkg kind file id label
+  APP_LIST=()
+  for kind in pacman flatpak; do
+    file="$ROOT/packages/apps.txt"; [[ "$kind" == flatpak ]] && file="$ROOT/packages/apps-flatpak.txt"
+    [[ -f "$file" ]] || continue
+    while IFS= read -r pkg; do
+      id="${pkg,,}"; id="${id##*.}"; id="${id%%-*}"
+      label="${APP_LABEL[$pkg]:-$pkg|$pkg}"
+      APP_LIST+=("$id|$pkg|$kind|$label")
+    done < <(grep -Ev '^[[:space:]]*(#|$)' "$file")
+  done
+}
+
+choose_apps() {
+  local labels=() entry id pkg kind en ru picked n all=""
+  load_apps
+  for entry in "${APP_LIST[@]}"; do
+    IFS='|' read -r id pkg kind en ru <<<"$entry"
+    labels+=("$(_ "$en" "$ru")")
+    all+="${#labels[@]} "
+  done
+  tui_section "$(_ 'The apps from the screenshots' 'Программы со скриншотов')" \
+    "$(_ 'What the author has in the Dock and on the stream. All ticked; untick what you do not want.' \
+         'То, что у автора в Dock и на стриме. Всё отмечено — сними лишнее.')"
+  picked="$(ui_choose_many "$(_ 'Apps' 'Программы')" "$all" "${labels[@]}")"
+  APPS=""
+  for n in $picked; do
+    IFS='|' read -r id pkg kind en ru <<<"${APP_LIST[n-1]}"
+    APPS+="${APPS:+,}$id"
+  done
+  if [[ -n "$APPS" ]]; then INSTALL_APPS=1; else INSTALL_APPS=0; APPS=none; fi
+}
+
+# APPS → the chosen entries of APP_LIST, one per line
+chosen_apps() {
+  local entry id want
+  load_apps
+  case "${APPS,,}" in ""|none|0|no) return 0 ;; esac
+  for entry in "${APP_LIST[@]}"; do
+    id="${entry%%|*}"
+    if [[ "${APPS,,}" == all ]]; then echo "$entry"; continue; fi
+    for want in ${APPS//,/ }; do [[ "${want,,}" == "$id" ]] && echo "$entry"; done
+  done
 }
 
 # ── Wallpaper packs ──────────────────────────────────────────────────────────
 
 choose_wallpapers() {
   local i entry id count mb en ru answer total=0 picked=()
+  if ((TUI)); then
+    local labels=() all="" n
+    for i in "${!WALLPAPER_LIST[@]}"; do
+      IFS='|' read -r id count mb en ru <<<"${WALLPAPER_LIST[i]}"
+      labels+=("$(printf '%-27s %s' "$id" "$(_ "$count pictures, ~$mb MB — $en" "$count картинок, ~$mb МБ — $ru")")")
+      all+="$((i + 1)) "
+    done
+    tui_section "$(_ 'Wallpaper packs' 'Паки обоев')" "$(_ "downloaded from $WALLPAPERS_REPO; none = only the 3 default pictures" \
+                                                          "скачиваются из $WALLPAPERS_REPO; ничего — только 3 картинки по умолчанию")"
+    for n in $(ui_choose_many "$(_ 'Packs' 'Паки')" "$all" "${labels[@]}"); do picked+=("${WALLPAPER_LIST[n-1]%%|*}"); done
+    if ((${#picked[@]})); then WALLPAPER_PACKS="$(IFS=,; echo "${picked[*]}")"; else WALLPAPER_PACKS=none; fi
+    return 0
+  fi
   _ "Wallpaper packs (downloaded from $WALLPAPERS_REPO)" "Паки обоев (скачиваются из $WALLPAPERS_REPO)"; echo
   for i in "${!WALLPAPER_LIST[@]}"; do
     IFS='|' read -r id count mb en ru <<<"${WALLPAPER_LIST[i]}"
@@ -481,6 +657,25 @@ normalize_mode() {
 
 # ── Packages ─────────────────────────────────────────────────────────────────
 
+# names on stdin → the ones the configured repositories have; the rest are skipped with a word
+# (a few live only in CachyOS's repositories: on Arch Linux they are the AUR's, which we don't use)
+available_only() {
+  local pkg
+  while IFS= read -r pkg; do
+    if pacman -Si -- "$pkg" >/dev/null 2>&1 || pacman -Q -- "$pkg" >/dev/null 2>&1; then
+      echo "$pkg"
+    else
+      warn "$(_ "$pkg is not in your repositories (CachyOS has it): skipped" "$pkg нет в ваших репозиториях (он есть в CachyOS): пропущен")"
+    fi
+  done
+}
+
+# Will ~/.config/nvim be the LazyVim config of this repository? (as install_configs decides)
+nvim_will_be_ours() {
+  [[ ! -e "$HOME_DIR/.config/nvim" ]] && return 0
+  [[ -f "$MANIFEST" ]] && grep -q '  \.config/nvim/init\.lua$' "$MANIFEST"
+}
+
 pacman_install() {
   local list="$ROOT/packages/pacman.txt" pkg code
   command -v pacman >/dev/null 2>&1 || { warn "$(_ 'pacman not found; skipping system packages' 'pacman не найден; системные пакеты пропущены')"; return 0; }
@@ -497,6 +692,19 @@ pacman_install() {
   fi
   if [[ "$INSTALL_TOOLS" == 1 && -f "$ROOT/packages/tools.txt" ]]; then
     mapfile -t -O "${#packages[@]}" packages < <(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/tools.txt")
+  fi
+  # fish and its look (pure, fastfetch, eza, fzf…); CachyOS's own config package is skipped on Arch
+  if [[ "$INSTALL_TOOLS" == 1 || "$FISH_DEFAULT" == 1 ]] && [[ -f "$ROOT/packages/fish.txt" ]]; then
+    mapfile -t -O "${#packages[@]}" packages < <(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/fish.txt" | available_only)
+  fi
+  # what LazyVim needs (it installs its plugins itself on the first start) — only with our config
+  if nvim_will_be_ours && [[ -f "$ROOT/packages/nvim.txt" ]]; then
+    mapfile -t -O "${#packages[@]}" packages < <(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/nvim.txt")
+  fi
+  # the author's apps (full profile, asked): the pacman ones here, Flathub's in install_apps
+  if [[ "$INSTALL_APPS" == 1 ]]; then
+    mapfile -t -O "${#packages[@]}" packages < <(chosen_apps | awk -F'|' '$3 == "pacman" {print $2}' | available_only)
+    chosen_apps | grep -q '|flatpak|' && packages+=(flatpak)
   fi
 
   # OCR language packs follow the chosen keyboard layouts.
@@ -687,6 +895,7 @@ install_file() {
   fi
   tmp="$(mktemp)"; TMP_FILES+=("$tmp")
   render "$src" "$tmp"
+  [[ "$rel" == .config/niri/cfg/keybinds.kdl ]] && key_profile_into "$tmp" "$dst"
   if [[ -e "$dst" ]] && cmp -s -- "$tmp" "$dst"; then
     NEW_SUM["$rel"]="$(sum_of "$tmp")"
     N_UNCHANGED=$((N_UNCHANGED + 1)); return 0
@@ -706,6 +915,21 @@ install_file() {
   chmod --reference="$src" "$dst"
   NEW_SUM["$rel"]="$(sum_of "$dst")"
   N_INSTALLED=$((N_INSTALLED + 1))
+}
+
+# The theme's niri keys: cfg/keybinds.kdl picks the pixel or the Mac profile (angelOS's
+# scripts/keyprofile.py switches it when the theme changes later). The installed copy of the
+# selector already says the chosen one: ANGELOS_THEME when asked or given, else the profile
+# the installed selector has now — an update never flips someone's Mac keys back.
+key_profile_into() { # rendered-file installed-file
+  local want=pixel
+  if given ANGELOS_THEME; then
+    [[ "$DESKTOP_SHELL" == angelos && "$ANGELOS_THEME" == macos && "$MAC_KEYS" == 1 ]] && want=macos
+  elif [[ -f "$2" ]] && grep -Eq '^[[:space:]]*include "(\./)?keybinds-macos\.kdl"' "$2"; then
+    want=macos
+  fi
+  [[ "$want" == macos ]] && sed -i 's/keybinds-pixel\.kdl/keybinds-macos.kdl/' "$1"
+  return 0
 }
 
 # Where does repo file $1 go for the chosen options? Prints nothing to skip it.
@@ -940,6 +1164,9 @@ enable_services() {
   command -v systemctl >/dev/null 2>&1 || { warn "$(_ 'systemctl not found; user services not enabled' 'systemctl не найден; user-сервисы не включены')"; return 0; }
   systemctl --user daemon-reload || true
   systemctl --user enable niri-game-mode.service || true
+  # a password dialog even when the shell's own polkit agent is not up (hyprpolkitagent as the fallback)
+  [[ -f "$HOME_DIR/.config/systemd/user/polkit-agent-guard.service" ]] &&
+    { systemctl --user enable polkit-agent-guard.service || true; }
   if [[ -x "$HOME_DIR/.local/bin/voxtype" ]]; then
     systemctl --user enable voxtype.service voxtype-indicator.service || true
   fi
@@ -966,12 +1193,14 @@ apply_setup_answers() {
     [[ "$ANGELOS_GAME" == 0 || "$ANGELOS_GAME" == 1 ]] || die "ANGELOS_GAME must be 0 or 1"
     game="$ANGELOS_GAME"
   fi
-  [[ -n "$game" || -n "${KB_ASKED:-}" ]] || return 0
+  local theme=""
+  given ANGELOS_THEME && theme="$ANGELOS_THEME"
+  [[ -n "$game" || -n "${KB_ASKED:-}" || -n "$theme" ]] || return 0
   local f="$HOME_DIR/.config/angelos/settings.json"
   mkdir -p -- "${f%/*}"
-  python3 - "$f" "$game" "${KB_ASKED:-}" <<'PY' || warn "$(_ 'Could not write the answers into settings.json' 'Не удалось записать ответы в settings.json')"
+  python3 - "$f" "$game" "${KB_ASKED:-}" "$theme" "$MAC_KEYS" <<'PY' || warn "$(_ 'Could not write the answers into settings.json' 'Не удалось записать ответы в settings.json')"
 import json, os, sys, tempfile
-path, game, kb = sys.argv[1], sys.argv[2], sys.argv[3] == "1"
+path, game, kb, theme, mac_keys = sys.argv[1], sys.argv[2], sys.argv[3] == "1", sys.argv[4], sys.argv[5] == "1"
 d = {}
 if os.path.exists(path):
     with open(path) as f:
@@ -983,6 +1212,13 @@ if game:
 # only before the wizard is done (an update passes the layouts on too: nothing to write then)
 if kb and not d.get("setup", {}).get("complete"):
     d.setdefault("setup", {})["keyboardAsked"] = True
+# the look: pixel = angelOS's classic skin, macos = Golden Gate; picked = the wizard won't ask
+if theme:
+    ui = d.setdefault("settingsUi", {})
+    ui["skin"] = "goldengate" if theme == "macos" else "classic"
+    ui["skinChosen"] = True
+    if theme == "macos":
+        d.setdefault("mac", {})["keys"] = mac_keys
 if json.dumps(d, sort_keys=True) == before:
     sys.exit(0)
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".settings-")
@@ -1018,6 +1254,75 @@ install_shell() {
   fi
 }
 
+# fish as the login shell (FISH_DEFAULT): fish installed by this run is added to /etc/shells
+# and made the login shell; one that was there before is left as it is unless asked for.
+# SYSROOT (tests): /etc/shells under it and a log line instead of chsh.
+setup_fish_shell() {
+  [[ "$FISH_DEFAULT" == 1 ]] || return 0
+  if ((FISH_WAS_INSTALLED)) || [[ "$SKIP_PACKAGES" == 1 ]]; then given FISH_DEFAULT || return 0; fi
+  local fish shells="$SYSROOT/etc/shells" user current
+  fish="$(command -v fish 2>/dev/null || true)"
+  if [[ -z "$fish" ]]; then
+    warn "$(_ 'fish is not installed: the login shell stays as it is' 'fish не установлен: оболочка входа остаётся прежней')"
+    return 0
+  fi
+  user="$(id -un)"
+  if ! grep -qx -- "$fish" "$shells" 2>/dev/null; then
+    as_root mkdir -p -- "${shells%/*}"
+    printf '%s\n' "$fish" | as_root tee -a -- "$shells" >/dev/null
+    say "$(_ "$fish added to /etc/shells" "$fish добавлен в /etc/shells")"
+  fi
+  if [[ -n "$SYSROOT" ]]; then
+    printf '%s %s\n' "$user" "$fish" >>"$SYSROOT/chsh.log"
+  else
+    current="$(getent passwd "$user" | cut -d: -f7)"
+    if [[ "$current" == "$fish" ]]; then
+      say "$(_ 'fish is your login shell already' 'fish уже оболочка входа')"; return 0
+    fi
+    as_root chsh -s "$fish" "$user" ||
+      { warn "$(_ "Could not change the login shell: chsh -s $fish" "Не удалось сменить оболочку входа: chsh -s $fish")"; return 0; }
+  fi
+  say "$(_ 'fish is your login shell from the next login ♡' 'fish — оболочка входа со следующего входа ♡')"
+  fish_prompt_fallback
+}
+
+# Arch Linux has no fish-pure-prompt package: fisher fetches the same prompt (and done) instead
+fish_prompt_fallback() {
+  [[ -n "$SYSROOT" ]] && return 0
+  [[ -d /usr/share/fish/vendor_functions.d && -f /usr/share/fish/vendor_functions.d/fish_prompt.fish ]] && return 0
+  command -v fish >/dev/null 2>&1 && fish -c 'type -q fisher' 2>/dev/null || return 0
+  fish -c 'fisher install pure-fish/pure franciscolourenco/done jorgebucaran/autopair.fish' >/dev/null 2>&1 &&
+    say "$(_ 'fish: the pure prompt installed with fisher' 'fish: prompt pure поставлен через fisher')" ||
+    warn "$(_ 'fisher could not fetch the pure prompt (offline?): fish keeps its own prompt' 'fisher не скачал prompt pure (нет сети?): у fish останется свой prompt')"
+}
+
+# the author's apps from Flathub (the pacman ones went with the packages)
+install_apps() {
+  [[ "$INSTALL_APPS" == 1 && "$SKIP_PACKAGES" != 1 ]] || return 0
+  local ids=()
+  mapfile -t ids < <(chosen_apps | awk -F'|' '$3 == "flatpak" {print $2}')
+  ((${#ids[@]})) || return 0
+  command -v flatpak >/dev/null 2>&1 || { warn "$(_ 'flatpak not found: Flathub apps skipped' 'flatpak не найден: программы из Flathub пропущены')"; return 0; }
+  flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+  flatpak --user install -y --noninteractive flathub "${ids[@]}" ||
+    warn "$(_ "Flathub apps did not install: ${ids[*]}" "Программы из Flathub не установились: ${ids[*]}")"
+  return 0
+}
+
+# gum draws the interface; it is installed before the first question (or plain prompts stay)
+bootstrap_tui() {
+  ((INTERACTIVE)) || return 0
+  if [[ "${NO_TUI:-0}" != 1 ]] && ! command -v gum >/dev/null 2>&1 && [[ "$SKIP_PACKAGES" != 1 ]] &&
+     command -v pacman >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+    say "$(_ "The installer's interface is drawn with gum (a small tool from the official repositories)." \
+             'Интерфейс установщика рисует gum (маленькая утилита из официальных репозиториев).')"
+    if confirm "$(_ 'Install gum now? (No = plain text prompts)' 'Поставить gum сейчас? (Нет — обычные текстовые вопросы)')" y; then
+      sudo pacman -S --needed gum || warn "$(_ 'gum did not install: plain prompts it is' 'gum не установился: будут обычные вопросы')"
+    fi
+  fi
+  tui_detect
+}
+
 # A config niri refuses would leave the next login without a desktop: the run
 # ends with an error (after the summary) instead of "Done".
 NIRI_INVALID=0
@@ -1039,6 +1344,12 @@ validate() {
 summary() {
   hr
   say "$(_ 'Done.' 'Готово.')  profile=${MODE}  shell=${DESKTOP_SHELL}  home=${HOME_DIR}"
+  if [[ "$DESKTOP_SHELL" == angelos ]] && given ANGELOS_THEME; then
+    say "$(_ "Theme: $ANGELOS_THEME (later: Settings → Appearance)" "Тема: $ANGELOS_THEME (потом: Настройки → Оформление)")"
+  fi
+  if [[ "$INSTALL_APPS" == 1 ]]; then
+    say "$(_ "Apps: $APPS" "Программы: $APPS")"
+  fi
   if [[ "$DESKTOP_SHELL" == angelos ]]; then
     say "$(_ 'angelOS: on the first login a setup wizard and interface tips open by themselves;' \
              'angelOS: при первом входе сами откроются мастер настройки и подсказки по интерфейсу;')"
@@ -1062,6 +1373,11 @@ summary() {
   fi
   say "$(_ 'Cheat sheet: Mod+Shift+Esc  (Mod = Super/Windows key)' \
            'Шпаргалка по клавишам: Mod+Shift+Esc  (Mod = клавиша Super/Windows)')"
+  if ((TUI)); then
+    tui_section "$(_ 'thanks for watching ♡' 'спасибо, что смотрели ♡')" \
+      "$(_ 'log out and pick niri in the login screen — see you on the desktop' 'выйди из сеанса и выбери niri на экране входа — увидимся на рабочем столе')"
+    chat_line
+  fi
 }
 
 # Settings → Updates of shells older than their own restart prompt runs the
@@ -1143,25 +1459,47 @@ offer_author_tools() {
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+bootstrap_tui
 ask_profile
 normalize_mode
 [[ "$MODE" == tech ]] && ! given DESKTOP_SHELL && ! given NOCTALIA && DESKTOP_SHELL=none
 [[ "$DESKTOP_SHELL" =~ ^(angelos|noctalia|none)$ ]] || die "DESKTOP_SHELL must be angelos, noctalia or none"
 [[ "$DESKTOP_SHELL" == noctalia ]] && NOCTALIA=1 || NOCTALIA=0
+case "${ANGELOS_THEME,,}" in
+  pixel|classic|angelos) ANGELOS_THEME=pixel ;;
+  macos|mac|goldengate|golden-gate) ANGELOS_THEME=macos ;;
+  *) die "$(_ "ANGELOS_THEME must be pixel or macos (got: $ANGELOS_THEME)" "ANGELOS_THEME должен быть pixel или macos (получено: $ANGELOS_THEME)")" ;;
+esac
+[[ "$FISH_DEFAULT" == 0 || "$FISH_DEFAULT" == 1 ]] || die "FISH_DEFAULT must be 0 or 1"
+[[ "$MAC_KEYS" == 0 || "$MAC_KEYS" == 1 ]] || die "MAC_KEYS must be 0 or 1"
+[[ "$INSTALL_APPS" == 0 || "$INSTALL_APPS" == 1 ]] || die "INSTALL_APPS must be 0 or 1"
+# APPS given alone means "these ones, please"
+given APPS && ! given INSTALL_APPS && [[ "${APPS,,}" != none ]] && INSTALL_APPS=1
 choose_keyboard
 
-pacman_install
-install_noctalia
-install_configs
-install_shell
-install_assets
-install_noctalia_defaults
-install_voxtype
-install_voxtype_model
-install_flatpak
-install_sddm
-enable_services
-validate
+# step|English|Russian — the hearts bar counts them (on a terminal; a log stays as it was)
+STEPS=(
+  "pacman_install|packages (pacman -Syu)|пакеты (pacman -Syu)"
+  "install_noctalia|Noctalia|Noctalia"
+  "install_configs|configs|конфиги"
+  "install_shell|angelOS|angelOS"
+  "install_assets|fonts, icons, wallpapers|шрифты, значки, обои"
+  "install_noctalia_defaults|Noctalia defaults|настройки Noctalia"
+  "install_voxtype|Voxtype|Voxtype"
+  "install_voxtype_model|the Whisper model|модель Whisper"
+  "install_flatpak|Flathub|Flathub"
+  "install_apps|the apps|программы"
+  "setup_fish_shell|fish|fish"
+  "install_sddm|the login screen|экран входа"
+  "enable_services|user services|user-сервисы"
+  "validate|niri validate|niri validate"
+)
+for i in "${!STEPS[@]}"; do
+  IFS='|' read -r step en ru <<<"${STEPS[i]}"
+  ui_progress "$i" "${#STEPS[@]}" "$(_ "$en" "$ru")"
+  "$step"
+done
+ui_progress "${#STEPS[@]}" "${#STEPS[@]}" "$(_ 'stream complete ♡' 'стрим завершён ♡')"
 offer_author_tools
 summary
 ((NIRI_INVALID == 0)) || die "$(_ 'Niri config failed validation; see: niri validate -c ~/.config/niri/config.kdl' \

@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.config
+import qs.services
 import qs.widgets
 import "."
 
@@ -8,7 +9,7 @@ Column {
     id: root
     property var plugin
     width: parent ? parent.width : 400
-    spacing: Theme.u * 5
+    spacing: Skin.px(10)
 
     PxGroup {
         title: I18n.t("Сейчас", "Current")
@@ -31,7 +32,7 @@ Column {
             text: I18n.t("Из логов самого Codex (~/.codex/sessions): лимиты, которые провайдер прислал с последним ответом, и счётчики токенов. Переписка не читается, сеть не используется. При входе через ChatGPT есть окна 5 ч / неделя и кредиты; по API-ключу или у сторонних провайдеров лимитов может не быть — тогда видны токены за сегодня.", "From Codex's own logs (~/.codex/sessions): the limits the provider sent with its last answer, and token counters. Conversations are not read and nothing goes over the network. A ChatGPT login reports 5-hour / weekly windows and credits; an API key or a third-party provider may report none, then today's tokens are shown.")
         }
         Row {
-            spacing: Theme.u * 4
+            spacing: Skin.px(8)
             PxText {
                 anchors.verticalCenter: parent.verticalCenter
                 text: I18n.t("вход: ", "login: ") + (CodexState.data.auth === "chatgpt" ? "ChatGPT ♡" : CodexState.data.auth === "apikey" ? I18n.t("API-ключ", "API key") : (CodexState.data.auth || "—"))

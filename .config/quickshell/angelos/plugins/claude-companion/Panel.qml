@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 import "."
 
@@ -11,7 +12,7 @@ Column {
 
     property var plugin
     property string tab: "limits"
-    spacing: Theme.u * 4
+    spacing: Skin.px(8)
 
     PxSegmented {
         model: [
@@ -37,7 +38,7 @@ Column {
     }
 
     Row {
-        spacing: Theme.u * 4
+        spacing: Skin.px(8)
         Breath {
             plugin: root.plugin
             pixel: Theme.u * 2
@@ -60,6 +61,7 @@ Column {
     Limits {
         visible: root.tab === "limits"
         width: parent.width
+        mac: Skin.mac && !Skin.hell
     }
     PxButton {
         visible: root.tab === "limits"
@@ -70,20 +72,20 @@ Column {
     }
 
     // answer
-    PxBox {
+    SkinCard {
         visible: root.tab === "answer"
         width: parent.width
-        height: Theme.u * 110
+        height: Skin.px(220)
         sunken: true
-        color: Qt.alpha(Theme.sunken, 0.8)
+        padding: Skin.px(6)
+        pixelColor: Qt.alpha(Theme.sunken, 0.8)
         PxScroll {
             anchors.fill: parent
-            anchors.margins: Theme.u * 3
             contentHeight: ans.implicitHeight
             Column {
                 id: ans
                 width: parent.width
-                spacing: Theme.u * 3
+                spacing: Skin.px(6)
                 PxText {
                     width: parent.width
                     wrapMode: Text.Wrap
@@ -94,7 +96,7 @@ Column {
                     width: parent.width
                     wrapMode: Text.Wrap
                     text: Pulse.answer ? (Pulse.answer.text || (Pulse.asking ? I18n.t("думаю…", "Thinking…") : "")) : ""
-                    color: Pulse.answer && Pulse.answer.error ? Theme.danger : Theme.text
+                    color: Pulse.answer && Pulse.answer.error ? Skin.danger : Skin.text
                     textFormat: Text.PlainText
                 }
             }
@@ -105,7 +107,7 @@ Column {
     Column {
         visible: root.tab === "sessions"
         width: parent.width
-        spacing: Theme.u * 2
+        spacing: Skin.px(4)
         PxText {
             visible: Pulse.list.length === 0
             width: parent.width
@@ -115,23 +117,26 @@ Column {
         }
         Repeater {
             model: Pulse.list
-            PxBox {
+            SkinCard {
                 id: card
                 required property var modelData
                 width: root.width
-                height: Theme.u * 24
-                color: Theme.faceAlt
+                height: Skin.px(48)
+                padding: 0
+                group: true
+                shadow: false
+                pixelColor: Theme.faceAlt
                 Row {
-                    x: Theme.u * 3
+                    x: Skin.px(6)
                     anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                    spacing: Theme.u * 4
+                    spacing: Skin.px(8)
                     Breath {
                         anchors.verticalCenter: parent ? parent.verticalCenter : undefined
                         state: card.modelData.state
                         plugin: root.plugin
                     }
                     Column {
-                        width: root.width - Theme.u * 60
+                        width: root.width - Skin.px(120)
                         PxText {
                             text: (card.modelData.cwd ? card.modelData.cwd + " · " : "") + card.modelData.model + " · " + (Pulse.words[card.modelData.state] || card.modelData.state)
                             font.bold: true
@@ -159,7 +164,7 @@ Column {
     Column {
         visible: root.tab === "ask"
         width: parent.width
-        spacing: Theme.u * 3
+        spacing: Skin.px(6)
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
@@ -178,7 +183,7 @@ Column {
             }
         }
         Row {
-            spacing: Theme.u * 3
+            spacing: Skin.px(6)
             PxButton {
                 text: Pulse.asking ? I18n.t("Думаю…", "Thinking…") : I18n.t("Спросить", "Ask")
                 icon: "bot"

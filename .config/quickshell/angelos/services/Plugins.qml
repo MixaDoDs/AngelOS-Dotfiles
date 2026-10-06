@@ -48,13 +48,55 @@ Singleton {
     readonly property var sidebarWidgets: enabledPlugins.filter(p => !!p.sidebarWidget)
     readonly property var launcherProviders: enabledPlugins.filter(p => !!p.launcher)
 
+    // a core plugin is a part of angelOS (manifest "core": true, bundled only): always on,
+    // never removed (plugins/community — the catalog's launcher search)
+    function isCore(p) {
+        return !!p && p.core === true && !!p.bundled;
+    }
+    // plugins whose job angelOS does itself now (the old stand-alone Community Store): skipped
+    readonly property var retired: ["community-store"]
     function isEnabled(p) {
+        if (isCore(p))
+            return true;
         const e = (Config.plugins.enabled || {})[p.id];
         return e === undefined ? p.enabledByDefault !== false : !!e;
     }
     function setEnabled(id, on) {
+        if (isCore(byId(id)))
+            return;
         Config.setIn(Config.plugins, "enabled", id, !!on);
     }
+    // ---- the looks a plugin draws (manifest "themes", docs/PLUGINS.md → Theme API) ----
+    // "pixel" — angelOS's original pixel look, "mac" — Golden Gate. A plugin that declares
+    // nothing was made before the Mac look: pixel only. The same rule reads a registry entry.
+    readonly property var themeNames: ["pixel", "mac"]
+    function themesOf(p) {
+        // (a manifest kept in a `var` property comes back as a sequence, not an Array: Array.from)
+        const raw = p && p.themes && typeof p.themes !== "string" && p.themes.length !== undefined ? Array.from(p.themes) : [];
+        const t = raw.filter(x => themeNames.includes(String(x))).map(String);
+        return t.length ? t : ["pixel"];
+    }
+    // "both" | "mac" | "pixel"
+    function themeKind(p) {
+        const t = themesOf(p);
+        return t.includes("mac") && t.includes("pixel") ? "both" : t[0];
+    }
+    function themeLabel(p) {
+        const k = themeKind(p);
+        return k === "both" ? I18n.t("обе темы", "both themes") : k === "mac" ? "macOS" : "Pixel";
+    }
+    // the look on now: Golden Gate or pixel (services/Skin)
+    readonly property string currentTheme: Skin.mac ? "mac" : "pixel"
+    function supportsCurrent(p) {
+        return themesOf(p).includes(currentTheme);
+    }
+    // a line for the Plugins page / the catalog when the plugin does not draw the look in use
+    function themeWarning(p) {
+        if (!p || supportsCurrent(p))
+            return "";
+        return currentTheme === "mac" ? I18n.t("Не поддерживает тему macOS: в Golden Gate будет выглядеть пиксельным.", "Doesn't support the macOS theme: it will look pixelated in Golden Gate.") : I18n.t("Сделан только для темы macOS: в пиксельной теме может выглядеть чужим.", "Made for the macOS theme only: it may look out of place in the pixel theme.");
+    }
+
     function byId(id) {
         return plugins.find(p => p.id === id) || null;
     }
@@ -102,12 +144,13 @@ Singleton {
     }
 
     function run(entry) {
+        // in the apps' environment (Shell.childEnv), never the shell's own
         if (entry.exec)
-            Quickshell.execDetached(["sh", "-c", entry.exec]);
+            Shell.exec(["sh", "-c", entry.exec]);
         if (entry.settings)
             Shell.openSettings(entry.settings);
         if (entry.url)
-            Quickshell.execDetached(["xdg-open", entry.url]);
+            Shell.exec(["xdg-open", entry.url]);
     }
 
     function reload() {
@@ -121,7 +164,7 @@ Singleton {
     // remove: a user plugin goes to the trash, a bundled one is hidden
     function remove(id) {
         const p = byId(id);
-        if (!p)
+        if (!p || isCore(p))
             return;
         if (p.bundled) {
             if (!isRemoved(id))
@@ -184,8 +227,8 @@ Singleton {
         for (const p of shown)
             if (!byIdMap[p.id] || !p.bundled)
                 byIdMap[p.id] = p;
-        plugins = Object.values(byIdMap).sort((a, b) => a.name.localeCompare(b.name));
-        removed = gone.sort((a, b) => a.name.localeCompare(b.name));
+        plugins = Object.values(byIdMap).sort((a, b) => String(I18n.label(a.name)).localeCompare(String(I18n.label(b.name))));
+        removed = gone.sort((a, b) => String(I18n.label(a.name)).localeCompare(String(I18n.label(b.name))));
     }
     readonly property string _removedKey: JSON.stringify(Config.plugins.removed || [])
     on_RemovedKeyChanged: _split()
@@ -236,6 +279,8 @@ Singleton {
                             m.trashDir = dir;
                         m.bundled = dir.startsWith(root.bundledDir);
                         m.name = m.name || m.id;
+                        if (root.retired.includes(m.id) && !m.bundled)
+                            continue;
                         all.push(m);
                     } catch (e) {
                         console.warn("angelOS plugin: bad manifest in", dir, e);

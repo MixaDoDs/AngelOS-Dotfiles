@@ -31,6 +31,7 @@ PLAN = {
 }
 DESKTOP = """import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 Item {
     id: root
@@ -39,6 +40,11 @@ Item {
     property var widget
     implicitWidth: Theme.u * 150
     implicitHeight: Theme.u * 80
+    PxText {
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: I18n.t("счётчик", "counter")
+        color: Skin.text
+    }
     PxButton {
         anchors.centerIn: parent
         hell: Theme.hell
@@ -69,6 +75,7 @@ BUNDLE = {
             "description": "A themed counter", "icon": "heart",
             "enabledByDefault": False, "desktopWidget": "DesktopWidget.qml",
             "settings": "Settings.qml", "desktopTitle": "counter.exe", "realms": ["heaven", "hell"],
+            "themes": ["pixel", "mac"],
         })},
         {"path": "DesktopWidget.qml", "content": DESKTOP},
         {"path": "Settings.qml", "content": SETTINGS},

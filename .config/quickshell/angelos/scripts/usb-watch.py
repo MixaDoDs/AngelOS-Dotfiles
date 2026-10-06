@@ -11,8 +11,10 @@ After a suspend the devices that re-enumerate are not "plugged in": events in th
 first 10 s after waking up are dropped (the boot-time clock runs ahead of the
 monotonic one by the time spent asleep).
 """
+import ctypes
 import os
 import select
+import signal
 import subprocess
 import sys
 import time
@@ -34,10 +36,18 @@ def name_of(props):
     return "?"
 
 
+def die_with_parent():
+    # udevadm goes when we do, even on a SIGKILL (a shell restart used to leave one behind)
+    try:
+        ctypes.CDLL(None, use_errno=True).prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
+    except (OSError, AttributeError):
+        pass
+
+
 def main():
     try:
         p = subprocess.Popen(["udevadm", "monitor", "--udev", "--subsystem-match=usb/usb_device", "--property"],
-                             stdout=subprocess.PIPE, bufsize=0)
+                             stdout=subprocess.PIPE, bufsize=0, preexec_fn=die_with_parent)
     except OSError as e:
         print("error", e, flush=True)
         return 1

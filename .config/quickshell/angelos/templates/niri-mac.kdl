@@ -79,5 +79,22 @@ window-rule {
         on
     }
 }
+// Liquid Glass: under angelOS's surfaces (they mark their glass through ext-background-effect)
+// niri blurs what is really there — windows too, not only the wallpaper (xray off) — and lifts its
+// colour like Golden Gate's vibrancy. The lift is the blur's own saturation: it acts only where
+// niri blurs (a layer rule's `saturation` would tint the whole surface, glass or not). Only this
+// key changes; passes, offset and noise stay cfg/misc.kdl's (Settings → blur). niri-game-mode turns
+// the blur off for fullscreen windows; the shell stops asking for it with Reduce transparency
+// (services/GoldenGate.blurOn)
+blur {
+    saturation 1.6
+}
+layer-rule {
+    match namespace="^angelos-"
+    exclude namespace="^angelos-wallpaper$"
+    background-effect {
+        xray false
+    }
+}
 {{macWindowRules}}
 {{macBinds}}

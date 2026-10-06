@@ -408,6 +408,10 @@ def niri_env(on):
         if not m or MARK not in m.group(3):
             return m.group(2) if m else None
         was = m.group(3).split(MARK, 1)[1].strip().strip('"')
+        # a GTK platform theme is not brought back: Qt apps would draw GTK menus and dialogs
+        # (CachyOS's niri config ships "gtk3"); without one Qt uses its own
+        if was.startswith("gtk"):
+            was = ""
         if was:
             new = text[:m.start()] + '%sQT_QPA_PLATFORMTHEME "%s"' % (m.group(1), was) + text[m.end():]
         else:

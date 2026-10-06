@@ -163,8 +163,9 @@ python3 - "$W/work/install.sh" <<'PY'
 import sys
 p = sys.argv[1]
 t = open(p).read()
-assert "install_configs\ninstall_shell\n" in t
-open(p, "w").write(t.replace("install_configs\ninstall_shell\n", "install_configs\nfalse  # the test's broken step\ninstall_shell\n"))
+# the steps run in order (STEPS in install.sh): install_shell comes right after install_configs
+assert "install_shell() {\n" in t
+open(p, "w").write(t.replace("install_shell() {\n", "install_shell() {\n  false  # the test's broken step\n", 1))
 PY
 publish "v2 with a broken installer"
 fingerprint >"$W/before"
@@ -243,7 +244,7 @@ check "snapshot failure: repository not moved" head_is "$V1"
 # ── 6. restores that fail keep the snapshot ──────────────────────────────────
 new_case restore-fails
 v2_edits
-sed -i 's/^install_configs$/install_configs\nfalse/' "$W/work/install.sh"
+sed -i 's/^install_shell() {$/install_shell() {\n  false/' "$W/work/install.sh"
 publish "v2 with a broken installer"
 update
 copy="$BACKUP/files$H/$QML_FILE"
@@ -330,8 +331,8 @@ python3 - "$W/work/install.sh" <<'PY2'
 import sys
 p = sys.argv[1]
 t = open(p).read()
-assert "install_configs\ninstall_shell\n" in t
-open(p, "w").write(t.replace("install_configs\ninstall_shell\n", 'install_configs\ndie "the test stops here: disk on fire"\ninstall_shell\n'))
+assert "install_shell() {\n" in t
+open(p, "w").write(t.replace("install_shell() {\n", 'install_shell() {\n  die "the test stops here: disk on fire"\n', 1))
 PY2
 publish "v2 whose installer dies"
 fingerprint >"$W/before"

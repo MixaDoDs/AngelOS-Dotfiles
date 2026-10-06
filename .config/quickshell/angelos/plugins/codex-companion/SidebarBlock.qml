@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 import "."
 
@@ -8,10 +9,10 @@ Column {
     id: root
 
     property var plugin
-    spacing: Theme.u * 2
+    spacing: Skin.px(4)
 
     Row {
-        spacing: Theme.u * 3
+        spacing: Skin.px(6)
         Mascot {
             anchors.verticalCenter: parent.verticalCenter
         }

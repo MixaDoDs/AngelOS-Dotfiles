@@ -45,6 +45,42 @@ PxPage {
                 }
             }
         }
+        PxText {
+            visible: !NautilusSetup.status.prefsApplied && !!NautilusSetup.status.prefs
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            text: I18n.t("Масштаб значков и формат архива Nautilus запоминает сам, когда ты их меняешь в нём, — «Применить» вернёт значения angelOS.", "Nautilus remembers the icon zoom and the archive format itself when you change them there — Apply puts angelOS's values back.")
+        }
+        PxBox {
+            visible: NautilusSetup.needsRestart && NautilusSetup.running
+            width: parent.width
+            height: restartRow.implicitHeight + Theme.u * 6
+            color: Theme.mix(Theme.face, Theme.accent, 0.12)
+            Row {
+                id: restartRow
+                x: Theme.u * 3
+                y: Theme.u * 3
+                width: parent.width - Theme.u * 6
+                spacing: Theme.u * 3
+                PxText {
+                    width: parent.width - restartNow.width - parent.spacing
+                    anchors.verticalCenter: parent.verticalCenter
+                    wrapMode: Text.Wrap
+                    text: I18n.t("Перезапустите Nautilus: он уже запущен и подхватит изменения (пункты меню, оформление) только при новом старте. Открытые окна Nautilus закроются.", "Restart Nautilus: it is running and picks up the changes (menu items, the look) only when it starts again. Open Nautilus windows will close.")
+                }
+                PxButton {
+                    id: restartNow
+                    anchors.verticalCenter: parent.verticalCenter
+                    accent: true
+                    icon: "refresh"
+                    text: I18n.t("Перезапустить", "Restart")
+                    enabled: !NautilusSetup.busy
+                    onClicked: NautilusSetup.restartNautilus()
+                }
+            }
+        }
         Flow {
             width: parent.width
             spacing: Theme.u * 3
@@ -65,6 +101,7 @@ PxPage {
             PxButton {
                 text: I18n.t("Перезапустить Nautilus", "Restart Nautilus")
                 icon: "refresh"
+                enabled: !NautilusSetup.busy
                 onClicked: NautilusSetup.restartNautilus()
             }
             PxButton {

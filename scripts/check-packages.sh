@@ -21,7 +21,7 @@ while read -r pkg; do
     printf '  ✕ %-28s %s\n' "$pkg" "$repos"
     missing=$((missing + 1))
   fi
-done < <(cat "$ROOT/packages/pacman.txt" "$ROOT/packages/angelos.txt" "$ROOT/packages/sddm.txt" "$ROOT/packages/tools.txt" | grep -Ev '^[[:space:]]*(#|$)' | sort -u)
+done < <(cat "$ROOT/packages/pacman.txt" "$ROOT/packages/angelos.txt" "$ROOT/packages/sddm.txt" "$ROOT/packages/tools.txt" "$ROOT/packages/nvim.txt" | grep -Ev '^[[:space:]]*(#|$)' | sort -u)
 ((missing)) && { echo "» $missing package(s) not in Arch's official repositories"; exit 1; }
 ((unknown)) && { echo "» $unknown package(s) not checked: archlinux.org did not answer, run it again"; exit 2; }
 echo "» every package is in Arch's official repositories"

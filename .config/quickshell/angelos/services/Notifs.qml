@@ -118,8 +118,10 @@ Singleton {
                 "critical": n.urgency === NotificationUrgency.Critical,
                 "quiet": dnd
             });
-            if (!dnd)
-                Sounds.play(n.urgency === NotificationUrgency.Critical ? "error" : root.isScreenshot(entry) ? "screenshot" : "notify");
+            const sound = n.urgency === NotificationUrgency.Critical ? "error" : root.isScreenshot(entry) ? "screenshot" : "notify";
+            // Golden Gate's shutter sounds under Do Not Disturb too (like a Mac's)
+            if (!dnd || (sound === "screenshot" && GoldenGate.on))
+                Sounds.play(sound);
         }
     }
 

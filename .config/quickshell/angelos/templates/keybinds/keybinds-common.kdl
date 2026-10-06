@@ -1,0 +1,55 @@
+// angelOS: keys of both themes (the pixel theme and Golden Gate) — the media keys, the
+// emergency ones, screenshots, the angelOS panels. Read before the theme's own profile
+// (cfg/keybinds-pixel.kdl, cfg/keybinds-macos.kdl): a key there replaces the one here,
+// for that theme only. Settings → Keyboard shows these read-only.
+binds {
+    Mod+Shift+ESCAPE                     { show-hotkey-overlay; }
+    Mod+T                          hotkey-overlay-title="Open Terminal: kitty" { spawn "kitty"; }
+    Mod+B                               hotkey-overlay-title="Open Browser: default" { spawn-sh "xdg-open about:blank"; }
+    Mod+Shift+Return                    hotkey-overlay-title="angelOS: обои" { spawn-sh "qs -c angelos ipc call angelos settings wallpaper"; }
+    Mod+S                               hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
+    Mod+Alt+S                           hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
+    Mod+Shift+Q                         hotkey-overlay-title="angelOS: выключение" { spawn-sh "qs -c angelos ipc call angelos session"; }
+    Mod+E                               hotkey-overlay-title="File Manager: Nautilus" { spawn "nautilus"; }
+    XF86AudioRaiseVolume                allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos volumeUp"; }
+    XF86AudioLowerVolume                allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos volumeDown"; }
+    XF86AudioMute                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos mute"; }
+    XF86AudioMicMute                    allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos micMute"; }
+    XF86AudioNext                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media next"; }
+    XF86AudioPrev                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media previous"; }
+    XF86AudioPlay                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media toggle"; }
+    XF86AudioPause                      allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media pause"; }
+    XF86AudioStop                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media pause"; }
+    Mod+Shift+Left                      { focus-monitor-left; }
+    Mod+Shift+Right                     { focus-monitor-right; }
+    Mod+Shift+UP                        { focus-monitor-up; }
+    Mod+Shift+Down                      { focus-monitor-down; }
+    Mod+Shift+CTRL+Left                 { move-column-to-monitor-left; }
+    Mod+Shift+CTRL+Right                { move-column-to-monitor-right; }
+    Mod+Shift+CTRL+UP                   { move-column-to-monitor-up; }
+    Mod+Shift+CTRL+Down                 { move-column-to-monitor-down; }
+    Mod+Alt+V                           { switch-focus-between-floating-and-tiling; }
+    Mod+Shift+R                         repeat=false hotkey-overlay-title="Record region → Videos (toggle)" { spawn "@HOME@/.local/bin/niri-record-region"; }
+    Mod+CTRL+WheelScrollDown            cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+CTRL+WheelScrollUp              cooldown-ms=150 { move-column-to-workspace-up; }
+    Mod+WheelScrollRight                { focus-column-right; }
+    Mod+WheelScrollLeft                 { focus-column-left; }
+    Mod+CTRL+WheelScrollRight           { move-column-right; }
+    Mod+CTRL+WheelScrollLeft            { move-column-left; }
+    Mod+Shift+WheelScrollDown           { focus-column-right; }
+    Mod+Shift+WheelScrollUp             { focus-column-left; }
+    Mod+CTRL+Shift+WheelScrollDown      { move-column-right; }
+    Mod+CTRL+Shift+WheelScrollUp        { move-column-left; }
+    Mod+V                               hotkey-overlay-title="angelOS: буфер обмена" { spawn-sh "qs -c angelos ipc call angelos clipboard"; }
+    Mod+Shift+S                         repeat=false hotkey-overlay-title="Screenshot: region → Screenshots (ropes)" { spawn "@HOME@/.local/bin/niri-screenshot-region"; }
+    Mod+Shift+T                         hotkey-overlay-title="OCR: region to clipboard" { spawn "@HOME@/.local/bin/niri-ocr"; }
+    Mod+Shift+V                         repeat=false hotkey-overlay-title="Voice: toggle dictation" { spawn "@HOME@/.local/bin/voxtype" "record" "toggle"; }
+    CTRL+Shift+2                        { screenshot-screen; }
+    CTRL+Shift+3                        { screenshot-window; }
+    Mod+ESCAPE                          allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+    CTRL+ALT+Delete                     { quit; } // Also quits Niri
+    Mod+Shift+P                         { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
+    Mod+Shift+X                         repeat=false allow-inhibiting=false hotkey-overlay-title="Privacy: block Telegram Bitwarden Helium Discord" { spawn "@HOME@/.local/bin/niri-cast-privacy"; }
+    Mod+Alt+Y                           hotkey-overlay-title="angelOS: лирика вкл/выкл" { spawn-sh "qs -c angelos ipc call angelos lyrics"; }
+    Mod+Alt+T                           hotkey-overlay-title="angelOS: светлая/тёмная" { spawn-sh "qs -c angelos ipc call angelos theme toggle"; }
+}

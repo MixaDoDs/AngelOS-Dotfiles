@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 import "."
 
@@ -11,7 +12,7 @@ Column {
 
     property var plugin
     property string tab: "limits"
-    spacing: Theme.u * 4
+    spacing: Skin.px(8)
 
     PxSegmented {
         model: [
@@ -33,7 +34,7 @@ Column {
     }
 
     Row {
-        spacing: Theme.u * 4
+        spacing: Skin.px(8)
         Mascot {
             pixel: Theme.u * 2
         }
@@ -56,7 +57,7 @@ Column {
     }
     Row {
         visible: root.tab === "limits"
-        spacing: Theme.u * 3
+        spacing: Skin.px(6)
         PxButton {
             compact: true
             text: I18n.t("Обновить", "Refresh")
@@ -74,7 +75,7 @@ Column {
     Column {
         visible: root.tab === "sessions"
         width: parent.width
-        spacing: Theme.u * 2
+        spacing: Skin.px(4)
         PxText {
             visible: CodexState.sessions.length === 0
             width: parent.width
@@ -84,16 +85,19 @@ Column {
         }
         Repeater {
             model: CodexState.sessions
-            PxBox {
+            SkinCard {
                 id: card
                 required property var modelData
                 width: root.width
-                height: Theme.u * 24
-                color: Theme.faceAlt
+                height: Skin.px(48)
+                padding: 0
+                group: true
+                shadow: false
+                pixelColor: Theme.faceAlt
                 Column {
-                    x: Theme.u * 4
+                    x: Skin.px(8)
                     anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - Theme.u * 8
+                    width: parent.width - Skin.px(16)
                     PxText {
                         width: parent.width
                         elide: Text.ElideRight
@@ -120,7 +124,7 @@ Column {
     Column {
         visible: root.tab === "ask"
         width: parent.width
-        spacing: Theme.u * 3
+        spacing: Skin.px(6)
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
@@ -150,7 +154,7 @@ Column {
             wrapMode: Text.Wrap
             textFormat: Text.PlainText
             text: CodexState.answer ? "? " + CodexState.answer.q + "\n\n" + (CodexState.answer.text || I18n.t("думаю…", "thinking…")) : ""
-            color: CodexState.answer && CodexState.answer.error ? Theme.danger : Theme.text
+            color: CodexState.answer && CodexState.answer.error ? Skin.danger : Skin.text
         }
     }
 }

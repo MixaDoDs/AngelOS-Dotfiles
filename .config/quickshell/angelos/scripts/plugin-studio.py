@@ -601,6 +601,31 @@ def validate_files(files, directory, spec, taken, edit=False):
         if "hell" in (realms or []) and not any(re.search(r"\bTheme\.(?:hell|realm)\b", t)
                                                 for n, t in files.items() if n.endswith((".qml", ".js"))):
             errors.append('manifest.realms has "hell", but no QML reads Theme.hell or Theme.realm')
+    # pixel and macOS (contract "Two looks"): a new plugin draws both and takes its look from the
+    # Theme API; an edited one keeps what it declares
+    themes = manifest.get("themes")
+    if themes is not None and (not isinstance(themes, list) or not themes
+                               or any(t not in ("pixel", "mac") for t in themes)):
+        errors.append('manifest.themes must be a list of "pixel" and "mac"')
+    elif not edit and set(themes or []) != {"pixel", "mac"}:
+        errors.append('A new plugin must draw both themes: add "themes": ["pixel", "mac"] to manifest.json '
+                      "and take colours, fonts and sizes from the Theme API (contract: Two looks)")
+    visual = [manifest.get(k) for k in ("desktopWidget", "barWidget", "sidebarWidget", "menuComponent", "settings")]
+    visual = [v for v in visual if isinstance(v, str) and v in files]
+    if not edit and visual and not any(re.search(r"\bSkin\.", t) for n, t in files.items() if n.endswith(".qml")):
+        errors.append("No QML reads the Theme API (Skin.…): colours, fonts and sizes must come from it (contract: Two looks)")
+    for name, text in files.items():
+        if not name.endswith(".qml") or edit:
+            continue
+        code = re.sub(r"//[^\n]*", "", text)
+        if re.search(r"(?<![\w#])[\"']#[0-9a-fA-F]{3,8}[\"']", code):
+            errors.append(name + ": hard-coded colour; use the Theme API (Skin.text, Skin.accent …) or Theme.hell… in hell")
+        if re.search(r"font\.family\s*:\s*[\"']", code):
+            errors.append(name + ": hard-coded font family; use PxText kind or Skin.font / Skin.mono")
+        if "I18n.exe(" in code:
+            errors.append(name + ": I18n.exe() puts .exe into the macOS look; use Skin.title(name)")
+        if re.search(r"\bImage\s*\{", code) and "sourceSize" not in code:
+            errors.append(name + ": every Image needs sourceSize (memory: decode at the shown size)")
     return manifest, errors[:30]
 
 
@@ -616,6 +641,8 @@ ShellRoot {
         id: host
         width: 900
         height: 700
+        // what plugin hosts give their content: the shared controls take the look under test
+        readonly property string settingsSkin: Skin.settingsSkin
     }
     readonly property var check: JSON.parse(Quickshell.env("ANGELOS_CHECK") || "{}")
     Component.onCompleted: {
@@ -629,12 +656,14 @@ ShellRoot {
                 console.log("CHECK-FAIL " + e.kind + " :: " + c.errorString().replace(/\\n/g, " | "));
                 continue;
             }
-            // a desktop widget twice: made in heaven, then the realm flips under it
-            // (its bindings re-run) and a fresh one is made in hell
-            const realms = e.kind === "desktopWidget" ? ["heaven", "hell"] : [""];
-            for (const realm of realms) {
-                if (realm)
-                    Theme.realm = realm;
+            // every entry point in both looks (Skin.force: pixel, then macOS — the bindings of the
+            // pixel one re-run under it), a desktop widget also made in hell
+            // (a service or a launcher provider has no look: made once)
+            const runs = e.kind === "desktopWidget" ? [["pixel", "heaven"], ["mac", "heaven"], ["pixel", "hell"]] : e.kind === "main" || e.kind === "launcher" ? [["pixel", ""]] : [["pixel", ""], ["mac", ""]];
+            for (const [look, realm] of runs) {
+                Skin.force = look;
+                Theme.realm = realm || "heaven";
+                const tag = look + (realm === "hell" ? " hell" : "");
                 const props = {"plugin": plugin};
                 if (e.kind === "desktopWidget") { props.screenName = "CHECK-1"; props.widget = {"uid": "check", "x": 0, "y": 0, "settings": {}}; }
                 if (e.kind === "barWidget") { props.screenName = "CHECK-1"; props.barWindow = null; }
@@ -642,13 +671,14 @@ ShellRoot {
                 if (e.kind === "menuComponent") props.menu = {"close": () => {}};
                 if (e.kind === "sidebarWidget") props.width = 300;
                 const o = c.createObject(host, props);
-                if (!o) { console.log("CHECK-FAIL " + e.kind + (realm ? " (" + realm + ")" : "") + " :: could not be created"); continue; }
+                if (!o) { console.log("CHECK-FAIL " + e.kind + " (" + tag + ") :: could not be created"); continue; }
                 if (e.kind === "launcher" && typeof o.query === "function") {
                     try { o.query("test", false); } catch (err) { console.log("CHECK-FAIL launcher :: query() threw " + err); }
                 }
-                console.log("CHECK-OK " + e.kind + " " + Math.round(o.implicitWidth) + "x" + Math.round(o.implicitHeight) + (realm ? " " + realm : ""));
+                console.log("CHECK-OK " + e.kind + " " + Math.round(o.implicitWidth) + "x" + Math.round(o.implicitHeight) + " " + tag);
             }
             Theme.realm = "heaven";
+            Skin.force = "";
         }
         done.start();
     }
@@ -724,7 +754,8 @@ class Studio:
 
     def context(self, language, generate=False, session=None):
         edit = bool(session) and session.get("mode") == "edit"
-        names = ["docs/STUDIO_CONTRACT.md", "docs/PLUGINS.md"]
+        # the Theme API (both looks) is part of every request: planning describes both looks too
+        names = ["docs/STUDIO_CONTRACT.md", "docs/PLUGINS.md", "services/Skin.qml", "widgets/SkinCard.qml"]
         if generate:
             # a small, real plugin that works, plus the scaffold for every entry point
             names += ["plugins/_template/manifest.json", "plugins/_template/DesktopWidget.qml",
@@ -906,9 +937,10 @@ class Studio:
             elif where in text and re.search(r"\b(WARN|ERROR|CRIT)", text):
                 errors.append("runtime: " + re.sub(r"^.*?(WARN|ERROR|CRIT)\S*\s*", "", text).replace("file://" + where, "").replace(where, ""))
             else:
-                m = re.search(r"CHECK-OK (\w+) (\d+)x(\d+)", text)
+                m = re.search(r"CHECK-OK (\w+) (\d+)x(\d+) ?(.*)", text)
                 if m and m.group(1) in ("desktopWidget", "barWidget", "sidebarWidget") and (m.group(2) == "0" or m.group(3) == "0"):
-                    errors.append(f"runtime: {m.group(1)} has zero implicit size ({m.group(2)}x{m.group(3)}); set implicitWidth/implicitHeight")
+                    look = f" in the {m.group(4).strip()} look" if m.group(4).strip() else ""
+                    errors.append(f"runtime: {m.group(1)} has zero implicit size ({m.group(2)}x{m.group(3)}){look}; set implicitWidth/implicitHeight")
         if "CHECK-DONE" not in output:
             errors.append("runtime: the QML check did not finish (crash, hang or a blocking call at load time)")
         # the same warning can repeat per binding evaluation

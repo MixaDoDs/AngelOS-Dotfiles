@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 import "."
 
@@ -7,7 +8,7 @@ Column {
     id: root
     property var plugin
     width: parent ? parent.width : 400
-    spacing: Theme.u * 5
+    spacing: Skin.px(10)
 
     PxGroup {
         title: I18n.t("Котик", "Cat")
@@ -104,7 +105,7 @@ Column {
             visible: root.plugin && root.plugin.get("colorMode", "theme") === "custom"
             label: I18n.t("Цвет (#hex)", "Color (#hex)")
             PxField {
-                width: Theme.u * 50
+                width: Skin.px(100)
                 text: root.plugin ? root.plugin.get("color", "#e8a24c") : ""
                 onAccepted: root.plugin.set("color", text)
             }

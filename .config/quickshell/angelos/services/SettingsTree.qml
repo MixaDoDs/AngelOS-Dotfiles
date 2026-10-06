@@ -167,6 +167,9 @@ Singleton {
     // an old page id (or a current one) -> {page, to: "src/name" | ""}
     function resolve(id) {
         // the views' own homes (the folder, the tiles) are no pages of the tree
+        // the old stand-alone Community Store's page is the Plugins page now (CommunityPlugins)
+        if (id === "plugin:community-store")
+            id = "plugins";
         if (!id || pages[id] || id.startsWith("plugin:") || id === "home" || id === "more")
             return {
                 "page": id,

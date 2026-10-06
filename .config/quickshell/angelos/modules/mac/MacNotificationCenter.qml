@@ -22,6 +22,15 @@ PanelWindow {
     readonly property real gap: GoldenGate.px(10)
     onOpenChanged: if (open)
         Notifs.markRead()
+    // built on demand (MacDesktop: LazyLoader), often already open: mark read and slide in
+    // from the first frame
+    property bool built: false
+    readonly property bool shown: open && built
+    Component.onCompleted: {
+        if (open)
+            Notifs.markRead();
+        built = true;
+    }
 
     screen: modelData
     visible: open || column.opacity > 0
@@ -44,7 +53,7 @@ PanelWindow {
             intersection: Intersection.Subtract
         }
     }
-    BackgroundEffect.blurRegion: Config.appearance.blur && open ? blurRegion : null
+    BackgroundEffect.blurRegion: GoldenGate.blurOn && open ? blurRegion : null
     Region {
         id: blurRegion
         Region {
@@ -91,14 +100,14 @@ PanelWindow {
         y: GoldenGate.barHeight + GoldenGate.px(8)
         width: win.colW
         spacing: win.gap
-        opacity: win.open ? 1 : 0
+        opacity: win.shown ? 1 : 0
         Behavior on opacity {
             NumberAnimation {
                 duration: Motion.ms(150)
             }
         }
         transform: Translate {
-            x: win.open ? 0 : GoldenGate.px(30)
+            x: win.shown ? 0 : GoldenGate.px(30)
             Behavior on x {
                 NumberAnimation {
                     duration: Motion.ms(180)

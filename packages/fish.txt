@@ -1,0 +1,16 @@
+# fish and its look, like on the screenshots: the pure prompt, fastfetch as the greeting,
+# eza/bat aliases, fzf, done, autopair (CachyOS's cachyos-fish-config brings them together).
+# The installer skips the names your repositories don't have (cachyos-*, fish-pure-prompt
+# and fish-autopair are CachyOS's), and .config/fish/config.fish then sets the same look itself.
+fish
+cachyos-fish-config
+fish-pure-prompt
+fish-autopair
+fisher
+fzf
+eza
+bat
+tealdeer
+pkgfile
+expac
+fastfetch

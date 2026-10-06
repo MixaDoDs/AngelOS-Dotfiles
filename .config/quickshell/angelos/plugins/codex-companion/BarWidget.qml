@@ -5,6 +5,8 @@ import qs.widgets
 import qs.modules.bar
 import "."
 
+// Codex on the panel. Pixel: the pixel mascot. Mac look (Skin.mac, the Golden Gate menu bar):
+// the "terminal" line icon and the numbers in the bar's ink, the popup a glass popover.
 Item {
     id: root
 
@@ -23,22 +25,27 @@ Item {
         return CodexState.fiveLeft >= 0 ? CodexState.fiveLeft + "%" : (CodexState.weekLeft >= 0 ? CodexState.weekLeft + "%" : "—");
     }
     visible: !plugin || plugin.get("barAlways", true) || CodexState.state !== "none"
-    implicitWidth: visible ? row.implicitWidth + Theme.u * 4 : 0
-    implicitHeight: Theme.u * 13
+    readonly property bool mac: Skin.mac
+    implicitWidth: visible ? row.implicitWidth + (mac ? Skin.px(4) : Theme.u * 4) : 0
+    implicitHeight: mac ? Skin.px(18) : Theme.u * 13
 
     Row {
         id: row
         anchors.centerIn: parent
-        spacing: Theme.u * 2
+        spacing: Skin.px(4)
         Mascot {
             anchors.verticalCenter: parent.verticalCenter
+            pixel: root.mac ? GoldenGate.px(2) : Theme.u
+            mono: root.mac
+            monoColor: Skin.ink(root.screenName)
         }
         PxText {
             visible: root.label !== ""
             anchors.verticalCenter: parent.verticalCenter
             text: root.label
-            color: CodexState.hasLimits && root.mode !== "today" ? CodexState.colorFor(root.mode === "week" ? CodexState.weekLeft : CodexState.fiveLeft, Theme) : Theme.text
-            font.bold: true
+            readonly property real remaining: root.mode === "week" ? CodexState.weekLeft : CodexState.fiveLeft
+            color: root.mac ? (CodexState.hasLimits && root.mode !== "today" && remaining >= 0 && remaining < 20 ? Skin.danger : Skin.ink(root.screenName)) : CodexState.hasLimits && root.mode !== "today" ? CodexState.colorFor(remaining, Theme) : Theme.text
+            font.bold: !root.mac
         }
     }
     MouseArea {
@@ -57,11 +64,11 @@ Item {
         id: popup
         panelId: "codex"
         anchorItem: root
-        above: BarLayout.bottom
-        title: I18n.exe("codex")
+        above: BarLayout.bottom && !root.mac
+        title: Skin.title(Skin.mac ? "Codex" : "codex")
         icon: "terminal"
-        contentWidth: Theme.u * 190
-        contentHeight: Theme.u * 190
+        contentWidth: Skin.px(380)
+        contentHeight: Skin.px(380)
         PxScroll {
             anchors.fill: parent
             contentHeight: panel.implicitHeight

@@ -108,7 +108,12 @@ PanelWindow {
         }
     }
 
-    onVisibleChanged: if (visible) {
+    // built when it opens (shell.qml: LazyLoader), so the first showing is the creation itself
+    Component.onCompleted: if (visible)
+        opened()
+    onVisibleChanged: if (visible)
+        opened()
+    function opened() {
         current = 0;
         keys.forceActiveFocus();
     }

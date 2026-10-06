@@ -25,7 +25,11 @@ Item {
     property Item backdrop: null
     property point backdropOrigin: Qt.point(0, 0)
     property real backdropScale: 1
-    readonly property bool blurred: !!backdrop && Config.appearance.blur
+    readonly property bool blurred: !!backdrop && Config.appearance.blur && !GoldenGate.reduceTransparency
+    // the Liquid Glass rim (shaders/liquid_glass.frag) instead of the flat 1 px lines
+    readonly property bool rimFx: glassBody && blurred && !GoldenGate.gameMode && !(GoldenGate.on && GoldenGate.hell)
+    // the shared controls in the widget take the Mac look (Theme.settingsSkinFor, services/Skin)
+    readonly property string settingsSkin: "goldengate"
     property alias dragArea: dragArea
     property alias bodyItem: body
     signal closeClicked
@@ -101,7 +105,7 @@ Item {
             anchors.fill: parent
             radius: root.radius
             color: root.blurred ? DesktopWidgets.macFill : Qt.alpha(DesktopWidgets.macFill, 0.94)
-            border.width: 1
+            border.width: rimLoader.active ? 0 : 1
             border.color: DesktopWidgets.macEdge
             antialiasing: true
         }
@@ -123,6 +127,7 @@ Item {
             }
         }
         Rectangle {
+            visible: !rimLoader.active
             anchors.fill: parent
             anchors.margins: 1
             radius: Math.max(0, root.radius - 1)
@@ -131,6 +136,22 @@ Item {
             border.color: DesktopWidgets.macRim
             antialiasing: true
             opacity: 0.8
+        }
+        Loader {
+            id: rimLoader
+            anchors.fill: parent
+            active: root.rimFx && root.width > 0 && root.height > 0
+            sourceComponent: ShaderEffect {
+                readonly property size size: Qt.size(root.width, root.height)
+                readonly property real radius: root.radius
+                readonly property real bevel: Math.min(DesktopWidgets.mpx(16), Math.min(root.width, root.height) * 0.3)
+                readonly property real strength: 1
+                readonly property real refraction: 0.8
+                readonly property real dark: Theme.dark ? 1 : 0
+                readonly property color highlight: Theme.dark ? Qt.rgba(1, 1, 1, 0.4) : Qt.rgba(1, 1, 1, 0.9)
+                readonly property color edge: DesktopWidgets.macEdge
+                fragmentShader: Qt.resolvedUrl("../shaders/liquid_glass.frag.qsb")
+            }
         }
     }
 

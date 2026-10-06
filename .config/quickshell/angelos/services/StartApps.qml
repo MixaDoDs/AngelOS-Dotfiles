@@ -126,11 +126,11 @@ Singleton {
         u[app.id] = (u[app.id] || 0) + 1;
         Config.launcher.usage = u;
         if (app.runInTerminal)
-            Shell.exec(Shell.terminalArgv(app.command), app.workingDirectory);
+            Shell.exec(Shell.terminalArgv(app.command), app.workingDirectory, app.id);
         else if (app.command && app.command.length)
-            Shell.exec(app.command, app.workingDirectory);
+            Shell.exec(app.command, app.workingDirectory, app.id);
         else
-            app.execute();
+            app.execute();      // no command line to run with the apps' environment
     }
     readonly property string userName: Quickshell.env("USER") || "angel"
 }

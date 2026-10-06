@@ -19,6 +19,11 @@ PanelWindow {
     required property var modelData
     readonly property string screenName: modelData.name
     readonly property bool open: GoldenGate.panel === "cc" && GoldenGate.panelScreen === screenName
+    // built on demand (MacDesktop: LazyLoader), often already open: the panel swells in
+    // from the first frame instead of starting at its open values
+    property bool built: false
+    readonly property bool shown: open && built
+    Component.onCompleted: built = true
     readonly property int radios: (Wifi.hasWifi ? 1 : 0) + (Bt.available ? 1 : 0)
     readonly property real tile: GoldenGate.px(68)            // one slot
     readonly property real gap: GoldenGate.px(10)
@@ -47,7 +52,7 @@ PanelWindow {
             intersection: Intersection.Subtract
         }
     }
-    BackgroundEffect.blurRegion: Config.appearance.blur && open ? blurRegion : null
+    BackgroundEffect.blurRegion: GoldenGate.blurOn && open ? blurRegion : null
     Region {
         id: blurRegion
         item: panel
@@ -261,8 +266,8 @@ PanelWindow {
         x: win.width - w - GoldenGate.px(8)
         y: GoldenGate.barHeight + GoldenGate.px(4)
         radius: GoldenGate.panelRadius
-        opacity: win.open ? 1 : 0
-        scale: win.open ? 1 : 0.97
+        opacity: win.shown ? 1 : 0
+        scale: win.shown ? 1 : 0.97
         transformOrigin: Item.TopRight
         Behavior on opacity {
             NumberAnimation {

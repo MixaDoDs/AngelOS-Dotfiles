@@ -14,6 +14,8 @@
 #   the GitHub account with access to the author's private repository; gh keeps the login
 #   angelos setup — the setup wizard again (a window); `angelos setup skip` — out of the
 #   first-run wizard at once, also from a text console (Ctrl+Alt+F3) when it is broken
+#   angelos keys [status] | pixel | macos | sync — the niri key profile of a theme (cfg/keybinds-*.kdl):
+#   it follows `angelos settingsSkin …` by itself while the shell runs; sync = the one settings.json asks for
 #   angelos updates [status] | check | update — Settings → Updates from the terminal: follows the
 #   run to its end and says what happened (without a running shell the update runs right here)
 SHELL_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/angelos"
@@ -167,10 +169,11 @@ case "$1" in
       [ "$p" = "$$" ] && continue
       cmd="$(tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)" || continue
       # the shell's own long-running helpers (night light, the sleep watch and its
-      # inhibitor, the guard); anything else in here is left alone
+      # inhibitor, the guard, usb-watch's udevadm); anything else in here is left alone
       case "$cmd" in
         *"$SHELL_DIR/scripts/"*|*"$SHELL_DIR/plugins/"*|cava\ *angelos*|*/cava\ *angelos*|*"$SHELL_DIR/bin/angelos guard "*|\
-        wlsunset\ *|*/wlsunset\ *|*"gdbus monitor --system --dest org.freedesktop.login1"*|*systemd-inhibit\ *--who=angelOS*) kill "$p" 2>/dev/null ;;
+        wlsunset\ *|*/wlsunset\ *|*"gdbus monitor --system --dest org.freedesktop.login1"*|*systemd-inhibit\ *--who=angelOS*|\
+        "udevadm monitor --udev --subsystem-match=usb/usb_device --property "*) kill "$p" 2>/dev/null ;;
       esac
     done ;;
   status)
@@ -234,6 +237,12 @@ case "$1" in
     exec qs -c angelos ipc call angelos novel "$*" ;;
   motion) exec qs -c angelos ipc call angelos motion "${2:-status}" ;;
   updates) shift; exec python3 "$SHELL_DIR/scripts/updates-cli.py" "$@" ;;
+  keys)
+    case "${2:-status}" in
+      status|sync|init|path) exec python3 "$SHELL_DIR/scripts/keyprofile.py" "${2:-status}" ;;
+      pixel|macos) exec python3 "$SHELL_DIR/scripts/keyprofile.py" apply "$2" ;;
+      *) echo "angelos keys [status] | pixel | macos | sync" >&2; exit 2 ;;
+    esac ;;
   author)
     # the author's tools (the chapter editor, owner/): status | fetch | login — only for a
     # GitHub account that can see the author's private repository; nothing for anyone else

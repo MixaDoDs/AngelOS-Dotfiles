@@ -225,8 +225,14 @@ Singleton {
         e.ANGELOS_PRE_QSG_RHI_BACKEND = null;
         // Qt apps in angelOS's look (Settings → Appearance → Qt apps): qt6ct from now on,
         // not only after the next login (bin/angelos keeps the shell itself on gtk3)
-        if (Config.appearance.qtStyle)
+        // off: what the session had — but never a GTK platform theme (GTK menus and dialogs in Qt
+        // apps); the shell's own gtk3 (bin/angelos) never reaches an app
+        if (Config.appearance.qtStyle) {
             e.QT_QPA_PLATFORMTHEME = "qt6ct";
+        } else {
+            const was = _pre("QT_QPA_PLATFORMTHEME") || Quickshell.env("QT_QPA_PLATFORMTHEME") || "";
+            e.QT_QPA_PLATFORMTHEME = was && !/^gtk/.test(was) ? was : null;
+        }
         e.ANGELOS_PRE_QT_QPA_PLATFORMTHEME = null;
         // Qt's own title bars: the shell keeps them off for itself (bin/angelos); the apps draw
         // theirs in Golden Gate (Adwaita's frame, the buttons in GTK's order — niri's
@@ -265,10 +271,27 @@ Singleton {
         const name = String(cmd[0]).split("/").pop().replace(/[^A-Za-z0-9_.]/g, "_").slice(0, 40) || "app";
         return ["systemd-run", "--user", "--scope", "--quiet", "--collect", "--slice=app.slice", "--unit=app-angelos-" + name + "-" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36), "--"].concat(cmd);
     }
-    function exec(cmd, workingDirectory) {
+    // apps that draw their own title bar (Config.mac.ownFrameApps, by desktop id or app id —
+    // Telegram and its forks): no Qt frame of Golden Gate's over it (QT_WAYLAND_DECORATION adwaita
+    // put a GTK-looking header bar on top of Telegram)
+    function ownFrame(appId) {
+        const id = String(appId || "").toLowerCase();   // (org.telegram.desktop ends in ".desktop" itself)
+        // (a plain array: the settings file's list arrives as a Qt sequence)
+        const list = JSON.parse(JSON.stringify(Config.mac.ownFrameApps || []));
+        return !!id && list.some(x => String(x).toLowerCase() === id);
+    }
+    function envFor(appId) {
+        if (!GoldenGate.on || !ownFrame(appId))
+            return childEnv;
+        return Object.assign({}, childEnv, {
+            "QT_WAYLAND_DECORATION": null,
+            "QT_WAYLAND_DISABLE_WINDOWDECORATION": "1"
+        });
+    }
+    function exec(cmd, workingDirectory, appId) {
         const ctx = {
             "command": scoped(cmd),
-            "environment": childEnv
+            "environment": envFor(appId)
         };
         if (workingDirectory)
             ctx.workingDirectory = workingDirectory;
@@ -276,6 +299,16 @@ Singleton {
     }
     function sh(script) {
         exec(["sh", "-c", script]);
+    }
+    // a desktop file's action (New window, New private window…) in the apps' environment:
+    // DesktopAction.execute() would hand it the shell's own
+    function launchAction(action, appId) {
+        if (!action)
+            return;
+        if (action.command && action.command.length)
+            exec(action.command, "", appId);
+        else
+            action.execute();
     }
     // argv to run a command in the configured terminal (kitty/foot take the program directly);
     // appId names the terminal window so niri rules can match it (the task manager floats)

@@ -1,12 +1,13 @@
 import QtQuick
 import Quickshell
 import qs.config
+import qs.services
 import qs.widgets
 
 Column {
     property var plugin
     width: parent ? parent.width : 400
-    spacing: Theme.u * 5
+    spacing: Skin.px(10)
 
     PxGroup {
         title: I18n.t("Стрим-статы", "Stream stats")
@@ -16,7 +17,7 @@ Column {
             label: I18n.t("Монитор для окошка", "Popup display")
             hint: I18n.t("пусто = на всех", "Empty = all displays")
             PxCombo {
-                width: Theme.u * 100
+                width: Skin.px(200)
                 model: [
                     {
                         "label": I18n.t("все", "all"),

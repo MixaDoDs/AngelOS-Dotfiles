@@ -6,10 +6,14 @@ import Quickshell.Io
 import qs.config
 
 // niri key bindings for Settings → Shortcuts: read and edited through
-// scripts/keybinds.py (cfg/keybinds.kdl, validated, backed up, rolled back).
+// scripts/keybinds.py — the key profile of the theme in front (cfg/keybinds-pixel.kdl or
+// cfg/keybinds-macos.kdl, services/KeyProfile), validated, backed up, rolled back.
 Singleton {
     id: root
 
+    property string profile: ""             // pixel | macos ("" — a config from before profiles)
+    property string theme: ""               // its name in words
+    property string file: ""
     property var binds: []
     property var sections: []
     property bool loaded: false
@@ -51,7 +55,9 @@ Singleton {
     }
     function bindFor(key, exceptId) {
         const k = normKey(key);
-        return binds.find(b => b.id !== exceptId && normKey(b.key) === k) || null;
+        // the common file's keys are read before the profile: binding one here replaces it for
+        // this theme, it is no clash
+        return binds.find(b => b.id !== exceptId && b.after !== false && normKey(b.key) === k) || null;
     }
     // evdev key codes (Wayland scan code − 8) → niri/xkb key names, US layout, so
     // the combination is the same whatever layout is active while recording
@@ -372,6 +378,9 @@ Singleton {
                     }
                     root.binds = v.binds || [];
                     root.sections = v.sections || [];
+                    root.profile = v.profile || "";
+                    root.theme = v.theme || "";
+                    root.file = v.file || "";
                     root.loaded = true;
                 } catch (e) {
                     root.log = String(e);

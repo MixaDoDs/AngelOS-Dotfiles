@@ -5,7 +5,7 @@ import qs.widgets
 import "."
 
 // NGO-style stats ("stats.exe"). The host draws the frame and handles dragging.
-// macOS look (DesktopWidgets.macLook): Activity-style rings, one inside the other, and the
+// macOS look (Skin.macWidgets, the Theme API): Activity-style rings, one inside the other, and the
 // three numbers beside them in their rings' colours.
 Item {
     id: root
@@ -13,7 +13,7 @@ Item {
     property string screenName
     property var widget
 
-    readonly property bool mac: DesktopWidgets.macLook
+    readonly property bool mac: Skin.macWidgets           // the Theme API: Settings → Widgets → style
     implicitWidth: mac ? macRow.implicitWidth : col.implicitWidth
     implicitHeight: mac ? macRow.implicitHeight : col.implicitHeight
 

@@ -6,6 +6,7 @@
   "description": "Замер скорости интернета со спидометром и историей. Кнопка на панели, работает через speedtest-cli.",
   "icon": "gauge",
   "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
   "barWidget": "BarWidget.qml",
   "settings": "Settings.qml"
 }

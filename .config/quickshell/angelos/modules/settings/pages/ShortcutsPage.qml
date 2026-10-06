@@ -6,13 +6,15 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// Settings → Shortcuts: every niri key binding from cfg/keybinds.kdl, changeable
-// in place, plus new shortcuts for apps, angelOS / niri actions or any command.
+// Settings → Shortcuts: the niri key bindings of the theme in front (its key profile,
+// services/KeyProfile), changeable in place, plus new shortcuts for apps, angelOS / niri
+// actions or any command. The other theme's profile is never touched from here.
 PxPage {
     id: page
 
     heading: I18n.t("Горячие клавиши", "Shortcuts")
-    subtitle: I18n.t("Все сочетания niri из cfg/keybinds.kdl. Нажми на сочетание, чтобы поменять его; изменения проверяются niri и сохраняются с бэкапом. Внизу — сочетания, которые angelOS пишет сам (Alt+Tab, лупа, «как на Mac»): их клавиши заняты.", "Every niri binding from cfg/keybinds.kdl. Click a combination to change it; changes are validated by niri and backed up. Below: the ones angelOS writes itself (Alt+Tab, the lens, Mac keys) — their keys are taken.")
+    subtitle: (Keybinds.profile ? I18n.t("Профиль темы: ", "Theme profile: ") + (Keybinds.profile === "macos" ? I18n.t("macOS (Golden Gate)", "macOS (Golden Gate)") : I18n.t("пиксельная тема", "the pixel theme")) + " — " + String(Keybinds.file).split("/").pop() + I18n.t(". Изменения здесь меняют только эту тему; у другой темы свой профиль. ", ". Changes here touch this theme only; the other theme has its own profile. ") : "")
+        + I18n.t("Нажми на сочетание, чтобы поменять его; изменения проверяются niri и сохраняются с бэкапом. Внизу — общие для обеих тем клавиши (их можно переназначить здесь — только для этой темы) и сочетания, которые angelOS пишет сам (Alt+Tab, лупа): их клавиши заняты.", "Click a combination to change it; changes are validated by niri and backed up. Below: the keys both themes share (bind one here to replace it for this theme only) and the ones angelOS writes itself (Alt+Tab, the lens) — their keys are taken.")
 
     Component.onCompleted: Keybinds.refresh()
 
@@ -378,7 +380,7 @@ PxPage {
                                 visible: entry.info.detail !== entry.info.label || !!entry.modelData.file
                                 // the binds angelOS writes into its own files (Keybinds: cfg/angelos-windows.kdl,
                                 // angelos.kdl) change on their pages, named in the section
-                                text: entry.info.detail + (entry.modelData.editable ? "" : entry.modelData.file ? I18n.t("  · пишет angelOS (", "  · written by angelOS (") + entry.modelData.file + ")" : I18n.t("  · правится только в файле", "  · edit it in the file"))
+                                text: entry.info.detail + (entry.modelData.editable ? "" : entry.modelData.file === "keybinds-common.kdl" ? I18n.t("  · общий для обеих тем", "  · shared by both themes") : entry.modelData.file ? I18n.t("  · пишет angelOS (", "  · written by angelOS (") + entry.modelData.file + ")" : I18n.t("  · правится только в файле", "  · edit it in the file"))
                                 kind: "tiny"
                                 dim: true
                                 elide: Text.ElideMiddle

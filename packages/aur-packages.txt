@@ -1,7 +1,0 @@
-# Optional foreign/AUR packages detected on the source machine.
-# Local-only tools and machine-specific binaries are intentionally excluded.
-grok-bot-bin
-lrc_tty
-millennium
-nexusmods-app-bin
-throne-bin

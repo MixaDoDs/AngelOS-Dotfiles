@@ -7,7 +7,7 @@ import qs.widgets
 import "."
 
 // Desktop presence ("claude.exe"): breathing mascot, state, limits. The host draws the frame.
-// macOS look (DesktopWidgets.macLook): a status card — a badge in the state's colour that
+// macOS look (Skin.macWidgets, the Theme API): a status card — a badge in the state's colour that
 // breathes while Claude works, the state, her message, the limits as thin bars.
 Item {
     id: root
@@ -19,7 +19,7 @@ Item {
     // the host hides the frame when this is false (still movable in edit mode)
     readonly property bool wantVisible: mode === "always" || (mode === "active" && (Pulse.state !== "none" || !!Pulse.presence))
 
-    readonly property bool mac: DesktopWidgets.macLook
+    readonly property bool mac: Skin.macWidgets       // the Theme API: Settings → Widgets → style
     implicitWidth: mac ? DesktopWidgets.mpx(250) : Theme.u * 116
     implicitHeight: mac ? macCol.implicitHeight : col.implicitHeight
 

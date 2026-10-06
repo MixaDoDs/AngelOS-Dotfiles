@@ -34,7 +34,7 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     // takes input: the whole screen while it shows (a click outside closes it)
-    BackgroundEffect.blurRegion: Config.appearance.blur && open ? blurRegion : null
+    BackgroundEffect.blurRegion: GoldenGate.blurOn && open ? blurRegion : null
     Region {
         id: blurRegion
         item: card

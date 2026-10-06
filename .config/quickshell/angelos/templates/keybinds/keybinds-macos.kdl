@@ -1,0 +1,130 @@
+binds {
+
+    // https://github.com/YaLTeR/niri/wiki/Configuration:-Key-Bindings
+
+    // Профиль биндов темы Golden Gate (macOS): Super = ⌘. Маковские сочетания — в разделе
+    // «как на Mac» в конце; тайлинг niri и рабочие столы — на Super+Alt (+Ctrl — перенести
+    // туда, +Shift — назад / высота); Super+Alt+= / − / 0 — лупа. Общие для обеих тем клавиши —
+    // в keybinds-common.kdl. Активный профиль выбирает angelOS (scripts/keyprofile.py).
+
+    // https://docs.noctalia.dev/getting-started/keybinds/
+
+    // ─── angelOS ───
+    Mod+Alt+Space                       hotkey-overlay-title="angelOS: программы (лаунчер; ⌘Пробел — Spotlight)" { spawn-sh "qs -c angelos ipc call angelos launcher"; }
+
+    // Please set the text editor of your choice.
+    // Mod+Shift+E                               hotkey-overlay-title="Open Text Editor: Zed" { spawn "zed"; }
+
+    // Please choose your own file manager.
+
+    // XF86MonBrightnessUp                 allow-when-locked=true { spawn-sh "noctalia msg brightness-up"; }
+    // XF86MonBrightnessDown               allow-when-locked=true { spawn-sh "noctalia msg brightness-down"; }
+
+    // ─── Window Movement and Focus (Super+Alt) ───
+
+    Mod+Alt+Left                        hotkey-overlay-title="Фокус: колонка слева" { focus-column-left; }
+    Mod+Alt+H                           hotkey-overlay-title="Фокус: колонка слева" { focus-column-left; }
+    Mod+Alt+Right                       hotkey-overlay-title="Фокус: колонка справа" { focus-column-right; }
+    Mod+Alt+L                           hotkey-overlay-title="Фокус: колонка справа" { focus-column-right; }
+    Mod+Alt+Up                          hotkey-overlay-title="Фокус: окно выше" { focus-window-up; }
+    Mod+Alt+K                           hotkey-overlay-title="Фокус: окно выше" { focus-window-up; }
+    Mod+Alt+Down                        hotkey-overlay-title="Фокус: окно ниже" { focus-window-down; }
+    Mod+Alt+J                           hotkey-overlay-title="Фокус: окно ниже" { focus-window-down; }
+
+    Mod+Alt+Ctrl+Left                   hotkey-overlay-title="Колонку влево" { move-column-left; }
+    Mod+Alt+Ctrl+H                      hotkey-overlay-title="Колонку влево" { move-column-left; }
+    Mod+Alt+Ctrl+Right                  hotkey-overlay-title="Колонку вправо" { move-column-right; }
+    Mod+Alt+Ctrl+L                      hotkey-overlay-title="Колонку вправо" { move-column-right; }
+    Mod+Alt+Ctrl+Up                     hotkey-overlay-title="Окно выше" { move-window-up; }
+    Mod+Alt+Ctrl+K                      hotkey-overlay-title="Окно выше" { move-window-up; }
+    Mod+Alt+Ctrl+Down                   hotkey-overlay-title="Окно ниже" { move-window-down; }
+    Mod+Alt+Ctrl+J                      hotkey-overlay-title="Окно ниже" { move-window-down; }
+
+    Mod+Alt+Home                        hotkey-overlay-title="Фокус: первая колонка" { focus-column-first; }
+    Mod+Alt+End                         hotkey-overlay-title="Фокус: последняя колонка" { focus-column-last; }
+    Mod+Alt+Ctrl+Home                   hotkey-overlay-title="Колонку в начало" { move-column-to-first; }
+    Mod+Alt+Ctrl+End                    hotkey-overlay-title="Колонку в конец" { move-column-to-last; }
+
+    Mod+Alt+BracketLeft                 hotkey-overlay-title="Окно в колонку слева / из неё" { consume-or-expel-window-left; }
+    Mod+Alt+BracketRight                hotkey-overlay-title="Окно в колонку справа / из неё" { consume-or-expel-window-right; }
+
+    Mod+Alt+Comma                       hotkey-overlay-title="Забрать окно в колонку" { consume-window-into-column; }
+    Mod+Alt+Period                      hotkey-overlay-title="Вынуть окно из колонки" { expel-window-from-column; }
+
+    Mod+Alt+R                           hotkey-overlay-title="Следующая ширина колонки" { switch-preset-column-width; }
+    Mod+Alt+Shift+R                     hotkey-overlay-title="Предыдущая ширина колонки" { switch-preset-column-width-back; }
+
+    Mod+Alt+Ctrl+Shift+R                hotkey-overlay-title="Следующая высота окна" { switch-preset-window-height; }
+    Mod+Alt+Ctrl+R                      hotkey-overlay-title="Сбросить высоту окна" { reset-window-height; }
+
+    // ─── Workspace Switching ───
+    // the desktops are second here: ⌃← / ⌃→ and ⌃↑ (Mission Control) are the Mac keys
+    Mod+WheelScrollDown                 cooldown-ms=150 hotkey-overlay-title="Стол ниже" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws down"; }
+    Mod+WheelScrollUp                   cooldown-ms=150 hotkey-overlay-title="Стол выше" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws up"; }
+
+    Mod+Alt+1                           hotkey-overlay-title="Стол 1" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 1"; }
+    Mod+Alt+2                           hotkey-overlay-title="Стол 2" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 2"; }
+    Mod+Alt+3                           hotkey-overlay-title="Стол 3" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 3"; }
+    Mod+Alt+4                           hotkey-overlay-title="Стол 4" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 4"; }
+    Mod+Alt+5                           hotkey-overlay-title="Стол 5" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 5"; }
+    Mod+Alt+6                           hotkey-overlay-title="Стол 6" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 6"; }
+    Mod+Alt+7                           hotkey-overlay-title="Стол 7" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 7"; }
+    Mod+Alt+8                           hotkey-overlay-title="Стол 8" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 8"; }
+    Mod+Alt+9                           hotkey-overlay-title="Стол 9" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 9"; }
+
+    Mod+Alt+Ctrl+1                      hotkey-overlay-title="Колонку на стол 1" { move-column-to-workspace 1; }
+    Mod+Alt+Ctrl+2                      hotkey-overlay-title="Колонку на стол 2" { move-column-to-workspace 2; }
+    Mod+Alt+Ctrl+3                      hotkey-overlay-title="Колонку на стол 3" { move-column-to-workspace 3; }
+    Mod+Alt+Ctrl+4                      hotkey-overlay-title="Колонку на стол 4" { move-column-to-workspace 4; }
+    Mod+Alt+Ctrl+5                      hotkey-overlay-title="Колонку на стол 5" { move-column-to-workspace 5; }
+    Mod+Alt+Ctrl+6                      hotkey-overlay-title="Колонку на стол 6" { move-column-to-workspace 6; }
+    Mod+Alt+Ctrl+7                      hotkey-overlay-title="Колонку на стол 7" { move-column-to-workspace 7; }
+    Mod+Alt+Ctrl+8                      hotkey-overlay-title="Колонку на стол 8" { move-column-to-workspace 8; }
+    Mod+Alt+Ctrl+9                      hotkey-overlay-title="Колонку на стол 9" { move-column-to-workspace 9; }
+
+    Mod+Alt+Tab                         repeat=false hotkey-overlay-title="Обзор (niri overview)" { toggle-overview; }
+    Mod+Alt+O                           hotkey-overlay-title="Previous workspace" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws prev"; }
+
+    // ─── Layout Controls ───
+    Mod+Alt+Ctrl+F                      hotkey-overlay-title="Растянуть колонку на свободное место" { expand-column-to-available-width; }
+    Mod+Alt+C                           hotkey-overlay-title="Колонку в центр" { center-column; }
+    Mod+Alt+Ctrl+C                      hotkey-overlay-title="Видимые колонки в центр" { center-visible-columns; }
+    // Super+Alt+= / − are the lens (macOS ⌥⌘= / ⌥⌘−): widths take Ctrl too
+    Mod+Alt+Ctrl+Minus                  hotkey-overlay-title="Колонку уже (−10%)" { set-column-width "-10%"; }
+    Mod+Alt+Ctrl+Equal                  hotkey-overlay-title="Колонку шире (+10%)" { set-column-width "+10%"; }
+    Mod+Alt+Shift+Minus                 hotkey-overlay-title="Окно ниже ростом (−10%)" { set-window-height "-10%"; }
+    Mod+Alt+Shift+Equal                 hotkey-overlay-title="Окно выше ростом (+10%)" { set-window-height "+10%"; }
+
+    // ─── Modes ───
+    Mod+Alt+Shift+Space                 hotkey-overlay-title="Плавающее / в сетке" { toggle-window-floating; }
+    Mod+Alt+F                           hotkey-overlay-title="Окно во весь экран (niri)" { fullscreen-window; }
+    Mod+Alt+Shift+F                     hotkey-overlay-title="Развернуть колонку" { maximize-column; }
+    Mod+Alt+W                           hotkey-overlay-title="Колонка вкладками" { toggle-column-tabbed-display; }
+    Mod+Alt+M                           hotkey-overlay-title="Развернуть окно до краёв" { maximize-window-to-edges; }
+
+    // Use this when a fullscreen app blocks your keybinds.
+    // It disables any active keyboard shortcut inhibitor, restoring control.
+
+    // ─── как на Mac (⌘ = Super) ───
+    Mod+Q                               hotkey-overlay-title="Mac: завершить программу" { spawn-sh "qs -c angelos ipc call angelos macQuit"; }
+    Mod+W                               hotkey-overlay-title="Mac: закрыть окно" { close-window; }
+    Mod+M                               hotkey-overlay-title="Mac: свернуть окно в Dock" { spawn-sh "qs -c angelos ipc call angelos macMinimize"; }
+    Mod+H                               hotkey-overlay-title="Mac: скрыть программу" { spawn-sh "qs -c angelos ipc call angelos macHide"; }
+    Mod+Tab                             repeat=false hotkey-overlay-title="Mac: переключатель программ" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos alttab apps"; }
+    Mod+Shift+Tab                       repeat=false hotkey-overlay-title="Mac: переключатель программ, назад" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos alttab appsback"; }
+    Mod+Grave                           hotkey-overlay-title="Mac: следующее окно этой программы" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos alttab appwin"; }
+    Mod+Shift+Grave                     hotkey-overlay-title="Mac: предыдущее окно этой программы" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos alttab appwinback"; }
+    Mod+Space                           hotkey-overlay-title="Mac: Spotlight" { spawn-sh "qs -c angelos ipc call angelos startMenu ''"; }
+    Mod+Comma                           hotkey-overlay-title="Mac: Системные настройки angelOS" { spawn-sh "qs -c angelos ipc call angelos settings ''"; }
+    Mod+Ctrl+F                          hotkey-overlay-title="Mac: полноэкранный режим" { fullscreen-window; }
+    Mod+Shift+3                         repeat=false hotkey-overlay-title="Mac: снимок экрана" { spawn "@HOME@/.config/quickshell/angelos/scripts/mac-screenshot.sh" "screen"; }
+    Mod+Shift+4                         repeat=false hotkey-overlay-title="Mac: снимок области" { spawn "@HOME@/.config/quickshell/angelos/scripts/mac-screenshot.sh" "region"; }
+    Mod+Shift+5                         repeat=false hotkey-overlay-title="Mac: меню снимков экрана" { spawn-sh "qs -c angelos ipc call angelos macShotMenu"; }
+    Ctrl+Left                           hotkey-overlay-title="Mac: рабочий стол слева" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws up"; }
+    Ctrl+Right                          hotkey-overlay-title="Mac: рабочий стол справа" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws down"; }
+    Ctrl+Up                             repeat=false hotkey-overlay-title="Mac: Mission Control" { toggle-overview; }
+    F3                                  repeat=false hotkey-overlay-title="Mac: Mission Control" { toggle-overview; }
+    Mod+Ctrl+Q                          hotkey-overlay-title="Mac: заблокировать экран" { spawn-sh "qs -c angelos ipc call angelos lock"; }
+    Mod+Alt+Escape                      hotkey-overlay-title="Mac: завершить принудительно" { spawn-sh "qs -c angelos ipc call angelos macMenu 0"; }
+    Ctrl+F2                             hotkey-overlay-title="Mac: строка меню с клавиатуры" { spawn-sh "qs -c angelos ipc call angelos macMenu -1"; }
+}

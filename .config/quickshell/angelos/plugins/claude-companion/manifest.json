@@ -6,6 +6,7 @@
   "description": "Спутник Claude Code: «пульс» состояния сессий на панели, дышащая сфера на столе, «claude …» в лаунчере (запуск в терминале, «? вопрос» — быстрый ответ), MCP-мост к рабочему столу.",
   "icon": "bot",
   "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
   "main": "Main.qml",
   "barWidget": "BarWidget.qml",
   "desktopTitle": "claude",

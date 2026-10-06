@@ -86,6 +86,13 @@ Scope {
             readonly property bool hellOwn: Angel.demon && Config.y2k.hellAltTab === "hell"
             readonly property bool hellSkin: Angel.demon && Config.y2k.hellAltTab === "skin"
             readonly property int skinPad: 0
+            // Golden Gate's ⌘Tab panel is Liquid Glass: niri blurs under its rounded slab
+            BackgroundEffect.blurRegion: AltTab.mode === "apps" && GoldenGate.on && GoldenGate.blurOn ? atBlur : null
+            Region {
+                id: atBlur
+                item: stage
+                radius: GoldenGate.px(26)
+            }
 
             Item {
                 id: stage

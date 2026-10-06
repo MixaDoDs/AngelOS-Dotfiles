@@ -52,8 +52,8 @@ video/x-ogm=mpv.desktop;
 video/x-ogm+ogg=mpv.desktop;
 video/x-theora=mpv.desktop;
 video/x-theora+ogg=mpv.desktop;
-x-scheme-handler/tg=userapp-Telegram Desktop-W32LW3.desktop;
-x-scheme-handler/tonsite=userapp-Telegram Desktop-RJ8LW3.desktop;
+x-scheme-handler/tg=org.telegram.desktop.desktop;
+x-scheme-handler/tonsite=org.telegram.desktop.desktop;
 
 [Default Applications]
 application/x-matroska=mpv.desktop;
@@ -173,5 +173,5 @@ application/x-7z-compressed=org.kde.ark.desktop
 application/x-tar=org.kde.ark.desktop
 application/vnd.rar=org.kde.ark.desktop
 application/x-compressed-tar=org.kde.ark.desktop
-x-scheme-handler/tg=userapp-Telegram Desktop-W32LW3.desktop
-x-scheme-handler/tonsite=userapp-Telegram Desktop-RJ8LW3.desktop
+x-scheme-handler/tg=org.telegram.desktop.desktop
+x-scheme-handler/tonsite=org.telegram.desktop.desktop

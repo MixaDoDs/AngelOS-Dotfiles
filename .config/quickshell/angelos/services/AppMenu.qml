@@ -80,7 +80,9 @@ Singleton {
     Process {
         id: helper
         running: root.wanted
-        command: ["python3", Quickshell.shellDir + "/scripts/appmenu.py", "serve"]
+        // the registrar makes every Qt app started under it hide its own menu bar (Qt decides once,
+        // at start, for all its windows; there is no per-app switch): only when asked for
+        command: ["python3", Quickshell.shellDir + "/scripts/appmenu.py", "serve"].concat(Config.mac.qtGlobalMenu ? [] : ["--no-registrar"])
         stdinEnabled: true
         stdout: SplitParser {
             onRead: data => root._event(data)
@@ -91,6 +93,13 @@ Singleton {
         onStarted: root._sendFocus()
         onRunningChanged: if (!running)
             root.registrar = false
+    }
+    // the Qt switch flipped: the helper starts again with or without the registrar
+    Connections {
+        target: Config.mac
+        function onQtGlobalMenuChanged() {
+            helper.running = false;
+        }
     }
     // the helper went away while wanted (a crash): start it again — Qt apps started under the
     // registrar have no in-window menu bar any more and depend on it
@@ -749,8 +758,9 @@ Singleton {
             Shell.exec(act.argv);
             break;
         case "desktop":
+            // the apps' environment (Shell.childEnv), never the shell's own (its gtk3 platform theme)
             if (entry && entry.actions && entry.actions[act.index])
-                entry.actions[act.index].execute();
+                Shell.launchAction(entry.actions[act.index], entry.id);
             break;
         case "about":
             aboutApp = {

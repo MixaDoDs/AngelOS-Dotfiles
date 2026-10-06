@@ -6,6 +6,7 @@
   "description": "Тёплый экран вечером (6600K днём → 3900K ночью): свои гамма-таблицы angelOS, вместе с яркостью мониторов из Настроек → Экран.",
   "icon": "moon",
   "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
   "main": "Main.qml",
   "settings": "Settings.qml",
   "menu": [

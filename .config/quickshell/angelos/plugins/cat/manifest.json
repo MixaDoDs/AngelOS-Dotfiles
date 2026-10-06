@@ -6,6 +6,7 @@
   "description": "Пиксельный котик на панели: спит, гуляет или бежит — в зависимости от загрузки процессора. В аду — щенок-цербер. Клик — котик покрупнее.",
   "icon": "heart",
   "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
   "barWidget": "BarWidget.qml",
   "settings": "Settings.qml"
 }

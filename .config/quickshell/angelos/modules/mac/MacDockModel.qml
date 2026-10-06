@@ -162,6 +162,22 @@ Singleton {
         showDirs: true
         showDotAndDotDot: false
     }
+    // emptied (the Dock's menu, Files, `gio trash --empty`…): the crumple (services/Sounds).
+    // Restoring the last item looks the same from here and crumples too
+    property bool _trashSeen: false
+    onTrashFullChanged: {
+        if (trashFull)
+            _trashSeen = true;
+        else if (_trashSeen)
+            trashEmptied.restart();
+    }
+    // (the model is "Loading" while the folder changes: it has to stay empty a moment)
+    Timer {
+        id: trashEmptied
+        interval: 400
+        onTriggered: if (!root.trashFull)
+            Sounds.play("trash")
+    }
 
     // the Downloads stack (MacStack, a left click on Downloads): the folder's newest first
     readonly property int stackMax: 15
@@ -205,9 +221,9 @@ Singleton {
         recent = out;
         recentMore = total - out.length;
     }
-    // a file of the stack: its default app (xdg-open)
+    // a file of the stack: its default app (xdg-open), in the apps' environment (Shell.childEnv)
     function openFile(path) {
-        Quickshell.execDetached(["xdg-open", path]);
+        Shell.exec(["xdg-open", path]);
     }
     // the file manager of Settings → Default apps (DefaultApps "files"), at a folder
     readonly property string fileManagerId: defaultId("files")
@@ -217,9 +233,9 @@ Singleton {
     }
     function openInFileManager(path) {
         if (fileManagerId)
-            Quickshell.execDetached(["gtk-launch", fileManagerId, path]);
+            Shell.exec(["gtk-launch", fileManagerId, path]);
         else if (Config.system.fileManager)
-            Quickshell.execDetached([Config.system.fileManager, path]);
+            Shell.exec([Config.system.fileManager, path]);
         else
             Shell.openPath(path);
     }
@@ -320,7 +336,7 @@ Singleton {
             out.push(AppMenu.sep("d1"));
         const acts = it.entry && it.entry.actions ? it.entry.actions : [];
         for (let i = 0; i < acts.length; i++)
-            out.push(MacMenus.fn("d:a" + i, acts[i].name, () => acts[i].execute()));
+            out.push(MacMenus.fn("d:a" + i, acts[i].name, () => Shell.launchAction(acts[i], it.entry ? it.entry.id : it.id)));
         if (acts.length)
             out.push(AppMenu.sep("d2"));
         if (it.kind === "app") {

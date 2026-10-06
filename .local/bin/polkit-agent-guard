@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""Keep a polkit authentication agent registered for the niri session, always.
+
+The shell's agent (angelOS or Noctalia) is preferred because it follows the
+theme. Whenever no shell is running, or its agent will not register, a fallback
+agent is started at once. When the shell comes back, the fallback steps aside
+and the shell is asked to register again (Noctalia: config reload, angelOS:
+`qs -c angelos ipc call angelos polkitRegister`).
+
+polkitd itself is the judge: registering a probe agent for the session fails
+with "already exists" while someone holds the slot.
+"""
+from __future__ import annotations
+
+import os
+import select
+import subprocess
+import sys
+import time
+
+# Tried in order; missing ones are skipped.
+FALLBACKS = [
+    ["/usr/lib/hyprpolkitagent/hyprpolkitagent"],
+    ["/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"],
+    ["/usr/lib/polkit-kde-authentication-agent-1"],
+    ["/usr/lib/mate-polkit/polkit-mate-authentication-agent-1"],
+]
+POLL = 1.0             # look for a (re)started Noctalia this often
+PROBE_INTERVAL = 15.0  # confirm that someone holds the slot this often
+STARTUP_GRACE = 5.0    # let a fresh Noctalia finish starting before handing over
+REGISTER_WAIT = 3.0    # time a fresh fallback gets to register before it is judged
+QUICK_EXIT = 10.0      # a fallback dying sooner than this counts as a failure
+PROBE_PATH = "/org/noctalia/AgentGuardProbe"
+
+
+def log(msg: str) -> None:
+    print(msg, file=sys.stderr, flush=True)
+
+
+def run(cmd: list[str], timeout: float = 5.0) -> subprocess.CompletedProcess | None:
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                              stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def session_id() -> str | None:
+    # Agents started outside a session scope (user services, niri children)
+    # register for the user's display session, so probe that one.
+    r = run(["loginctl", "show-user", str(os.getuid()), "-p", "Display", "--value"])
+    if r is None or r.returncode != 0:
+        return None
+    return r.stdout.strip() or None
+
+
+def probe() -> str:
+    """Return 'held' if an agent holds the session, 'free' if none, else 'unknown'."""
+    sid = session_id()
+    if not sid:
+        return "unknown"
+    r = run(["busctl", "call", "--system", "org.freedesktop.PolicyKit1",
+             "/org/freedesktop/PolicyKit1/Authority", "org.freedesktop.PolicyKit1.Authority",
+             "RegisterAuthenticationAgent", "(sa{sv})ss",
+             "unix-session", "1", "session-id", "s", sid, "C.UTF-8", PROBE_PATH])
+    if r is None:
+        return "unknown"
+    if r.returncode == 0:
+        # The probe got the slot; busctl's exit drops its connection and polkitd
+        # forgets it. Give polkitd a moment before anyone else registers.
+        time.sleep(0.3)
+        return "free"
+    return "held" if "already exists" in r.stderr else "unknown"
+
+
+def shell_kind(pid: int) -> str:
+    try:
+        with open(f"/proc/{pid}/comm", "rb") as f:
+            return "noctalia" if f.read().strip() == b"noctalia" else "angelos"
+    except OSError:
+        return "noctalia"
+
+
+def noctalia_pid() -> int | None:
+    """Pid of the shell daemon: Noctalia or angelOS (quickshell -c angelos), not IPC clients."""
+    uid = os.getuid()
+    found = []
+    for d in os.listdir("/proc"):
+        if not d.isdigit():
+            continue
+        try:
+            if os.stat(f"/proc/{d}").st_uid != uid:
+                continue
+            with open(f"/proc/{d}/comm", "rb") as f:
+                comm = f.read().strip()
+            if comm not in (b"noctalia", b"quickshell", b"qs"):
+                continue
+            with open(f"/proc/{d}/cmdline", "rb") as f:
+                argv = f.read().split(b"\0")[:-1]
+        except OSError:
+            continue
+        if comm == b"noctalia":
+            if argv and all(a.startswith(b"-") for a in argv[1:]):
+                found.append(int(d))
+        elif b"angelos" in argv and b"ipc" not in argv and b"kill" not in argv and b"log" not in argv:
+            found.append(int(d))
+    return min(found) if found else None
+
+
+def proc_age(pid: int) -> float:
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            start = int(f.read().rsplit(")", 1)[1].split()[19])
+        with open("/proc/uptime") as f:
+            up = float(f.read().split()[0])
+    except (OSError, ValueError, IndexError):
+        return 0.0
+    return up - start / os.sysconf("SC_CLK_TCK")
+
+
+def noctalia_msg(*args: str) -> bool:
+    r = run(["noctalia", "msg", *args], timeout=3.0)
+    return r is not None and r.returncode == 0
+
+
+class Fallback:
+    def __init__(self) -> None:
+        self.proc: subprocess.Popen | None = None
+        self.idx = 0
+        self.started = 0.0
+        self.fails = 0
+        self.not_before = 0.0
+
+    @property
+    def cmd(self) -> list[str]:
+        return FALLBACKS[self.idx]
+
+    def running(self) -> bool:
+        return self.proc is not None and self.proc.poll() is None
+
+    def age(self) -> float:
+        return time.monotonic() - self.started if self.running() else 0.0
+
+    def next_candidate(self) -> None:
+        self.idx = (self.idx + 1) % len(FALLBACKS)
+
+    def ensure(self) -> None:
+        if self.running():
+            return
+        if self.proc is not None:
+            lived = time.monotonic() - self.started
+            log(f"fallback {self.cmd[0]} exited with {self.proc.returncode} after {lived:.0f}s")
+            self.proc = None
+            if lived < QUICK_EXIT:
+                self.fails += 1
+                self.next_candidate()
+                self.not_before = time.monotonic() + min(30.0, 0.5 * 2 ** min(self.fails - 1, 6))
+            else:
+                self.fails = 0
+        if time.monotonic() < self.not_before:
+            return
+        for _ in FALLBACKS:
+            if os.access(self.cmd[0], os.X_OK):
+                try:
+                    self.proc = subprocess.Popen(self.cmd, stdin=subprocess.DEVNULL)
+                except OSError as e:
+                    log(f"fallback {self.cmd[0]} failed to start: {e}")
+                else:
+                    self.started = time.monotonic()
+                    log(f"fallback {self.cmd[0]} started (pid {self.proc.pid})")
+                    return
+            self.next_candidate()
+        log("no fallback agent could be started")
+        self.not_before = time.monotonic() + 10
+
+    def stop(self) -> None:
+        if self.proc is None:
+            return
+        if self.proc.poll() is None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(3)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+                self.proc.wait()
+        log(f"fallback {self.cmd[0]} stopped")
+        self.proc = None
+        self.fails = 0
+
+
+QS = next((q for q in ("/usr/bin/qs", os.path.expanduser("~/.local/bin/qs")) if os.access(q, os.X_OK)), "qs")
+
+
+def angelos_ipc(*args: str) -> bool:
+    r = run([QS, "-c", "angelos", "ipc", "call", "angelos", *args], timeout=3.0)
+    return r is not None and r.returncode == 0
+
+
+def hand_over(fb: Fallback, kind: str = "noctalia") -> bool:
+    """Move the slot to the shell; return False if its agent will not register."""
+    alive = angelos_ipc("status") if kind == "angelos" else noctalia_msg("color-scheme-get")
+    if not alive:
+        return True  # not answering IPC yet; keep whatever holds the slot now
+    fb.stop()
+    time.sleep(0.3)  # let polkitd drop the fallback's registration
+    for _ in range(3):
+        if kind == "angelos":
+            angelos_ipc("polkitRegister")
+        else:
+            noctalia_msg("config-reload")  # Noctalia registers its agent on reload
+        time.sleep(1.0)
+        state = probe()
+        if state != "free":
+            if state == "unknown":
+                log("cannot query polkitd; assuming Noctalia's agent is fine")
+            return True
+    return False
+
+
+def main() -> None:
+    # This guard owns the fallback; a separately started unit would only collide.
+    run(["systemctl", "--user", "stop", "hyprpolkitagent.service"])
+    fb = Fallback()
+    tracked: tuple[int, int] | None = None  # (pid, pidfd) of the Noctalia daemon
+    broken: int | None = None               # Noctalia pid whose agent would not register
+    next_probe = 0.0
+    while True:
+        try:
+            if tracked is None:
+                pid = noctalia_pid()
+                if pid is not None:
+                    try:
+                        tracked = (pid, os.pidfd_open(pid))
+                        log(f"shell running (pid {pid}, {shell_kind(pid)})")
+                    except OSError:
+                        pass
+            pid = tracked[0] if tracked else None
+            now = time.monotonic()
+
+            if pid is None or pid == broken:
+                fb.ensure()
+                if fb.age() > REGISTER_WAIT and now >= next_probe:
+                    next_probe = now + PROBE_INTERVAL
+                    if probe() == "free":
+                        log(f"fallback {fb.cmd[0]} did not register; trying the next one")
+                        fb.stop()
+                        fb.next_candidate()
+            elif proc_age(pid) >= STARTUP_GRACE and (fb.running() or now >= next_probe):
+                kind = shell_kind(pid)
+                if fb.running():
+                    ok = hand_over(fb, kind)
+                    if ok and not fb.running():
+                        log("shell holds the agent")
+                else:
+                    ok = probe() != "free" or hand_over(fb, kind)
+                if not ok:
+                    log(f"shell (pid {pid}) agent will not register; using the fallback")
+                    broken = pid
+                    fb.ensure()
+                next_probe = time.monotonic() + PROBE_INTERVAL
+
+            fds = [tracked[1]] if tracked else []
+            ready, _, _ = select.select(fds, [], [], POLL)
+            if tracked and tracked[1] in ready:
+                os.close(tracked[1])
+                log(f"shell (pid {tracked[0]}) exited")
+                tracked = None
+                time.sleep(0.2)  # let polkitd drop the dead agent before the fallback registers
+        except Exception as e:  # never die over a surprise; systemd restarts us anyway
+            log(f"polkit-agent-guard: {e!r}")
+            time.sleep(POLL)
+
+
+if __name__ == "__main__":
+    main()

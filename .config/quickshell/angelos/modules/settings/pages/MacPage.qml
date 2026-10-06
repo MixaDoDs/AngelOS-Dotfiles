@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 import qs.services
 import qs.widgets
@@ -270,6 +271,14 @@ PxPage {
             }
         }
         SettingRow {
+            label: I18n.t("Уменьшить прозрачность", "Reduce transparency")
+            hint: GoldenGate.gameMode ? I18n.t("сейчас стекло и так плотное: идёт полноэкранное окно (niri-game-mode)", "the glass is solid right now anyway: a fullscreen window is up (niri-game-mode)") : I18n.t("как в Универсальном доступе macOS: плотное стекло без размытия и бликов по краю — читается легче и меньше работы видеокарте. Само включается, пока идёт полноэкранная игра", "as in macOS's Accessibility: solid glass, no blur and no edge light — easier to read and less work for the GPU. Turns on by itself while a fullscreen game runs")
+            PxToggle {
+                checked: Config.mac.reduceTransparency
+                onToggled: v => Config.mac.reduceTransparency = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Размытие под стеклом", "Blur behind the glass")
             hint: I18n.t("выключено — стекло почти непрозрачное, как «Уменьшить прозрачность» в macOS", "off: the glass nearly opaque, like macOS's Reduce Transparency")
             PxToggle {
@@ -294,6 +303,15 @@ PxPage {
             }
         }
         SettingRow {
+            visible: Config.mac.appMenus
+            label: I18n.t("Меню Qt-программ тоже в строке меню", "Qt apps' menus in the menu bar too")
+            hint: I18n.t("Telegram, qBittorrent, OBS… отдают своё меню наверх и прячут его в окне — Qt решает это при запуске сразу для всех своих программ. Выключено: у Qt-программ их собственные меню", "Telegram, qBittorrent, OBS… hand their menu up and hide it in the window — Qt decides at start, for all its apps at once. Off: Qt apps keep their own menus")
+            PxToggle {
+                checked: Config.mac.qtGlobalMenu
+                onToggled: v => Config.mac.qtGlobalMenu = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Размер текста", "Text size")
             PxSegmented {
                 model: [1, 1.25, 1.5, 1.75, 2].filter(v => v >= page.lim["appearance.fontScale"][0] && v <= page.lim["appearance.fontScale"][1]).map(v => ({
@@ -302,6 +320,106 @@ PxPage {
                         }))
                 currentValue: Config.appearance.fontScale
                 onActivated: v => Config.appearance.fontScale = v
+            }
+        }
+    }
+
+    // ---- the sound effects (services/Sounds' Golden Gate pack) ----
+    PxGroup {
+        name: "sounds"
+        id: soundsGroup
+        title: I18n.t("Звуковые эффекты", "Sound Effects")
+        icon: "speaker"
+        width: parent.width
+        // event -> its own file in ~/.local/share/angelos/sounds/macos ("" = the skin's)
+        property var own: ({})
+        readonly property var list: [["notify", "Уведомление", "Notification"], ["error", "Ошибка", "Error"], ["volume", "Громкость", "Volume"], ["screenshot", "Снимок экрана", "Screenshot"], ["trash", "Очистка Корзины", "Empty Trash"], ["usbIn", "USB подключено", "USB connected"], ["usbOut", "USB отключено", "USB disconnected"], ["power", "Зарядка подключена", "Charger connected"], ["lock", "Блокировка", "Lock"], ["login", "Вход", "Log in"]]
+        function rescan() {
+            ownScan.running = false;
+            ownScan.running = true;
+        }
+        Component.onCompleted: rescan()
+        Process {
+            id: ownScan
+            command: ["sh", "-c", 'cd "$1" 2>/dev/null || exit 0; for f in *; do [ -f "$f" ] && echo "$f"; done', "sh", Sounds.macUserDir]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    const own = {};
+                    for (const f of text.split("\n")) {
+                        const m = f.match(/^(.+)\.(ogg|oga|opus|wav|flac|aiff|aif|caf|mp3)$/i);
+                        if (m && own[m[1]] === undefined)
+                            own[m[1]] = f;
+                    }
+                    soundsGroup.own = own;
+                }
+            }
+        }
+
+        SettingRow {
+            label: I18n.t("Системные звуки", "Play sound effects")
+            hint: I18n.t("уведомления, ошибки, снимки экрана, Корзина, USB, зарядка, блокировка и вход. Свои, похожие на Mac, без звуков Apple", "notifications, errors, screenshots, the Trash, USB, the charger, locking and logging in. Our own, Mac-like, no Apple sounds")
+            PxToggle {
+                checked: Config.mac.sounds
+                onToggled: v => Config.mac.sounds = v
+            }
+        }
+        SettingRow {
+            enabled: Config.mac.sounds
+            label: I18n.t("Громкость эффектов", "Sound effects volume")
+            PxSlider {
+                width: parent.width
+                from: page.lim["mac.soundVolume"][0]
+                to: page.lim["mac.soundVolume"][1]
+                stepSize: 0.05
+                value: Config.mac.soundVolume
+                valueScale: 100
+                suffix: "%"
+                onMoved: v => Config.mac.soundVolume = v
+                onReleased: Sounds.preview("notify")
+            }
+        }
+        SettingRow {
+            enabled: Config.mac.sounds
+            label: I18n.t("Звук при изменении громкости", "Play feedback when volume is changed")
+            PxToggle {
+                checked: Config.mac.volumeSound
+                onToggled: v => {
+                    Config.mac.volumeSound = v;
+                    if (v)
+                        Sounds.preview("volume");
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Свои звуки", "Your own sounds")
+            hint: I18n.t("файл с именем события (notify, error, volume, screenshot, trash, usbIn, usbOut, power, lock, login; .aiff .caf .wav .ogg .flac .mp3) в этой папке играет вместо встроенного — например, звуки со своего Mac из /System/Library/Sounds", "a file named after the event (notify, error, volume, screenshot, trash, usbIn, usbOut, power, lock, login; .aiff .caf .wav .ogg .flac .mp3) in this folder plays instead of the built-in one — e.g. sounds from your own Mac's /System/Library/Sounds")
+            Row {
+                spacing: Theme.u * 2
+                PxButton {
+                    text: I18n.t("Открыть папку", "Open folder")
+                    icon: "folder"
+                    onClicked: Quickshell.execDetached(["sh", "-c", 'mkdir -p "$1" && exec gio open "$1"', "sh", Sounds.macUserDir])
+                }
+                PxButton {
+                    compact: true
+                    icon: "refresh"
+                    onClicked: soundsGroup.rescan()
+                }
+            }
+        }
+        Repeater {
+            model: soundsGroup.list
+            SettingRow {
+                id: sndRow
+                required property var modelData
+                readonly property string file: soundsGroup.own[modelData[0]] || ""
+                label: I18n.t(modelData[1], modelData[2])
+                hint: file ? I18n.t("ваш: ", "yours: ") + file : I18n.t("встроенный", "built-in")
+                PxButton {
+                    compact: true
+                    icon: "play"
+                    onClicked: Sounds.preview(sndRow.modelData[0])
+                }
             }
         }
     }

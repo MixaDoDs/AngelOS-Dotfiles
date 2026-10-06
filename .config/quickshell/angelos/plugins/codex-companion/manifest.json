@@ -6,6 +6,7 @@
   "description": {"ru": "Помощник по лимитам OpenAI Codex: окна 5 ч / неделя и кредиты (когда провайдер их сообщает), токены за сегодня, живые сессии, «codex …» в лаунчере и быстрый вопрос без инструментов.", "en": "OpenAI Codex limits helper: 5-hour / weekly windows and credits (when the provider reports them), today's tokens, live sessions, “codex …” in the launcher and a tool-less quick question."},
   "icon": "terminal",
   "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
   "main": "Main.qml",
   "barWidget": "BarWidget.qml",
   "desktopTitle": "codex",

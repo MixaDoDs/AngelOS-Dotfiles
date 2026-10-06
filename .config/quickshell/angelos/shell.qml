@@ -44,13 +44,9 @@ ShellRoot {
     NotificationPopups {}
     Osd {}
     VoxIndicator {}
-    Launcher {}
-    ClipboardPanel {}
-    SessionMenu {}
     IdleScreen {}
     Lock {}
     PolkitDialog {}
-    SettingsWindow {}
     UpdatePrompt {}
     SetupWizard {}
     TourOverlay {}
@@ -65,8 +61,9 @@ ShellRoot {
     AltTabHost {}
     ShakeCursor {}
     LensOverlay {}
-    GameDebugWindow {}
     Ipc {}
+    // Launcher, ClipboardPanel, SessionMenu, SettingsWindow, GameDebugWindow: built on demand
+    LazyWindows {}
 
     // Keep dynamically loaded settings pages visible to Quickshell's static
     // QML importer. Without these type anchors, pages loaded later through a
@@ -119,5 +116,8 @@ ShellRoot {
         FastfetchLogo.signature; // fastfetch draws the chosen emblem (Settings → Bar → Logo)
         CursorShake.status; // shake the mouse to find the pointer (Settings → Cursor)
         Novel.loaded; // the novel (~/AngelOs-Nov): chapters, the notes, her questions
+        KeyProfile.want; // every theme its own niri keys, switched with the theme
+        CommunityPlugins.entries; // the plugin catalog: a daily update check, the old store retired
+        GoldenGate.wallTheme; // every theme its own wallpapers
     }
 }

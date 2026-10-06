@@ -13,6 +13,8 @@ say() {
   command -v notify-send >/dev/null 2>&1 && notify-send -a Screenshot "$@"
 }
 pling() {
+  # the shell plays Golden Gate's shutter from the notification below (services/Sounds)
+  [ -e "${XDG_RUNTIME_DIR:-/tmp}/angelos/shutter" ] && return 0
   f="$HOME/.local/share/sounds/screenshot-pling.ogg"
   [ -f "$f" ] && command -v pw-play >/dev/null 2>&1 && pw-play --volume 0.75 "$f" >/dev/null 2>&1 &
 }

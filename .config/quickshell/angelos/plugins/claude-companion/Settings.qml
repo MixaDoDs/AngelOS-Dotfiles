@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.config
+import qs.services
 import qs.widgets
 import "."
 
@@ -11,7 +12,7 @@ Column {
     property string hooks: "?"
     property string log: ""
     width: parent ? parent.width : 400
-    spacing: Theme.u * 5
+    spacing: Skin.px(10)
 
     Process {
         id: hookProc
@@ -96,12 +97,12 @@ Column {
             dim: true
         }
         Row {
-            spacing: Theme.u * 4
+            spacing: Skin.px(8)
             PxText {
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.hooks === "installed" ? I18n.t("подключены ♡", "Connected ♡") : root.hooks === "not-installed" ? I18n.t("не подключены", "Not connected") : "…"
                 kind: "title"
-                color: root.hooks === "installed" ? Theme.ok : Theme.textDim
+                color: root.hooks === "installed" ? Skin.ok : Skin.textDim
             }
             PxButton {
                 text: root.hooks === "installed" ? I18n.t("Убрать", "Remove") : I18n.t("Подключить", "Connect")
@@ -147,7 +148,7 @@ Column {
         SettingRow {
             label: I18n.t("Монитор для сферы", "Orb display")
             PxCombo {
-                width: Theme.u * 100
+                width: Skin.px(200)
                 model: [
                     {
                         "label": I18n.t("Все экраны", "All displays"),

@@ -8,13 +8,13 @@ Column {
     id: root
     property var plugin
     width: parent ? parent.width : 400
-    spacing: Theme.u * 5
+    spacing: Skin.px(10)
 
     PxText {
         width: parent.width
         wrapMode: Text.Wrap
         kind: "tiny"
-        color: ScreenTune.error || ScreenTune.anyFailed ? Theme.danger : Theme.textDim
+        color: ScreenTune.error || ScreenTune.anyFailed ? Skin.danger : Skin.textDim
         text: ScreenTune.error ? ScreenTune.error : ScreenTune.anyFailed ? I18n.t("гамму держит другая программа (wlsunset, gammastep?) — закрой её, ночной свет подхватит сам", "Another program holds the gamma (wlsunset, gammastep?): close it and the night light takes over") : ScreenTune.night ? I18n.t("сейчас ", "Now ") + ScreenTune.kelvin + " K" + I18n.t(" · яркость мониторов — Настройки → Экран", " · monitor brightness: Settings → Display") : ""
     }
 
@@ -64,14 +64,14 @@ Column {
         SettingRow {
             label: I18n.t("Рассвет / закат", "Sunrise / sunset")
             Row {
-                spacing: Theme.u * 3
+                spacing: Skin.px(6)
                 PxField {
-                    width: Theme.u * 40
+                    width: Skin.px(80)
                     text: root.plugin ? root.plugin.get("sunrise", "07:00") : ""
                     onAccepted: root.plugin.set("sunrise", text)
                 }
                 PxField {
-                    width: Theme.u * 40
+                    width: Skin.px(80)
                     text: root.plugin ? root.plugin.get("sunset", "20:00") : ""
                     onAccepted: root.plugin.set("sunset", text)
                 }
@@ -80,14 +80,14 @@ Column {
         SettingRow {
             label: I18n.t("Широта / долгота", "Latitude / longitude")
             Row {
-                spacing: Theme.u * 3
+                spacing: Skin.px(6)
                 PxField {
-                    width: Theme.u * 40
+                    width: Skin.px(80)
                     text: root.plugin ? String(root.plugin.get("lat", 55.75)) : ""
                     onAccepted: root.plugin.set("lat", parseFloat(text))
                 }
                 PxField {
-                    width: Theme.u * 40
+                    width: Skin.px(80)
                     text: root.plugin ? String(root.plugin.get("lon", 37.62)) : ""
                     onAccepted: root.plugin.set("lon", parseFloat(text))
                 }

@@ -36,10 +36,46 @@ PanelWindow {
     WlrLayershell.namespace: "angelos-notifications"
     WlrLayershell.layer: WlrLayer.Overlay
 
-    BackgroundEffect.blurRegion: Config.appearance.blur && !mac ? blurRegion : null
+    // Golden Gate: niri blurs under each banner's rounded glass (no more than 8 stand at once)
+    BackgroundEffect.blurRegion: mac ? (GoldenGate.blurOn ? macBlur : null) : Config.appearance.blur ? blurRegion : null
     Region {
         id: blurRegion
         item: col
+    }
+    Region {
+        id: macBlur
+        Region {
+            item: banners.count > 0 && banners.itemAt(0) ? banners.itemAt(0).glassItem : null
+            radius: GoldenGate.px(20)
+        }
+        Region {
+            item: banners.count > 1 && banners.itemAt(1) ? banners.itemAt(1).glassItem : null
+            radius: GoldenGate.px(20)
+        }
+        Region {
+            item: banners.count > 2 && banners.itemAt(2) ? banners.itemAt(2).glassItem : null
+            radius: GoldenGate.px(20)
+        }
+        Region {
+            item: banners.count > 3 && banners.itemAt(3) ? banners.itemAt(3).glassItem : null
+            radius: GoldenGate.px(20)
+        }
+        Region {
+            item: banners.count > 4 && banners.itemAt(4) ? banners.itemAt(4).glassItem : null
+            radius: GoldenGate.px(20)
+        }
+        Region {
+            item: banners.count > 5 && banners.itemAt(5) ? banners.itemAt(5).glassItem : null
+            radius: GoldenGate.px(20)
+        }
+        Region {
+            item: banners.count > 6 && banners.itemAt(6) ? banners.itemAt(6).glassItem : null
+            radius: GoldenGate.px(20)
+        }
+        Region {
+            item: banners.count > 7 && banners.itemAt(7) ? banners.itemAt(7).glassItem : null
+            radius: GoldenGate.px(20)
+        }
     }
 
     Column {
@@ -58,6 +94,7 @@ PanelWindow {
             }
         }
         Repeater {
+            id: banners
             model: win.mac ? Notifs.popups : []
             MacBanner {
                 required property var modelData

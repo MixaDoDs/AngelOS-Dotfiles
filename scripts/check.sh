@@ -160,7 +160,7 @@ else
 fi
 
 if command -v shellcheck >/dev/null 2>&1; then
-  if shellcheck -S warning "$ROOT/install.sh" "$ROOT/scripts/check.sh" "$ROOT/scripts/test-update.sh" "$ROOT/scripts/test-update-old.sh" "$ROOT/scripts/ci-local.sh" \
+  if shellcheck -S warning "$ROOT/install.sh" "$ROOT/installer/tui.sh" "$ROOT/scripts/check.sh" "$ROOT/scripts/test-update.sh" "$ROOT/scripts/test-update-old.sh" "$ROOT/scripts/ci-local.sh" \
        "$ROOT/.config/quickshell/angelos/scripts/dotfiles-update.sh" "$ROOT/.config/quickshell/angelos/tests/updates/run.sh" &&
      shellcheck -s sh -S warning "$ROOT/.config/quickshell/angelos/bin/angelos" "$ROOT/.config/quickshell/angelos/scripts/author-tools.sh"; then
     pass "shellcheck"
@@ -174,8 +174,11 @@ fi
 # ── Required files ───────────────────────────────────────────────────────────
 
 for file in \
-  install.sh .install \
-  .config/niri/config.kdl .config/niri/config-no-noctalia.kdl .config/niri/noctalia.kdl \
+  install.sh .install installer/tui.sh \
+  .config/niri/config.kdl .config/niri/cfg/keybinds.kdl .config/niri/cfg/keybinds-common.kdl \
+  .config/niri/cfg/keybinds-pixel.kdl .config/niri/cfg/keybinds-macos.kdl .config/fish/config.fish \
+  packages/fish.txt packages/nvim.txt packages/apps.txt packages/apps-flatpak.txt \
+  .config/niri/config-no-noctalia.kdl .config/niri/noctalia.kdl \
   .config/niri/monitor.kdl .config/niri/cfg/input.kdl .config/niri/cfg/rules.kdl \
   .config/voxtype/config.toml \
   .config/gtk-3.0/bookmarks .config/gtk-4.0/bookmarks \
@@ -194,6 +197,21 @@ for file in \
   LICENSE THIRD-PARTY.md LICENSES/OFL-1.1.txt .config/quickshell/angelos/docs/ICON-CREDITS.md; do
   check_file "$file"
 done
+
+# the theme key profiles are angelOS's templates, and keybinds.kdl picks one of them
+for prof in common pixel macos; do
+  if cmp -s "$ROOT/.config/niri/cfg/keybinds-$prof.kdl" "$ROOT/.config/quickshell/angelos/templates/keybinds/keybinds-$prof.kdl"; then
+    pass "niri keys: keybinds-$prof.kdl is angelOS's template"
+  else
+    fail "niri keys: keybinds-$prof.kdl differs from templates/keybinds (copy the template)"
+  fi
+done
+if grep -qx 'include "keybinds-common.kdl"' "$ROOT/.config/niri/cfg/keybinds.kdl" &&
+   grep -qx 'include "keybinds-pixel.kdl"' "$ROOT/.config/niri/cfg/keybinds.kdl"; then
+  pass "niri keys: the selector picks the common and the pixel profile"
+else
+  fail "niri keys: cfg/keybinds.kdl must include keybinds-common.kdl and keybinds-pixel.kdl"
+fi
 
 # ── Noctalia ────────────────────────────────────────────────────────────────
 
@@ -441,6 +459,64 @@ else
     fail "installer: custom layouts"; sed 's/^/    /' "$WORK/layouts.log" >&2
   fi
 
+  # the theme step: Golden Gate (macOS) in settings.json and the Mac key profile in front
+  if install_case macos ANGELOS_THEME=macos; then
+    if python3 -c 'import json, sys; u = json.load(open(sys.argv[1]))["settingsUi"]; sys.exit(0 if u["skin"] == "goldengate" and u["skinChosen"] is True else 1)' \
+         "$WORK/macos/.config/angelos/settings.json" 2>/dev/null; then
+      pass "installer: ANGELOS_THEME=macos picks Golden Gate (the wizard won't ask again)"
+    else
+      fail "installer: ANGELOS_THEME=macos picks Golden Gate"
+    fi
+    expect_line macos .config/niri/cfg/keybinds.kdl '^include "keybinds-macos\.kdl"$' "installer: ANGELOS_THEME=macos puts the Mac keys in front"
+    if command -v niri >/dev/null 2>&1; then
+      niri validate -c "$WORK/macos/.config/niri/config.kdl" >/dev/null 2>&1 &&
+        pass "installer: the Mac key profile validates" || fail "installer: the Mac key profile validates"
+    fi
+    if install_case macos ANGELOS_THEME=macos && grep -q 'Files: 0 installed' "$WORK/macos.log" &&
+       [[ ! -d "$WORK/macos/.local/state/angelos/kept-updates/.config/niri/cfg" ]]; then
+      pass "installer: the theme's key profile is the installer's own (re-run changes nothing)"
+    else
+      fail "installer: re-run after ANGELOS_THEME=macos"
+    fi
+  else
+    fail "installer: ANGELOS_THEME=macos"; sed 's/^/    /' "$WORK/macos.log" >&2
+  fi
+  # Golden Gate without the Mac keys: the look, the pixel key profile
+  if install_case mackeys0 ANGELOS_THEME=macos MAC_KEYS=0 &&
+     python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); sys.exit(0 if d["settingsUi"]["skin"] == "goldengate" and d["mac"]["keys"] is False else 1)' \
+       "$WORK/mackeys0/.config/angelos/settings.json" 2>/dev/null; then
+    expect_line mackeys0 .config/niri/cfg/keybinds.kdl '^include "keybinds-pixel\.kdl"$' "installer: MAC_KEYS=0 keeps the pixel keys with Golden Gate"
+  else
+    fail "installer: ANGELOS_THEME=macos MAC_KEYS=0"
+  fi
+  if install_case pixel ANGELOS_THEME=pixel &&
+     python3 -c 'import json, sys; sys.exit(0 if json.load(open(sys.argv[1]))["settingsUi"]["skin"] == "classic" else 1)' \
+       "$WORK/pixel/.config/angelos/settings.json" 2>/dev/null; then
+    expect_line pixel .config/niri/cfg/keybinds.kdl '^include "keybinds-pixel\.kdl"$' "installer: ANGELOS_THEME=pixel keeps the pixel keys"
+  else
+    fail "installer: ANGELOS_THEME=pixel"
+  fi
+
+  # fish as the login shell: /etc/shells and chsh land in a fake system root (no real chsh)
+  if command -v fish >/dev/null 2>&1; then
+    fishroot="$WORK/fishroot"; mkdir -p "$fishroot/etc"; printf '/bin/bash\n' >"$fishroot/etc/shells"
+    if install_case fishsh FISH_DEFAULT=1 SYSROOT="$fishroot" &&
+       grep -qx "$(command -v fish)" "$fishroot/etc/shells" && grep -qx '/bin/bash' "$fishroot/etc/shells" &&
+       grep -q " $(command -v fish)\$" "$fishroot/chsh.log"; then
+      pass "installer: FISH_DEFAULT=1 adds fish to /etc/shells and makes it the login shell"
+    else
+      fail "installer: FISH_DEFAULT=1"; sed 's/^/    /' "$WORK/fishsh.log" >&2
+    fi
+    # a fish that was there already is left alone unless asked for
+    if install_case fishkeep SYSROOT="$WORK/fishkeep-root" && [[ ! -e "$WORK/fishkeep-root/chsh.log" && ! -e "$WORK/fishkeep-root/etc/shells" ]]; then
+      pass "installer: an installed fish is left alone (no chsh without FISH_DEFAULT=1)"
+    else
+      fail "installer: an installed fish is left alone"
+    fi
+  else
+    skip "installer: fish login shell (fish is not installed)"
+  fi
+
   if install_case single KB_LAYOUTS=us; then
     expect_line single "$input" '^[[:space:]]*options ""$' "installer: single layout has no switch shortcut"
   else
@@ -522,7 +598,8 @@ else
   fi
 
   # Bad input must be refused, not written into the config.
-  for bad in "KB_LAYOUTS=us zz9" "KB_TOGGLE=nonsense" "DOTFILES_MODE=nope" "NOCTALIA=2" "GITHUB_LOGIN=2"; do
+  for bad in "KB_LAYOUTS=us zz9" "KB_TOGGLE=nonsense" "DOTFILES_MODE=nope" "NOCTALIA=2" "GITHUB_LOGIN=2" \
+             "ANGELOS_THEME=windows" "FISH_DEFAULT=2" "INSTALL_APPS=yes" "MAC_KEYS=2"; do
     if install_case bad "$bad"; then fail "installer rejects: $bad"; else pass "installer rejects: $bad"; fi
     rm -rf "${WORK:?}/bad"
   done
@@ -608,6 +685,15 @@ fi
 
 # ── Hygiene ──────────────────────────────────────────────────────────────────
 
+# API keys and tokens: never in the repository (the author's or anyone's)
+if search '(sk-ant-[A-Za-z0-9_-]{16,}|sk-(proj-)?[A-Za-z0-9]{32,}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|xox[abprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|[0-9]{8,10}:AA[A-Za-z0-9_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY|(API_KEY|AUTH_TOKEN|ACCESS_TOKEN|SECRET)[A-Z_]*[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9_./+-]{20,})' \
+     -g '!scripts/check.sh' >"$WORK/tokens" 2>/dev/null; then
+  cat "$WORK/tokens" >&2
+  fail "an API key or token is in the repository"
+else
+  pass "no API keys or tokens"
+fi
+
 if search '/home/mixad|/home/[A-Za-z0-9_.-]+/\.config/gh/hosts\.yml|Cookies|Login Data|Bitwarden/data\.json|keyrings|voxtype/models' \
      -g '!scripts/check.sh' -g '!README.md' -g '!.gitignore' -g '!install.sh' >"$WORK/sensitive" 2>/dev/null; then
   cat "$WORK/sensitive" >&2
@@ -639,7 +725,7 @@ else
 fi
 
 # Inline comments in a package list would be passed to pacman verbatim.
-for list in pacman.txt sddm.txt angelos.txt tools.txt; do
+for list in pacman.txt sddm.txt angelos.txt tools.txt fish.txt nvim.txt apps.txt apps-flatpak.txt; do
   if grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/$list" | grep -q '[[:space:]#]'; then
     fail "packages/$list: package lines must contain only the name"
   else

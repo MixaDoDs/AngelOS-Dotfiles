@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 import "."
 
@@ -7,7 +8,7 @@ Column {
     id: root
     property var plugin
     width: parent ? parent.width : 400
-    spacing: Theme.u * 5
+    spacing: Skin.px(10)
 
     PxGroup {
         title: I18n.t("Спидтест", "Speedtest")

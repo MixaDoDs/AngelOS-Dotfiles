@@ -121,11 +121,24 @@ Variants {
         mask: Region {
             item: !win.open ? null : win.full || win.prefs.clickOutside ? catcher : body
         }
-        // (Spotlight's pill and list are near opaque; its box is mostly air)
-        BackgroundEffect.blurRegion: Config.appearance.blur && win.shown && !win.spot ? blurRegion : null
+        // (the pixel Spotlight's pill and list are near opaque; its box is mostly air. Golden
+        // Gate's is Liquid Glass: blur under its capsule and its results only)
+        readonly property var macLook: win.style === "mac" && body.item && body.item.capsuleItem ? body.item : null
+        BackgroundEffect.blurRegion: !win.shown ? null : win.macLook ? (GoldenGate.blurOn ? macBlur : null) : Config.appearance.blur && !win.spot ? blurRegion : null
         Region {
             id: blurRegion
             item: win.full ? catcher : body
+        }
+        Region {
+            id: macBlur
+            Region {
+                item: win.macLook ? win.macLook.capsuleItem : null
+                radius: win.macLook ? win.macLook.capsuleItem.radius : 0
+            }
+            Region {
+                item: win.macLook && win.macLook.panelItem.visible ? win.macLook.panelItem : null
+                radius: win.macLook ? win.macLook.panelItem.radius : 0
+            }
         }
 
         MouseArea {
@@ -149,8 +162,16 @@ Variants {
             }
         }
 
+        // the look is built when Start opens and kept a while after it closes (a quick
+        // reopen, the closing animation); a closed Start holds nothing on any screen
+        Linger {
+            id: keep
+            when: win.shown
+            ms: 30000
+        }
         Loader {
             id: body
+            active: keep.alive
             // the room the look has on this screen, before its own zoom: a look taller than that
             // (big fonts, a big art pixel, a small or 2× screen) fits itself in (`room` of the
             // looks: fewer rows, a scrolling list) instead of running off the screen

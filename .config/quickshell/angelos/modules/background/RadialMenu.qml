@@ -58,7 +58,13 @@ PopupWindow {
     function clamp(v, lo, hi) {
         return Math.max(lo, Math.min(hi, v));
     }
+    // the look is built when the menu opens and kept a while after it closes; with the
+    // list menu chosen it is never built at all
+    Linger {
+        id: keep
+    }
     function openAt(x, y) {
+        keep.when = true;
         // the look says how far it reaches from its middle (the tiles place themselves); a
         // wide one (the wings, the harp) says it apart for each way: reachX, reachY
         const it = lookLoader.item;
@@ -84,6 +90,7 @@ PopupWindow {
         hoverTimer.stop();
         fly = "";
         visible = false;
+        keep.when = false;
     }
     function openSub(name) {
         const i = slots.indexOf(name);
@@ -191,8 +198,10 @@ PopupWindow {
             if (PopupManager.active && PopupManager.active !== root)
                 PopupManager.close(PopupManager.active);
             PopupManager.active = root;
-        } else if (PopupManager.active === root) {
-            PopupManager.active = null;
+        } else {
+            keep.when = false;
+            if (PopupManager.active === root)
+                PopupManager.active = null;
         }
     }
     // the tiles' panel is frosted glass
@@ -244,6 +253,7 @@ PopupWindow {
     Loader {
         id: lookLoader
         anchors.fill: parent
+        active: keep.alive
         sourceComponent: ({
                 "tiles": tilesLook,
                 "wings": wingsLook,

@@ -6,6 +6,7 @@
   "description": {"ru": "Мини-игра в духе osu!: пиксельные сердечки в такт, клик или Z/X, комбо, ранги и рекорды. Пуск → Мини-игра, «osu» в лаунчере.", "en": "An osu!-style mini game: pixel hearts on the beat, click or Z/X, combos, ranks and high scores. Start → Mini game, “osu” in the launcher."},
   "icon": "heart",
   "enabledByDefault": true,
+  "themes": ["pixel"],
   "main": "Main.qml",
   "launcher": "Launcher.qml",
   "settings": "Settings.qml",

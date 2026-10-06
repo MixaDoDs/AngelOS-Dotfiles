@@ -183,11 +183,11 @@ PanelWindow {
         usage[app.id] = (usage[app.id] || 0) + 1;
         Config.launcher.usage = usage;
         if (app.runInTerminal)
-            Shell.exec(Shell.terminalArgv(app.command), app.workingDirectory);
+            Shell.exec(Shell.terminalArgv(app.command), app.workingDirectory, app.id);
         else if (app.command && app.command.length)
-            Shell.exec(app.command, app.workingDirectory);
+            Shell.exec(app.command, app.workingDirectory, app.id);
         else
-            app.execute();
+            app.execute();      // no command line to run with the apps' environment
         Shell.launcherOpen = false;
     }
     function accept() {
@@ -214,7 +214,12 @@ PanelWindow {
         }
     }
 
-    onVisibleChanged: if (visible) {
+    // built when it opens (shell.qml: LazyLoader), so the first showing is the creation itself
+    Component.onCompleted: if (visible)
+        opened()
+    onVisibleChanged: if (visible)
+        opened()
+    function opened() {
         focusCheck.restart();
         query = Shell.launcherPrefill;
         field.text = Shell.launcherPrefill;

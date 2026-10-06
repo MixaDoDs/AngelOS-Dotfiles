@@ -42,7 +42,8 @@ Replace or remove them before relying on the repository being free to redistribu
 
 Not third-party: the angel's and the demon's sprites (`modules/y2k/sprites/`) are the author's;
 all other sounds of angelOS are synthesised by `scripts/y2k-sounds.py`; the GIFs and screenshots in
-`docs/` are recordings of angelOS. NEEDY GIRL OVERDOSE and Undertale are only referenced
+`docs/` are recordings of angelOS in a clean demo stand (`scripts/demo/`), on a wallpaper drawn by
+`scripts/demo/wallpaper.py`. NEEDY GIRL OVERDOSE and Undertale are only referenced
 (names, a voice style made by the synthesiser) — none of their art or sound is included.
 
 ## Notices

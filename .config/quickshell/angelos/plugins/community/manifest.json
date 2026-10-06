@@ -1,0 +1,12 @@
+{
+  "id": "community",
+  "name": "Community Plugins",
+  "version": "1.0.0",
+  "author": "angelOS",
+  "description": "Часть angelOS: один каталог всех плагинов — установка, включение, обновление и удаление в Настройки → Плагины, в лаунчере «plugins название». Обновления проверяются раз в день.",
+  "icon": "package",
+  "core": true,
+  "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
+  "launcher": "Launcher.qml"
+}

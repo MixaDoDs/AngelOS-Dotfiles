@@ -33,3 +33,14 @@ python-numpy
 cava
 wlsunset
 speedtest-cli
+# what angelOS's features call (they stay quiet without them): the file chooser, the icon
+# sets, System info, Qt apps in the theme, the cursor in X11 apps, a polkit agent when the
+# shell's own is not up (polkit-agent-guard), Flathub apps themed, the user folders
+zenity
+librsvg
+pciutils
+qt6ct
+xsettingsd
+hyprpolkitagent
+flatpak
+xdg-user-dirs

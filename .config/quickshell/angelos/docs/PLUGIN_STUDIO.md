@@ -78,6 +78,33 @@
 доработке): ИИ дорисовывает только адский облик, остальное не трогает. Пока её
 не нажали, angelOS в аду просто перекрашивает такой виджет шейдером.
 
+### Пиксель и macOS
+
+У angelOS две темы — исходная пиксельная (Win98 / NEEDY GIRL OVERDOSE) и macOS
+(Golden Gate, Liquid Glass), — и пользователь переключает их на ходу. Каждый
+новый плагин мастер делает для обеих: `"themes": ["pixel", "mac"]` в
+manifest.json, а цвета, шрифты, размеры, скругления и отступы — только из
+**Theme API** (`Skin`, см. [PLUGINS.md](PLUGINS.md#theme-api-пиксель-и-macos)).
+Что это значит для сгенерированного кода — системный промт
+(`docs/STUDIO_CONTRACT.md`, раздел «Two looks») требует:
+
+- никаких `#rrggbb`, имён шрифтов и голых пикселей — `Skin.text`, `Skin.accent`,
+  `Skin.px(n)`, `PxText { kind }`; светлое/тёмное, акцентный цвет и «Уменьшить
+  прозрачность» токены учитывают сами;
+- общие компоненты, которые меняют вид сами: `PxButton`, `PxToggle`,
+  `PxSlider`, `PxField`, `PxText`…, карточка `SkinCard`, попап `BarPopup`;
+- в macOS — ни «name.exe», ни пиксель-арта: заголовки через `Skin.title()`,
+  значки `MacIcon`, виджет панели — одноцветный «menu bar extra» в
+  `Skin.ink(screenName)`;
+- память: ленивые `Loader`, ничего не работает, пока скрыто, опрос не чаще,
+  чем меняются данные (сеть ≥ 60 с), у каждой картинки `sourceSize`.
+
+Проверка это и смотрит: статически (поле `themes`, есть ли обращения к `Skin`,
+нет ли захардкоженных цветов, шрифтов, `I18n.exe`, картинок без `sourceSize`) и
+в песочнице — каждая видимая точка входа грузится в пиксельной теме и в macOS
+(виджет рабочего стола ещё и в аду). Ошибка в одной из тем уходит модели с
+пометкой, в какой.
+
 ## Модель, уровень, проверка
 
 - **Модель** выбирается карточками: для Claude Code — Haiku / Sonnet / Opus / Fable,
@@ -89,10 +116,12 @@
   `output_config.effort` (Anthropic API), `reasoning.effort` (OpenAI API).
 - **Проверка**: JSON/Python/shell и `qmlformat`, затем каждая точка входа
   загружается в Quickshell offscreen внутри bubblewrap (без сети, без домашней
-  папки и сокетов). Ошибки — неизвестные свойства и типы, импорты, ошибки в
-  привязках, нулевой размер — уходят модели на **автоисправление** (0–2 попытки).
+  папки и сокетов) — в пиксельной теме и в macOS. Ошибки — неизвестные свойства
+  и типы, импорты, ошибки в привязках, нулевой размер, нарушения Theme API —
+  уходят модели на **автоисправление** (0–2 попытки).
 - В контекст модели попадает справочник API, собранный из текущих исходников
-  (виджеты, Theme, сервисы, имена иконок), и живой пример плагина.
+  (виджеты, Theme, сервисы, имена иконок), исходники Theme API (`services/Skin.qml`,
+  `widgets/SkinCard.qml`) и живые примеры: шаблон, работающий в обеих темах, и котик.
 
 ## Пример с лимитами Codex
 
@@ -187,6 +216,16 @@ one and a hell look for the demon (`"realms": ["heaven", "hell"]`, drawn by
 plugins without hell get **Hell version** in Settings → Plugins (and **Make the
 hell version** while improving one): the AI adds only the hell look. Until then
 angelOS re-inks such a widget with a shader in hell.
+
+**Pixel and macOS**: angelOS has two themes, the original pixel one and macOS
+(Golden Gate), switched while it runs. Every new plugin draws both
+(`"themes": ["pixel", "mac"]`) and takes colours, fonts, sizes, radii and
+spacing only from the **Theme API** (`Skin`, see PLUGINS.md): no hex colours,
+font names or bare pixels; the shared controls, `SkinCard` and `BarPopup` change
+by themselves; no ".exe" or pixel art in macOS (`Skin.title()`, `MacIcon`, a
+monochrome menu bar extra in `Skin.ink(screenName)`); lazy loading, no polling
+faster than the data, `sourceSize` on every image. The check verifies this
+statically and loads every visual entry point in both looks.
 
 For “remaining Codex tokens,” Studio must clarify the actual metric and data
 source instead of inventing a subscription-balance API. Its own token counter

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.config
+import qs.services
 import "Engines.js" as Engines
 
 // Launcher provider: "web <query>" searches, bare text matches favourite sites.
@@ -120,10 +121,10 @@ QtObject {
             const values = Object.values(mru).map(v => Number(v) || 0);
             mru[url] = Math.max.apply(Math, [0].concat(values)) + 1;
             plugin.set("mru", mru);
-            Quickshell.execDetached(["xdg-open", url]);
+            Shell.exec(["xdg-open", url]);
         } else if (id.startsWith("search:")) {
             const url = engine().url.replace("%s", encodeURIComponent(id.slice(7)));
-            Quickshell.execDetached(["xdg-open", url]);
+            Shell.exec(["xdg-open", url]);
         }
     }
 }

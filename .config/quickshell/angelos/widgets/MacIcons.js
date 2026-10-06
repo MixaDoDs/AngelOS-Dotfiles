@@ -117,6 +117,10 @@ var icons = {
 "wifi": "<path d=\"M12 20h.01\"/><path d=\"M2 8.82a15 15 0 0 1 20 0\"/><path d=\"M5 12.859a10 10 0 0 1 14 0\"/><path d=\"M8.5 16.429a5 5 0 0 1 7 0\"/>",
 "wind": "<path d=\"M12.8 19.6A2 2 0 1 0 14 16H2\"/><path d=\"M17.5 8a2.5 2.5 0 1 1 2 4H2\"/><path d=\"M9.8 4.4A2 2 0 1 1 11 8H2\"/>",
 "x": "<path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/>",
+"external-link": "<path d=\"M15 3h6v6\"/><path d=\"M10 14 21 3\"/><path d=\"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6\"/>",
+"gauge": "<path d=\"m12 14 4-4\"/><path d=\"M3.34 19a10 10 0 1 1 17.32 0\"/>",
+"bot": "<path d=\"M12 8V4H8\"/><rect width=\"16\" height=\"12\" x=\"4\" y=\"8\" rx=\"2\"/><path d=\"M2 14h2\"/><path d=\"M20 14h2\"/><path d=\"M15 13v2\"/><path d=\"M9 13v2\"/>",
+"activity": "<path d=\"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2\"/>",
 "zap": "<path d=\"M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z\"/>",
 "angel": "<ellipse cx=\"12\" cy=\"3.4\" rx=\"4.6\" ry=\"1.5\" stroke-width=\"1.5\"/><path fill=\"currentColor\" stroke=\"none\" d=\"M12 20.6C10.9 19.8 5.6 16 5.6 11.5C5.6 9.2 7.2 7.5 9.3 7.5C10.5 7.5 11.4 8.1 12 9C12.6 8.1 13.5 7.5 14.7 7.5C16.8 7.5 18.4 9.2 18.4 11.5C18.4 16 13.1 19.8 12 20.6Z\"/><path fill=\"currentColor\" stroke=\"none\" d=\"M5.3 10.2C3.9 8.9 2.2 8.5 0.6 9.1C1.6 9.7 2.1 10.5 2.2 11.4C1.6 11.6 1.1 12 0.8 12.6C2.2 12.6 3.4 13 4.3 13.8C4.6 13.2 5 12.8 5.5 12.6C5.3 11.8 5.2 11 5.3 10.2Z\"/><path fill=\"currentColor\" stroke=\"none\" d=\"M18.7 10.2C20.1 8.9 21.8 8.5 23.4 9.1C22.4 9.7 21.9 10.5 21.8 11.4C22.4 11.6 22.9 12 23.2 12.6C21.8 12.6 20.6 13 19.7 13.8C19.4 13.2 19 12.8 18.5 12.6C18.7 11.8 18.8 11 18.7 10.2Z\"/>",
 "angel-horns": "<path fill=\"currentColor\" stroke=\"none\" d=\"M8.3 7.9C6.6 6.9 5.9 4.9 6.6 2.6C7.3 4.4 8.6 5.6 10.3 6.3C9.5 6.6 8.8 7.2 8.3 7.9Z\"/><path fill=\"currentColor\" stroke=\"none\" d=\"M15.7 7.9C17.4 6.9 18.1 4.9 17.4 2.6C16.7 4.4 15.4 5.6 13.7 6.3C14.5 6.6 15.2 7.2 15.7 7.9Z\"/><path fill=\"currentColor\" stroke=\"none\" d=\"M12 20.6C10.9 19.8 5.6 16 5.6 11.5C5.6 9.2 7.2 7.5 9.3 7.5C10.5 7.5 11.4 8.1 12 9C12.6 8.1 13.5 7.5 14.7 7.5C16.8 7.5 18.4 9.2 18.4 11.5C18.4 16 13.1 19.8 12 20.6Z\"/><path fill=\"currentColor\" stroke=\"none\" d=\"M5.3 10.2C3.9 8.9 2.2 8.5 0.6 9.1C1.6 9.7 2.1 10.5 2.2 11.4C1.6 11.6 1.1 12 0.8 12.6C2.2 12.6 3.4 13 4.3 13.8C4.6 13.2 5 12.8 5.5 12.6C5.3 11.8 5.2 11 5.3 10.2Z\"/><path fill=\"currentColor\" stroke=\"none\" d=\"M18.7 10.2C20.1 8.9 21.8 8.5 23.4 9.1C22.4 9.7 21.9 10.5 21.8 11.4C22.4 11.6 22.9 12 23.2 12.6C21.8 12.6 20.6 13 19.7 13.8C19.4 13.2 19 12.8 18.5 12.6C18.7 11.8 18.8 11 18.7 10.2Z\"/>",
@@ -148,7 +152,8 @@ var fromPixelMap = {
     "search": "search", "play": "play", "close": "x", "check": "check", "power": "power", "terminal": "terminal",
     "music": "music", "fire": "zap", "arrowLeft": "chevron-left", "arrowRight": "chevron-right",
     "arrowUp": "chevron-up", "arrowDown": "chevron-down", "sun": "sun", "moon": "moon", "calendar": "calendar",
-    "clock": "clock", "globe": "globe", "user": "user", "info": "info", "help": "circle-help", "home": "house"
+    "clock": "clock", "globe": "globe", "user": "user", "info": "info", "help": "circle-help", "home": "house",
+    "external": "external-link"
 };
 function fromPixel(name) {
     const n = fromPixelMap[name] || (icons[name] ? name : "");

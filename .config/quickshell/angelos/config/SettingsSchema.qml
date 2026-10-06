@@ -84,6 +84,11 @@ JsonAdapter {
         property string transition: "mosaic-dither" // mosaic-dither | mosaic | dither | none (only when the picture changes)
         property int duration: 750
         property int maxBlock: 48
+        // every theme keeps its own wallpapers (services/GoldenGate: swapWalls): "pixel" (the pixel
+        // skins) and "mac" (Golden Gate) -> {fallback, outputs, workspaces}; fallback/outputs/
+        // workspaces above are the set of the theme in front (themeOf), saved here when it goes
+        property var themes: ({})
+        property string themeOf: ""
     }
 
     property JsonObject workspaces: JsonObject {
@@ -231,6 +236,12 @@ JsonAdapter {
         property var enabled: ({})          // id -> bool (missing = manifest default)
         property var data: ({})             // id -> plugin settings object
         property var removed: []            // bundled plugins removed by hand (hidden; "Restore" brings them back)
+        // Community Plugins (services/CommunityPlugins): the registry checked once a day, a
+        // notification for new versions (the ones it told about: notifiedFor)
+        property bool autoCheck: true
+        property string lastCheck: ""
+        property string notifiedFor: ""
+        property bool storeRetired: false   // the old stand-alone Community Store plugin moved aside (once)
     }
 
     property JsonObject dotfiles: JsonObject {
@@ -402,10 +413,20 @@ JsonAdapter {
     // whole desktop like macOS 27 for people coming from a Mac
     property JsonObject mac: JsonObject {
         property real glass: 0.35           // Liquid Glass: 0 clear … 1 tinted (like Appearance → Liquid Glass)
+        property bool reduceTransparency: false // solid glass: no blur, no rim shader (Accessibility → Display, like macOS)
+        property bool sounds: true          // Golden Gate's system sounds (data/sounds/macos, yours in ~/.local/share/angelos/sounds/macos)
+        property real soundVolume: 0.5      // their volume, 0 … 1 (on top of the system's)
+        property bool volumeSound: true     // the "pop" when the volume changes
         property string accent: "blue"      // blue | purple | pink | red | orange | yellow | green | graphite
         property bool barBackground: false  // the menu bar on a band of its own ("Show menu bar background")
         property bool appMenus: true        // the focused app's own menus in the menu bar (scripts/appmenu.py)
-        property bool keys: false           // Mac-style shortcuts (the skin's binds in niri's angelos.kdl) — offered, never imposed
+        // Qt apps' menus in the menu bar too: the AppMenu registrar on the bus, so Qt apps started
+        // while it is there export their menu bar and hide their own. Off: Qt apps keep their own menus
+        property bool qtGlobalMenu: false
+        // apps that draw their own title bar: Golden Gate's Qt frame (QT_WAYLAND_DECORATION adwaita) is
+        // not put over them (Shell.envFor; desktop ids or app ids)
+        property var ownFrameApps: ["org.telegram.desktop", "TelegramDesktop", "com.ayugram.desktop", "io.github.kotatogram", "org.materialgram.desktop"]
+        property bool keys: false           // Mac-style shortcuts: Golden Gate's key profile (cfg/keybinds-macos.kdl, services/KeyProfile) — offered, never imposed
         property bool floating: true        // new windows float and overlap like on a Mac (off: niri's columns)
         property string minimizeEffect: "genie" // genie | scale — how a window goes to the Dock (modules/mac/MacMinimizeFx)
         property int dockSize: 48           // Dock icons, logical px
