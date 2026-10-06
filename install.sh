@@ -939,18 +939,18 @@ save_base() { # rel rendered-repo-file
   mkdir -p -- "$(dirname -- "$BASES_DIR/$1")" && cp -- "$2" "$BASES_DIR/$1" || true
 }
 
-base_of() { # rel repo-file out: the repository's version the installer put at rel last time
-  local rel="$1" srel="$2" out="$3" want="${PREV_SUM[$1]:-}" h raw
+base_of() { # rel repo-file dest: the repository's version the installer put at rel last time
+  local rel="$1" srel="$2" dest="$3" want="${PREV_SUM[$1]:-}" h raw
   [[ -n "$want" ]] || return 1
   if [[ -f "$BASES_DIR/$rel" && "$(sum_of "$BASES_DIR/$rel")" == "$want" ]]; then
-    cp -- "$BASES_DIR/$rel" "$out"; return 0
+    cp -- "$BASES_DIR/$rel" "$dest"; return 0
   fi
   git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1 || return 1
   raw="$(mktemp)"; TMP_FILES+=("$raw")
   while read -r h; do
     git -C "$ROOT" show "$h:$srel" >"$raw" 2>/dev/null || continue
-    render "$raw" "$out"
-    [[ "$(sum_of "$out")" == "$want" ]] && return 0
+    render "$raw" "$dest"
+    [[ "$(sum_of "$dest")" == "$want" ]] && return 0
   done < <(git -C "$ROOT" log --format=%H -n 200 -- "$srel" 2>/dev/null)
   return 1
 }
