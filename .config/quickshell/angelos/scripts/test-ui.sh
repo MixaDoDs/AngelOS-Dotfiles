@@ -130,7 +130,7 @@ env -i PATH="$T/bin:$PATH" LANG=C.UTF-8 HOME="$T/home" USER="${USER:-angel}" \
   XDG_CACHE_HOME="$T/home/.cache" XDG_DATA_HOME="$T/home/.local/share" XDG_RUNTIME_DIR="$T/rt" \
   QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= LD_LIBRARY_PATH="$LIB" QML_IMPORT_PATH="$QML" \
   ANGELOS_DEV=1 ANGELOS_SCREENS=__none__ ANGELOS_TEST=1 ANGELOS_TEST_SHOTS="${ANGELOS_TEST_SHOTS:-}" QS_NO_RELOAD_POPUP=1 QS_DISABLE_CRASH_HANDLER=1 \
-  "${runner[@]}" timeout 150 "$QS" -p "$T/root" >"$log" 2>&1
+  "${runner[@]}" timeout 300 "$QS" -p "$T/root" >"$log" 2>&1
 code=$?
 
 # results of the driver

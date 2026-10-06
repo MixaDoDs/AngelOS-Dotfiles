@@ -464,9 +464,10 @@ Scope {
         running: true
         onTriggered: root.step()
     }
-    // a whole run must not hang CI (test-ui.sh gives the whole shell 150 s)
+    // a whole run must not hang CI (test-ui.sh gives the whole shell 300 s; a run takes
+    // ~110 s here and GitHub's runner is slower, so 140 s was too tight)
     Timer {
-        interval: 140000
+        interval: 285000
         running: true
         onTriggered: {
             root.report("timeout", false, "phase " + root.phase);
