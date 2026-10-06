@@ -9,6 +9,10 @@ binds {
 
     // https://docs.noctalia.dev/getting-started/keybinds/
 
+    // ─── Applications ───
+    Mod+T                               hotkey-overlay-title="Open Terminal: kitty" { spawn "kitty"; }
+    Mod+B                               hotkey-overlay-title="Open Browser: Helium" { spawn "helium-browser"; }
+
     // ─── angelOS ───
     Mod+Alt+Space                       hotkey-overlay-title="angelOS: программы (лаунчер; ⌘Пробел — Spotlight)" { spawn-sh "qs -c angelos ipc call angelos launcher"; }
 
@@ -101,6 +105,10 @@ binds {
     Mod+Alt+Shift+F                     hotkey-overlay-title="Развернуть колонку" { maximize-column; }
     Mod+Alt+W                           hotkey-overlay-title="Колонка вкладками" { toggle-column-tabbed-display; }
     Mod+Alt+M                           hotkey-overlay-title="Развернуть окно до краёв" { maximize-window-to-edges; }
+
+    // ─── Screenshots (Win+Shift+S style) ───
+    Mod+Shift+T                         hotkey-overlay-title="OCR: region to clipboard (stone)" { spawn "@HOME@/.local/bin/niri-ocr-region"; }
+    Mod+Z                               hotkey-overlay-title="Лупа (плагин)" { spawn "qs" "-c" "angelos" "ipc" "call" "magnifier" "toggle"; }
 
     // Use this when a fullscreen app blocks your keybinds.
     // It disables any active keyboard shortcut inhibitor, restoring control.

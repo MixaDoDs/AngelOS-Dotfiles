@@ -4,8 +4,6 @@
 // for that theme only. Settings → Keyboard shows these read-only.
 binds {
     Mod+Shift+ESCAPE                     { show-hotkey-overlay; }
-    Mod+T                          hotkey-overlay-title="Open Terminal: kitty" { spawn "kitty"; }
-    Mod+B                               hotkey-overlay-title="Open Browser: default" { spawn-sh "xdg-open about:blank"; }
     Mod+Shift+Return                    hotkey-overlay-title="angelOS: обои" { spawn-sh "qs -c angelos ipc call angelos settings wallpaper"; }
     Mod+S                               hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
     Mod+Alt+S                           hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
@@ -42,7 +40,6 @@ binds {
     Mod+CTRL+Shift+WheelScrollUp        { move-column-left; }
     Mod+V                               hotkey-overlay-title="angelOS: буфер обмена" { spawn-sh "qs -c angelos ipc call angelos clipboard"; }
     Mod+Shift+S                         repeat=false hotkey-overlay-title="Screenshot: region → Screenshots (ropes)" { spawn "@HOME@/.local/bin/niri-screenshot-region"; }
-    Mod+Shift+T                         hotkey-overlay-title="OCR: region to clipboard" { spawn "@HOME@/.local/bin/niri-ocr"; }
     Mod+Shift+V                         repeat=false hotkey-overlay-title="Voice: toggle dictation" { spawn "@HOME@/.local/bin/voxtype" "record" "toggle"; }
     CTRL+Shift+2                        { screenshot-screen; }
     CTRL+Shift+3                        { screenshot-window; }
