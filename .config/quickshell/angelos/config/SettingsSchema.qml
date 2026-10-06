@@ -226,6 +226,7 @@ JsonAdapter {
         property bool notices: true         // heaven: the notice board (updates, notifications, music…)
         property bool wishPaid: true        // heaven: past the day's free prayer, an unlock prays for 160 ✦ (HeavenStars)
         property string frame: ""           // heaven: the login plate's frame from the pass: "" | rose | holo
+        property bool sddmWalls: true       // the login screen (SDDM theme) follows the desktop's wallpapers
     }
 
     property JsonObject idle: JsonObject {

@@ -7,21 +7,25 @@
 //
 // A story (one chapter) is JSON:
 //   { id, title, with: "angel"|"demon"|"any", start: nodeId, vars: {name: default},
-//     nodes: { id: node }, pools: { questions: [nodeId…], drops: [{who, text}…] },
+//     nodes: { id: node }, pools: { questions: [nodeId…], drops: [{who, text, cond, once}…] },
 //     ambient: { questions: [minMin, maxMin], drops: [minMin, maxMin] } }
 // Node types (every node may have `when`: now | click | resume | "minutes:N", the moment
-// it waits for, and `note` — a comment for the author):
+// it waits for, and `note` — a comment for the author). Vars carry over from chapter to chapter
+// (a chapter's `vars` are only the defaults for what wasn't set before):
 //   event   the chapter's entry: `trigger` resume | start | manual; → next
 //   say     who + sprite say text; → next
 //   choice  who asks text, `choices`: [{text, tone, set, reply: {who, sprite, text}, next}];
 //           `shuffle`: the answers come in another order every time (silent ones last)
 //   note    a crumpled paper: from "desk" (on the wallpaper) or "angel" (she drops it); title,
-//           text; read it → next
+//           text, `who` whose hand (a demon writes in red); read it → next
 //   set     vars changed (`set`: {trust: "+1", gender: "f"}); → next
 //   if      `cond` (trust >= 2 and gender == "f"; seen(nodeId); not …) → then | else
 //   random  one of `next` (a list) at random
 //   free    the chapter opens up: from now on random questions (pools.questions, each once)
-//           and dropped notes (pools.drops) come by themselves; → next (optional)
+//           and dropped notes (pools.drops) come by themselves; → next (optional).
+//           A pool's question with a `cond` waits until it holds; a drop with a `cond` falls
+//           only while it holds, one with `once` only once and before the others, which
+//           repeat (a note says something new only after something happened)
 //   end     the chapter is over; `chapter`: the next one to start (optional)
 // The game's scenes (story/scenes/*.json in the shell, services/Game) are stories too, with
 // three more nodes and a `cond` on their event (the scene plays only when it holds; of
@@ -31,12 +35,46 @@
 //   exit    the way out of hell: `outcome` stars | pact | limbo (the scene ends)
 //   scene   go on in another scene: `to` its id
 // Text templates: {name} · {g:male|female|unknown} (the unknown part may be left out:
-// "male/female") · {app} · {song} · {time} · {daypart} · {uptime} · {var:name}. A text may
-// also be {ru, en}: the shell's language picks.
+// "male/female") · {app} · {song} · {time} · {daypart} · {year} · {uptime} · {var:name}. A text
+// may also be {ru, en}: the shell's language picks.
+// Who speaks: the angel, the narrator, the demon (the desktop's demoness) — and the nine demons
+// of the circles by the circle's id (DEMONS): their sprites are sprites/<circle>/, else demon/.
 
 var TYPES = ["event", "say", "choice", "note", "set", "if", "random", "free", "end", "circle", "exit", "scene"];
 var OUTCOMES = ["stars", "pact", "limbo"];
-var WHO = ["angel", "demon", "narrator"];
+var DEMONS = {
+    limbo: { n: 1, ru: "Сола", en: "Sola", circle: "Лимб" },
+    lust: { n: 2, ru: "Мария", en: "Maria", circle: "Похоть" },
+    gluttony: { n: 3, ru: "Мими", en: "Mimi", circle: "Чревоугодие" },
+    greed: { n: 4, ru: "Лаки", en: "Lucky", circle: "Жадность" },
+    wrath: { n: 5, ru: "Ира", en: "Ira", circle: "Гнев" },
+    heresy: { n: 6, ru: "Вера", en: "Vera", circle: "Ересь" },
+    violence: { n: 7, ru: "Ника", en: "Nika", circle: "Насилие" },
+    fraud: { n: 8, ru: "Лиса", en: "Lisa", circle: "Обман" },
+    treachery: { n: 9, ru: "Ева", en: "Eva", circle: "Предательство" }
+};
+var WHO = ["angel", "narrator", "demon"].concat(Object.keys(DEMONS));
+var ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
+function isDemon(who) {
+    return who === "demon" || DEMONS.hasOwnProperty(who);
+}
+// the name over a line; `angel`: what she is called now (the player named her)
+function whoName(who, english, angel) {
+    if (DEMONS.hasOwnProperty(who))
+        return english ? DEMONS[who].en : DEMONS[who].ru;
+    if (who === "demon")
+        return english ? "Demon" : "Демоница";
+    if (who === "narrator")
+        return "";
+    return angel || (english ? "Angel" : "Ангел");
+}
+// the editor's label: "II · Мария (Похоть)"
+function whoLabel(who) {
+    var d = DEMONS[who];
+    if (d)
+        return ROMAN[d.n] + " · " + d.ru + " (" + d.circle + ")";
+    return { angel: "Ангел", demon: "Демоница (общая)", narrator: "Рассказчик" }[who] || String(who || "");
+}
 var TONES = ["positive", "negative", "silent", "neutral"];
 
 function dayPart(h) {
@@ -82,6 +120,8 @@ function render(text, ctx) {
             return ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2);
         case "daypart":
             return dayPart(now.getHours());
+        case "year":
+            return String(now.getFullYear());
         }
         return all;
     });
@@ -344,7 +384,7 @@ function validate(story) {
             out.push({ node: id, level: "warn", text: "пустая реплика" });
         if (n.type === "choice" && !(n.choices || []).length)
             out.push({ node: id, level: "error", text: "у вопроса нет вариантов ответа" });
-        if (n.type === "if" || (n.type === "event" && n.cond)) {
+        if (n.type === "if" || (n.type === "event" && n.cond) || (n.type === "choice" && n.cond)) {
             var err = checkCond(n.cond);
             if (err)
                 out.push({ node: id, level: "error", text: "условие: " + err });
@@ -364,8 +404,17 @@ function validate(story) {
             });
         if (!reach[id])
             out.push({ node: id, level: "warn", text: "сюда нельзя попасть" });
+        if (n.who && WHO.indexOf(n.who) < 0)
+            out.push({ node: id, level: "warn", text: "неизвестно, кто говорит: «" + n.who + "»" });
         if (n.when && !/^(now|click|resume|minutes:\d+)$/.test(n.when))
             out.push({ node: id, level: "error", text: "непонятное «когда»: " + n.when });
+    });
+    ((story.pools || {}).drops || []).forEach(function (d, i) {
+        var e = d.cond ? checkCond(d.cond) : "";
+        if (e)
+            out.push({ node: "", level: "error", text: "записка " + (i + 1) + ", условие: " + e });
+        if (!String(pickLang(d.text, false) || "").trim())
+            out.push({ node: "", level: "warn", text: "записка " + (i + 1) + " пустая" });
     });
     return out;
 }

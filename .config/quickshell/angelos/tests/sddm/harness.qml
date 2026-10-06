@@ -143,6 +143,74 @@ ShellRoot {
                 source: "file://@THEME@/Main.qml"
             }
         }
+        // the other shapes, out of sight: a portrait login screen; the second camera
+        // standing and lying (`primary` false: SDDM's primaryScreen)
+        Item {
+            id: tallStage
+            x: 2000
+            width: 1080
+            height: 1920
+            Loader {
+                id: tallTheme
+                anchors.fill: parent
+                source: "file://@THEME@/Main.qml"
+            }
+        }
+        Item {
+            id: camTallStage
+            x: 3200
+            width: 1080
+            height: 1920
+            Loader {
+                id: camTallTheme
+                anchors.fill: parent
+                source: "file://@THEME@/Main.qml"
+                onLoaded: item.primary = false
+            }
+        }
+        Item {
+            id: camWideStage
+            x: 4400
+            width: 1920
+            height: 1080
+            Loader {
+                id: camWideTheme
+                anchors.fill: parent
+                source: "file://@THEME@/Main.qml"
+                onLoaded: item.primary = false
+            }
+        }
+    }
+
+    // every named part on the screen, none over another
+    function layout(name, loader, names) {
+        const it = loader.item;
+        if (!it) {
+            report("layout-" + name, false, "not loaded");
+            return;
+        }
+        const rects = [];
+        let bad = "";
+        for (const n of names) {
+            const f = find(it, n);
+            if (!f || !f.visible) {
+                bad += n + " missing; ";
+                continue;
+            }
+            const p = f.mapToItem(it, 0, 0);
+            const r = Qt.rect(Math.round(p.x), Math.round(p.y), Math.round(f.width), Math.round(f.height));
+            if (r.x < 0 || r.y < 0 || r.x + r.width > it.width || r.y + r.height > it.height)
+                bad += n + " off-screen " + JSON.stringify([r.x, r.y, r.width, r.height]) + "; ";
+            for (const o of rects)
+                if (r.x < o.r.x + o.r.width && o.r.x < r.x + r.width && r.y < o.r.y + o.r.height && o.r.y < r.y + r.height)
+                    bad += n + " over " + o.n + "; ";
+            rects.push({ "n": n, "r": r });
+        }
+        report("layout-" + name, bad === "", bad || ("u " + it.u));
+    }
+    function shotOf(item, name) {
+        if (shots)
+            item.grabToImage(r => r.saveToFile(shots + "/sddm-" + name + ".png"));
     }
 
     property int step: 0
@@ -156,6 +224,15 @@ ShellRoot {
             case 0:
                 shell.report("load", theme.status === Loader.Ready && pw !== null, "status " + theme.status);
                 shell.shot("idle");
+                shell.layout("wide", theme, ["center", "chat"]);
+                shell.layout("tall", tallTheme, ["center", "chat"]);
+                shell.layout("cam-tall", camTallTheme, ["camMain", "camChat"]);
+                shell.layout("cam-wide", camWideTheme, ["camMain", "camChat"]);
+                shell.report("cam-no-login", !!camTallTheme.item && !shell.find(camTallTheme.item, "login").visible && shell.find(camTallTheme.item, "cam").visible, "");
+                shell.report("cam-angel", !!camTallTheme.item && shell.find(camTallTheme.item, "angel") !== null && shell.find(camTallTheme.item, "angel").ready, "");
+                shell.shotOf(tallStage, "tall");
+                shell.shotOf(camTallStage, "cam-tall");
+                shell.shotOf(camWideStage, "cam-wide");
                 break;
             case 1:
                 if (pw)

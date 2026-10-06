@@ -169,7 +169,42 @@ Singleton {
 
     onHeavenDirChanged: scan()
     onHellOnChanged: scan()
-    Component.onCompleted: scan()
+    Component.onCompleted: {
+        scan();
+        loginSync.restart();
+    }
+
+    // the login screen (SDDM, extras/sddm) shows these wallpapers too: the landscape
+    // screen's on landscape screens, the portrait one's on portrait ones; `angelos sddm
+    // walls` puts them into the installed theme (its walls/ is ours, no password)
+    function loginWalls() {
+        const scr = Quickshell.screens;
+        const wide = scr.find(s => s.name === Shell.primaryName && s.width >= s.height) || scr.find(s => s.width >= s.height);
+        const tall = scr.find(s => s.height > s.width);
+        const w = wide ? resolve(wide.name, 1) : "", t = tall ? resolve(tall.name, 1) : "";
+        return [w || t, t || w];
+    }
+    onStateKeyChanged: loginSync.restart()
+    Timer {
+        id: loginSync
+        interval: 5000
+        onTriggered: {
+            if (!Config.ready || !Config.lock.sddmWalls || Shell.dev || Quickshell.env("ANGELOS_TEST") === "1")
+                return;
+            if (loginWallsRun.running) {
+                restart();
+                return;
+            }
+            const [w, t] = root.loginWalls();
+            if (!w)
+                return;
+            loginWallsRun.command = ["python3", Quickshell.shellDir + "/scripts/sddm-theme.py", "walls", "--wallpaper", w, "--tall", t];
+            loginWallsRun.running = true;
+        }
+    }
+    Process {
+        id: loginWallsRun
+    }
 
     // no Hell pack yet: fetch it once (scripts/hell-wallpaper.py downloads the Hell folder of
     // the wallpapers repo into its cache, like the installer would into ~/Pictures/Hell)

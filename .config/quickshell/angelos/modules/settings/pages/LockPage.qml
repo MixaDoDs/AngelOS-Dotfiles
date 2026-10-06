@@ -374,7 +374,7 @@ PxPage {
         }
         Process {
             id: sddmInstall
-            command: ["python3", Quickshell.shellDir + "/scripts/sddm-theme.py", "install", "--palette", sddmGroup.palette, "--wallpaper", Wallpapers.resolve(Shell.primaryName, 1) || ""]
+            command: ["python3", Quickshell.shellDir + "/scripts/sddm-theme.py", "install", "--palette", sddmGroup.palette, "--wallpaper", Wallpapers.loginWalls()[0] || "", "--tall", Wallpapers.loginWalls()[1] || ""]
             stderr: StdioCollector {
                 onStreamFinished: if (text.trim() !== "")
                     sddmGroup.log = text.trim().split("\n").slice(-1)[0]
@@ -405,6 +405,14 @@ PxPage {
                 ]
                 currentValue: sddmGroup.palette
                 onActivated: v => sddmGroup.palette = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Обои как на рабочем столе", "Wallpaper as on the desktop")
+            hint: sddmGroup.info.installed && sddmGroup.info.walls === false ? I18n.t("тема поставлена раньше — обновите её, чтобы обои менялись без пароля", "the theme predates this: update it so the wallpaper can follow without a password") : I18n.t("сменили обои — экран входа подхватит их сам: горизонтальным экранам горизонтальные, вертикальным вертикальные", "change the wallpaper and the login screen takes it too: landscape screens the landscape one, portrait screens the portrait one")
+            PxToggle {
+                checked: Config.lock.sddmWalls
+                onToggled: c => Config.lock.sddmWalls = c
             }
         }
         Row {

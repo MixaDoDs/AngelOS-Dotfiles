@@ -45,8 +45,10 @@ Rectangle {
     function exe(name) {
         return name + "." + suffix;
     }
-    // one art pixel: 2 on 1080p, 3 on 1440p, 4 on 4K
-    readonly property int u: Math.max(1, Math.round(height / 540))
+    // one art pixel: 2 on 1080p, 3 on 1440p, 4 on 4K — by the short side, so a 1080×1920
+    // screen standing on its edge is a 1080p one too
+    readonly property int u: Math.max(1, Math.round(Math.min(width, height) / 540))
+    readonly property bool portrait: height > width * 1.1
     readonly property string titleFont: titleLoader.status === FontLoader.Ready ? titleLoader.name : "monospace"
     readonly property string bodyFont: bodyLoader.status === FontLoader.Ready ? bodyLoader.name : titleFont
     // pixel fonts are sharp only at whole multiples of their cell
@@ -56,7 +58,9 @@ Rectangle {
     function bodyPx(n) {
         return 13 * Math.max(1, Math.round(n * u / 2 / 13));
     }
-    readonly property bool primary: typeof primaryScreen === "undefined" ? true : !!primaryScreen
+    // the login is on the primary screen; the others are the stream's second camera
+    // (theme.conf role=login|cam pins it: a preview of one or the other)
+    property bool primary: conf("role", "") === "cam" ? false : conf("role", "") === "login" ? true : typeof primaryScreen === "undefined" ? true : !!primaryScreen
 
     FontLoader {
         id: titleLoader
@@ -146,22 +150,77 @@ Rectangle {
     signal failed
     signal succeeded
 
-    // ---- background: the wallpaper in big pixels, hearts drifting up ----
+    // ---- background: the wallpaper in big pixels, alive (shaders/sddm_wall), hearts drifting up ----
+    // the desktop's own wallpaper for this screen's shape (walls/, kept in step by angelOS:
+    // `angelos sddm walls`), else the other shape's, else the one copied at install
+    readonly property var wallCandidates: {
+        const own = portrait ? "walls/tall.jpg" : "walls/wide.jpg", other = portrait ? "walls/wide.jpg" : "walls/tall.jpg";
+        return [own, other, conf("background", "")].filter(f => f !== "");
+    }
+    property int wallTry: 0
     Image {
         id: wall
         anchors.fill: parent
-        source: root.conf("background", "") !== "" ? Qt.resolvedUrl(root.conf("background", "")) : ""
-        fillMode: Image.PreserveAspectCrop
+        source: root.wallTry < root.wallCandidates.length ? Qt.resolvedUrl(root.wallCandidates[root.wallTry]) : ""
         asynchronous: true
+        cache: false
         visible: false
+        onStatusChanged: if (status === Image.Error)
+            root.wallTry++
+    }
+    // seconds, smooth (the shader and the second camera run on it)
+    property real secs: 0
+    NumberAnimation on secs {
+        from: 0
+        to: 3600
+        duration: 3600 * 1000
+        loops: Animation.Infinite
+    }
+    // the hour's light: violet night, pink dawn, clear day, orange-pink evening
+    readonly property color hourTint: {
+        const h = root.now.getHours();
+        return h < 5 ? "#7a4cff" : h < 8 ? "#ff9ec7" : h < 17 ? "#ffffff" : h < 21 ? "#ff8a66" : "#a04cff";
+    }
+    readonly property real hourTintAmount: {
+        const h = root.now.getHours();
+        return h < 5 ? 0.24 : h < 8 ? 0.16 : h < 17 ? 0 : h < 21 ? 0.16 : 0.2;
     }
     ShaderEffect {
+        id: wallFx
         anchors.fill: parent
         visible: wall.status === Image.Ready
         property var source: wall
         property real block: root.conf("pixelate", "true") === "true" ? root.u * 8 : 1
+        property real line: root.u
+        property real time: root.secs
         property size resolution: Qt.size(width, height)
-        fragmentShader: Qt.resolvedUrl("pixelate.frag.qsb")
+        property size imgSize: Qt.size(Math.max(1, wall.implicitWidth), Math.max(1, wall.implicitHeight))
+        property vector4d tint: Qt.vector4d(root.hourTint.r, root.hourTint.g, root.hourTint.b, root.hourTintAmount)
+        // a key typed: a ring of pixels from the password; a mistake: a red one
+        property vector4d ripple: Qt.vector4d(rippleAt.x, rippleAt.y, rippleAge, rippleAge < 1.4 ? rippleStrength : 0)
+        property vector4d rippleColor: Qt.vector4d(rippleTint.r, rippleTint.g, rippleTint.b, 1)
+        property point rippleAt: Qt.point(width / 2, height / 2)
+        property real rippleAge: 9
+        property real rippleStrength: 0.6
+        property color rippleTint: root.pal.accent
+        fragmentShader: Qt.resolvedUrl("sddm_wall.frag.qsb")
+        function ring(item, color, strength) {
+            if (item) {
+                const p = item.mapToItem(wallFx, item.width / 2, item.height / 2);
+                rippleAt = Qt.point(p.x, p.y);
+            }
+            rippleTint = color;
+            rippleStrength = strength;
+            ringAnim.restart();
+        }
+        NumberAnimation {
+            id: ringAnim
+            target: wallFx
+            property: "rippleAge"
+            from: 0
+            to: 1.5
+            duration: 1500
+        }
     }
     Rectangle {
         anchors.fill: parent
@@ -181,6 +240,13 @@ Rectangle {
         anchors.fill: parent
         color: root.pal.desk
         opacity: 0.35
+    }
+    property date now: new Date()
+    Timer {
+        interval: 1000
+        repeat: true
+        running: true
+        onTriggered: root.now = new Date()
     }
     property real time: 0
     Timer {
@@ -205,10 +271,13 @@ Rectangle {
     }
 
     // ---- top left: the stream that is about to start ----
-    Row {
+    Flow {
+        id: topBar
         visible: root.primary
         x: root.u * 10
         y: root.u * 10
+        // room up to the power buttons; on a narrow screen the title goes under the badge
+        width: root.width - x - power.width - root.u * 18
         spacing: root.u * 4
         Rectangle {
             width: soon.implicitWidth + root.u * 10
@@ -239,7 +308,10 @@ Rectangle {
             }
         }
         Text {
-            anchors.verticalCenter: parent.verticalCenter
+            width: Math.min(implicitWidth, topBar.width)
+            height: Math.max(implicitHeight, root.u * 15)
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.Wrap
             text: root.conf("streamTitle", "") || root.t("стрим начнётся, как только ангел войдёт ♡", "the stream starts once angel logs in ♡")
             color: "#ffffff"
             style: Text.Outline
@@ -252,6 +324,7 @@ Rectangle {
 
     // ---- top right: power ----
     Row {
+        id: power
         visible: root.primary
         anchors.top: parent.top
         anchors.right: parent.right
@@ -320,9 +393,18 @@ Rectangle {
     }
 
     // ---- the middle: wordmark, clock, the login window ----
+    // landscape: in the middle; portrait: in the middle of what the top bar and the chat leave
     Column {
         id: center
-        anchors.centerIn: parent
+        objectName: "center"
+        visible: root.primary
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: {
+            if (!root.portrait)
+                return Math.round((root.height - height) / 2);
+            const top = topBar.y + topBar.height + root.u * 12, bottom = chatWin.y - root.u * 10;
+            return Math.round(Math.max(top, top + (bottom - top - height) / 2));
+        }
         spacing: root.u * 8
 
         Row {
@@ -366,14 +448,7 @@ Rectangle {
         Text {
             id: clock
             anchors.horizontalCenter: parent.horizontalCenter
-            property date now: new Date()
-            Timer {
-                interval: 1000
-                repeat: true
-                running: true
-                onTriggered: clock.now = new Date()
-            }
-            text: Qt.formatTime(now, "HH") + (now.getSeconds() % 2 ? ":" : " ") + Qt.formatTime(now, "mm")
+            text: Qt.formatTime(root.now, "HH") + (root.now.getSeconds() % 2 ? ":" : " ") + Qt.formatTime(root.now, "mm")
             color: "#ffffff"
             style: Text.Outline
             styleColor: root.pal.edge
@@ -383,7 +458,7 @@ Rectangle {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: Qt.locale(root.ru ? "ru_RU" : "en_US").toString(clock.now, "dddd, d MMMM")
+            text: Qt.locale(root.ru ? "ru_RU" : "en_US").toString(root.now, "dddd, d MMMM")
             color: "#ffffff"
             style: Text.Outline
             styleColor: root.pal.edge
@@ -402,7 +477,8 @@ Rectangle {
             fontSize: root.titlePx(27)
             title: root.exe(root.t("вход", "login"))
             icon: "lock"
-            width: win.u * 175
+            objectName: "login"
+            width: Math.min(win.u * 175, root.width - root.u * 20)
             height: win.titleHeight + form.implicitHeight + win.u * 20
             property real shakeX: 0
             transform: Translate {
@@ -597,6 +673,8 @@ Rectangle {
                             onTextChanged: {
                                 flash.restart();
                                 beat.restart();
+                                if (text.length > 0)
+                                    wallFx.ring(field, root.pal.accent, 0.6);
                             }
                             Keys.onPressed: e => {
                                 if (e.key === Qt.Key_Escape) {
@@ -701,76 +779,283 @@ Rectangle {
     }
 
     // ---- bottom right: the chat, waiting ----
-    property var chat: []
+    ListModel {
+        id: chatModel
+    }
+    property alias chatModel: chatModel
+    // the login screen's chat sits by the login; the second camera's has room
+    readonly property int chatLines: portrait ? 11 : primary ? 7 : 14
     readonly property var waitLines: [t("стрим скоро начнётся ♡", "stream starting soon ♡"), t("первый!", "first!"), t("жду-жду", "waiting~"), t("ангел, просыпайся", "angel, wake up"), t("чай готов ☕", "tea's ready ☕"), "OMG kawaii", "♡♡♡", t("пароль не подсматриваем 👀", "no peeking 👀"), t("сегодня что-то будет", "something's happening today"), t("всем привет!", "hi everyone!"), "internet angel ✧", t("ставлю будильник", "setting an alarm")]
     readonly property var nicks: ["first_fan", "lurker404", "ame_fan", "pixel_angel", "kangel_love", "p-chan", "hikiko", "sugar_rush", "moe_moe", "pill_cat"]
+    // a line not among the last few
+    function fresh(lines) {
+        let m = "";
+        for (let i = 0; i < 6; i++) {
+            m = lines[Math.floor(Math.random() * lines.length)];
+            let seen = false;
+            for (let j = Math.max(0, chatModel.count - 4); j < chatModel.count; j++)
+                seen = seen || chatModel.get(j).msg === m;
+            if (!seen)
+                break;
+        }
+        return m;
+    }
     function say(lines, bot) {
-        const m = {
+        chatModel.append({
             "nick": bot ? "angelbot" : nicks[Math.floor(Math.random() * nicks.length)],
-            "text": lines[Math.floor(Math.random() * lines.length)],
+            "msg": fresh(lines),
             "bot": !!bot,
             "hue": Math.random()
-        };
-        chat = chat.concat([m]).slice(-7);
+        });
+        while (chatModel.count > chatLines)
+            chatModel.remove(0);
     }
-    Component.onCompleted: {
-        say([t("стрим начнётся после входа", "the stream starts after login")], true);
-        say(waitLines);
+    readonly property var camLines: [t("тсс, ангел спит 💤", "shh, angel is asleep 💤"), t("второй кам лучший кам", "cam 2 best cam"), t("у неё крылья дёргаются", "her wings are twitching"), "zzz", t("какая милая", "so cute"), t("не будите!!", "don't wake her!!"), t("сколько она спит??", "how long has she been asleep??"), t("ASMR дыхания ангела", "angel breathing ASMR"), t("она приоткрыла глаз 👀", "she opened an eye 👀"), "♡♡♡", t("жду с самого утра", "been waiting since morning"), t("ангел, просыпайся", "angel, wake up")]
+    // a chat that has been going for a while: the bot's line and a few viewers'
+    // (a moment after start: the screen's role and theme.conf are known by then)
+    Timer {
+        interval: 150
+        running: true
+        onTriggered: {
+            root.say([root.primary ? root.t("стрим начнётся после входа", "the stream starts after login") : root.t("камера 2: ангел ещё спит", "cam 2: angel is still asleep")], true);
+            for (let i = 0; i < (root.portrait || !root.primary ? 5 : 3); i++)
+                root.say(root.primary ? root.waitLines : root.camLines);
+        }
     }
     Timer {
         interval: 2800
         repeat: true
-        running: root.primary
+        running: true
         onTriggered: if (Math.random() < 0.7)
-            root.say(root.waitLines)
+            root.say(root.primary ? root.waitLines : root.camLines)
     }
+    // landscape: bottom right; portrait: across the bottom, under the login window
     PxFrame {
+        id: chatWin
+        objectName: "chat"
         visible: root.primary
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: root.u * 10
+        x: root.portrait ? root.u * 10 : root.width - width - root.u * 10
+        y: root.height - height - root.u * 10
         pal: root.pal
         u: root.u
         font: root.titleFont
         fontSize: root.titlePx(9) < 13 ? 13 : root.titlePx(9)
         title: root.exe(root.t("чат", "chat"))
         icon: "chat"
-        width: root.u * 150
-        height: titleHeight + root.u * 13 * 7 + root.u * 18
-        Column {
+        width: root.portrait ? root.width - root.u * 20 : root.u * 150
+        height: titleHeight + root.u * 13 * root.chatLines + root.u * 18
+        ChatLines {
+            theme: root
             width: parent.width
             anchors.bottom: parent.bottom
-            spacing: root.u * 2
-            Repeater {
-                model: root.chat
+        }
+    }
+
+    // ---- the other screens: the stream's second camera, the angel asleep ----
+    Item {
+        id: cam
+        objectName: "cam"
+        visible: !root.primary
+        anchors.fill: parent
+        readonly property int m: root.u * 10
+        property int viewers: 3 + Math.floor(Math.random() * 9)
+        Timer {
+            interval: 4000
+            repeat: true
+            running: cam.visible
+            onTriggered: {
+                const r = Math.random();
+                cam.viewers = Math.max(1, cam.viewers + (r < 0.5 ? 1 : r < 0.62 ? 2 : r < 0.75 ? -1 : 0));
+            }
+        }
+
+        // top: REC, the camera's name; the viewers waiting
+        Row {
+            x: cam.m
+            y: cam.m
+            spacing: root.u * 4
+            Rectangle {
+                width: rec.implicitWidth + root.u * 10
+                height: root.u * 15
+                color: root.pal.face
+                border.width: root.u
+                border.color: root.pal.edge
                 Row {
-                    id: line
-                    required property var modelData
+                    id: rec
+                    anchors.centerIn: parent
                     spacing: root.u * 3
-                    property real slide: 1
-                    x: Math.round(slide * root.u * 20)
-                    opacity: 1 - slide
-                    NumberAnimation on slide {
-                        from: 1
-                        to: 0
-                        duration: 160
+                    Rectangle {
+                        width: root.u * 4
+                        height: width
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: root.pal.danger
+                        opacity: Math.floor(root.time * 1.2) % 2 ? 1 : 0.2
                     }
                     Text {
-                        text: (line.modelData.bot ? "✦ " : "") + line.modelData.nick + ":"
-                        color: line.modelData.bot ? root.pal.accent : Qt.hsla(line.modelData.hue, 0.7, 0.7, 1)
-                        font.family: root.bodyFont
-                        font.pixelSize: root.bodyPx(13)
-                        font.bold: true
-                        renderType: Text.NativeRendering
-                    }
-                    Text {
-                        text: line.modelData.text
+                        text: "REC  " + root.t("КАМЕРА 2", "CAM 2")
                         color: root.pal.text
-                        font.family: root.bodyFont
-                        font.pixelSize: root.bodyPx(13)
+                        font.family: root.titleFont
+                        font.pixelSize: root.titlePx(9)
+                        font.bold: true
+                        anchors.verticalCenter: parent.verticalCenter
                         renderType: Text.NativeRendering
                     }
                 }
+            }
+        }
+        Rectangle {
+            x: root.width - width - cam.m
+            y: cam.m
+            width: watching.implicitWidth + root.u * 10
+            height: root.u * 15
+            color: root.pal.face
+            border.width: root.u
+            border.color: root.pal.edge
+            Row {
+                id: watching
+                anchors.centerIn: parent
+                spacing: root.u * 3
+                PixelIcon {
+                    name: "eye"
+                    pixel: root.u
+                    ink: root.pal.edge
+                    fill: root.pal.accent
+                    light: "#ffffff"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                Text {
+                    text: cam.viewers + " " + root.t("ждут", "waiting")
+                    color: root.pal.text
+                    font.family: root.titleFont
+                    font.pixelSize: root.titlePx(9)
+                    font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
+                    renderType: Text.NativeRendering
+                }
+            }
+        }
+
+        // the clock (hours over minutes when the screen stands) and the camera's window;
+        // portrait: one column over the chat; landscape: on the left, the chat on the right
+        Column {
+            id: camMain
+            objectName: "camMain"
+            spacing: root.u * 8
+            x: root.portrait ? Math.round((root.width - width) / 2) : Math.round((camChat.x - width) / 2)
+            y: {
+                const top = cam.m + root.u * 24, bottom = root.portrait ? camChat.y - root.u * 10 : root.height - cam.m;
+                return Math.round(Math.max(top, top + (bottom - top - height) / 2));
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                horizontalAlignment: Text.AlignHCenter
+                lineHeight: 0.85
+                text: Qt.formatTime(root.now, "HH") + (root.portrait ? "\n" : root.now.getSeconds() % 2 ? ":" : " ") + Qt.formatTime(root.now, "mm")
+                color: "#ffffff"
+                style: Text.Outline
+                styleColor: root.pal.edge
+                font.family: root.titleFont
+                font.pixelSize: root.titlePx(root.portrait ? 126 : 72)
+                renderType: Text.NativeRendering
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: Qt.locale(root.ru ? "ru_RU" : "en_US").toString(root.now, "dddd, d MMMM")
+                color: "#ffffff"
+                style: Text.Outline
+                styleColor: root.pal.edge
+                font.family: root.titleFont
+                font.pixelSize: root.titlePx(18)
+                renderType: Text.NativeRendering
+            }
+            PxFrame {
+                id: camWin
+                anchors.horizontalCenter: parent.horizontalCenter
+                pal: root.pal
+                u: root.u
+                font: root.titleFont
+                fontSize: root.titlePx(9) < 13 ? 13 : root.titlePx(9)
+                title: root.exe(root.t("кам2", "cam2"))
+                icon: "monitor"
+                readonly property int spritePx: root.u * (root.portrait ? 2 : 1.5)
+                width: Math.min(root.portrait ? root.width - cam.m * 2 : root.width * 0.42, angel.implicitWidth + root.u * 40)
+                height: titleHeight + angel.implicitHeight + root.u * 42
+                // her room at night: a sky, a few stars twinkling, the angel asleep
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.bottomMargin: root.u * 12
+                    color: root.pal.sunken
+                    border.width: root.u
+                    border.color: root.pal.edge
+                    clip: true
+                    gradient: Gradient {
+                        GradientStop {
+                            position: 0
+                            color: Qt.darker(root.pal.sunken, 1.4)
+                        }
+                        GradientStop {
+                            position: 1
+                            color: root.pal.faceAlt
+                        }
+                    }
+                    Repeater {
+                        model: 7
+                        PixelIcon {
+                            required property int index
+                            name: index % 2 ? "sparkle" : "sparkleStar"
+                            pixel: root.u
+                            ink: "transparent"
+                            fill: index % 3 ? root.pal.accent2 : root.pal.accent3
+                            light: "#ffffff"
+                            x: Math.round(((index * 0.37 + 0.08) % 1) * (parent.width - width))
+                            y: Math.round(((index * 0.61 + 0.1) % 1) * parent.height * 0.5)
+                            opacity: 0.3 + 0.7 * Math.abs(Math.sin(root.secs * 0.8 + index * 1.7))
+                        }
+                    }
+                    AngelCam {
+                        id: angel
+                        objectName: "angel"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: root.u * 4
+                        px: camWin.spritePx
+                        time: root.secs
+                        font: root.titleFont
+                        zEdge: root.pal.edge
+                    }
+                }
+                Text {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.bottomMargin: -root.u * 2
+                    text: angel.peek ? root.t("👀 …ещё пять минуточек", "👀 …five more minutes") : root.t("💤 ангел спит — стрим начнётся, когда она войдёт", "💤 angel is asleep — the stream starts when she logs in")
+                    color: root.pal.textDim
+                    font.family: root.bodyFont
+                    font.pixelSize: root.bodyPx(13)
+                    width: parent.width
+                    elide: Text.ElideRight
+                    renderType: Text.NativeRendering
+                }
+            }
+        }
+
+        PxFrame {
+            id: camChat
+            objectName: "camChat"
+            pal: root.pal
+            u: root.u
+            font: root.titleFont
+            fontSize: root.titlePx(9) < 13 ? 13 : root.titlePx(9)
+            title: root.exe(root.t("чат", "chat"))
+            icon: "chat"
+            width: root.portrait ? root.width - cam.m * 2 : Math.round(root.width * 0.36)
+            height: titleHeight + root.u * 13 * root.chatLines + root.u * 18
+            x: root.width - width - cam.m
+            y: root.portrait ? root.height - height - cam.m : Math.round((root.height - height) / 2)
+            ChatLines {
+                theme: root
+                width: parent.width
+                anchors.bottom: parent.bottom
             }
         }
     }
@@ -800,6 +1085,7 @@ Rectangle {
     }
     onFailed: {
         shake.restart();
+        wallFx.ring(field, root.pal.danger, 1);
         breakTimer.restart();
         pw.text = "";
         say(root.fails > 2 ? [t("капс? раскладка?", "caps? layout?")] : ["F", t("мимо", "miss"), t("бывает ♡", "it happens ♡")]);

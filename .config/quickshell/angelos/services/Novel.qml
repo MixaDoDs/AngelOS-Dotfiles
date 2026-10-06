@@ -36,10 +36,20 @@ Singleton {
     property var stories: ({})               // "chapter1" → story
     property var scenes: ({})                // "trial-greed" → a game scene (story/scenes)
     property var sprites: ({})               // "angel" → {"happy": "/…/sprites/angel/happy.png"}
-    // the picture for a sprite name, "" when there is no such file (the box goes without it)
+    // the picture for a sprite name, "" when there is no such file (the box goes without it);
+    // a circle's demon without her own picture borrows the demoness's (sprites/demon/)
     function spriteFile(who, name) {
         const m = sprites[who] || {};
-        return m[name || "neutral"] || "";
+        const f = m[name || "neutral"] || "";
+        return f || (Core.isDemon(who) && who !== "demon" ? spriteFile("demon", name) : "");
+    }
+    // who speaks: a demon of hell (the demoness or a circle's), and the name over the line —
+    // the angel's is the one the player gave her (the chapters' var herName)
+    function isDemon(who) {
+        return Core.isDemon(who);
+    }
+    function whoName(who) {
+        return Core.whoName(who, I18n.english, (state.vars || {}).herName || "");
     }
     property bool loaded: false
     property var state: freshState()
@@ -60,6 +70,7 @@ Singleton {
             "vars": {},
             "seen": [],
             "asked": [],
+            "dropped": [],
             "done": {},
             "begun": {},
             "free": false,
@@ -147,10 +158,12 @@ Singleton {
         s.done = state.done || {};
         s.begun = Object.assign({}, state.begun || {});
         s.begun[id] = true;
-        s.vars = Object.assign({}, st.vars || {}, {
+        // what the player told her stays: a chapter's vars are only defaults
+        s.vars = Object.assign({}, st.vars || {}, state.vars || {}, {
             "setupGender": Config.novel.gender || "",
             "gender": (state.vars || {}).gender || ""
         });
+        s.dropped = state.dropped || [];
         line = null;
         paper = null;
         noteOpen = false;
@@ -275,6 +288,7 @@ Singleton {
             setWait(thread, "note");
             paper = {
                 "from": n.from || "desk",
+                "who": n.who || "angel",
                 "title": txt(n.title || "", thread),
                 "text": txt(n.text || "", thread),
                 "thread": thread
@@ -344,6 +358,15 @@ Singleton {
         go(thread, n.next);
     }
     property string pendingChapter: ""
+    // a pool's condition against the chapter's vars (no condition: always)
+    function holds(cond) {
+        try {
+            return Core.evalCond(cond, state.vars, state.seen);
+        } catch (e) {
+            console.warn("novel: cond", cond, e.message);
+            return false;
+        }
+    }
     function rangeMs(r, a, b) {
         const lo = Math.max(1, (r && r[0]) || a), hi = Math.max(lo, (r && r[1]) || b);
         return (lo + Math.random() * (hi - lo)) * 60000;
@@ -511,7 +534,7 @@ Singleton {
         const st = story();
         // a question from the pool, each once; the "?" waits for a click
         if (!state.side.node && now >= state.nextQ && waitsFor("main") !== "click") {
-            const left = ((st.pools || {}).questions || []).filter(q => state.asked.indexOf(q) < 0 && st.nodes[q]);
+            const left = ((st.pools || {}).questions || []).filter(q => state.asked.indexOf(q) < 0 && st.nodes[q] && holds(st.nodes[q].cond));
             const s = Object.assign({}, state);
             s.nextQ = now + rangeMs((st.ambient || {}).questions, 25, 70);
             if (left.length) {
@@ -534,15 +557,29 @@ Singleton {
             s.nextDrop = now + rangeMs((st.ambient || {}).drops, 30, 90);
             state = s;
             save();
-            if (drops.length) {
-                const d = drops[Math.floor(Math.random() * drops.length)];
+            // a note for what just happened (once, not yet dropped) first, else an everyday one
+            const key = d => JSON.stringify(d.text);
+            const fit = drops.filter(d => holds(d.cond) && !(d.once && (state.dropped || []).indexOf(key(d)) >= 0));
+            const fresh = fit.filter(d => d.once);
+            const pool = fresh.length ? fresh : fit;
+            if (pool.length) {
+                const d = pool[Math.floor(Math.random() * pool.length)];
+                if (d.once) {
+                    const s2 = Object.assign({}, state);
+                    s2.dropped = (s2.dropped || []).concat([key(d)]);
+                    state = s2;
+                    save();
+                }
+                // the angel lets hers fall; a demon's lies on the desk, nobody saw it come
                 paper = {
-                    "from": "angel",
+                    "from": d.from || (Core.isDemon(d.who) ? "desk" : "angel"),
+                    "who": d.who || "angel",
                     "title": "",
                     "text": txt(d.text),
                     "thread": ""
                 };
-                dropped();
+                if (paper.from === "angel")
+                    dropped();
             }
         }
     }

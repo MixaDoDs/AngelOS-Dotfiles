@@ -1,22 +1,29 @@
 #!/usr/bin/env python3
 """The angelOS login screen for SDDM (extras/sddm/angelos), dressed like the desktop.
 
-  sddm-theme.py build [--wallpaper FILE] [--palette ngo|system] [--out DIR]
+  sddm-theme.py build [--wallpaper FILE] [--tall FILE] [--palette ngo|system] [--out DIR]
       puts the theme together in ~/.cache/angelos/sddm/angelos (or DIR): its QML, the
-      pixel fonts, the pixelation shader, a copy of the wallpaper and a theme.conf with
-      angelOS's NGO pink (the default) or the desktop's own colours
-      (~/.cache/angelos/palette.json), and the shell's language
+      pixel fonts, the wallpaper shader, the sleeping angel (modules/y2k/sprites/angel),
+      the wallpapers (walls/wide.jpg for landscape screens, walls/tall.jpg for portrait
+      ones; --tall defaults to --wallpaper) and a theme.conf with angelOS's NGO pink (the
+      default) or the desktop's own colours (~/.cache/angelos/palette.json), and the
+      shell's language
   sddm-theme.py install [same options]
       builds it, then asks for the admin password (pkexec) to copy it to
       /usr/share/sddm/themes/angelos and make it SDDM's theme
       (/etc/sddm.conf.d/zz-angelos.conf; a Current= in /etc/sddm.conf, which would win,
-      is commented out with a backup next to it)
+      is commented out with a backup next to it). The theme's walls/ folder is left to
+      the user, so the wallpapers can follow the desktop without a password:
+  sddm-theme.py walls [--wallpaper FILE] [--tall FILE]
+      puts these pictures into the installed theme's walls/ (angelOS runs it whenever the
+      wallpaper changes); a picture already there is not redone; prints JSON
   sddm-theme.py status
       prints JSON: {"installed": bool, "current": theme or "", "sddm": bool}
 
 Nothing personal goes into the theme: the colours, the wallpaper picture and the language.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -32,6 +39,7 @@ CACHE = Path(os.environ.get("XDG_CACHE_HOME", HOME / ".cache")) / "angelos"
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "angelos"
 FONTS = Path(os.environ.get("XDG_DATA_HOME", HOME / ".local" / "share")) / "fonts" / "pixel"
 TARGET = Path("/usr/share/sddm/themes/angelos")
+WALL_BOX = "2560x2560"                                   # walls are fitted into this
 CONF_D = Path("/etc/sddm.conf.d/zz-angelos.conf")
 
 # angelOS's NGO pink ("overdose" at night): the look of the lock's stream
@@ -76,7 +84,78 @@ def wallpaper_of(s):
     return None
 
 
-def build(out: Path, wallpaper, palette_name):
+def fit_wall(src: Path, dest: Path):
+    """src → dest (JPEG fitted into WALL_BOX), through a temporary file; True when done."""
+    tmp = dest.with_name("." + dest.stem + ".tmp.jpg")
+    if shutil.which("vipsthumbnail"):
+        cmd = ["vipsthumbnail", str(src), "--size", WALL_BOX, "-o", f"{tmp}[Q=90,strip]"]
+    elif shutil.which("magick"):
+        cmd = ["magick", str(src) + "[0]", "-resize", WALL_BOX + ">", "-strip", "-quality", "90", str(tmp)]
+    else:
+        return False
+    if subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0 or not tmp.is_file():
+        tmp.unlink(missing_ok=True)
+        return False
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, dest)
+    return True
+
+
+def stamp_of(src: Path):
+    # which picture a wall was made from, without saying where it lives
+    st = src.stat()
+    return hashlib.sha1(f"{src.resolve()}|{st.st_size}|{st.st_mtime_ns}".encode()).hexdigest()[:16]
+
+
+def put_walls(walls: Path, wide, tall):
+    """walls/wide.jpg and walls/tall.jpg from the pictures given; unchanged ones are kept."""
+    done = {}
+    try:
+        stamps = json.loads((walls / "stamps.json").read_text())
+    except (OSError, ValueError):
+        stamps = {}
+    for name, src in (("wide", wide), ("tall", tall or wide)):
+        if not src:
+            continue
+        src = Path(os.path.expanduser(str(src)))
+        if not src.is_file():
+            continue
+        st = stamp_of(src)
+        dest = walls / (name + ".jpg")
+        if stamps.get(name) == st and dest.is_file():
+            done[name] = "kept"
+            continue
+        if fit_wall(src, dest):
+            stamps[name] = st
+            done[name] = "new"
+    tmp = walls / ".stamps.tmp"
+    tmp.write_text(json.dumps(stamps))
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, walls / "stamps.json")
+    return done
+
+
+def angel_into(out: Path):
+    """the sleeping angel of the second camera: the rig's pictures and its layout as JS"""
+    rig_dir = HERE / "modules" / "y2k" / "sprites" / "angel"
+    rig = None
+    try:
+        rig = json.loads((rig_dir / "rig.json").read_text())
+    except (OSError, ValueError):
+        pass
+    names = ["body", "eyes"] + list((rig or {}).get("parts", {}))
+    if rig and all((rig_dir / f"{n}.png").is_file() for n in names):
+        (out / "angel").mkdir(exist_ok=True)
+        for n in names:
+            shutil.copy2(rig_dir / f"{n}.png", out / "angel" / f"{n}.png")
+    else:
+        rig = None
+    (out / "AngelRig.js").write_text(
+        "// written by `angelos sddm build` from modules/y2k/sprites/angel/rig.json\n"
+        ".pragma library\n\nvar rig = " + json.dumps(rig) + ";\n")
+
+
+def build(out: Path, wallpaper, palette_name, tall=None):
     if not (SRC / "Main.qml").is_file():
         sys.exit(f"no theme sources in {SRC}")
     if out.exists():
@@ -85,7 +164,8 @@ def build(out: Path, wallpaper, palette_name):
             sys.exit(f"{out} is not an angelOS theme folder; not touching it")
         shutil.rmtree(out)
     shutil.copytree(SRC, out)
-    shutil.copy2(HERE / "shaders" / "pixelate.frag.qsb", out / "pixelate.frag.qsb")
+    shutil.copy2(HERE / "shaders" / "sddm_wall.frag.qsb", out / "sddm_wall.frag.qsb")
+    angel_into(out)
     fonts = out / "fonts"
     fonts.mkdir(exist_ok=True)
     found = []
@@ -105,9 +185,13 @@ def build(out: Path, wallpaper, palette_name):
             "suffix": suffix if suffix in ("exe", "sh", "bin") else "exe"}
     wp = Path(wallpaper) if wallpaper else wallpaper_of(s)
     if wp and wp.is_file():
-        dest = out / ("background" + wp.suffix.lower())
-        shutil.copy2(wp, dest)
-        conf["background"] = dest.name
+        # the last resort when walls/ has nothing (the theme prefers walls/)
+        dest = out / "background.jpg"
+        if fit_wall(wp, dest):
+            conf["background"] = dest.name
+    walls = out / "walls"
+    walls.mkdir(exist_ok=True)
+    put_walls(walls, wp if wp and wp.is_file() else None, Path(tall) if tall else None)
     (out / "theme.conf").write_text("[General]\n" + "".join(f"{k}={v}\n" for k, v in conf.items()))
     return {"out": str(out), "fonts": found, "background": conf.get("background", ""), "palette": palette_name}
 
@@ -132,13 +216,18 @@ def current_theme():
 
 ROOT_SCRIPT = r'''
 set -eu
-src="$1"; target="$2"; confd="$3"
+src="$1"; target="$2"; confd="$3"; owner="$4"
+case "$owner" in ''|*[!0-9]*) echo "bad owner" >&2; exit 2;; esac
 [ -f "$src/Main.qml" ] || { echo "no theme in $src" >&2; exit 2; }
 case "$target" in /usr/share/sddm/themes/angelos) ;; *) echo "bad target" >&2; exit 2;; esac
 stamp=$(date +%Y%m%d-%H%M%S)
 rm -rf "$target.new"
 cp -r "$src" "$target.new"
 chmod -R a+rX "$target.new"
+chown -R 0:0 "$target.new"
+# walls/ only: the wallpapers follow the desktop without a password (`sddm-theme.py walls`)
+mkdir -p "$target.new/walls"
+chown -R "$owner" "$target.new/walls"
 [ -d "$target" ] && mv "$target" "$target.old-$stamp"
 mv "$target.new" "$target"
 rm -rf "$target".old-*
@@ -155,23 +244,36 @@ echo installed
 def install(out: Path):
     if not shutil.which("pkexec"):
         sys.exit("pkexec is missing: run as root  sh -c '…'  or install polkit")
-    r = subprocess.run(["pkexec", "sh", "-c", ROOT_SCRIPT, "sh", str(out), str(TARGET), str(CONF_D)])
+    # pkexec refuses to run when $SHELL is not in /etc/shells (a wrapper in ~/.local/bin)
+    env = {**os.environ, "SHELL": "/bin/sh"}
+    r = subprocess.run(["pkexec", "sh", "-c", ROOT_SCRIPT, "sh", str(out), str(TARGET), str(CONF_D), str(os.getuid())], env=env)
     if r.returncode != 0:
         sys.exit(r.returncode)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["build", "install", "status"])
+    ap.add_argument("cmd", choices=["build", "install", "status", "walls"])
     ap.add_argument("--wallpaper")
+    ap.add_argument("--tall", help="the picture for portrait screens (default: --wallpaper)")
     ap.add_argument("--palette", choices=["system", "ngo"], default="ngo")
     ap.add_argument("--out", default=str(CACHE / "sddm" / "angelos"))
     a = ap.parse_args()
     if a.cmd == "status":
+        walls = TARGET / "walls"
         print(json.dumps({"installed": (TARGET / "Main.qml").is_file(), "current": current_theme(),
-                          "sddm": shutil.which("sddm") is not None}))
+                          "sddm": shutil.which("sddm") is not None,
+                          "walls": walls.is_dir() and os.access(walls, os.W_OK)}))
         return
-    info = build(Path(a.out), a.wallpaper, a.palette)
+    if a.cmd == "walls":
+        walls = TARGET / "walls"
+        if not (TARGET / "Main.qml").is_file() or not walls.is_dir() or not os.access(walls, os.W_OK):
+            # not installed, or installed before walls/ was the user's: `install` again
+            print(json.dumps({"synced": False, "reason": "no writable " + str(walls)}))
+            return
+        print(json.dumps({"synced": True, "walls": put_walls(walls, a.wallpaper, a.tall)}))
+        return
+    info = build(Path(a.out), a.wallpaper, a.palette, a.tall)
     if a.cmd == "install":
         install(Path(a.out))
         info["installed"] = True

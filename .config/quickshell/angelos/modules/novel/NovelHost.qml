@@ -16,7 +16,7 @@ Scope {
     id: host
 
     readonly property var line: Novel.line
-    readonly property bool demon: line ? line.who === "demon" : Angel.demon
+    readonly property bool demon: line ? Novel.isDemon(line.who) : Angel.demon
 
     // ---- the dialogue box ----
     LazyLoader {
@@ -49,7 +49,7 @@ Scope {
                     "choices": []
                 })
             // the demon's lines, and the narrator's while the demon rules, in the circle's colours
-            readonly property bool hell: l.who === "demon" || (l.who === "narrator" && Angel.demon)
+            readonly property bool hell: Novel.isDemon(l.who) || (l.who === "narrator" && Angel.demon)
             property int shown: 0
             readonly property bool typed: shown >= l.text.length
             onLChanged: {
@@ -113,7 +113,7 @@ Scope {
                         visible: box.l.who !== "narrator"
                         kind: "title"
                         color: box.hell ? Theme.hellEmber : Theme.accent
-                        text: box.l.who === "demon" ? I18n.t("Демоница", "Demon") : I18n.t("Ангел", "Angel")
+                        text: Novel.whoName(box.l.who)
                     }
                     ShakyText {
                         width: parent.width
@@ -279,6 +279,8 @@ Scope {
                     "title": "",
                     "text": ""
                 })
+            // a demon's note: another hand, red ink
+            readonly property color ink: Novel.isDemon(p.who) ? "#7a1410" : "#3b2415"
             property real open: 0
             Component.onCompleted: open = 1
             Behavior on open {
@@ -341,7 +343,7 @@ Scope {
                         visible: text !== ""
                         width: parent.width
                         text: reader.p.title || ""
-                        color: "#3b2415"
+                        color: reader.ink
                         font.family: Theme.fontScript
                         font.pixelSize: Theme.scriptPx(Theme.sizeTitle)
                         font.bold: true
@@ -351,7 +353,7 @@ Scope {
                     Text {
                         width: parent.width
                         text: reader.p.text || ""
-                        color: "#3b2415"
+                        color: reader.ink
                         font.family: Theme.fontScript
                         font.pixelSize: Math.round(Theme.scriptPx(Theme.sizeTitle) * 0.95)
                         wrapMode: Text.Wrap

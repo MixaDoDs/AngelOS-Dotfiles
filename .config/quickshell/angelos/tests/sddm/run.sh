@@ -34,5 +34,19 @@ done < <(sed -n 's/.*\(TEST [^ ]* \(PASS\|FAIL\).*\)/\1/p' "$log")
 grep -q 'TEST DONE' "$log" || { echo "  ✕ did not finish: $(tail -3 "$log" | tr '\n' ' ' | cut -c1-300)"; fail=1; }
 errs=$(grep -E 'theme/|harness' "$log" | grep -E 'TypeError|ReferenceError|Unable to assign|is not defined|Cannot read property|Binding loop|is not a type|Cannot assign|failed to load|Required property' | sed 's/\x1b\[[0-9;]*m//g' | sort -u | head -15)
 [[ -z "$errs" ]] || { echo "  ✕ QML errors:"; printf '%s\n' "$errs" | sed 's/^/      /'; fail=1; }
+# SDDM starts the Qt 5 greeter unless metadata.desktop says QtVersion=6, and that one
+# can't read this QML ("Library import requires a version") and shows its own theme
+grep -qx 'QtVersion=6' "$T/theme/metadata.desktop" 2>/dev/null || { echo "  ✕ metadata.desktop without QtVersion=6"; fail=1; }
+# the real greeter (it logs to the journal only), when it and the journal are at hand
+if command -v sddm-greeter-qt6 >/dev/null && journalctl -n0 -q 2>/dev/null; then
+  since=$(date +%s)
+  env QT_QPA_PLATFORM=offscreen timeout 5 sddm-greeter-qt6 --test-mode --theme "$T/theme" >/dev/null 2>&1
+  sleep 0.5
+  glog=$(journalctl -q -o cat -t sddm-greeter-qt6 --since "@$since" 2>/dev/null)
+  gerr=$(grep -E 'Main\.qml|theme/.*\.qml:|Fallback to embedded' <<<"$glog" | grep -v '^Loading file' | head -10)
+  if ! grep -q 'theme/Main.qml\.\.\.' <<<"$glog"; then echo "  ? sddm-greeter-qt6 left nothing in the journal"
+  elif [[ -n "$gerr" ]]; then echo "  ✕ sddm-greeter-qt6:"; printf '%s\n' "$gerr" | sed 's/^/      /'; fail=1
+  else echo "  ✓ sddm-greeter-qt6 loads the theme"; fi
+fi
 ((fail == 0)) && echo "  SDDM theme: loads, types, fails, logs in — no errors"
 exit "$fail"
