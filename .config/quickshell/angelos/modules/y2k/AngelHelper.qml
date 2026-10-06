@@ -71,7 +71,10 @@ Scope {
             readonly property bool still: demonArt && !Angel.transition
             readonly property bool bellyClock: sprite.circleSkin && sprite.skin === "gluttony" && !Motion.calm
             property bool stirring: false
-            readonly property bool awake: !still || stirring || Angel.talking || Angel.menuOpen || grab.held || Novel.wantsClick
+            readonly property string assistantMood: Angel.assistant && Angel.assistant.helperMood || ""
+            readonly property bool assistantBusy: !!Angel.assistant && Angel.assistant.helperBusy === true
+            readonly property bool expressive: !Motion.calm && !Angel.transition && !grab.held
+            readonly property bool awake: !still || stirring || Angel.talking || Angel.menuOpen || grab.held || Novel.wantsClick || assistantBusy || !!assistantMood
             readonly property bool clockOn: win.visible && !Shell.hiddenScreen(Angel.screenName) && (awake || bellyClock)
             Timer {
                 interval: 125
@@ -102,7 +105,7 @@ Scope {
             }
             // the swap flips the sprite halfway through (Angel.becomeDemon/becomeAngel)
             readonly property bool demonArt: Angel.demon
-            readonly property bool blinking: clockOn && awake && tick % 29 === 0
+            readonly property bool blinking: clockOn && awake && (tick % 29 === 0 || (expressive && assistantMood === "happy" && tick % 24 < 3))
             readonly property bool mouthOpen: Angel.talking && typer.shown < Angel.text.length && tick % 2 === 0
             // Settings → Y2K → Looks, each of them apart: glitch (the cracked-halo angel /
             // the sleepless neon demon, SpriteRig), chibi (the first pictures), adult (the 30×40
@@ -122,7 +125,7 @@ Scope {
                     return art.blink;
                 return Math.floor(tick / 3) % 2 ? art.down : art.up;
             }
-            readonly property int bob: Angel.transition || (still && !stirring) ? 0 : [0, 1, 2, 2, 1, 0, -1, -1][tick % 8]
+            readonly property int bob: Angel.transition || Motion.calm || (still && !stirring && !assistantBusy && !assistantMood) ? 0 : [0, 1, 2, 2, 1, 0, -1, -1][tick % 8]
             // swap motion: the leaving one hops and drops through the floor, the new one
             // climbs out of the flames (demon) or comes down from the sky (angel)
             readonly property real swapY: {
@@ -643,7 +646,10 @@ Scope {
                             swingTick: win.swing
                             blink: win.blinking
                             talk: win.mouthOpen
-                            flutter: grab.held
+                            // Small whole-rig gestures keep authored sprite parts aligned.
+                            rotation: win.expressive ? win.assistantBusy ? Math.sin(win.tick * 0.23) * 2 : win.assistantMood === "happy" ? Math.sin(win.tick * 0.65) * 3 : win.assistantMood === "concerned" ? -2 : 0 : 0
+                            transformOrigin: Item.Bottom
+                            flutter: grab.held || (win.expressive && win.assistantMood === "happy")
                             // past cold she cries (story/game.json → angel.fallen); motion off: no drops
                             tears: !win.demonArt && Story.angelFallen && !Motion.still
                             use: win.look === "chibi" || win.look === "glitch" || win.look === "ophanim"

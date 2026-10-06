@@ -393,3 +393,5 @@ Angel.unregisterAssistant(plugin.id, provider)
 ```
 
 Registration returns false if another provider already owns the slot. Unregistration checks both ID and object identity. The helper adds a menu button and loads the plugin's panel only while its assistant menu is open; keyboard focus is enabled on demand. The panel supplies its own input, model requests and confirmation controls. The built-in Ask/settings search and story dialogue remain separate. Older shells have no hook: feature-detect `typeof Angel.registerAssistant === "function"` before registering.
+
+Optional provider properties `helperBusy` (bool) and `helperMood` (string: thinking/waiting/happy/concerned, empty at rest) enable short character gestures. New gestures respect calm motion, dragging and story transitions; the plugin should clear a temporary mood after its reaction. These properties never initiate model requests.
