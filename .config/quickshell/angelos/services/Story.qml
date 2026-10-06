@@ -798,7 +798,10 @@ Singleton {
             return "";
         const l = list[Math.floor(Math.random() * list.length)];
         const text = Array.isArray(l) ? (I18n.english ? l[1] : l[0]) : l;
-        return render(text).replace("%1", circleName(circle)).replace("%2", Theme.roman(circleN(circle)));
+        // Only introductions use %1/%2 for the circle. Wait and music lines
+        // leave those placeholders for their caller's minutes / artist / song.
+        const line = render(text);
+        return kind === "enter" ? line.replace("%1", circleName(circle)).replace("%2", Theme.roman(circleN(circle))) : line;
     }
 
     // ---- on / off ----
