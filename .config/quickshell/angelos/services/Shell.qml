@@ -23,6 +23,7 @@ Singleton {
     onSetupLockedChanged: if (setupLocked) {
         closeTransient("");
         settingsOpen = false;
+        settingsMore.clear();
     }
     onSettingsOpenChanged: if (settingsOpen && setupLocked)
         settingsOpen = false
@@ -47,10 +48,12 @@ Singleton {
         }
     }
     property bool clipboardOpen: false
+    property bool diaryOpen: false          // the Angel's diary (services/Diary, modules/diary/DiaryBook)
     property bool gameOpen: false            // osu!mini window (plugin osu-mini)
     property bool locked: false
     property bool lockPreview: false         // the lock screen in a normal overlay, nothing is checked
     property var lockPreviewTry: null        // (text) → plays the preview's reaction; never touches PAM
+    property string lockPreviewDemo: ""      // the preview types this in by itself a moment after it opens
     property var polkitReregister: null
     property bool polkitRegistered: false
     readonly property bool dev: Quickshell.env("ANGELOS_DEV") === "1"
@@ -200,6 +203,52 @@ Singleton {
         if (sub)
             settingsSub = sub;
         settingsOpen = true;
+    }
+    // ---- more Settings windows than one (Ctrl+N, a middle click on a section, `angelos settingsNew`) ----
+    // The main window keeps its place here (settingsPage, settingsSub, settingsOpen); each of the
+    // others has its own SettingsNav with the same three names, so the views and the pages read
+    // either one the same way: Shell.settingsNavFor(item) is the place of the window the item is in.
+    // Start, the helper, IPC and the hotkeys keep to the main window.
+    readonly property int settingsMoreMax: 8
+    property ListModel settingsMore: ListModel {}   // { key, page, sub }: one per extra window
+    property int settingsMoreKey: 0
+    property var settingsActive: null               // the SettingsView whose window has the focus
+    function newSettingsWindow(page, sub) {
+        if (setupLocked || settingsMore.count >= settingsMoreMax)
+            return false;
+        settingsMore.append({
+            "key": ++settingsMoreKey,
+            "page": page ? SettingsTree.resolve(page).page : "home",
+            "sub": sub || ""
+        });
+        return true;
+    }
+    function closeSettingsWindow(key) {
+        for (let i = 0; i < settingsMore.count; i++)
+            if (settingsMore.get(i).key === key)
+                return settingsMore.remove(i);
+    }
+    // the SettingsView an item is in (the main one for anything outside Settings)
+    function settingsViewFor(item) {
+        for (let p = item; p; p = p.parent)
+            if (p.settingsNav !== undefined)
+                return p;
+        return settingsView;
+    }
+    function settingsNavFor(item) {
+        for (let p = item; p; p = p.parent)
+            if (p.settingsNav !== undefined)
+                return p.settingsNav || root;
+        return root;
+    }
+    // a link inside Settings goes on in its own window; anywhere else it opens Settings
+    function settingsGo(item, page, sub) {
+        const nav = settingsNavFor(item);
+        if (nav === root)
+            return openSettings(page, sub);
+        nav.settingsPage = SettingsTree.resolve(page).page;
+        if (sub)
+            nav.settingsSub = sub;
     }
     function toggleSettings(page) {
         // an old id (Mod+S still says "appearance") closes its page in the tree too

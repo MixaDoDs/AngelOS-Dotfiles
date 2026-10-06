@@ -166,5 +166,19 @@ else
   bad "scale matrix (tests/scale/run.sh):"; printf '%s\n' "$out" | grep -v '✓' | head -30 | sed 's/^/      /'
 fi
 
+# the lock screen (tests/lock): both looks type, fail and unlock, the stream's audience
+# follows the days, the replay plays, every unlock style draws; and the SDDM theme
+# (tests/sddm) under a stand-in SDDM — both offscreen here
+if out=$(ANGELOS_TEST_LOG= bash "$DIR/tests/lock/run.sh" "$DIR" 2>&1); then
+  ok "lock screen: NGO and heaven looks, typing, mistakes, unlock styles, the stream's audience by day"
+else
+  bad "lock screen (tests/lock/run.sh):"; printf '%s\n' "$out" | grep -v '✓' | head -20 | sed 's/^/      /'
+fi
+if out=$(ANGELOS_TEST_LOG= ANGELOS_SDDM_TEST_OFFSCREEN=1 bash "$DIR/tests/sddm/run.sh" "$DIR" 2>&1); then
+  ok "SDDM theme: builds, loads, types, fails and logs in"
+else
+  bad "SDDM theme (tests/sddm/run.sh):"; printf '%s\n' "$out" | grep -v '✓' | head -20 | sed 's/^/      /'
+fi
+
 if ((fail)); then echo "» UI SELF-TEST FAILED"; exit 1; fi
 echo "» UI self-test passed ♡"

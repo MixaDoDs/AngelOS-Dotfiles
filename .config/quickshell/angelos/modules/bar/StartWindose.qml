@@ -35,6 +35,11 @@ Rectangle {
                 "label": r.app.name,
                 "app": r.app,
                 "run": () => StartApps.launch(r.app)
+            } : r.kind === "file" ? {
+                "label": r.file.name,
+                "icon": FileSearch.pixelIcon(r.file),
+                "file": r.file,
+                "run": () => FileSearch.open(r.file)
             } : r.kind === "setting" ? {
                 "label": r.doc.title,
                 "icon": r.doc.icon || "gear",
@@ -424,9 +429,19 @@ Rectangle {
                     appId: row.modelData.app ? row.modelData.app.id || "" : ""
                     size: Math.round(Theme.u * 9 * root.prefs.icons)
                 }
+                FileThumb {
+                    id: fileGlyph
+                    visible: ok
+                    anchors.left: bullet.right
+                    anchors.leftMargin: Theme.u * 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Math.round(Theme.u * 9 * root.prefs.icons)
+                    height: width
+                    hit: row.modelData.file || null
+                }
                 PxIcon {
                     id: pxGlyph
-                    visible: !row.modelData.app
+                    visible: !row.modelData.app && !fileGlyph.ok
                     anchors.left: bullet.right
                     anchors.leftMargin: Theme.u * 2
                     anchors.verticalCenter: parent.verticalCenter

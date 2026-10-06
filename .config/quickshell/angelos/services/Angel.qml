@@ -63,9 +63,12 @@ Singleton {
     property bool _portal: false
     // her look (Settings → Y2K → Looks): the pick, unless the story changed her past cold
     // (story/game.json → angel.fallen) — then that one, whatever is picked; the pick is kept
-    readonly property string angelLook: Story.angelFallen ? Story.fallenLook : ["glitch", "chibi", "adult", "mini"].includes(Config.y2k.angelLook) ? Config.y2k.angelLook : "glitch"
+    // the looks past the glitch girl are heaven's things (services/Heaven): earned, or the glitch one
+    readonly property string angelLook: Story.angelFallen ? Story.fallenLook : ["glitch", "chibi", "adult", "mini"].includes(Config.y2k.angelLook) && Heaven.lookOk(Config.y2k.angelLook) ? Config.y2k.angelLook : "glitch"
+    // on stream (services/StreamAngel) she sits on the streamed screen's taskbar (AngelHelper)
+    readonly property bool streamer: StreamAngel.shown && !!StreamAngel.screen
     // the main screen, her own one (Y2K → Screen; unplugged → the main one), or where the focus is
-    readonly property var screen: StreamMode.angelScreen(Config.y2k.helperScreen === "focus" ? Shell.focusedScreen : Shell.screenByName(Config.y2k.helperScreen) || Shell.primaryScreen)
+    readonly property var screen: streamer ? StreamAngel.screen : StreamMode.angelScreen(Config.y2k.helperScreen === "focus" ? Shell.focusedScreen : Shell.screenByName(Config.y2k.helperScreen) || Shell.primaryScreen)
     readonly property string screenName: screen ? screen.name : ""
 
     property string text: ""
@@ -95,7 +98,10 @@ Singleton {
     property double hiddenUntil: 0
     property double now: Date.now()
     // the game off (`angelos game off`): nobody in the corner; limbo: the demon is gone too
-    readonly property bool shown: Config.y2k.helper && Story.enabled && !Story.limbo && now >= hiddenUntil && !!screen
+    // away on her own (services/Diary → watch): off the screen until then — the time to read her diary
+    property double awayUntil: 0
+    readonly property bool away: awayUntil > 0
+    readonly property bool shown: (Config.y2k.helper && Story.enabled || streamer) && !Story.limbo && now >= hiddenUntil && !away && !!screen
     readonly property bool present: shown && !Shell.bootOpen && Config.ready
     property double lastReaction: 0
 
@@ -116,6 +122,10 @@ Singleton {
     // a [ru, en] pair, or a list of them (one picked, not twice in a row)
     function line(x, key) {
         return tr(Array.isArray(x[0]) ? pick(x, key) : x);
+    }
+    // on stream: a line to the chat, the streamer's {g:…} forms filled in (Story.render)
+    function sline(list, key) {
+        return Story.render(line(list, key));
     }
     // random, but not the same line twice in a row
     property var _last: ({})
@@ -162,6 +172,7 @@ Singleton {
         hiddenUntil = Date.now() + minutes * 60000;
     }
     function openMenu(mode) {
+        Achievements.note("angel.menu", demon ? "demon" : "angel");
         now = Date.now();
         talking = false;
         menuMode = mode || "main";
@@ -199,6 +210,12 @@ Singleton {
     // the timer: a tip, or now and then a joke. The demon is the talkative one: small
     // talk, a question with three answers, jokes, and hints how to get rid of her
     function chatter() {
+        // on stream: to the chat, now and then a joke
+        if (streamer) {
+            if (Config.y2k.jokes && Math.random() < 0.2)
+                return joke();
+            return say(sline(demon ? Lines.stream.demonChatter : Lines.stream.angelChatter, "schat" + demon));
+        }
         if (demon) {
             const r = Math.random();
             const own = Story.voiceLine("chatter");
@@ -406,16 +423,18 @@ Singleton {
     property real throwX: 0
     property real throwY: 0
     function grabbed() {
+        if (streamer && Math.random() < 0.6)
+            return say(sline(demon ? Lines.stream.demonGrab : Lines.stream.angelGrab, "sgrab" + demon), null, 2600);
         say(tr(pick(demon ? Lines.demon.grab : Lines.angel.grab, "grab" + demon)), null, 2600);
     }
     // `fling`: thrown hard (the speed of the drop) — or pushed down slowly, on purpose
     function released(deep, x, y, fling) {
         if (demon) {
-            say(tr(Lines.demon.drop));
+            say(streamer ? sline(Lines.stream.demonDrop, "sdrop") : tr(Lines.demon.drop));
             return;
         }
         if (!deep) {
-            say(tr(Lines.angel.phew));
+            say(streamer ? sline(Lines.stream.angelPhew, "sphew") : tr(Lines.angel.phew));
             return;
         }
         Story.act(fling ? "throw.fling" : "throw.push");
@@ -485,6 +504,7 @@ Singleton {
         if (!Config.y2k.helper)
             Config.y2k.helper = true;
         hiddenUntil = 0;
+        awayUntil = 0;              // called back from her walk: she sees what's open (services/Diary)
         now = Date.now();
         if (!screen)
             return "hidden";               // stream mode keeps her off every screen
@@ -615,7 +635,8 @@ Singleton {
                     // the circle comes up out of the dark, then she shakes and breaks the screen
                     CircleFx.run(Story.circle, null, () => root.shake("hell", () => {
                             root.breakScreen();
-                            root.say(Story.voiceLine("enter") || root.tr(Lines.demon.intro), {
+                            // on stream she greets the chat: they saw the throw
+                            root.say(root.streamer ? root.sline(Lines.stream.demonArrive, "sarrive") : Story.voiceLine("enter") || root.tr(Lines.demon.intro), {
                                 "label": I18n.t("Как отсюда выйти?", "How do I get out?"),
                                 "icon": "chat",
                                 "run": () => root.hint()
@@ -674,7 +695,7 @@ Singleton {
         if (demon) {
             if (Config.y2k.cracks !== "off")
                 punched(screenName, arriving || Story.calm ? "" : "crack");
-        } else if (Config.y2k.heavenFx && !Story.calm && !(arriving && Config.y2k.raysSeen)) {
+        } else if (Config.y2k.heavenFx && Heaven.has("fx.rays") && !Story.calm && !(arriving && Config.y2k.raysSeen)) {
             if (arriving)
                 Config.y2k.raysSeen = true;
             heaven(screenName);
@@ -766,6 +787,8 @@ Singleton {
                 root.say(Story.render(I18n.t("Я вернулась! Пока тебя не было, внизу всё перестроили — теперь там девять кругов. Не падай больше, ладно? ♡", "I'm back! While you were away they rebuilt it all down there — nine circles now. Don't fall again, okay? ♡")));
             else if (how === "stars")
                 root.say(Story.render(I18n.t("Ты прош{g:ёл|ла|ёл(ла)} через самое дно — и выш{g:ел|ла|ел(ла)} к звёздам. Я здесь ♡", "You went through the very bottom — and out to the stars. I'm here ♡")));
+            else if (root.streamer && !root._undone)
+                root.say(root.sline(Lines.stream.angelBack, "sback"));
             else
                 root.say(root.tr(root._undone ? Lines.angel.back : Lines.angel.backClean));
         })
@@ -1179,7 +1202,7 @@ Singleton {
             "id": "sparkles",
             "key": "y2k.sparkles",
             "value": () => true,
-            "can": () => !Config.y2k.sparkles,
+            "can": () => !Config.y2k.sparkles && Heaven.has("fx.sparkles"),
             "page": "y2k",
             "ru": "Поводи мышкой по рабочему столу. Блёстки — чтобы ты помнил, кто тут главная.",
             "en": "Move the mouse over the desktop. Glitter, so you remember who's in charge."
@@ -1255,7 +1278,16 @@ Singleton {
         doPrank(p);
         return true;
     }
+    // what she changes is not the player's doing: no achievements for it
     function doPrank(p) {
+        Achievements.mute++;
+        try {
+            return _doPrank(p);
+        } finally {
+            Achievements.mute--;
+        }
+    }
+    function _doPrank(p) {
         const rec = {
             "id": p.id,
             "at": Date.now()
@@ -1289,6 +1321,14 @@ Singleton {
         return true;
     }
     function undoPrank(id, speak) {
+        Achievements.mute++;
+        try {
+            return _undoPrank(id, speak);
+        } finally {
+            Achievements.mute--;
+        }
+    }
+    function _undoPrank(id, speak) {
         const list = Story.player.pranks || [];
         const rec = list.find(r => r.id === id && !r.undone);
         if (!rec)
@@ -1328,7 +1368,7 @@ Singleton {
             if (root.demon && root.now > (Story.player.nextPrank || 0))
                 root.prank();
             // and every twelve minutes or so she hints how to get the angel back
-            else if (root.demon && root.present && !root.talking && !root.menuOpen && !root.transition && Config.y2k.helperTips !== "off" && !StreamMode.active && !Shell.hiddenScreen(root.screenName) && root.now - (Story.player.demonSince || 0) > 120000 && root.now - root.lastHint > 12 * 60000)
+            else if (root.demon && root.present && !root.talking && !root.menuOpen && !root.transition && Config.y2k.helperTips !== "off" && !StreamMode.active && !root.streamer && !Shell.hiddenScreen(root.screenName) && root.now - (Story.player.demonSince || 0) > 120000 && root.now - root.lastHint > 12 * 60000)
                 root.hint();
             const h = new Date().getHours();
             if (h >= 1 && h < 5 && root.nightSaid !== new Date().toDateString() && !Shell.fullscreenOn(root.screenName)) {
@@ -1341,11 +1381,20 @@ Singleton {
     Timer {
         // past cold she talks by herself oftener (story/game.json → angel.fallen.talkEvery) — not
         // in calm motion; the rest of the quiet (fullscreen, the lock, the stream) as always
-        interval: (Config.y2k.helperTips === "often" ? 6 : 20) * 60000 * (root.demon ? 0.5 : 1) * (!root.demon && Story.angelFallen && !Motion.calm ? Story.fallenTalk : 1)
+        interval: root.streamer ? (Config.y2k.helperTips === "often" ? 3 : 7) * 60000 * (root.demon ? 0.7 : 1) : (Config.y2k.helperTips === "often" ? 6 : 20) * 60000 * (root.demon ? 0.5 : 1) * (!root.demon && Story.angelFallen && !Motion.calm ? Story.fallenTalk : 1)
         running: root.present && Config.y2k.helperTips !== "off"
         repeat: true
-        onTriggered: if (!root.talking && !root.menuOpen && !root.transition && !Shell.hiddenScreen(root.screenName))
+        onTriggered: if (!root.talking && !root.menuOpen && !root.transition && (root.streamer ? !Shell.locked : !Shell.hiddenScreen(root.screenName)))
             root.chatter()
+    }
+    // on stream: hello to the chat once she sits down on the bar
+    onStreamerChanged: if (streamer)
+        streamHello.restart()
+    Timer {
+        id: streamHello
+        interval: 5000
+        onTriggered: if (root.streamer && root.present && !root.talking && !root.menuOpen && !root.transition && Config.y2k.helperTips !== "off")
+            root.say(root.sline(root.demon ? Lines.stream.demonHello : Lines.stream.angelHello, "shello" + root.demon))
     }
 
     // ---- reactions ----

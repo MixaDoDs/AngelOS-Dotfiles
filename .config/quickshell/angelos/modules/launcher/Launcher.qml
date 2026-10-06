@@ -7,7 +7,9 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// App launcher ("Run…" dialog). Fuzzy search, frequent apps first, ">" runs a shell command.
+// App launcher ("Run…" dialog). Fuzzy search, frequent apps first, ">" runs a shell command,
+// files by name or type (FileSearch: "sex", ".jpeg") with a preview beside it; Ctrl+Enter shows
+// a found file in its folder.
 PanelWindow {
     id: win
 
@@ -153,6 +155,18 @@ PanelWindow {
                         "s": Math.min(95, d.score / 6.3 * 100)
                     });
             }
+            if (!calc)
+                for (const f of FileSearch.rows(query, /^(\.\S+\s*)+$/.test(q) ? 40 : 10))
+                    rows.push({
+                        "builtin": "file",
+                        "file": f,
+                        "r": {
+                            "title": f.name,
+                            "subtitle": FileSearch.where(f),
+                            "icon": FileSearch.pixelIcon(f)
+                        },
+                        "s": f.s * 100
+                    });
         }
         return rows.sort((x, y) => y.s - x.s || (x.app && y.app ? x.app.name.localeCompare(y.app.name) : 0)).slice(0, 60);
     }
@@ -173,6 +187,11 @@ PanelWindow {
             Qt.callLater(() => StartApps.openSetting(row.doc));
             return;
         }
+        if (row.builtin === "file") {
+            Shell.launcherOpen = false;
+            FileSearch.open(row.file);
+            return;
+        }
         const keep = row.provider.activate(row.r.id, row.r);
         if (keep !== true)
             Shell.launcherOpen = false;
@@ -190,6 +209,8 @@ PanelWindow {
             app.execute();      // no command line to run with the apps' environment
         Shell.launcherOpen = false;
     }
+    readonly property var picked: results.length > 0 ? results[Math.min(current, results.length - 1)] : null
+    readonly property var pickedFile: picked && picked.builtin === "file" ? picked.file : null
     function accept() {
         if (command) {
             const cmd = query.slice(1).trim();
@@ -283,7 +304,11 @@ PanelWindow {
             }
             onAccepted: win.accept()
             onKeyPressed: e => {
-                if (e.key === Qt.Key_Escape) {
+                if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & Qt.ControlModifier) && win.pickedFile) {
+                    Shell.launcherOpen = false;
+                    FileSearch.reveal(win.pickedFile);
+                    e.accepted = true;
+                } else if (e.key === Qt.Key_Escape) {
                     Shell.launcherOpen = false;
                     e.accepted = true;
                 } else if (e.key === Qt.Key_Down || (e.key === Qt.Key_Tab && !(e.modifiers & Qt.ShiftModifier))) {
@@ -336,6 +361,12 @@ PanelWindow {
                         width: Theme.u * 12
                         height: Theme.u * 12
                         anchors.verticalCenter: parent.verticalCenter
+                        FileThumb {
+                            id: rowThumb
+                            anchors.fill: parent
+                            visible: ok
+                            hit: item.modelData.file || null
+                        }
                         AppIcon {
                             anchors.centerIn: parent
                             visible: item.isApp || (!!item.r.image && !item.r.pixelIcon)
@@ -344,7 +375,7 @@ PanelWindow {
                         }
                         PxIcon {
                             anchors.centerIn: parent
-                            visible: !item.isApp && !item.r.image
+                            visible: !item.isApp && !item.r.image && !rowThumb.ok
                             name: item.r.icon || "sparkle"
                             ink: item.sel ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
                         }
@@ -380,6 +411,55 @@ PanelWindow {
                     }
                 }
             }
+        }
+    }
+
+    // the picked file's preview, beside the dialog (Settings → Start → Search → previews)
+    PxWindow {
+        id: previewWin
+        readonly property var f: win.pickedFile
+        visible: !!f && FileSearch.previewable(f) && x + width < win.width
+        width: Theme.u * 150
+        height: Theme.u * 170
+        x: dialog.x + dialog.width + Theme.u * 6
+        y: dialog.y
+        title: f ? f.name : ""
+        icon: "image"
+        closable: false
+        MouseArea {
+            anchors.fill: parent
+        }
+        PxBox {
+            id: previewBox
+            width: parent.width
+            height: parent.height - previewInfo.height - Theme.u * 4
+            sunken: true
+            color: Qt.alpha(Theme.sunken, 0.75)
+            FileThumb {
+                id: bigThumb
+                anchors.fill: parent
+                anchors.margins: Theme.u * 3
+                crop: false
+                decode: 512
+                hit: previewWin.f
+            }
+            PxIcon {
+                visible: !bigThumb.ok
+                anchors.centerIn: parent
+                pixel: Theme.u * 2
+                name: previewWin.f ? FileSearch.pixelIcon(previewWin.f) : "document"
+            }
+        }
+        PxText {
+            id: previewInfo
+            anchors.bottom: parent.bottom
+            width: parent.width
+            kind: "tiny"
+            dim: true
+            wrapMode: Text.Wrap
+            maximumLineCount: 3
+            elide: Text.ElideRight
+            text: previewWin.f ? FileSearch.sizeText(previewWin.f.size) + " · " + FileSearch.dateText(previewWin.f) + "\n" + FileSearch.where(previewWin.f) + "\n" + I18n.t("Ctrl+Enter — показать в папке", "Ctrl+Enter shows it in its folder") : ""
         }
     }
 

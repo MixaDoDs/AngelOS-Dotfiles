@@ -41,7 +41,13 @@ Item {
                     "run": r.run
                 }));
     }
-    readonly property var searchRows: searching ? StartApps.searchAll(query, 30).map(r => r.kind === "app" ? appRow(r.app) : r.kind === "setting" ? {
+    readonly property var searchRows: searching ? StartApps.searchAll(query, 30).map(r => r.kind === "app" ? appRow(r.app) : r.kind === "file" ? {
+            "label": r.file.name,
+            "sub": FileSearch.where(r.file),
+            "icon": FileSearch.pixelIcon(r.file),
+            "file": r.file,
+            "run": () => FileSearch.open(r.file)
+        } : r.kind === "setting" ? {
             "label": r.doc.title,
             "sub": I18n.t("Настройки", "Settings") + (r.doc.crumb ? " › " + r.doc.crumb : ""),
             "icon": r.doc.icon || "gear",
@@ -339,8 +345,16 @@ Item {
                     appId: it.modelData.app ? it.modelData.app.id || "" : ""
                     size: Math.round((it.sel ? Theme.u * 18 : Theme.u * 12) * root.prefs.icons)
                 }
+                FileThumb {
+                    id: fileGlyph
+                    visible: ok
+                    anchors.centerIn: parent
+                    width: Math.round((it.sel ? Theme.u * 18 : Theme.u * 12) * root.prefs.icons)
+                    height: width
+                    hit: it.modelData.file || null
+                }
                 PxIcon {
-                    visible: !it.modelData.app
+                    visible: !it.modelData.app && !fileGlyph.ok
                     anchors.centerIn: parent
                     name: it.modelData.icon || "heart"
                     pixel: it.sel ? Theme.u * 2 : Math.max(1, Math.round(Theme.u * 1.5))

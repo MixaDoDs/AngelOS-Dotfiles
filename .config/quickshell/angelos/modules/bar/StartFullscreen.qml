@@ -27,7 +27,8 @@ Item {
     readonly property var list: query.trim() !== "" ? StartApps.search(query).slice(0, perPage) : StartPrefs.sorted("fullscreen", StartApps.apps)
     // like Spotlight: the sum and matching settings above the apps; Enter opens the best match
     readonly property var hits: query.trim() !== "" ? StartApps.searchAll(query, 30) : []
-    readonly property var extras: hits.filter(r => r.kind !== "app").slice(0, 4)
+    // (no app matches — ".jpeg" — leaves room for more files)
+    readonly property var extras: hits.filter(r => r.kind !== "app").slice(0, list.length ? 4 : 8)
     function activate(row) {
         if (!row)
             return;
@@ -36,6 +37,9 @@ Item {
         else if (row.kind === "setting") {
             closeRequested();
             Qt.callLater(() => StartApps.openSetting(row.doc));
+        } else if (row.kind === "file") {
+            closeRequested();
+            Qt.callLater(() => FileSearch.open(row.file));
         } else if (row.kind === "calc") {
             Calc.copy(row.calc);
             if (row.calc.copy)
@@ -277,6 +281,7 @@ Item {
                     required property int index
                     readonly property bool best: root.current < 0 && root.hits.length > 0 && root.hits[0] === modelData
                     readonly property bool isCalc: modelData.kind === "calc"
+                    readonly property bool isFile: modelData.kind === "file"
                     width: parent.width
                     height: (isCalc ? Theme.u * 22 : Theme.u * 17)
                     radius: Theme.u * 6
@@ -287,7 +292,16 @@ Item {
                         id: extraIcon
                         x: Theme.u * 5
                         anchors.verticalCenter: parent.verticalCenter
-                        name: extra.isCalc ? "calc" : extra.modelData.doc.icon || "gear"
+                        opacity: extraThumb.ok ? 0 : 1
+                        name: extra.isCalc ? "calc" : extra.isFile ? FileSearch.pixelIcon(extra.modelData.file) : extra.modelData.doc.icon || "gear"
+                    }
+                    FileThumb {
+                        id: extraThumb
+                        visible: ok
+                        anchors.centerIn: extraIcon
+                        width: Theme.u * 13
+                        height: width
+                        hit: extra.isFile ? extra.modelData.file : null
                     }
                     Column {
                         anchors.left: extraIcon.right
@@ -300,7 +314,7 @@ Item {
                             elide: Text.ElideRight
                             kind: extra.isCalc ? "title" : "body"
                             font.bold: true
-                            text: extra.isCalc ? extra.modelData.calc.title : extra.modelData.doc.title
+                            text: extra.isCalc ? extra.modelData.calc.title : extra.isFile ? extra.modelData.file.name : extra.modelData.doc.title
                         }
                         PxText {
                             width: parent.width
@@ -308,7 +322,7 @@ Item {
                             elide: Text.ElideRight
                             kind: "tiny"
                             dim: true
-                            text: extra.isCalc ? extra.modelData.calc.subtitle : I18n.t("Настройки", "Settings") + (extra.modelData.doc.crumb ? " › " + extra.modelData.doc.crumb : "")
+                            text: extra.isCalc ? extra.modelData.calc.subtitle : extra.isFile ? FileSearch.where(extra.modelData.file) : I18n.t("Настройки", "Settings") + (extra.modelData.doc.crumb ? " › " + extra.modelData.doc.crumb : "")
                         }
                     }
                     MouseArea {

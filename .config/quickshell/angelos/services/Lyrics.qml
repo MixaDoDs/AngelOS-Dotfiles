@@ -12,10 +12,46 @@ Singleton {
     id: root
 
     readonly property var players: Mpris.players.values
+    // the player whose song this is: playing beats paused, the preferred one beats the rest,
+    // a music player beats a browser, and a messenger's voice message or a call never takes
+    // the song from a music player (Telegram publishes them over MPRIS too); the one already
+    // followed keeps it on a tie, so two playing players don't make the lyrics jump
     readonly property var player: {
         const pref = (Config.lyrics.preferPlayer || "").toLowerCase();
-        const match = p => pref && ((p.identity || "").toLowerCase().includes(pref) || (p.desktopEntry || "").toLowerCase().includes(pref) || (p.dbusName || "").toLowerCase().includes(pref));
-        return players.find(p => p.isPlaying && match(p)) || players.find(p => p.isPlaying) || players.find(match) || players[0] || null;
+        let best = null, top = -1e9;
+        for (const p of players) {
+            const s = playerScore(p, pref);
+            if (s > top) {
+                best = p;
+                top = s;
+            }
+        }
+        return best;
+    }
+    // the one followed, kept outside the binding (a plain object's field notifies nobody)
+    readonly property var _followed: ({
+            "player": null
+        })
+    onPlayerChanged: _followed.player = player
+    readonly property var musicApps: /spotify|yandex|vk ?music|vkmusic|deezer|tidal|apple ?music|cider|amberol|rhythmbox|elisa|strawberry|clementine|audacious|lollypop|quodlibet|cmus|mpd|ncspot|spotube|feishin|sonixd|supersonic|youtube.?music|ytmusic|soundcloud|nuclear|harmonoid|tauon|g4music|gapless|euphonica|musikcube|deadbeef|foobar|museeks|kew|termusic|plexamp|jellyfin|navidrome|psst|sayonara|mpv|vlc|celluloid|haruna/i
+    readonly property var notMusic: /telegram|discord|zoom|skype|teams|whatsapp|signal|slack|element|obs|kdeconnect|gsconnect|steam|nautilus|gwenview|loupe/i
+    function playerScore(p, pref) {
+        const id = (p.identity || "") + " " + (p.desktopEntry || "") + " " + (p.dbusName || "");
+        let s = 0;
+        if (p.isPlaying)
+            s += 100;
+        if (pref && id.toLowerCase().includes(pref))
+            s += 40;
+        if (notMusic.test(id))
+            s -= 70;
+        else if (musicApps.test(id))
+            s += 20;
+        s += p.trackTitle ? 5 : -30;
+        if (p.trackArtist)
+            s += 3;
+        if (p === _followed.player)
+            s += 15;
+        return s;
     }
     readonly property bool playing: !!player && player.isPlaying
     readonly property string title: player ? player.trackTitle || "" : ""
@@ -136,7 +172,11 @@ Singleton {
             lines = [];
             status = "instrumental";
         } else if (data.syncedLyrics) {
-            lines = parseLrc(data.syncedLyrics);
+            const k = data.scale > 0.5 && data.scale < 2 ? data.scale : 1;
+            lines = parseLrc(data.syncedLyrics).map(l => k === 1 ? l : {
+                    "t": l.t * k,
+                    "text": l.text
+                });
             status = lines.length ? "ok" : "notfound";
         } else if (data.plainLyrics) {
             lines = [
@@ -223,6 +263,16 @@ Singleton {
         return Object.keys(params).filter(k => params[k] !== "" && params[k] !== undefined).map(k => k + "=" + encodeURIComponent(params[k])).join("&");
     }
 
+    function httpText(url, cb) {
+        const xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState === XMLHttpRequest.DONE)
+                cb(xhr.status, xhr.status === 200 ? xhr.responseText : "");
+        };
+        xhr.open("GET", url);
+        xhr.setRequestHeader("User-Agent", "angelOS-quickshell (https://github.com/MixaDoDs)");
+        xhr.send();
+    }
     function http(url, cb) {
         const xhr = new XMLHttpRequest();
         xhr.onreadystatechange = () => {
@@ -242,19 +292,29 @@ Singleton {
     // ---- what to search for ----
     readonly property bool fromBrowser: !!player && /firefox|chrom|brave|vivaldi|helium|zen|edge|opera|librewolf|browser|yandex/i.test((player.identity || "") + " " + (player.desktopEntry || ""))
     readonly property var cleaned: clean(title, artist)
-    readonly property var allSources: ["local", "player", "lrclib", "netease", "kugou", "qq", "ovh"]
+    readonly property var allSources: ["local", "player", "lrclib", "amll", "netease", "kugou", "qq", "lrccx", "musixmatch", "ovh"]
     readonly property var sources: Config.lyrics.sources && Config.lyrics.sources.length ? Config.lyrics.sources : allSources
     // settings from before Kugou / QQ / local files: add the new sources once, keep the user's order
-    Connections {
-        target: Config
-        function onReadyChanged() {
-            root.migrateSources();
-        }
-    }
-    Component.onCompleted: migrateSources()
+    // once the settings are read (whenever this service starts, before or after that)
+    readonly property bool _needsMigration: Config.ready && (Config.lyrics.sourcesVersion || 0) < 3
+    on_NeedsMigrationChanged: if (_needsMigration)
+        Qt.callLater(migrateSources)
+    Component.onCompleted: if (_needsMigration)
+        Qt.callLater(migrateSources)
     function migrateSources() {
-        if (!Config.ready || Config.lyrics.sourcesVersion >= 2)
+        if (!Config.ready || Config.lyrics.sourcesVersion >= 3)
             return;
+        if (Config.lyrics.sourcesVersion === 2) {
+            // v3: AMLL after lrclib, lrc.cx and Musixmatch before lyrics.ovh — the user's order kept
+            let out = (Config.lyrics.sources || []).filter(x => !["amll", "lrccx", "musixmatch"].includes(x));
+            const at = out.indexOf("lrclib");
+            out.splice(at >= 0 ? at + 1 : out.length, 0, "amll");
+            const ovh = out.indexOf("ovh");
+            out.splice(ovh >= 0 ? ovh : out.length, 0, "lrccx", "musixmatch");
+            Config.lyrics.sources = out;
+            Config.lyrics.sourcesVersion = 3;
+            return;
+        }
         const cur = (Config.lyrics.sources || []).slice();
         const fresh = ["local", "player"].filter(s => !cur.includes(s));
         const net = ["kugou", "qq"].filter(s => !cur.includes(s));
@@ -266,26 +326,44 @@ Singleton {
             out = out.concat(net);
         Config.lyrics.sources = out;
         Config.lyrics.sourcesVersion = 2;
+        migrateSources();
     }
 
     // "Artist - Song (Official Video) [4K]" from a browser or YouTube → {artist, title}
     function clean(t, a) {
         t = String(t || "");
         a = String(a || "");
-        const noise = /\s*[\(\[【]\s*(?:official\s*)?(?:music\s*)?(?:video|audio|lyrics?(?:\s*video)?|visuali[sz]er|mv|m\/v|hd|hq|4k|live|clip(?:\s*officiel)?|videoclip|премьера[^\)\]】]*|клип|текст(?:\s*песни)?|official)\s*[\)\]】]/gi;
-        t = t.replace(noise, "").replace(/\s*[|｜].*$/, "").replace(/\s+(?:4k|hd|hq|mv|m\/v)\s*$/i, "").trim();
-        a = a.replace(/\s*-\s*Topic$/i, "").replace(/VEVO$/i, "").replace(/\s+(?:official|официальный)$/i, "").trim();
-        const m = t.match(/^(.+?)\s+[-–—]\s+(.+)$/);
+        // what a video adds to the song's name: (Official Music Video), [Lyric Video], 【MV】,
+        // (премьера клипа, 2024), (текст песни), (prod. by …), #shorts, emoji, a year
+        const noise = /\s*[\(\[【〔]\s*(?:official\s*)?(?:hd\s*|hq\s*|4k\s*)?(?:music\s*|lyrics?\s*|lyric\s*|audio\s*)?(?:video|audio|lyrics?(?:\s*video)?|visuali[sz]er|mv|m\/v|hd|hq|4k|8k|60\s?fps|live|clip(?:\s*officiel)?|videoclip|video\s*clip|премьера[^\)\]】]*|клип[^\)\]】]*|official|текст(?:\s*песни)?|lyrics?\s*\/\s*текст|караоке|karaoke|with\s+lyrics|letra|legendado|tradução|перевод|subtitulado|eng\s*sub|bass\s*boosted|explicit|clean|(?:19|20)\d\d|prod(?:\.|uced)?(?:\s*by)?\s[^\)\]】]*)\s*[\)\]】〕]/gi;
+        t = t.replace(noise, "").replace(noise, "");
+        t = t.replace(/\s*#\S+/g, "").replace(/[\uD83C-\uDBFF][\uDC00-\uDFFF]|[☀-➿️]/g, "");
+        t = t.replace(/\s*[|｜•].*$/, "").replace(/\s+(?:4k|hd|hq|mv|m\/v|official\s+video)\s*$/i, "").replace(/\s{2,}/g, " ").trim();
+        a = a.replace(/\s*-\s*Topic$/i, "").replace(/VEVO$/i, "").replace(/\s+(?:official|официальный|music|records|tv)$/i, "").replace(/\s*[\(\[]official[\)\]]$/i, "").trim();
+        // Artist「Song」 / Artist «Song» / Artist "Song"
+        let q = t.match(/^(.+?)\s*[「『«“"]\s*(.+?)\s*[」』»”"]\s*$/);
+        if (q && (!a || fromBrowser)) {
+            a = q[1].replace(/\s*[-–—:]\s*$/, "").trim();
+            t = q[2].trim();
+        }
+        const m = t.match(/^(.+?)\s+[-–—]\s+(.+)$/) || (fromBrowser ? t.match(/^(.+?)\s*[–—]\s*(.+)$/) : null);
         if (m) {
             const left = m[1].trim(), right = m[2].trim();
-            if (/\b(?:remaster(?:ed)?|remix|version|edit|mix|live|mono|stereo|acoustic|instrumental|sped up|slowed)\b/i.test(right) && a && !fromBrowser)
+            if (/\b(?:remaster(?:ed)?|remix|version|edit|mix|live|mono|stereo|acoustic|instrumental|sped up|slowed|nightcore|reverb)\b/i.test(right) && a && !fromBrowser)
                 t = left;          // "Song - Remastered 2011"
             else if (!a || fromBrowser || left.toLowerCase().includes(a.toLowerCase()) || a.toLowerCase().includes(left.toLowerCase())) {
                 a = left;          // "Artist - Song" (channel name as the artist)
                 t = right;
             }
+        } else if (fromBrowser) {
+            // SoundCloud and the like: "Song by Artist"
+            const by = t.match(/^(.+?)\s+by\s+(.+)$/i);
+            if (by && (!a || similar(by[2], a))) {
+                t = by[1].trim();
+                a = by[2].trim();
+            }
         }
-        t = t.replace(/\s*[\(\[](?:feat|ft)\.?\s[^\)\]]*[\)\]]/gi, "").replace(/\s+(?:feat|ft)\.\s.*$/i, "").trim();
+        t = t.replace(/\s*[\(\[](?:feat|ft|featuring|при уч\.?)\.?\s[^\)\]]*[\)\]]/gi, "").replace(/\s+(?:feat|ft|featuring)\.?\s.*$/i, "").replace(/^["'«“]+|["'»”]+$/g, "").trim();
         return {
             "title": t || String(title || ""),
             "artist": a
@@ -295,6 +373,101 @@ Singleton {
         const n = s => String(s || "").toLowerCase().replace(/[\s.,'"’`!?¿¡()\[\]{}\-–—:;&/\\*+~_«»]+/g, "");
         const a = n(x), b = n(y);
         return !!a && !!b && (a === b || a.includes(b) || b.includes(a));
+    }
+
+    // ---- is this the song? ----
+    // Every source answers a search with *something*: a cover, a remix, a song of the same
+    // name by someone else — Musixmatch even sends made-up words when it doesn't know the
+    // caller. So a found song must have the title (fuzzy, Cyrillic ⇄ Latin), one of the
+    // artists when both sides name them, the length within a few seconds when both know
+    // it, and the same version (a remix, live, sped up, slowed…) unless the length agrees.
+    readonly property var versionWords: /\b(?:remix|rmx|live|acoustic|sped\s*up|speed\s*up|slowed|nightcore|reverb|instrumental|karaoke|cover|edit|mashup|8d)\b|ремикс|кавер|минус/i
+    function translit(x) {
+        const map = {"а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e", "ж": "zh", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m", "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u", "ф": "f", "х": "h", "ц": "ts", "ч": "ch", "ш": "sh", "щ": "sch", "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya", "і": "i", "ї": "yi", "є": "ye", "ґ": "g"};
+        return String(x || "").replace(/[а-яёіїєґ]/g, ch => map[ch] ?? ch);
+    }
+    // letters and digits only, lower case, Latin; Latin spellings of Russian folded together
+    // (y/i, ks/x, j/y, ph/f, w/v, doubled letters) so "Skryptonite" meets "Скриптонит"
+    function key(x) {
+        let s = translit(String(x || "").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/ё/g, "е"));
+        s = s.replace(/&/g, "and").replace(/[^a-z0-9À-ɏͰ-ϿЀ-ӿ぀-ヿ㐀-鿿가-힯]+/g, "");
+        return s.replace(/ph/g, "f").replace(/ks/g, "x").replace(/[jy]/g, "i").replace(/w/g, "v").replace(/kh/g, "h").replace(/(.)\1+/g, "$1");
+    }
+    // a song's name without the parts that differ between releases: (feat. …), - Remastered, (From "…")
+    function titleKey(x) {
+        return key(String(x || "").replace(/\s*[\(\[][^\)\]]*[\)\]]/g, " ").replace(/\s+[-–—]\s+.*$/, "").replace(/\s+(?:feat|ft)\.?\s.*$/i, "")) || key(x);
+    }
+    function ratio(a, b) {
+        if (!a || !b)
+            return 0;
+        if (a === b)
+            return 1;
+        const m = a.length, n = b.length;
+        if (Math.abs(m - n) > Math.max(m, n) * 0.5)
+            return 0;
+        let prev = [];
+        for (let j = 0; j <= n; j++)
+            prev[j] = j;
+        for (let i = 1; i <= m; i++) {
+            const cur = [i];
+            for (let j = 1; j <= n; j++)
+                cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+            prev = cur;
+        }
+        return 1 - prev[n] / Math.max(m, n);
+    }
+    function sameName(x, y, need) {
+        const a = titleKey(x), b = titleKey(y);
+        if (!a || !b)
+            return false;
+        if (ratio(a, b) >= need)
+            return true;
+        // one holds the other, nearly all of it (brackets are already gone): "Love" is not "Lovely"
+        const short = a.length < b.length ? a : b, long = a.length < b.length ? b : a;
+        return short.length >= 6 && long.includes(short) && short.length / long.length >= 0.8;
+    }
+    function artistsOf(x) {
+        return String(x || "").split(/\s*(?:,|;|&|\/|\bx\b|×|\+|\bfeat\.?|\bft\.?|\bfeaturing\b|\band\b|\bи\b)\s*/i).map(key).filter(k => k.length > 0);
+    }
+    function sameArtist(x, y) {
+        const a = artistsOf(x), b = artistsOf(y);
+        const whole = key(x), whole2 = key(y);
+        if (whole && whole2 && (ratio(whole, whole2) >= 0.75 || whole.includes(whole2) || whole2.includes(whole)))
+            return true;
+        return a.some(p => b.some(q => ratio(p, q) >= 0.75 || (Math.min(p.length, q.length) >= 4 && (p.includes(q) || q.includes(p)))));
+    }
+    // cand: {title, artist, duration (s)}; c: what is playing (cleaned); d: its length (s)
+    readonly property var tempoWords: /sped\s*up|speed\s*up|slowed|nightcore|daycore|ускор|замедл/i
+    // a sped up / slowed version: the original's lyrics fit once their times are stretched
+    readonly property bool tempoVersion: tempoWords.test(String(title))
+    function matches(cand, c, d) {
+        if (!cand || !sameName(cand.title, c.title, 0.8))
+            return false;
+        const dur = Number(cand.duration) || 0;
+        const timed = d > 0 && dur > 0;
+        const wantVersion = versionWords.test(String(c.title) + " " + String(title));
+        const candVersion = versionWords.test(String(cand.title));
+        const stretch = tempoVersion && !candVersion && timed && d / dur > 0.6 && d / dur < 1.5;
+        if (timed && Math.abs(dur - d) > 8 && !stretch)
+            return false;
+        const close = timed && Math.abs(dur - d) <= 3;
+        if (c.artist && cand.artist && !sameArtist(cand.artist, c.artist) && !(close && key(cand.title) === key(c.title)))
+            return false;
+        // the remix is not the original (and back), unless they are the same length
+        if (wantVersion !== candVersion && !close && !stretch)
+            return false;
+        return true;
+    }
+    // the plain name to try when the first round found nothing: no version, the first artist only
+    readonly property var fallback: {
+        const c = cleaned;
+        const t = String(c.title).replace(/\s*[\(\[][^\)\]]*[\)\]]/g, "").replace(/\s+[-–—]\s+.*$/, "").trim() || c.title;
+        const parts = String(c.artist).split(/\s*(?:,|;|&|\/|\sx\s|×|\sfeat\.?\s|\sft\.?\s)\s*/i).filter(x => x);
+        const a = parts.length ? parts[0].trim() : c.artist;
+        return t === c.title && a === c.artist ? null : {
+            "title": t,
+            "artist": a
+        };
     }
 
     // NetEase LRC starts with credit lines ("作词 : …"); drop them
@@ -355,6 +528,11 @@ Singleton {
     function entities(t) {
         return String(t || "").replace(/&#(\d+);/g, (m, n) => String.fromCodePoint(parseInt(n))).replace(/&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
     }
+    // synced lyrics worth showing: three timed lines with words at least (not a lone
+    // "[00:00.00] instrumental, enjoy" or the credits alone)
+    function goodLrc(lrc) {
+        return /\[\d+:\d+/.test(lrc || "") && parseLrc(stripCredits(lrc)).filter(l => l.text).length >= 3;
+    }
     function lrcData(source, lrc, extra) {
         lrc = stripCredits(lrc);
         return Object.assign({
@@ -407,10 +585,13 @@ Singleton {
     Process {
         id: curl
         property var cb: null
+        property bool raw: false
         stdout: StdioCollector {
             onStreamFinished: {
                 const f = curl.cb;
                 curl.cb = null;
+                if (curl.raw)
+                    return f ? f(text) : null;
                 let body = null;
                 try {
                     body = JSON.parse(text);
@@ -422,8 +603,17 @@ Singleton {
     }
     function curlJson(url, referer, cb) {
         curl.running = false;
+        curl.raw = false;
         curl.cb = cb;
         curl.command = ["curl", "-s", "-m", "8", "-A", "Mozilla/5.0", "-e", referer, url];
+        curl.running = true;
+    }
+    // curl with its own headers (Musixmatch wants a cookie); the answer as text
+    function curlRaw(args, cb) {
+        curl.running = false;
+        curl.raw = true;
+        curl.cb = cb;
+        curl.command = ["curl", "-s", "-m", "8"].concat(args);
         curl.running = true;
     }
     // Kugou: song search → lyric candidates for its hash → base64 LRC
@@ -458,14 +648,31 @@ Singleton {
         }), "https://y.qq.com/", body => cb(body && body.lyric ? root.entities(body.lyric) : null));
     }
 
-    // ---- source chain: lrclib exact → lrclib search → lrclib free text → NetEase → lyrics.ovh ----
+    // ---- source chain, in the order chosen in Settings → Lyrics; then once more with the
+    // plain name (no version, the first artist) for the open databases ----
+    // A step gets its own `next`/`finish`: a source that never answers is skipped after
+    // 10 s (stepWatch), and its late answer is ignored.
+    Timer {
+        id: stepWatch
+        property var fire: null
+        interval: 10000
+        onTriggered: if (fire)
+            fire()
+    }
     function fetchNet(key) {
-        const c = cleaned, d = length;
+        const d = length;
         const steps = [];
-        let plain = null;       // best unsynced text met on the way
+        let plain = null;       // best unsynced text of the right song met on the way
+        let stepId = 0;
         const finish = data => {
             if (key !== _pendingKey)
                 return;
+            stepWatch.stop();
+            // the original's lyrics on a sped up / slowed version: their times stretched to it
+            if (data && data.syncedLyrics && tempoVersion && data.duration > 0 && d > 0 && Math.abs(data.duration - d) > 3)
+                data = Object.assign({}, data, {
+                    "scale": d / data.duration
+                });
             if (data) {
                 store(key, data);
                 apply(data);
@@ -477,176 +684,439 @@ Singleton {
                 apply(null);
             }
         };
-        const next = () => {
+        const run = () => {
             if (key !== _pendingKey)
                 return;
             const step = steps.shift();
-            if (step)
-                step();
-            else
-                finish(null);
+            if (!step)
+                return finish(null);
+            const my = ++stepId;
+            const next = () => {
+                if (my === stepId)
+                    run();
+            };
+            const done = data => {
+                if (my === stepId)
+                    finish(data);
+            };
+            stepWatch.fire = next;
+            stepWatch.restart();
+            step(next, done);
         };
-        const pickLrclib = list => {
-            if (!Array.isArray(list))
-                return null;
-            const synced = list.filter(r => r.syncedLyrics && (!d || !r.duration || Math.abs(r.duration - d) < 12)).sort((x, y) => Math.abs((x.duration || 0) - d) - Math.abs((y.duration || 0) - d));
-            if (!plain)
-                plain = list.find(r => r.plainLyrics) || null;
-            return synced[0] || null;
+        const keepPlain = data => {
+            if (!plain && data && data.plainLyrics && String(data.plainLyrics).trim())
+                plain = data;
         };
         const base = "https://lrclib.net/api/";
-        const addStep = {};
-        // .lrc next to the track, or ~/.lyrics/Artist - Title.lrc
-        addStep.local = () => {
-            const paths = localCandidates(c);
-            const tryNext = () => {
-                const path = paths.shift();
-                if (!path)
-                    return next();
-                root.readLocal(path, text => {
-                    if (key !== _pendingKey)
-                        return;
-                    if (text && text.trim()) {
-                        const data = root.lrcData("local", text);
-                        if (data.syncedLyrics)
-                            return finish(data);
-                        if (!plain)
-                            plain = data;
-                    }
-                    tryNext();
-                });
+        // the steps of one source for one name; c = {title, artist}
+        const build = (c, again) => {
+            const pickLrclib = list => {
+                if (!Array.isArray(list))
+                    return null;
+                const ok = list.filter(r => root.matches({
+                        "title": r.trackName || r.name,
+                        "artist": r.artistName,
+                        "duration": r.duration
+                    }, c, d));
+                const synced = ok.filter(r => r.syncedLyrics).sort((x, y) => Math.abs((x.duration || 0) - d) - Math.abs((y.duration || 0) - d));
+                keepPlain(ok.find(r => r.plainLyrics) ? Object.assign({
+                    "source": "lrclib"
+                }, ok.find(r => r.plainLyrics)) : null);
+                return synced[0] || null;
             };
-            tryNext();
-        };
-        // players that publish lyrics themselves (xesam:asText)
-        addStep.player = () => {
-            const t = player && player.metadata ? String(player.metadata["xesam:asText"] || "") : "";
-            if (t.trim()) {
-                const data = root.lrcData("player", t);
-                if (data.syncedLyrics)
-                    return finish(data);
-                if (!plain)
-                    plain = data;
-            }
-            next();
-        };
-        addStep.kugou = () => http("http://mobilecdn.kugou.com/api/v3/search/song?" + query({
-                "format": "json",
-                "keyword": (c.artist + " " + c.title).trim(),
-                "page": 1,
-                "pagesize": 10
-            }), (code, body) => {
-            const list = body && body.data && body.data.info ? body.data.info : [];
-            const match = list.filter(x => similar(x.songname, c.title) && (!d || !x.duration || Math.abs(x.duration - d) < 8)).sort((x, y) => (similar(y.singername, c.artist) ? 1 : 0) - (similar(x.singername, c.artist) ? 1 : 0))[0];
-            if (!match)
-                return next();
-            root.kugouLyrics(match.hash, d ? Math.round(d * 1000) : (match.duration || 0) * 1000, lrc => {
-                if (key !== _pendingKey)
-                    return;
-                if (lrc && /\[\d+:\d+/.test(lrc))
-                    finish(root.lrcData("Kugou", lrc, {
-                        "trackName": match.songname,
-                        "duration": match.duration || 0
-                    }));
-                else
-                    next();
-            });
-        });
-        addStep.qq = () => http("https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?" + query({
-                "key": (c.artist + " " + c.title).trim(),
-                "format": "json"
-            }), (code, body) => {
-            const list = body && body.data && body.data.song ? body.data.song.itemlist || [] : [];
-            const match = list.filter(x => similar(x.name, c.title)).sort((x, y) => (similar(y.singer, c.artist) ? 1 : 0) - (similar(x.singer, c.artist) ? 1 : 0))[0];
-            if (!match)
-                return next();
-            root.qqLyrics(match.mid, lrc => {
-                if (key !== _pendingKey)
-                    return;
-                if (lrc && /\[\d+:\d+/.test(lrc))
-                    finish(root.lrcData("QQ Music", lrc, {
-                        "trackName": match.name
-                    }));
-                else
-                    next();
-            });
-        });
-        addStep.lrclib = [() => http(base + "get?" + query({
-                    "track_name": c.title,
-                    "artist_name": c.artist,
-                    "album_name": fromBrowser ? "" : album,
-                    "duration": d > 0 ? Math.round(d) : ""
-                }), (code, body) => {
-                if (code === 200 && body && (body.syncedLyrics || body.instrumental))
-                    return finish(Object.assign({
-                        "source": "lrclib"
-                    }, body));
-                if (code === 0)
-                    root._offline = true;
-                if (body && body.plainLyrics && !plain)
-                    plain = Object.assign({
-                        "source": "lrclib"
-                    }, body);
+            const steps = {};
+            // .lrc next to the track, or ~/.lyrics/Artist - Title.lrc
+            steps.local = (next, done) => {
+                const paths = localCandidates(c);
+                const tryNext = () => {
+                    const path = paths.shift();
+                    if (!path)
+                        return next();
+                    root.readLocal(path, text => {
+                        if (text && text.trim()) {
+                            const data = root.lrcData("local", text);
+                            if (data.syncedLyrics)
+                                return done(data);
+                            keepPlain(data);
+                        }
+                        tryNext();
+                    });
+                };
+                tryNext();
+            };
+            // players that publish lyrics themselves (xesam:asText)
+            steps.player = (next, done) => {
+                const t = player && player.metadata ? String(player.metadata["xesam:asText"] || "") : "";
+                if (t.trim()) {
+                    const data = root.lrcData("player", t);
+                    if (data.syncedLyrics)
+                        return done(data);
+                    keepPlain(data);
+                }
                 next();
-            }), () => http(base + "search?" + query({
-                    "track_name": c.title,
-                    "artist_name": c.artist
-                }), (code, list) => {
-                const best = pickLrclib(list);
-                best ? finish(Object.assign({
-                    "source": "lrclib"
-                }, best)) : next();
-            }), () => http(base + "search?" + query({
-                    "q": (c.artist + " " + c.title).trim()
-                }), (code, list) => {
-                const best = pickLrclib(Array.isArray(list) ? list.filter(r => similar(r.trackName, c.title)) : list);
-                best ? finish(Object.assign({
-                    "source": "lrclib"
-                }, best)) : next();
-            })];
-        addStep.netease = () => http("https://music.163.com/api/cloudsearch/pc?" + query({
-                    "s": (c.title + " " + c.artist).trim(),
-                    "type": 1,
-                    "limit": 8
-                }), (code, body) => {
-                const songs = body && body.result && body.result.songs ? body.result.songs : [];
-                const match = songs.filter(x => similar(x.name, c.title) && (!d || !x.dt || Math.abs(x.dt / 1000 - d) < 8)).sort((x, y) => (similar((y.ar || []).map(a => a.name).join(" "), c.artist) ? 1 : 0) - (similar((x.ar || []).map(a => a.name).join(" "), c.artist) ? 1 : 0))[0];
-                if (!match)
-                    return next();
-                http("https://music.163.com/api/song/lyric?id=" + match.id + "&lv=1", (code2, lyr) => {
-                    const lrc = lyr && lyr.lrc ? root.stripCredits(lyr.lrc.lyric) : "";
-                    if (/\[\d+:\d+/.test(lrc))
-                        finish({
-                            "source": "NetEase",
-                            "syncedLyrics": lrc,
-                            "trackName": match.name,
-                            "duration": (match.dt || 0) / 1000
-                        });
+            };
+            steps.lrclib = [(next, done) => http(base + "get?" + query({
+                        "track_name": c.title,
+                        "artist_name": c.artist,
+                        "album_name": fromBrowser || again ? "" : album,
+                        "duration": d > 0 ? Math.round(d) : ""
+                    }), (code, body) => {
+                    if (code === 0)
+                        root._offline = true;
+                    // lrclib's own match is by name and length (±2 s); the name is checked again
+                    const ok = body && root.matches({
+                        "title": body.trackName,
+                        "artist": body.artistName,
+                        "duration": body.duration
+                    }, c, d);
+                    if (ok && (body.syncedLyrics || body.instrumental))
+                        return done(Object.assign({
+                            "source": "lrclib"
+                        }, body));
+                    if (ok)
+                        keepPlain(Object.assign({
+                            "source": "lrclib"
+                        }, body));
+                    next();
+                }), (next, done) => http(base + "search?" + query({
+                        "track_name": c.title,
+                        "artist_name": c.artist
+                    }), (code, list) => {
+                    const best = pickLrclib(list);
+                    best ? done(Object.assign({
+                        "source": "lrclib"
+                    }, best)) : next();
+                }), (next, done) => http(base + "search?" + query({
+                        "q": (c.artist + " " + c.title).trim()
+                    }), (code, list) => {
+                    const best = pickLrclib(list);
+                    best ? done(Object.assign({
+                        "source": "lrclib"
+                    }, best)) : next();
+                })];
+            // AMLL TTML DB: hand-timed lyrics, found by the Spotify / NetEase track id or the name
+            steps.amll = (next, done) => root.amllFind(c, d, (lrc, hit) => {
+                    if (root.goodLrc(lrc))
+                        done(root.lrcData("AMLL", lrc, {
+                            "trackName": hit ? hit.title : ""
+                        }));
                     else
                         next();
                 });
-            });
-        // lyrics.ovh: plain text only, so it is skipped once some text was met
-        addStep.ovh = () => {
-            if (plain || !c.artist)
-                return next();
-            http("https://api.lyrics.ovh/v1/" + encodeURIComponent(c.artist) + "/" + encodeURIComponent(c.title), (code, body) => {
-                if (body && body.lyrics && body.lyrics.trim())
-                    plain = {
-                        "source": "lyrics.ovh",
-                        "plainLyrics": body.lyrics.trim()
-                    };
-                next();
-            });
+            steps.netease = (next, done) => http("https://music.163.com/api/cloudsearch/pc?" + query({
+                        "s": (c.title + " " + c.artist).trim(),
+                        "type": 1,
+                        "limit": 10
+                    }), (code, body) => {
+                    const songs = body && body.result && body.result.songs ? body.result.songs : [];
+                    const match = songs.find(x => root.matches({
+                            "title": x.name,
+                            "artist": (x.ar || []).map(a => a.name).join(", "),
+                            "duration": (x.dt || 0) / 1000
+                        }, c, d));
+                    if (!match)
+                        return next();
+                    http("https://music.163.com/api/song/lyric?id=" + match.id + "&lv=1", (code2, lyr) => {
+                        const lrc = lyr && lyr.lrc ? root.stripCredits(lyr.lrc.lyric) : "";
+                        if (root.goodLrc(lrc))
+                            done({
+                                "source": "NetEase",
+                                "syncedLyrics": lrc,
+                                "trackName": match.name,
+                                "duration": (match.dt || 0) / 1000
+                            });
+                        else
+                            next();
+                    });
+                });
+            steps.kugou = (next, done) => http("http://mobilecdn.kugou.com/api/v3/search/song?" + query({
+                        "format": "json",
+                        "keyword": (c.artist + " " + c.title).trim(),
+                        "page": 1,
+                        "pagesize": 10
+                    }), (code, body) => {
+                    const list = body && body.data && body.data.info ? body.data.info : [];
+                    const match = list.find(x => root.matches({
+                            "title": x.songname,
+                            "artist": x.singername,
+                            "duration": x.duration
+                        }, c, d));
+                    if (!match)
+                        return next();
+                    root.kugouLyrics(match.hash, d ? Math.round(d * 1000) : (match.duration || 0) * 1000, lrc => {
+                        if (root.goodLrc(lrc))
+                            done(root.lrcData("Kugou", lrc, {
+                                "trackName": match.songname,
+                                "duration": match.duration || 0
+                            }));
+                        else
+                            next();
+                    });
+                });
+            steps.qq = (next, done) => http("https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?" + query({
+                        "key": (c.artist + " " + c.title).trim(),
+                        "format": "json"
+                    }), (code, body) => {
+                    const list = body && body.data && body.data.song ? body.data.song.itemlist || [] : [];
+                    // no length in QQ's quick search: the name and the artist must both agree
+                    const match = list.find(x => root.matches({
+                            "title": x.name,
+                            "artist": x.singer || "?"
+                        }, c, d));
+                    if (!match)
+                        return next();
+                    root.qqLyrics(match.mid, lrc => {
+                        if (root.goodLrc(lrc))
+                            done(root.lrcData("QQ Music", lrc, {
+                                "trackName": match.name
+                            }));
+                        else
+                            next();
+                    });
+                });
+            // lrc.cx (LrcApi): a large mirror of the Chinese stores plus Apple Music
+            steps.lrccx = (next, done) => http("https://api.lrc.cx/jsonapi?" + query({
+                        "title": c.title,
+                        "artist": c.artist,
+                        "album": fromBrowser || again ? "" : album
+                    }), (code, list) => {
+                    const match = (Array.isArray(list) ? list : []).find(r => root.goodLrc(r.lrc) && root.matches({
+                            "title": r.title,
+                            "artist": r.artist || "?",
+                            "duration": r.duration || 0
+                        }, c, d));
+                    match ? done(root.lrcData("lrc.cx", match.lrc, {
+                        "trackName": match.title
+                    })) : next();
+                });
+            // Musixmatch: the biggest catalogue; its anonymous token is refused in some
+            // countries (the answer then is made-up words — matches() throws them out)
+            steps.musixmatch = (next, done) => root.mxmFind(c, d, data => {
+                    if (data && data.syncedLyrics)
+                        done(data);
+                    else {
+                        keepPlain(data);
+                        next();
+                    }
+                });
+            // lyrics.ovh: plain text only, so it is skipped once some text was met
+            steps.ovh = (next, done) => {
+                if (plain || !c.artist)
+                    return next();
+                http("https://api.lyrics.ovh/v1/" + encodeURIComponent(c.artist) + "/" + encodeURIComponent(c.title), (code, body) => {
+                    if (body && body.lyrics && body.lyrics.trim())
+                        plain = {
+                            "source": "lyrics.ovh",
+                            "plainLyrics": body.lyrics.trim()
+                        };
+                    next();
+                });
+            };
+            return steps;
         };
-        // in the order chosen in Settings → Lyrics
+        const first = build(cleaned, false);
         for (const src of sources)
-            if (addStep[src])
-                steps.push(...[].concat(addStep[src]));
+            if (first[src])
+                steps.push(...[].concat(first[src]));
+        const alt = fallback;
+        if (alt) {
+            const second = build(alt, true);
+            for (const src of sources)
+                if (["lrclib", "netease", "lrccx", "kugou"].includes(src))
+                    steps.push(...[].concat(second[src]));
+        }
         _offline = false;
-        next();
+        run();
     }
     property bool _offline: false
+
+    // ---- Musixmatch (desktop app API) ----
+    property string _mxmToken: ""        // "" not asked yet | "none" refused (asked again after 10 min)
+    property double _mxmAsked: 0
+    function mxmToken(cb) {
+        if (_mxmToken && _mxmToken !== "none")
+            return cb(_mxmToken);
+        if (_mxmToken === "none" && Date.now() - _mxmAsked < 600000)
+            return cb("");
+        _mxmAsked = Date.now();
+        curlRaw(["-H", "cookie: AWSELBCORS=0; AWSELB=0", "https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0"], text => {
+            let tok = "";
+            try {
+                tok = JSON.parse(text).message.body.user_token || "";
+            } catch (e) {}
+            // all zeros: the decoy token — every answer would be made up
+            root._mxmToken = tok && !/^0+$/.test(tok) && !/UpgradeOnlyUpgradeOnly/.test(tok) ? tok : "none";
+            cb(root._mxmToken === "none" ? "" : root._mxmToken);
+        });
+    }
+    function mxmFind(c, d, cb) {
+        mxmToken(tok => {
+            if (!tok)
+                return cb(null);
+            curlRaw(["-H", "cookie: AWSELBCORS=0; AWSELB=0", "https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?" + query({
+                    "format": "json",
+                    "namespace": "lyrics_richsynched",
+                    "subtitle_format": "lrc",
+                    "app_id": "web-desktop-app-v1.0",
+                    "q_artist": c.artist,
+                    "q_track": c.title,
+                    "q_duration": d > 0 ? Math.round(d) : "",
+                    "f_subtitle_length": d > 0 ? Math.round(d) : "",
+                    "usertoken": tok
+                })], text => {
+                let calls = null;
+                try {
+                    calls = JSON.parse(text).message.body.macro_calls;
+                } catch (e) {}
+                const get = (k, f) => {
+                    try {
+                        return f(calls[k].message.body);
+                    } catch (e) {
+                        return null;
+                    }
+                };
+                const track = get("matcher.track.get", b => b.track);
+                if (!track || !root.matches({
+                        "title": track.track_name,
+                        "artist": track.artist_name,
+                        "duration": track.track_length
+                    }, c, d))
+                    return cb(null);
+                if (track.instrumental)
+                    return cb({
+                        "source": "Musixmatch",
+                        "instrumental": true
+                    });
+                const lrc = get("track.subtitles.get", b => b.subtitle_list[0].subtitle.subtitle_body) || "";
+                if (root.goodLrc(lrc))
+                    return cb(root.lrcData("Musixmatch", lrc, {
+                        "trackName": track.track_name,
+                        "duration": track.track_length || 0
+                    }));
+                const txt = get("track.lyrics.get", b => b.lyrics.lyrics_body) || "";
+                cb(txt.trim() ? {
+                    "source": "Musixmatch",
+                    "plainLyrics": txt.replace(/\n*\*{7}[\s\S]*$/, "").trim()
+                } : null);
+            });
+        });
+    }
+
+    // ---- AMLL TTML DB (github.com/Steve-xmh/amll-ttml-db) ----
+    // its index (~1.6 MB, refreshed weekly into the cache) maps track ids and names to TTML files
+    readonly property string amllIndexFile: Config.cacheDir + "/lyrics/amll-index.jsonl"
+    property var _amll: null              // [{t: [names], a: [artists], sp: [ids], ncm: [ids], f}]
+    property var _amllWait: []
+    property bool _amllLoading: false
+    readonly property string spotifyId: {
+        const u = trackUrl + " " + (player && player.metadata ? String(player.metadata["mpris:trackid"] || "") : "");
+        const m = u.match(/(?:open\.spotify\.com\/track\/|spotify[:\/]track[:\/])([A-Za-z0-9]{22})/);
+        return m ? m[1] : "";
+    }
+    FileView {
+        id: amllReader
+        printErrors: false
+        blockLoading: false
+        onLoaded: root.amllParsed(text())
+        onLoadFailed: root.amllParsed("")
+    }
+    Process {
+        id: amllFetch
+        // -z: only when the file there is newer than ours; older than a week → asked again
+        command: ["sh", "-c", 'f="$1"; if [ ! -s "$f" ] || [ -n "$(find "$f" -mtime +7 2>/dev/null)" ]; then curl -sf -m 25 -z "$f" -o "$f.part" "$2" && [ -s "$f.part" ] && mv "$f.part" "$f"; rm -f "$f.part"; touch "$f" 2>/dev/null; fi; true', "sh", root.amllIndexFile, "https://raw.githubusercontent.com/Steve-xmh/amll-ttml-db/main/metadata/raw-lyrics-index.jsonl"]
+        onExited: {
+            amllReader.path = "";
+            amllReader.path = root.amllIndexFile;
+        }
+    }
+    function amllParsed(text) {
+        const out = [];
+        for (const line of String(text || "").split("\n")) {
+            if (!line.trim())
+                continue;
+            try {
+                const r = JSON.parse(line), m = {};
+                for (const kv of r.metadata || [])
+                    m[kv[0]] = kv[1] || [];
+                out.push({
+                    "t": m.musicName || [],
+                    "a": m.artists || [],
+                    "sp": m.spotifyId || [],
+                    "ncm": m.ncmMusicId || [],
+                    "f": r.rawLyricFile
+                });
+            } catch (e) {}
+        }
+        _amll = out;
+        _amllLoading = false;
+        const wait = _amllWait;
+        _amllWait = [];
+        for (const f of wait)
+            f();
+    }
+    function amllFind(c, d, cb) {
+        if (_amll === null) {
+            _amllWait.push(() => amllFind(c, d, cb));
+            if (!_amllLoading) {
+                _amllLoading = true;
+                amllFetch.running = true;
+            }
+            return;
+        }
+        const sp = spotifyId;
+        let hit = sp ? _amll.find(r => r.sp.includes(sp)) : null;
+        if (!hit)
+            hit = _amll.find(r => r.t.some(t => sameName(t, c.title, 0.9)) && (!c.artist || r.a.some(a => sameArtist(a, c.artist))));
+        if (!hit || !hit.f)
+            return cb(null, null);
+        httpText("https://raw.githubusercontent.com/Steve-xmh/amll-ttml-db/main/raw-lyrics/" + hit.f, (code, text) => cb(code === 200 ? root.ttmlToLrc(text) : null, {
+                "title": hit.t[0] || ""
+            }));
+    }
+    // TTML → LRC lines: each <p begin=…> is a line; its words are the spans' text; background
+    // vocals, translations and romanisations (ttm:role x-bg / x-translation / x-roman) left out
+    function ttmlTime(v) {
+        const p = String(v || "").split(":").map(Number);
+        return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p.length === 2 ? p[0] * 60 + p[1] : p[0] || 0;
+    }
+    function lrcStamp(t) {
+        const m = Math.floor(t / 60), s = t - m * 60;
+        return "[" + String(m).padStart(2, "0") + ":" + s.toFixed(2).padStart(5, "0") + "]";
+    }
+    function dropRoles(xml) {
+        let out = "", i = 0;
+        const open = /<span\b[^>]*ttm:role="x-(?:bg|translation|roman)"[^>]*>/g;
+        let m;
+        while ((m = open.exec(xml))) {
+            out += xml.slice(i, m.index);
+            // skip to the span's own end, nested spans counted
+            let depth = 1, j = open.lastIndex;
+            const tag = /<\/?span\b[^>]*?(\/?)>/g;
+            tag.lastIndex = j;
+            let t;
+            while (depth > 0 && (t = tag.exec(xml))) {
+                if (t[0].startsWith("</"))
+                    depth--;
+                else if (!t[1])
+                    depth++;
+                j = tag.lastIndex;
+            }
+            i = j;
+            open.lastIndex = j;
+        }
+        return out + xml.slice(i);
+    }
+    function ttmlToLrc(xml) {
+        const lines = [];
+        const re = /<p\b[^>]*\bbegin="([^"]+)"[^>]*>([\s\S]*?)<\/p>/g;
+        let m;
+        while ((m = re.exec(String(xml || "")))) {
+            const text = entities(dropRoles(m[2]).replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+            if (text)
+                lines.push(lrcStamp(ttmlTime(m[1])) + text);
+        }
+        return lines.join("\n");
+    }
 
     // ---- manual search from Settings → Lyrics ----
     property var results: []
@@ -657,7 +1127,7 @@ Singleton {
             return;
         searching = true;
         results = [];
-        let pending = 4;
+        let pending = 5;
         const out = [];
         const done = () => {
             if (--pending === 0) {
@@ -676,6 +1146,20 @@ Singleton {
                     "duration": r.duration || 0,
                     "synced": !!r.syncedLyrics,
                     "data": r
+                });
+            done();
+        });
+        http("https://api.lrc.cx/jsonapi?" + query({
+            "title": text
+        }), (code, list) => {
+            for (const r of (Array.isArray(list) ? list : []).filter(r => r.lrc).slice(0, 6))
+                out.push({
+                    "source": "lrc.cx",
+                    "title": r.title,
+                    "artist": r.artist,
+                    "duration": r.duration || 0,
+                    "synced": /\[\d+:\d+/.test(r.lrc),
+                    "data": root.lrcData("lrc.cx", r.lrc)
                 });
             done();
         });

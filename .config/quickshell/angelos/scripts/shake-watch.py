@@ -4,6 +4,9 @@
 Reads pointer motion from evdev like meta-tap.py (needs the `input` group):
 relative motion of mice, absolute motion of touchpads while touched. A shake is
 several quick direction reversals, each a real stroke of the hand, along X or Y.
+Not while a button is held: dragging a slider or a window back and forth is no lost
+pointer (the overlay would take the pointer mid-drag and the drag would never end —
+Settings → Keyboard's repeat sliders did not save).
 
   shake-watch.py [--sensitivity low|normal|high] [--dpi 1000]
 
@@ -25,6 +28,7 @@ EV_KEY, EV_REL, EV_ABS = 1, 2, 3
 REL_X, REL_Y = 0, 1
 ABS_X, ABS_Y = 0, 1
 BTN_TOUCH = 330
+BUTTONS = range(0x110, 0x118)       # BTN_LEFT … BTN_TASK
 EVENT = struct.Struct("llHHi")
 ABSINFO = struct.Struct("6i")
 # stroke length (mm of hand motion), reversals needed, max gap between reversals (s)
@@ -80,6 +84,7 @@ class Device:
         self.scale_x = self.scale_y = 25.4 / dpi          # counts → mm for a mouse
         self.last = {ABS_X: None, ABS_Y: None}
         self.touching = False
+        self.held = set()               # the mouse buttons down now
         if touchpad:
             for axis in (ABS_X, ABS_Y):
                 try:
@@ -149,6 +154,17 @@ def main():
             hit = False
             for off in range(0, len(data) - EVENT.size + 1, EVENT.size):
                 _, _, kind, code, value = EVENT.unpack_from(data, off)
+                if kind == EV_KEY and code in BUTTONS:
+                    (dev.held.add if value else dev.held.discard)(code)
+                    # a drag starts or ends: strokes before it don't count after it
+                    dev.x.dir = dev.y.dir = 0
+                    dev.x.flips, dev.y.flips = [], []
+                    continue
+                # a drag: the motion is not a shake (touches still tracked)
+                if kind in (EV_REL, EV_ABS) and any(d.held for d in devices.values()):
+                    if dev.touchpad:
+                        dev.last = {ABS_X: None, ABS_Y: None}
+                    continue
                 if kind == EV_REL and not dev.touchpad:
                     if code == REL_X:
                         hit |= dev.x.move(value * dev.scale_x, t)

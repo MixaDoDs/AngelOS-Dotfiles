@@ -119,6 +119,8 @@ Singleton {
                 "quiet": dnd
             });
             const sound = n.urgency === NotificationUrgency.Critical ? "error" : root.isScreenshot(entry) ? "screenshot" : "notify";
+            if (root.isScreenshot(entry))
+                Achievements.note("screenshot");
             // Golden Gate's shutter sounds under Do Not Disturb too (like a Mac's)
             if (!dnd || (sound === "screenshot" && GoldenGate.on))
                 Sounds.play(sound);

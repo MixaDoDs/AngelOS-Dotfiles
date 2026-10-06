@@ -105,7 +105,7 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: Shell.settingsOpen = false
+                onClicked: dress.view.settingsNav.settingsOpen = false
             }
         }
     }

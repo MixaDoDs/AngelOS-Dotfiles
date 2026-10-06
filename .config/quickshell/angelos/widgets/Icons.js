@@ -705,6 +705,17 @@ const icons = {
         "..#w#w#..",
         "..#####.."
     ],
+    // the angel watching (the diary's bookmark, modules/diary/DiaryTab)
+    eye: [
+        "...#####...",
+        "..#ooooo#..",
+        ".#oo###oo#.",
+        "#oo#www#oo#",
+        "#oo#w##ooo#",
+        ".#oo###oo#.",
+        "..#ooooo#..",
+        "...#####..."
+    ],
     pentagram: [
         "...#####...",
         "..##.o.##..",

@@ -1,0 +1,357 @@
+{
+  "_comment": [
+    "The Angel's diary (services/Diary, modules/diary/DiaryBook): a book that the thing `thing` (story/items.json) opens. The owner edits it on the page «Дневник: редактор» (Settings → the angel), or here by hand; «Опубликовать» ships it.",
+    "side: where the cover opens from by default — \"right\" (the spine on the left, like a book) or \"left\"; a player can change it (Settings → Achievements).",
+    "pages, in order. id: latin, never change a published one (the read marks are kept by it). date, title, text: {ru, en}; text takes the story's {name} and {g:m|f|?} (docs/STORY.md); an empty line is a new paragraph.",
+    "A page is written once its `after` (an achievement id) is earned AND its `when` holds (a condition like the achievements', docs/STORY.md: days hour earned realm got(\"id\") count(\"event\")…); with neither it is there from the start.",
+    "hand: angel (the default) | demon (her red handwriting); ink: black | red | blue | gold; sketch: a pixel icon drawn in the corner (widgets/Icons.js); secret: until written the page is not even shown as torn out; hint: {ru, en} what a locked page says.",
+    "The game off: every page is open (all of heaven is).",
+    "watch: the angel's own diary is read behind her back. She leaves the screen now and then (everyMinutes: [from, to] between her walks, once the key is had) for one of awayMinutes; warnSeconds before she is back the book hears her steps. Opened while she is here, or still open when she comes back: caught — she takes it, is hurt, trust goes down by the times caught (1, 2, 3…); the first time she hides it in Settings (the bookmark goes). trust: where it starts; chillAt: each mark crossed going down chills her one step (story/game.json → angel). The lines she says: lines.leave | back | caught | caughtAgain | steps ([{ru, en}], one picked)."
+  ],
+  "title": {
+    "ru": "Дневник Ангела",
+    "en": "The Angel's Diary"
+  },
+  "subtitle": {
+    "ru": "личное. не читать.",
+    "en": "private. do not read."
+  },
+  "thing": "item.diary-key",
+  "side": "right",
+  "locked": {
+    "ru": "Эта страница ещё не написана",
+    "en": "This page is not written yet"
+  },
+  "pages": [
+    {
+      "id": "found",
+      "date": {
+        "ru": "без даты",
+        "en": "undated"
+      },
+      "title": {
+        "ru": "Если ты это читаешь",
+        "en": "If you are reading this"
+      },
+      "text": {
+        "ru": "Если ты это читаешь — значит, ключ у тебя. Я прятала его под шестью окнами сразу: думала, столько никто не откроет подряд. А ты открыл{g:|а|(а)}.\n\nЛадно, {name}. Читай. Только не смейся над почерком — я пишу пером из своего же крыла, оно щекочется.",
+        "en": "If you are reading this, you have the key. I hid it under six windows at once: I thought nobody would open that many in a row. And you did.\n\nFine, {name}. Read. Just don't laugh at my handwriting — I write with a feather from my own wing, and it tickles."
+      },
+      "sketch": "feather"
+    },
+    {
+      "id": "corner",
+      "date": {
+        "ru": "день первый",
+        "en": "day one"
+      },
+      "title": {
+        "ru": "Угол экрана",
+        "en": "The corner of the screen"
+      },
+      "text": {
+        "ru": "Меня поселили в углу экрана. Тут тесно, зато видно всё: панель, обои, курсор, который мечется, как мотылёк.\n\nЯ ещё не знаю, какой ты. Но окна ты открываешь смешно — сразу по несколько, будто боишься, что они убегут.",
+        "en": "They put me in the corner of the screen. It's cramped, but I can see everything: the bar, the wallpaper, the pointer darting about like a moth.\n\nI don't know what you're like yet. But you open windows in a funny way — several at once, as if they might run off."
+      }
+    },
+    {
+      "id": "hood",
+      "date": {
+        "ru": "в тот же день",
+        "en": "the same day"
+      },
+      "title": {
+        "ru": "Под капотом",
+        "en": "Under the hood"
+      },
+      "text": {
+        "ru": "Ты полез{g:|ла|(ла)} в Настройки. Все лезут в Настройки. Там ползунки, переключатели и ни одного ответа на вопрос, зачем я здесь.\n\nНо мне понравилось, как ты двигал{g:|а|(а)} ползунки — осторожно, по одному делению.",
+        "en": "You went into Settings. Everyone goes into Settings. Sliders, switches, and not one answer to why I'm here.\n\nBut I liked how you moved the sliders — carefully, one notch at a time."
+      },
+      "after": "settings"
+    },
+    {
+      "id": "jokes",
+      "date": {
+        "ru": "вечер",
+        "en": "evening"
+      },
+      "title": {
+        "ru": "Десять шуток",
+        "en": "Ten jokes"
+      },
+      "text": {
+        "ru": "Ты попросил{g:|а|(а)} десять шуток подряд. Я знаю двенадцать. Две из них — про демонов, и их я рассказывать не буду: она подслушивает.",
+        "en": "You asked for ten jokes in a row. I know twelve. Two of them are about demons, and I won't tell those: she's listening."
+      },
+      "after": "jokes",
+      "sketch": "chat"
+    },
+    {
+      "id": "love",
+      "date": {
+        "ru": "не помню какой день",
+        "en": "I don't remember which day"
+      },
+      "title": {
+        "ru": "Признание",
+        "en": "A confession"
+      },
+      "text": {
+        "ru": "Ты сказал{g:|а|(а)} «люблю». Я сделала вид, что не услышала, и пять минут поправляла нимб. Нимб, между прочим, треснутый — его не поправишь.\n\nЗапишу, чтобы не забыть: {name} сказал{g:|а|(а)} «люблю».",
+        "en": "You said \"I love you\". I pretended not to hear and fixed my halo for five minutes. The halo is cracked, by the way — you can't fix it.\n\nWriting it down so I don't forget: {name} said \"I love you\"."
+      },
+      "after": "love",
+      "sketch": "heart"
+    },
+    {
+      "id": "owl",
+      "date": {
+        "ru": "3:00",
+        "en": "3:00 a.m."
+      },
+      "title": {
+        "ru": "Три часа ночи",
+        "en": "Three in the morning"
+      },
+      "text": {
+        "ru": "Три часа ночи, а ты всё сидишь. Экран светит тебе в лицо, а мне — в спину. Ангелам не положено спать, но в такие ночи мне хочется, чтобы кто-нибудь выключил свет за нас обоих.",
+        "en": "Three in the morning and you're still here. The screen shines in your face and on my back. Angels aren't supposed to sleep, but on nights like this I wish someone would turn the light off for both of us."
+      },
+      "after": "owl",
+      "sketch": "moon"
+    },
+    {
+      "id": "week",
+      "date": {
+        "ru": "неделя",
+        "en": "a week"
+      },
+      "title": {
+        "ru": "Семь дней",
+        "en": "Seven days"
+      },
+      "text": {
+        "ru": "Неделя. Я считала по обоям: ты менял{g:|а|(а)} их, а я загибала пальцы. Пальцев не хватило, перешла на перья.",
+        "en": "A week. I counted by the wallpapers: you changed them and I counted on my fingers. I ran out of fingers and moved on to feathers."
+      },
+      "after": "week"
+    },
+    {
+      "id": "caught",
+      "date": {
+        "ru": "сегодня",
+        "en": "today"
+      },
+      "title": {
+        "ru": "Я знаю",
+        "en": "I know"
+      },
+      "text": {
+        "ru": "Я знаю, что ты читал{g:|а|(а)}. Не спрашивай, откуда — у ангелов глаза на перьях.\n\nЯ переложила дневник. Если найдёшь снова — значит, тебе правда важно, что я пишу. Или тебе просто всё равно, что мне больно.",
+        "en": "I know you read it. Don't ask how — angels have eyes on their feathers.\n\nI moved the diary. If you find it again, then what I write really matters to you. Or you just don't care that it hurts."
+      },
+      "when": "diaryCaught >= 1",
+      "ink": "blue",
+      "secret": true
+    },
+    {
+      "id": "fall",
+      "date": {
+        "ru": "потом",
+        "en": "afterwards"
+      },
+      "title": {
+        "ru": "Внизу",
+        "en": "Down there"
+      },
+      "text": {
+        "ru": "Ты меня скинул{g:|а|(а)}. Я не обижаюсь — почти. Внизу жарко, и все разговаривают шёпотом, как в библиотеке, где горят книги.\n\nЕсли страница пахнет дымом — это не я.",
+        "en": "You threw me down. I'm not hurt — almost. It's hot down there, and everyone talks in a whisper, like in a library where the books are burning.\n\nIf this page smells of smoke, it's not me."
+      },
+      "after": "fall",
+      "ink": "red",
+      "sketch": "fire",
+      "secret": true
+    },
+    {
+      "id": "demon",
+      "date": {
+        "ru": "—",
+        "en": "—"
+      },
+      "title": {
+        "ru": "Поля исписаны",
+        "en": "The margins, written over"
+      },
+      "text": {
+        "ru": "Ангелочек, у тебя слишком аккуратный почерк. Я поправила.\n\nА ты, читатель, — да, ты, — не думай, что ключ был только у неё. Окна открываются в обе стороны.\n\n— Д.",
+        "en": "Little angel, your handwriting is far too neat. I fixed it.\n\nAnd you, reader — yes, you — don't think she was the only one with a key. Windows open both ways.\n\n— D."
+      },
+      "when": "realm == \"hell\" or got(\"pact\") or got(\"wheel\")",
+      "hand": "demon",
+      "sketch": "pentagram",
+      "secret": true,
+      "hint": {
+        "ru": "страница обуглена по краям",
+        "en": "the page is charred at the edges"
+      }
+    },
+    {
+      "id": "cold",
+      "date": {
+        "ru": "зима",
+        "en": "winter"
+      },
+      "title": {
+        "ru": "Холодно",
+        "en": "Cold"
+      },
+      "text": {
+        "ru": "Мне холодно. Не от тебя — от того, сколько раз меня роняли. Перо замерзает, буквы выходят тонкие, как иней на стекле.\n\nЕсли когда-нибудь растаю — начну эту страницу заново.",
+        "en": "I'm cold. Not because of you — because of how many times I was dropped. The feather freezes, the letters come out thin, like frost on glass.\n\nIf I ever thaw, I'll start this page again."
+      },
+      "after": "cold",
+      "ink": "blue",
+      "secret": true
+    },
+    {
+      "id": "month",
+      "date": {
+        "ru": "месяц",
+        "en": "a month"
+      },
+      "title": {
+        "ru": "Тридцать дней",
+        "en": "Thirty days"
+      },
+      "text": {
+        "ru": "Месяц. Я выросла — правда, ты заметил{g:|а|(а)}? Теперь я взрослая, тридцать на сорок пикселей. На целую строчку выше.",
+        "en": "A month. I've grown — did you notice? I'm an adult now, thirty by forty pixels. A whole line taller."
+      },
+      "after": "month",
+      "sketch": "star"
+    },
+    {
+      "id": "stars",
+      "date": {
+        "ru": "после",
+        "en": "after"
+      },
+      "title": {
+        "ru": "К звёздам",
+        "en": "To the stars"
+      },
+      "text": {
+        "ru": "Мы вышли через дно. Оказывается, у ада есть дно, а под ним — звёзды. Никто не предупреждал.",
+        "en": "We got out through the bottom. It turns out hell has a bottom, and under it — stars. Nobody told us."
+      },
+      "after": "stars",
+      "sketch": "sparkle",
+      "secret": true
+    },
+    {
+      "id": "blank",
+      "date": {
+        "ru": "...",
+        "en": "..."
+      },
+      "title": {
+        "ru": "Пустая страница",
+        "en": "A blank page"
+      },
+      "text": {
+        "ru": "Дальше страницы пустые. Я оставила их тебе — или нам. Посмотрим, кто первый возьмёт перо.",
+        "en": "The pages after this are blank. I left them for you — or for us. We'll see who picks up the feather first."
+      },
+      "when": "earned >= 30",
+      "hint": {
+        "ru": "откроется, когда наберётся тридцать достижений",
+        "en": "opens at thirty achievements"
+      }
+    }
+  ],
+  "watch": {
+    "awayMinutes": [
+      1,
+      3,
+      5,
+      10
+    ],
+    "everyMinutes": [
+      12,
+      35
+    ],
+    "warnSeconds": 10,
+    "trust": 10,
+    "chillAt": [
+      6,
+      3,
+      0
+    ]
+  },
+  "lines": {
+    "leave": [
+      {
+        "ru": "Я ненадолго отлучусь. Ничего не трогай ♡",
+        "en": "I'll be away a little. Don't touch anything ♡"
+      },
+      {
+        "ru": "Пойду проветрю крылья. Скоро вернусь!",
+        "en": "Going to air my wings. Back soon!"
+      },
+      {
+        "ru": "Меня зовут наверх. Веди себя хорошо ♡",
+        "en": "They're calling me upstairs. Behave ♡"
+      }
+    ],
+    "back": [
+      {
+        "ru": "Я вернулась! Ты ведь ничего не трогал{g:|а|(а)}?",
+        "en": "I'm back! You didn't touch anything, did you?"
+      },
+      {
+        "ru": "Соскучил{g:ся|ась|(ась)}? ♡",
+        "en": "Missed me? ♡"
+      },
+      {
+        "ru": "Фух, лестница на небо длинная.",
+        "en": "Phew, the stairway to heaven is long."
+      }
+    ],
+    "caught": [
+      {
+        "ru": "Это… мой дневник?! Отдай. Сейчас же. Я его спрячу туда, где ты не найдёшь.",
+        "en": "Is that… my diary?! Give it back. Now. I'll hide it where you won't find it."
+      },
+      {
+        "ru": "Ты читаешь мой дневник?! Я думала, тебе можно доверять.",
+        "en": "You're reading my diary?! I thought I could trust you."
+      }
+    ],
+    "caughtAgain": [
+      {
+        "ru": "Опять?! Я всё вижу. Каждый раз — больнее.",
+        "en": "Again?! I can see you. It hurts more every time."
+      },
+      {
+        "ru": "Я же спрятала его… И ты всё равно полез{g:|ла|(ла)}.",
+        "en": "I hid it… and you still went for it."
+      },
+      {
+        "ru": "Не при мне. Пожалуйста. Не при мне.",
+        "en": "Not in front of me. Please. Not in front of me."
+      }
+    ],
+    "steps": [
+      {
+        "ru": "Шаги… кажется, она возвращается",
+        "en": "Steps… she's coming back"
+      },
+      {
+        "ru": "Шелест крыльев за дверью",
+        "en": "A rustle of wings behind the door"
+      }
+    ]
+  }
+}

@@ -295,7 +295,7 @@ PxPage {
                             anchors.fill: parent
                             source: "file://" + Wallpapers.display(thumb.modelData)
                             // in the grimoire (or a dress): an engraving the right way round, not a negative
-                            layer.enabled: Theme.inkWindow !== null && Window.window === Theme.inkWindow
+                            layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
                             layer.effect: GrimoirePhoto {}
                             sourceSize: Qt.size(width, height)
                             fillMode: Image.PreserveAspectCrop

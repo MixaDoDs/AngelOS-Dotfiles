@@ -108,20 +108,14 @@ PxPage {
             }
         }
         SettingRow {
-            label: I18n.t("Тема", "Theme")
+            label: I18n.t("Цветовая схема", "Color scheme")
             PxCombo {
                 model: Object.keys(Theme.flavors).map(k => ({
                             "label": Theme.flavors[k].name,
                             "value": k
-                        })).concat(Plugins.appearanceThemes.map(t => ({label: I18n.label(t.name || t.id), value: t.value})))
-                currentValue: Plugins.appearanceThemes.some(t => t.value === Plugins.appearanceSelection) ? Plugins.appearanceSelection : Config.appearance.flavor
-                onActivated: v => {
-                    if (v.startsWith("plugin-theme:")) Plugins.applyAppearanceTheme(v);
-                    else {
-                        Plugins.appearanceSelection = "";
-                        Config.appearance.flavor = v;
-                    }
-                }
+                        }))
+                currentValue: Config.appearance.flavor
+                onActivated: v => Config.appearance.flavor = v
             }
         }
         Row {

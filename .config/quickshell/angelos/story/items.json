@@ -1,0 +1,123 @@
+{
+  "_comment": [
+    "Things the game hands out (services/Heaven → things): an achievement's \"reward\" can be one, like heaven's looks.",
+    "A thing lies in the achievement's card and in Settings → Achievements → Things; \"opens\" says what it opens: diary (the Angel's diary, story/diary.json) | settings:<page> | novel.",
+    "texture: the picture's id among `textures` (pixel art: rows of characters, each one a colour of `palette`, '.' is empty). Draw a new one beside them and pick it — the owner's page «Дневник: редактор» shows them all.",
+    "The game off: every thing is open, like all of heaven."
+  ],
+  "things": [
+    {
+      "id": "item.diary-key",
+      "ru": "Ключ от дневника",
+      "en": "The diary key",
+      "desc": {
+        "ru": "Тёплый, будто его только что держали в руке. Подходит к маленькому замку на чёрной обложке.",
+        "en": "Warm, as if someone held it a moment ago. It fits the little lock on a black cover."
+      },
+      "opens": "diary",
+      "texture": "key",
+      "textures": {
+        "key": {
+          "ru": "Латунный ключик с крылышком и рубином",
+          "en": "A brass key with a little wing and a ruby",
+          "palette": {
+            "#": "#2a1708",
+            "g": "#e8b84a",
+            "G": "#a5741e",
+            "w": "#fff2c4",
+            "r": "#d0182e",
+            "R": "#7a0a18",
+            "s": "#ffffff",
+            "S": "#c9d6ec"
+          },
+          "rows": [
+            "s.................",
+            "ss.....####.......",
+            "sSs...#wggg#......",
+            "sSSs.#gG###g#.....",
+            ".sSSs#G#rR#Gg#....",
+            ".sSSSg#rrRR#g#....",
+            "..sSS#g#Rrr#Gg#...",
+            "...ss#gG#RR#Gg#...",
+            ".....#gG###Gg#....",
+            "......#gggggG#....",
+            ".......###gG#.....",
+            ".........#gG#.....",
+            ".........#gG#.....",
+            ".........#gG####..",
+            ".........#gGggg#..",
+            ".........#gG####..",
+            ".........#gG##....",
+            ".........#gGgg#...",
+            ".........#gG###...",
+            ".........#wg#.....",
+            "..........##......"
+          ]
+        },
+        "feather": {
+          "ru": "Перо из крыла ангела, кончик в чернилах",
+          "en": "A feather from the angel's wing, its tip in ink",
+          "palette": {
+            "#": "#3a2a44",
+            "w": "#ffffff",
+            "f": "#e9e4f4",
+            "p": "#ffb3d1",
+            "P": "#e05c95",
+            "k": "#1a1020",
+            "y": "#ffe08a"
+          },
+          "rows": [
+            "............##..",
+            "..........##ww#.",
+            ".........#wwfw#.",
+            "........#wwfwf#.",
+            ".......#wwfwfw#.",
+            "......#wwfwfwp#.",
+            ".....#wwfwfwp#..",
+            "....#wwfwfwp#...",
+            "....#wfwfwp#....",
+            "...#wfwfpP#.....",
+            "...#fwfpP#......",
+            "..#y#pP##.......",
+            "..#y###.........",
+            ".#y#............",
+            "#k#.............",
+            "#k..............",
+            ".k.............."
+          ]
+        },
+        "seal": {
+          "ru": "Сургучная печать с пентаграммой",
+          "en": "A wax seal with a pentagram",
+          "palette": {
+            "#": "#2a0408",
+            "r": "#b3122a",
+            "R": "#7c0916",
+            "l": "#e2475c",
+            "g": "#f2c75c"
+          },
+          "rows": [
+            ".......####.......",
+            "....###llrr###....",
+            "...##lllgrrrr##...",
+            "..##lllrggrrrr##..",
+            ".##lllrrggrrrrr##.",
+            ".#lllrrrggrrrrrr#.",
+            ".#llrrrgrrgrrrrr#.",
+            "#llggggggggggggrr#",
+            "#lrrggrgrrgrggrrR#",
+            "#rrrrggrrrrggrrRR#",
+            "#rrrrrggggggrrRRR#",
+            ".#rrrrgrggrgrRRR#.",
+            ".#rrrgrgrrgrgRRR#.",
+            ".##rrggrrrrggRR##.",
+            "..##rgrrrrRRgR##..",
+            "...##rrrrRRRR##...",
+            "....###rRRR###....",
+            ".......####......."
+          ]
+        }
+      }
+    }
+  ]
+}

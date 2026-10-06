@@ -333,6 +333,7 @@ Singleton {
                 s.done = Object.assign({}, s.done);
                 s.done[s.chapter] = true;
                 state = s;
+                Achievements.note("novel.chapter", s.chapter);
                 go(thread, "");
                 // the next chapter starts the way its own event says
                 if (n.chapter && stories[n.chapter])

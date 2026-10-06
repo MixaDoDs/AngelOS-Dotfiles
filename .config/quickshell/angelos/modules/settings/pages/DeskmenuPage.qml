@@ -41,7 +41,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Стиль", "Style")
-            hint: DeskMenu.hellish ? I18n.t("сейчас правит демоница — её «", "the demon rules now — her “") + DeskMenu.styleLabel(DeskMenu.style) + I18n.t("» («Помощница» → «Ангел или демон»)", "” (Helper → Angel or demon)") : ({
+            hint: !Heaven.menuOk(Config.desktop.menuStyle) ? DeskMenu.styleLabel(Config.desktop.menuStyle) + I18n.t(" выбрано, но ещё закрыто: ", " is picked but still locked: ") + Heaven.lockHint(Heaven.menuItem(Config.desktop.menuStyle)) + I18n.t(". Пока — обычный список", ". The usual list until then") : ["wings", "harp"].some(s => !Heaven.menuOk(s)) && !DeskMenu.hellish ? ["wings", "harp"].filter(s => !Heaven.menuOk(s)).map(s => DeskMenu.styleLabel(s) + " — " + Heaven.lockHint(Heaven.menuItem(s))).join("; ") : DeskMenu.hellish ? I18n.t("сейчас правит демоница — её «", "the demon rules now — her “") + DeskMenu.styleLabel(DeskMenu.style) + I18n.t("» («Помощница» → «Ангел или демон»)", "” (Helper → Angel or demon)") : ({
                     "list": I18n.t("список как в Windows 11: быстрые кнопки сверху, подменю сбоку", "a Windows 11-like list: quick buttons on top, flyouts at the side"),
                     "radial": I18n.t("кольцо вокруг курсора, подменю веером снаружи; 1–9 и стрелки", "a ring around the pointer, flyouts fan out outside; 1–9 and the arrows"),
                     "y2k": I18n.t("глянцевый хромовый пузырь с радугой и блёстками", "a glossy chrome bubble with a rainbow and sparkles"),
@@ -60,10 +60,21 @@ PxPage {
                     PxButton {
                         id: styleCard
                         required property string modelData
+                        // heaven's own are earned (services/Heaven): locked, they can't be picked
+                        readonly property bool locked: !Heaven.menuOk(modelData)
                         width: thumb.implicitWidth + Theme.u * 8
                         height: thumb.implicitHeight + styleName.implicitHeight + Theme.u * 10
                         checked: DeskMenu.chosen === modelData
+                        enabled: !locked
                         onClicked: Config.desktop.menuStyle = modelData
+                        PxIcon {
+                            visible: styleCard.locked
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: Theme.u * 2
+                            name: "lock"
+                            pixel: Math.max(1, Theme.u)
+                        }
                         MenuStyleThumb {
                             id: thumb
                             anchors.horizontalCenter: parent.horizontalCenter

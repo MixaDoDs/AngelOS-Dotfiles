@@ -21,7 +21,8 @@ Singleton {
     // heaven's own: feathers of two wings under a halo, the strings of a harp on a cloud
     readonly property var heavenly: ["wings", "harp"]
     // the pentagram is hell's own: in heaven only once the portal is open (Angel.hellAllowed)
-    readonly property string chosen: !styles.includes(Config.desktop.menuStyle) || (Config.desktop.menuStyle === "pentagram" && !Angel.hellAllowed) ? "list" : Config.desktop.menuStyle
+    // heaven's own are earned (services/Heaven): a locked one stays picked, the list shows meanwhile
+    readonly property string chosen: !styles.includes(Config.desktop.menuStyle) || (Config.desktop.menuStyle === "pentagram" && !Angel.hellAllowed) || !Heaven.menuOk(Config.desktop.menuStyle) ? "list" : Config.desktop.menuStyle
     // in hell (Y2K → Hell → "Right-click menu"): "circle" is the circle's own (story/circles.json
     // → dress: the pentagram before any circle, then one of the circles' looks), or one look always
     readonly property string hellPick: Config.y2k.hellMenu === "circle" ? HellLook.dressMenu : Config.y2k.hellMenu

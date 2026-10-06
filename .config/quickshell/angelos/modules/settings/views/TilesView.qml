@@ -156,7 +156,7 @@ Item {
                         compact: true
                         icon: modelData.icon
                         text: modelData.label
-                        onClicked: Shell.settingsPage = modelData.id
+                        onClicked: root.view.settingsNav.settingsPage = modelData.id
                     }
                 }
             }
@@ -220,8 +220,11 @@ Item {
                             id: tileMouse
                             anchors.fill: parent
                             hoverEnabled: true
+                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: {
+                            onClicked: mouse => {
+                                if (root.view.clickedNew(mouse, root.view.sectionTarget(tile.modelData)))
+                                    return;
                                 root.cur = tile.index;
                                 root.view.openSection(tile.modelData);
                                 root.view.focusNav();

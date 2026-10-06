@@ -135,8 +135,8 @@ JsonAdapter {
         property string artwork: "note"          // note | cover
         property bool typewriter: true
         property string preferPlayer: "spotify"
-        property var sources: ["local", "player", "lrclib", "netease", "kugou", "qq", "ovh"] // tried in this order
-        property int sourcesVersion: 0      // 2 = the list knows kugou/qq/local/player (older lists get them once)
+        property var sources: ["local", "player", "lrclib", "amll", "netease", "kugou", "qq", "lrccx", "musixmatch", "ovh"] // tried in this order
+        property int sourcesVersion: 0      // 2 = the list knows kugou/qq/local/player, 3 = amll/lrccx/musixmatch (older lists get them once)
         // the line's brightness follows the volume (services/LyricsGlow): off | auto (a
         // RØDECaster's fader when one is plugged in, else the real level) | rode | level
         property string glow: "auto"
@@ -196,6 +196,8 @@ JsonAdapter {
         property var usage: ({})            // desktop id -> launches
         property bool calc: true            // Start search and the launcher count: 2+2, 10 km in mi, 100 usd in rub
         property bool settings: true        // Start search and the launcher find settings too, mixed with apps by relevance
+        property bool files: true           // …and files by name or type ("sex", ".jpeg", ".картинки"), services/FileSearch
+        property bool filePreview: true     // thumbnails of pictures and videos in those results, Spotlight's preview
     }
 
     property JsonObject lock: JsonObject {
@@ -208,6 +210,22 @@ JsonAdapter {
         property bool logo: true            // the angelOS logo above the clock
         property bool stream: false         // NGO stream overlay: LIVE badge, viewers, cute chat
         property string streamTitle: ""      // "" = "angel is on a break" 
+        property string style: "ngo"        // ngo (the NGO stream) | heaven (a game's login screen at heaven's gate)
+        property real size: 1.5             // the login window: ×1 … ×2, kept to whole screen pixels
+        property string unlockFx: "auto"    // auto (the look's own) | heart | pixels | crt | gate | glitch | none
+        property bool replay: true          // the stream shows a random video, blurred beyond reading…
+        property int replayDelay: 30        // …after this many seconds locked
+        property string replayDir: ""       // "" = ~/Videos
+        property bool streamCam: true       // NGO: the angel in a webcam window (sleeps, peeks, cries, cheers)
+        property bool streamMeters: true    // NGO: followers / stress / affection / darkness, from the real machine
+        property bool streamAlerts: true    // NGO: polls in the chat, donations, raids, followers, milestones
+        property bool highlights: true      // NGO: mistakes become clips, the unlock shows the stream's highlights
+        property bool heavenAngel: true     // heaven: the angel by the gate
+        property bool wish: true            // heaven: the unlock is a prayer (gacha: 3★/4★/5★, pity)
+        property bool dailyReward: true     // heaven: the daily login reward calendar
+        property bool notices: true         // heaven: the notice board (updates, notifications, music…)
+        property bool wishPaid: true        // heaven: past the day's free prayer, an unlock prays for 160 ✦ (HeavenStars)
+        property string frame: ""           // heaven: the login plate's frame from the pass: "" | rose | holo
     }
 
     property JsonObject idle: JsonObject {
@@ -351,6 +369,7 @@ JsonAdapter {
         property bool hellApps: true        // GTK and Qt apps in hell's colours while the demon rules (gtk-live.py, qt-theme.py)
         property bool hellBar: true         // the bar while the demon rules: each style's hell version (HellBarFrame: the circle's stone at the edges, calm plates under the content; the dock stays as it is)
         property bool hellLyrics: true      // the bar's lyrics while the demon rules: hell's blackletter in the circle's colour, no typewriter, no animation
+        property string angelSkin: ""       // the angel's colours from heaven's prayers: "" | moon | mint | gold (services/HeavenStars)
         property string angelLook: "glitch" // glitch (cracked halo, pictures) | chibi (the first pictures) | adult (30×40 pixels) | mini (the first 20×21); kept as picked while the story shows her otherwise (Angel.angelLook)
         property string demonLook: "glitch" // the same for the demon (glitch: the sleepless neon one)
         property real helperScale: 1.0      // 0.75–2.00: Ctrl + mouse wheel, 5 % a notch; rendered size capped to screen (Y2K → Helper → Size)
@@ -360,6 +379,10 @@ JsonAdapter {
     // The player's save is its own file (~/.config/angelos/save.json), not here.
     property JsonObject game: JsonObject {
         property bool enabled: true         // false: plain dotfiles — no angel, demon, novel or hell (installer ANGELOS_GAME=0, the setup wizard, `angelos game off`)
+        property bool diaryTab: true        // the diary's bookmark on a screen edge (modules/diary/DiaryTab), once its key is had
+        property string diaryEdge: "left"   // left | right | top | bottom — where the bookmark sits (dragged there)
+        property real diaryOffset: 0.35     // its place along that edge, 0..1
+        property string diarySide: ""       // the Angel's diary opens from: "right" | "left" | "" (the author's pick, story/diary.json → side)
         property bool calm: false           // older settings: became appearance.motion "calm" (config/Motion migrates it once)
     }
 
@@ -393,6 +416,19 @@ JsonAdapter {
         property bool effects: true         // no sparkles, loading screen or angel/demon effects on the streamed screens
         property bool dndSet: false         // stream mode switched DND on (switched off again when the stream ends)
         property bool suppressed: false     // switched off by hand during this stream (kept through a shell restart)
+        // the angel on stream (services/StreamAngel, modules/y2k/AngelHelper): she sits on the
+        // streamed screen's taskbar (its bottom edge when the bar is elsewhere) and talks with the mic
+        property bool streamer: false
+        property string streamerMic: "auto" // auto | obs:<OBS input> | pw:<PipeWire source> (scripts/stream-mic.py)
+        property int streamerThreshold: 30  // % of the voice meter (-55…-12 dBFS) where her mouth opens
+        property int streamerSize: 30       // % of the screen's height above the bar (10–50; Ctrl + wheel on her)
+        property string streamerSide: "right" // right | left — the bottom corner she sits in
+        property string streamerScreen: ""  // "" = the first streamed screen (else the main one)
+        // where you see her (Mod+Alt+A switches): screen — on your screen too | obs — only in
+        // her own window for OBS (modules/y2k/StreamerCast: "Window capture (PipeWire)" →
+        // "angelOS · ангел для OBS"), which draws her all the time OBS runs either way
+        property string streamerView: "screen"
+        property bool streamerKeys: true    // the niri key Mod+Alt+A (cfg/angelos-windows.kdl)
     }
 
     property JsonObject settingsUi: JsonObject {

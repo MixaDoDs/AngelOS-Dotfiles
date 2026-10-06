@@ -289,8 +289,12 @@ Singleton {
         if (!_wantDefault && !(ours(w.fallback) && plain))
             return;
         _wantDefault = false;
-        if (w.fallback !== want || !plain)
+        if (w.fallback !== want || !plain) {
+            // the skin's own picture, not the player's pick (no achievement)
+            Achievements.mute++;
             Wallpapers.setEverywhere(want);
+            Achievements.mute--;
+        }
     }
     // the switch turned off while Golden Gate's picture is on: the pixel theme's set as a start
     function giveBackWallpaper() {

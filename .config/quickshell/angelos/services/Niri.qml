@@ -21,6 +21,14 @@ Singleton {
     function isHidden(ws) {
         return !!ws && String(ws.name || "").indexOf(hiddenPrefix) === 0;
     }
+    // the angel's window for OBS (modules/y2k/StreamerCast) is the shell's own and nobody's to
+    // see: kept out of `windows` (the taskbar, Alt+Tab, minimizing), its id and workspace here
+    readonly property string castTitle: "angelOS · ангел для OBS"
+    property int castWindowId: -1
+    property int castWindowWs: -1
+    function _isCast(w) {
+        return w.app_id === "org.quickshell" && w.title === castTitle;
+    }
     property var windows: []
     property int focusedWindowId: -1
     // A title alone changes many times a second (a terminal's spinner, a player's track):
@@ -328,13 +336,23 @@ Singleton {
                 }) : w));
             break;
         case "WindowsChanged":
-            windows = d.windows.map(w => _keepWorkspace(w, windows.find(o => o.id === w.id)));
+            {
+                const cast = d.windows.find(w => root._isCast(w));
+                castWindowId = cast ? cast.id : -1;
+                castWindowWs = cast ? cast.workspace_id : -1;
+            }
+            windows = d.windows.filter(w => !root._isCast(w)).map(w => _keepWorkspace(w, windows.find(o => o.id === w.id)));
             {
                 const f = d.windows.find(w => w.is_focused);
                 focusedWindowId = f ? f.id : -1;
             }
             break;
         case "WindowOpenedOrChanged":
+            if (_isCast(d.window) || d.window.id === castWindowId) {
+                castWindowId = d.window.id;
+                castWindowWs = d.window.workspace_id;
+                break;
+            }
             {
                 const old = windows.find(w => w.id === d.window.id);
                 const next = _keepWorkspace(d.window, old);
@@ -362,6 +380,10 @@ Singleton {
                 break;
             }
         case "WindowClosed":
+            if (d.id === castWindowId) {
+                castWindowId = -1;
+                castWindowWs = -1;
+            }
             windows = windows.filter(w => w.id !== d.id);
             if (ready)
                 windowClosed(d.id);

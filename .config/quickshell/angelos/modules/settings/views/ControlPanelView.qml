@@ -223,8 +223,11 @@ Item {
                                         id: cellMouse
                                         anchors.fill: parent
                                         hoverEnabled: true
+                                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
+                                        onClicked: mouse => {
+                                            if (root.view.clickedNew(mouse, root.view.sectionTarget(cell.modelData)))
+                                                return;
                                             root.curRun = run.index;
                                             root.curIdx = cell.index;
                                             root.view.openSection(cell.modelData);

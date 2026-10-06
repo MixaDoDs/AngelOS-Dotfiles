@@ -248,7 +248,7 @@ PxPage {
                         compact: true
                         text: I18n.t("Настройки плагина", "Plugin settings")
                         icon: "gear"
-                        onClicked: Shell.settingsPage = "plugin:" + card.info.plugin.id
+                        onClicked: page.nav.settingsPage = "plugin:" + card.info.plugin.id
                     }
                 }
             }

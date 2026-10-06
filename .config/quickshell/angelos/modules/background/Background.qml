@@ -89,7 +89,7 @@ Variants {
             WlrLayershell.namespace: "angelos-desktop"
 
             // (not in Golden Gate: no glitter behind a Mac's pointer)
-            readonly property bool sparkles: !GoldenGate.on && Config.y2k.sparkles && (!(Config.y2k.sparkleScreens || []).length || Config.y2k.sparkleScreens.includes(modelData.name)) && StreamMode.effectsOn(modelData.name)
+            readonly property bool sparkles: !GoldenGate.on && Config.y2k.sparkles && Heaven.has("fx.sparkles") && (!(Config.y2k.sparkleScreens || []).length || Config.y2k.sparkleScreens.includes(modelData.name)) && StreamMode.effectsOn(modelData.name)
             // where the pointer is, over the widgets too (Pointer: the demon's glass
             // clears up as it comes near)
             HoverHandler {

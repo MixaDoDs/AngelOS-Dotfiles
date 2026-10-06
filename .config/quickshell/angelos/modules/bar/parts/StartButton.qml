@@ -18,6 +18,8 @@ PxButton {
     // colours and the Hell wordmark, still
     readonly property bool hellish: Angel.demon && !!Config.y2k.hellStart
     hell: hellish
+    // pushed in (or Start open): a darker face, not the accent tint the logo's own colours vanish into
+    downColor: Theme.mix(Theme.face, Theme.lo, Theme.dark ? 0.6 : 0.45)
     implicitWidth: logo.implicitWidth + Theme.u * 8
     implicitHeight: Math.max(Theme.u * 15, logo.implicitHeight + Theme.u * 3)
     AngelLogo {

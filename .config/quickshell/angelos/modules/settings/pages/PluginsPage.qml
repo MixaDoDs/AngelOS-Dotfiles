@@ -56,7 +56,7 @@ PxPage {
         text: I18n.t("Создать плагин с ИИ", "Create a plugin with AI")
         icon: "sparkle"
         accent: true
-        onClicked: Shell.openSettings("studio")
+        onClicked: Shell.settingsGo(page, "studio")
     }
     Connections {
         target: Plugins
@@ -305,7 +305,7 @@ PxPage {
                                 visible: !!card.modelData.settings && card.on
                                 compact: true
                                 icon: "gear"
-                                onClicked: Shell.settingsPage = "plugin:" + card.modelData.id
+                                onClicked: page.nav.settingsPage = "plugin:" + card.modelData.id
                             }
                             PxButton {
                                 compact: true
@@ -354,7 +354,7 @@ PxPage {
                                 text: I18n.t("Доработать", "Improve")
                                 onClicked: {
                                     PluginStudio.editRequest = card.modelData.id;
-                                    Shell.openSettings("studio");
+                                    Shell.settingsGo(page, "studio");
                                 }
                             }
                             // its desktop widget only knows heaven: Studio draws its hell (offered while the demon rules)
@@ -367,7 +367,7 @@ PxPage {
                                 onClicked: {
                                     PluginStudio.hellRequest = card.modelData.id;
                                     PluginStudio.editRequest = card.modelData.id;
-                                    Shell.openSettings("studio");
+                                    Shell.settingsGo(page, "studio");
                                 }
                             }
                         }

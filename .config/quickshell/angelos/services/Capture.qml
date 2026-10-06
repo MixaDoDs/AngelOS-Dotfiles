@@ -27,6 +27,7 @@ Singleton {
     }
 
     function screenshot() {
+        Achievements.note("screenshot");
         launch(screenshotTool, "niri msg action screenshot");
     }
     function record() {

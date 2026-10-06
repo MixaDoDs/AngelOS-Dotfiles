@@ -7,7 +7,7 @@
     "Blocks of one source file show in that file's order. Two levels only: category › page.",
     "\"legacy\": the old page ids (links in the wizard, the tour, the helper, `angelos settings`)",
     "and where they lead now; \"to\" may name a group, the page scrolls to it.",
-    "\"developer\"/\"owner\": shown only in developer mode / to the owner. \"plugins\": the category",
+    "\"developer\"/\"owner\"/\"game\": shown only in developer mode / to the owner / while the game is on. \"plugins\": the category",
     "where plugins' own settings pages are listed (\"after\": a plugin page that goes after a page).",
     "\"mac\": the Golden Gate skin's own tree (services/GoldenGate.on): its look-and-feel pages (modules/settings/pages/MacPage.qml and the groups of the other files that fit a Mac) and the system pages without the pixel skins' groups. Its own \"legacy\" leads the old ids there; an id it doesn't know goes to \"fallback\". The pixel tree's pages are not shown while the skin is on."
   ],
@@ -98,7 +98,8 @@
           "hintRu": "эфир по OBS: тишина, без эффектов, экраны",
           "hintEn": "on air with OBS: quiet, no effects, screens",
           "blocks": [
-            "y2k/stream-mode"
+            "y2k/stream-mode",
+            "y2k/stream-angel"
           ]
         },
         {
@@ -477,6 +478,29 @@
           ]
         },
         {
+          "id": "achievements",
+          "ru": "Достижения",
+          "en": "Achievements",
+          "icon": "star",
+          "game": true,
+          "hintRu": "что получено, что откроется в раю",
+          "hintEn": "what is earned, what heaven will open",
+          "blocks": [
+            "achievements"
+          ]
+        },
+        {
+          "id": "stars",
+          "ru": "Небеса: звёзды",
+          "en": "Heaven: stars",
+          "icon": "sparkleStar",
+          "hintRu": "молитвы, скины ангела, альбом, задания дня, небесный пропуск",
+          "hintEn": "prayers, the angel's skins, the album, today's tasks, the heavenly pass",
+          "blocks": [
+            "stars"
+          ]
+        },
+        {
           "id": "helper",
           "ru": "Помощница",
           "en": "The helper",
@@ -510,6 +534,30 @@
           "hintEn": "the angel's stories, who you are",
           "blocks": [
             "y2k/novel"
+          ]
+        },
+        {
+          "id": "achievements-admin",
+          "ru": "Достижения: редактор",
+          "en": "Achievements: editor",
+          "icon": "lock",
+          "owner": true,
+          "hintRu": "добавить и поправить достижения (только автору)",
+          "hintEn": "add and edit achievements (the author only)",
+          "blocks": [
+            "@owner/AchievementsAdmin.qml"
+          ]
+        },
+        {
+          "id": "diary-admin",
+          "ru": "Дневник: редактор",
+          "en": "Diary: editor",
+          "icon": "lock",
+          "owner": true,
+          "hintRu": "страницы дневника Ангела, картинка ключа (только автору)",
+          "hintEn": "the Angel's diary pages, the key's picture (the author only)",
+          "blocks": [
+            "@owner/DiaryAdmin.qml"
           ]
         }
       ]
@@ -652,6 +700,17 @@
               "widgets/add",
               "widgets/on-desktop",
               "widgets/behavior"
+            ]
+          },
+          {
+            "id": "mac-spotlight",
+            "ru": "Spotlight",
+            "en": "Spotlight",
+            "icon": "search",
+            "hintRu": "поиск файлов по имени и типу, предпросмотр",
+            "hintEn": "finding files by name and type, previews",
+            "blocks": [
+              "mac/spotlight"
             ]
           },
           {
@@ -831,6 +890,18 @@
             "open": [
               "system/development"
             ]
+          },
+          {
+            "id": "mac-achievements",
+            "ru": "Достижения",
+            "en": "Achievements",
+            "icon": "star",
+            "game": true,
+            "hintRu": "что получено, что откроется в раю",
+            "hintEn": "what is earned, what heaven will open",
+            "blocks": [
+              "achievements"
+            ]
           }
         ]
       }
@@ -892,6 +963,9 @@
       },
       "system": {
         "page": "about"
+      },
+      "achievements": {
+        "page": "mac-achievements"
       }
     }
   }

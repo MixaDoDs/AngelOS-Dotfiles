@@ -414,6 +414,7 @@ Singleton {
         Config.desktop.widgets = list;
     }
     function add(type, screen, x, y) {
+        Achievements.note("widget.add", type);
         screen = screen || Shell.primaryName;
         const n = widgets.filter(w => w.screen === screen).length;
         _save((Config.desktop.widgets || []).concat([{

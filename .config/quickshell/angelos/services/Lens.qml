@@ -112,6 +112,7 @@ Singleton {
     }
 
     function show(screen) {
+        Achievements.note("lens.open");
         screenName = screen || Niri.focusedOutput || (Quickshell.screens[0] ? Quickshell.screens[0].name : "");
         zoom = Math.max(1.5, Config.lens.zoom || 2);
         size = Config.lens.size;

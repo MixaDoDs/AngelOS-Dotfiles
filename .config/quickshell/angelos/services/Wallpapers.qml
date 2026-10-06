@@ -75,16 +75,19 @@ Singleton {
         Story.player.hellWall = w;
     }
     function setForOutput(output, path) {
+        Achievements.note("wallpaper.set");
         if (hellOn)
             return _hellEdit(w => path ? w.outputs[output] = path : delete w.outputs[output]);
         Config.setIn(Config.wallpaper, "outputs", output, path);
     }
     function setForWorkspace(output, idx, path) {
+        Achievements.note("wallpaper.set");
         if (hellOn)
             return _hellEdit(w => path ? w.workspaces[key(output, idx)] = path : delete w.workspaces[key(output, idx)]);
         Config.setIn(Config.wallpaper, "workspaces", key(output, idx), path);
     }
     function setEverywhere(path) {
+        Achievements.note("wallpaper.set");
         if (hellOn)
             return _hellEdit(w => {
                 w.fallback = path;

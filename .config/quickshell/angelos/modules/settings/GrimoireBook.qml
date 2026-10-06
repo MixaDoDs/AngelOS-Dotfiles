@@ -47,14 +47,14 @@ Item {
             }
         return s || "—";
     }
-    readonly property int pageIndex: view.allPages.findIndex(p => p.id === Shell.settingsPage)
+    readonly property int pageIndex: view.allPages.findIndex(p => p.id === book.view.settingsNav.settingsPage)
 
     // ---- the page turn ----
     property real turn: 1                   // 0 → 1 while a page turns
     property bool backwards: false
     property int lastIndex: pageIndex
     onPageIndexChanged: {
-        if (visible && spread && Shell.settingsOpen && pageIndex !== lastIndex) {
+        if (visible && spread && book.view.settingsNav.settingsOpen && pageIndex !== lastIndex) {
             backwards = pageIndex < lastIndex;
             turnAnim.restart();
         }
@@ -182,7 +182,7 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: Shell.settingsOpen = false
+                onClicked: book.view.settingsNav.settingsOpen = false
             }
         }
     }
@@ -359,16 +359,16 @@ Item {
                     PxText {
                         anchors.verticalCenter: parent.verticalCenter
                         x: Theme.u * 2
-                        color: Shell.settingsPage === "home" ? book.redInk : book.ink
-                        font.bold: Shell.settingsPage === "home"
-                        text: (Shell.settingsPage === "home" ? "☞ " : "") + I18n.t("Титульный лист", "Title page")
+                        color: book.view.settingsNav.settingsPage === "home" ? book.redInk : book.ink
+                        font.bold: book.view.settingsNav.settingsPage === "home"
+                        text: (book.view.settingsNav.settingsPage === "home" ? "☞ " : "") + I18n.t("Титульный лист", "Title page")
                     }
                     MouseArea {
                         id: homeMouse
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: Shell.settingsPage = "home"
+                        onClicked: book.view.settingsNav.settingsPage = "home"
                     }
                 }
                 Repeater {
@@ -391,7 +391,7 @@ Item {
                             Rectangle {
                                 id: line
                                 required property var modelData
-                                readonly property bool sel: Shell.settingsPage === modelData.id
+                                readonly property bool sel: book.view.settingsNav.settingsPage === modelData.id
                                 readonly property int number: book.view.allPages.findIndex(p => p.id === modelData.id) + 1
                                 width: chapter.width
                                 height: Math.max(Theme.u * 12, lineName.implicitHeight + Theme.u * 2)
@@ -432,7 +432,7 @@ Item {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: Shell.settingsPage = line.modelData.id
+                                    onClicked: book.view.settingsNav.settingsPage = line.modelData.id
                                 }
                             }
                         }
@@ -459,7 +459,7 @@ Item {
                         "icon": "fire",
                         "label": I18n.t("Закрыть книгу", "Close the book"),
                         "show": true,
-                        "act": () => Shell.settingsOpen = false
+                        "act": () => book.view.settingsNav.settingsOpen = false
                     }
                 ]
                 Row {

@@ -8,7 +8,7 @@ import qs.widgets
 // more before it resets; "Undo" at the top brings everything back.
 // Like macOS: at the top the way up ("‹ Sound" on a sub-page), then a card of links
 // ("Title ›") to the section's other pages and to this page's advanced groups, which
-// open on their own (focusGroup = Shell.settingsSub: the rest of the page steps aside).
+// open on their own (focusGroup = nav.settingsSub: the rest of the page steps aside).
 PxScroll {
     id: root
 
@@ -27,7 +27,7 @@ PxScroll {
     property bool embedded: false
     property var only: []                   // group names (PxGroup.name) to show; empty: all
     property bool loose: true               // what sits outside the groups (a note, buttons)
-    property string partOf: ""              // the page it is a part of (Shell.settingsPage)
+    property string partOf: ""              // the page it is a part of (nav.settingsPage)
     property var unfold: []                 // groups that are the whole page: never a sub-page here
     scrolls: !embedded
     implicitHeight: embedded ? contentHeight : 0
@@ -35,15 +35,17 @@ PxScroll {
         return !only || only.length === 0 || only.indexOf(g.name) >= 0;
     }
     // the settings page this is (plugin pages and the home tiles have nothing to reset)
-    property string pageId: partOf || Shell.settingsPage
+    // the Settings window it is in (there can be several): its page and sub-page
+    readonly property var view: Shell.settingsViewFor(root.parent)
+    readonly property var nav: Shell.settingsNavFor(root.parent)
+    property string pageId: partOf || nav.settingsPage
     readonly property var changed: SettingsKeys.loaded ? SettingsKeys.changedOn(pageId) : []
     property bool confirming: false
     property int resetCount: -1
     // the sub-page open on this page: one of its advanced groups (PxGroup steps the others aside)
-    readonly property string focusGroup: pageId === Shell.settingsPage ? Shell.settingsSub : ""
-    readonly property var view: Shell.settingsView
+    readonly property string focusGroup: pageId === nav.settingsPage ? nav.settingsSub : ""
     // the properties view shows the section's pages and the sub-pages as its tabs
-    readonly property bool tabsOutside: !!view && view.ownsSubpages === true && pageId === Shell.settingsPage
+    readonly property bool tabsOutside: !!view && view.ownsSubpages === true && pageId === nav.settingsPage
     // the way up: from a sub-page to its page, from a section's other page to its first one
     readonly property var up: {
         if (focusGroup !== "")
@@ -88,9 +90,9 @@ PxScroll {
     function go(l) {
         if (!l)
             return;
-        if (Shell.settingsPage !== l.page)
-            Shell.settingsPage = l.page;
-        Shell.settingsSub = l.sub || "";
+        if (nav.settingsPage !== l.page)
+            nav.settingsPage = l.page;
+        nav.settingsSub = l.sub || "";
         scrollBy(-flick.contentY);
     }
     // everything else on the page steps aside while a sub-page is open

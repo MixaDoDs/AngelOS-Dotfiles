@@ -25,6 +25,8 @@ PxPage {
         property real gap: 0
         readonly property bool current: hell ? (Cursors.byCircle ? Cursors.circleTheme.startsWith(modelData.theme) && !!modelData.circle : Config.cursor.hell === modelData.theme) : Cursors.theme === modelData.theme
         readonly property bool working: Cursors.busy && (Cursors.working === modelData.id || Cursors.working === modelData.theme)
+        // heaven's own (services/Heaven): angelOS Glitter is earned
+        readonly property bool locked: !hell && Cursors.allowed(modelData.theme) !== modelData.theme
         width: (parent.width - (columns - 1) * gap) / columns
         height: cardCol.implicitHeight + Theme.u * 8
         sunken: current
@@ -50,7 +52,7 @@ PxPage {
                     anchors.centerIn: parent
                     visible: !!card.modelData.installed && source !== ""
                     // in the grimoire (or a dress): an engraving the right way round, not a negative
-                    layer.enabled: Theme.inkWindow !== null && Window.window === Theme.inkWindow
+                    layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
                     layer.effect: GrimoirePhoto {}
                     source: card.modelData.preview ? "file://" + card.modelData.preview + "?" + Cursors.catalog.length : ""
                     cache: false
@@ -74,6 +76,13 @@ PxPage {
                 wrapMode: Text.Wrap
             }
             PxText {
+                visible: card.locked
+                width: parent.width
+                text: Heaven.label("cursor.glitter") + ": " + Heaven.lockHint("cursor.glitter")
+                kind: "tiny"
+                wrapMode: Text.Wrap
+            }
+            PxText {
                 width: parent.width
                 text: "© " + card.modelData.license
                 kind: "tiny"
@@ -86,7 +95,7 @@ PxPage {
                 PxButton {
                     compact: true
                     visible: !card.modelData.installed
-                    enabled: !Cursors.busy
+                    enabled: !Cursors.busy && !card.locked
                     icon: "download"
                     text: card.working ? I18n.t("качаю…", "downloading…") : card.hell ? I18n.t("Скачать для ада", "Get it for hell") : I18n.t("Скачать и включить", "Get and use")
                     accent: true
@@ -102,7 +111,7 @@ PxPage {
                 PxButton {
                     compact: true
                     visible: !!card.modelData.installed && !card.current
-                    enabled: !Cursors.busy
+                    enabled: !Cursors.busy && !card.locked
                     text: card.working ? I18n.t("применяю…", "applying…") : card.hell ? I18n.t("Для ада", "Use in hell") : I18n.t("Включить", "Use")
                     accent: true
                     onClicked: card.hell ? Cursors.setHell(card.modelData.theme) : Cursors.apply(card.modelData.theme, page.size)

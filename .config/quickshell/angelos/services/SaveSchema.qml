@@ -38,6 +38,13 @@ JsonAdapter {
         property bool fallen: false
         property double fallenSince: 0
         property bool fallenSeen: false     // her first words after it have been said
+        // her diary read behind her back (services/Diary → watch, story/diary.json → watch):
+        // trust left (-1 = not set yet: the rules' start), times caught, the diary hidden in
+        // Settings since the first time, the trust marks already crossed (each chills her once)
+        property int trust: -1
+        property int diaryCaught: 0
+        property bool diaryHidden: false
+        property var trustMarks: []
     }
 
     // the story's variables: the sins the player's choices weigh (limbo lust gluttony greed
@@ -58,6 +65,20 @@ JsonAdapter {
         property bool amnesty: false        // fell under the old rules (before the circles): let out at the next start
         property var outcomes: []           // [{kind: stars|pact|limbo|amnesty, circle, at}]
         property var close: ({})            // each circle's demon and the player: {circle: {points, talkAt, giftAt, stayAt}}
+    }
+
+    // the achievements (services/Achievements, story/achievements.json): only while the game is on.
+    // got: {id: ms} earned; items: heaven's things they gave ({item: ms}, kept even if the
+    // list changes later); counts: {event: n, "event:key": n}; kinds: {event: [keys]} (the
+    // different keys seen: Start's looks, the circles); since: ms the counting began; diary: the
+    // Angel's diary pages read and announced
+    property JsonObject achievements: JsonObject {
+        property var got: ({})
+        property var items: ({})
+        property var counts: ({})
+        property var kinds: ({})
+        property double since: 0
+        property var diary: ({})            // the Angel's diary (services/Diary): {read: {page: ms}, seen: {page: ms}}
     }
 
     // every choice the player made: [{scene, node, choice, tone, at}] (the last 400)

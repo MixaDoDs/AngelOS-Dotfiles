@@ -91,8 +91,8 @@ Item {
         color: Theme.text
         selectionColor: Theme.select
         selectedTextColor: Theme.selectText
-        // handwritten in the grimoire (Theme.scriptWindow), like PxText
-        readonly property bool script: Theme.scriptWindow !== null && Window.window === Theme.scriptWindow
+        // handwritten in the grimoire (Theme.scriptWindows), like PxText
+        readonly property bool script: Theme.scriptWindows.length > 0 && Theme.scriptWindows.includes(Window.window)
         font.family: script ? Theme.fontScript : root.mac ? Theme.macFont : root.kind === "title" ? Theme.fontTitle : Theme.fontBody
         font.pixelSize: script ? Theme.scriptPx(root.kind === "title" ? Theme.sizeTitle : Theme.sizeBody) : root.mac ? GoldenGate.px(root.kind === "title" ? 15 : 13) : root.kind === "title" ? Theme.sizeTitle : Theme.sizeBody
         font.hintingPreference: root.mac ? Font.PreferVerticalHinting : Font.PreferFullHinting

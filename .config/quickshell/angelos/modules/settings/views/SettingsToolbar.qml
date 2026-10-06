@@ -46,7 +46,7 @@ Item {
             visible: root.upButton
             compact: true
             icon: "arrowUp"
-            enabled: Shell.settingsSub !== "" || root.view.parentOf(root.view.currentId) !== "" || (root.view.hasHome && !root.view.atHome)
+            enabled: root.view.settingsNav.settingsSub !== "" || root.view.parentOf(root.view.currentId) !== "" || (root.view.hasHome && !root.view.atHome)
             opacity: enabled ? 1 : 0.35
             onClicked: root.view.goUp()
         }
@@ -57,7 +57,7 @@ Item {
         visible: root.address
         anchors.left: arrows.right
         anchors.leftMargin: Theme.u * 3
-        anchors.right: root.searchWidth > 0 ? searchSlot.left : undoBtn.visible ? undoBtn.left : parent.right
+        anchors.right: root.searchWidth > 0 ? searchSlot.left : undoBtn.visible ? undoBtn.left : newBtn.left
         anchors.rightMargin: Theme.u * 3
         anchors.verticalCenter: parent.verticalCenter
         height: Theme.u * 13
@@ -69,7 +69,7 @@ Item {
         id: crumbRow
         anchors.left: arrows.right
         anchors.leftMargin: Theme.u * (root.address ? 7 : 4)
-        anchors.right: root.searchWidth > 0 ? searchSlot.left : undoBtn.visible ? undoBtn.left : parent.right
+        anchors.right: root.searchWidth > 0 ? searchSlot.left : undoBtn.visible ? undoBtn.left : newBtn.left
         anchors.rightMargin: Theme.u * (root.address ? 7 : 3)
         anchors.verticalCenter: parent.verticalCenter
         height: crumbInner.implicitHeight
@@ -123,8 +123,8 @@ Item {
     Item {
         id: searchSlot
         visible: root.searchWidth > 0
-        anchors.right: undoBtn.visible ? undoBtn.left : parent.right
-        anchors.rightMargin: undoBtn.visible ? Theme.u * 3 : 0
+        anchors.right: undoBtn.visible ? undoBtn.left : newBtn.left
+        anchors.rightMargin: Theme.u * 3
         anchors.verticalCenter: parent.verticalCenter
         width: root.searchWidth
         height: root.view.searchFieldHeight
@@ -134,12 +134,25 @@ Item {
     PxButton {
         id: undoBtn
         visible: Config.canUndo
-        anchors.right: parent.right
+        anchors.right: newBtn.left
+        anchors.rightMargin: Theme.u * 2
         anchors.verticalCenter: parent.verticalCenter
         compact: true
         icon: "refresh"
         text: I18n.t("Отменить", "Undo") + (root.width > Theme.u * 420 && SettingsKeys.loaded ? " " + SettingsKeys.stepLabel(Config.lastStep) : "")
         onClicked: Config.undo()
+    }
+    // this page in one more window (Ctrl+N; a middle click on a section does the same)
+    PxButton {
+        id: newBtn
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        compact: true
+        flat: !root.address
+        icon: "window"
+        enabled: Shell.settingsMore.count < Shell.settingsMoreMax
+        opacity: enabled ? 1 : 0.35
+        onClicked: root.view.openNew()
     }
     Rectangle {
         visible: root.hasRule

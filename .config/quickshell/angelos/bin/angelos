@@ -8,6 +8,8 @@
 #   angelOS is also a game played over your desktop (an angel, a demon, a story that follows
 #   your choices). Out of it at once, any time: `angelos game off` or Mod+Ctrl+Shift+Escape;
 #   back: `angelos game on`. `angelos game status | reset` (the save, ~/.config/angelos/save.json).
+#   Achievements (the game on only): `angelos ach status | list | events | validate | streak`.
+#   The Angel's diary (its key is an achievement's): `angelos diary open [page] | list | validate`.
 #   angelos motion full|calm|off — how much moves: calm = no flashes, shaking or sudden loud
 #   sounds; off = no animations at all (the shell, niri, hell), an optimisation mode
 #   angelos author status|fetch|login — the author's own tools (the chapter editor), only for
@@ -18,6 +20,8 @@
 #   it follows `angelos settingsSkin …` by itself while the shell runs; sync = the one settings.json asks for
 #   angelos updates [status] | check | update — Settings → Updates from the terminal: follows the
 #   run to its end and says what happened (without a running shell the update runs right here)
+#   angelos sddm [status] | build | install [--palette ngo|system] — the login screen (SDDM) in
+#   angelOS's look: the NGO stream "starting soon"; install asks for the admin password (pkexec)
 SHELL_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/angelos"
 CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/angelos"
 RUN_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/angelos"
@@ -192,6 +196,7 @@ case "$1" in
   # the circles' demons from the author's sheets (~/Pictures/angelos-sprites/<circle>/)
   sprites) shift; [ $# -gt 0 ] || set -- skins; exec python3 "$SHELL_DIR/scripts/sprite-rig.py" "$@" ;;
   switch)  shift; exec python3 "$SHELL_DIR/scripts/switch.py" "$@" ;;
+  sddm)    shift; [ $# -gt 0 ] || set -- status; exec python3 "$SHELL_DIR/scripts/sddm-theme.py" "$@" ;;
   settings) exec qs -c angelos ipc call angelos settings "${2:-}" ;;
   setup)
     [ $# -eq 1 ] && exec qs -c angelos ipc call angelos setup
@@ -252,6 +257,16 @@ case "$1" in
     # the game: off | on | calm on|off | status | reset (+ dev: circle, scene, sin, outcome, try)
     shift
     exec qs -c angelos ipc call angelos game "$*" ;;
+  ach|achievements)
+    # the achievements: status | list | events | check | validate | streak (+ owner/dev: grant,
+    # revoke, toast <id> [hell|heaven], note <event> [key] [n], reset [counts])
+    shift
+    exec qs -c angelos ipc call angelos ach "$*" ;;
+  diary)
+    # the Angel's diary: open [page] | close | list | validate | status | watch
+    # (+ owner/dev: read-reset, preview on|off, away [min], back, trust [reset])
+    shift
+    exec qs -c angelos ipc call angelos diary "$*" ;;
   debug)
     # the game's debug panel (developer mode): open | close | toggle | snapshot | restore | restart | tab <id> | status;
     # cycles [N] [PATTERN]: heaven ⇄ hell N times, then every app must be in heaven's colours

@@ -81,6 +81,7 @@ Singleton {
 
     // ---- install, update ----
     function install(e) {
+        Achievements.note("plugin.install");
         if (!e || busy)
             return;
         _start(e, undefined);

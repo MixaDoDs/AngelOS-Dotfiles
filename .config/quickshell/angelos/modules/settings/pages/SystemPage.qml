@@ -8,6 +8,7 @@ import qs.services
 import qs.widgets
 
 PxPage {
+    id: systemPage
     heading: "System"
 
     PxGroup {
@@ -314,7 +315,7 @@ PxPage {
             visible: Config.developer.enabled
             text: I18n.t("Открыть мастер плагинов", "Open Plugin Studio")
             icon: "sparkle"
-            onClicked: Shell.openSettings("studio")
+            onClicked: Shell.settingsGo(systemPage, "studio")
         }
     }
 
@@ -485,7 +486,7 @@ PxPage {
         PxButton {
             text: I18n.t("Блокировка и заставка →", "Lock and idle screen →")
             icon: "lock"
-            onClicked: Shell.openSettings("lock")
+            onClicked: Shell.settingsGo(systemPage, "lock")
         }
         SettingRow {
             label: I18n.t("Терминал", "Terminal")
@@ -522,7 +523,7 @@ PxPage {
             PxButton {
                 icon: "sparkle"
                 text: I18n.t("Открыть", "Open")
-                onClicked: Shell.openSettings("appearance")
+                onClicked: Shell.settingsGo(systemPage, "appearance")
             }
         }
         SettingRow {

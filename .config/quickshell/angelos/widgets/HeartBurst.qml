@@ -8,6 +8,9 @@ Item {
 
     property int poolSize: 48
     property real gravity: 0.35
+    // other pieces than hearts (icon names) and their colours; empty = hearts in the accents
+    property var shapes: []
+    property var colors: []
     readonly property bool busy: live > 0
     property int live: 0
 
@@ -20,9 +23,9 @@ Item {
                 p.vx = vx;
                 p.vy = vy;
                 p.life = 1;
-                p.name = broken ? "heartBroken" : big ? "heart" : (Math.random() < 0.5 ? "heartSmall" : "heart");
+                p.name = broken ? "heartBroken" : shapes.length ? shapes[Math.floor(Math.random() * shapes.length)] : big ? "heart" : (Math.random() < 0.5 ? "heartSmall" : "heart");
                 p.pixel = Math.max(1, Theme.u * (big ? 2 : 1));
-                p.fill = Math.random() < 0.7 ? Theme.accent : Theme.accent2;
+                p.fill = colors.length ? colors[Math.floor(Math.random() * colors.length)] : Math.random() < 0.7 ? Theme.accent : Theme.accent2;
                 p.alive = true;
                 live++;
                 ticker.start();

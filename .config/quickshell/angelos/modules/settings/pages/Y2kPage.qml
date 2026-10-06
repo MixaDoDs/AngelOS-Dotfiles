@@ -103,15 +103,161 @@ PxPage {
         }
     }
 
+    // the angel on stream: on the streamed screen's taskbar, talking with the mic
+    PxGroup {
+        name: "stream-angel"
+        width: parent.width
+        title: I18n.t("Ангел на стриме", "The angel on stream")
+        advanced: true
+        icon: "chat"
+        SettingRow {
+            label: I18n.t("Сидит в кадре", "On camera")
+            hint: I18n.t("пока идёт эфир OBS, ангелочек (или демоница) переходит на экран в эфире и сидит на панели «Пуска», как за столом (панель не снизу — на нижнем краю экрана), и говорит твоим микрофоном. Клик, меню и бросок в ад работают как обычно; в эфире у неё свои реплики", "While OBS streams, the angel (or the demon) moves to the streamed screen and sits on the taskbar like at a desk (on the screen's bottom edge when the bar is elsewhere) and talks with your mic. Clicks, her menu and the throw into hell work as usual; on stream she has lines of her own")
+            PxToggle {
+                checked: !!Config.stream.streamer
+                onToggled: c => Config.stream.streamer = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("Сейчас", "Now")
+            hint: !StreamAngel.enabled && !StreamAngel.preview ? I18n.t("выключено", "Off") : StreamAngel.shown ? (StreamAngel.preview && !StreamAngel.live ? I18n.t("показ без эфира", "Preview, not live") : I18n.t("в эфире", "Live")) + (StreamAngel.talking ? I18n.t(" · говорит", " · talking") : "") : StreamAngel.obsUp ? I18n.t("OBS на связи, ждёт эфира", "OBS connected, waiting for the stream") : I18n.t("OBS не запущен или WebSocket-сервер выключен (Инструменты → Настройки WebSocket)", "OBS isn't running or its WebSocket server is off (Tools → WebSocket Server Settings)")
+            PxButton {
+                icon: StreamAngel.preview ? "close" : "eye"
+                text: StreamAngel.preview ? I18n.t("Убрать", "Hide") : I18n.t("Показать сейчас", "Show her now")
+                onClicked: StreamAngel.set("test")
+            }
+        }
+        SettingRow {
+            label: I18n.t("Микрофон", "Microphone")
+            hint: (StreamAngel.using ? I18n.t("слушает: ", "Listening to: ") + StreamAngel.using.replace(/^obs:/, "OBS → ").replace(/^pw:/, "PipeWire → ") : StreamAngel.error === "no-mic" ? I18n.t("микрофон не найден — выбери вход", "No microphone found — pick an input") : I18n.t("из OBS: тот вход, что он слышит, после его ползунка; заглушён в OBS — ангел молчит", "From OBS: the input it hears, after its slider; muted in OBS, she's quiet")) 
+            PxCombo {
+                model: [{
+                        "label": I18n.t("Сам найдёт", "Find it"),
+                        "value": "auto"
+                    }].concat((StreamAngel.inputs || []).map(i => ({
+                            "label": (i.kind === "pipewire" ? "PipeWire: " : "OBS: ") + i.name + (i.device && i.device !== "(null)" && i.kind === "pipewire" ? " (" + i.device + ")" : ""),
+                            "value": (i.kind === "pipewire" ? "pw:" : "obs:") + i.name
+                        }))).concat(Config.stream.streamerMic && Config.stream.streamerMic !== "auto" && !(StreamAngel.inputs || []).some(i => ((i.kind === "pipewire" ? "pw:" : "obs:") + i.name) === Config.stream.streamerMic) ? [{
+                            "label": Config.stream.streamerMic,
+                            "value": Config.stream.streamerMic
+                        }] : [])
+                currentValue: Config.stream.streamerMic || "auto"
+                onActivated: v => Config.stream.streamerMic = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Чувствительность", "Sensitivity")
+            hint: I18n.t("где открывается рот: меньше — слышит тихий голос, больше — не реагирует на шум. Сейчас: ", "Where her mouth opens: lower hears a quiet voice, higher ignores noise. Now: ") + Math.round(StreamAngel.level * 100) + "%"
+            Column {
+                width: parent.width
+                spacing: Theme.u
+                PxSlider {
+                    width: Math.min(parent.width, Theme.u * 120)
+                    from: 5
+                    to: 90
+                    stepSize: 5
+                    value: Config.stream.streamerThreshold ?? 30
+                    suffix: "%"
+                    onMoved: v => Config.stream.streamerThreshold = Math.round(v)
+                }
+                // the live voice against the threshold
+                Rectangle {
+                    visible: StreamAngel.enabled || StreamAngel.preview
+                    width: Math.min(parent.width, Theme.u * 120)
+                    height: Theme.u * 3
+                    color: Theme.sunken
+                    Rectangle {
+                        width: parent.width * Math.min(1, StreamAngel.level)
+                        height: parent.height
+                        color: StreamAngel.talking ? Theme.accent : Theme.mix(Theme.face, Theme.accent, 0.4)
+                    }
+                    Rectangle {
+                        x: parent.width * StreamAngel.threshold
+                        width: Math.max(1, Theme.u / 2)
+                        height: parent.height
+                        color: Theme.edge
+                    }
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Размер", "Size")
+            hint: I18n.t("какую часть высоты экрана она занимает над панелью; ещё — Ctrl + колесо на ней", "How much of the screen's height she takes above the bar; also Ctrl + wheel over her")
+            PxSlider {
+                width: Math.min(parent.width, Theme.u * 120)
+                from: 10
+                to: 50
+                stepSize: 2
+                value: Config.stream.streamerSize || 30
+                suffix: "%"
+                onMoved: v => Config.stream.streamerSize = Math.round(v)
+            }
+        }
+        SettingRow {
+            label: I18n.t("Угол", "Corner")
+            PxCombo {
+                model: [{
+                        "label": I18n.t("Справа внизу", "Bottom right"),
+                        "value": "right"
+                    }, {
+                        "label": I18n.t("Слева внизу", "Bottom left"),
+                        "value": "left"
+                    }]
+                currentValue: Config.stream.streamerSide || "right"
+                onActivated: v => Config.stream.streamerSide = v
+            }
+        }
+        SettingRow {
+            visible: page.screenNames.length > 1
+            label: I18n.t("Экран", "Screen")
+            PxCombo {
+                model: [{
+                        "label": I18n.t("Первый в эфире", "The first streamed one"),
+                        "value": ""
+                    }].concat(page.screenNames.map(n => ({
+                            "label": n,
+                            "value": n
+                        })))
+                currentValue: Config.stream.streamerScreen || ""
+                onActivated: v => Config.stream.streamerScreen = v
+            }
+        }
+        // Mod+Alt+A: off your own screen; her window for OBS has her either way
+        SettingRow {
+            label: I18n.t("Спрятать от себя", "Hide her from you")
+            hint: (StreamAngel.view === "obs" ? I18n.t("сейчас ты её не видишь, она только в окне для OBS. ", "You don't see her now, she's only in the window for OBS. ") : I18n.t("сейчас она и у тебя на экране. ", "She's on your screen too now. ")) + I18n.t("Окно для OBS рисует её всё время, пока OBS запущен, это только про твой экран", "The window for OBS draws her the whole time OBS runs; this is about your screen only") + (Config.stream.streamerKeys !== false ? I18n.t(". Переключает Mod+Alt+A, в игре тоже", ". Mod+Alt+A switches it, in games too") : "")
+            PxButton {
+                icon: StreamAngel.view === "screen" ? "close" : "eye"
+                text: StreamAngel.view === "screen" ? I18n.t("Спрятать", "Hide") : I18n.t("Показать", "Show")
+                onClicked: StreamAngel.set("view")
+            }
+        }
+        SettingRow {
+            label: I18n.t("Окно для OBS", "Window for OBS")
+            hint: (!StreamAngel.niriKeys ? I18n.t("нужна клавиша ниже: с ней niri прячет это окно с экрана. ", "Needs the key below: with it niri keeps the window off your screen. ") : StreamAngel.castOpen ? (Niri.castWindowId >= 0 ? I18n.t("открыто. ", "Open. ") : I18n.t("открывается… ", "Opening… ")) : I18n.t("откроется, когда запустится OBS. ", "Opens when OBS starts. ")) + I18n.t("Один раз в OBS: Источники → + → «Захват окна (PipeWire)» → «angelOS · ангел для OBS», поставь над панелью. Фон прозрачный, она там всё время, пока OBS запущен, с эфиром и без, рот под микрофон. Если в кадре и твой экран, спрячь её от себя, иначе ангелов будет два", "Once in OBS: Sources → + → «Window Capture (PipeWire)» → «angelOS · ангел для OBS», put it over the bar. The background is transparent; she's there the whole time OBS runs, live or not, the mouth on the mic. If your screen is in the shot too, hide her from you, or there'll be two of her")
+        }
+        SettingRow {
+            label: I18n.t("Клавиша Mod+Alt+A", "Mod+Alt+A key")
+            hint: I18n.t("прячет её и возвращает, работает и в полноэкранной игре; заодно правило niri для окна OBS", "Hides her and brings her back, in fullscreen games too; also niri's rule for the OBS window")
+            PxToggle {
+                checked: Config.stream.streamerKeys !== false
+                onToggled: c => Config.stream.streamerKeys = c
+            }
+        }
+    }
+
     // the helper's versions (four each), for each of them apart
     component LookCard: PxButton {
         id: card
         required property var modelData
         property string who: "angel"
-        readonly property string current: who === "demon" ? Config.y2k.demonLook || "glitch" : Config.y2k.angelLook || "glitch"
+        // the angel's: the look she wears (a locked pick waits — services/Heaven)
+        readonly property string current: who === "demon" ? Config.y2k.demonLook || "glitch" : Heaven.lookOk(Config.y2k.angelLook) ? Config.y2k.angelLook || "glitch" : "glitch"
+        readonly property bool locked: who !== "demon" && !Heaven.lookOk(modelData.value)
         width: Math.max(Theme.u * 64, lookLabel.implicitWidth + Theme.u * 8)
         height: Theme.u * 78
         checked: current === modelData.value
+        enabled: !locked
         onClicked: {
             if (who === "demon")
                 Config.y2k.demonLook = modelData.value;
@@ -159,6 +305,14 @@ PxPage {
             font.bold: card.checked
             text: (card.checked ? "♡ " : "") + card.modelData.label
         }
+        PxIcon {
+            visible: card.locked
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: Theme.u * 2
+            name: "lock"
+            pixel: Math.max(1, Theme.u)
+        }
     }
 
     PxGroup {
@@ -169,9 +323,10 @@ PxPage {
         icon: "sparkle"
         SettingRow {
             label: I18n.t("Шлейф за курсором", "Sparkle trail")
-            hint: I18n.t("видно, пока курсор над рабочим столом (над окнами он чужой — там блестит сам курсор)", "Shows while the pointer is over the desktop; over windows only the glitter cursor sparkles")
+            hint: Heaven.lockHint("fx.sparkles") || I18n.t("видно, пока курсор над рабочим столом (над окнами он чужой — там блестит сам курсор)", "Shows while the pointer is over the desktop; over windows only the glitter cursor sparkles")
             PxToggle {
-                checked: Config.y2k.sparkles
+                enabled: Heaven.has("fx.sparkles")
+                checked: Config.y2k.sparkles && Heaven.has("fx.sparkles")
                 onToggled: c => Config.y2k.sparkles = c
             }
         }
@@ -197,9 +352,9 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Блестящий курсор", "Glitter cursor")
-            hint: Cursors.theme === "angelOS-Glitter" ? I18n.t("стоит ♡ другие курсоры — на странице «Курсор»", "In use ♡ other cursors are on the Cursor page") : I18n.t("angelOS Pixel с мерцающими искорками, везде: niri, GTK, X11, Steam", "angelOS Pixel with twinkling sparkles, everywhere: niri, GTK, X11, Steam")
+            hint: !Cursors.glitterOk ? Heaven.lockHint("cursor.glitter") : Cursors.theme === "angelOS-Glitter" ? I18n.t("стоит ♡ другие курсоры — на странице «Курсор»", "In use ♡ other cursors are on the Cursor page") : I18n.t("angelOS Pixel с мерцающими искорками, везде: niri, GTK, X11, Steam", "angelOS Pixel with twinkling sparkles, everywhere: niri, GTK, X11, Steam")
             PxButton {
-                enabled: !Cursors.busy && Cursors.theme !== "angelOS-Glitter"
+                enabled: !Cursors.busy && Cursors.theme !== "angelOS-Glitter" && Cursors.glitterOk
                 icon: "cursor"
                 text: Cursors.busy ? I18n.t("Ставлю…", "Installing…") : I18n.t("Поставить", "Use it")
                 onClicked: Cursors.install("glitter", true)
@@ -245,7 +400,7 @@ PxPage {
             icon: "play"
             text: I18n.t("Показать сейчас", "Show it now")
             onClicked: {
-                Shell.settingsOpen = false;
+                page.nav.settingsOpen = false;
                 Shell.bootOpen = true;
             }
         }
@@ -392,6 +547,8 @@ PxPage {
         SettingRow {
             visible: !Angel.demon
             label: I18n.t("Ангел", "Angel")
+            // the looks still locked (services/Heaven) and what opens each
+            hint: ["mini", "chibi", "adult"].filter(l => !Heaven.lookOk(l)).map(l => Heaven.label(Heaven.lookItem(l)) + " — " + Heaven.lockHint(Heaven.lookItem(l))).join("; ")
             Flow {
                 width: parent.width
                 spacing: Theme.u * 4
@@ -510,9 +667,10 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Лучи и хор ангела", "The angel's rays and choir")
-            hint: I18n.t("когда она возвращается из ада: полторы секунды солнца справа (при запуске — только самый первый раз)", "When she comes back from hell: a second and a half of sunshine on the right (at start-up only the very first time)")
+            hint: Heaven.lockHint("fx.rays") || I18n.t("когда она возвращается из ада: полторы секунды солнца справа (при запуске — только самый первый раз)", "When she comes back from hell: a second and a half of sunshine on the right (at start-up only the very first time)")
             PxToggle {
-                checked: Config.y2k.heavenFx
+                enabled: Heaven.has("fx.rays")
+                checked: Config.y2k.heavenFx && Heaven.has("fx.rays")
                 onToggled: c => Config.y2k.heavenFx = c
             }
         }
@@ -744,7 +902,7 @@ PxPage {
                 compact: true
                 icon: "cursor"
                 text: I18n.t("Выбрать", "Choose")
-                onClicked: Shell.settingsPage = "cursor"
+                onClicked: page.nav.settingsPage = "cursor"
             }
         }
         SettingRow {

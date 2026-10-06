@@ -5,7 +5,7 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// A category's own page in the Windows 11 look (Shell.settingsPage "cat:<id>"): each of its
+// A category's own page in the Windows 11 look (root.nav.settingsPage "cat:<id>"): each of its
 // pages as a card — its tile, its name, what is on it — that opens it. ↓ from the search and
 // the arrows reach them through the left column (Win11View.navKey: → opens the first).
 PxPage {
@@ -71,10 +71,13 @@ PxPage {
                     id: cardMouse
                     anchors.fill: parent
                     hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        Shell.settingsPage = card.modelData;
-                        Shell.settingsSub = "";
+                    onClicked: mouse => {
+                        if (root.view.clickedNew(mouse, card.modelData))
+                            return;
+                        root.nav.settingsPage = card.modelData;
+                        root.nav.settingsSub = "";
                     }
                 }
             }

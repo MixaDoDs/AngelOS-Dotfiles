@@ -83,7 +83,7 @@ Item {
                 // you: the avatar, the name; your account, language, the wizard
                 Rectangle {
                     id: account
-                    readonly property bool sel: root.view.sectionOf(Shell.settingsPage) === "account"
+                    readonly property bool sel: root.view.sectionOf(root.view.settingsNav.settingsPage) === "account"
                     width: side.width
                     height: Theme.u * 24
                     color: sel ? Theme.select : am.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.15) : "transparent"
@@ -138,10 +138,13 @@ Item {
                         id: am
                         anchors.fill: parent
                         hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            Shell.settingsPage = "account";
-                            Shell.settingsSub = "";
+                        onClicked: mouse => {
+                            if (root.view.clickedNew(mouse, "account"))
+                                return;
+                            root.view.settingsNav.settingsPage = "account";
+                            root.view.settingsNav.settingsSub = "";
                             root.view.focusNav();
                         }
                     }
@@ -182,7 +185,7 @@ Item {
                             Rectangle {
                                 id: entry
                                 required property var modelData
-                                readonly property bool sel: root.view.sectionOf(Shell.settingsPage) === modelData.id
+                                readonly property bool sel: root.view.sectionOf(root.view.settingsNav.settingsPage) === modelData.id
                                 width: run.width
                                 height: Theme.u * (root.skin === "stream" ? 18 : 16)
                                 radius: root.skin === "stream" ? Theme.u * 2 : 0
@@ -213,8 +216,11 @@ Item {
                                     id: em
                                     anchors.fill: parent
                                     hoverEnabled: true
+                                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
+                                    onClicked: mouse => {
+                                        if (root.view.clickedNew(mouse, root.view.sectionTarget(entry.modelData)))
+                                            return;
                                         root.view.openSection(entry.modelData);
                                         root.view.focusNav();
                                     }
@@ -241,7 +247,7 @@ Item {
 
         // Windose: the home lies on lilac checks, like Ame's desktop
         Image {
-            visible: root.skin === "windose" && (Shell.settingsPage === "home" || Shell.settingsPage === "more")
+            visible: root.skin === "windose" && (root.view.settingsNav.settingsPage === "home" || root.view.settingsNav.settingsPage === "more")
             anchors.fill: parent
             fillMode: Image.Tile
             smooth: false

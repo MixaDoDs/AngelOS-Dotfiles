@@ -100,6 +100,27 @@ IpcHandler {
             "obs": StreamMode.obsUp ? (StreamMode.obsLive ? "live" : "up") : (StreamMode.obsAuth ? "password" : "down")
         });
     }
+    // the angel on stream (services/StreamAngel): on | off | toggle | test (show her now,
+    // without a stream; again hides her) | view (Mod+Alt+A: on the bar ⇄ hidden) |
+    // screen | obs (on your screen too, or only in her window for OBS) | status
+    function streamer(mode: string): string {
+        if (["on", "off", "toggle", "test", "view", "screen", "obs"].includes(mode))
+            StreamAngel.set(mode);
+        else if (mode !== "status" && mode !== "")
+            return "on | off | toggle | test | view | screen | obs | status";
+        return JSON.stringify({
+            "enabled": StreamAngel.enabled,
+            "shown": StreamAngel.shown,
+            "preview": StreamAngel.preview,
+            "obs": StreamAngel.obsUp ? (StreamAngel.obsLive ? "live" : "up") : "down",
+            "mic": StreamAngel.using,
+            "level": StreamAngel.level,
+            "talking": StreamAngel.talking,
+            "view": StreamAngel.view,
+            "cast": StreamAngel.castOpen ? (Niri.castWindowId >= 0 ? "window " + Niri.castWindowId : "opening") : "closed",
+            "error": StreamAngel.error
+        });
+    }
     // the game (services/Story): `angelos game off` — out of the game at once (also
     // Mod+Ctrl+Shift+Escape), on, calm on|off (no flashes, shaking or sudden loud sounds),
     // status, reset (the save starts over); developer mode (Settings → System) or the dev
@@ -147,6 +168,112 @@ IpcHandler {
             return "ok";
         }
         return "off | on | calm on|off | status | reset | circle <1–9|id> | scene <id> | sin <name> [+1] | outcome stars|pact|limbo | try | ambient";
+    }
+    // the achievements (services/Achievements): `angelos ach` status | list | events | check |
+    // validate; the owner or developer mode: grant <id|all> | revoke <id|all> | toast <id>
+    function ach(line: string): string {
+        const a = String(line || "").trim().split(/\s+/);
+        switch (a[0]) {
+        case "":
+        case "status":
+            return Achievements.status();
+        case "list":
+            return Achievements.listText();
+        case "events":
+            return Achievements.eventIds.map(e => e + " — " + Achievements.eventLabel(e)).join("\n") + "\n\ncond: " + Achievements.condVars.join(" ") + " + the game's (docs/STORY.md), count(\"event\") kinds(\"event\") got(\"id\")";
+        case "check":
+            return Story.enabled ? "earned now: " + Achievements.check() : "the game is off: no achievements";
+        case "streak":
+            return a[1] ? a[1] + ": " + Achievements.streak(a[1], Number(a[2]) || 10) + " in a row (≤" + (Number(a[2]) || 10) + " s apart)" : "streak <event> [seconds]";
+        case "validate":
+            {
+                const bad = Achievements.problems(Achievements.doc);
+                return Achievements.loadError ? "story/achievements.json: " + Achievements.loadError : bad.length ? bad.join("\n") : "ok (" + Achievements.own.length + ")";
+            }
+        }
+        if (!Owner.enabled && !Shell.dev && !Config.developer.enabled)
+            return "status | list | events | check | validate | streak (grant, revoke, toast, note, reset: the owner or developer mode)";
+        if (!Story.enabled && a[0] !== "revoke")
+            return "the game is off: no achievements";
+        const ids = a[1] === "all" ? Achievements.list.map(x => x.id) : [a[1] || ""];
+        switch (a[0]) {
+        case "grant":
+            return ids.filter(id => Achievements.grant(id, a[1] === "all")).length + " granted";
+        case "revoke":
+            return ids.filter(id => Achievements.revoke(id)).length + " revoked";
+        case "toast":
+            {
+                const x = Achievements.find(a[1] || "") || Achievements.list[0];
+                if (!x)
+                    return "no achievements";
+                // `toast <id> hell` | `heaven`: that card's look whatever the realm
+                Achievements.announce(x, a[2] === "hell" ? true : a[2] === "heaven" ? false : null);
+                return "ok";
+            }
+        case "note":
+            // an event as if it happened: note <event> [key|-] [times]
+            return Achievements.simulate(a[1] || "", a[2] && a[2] !== "-" ? a[2] : "", Number(a[3]) || 1) ? "noted " + a[1] + " → earned now: " + Achievements.check() : "note <event> [key|-] [times] (the game must be on)";
+        case "reset":
+            // reset: everything earned, counted and read in the diary; reset counts: only the counters
+            return a[1] === "counts" ? (Achievements.resetCounts() ? "counters reset" : "no save") : Achievements.resetAll() ? "achievements, counters and the diary's marks reset" : "no save";
+        }
+        return "status | list | events | check | validate | streak <event> [s] | grant <id|all> | revoke <id|all> | toast <id> [hell|heaven] | note <event> [key|-] [n] | reset [counts]";
+    }
+    // the Angel's diary (services/Diary): `angelos diary` open [page] | close | list | validate |
+    // read-reset | preview on|off (the owner or developer mode: every page written)
+    function diary(line: string): string {
+        const a = String(line || "").trim().split(/\s+/);
+        switch (a[0]) {
+        case "":
+        case "open":
+            return Diary.open(a[1] || "") ? "ok" : "the diary is locked: its key is not had (" + Diary.thingId + ")";
+        case "close":
+            Diary.close();
+            return "ok";
+        case "list":
+            return Diary.listText();
+        case "watch-status":
+        case "status":
+            return "trust " + Diary.trust + " / " + Diary.trustStart + ", caught " + Diary.caughtTimes + (Diary.hidden ? ", hidden" : "") + (Angel.away ? ", she is away" : Diary.watching ? ", she is watching" : "");
+        case "watch":
+            return JSON.stringify({
+                "watching": Diary.watching,
+                "away": Angel.away,
+                "backIn": Angel.away ? Math.round((Angel.awayUntil - Date.now()) / 1000) + " s" : "",
+                "nextWalk": Diary.walks ? "planned" : "no walks (" + (Diary.owned ? "hell, limbo or the game off" : "no key") + ")",
+                "trust": Diary.trust + " / " + Diary.trustStart,
+                "caught": Diary.caughtTimes,
+                "hidden": Diary.hidden
+            }, null, 1);
+        case "validate":
+            {
+                const bad = Diary.problems(Diary.doc);
+                return Diary.loadError ? "story/diary.json: " + Diary.loadError : bad.length ? bad.join("\n") : "ok (" + Diary.pages.length + " pages)";
+            }
+        }
+        if (!Owner.enabled && !Shell.dev && !Config.developer.enabled)
+            return "open [page] | close | list | validate | watch (read-reset, preview, away, back, trust: the owner or developer mode)";
+        switch (a[0]) {
+        case "read-reset":
+            Diary.resetRead();
+            return "the diary's read marks reset";
+        case "preview":
+            Diary.preview = a[1] !== "off";
+            return "preview " + (Diary.preview ? "on: every page written" : "off");
+        case "away":
+            // she goes now for N minutes (default: one of the rules')
+            return Diary.leave(Number(a[1]) || Diary.awayMinutes()) ? "she is leaving" : "she can't leave now (the demon, the game off, already away)";
+        case "back":
+            Angel.awayUntil = 0;
+            return "she is back";
+        case "trust":
+            if (a[1] === "reset") {
+                Diary.resetTrust();
+                return "trust " + Diary.trust + ", not caught, the diary not hidden";
+            }
+            return "trust " + Diary.trust + " / " + Diary.trustStart + ", caught " + Diary.caughtTimes + (Diary.hidden ? ", hidden in Settings" : "");
+        }
+        return "open [page] | close | list | validate | watch | read-reset | preview on|off | away [min] | back | trust [reset]";
     }
     // the game's debug panel (services/GameDebug), developer mode or the dev stand only:
     // `angelos debug open | close | toggle | snapshot | restore | restart | tab <id> | status`,
@@ -458,6 +585,14 @@ IpcHandler {
         if (Shell.setupLocked)
             return;
         Shell.openSettings(page);
+    }
+    // one more Settings window: `angelos settingsNew sound` (no page: the main window's page)
+    function settingsNew(page: string): string {
+        if (Shell.setupLocked)
+            return "the setup wizard holds the desktop (angelos setup skip)";
+        if (!Shell.newSettingsWindow(page || Shell.settingsPage))
+            return "no more than " + Shell.settingsMoreMax + " more windows";
+        return "windows: " + (Shell.settingsMore.count + (Shell.settingsOpen ? 1 : 0));
     }
     // how Settings lay the pages out: `angelos settingsView controlpanel` (no argument: which one)
     function settingsView(view: string): string {

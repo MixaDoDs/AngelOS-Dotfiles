@@ -61,11 +61,11 @@ Item {
         }
         if (e.key === Qt.Key_Right || e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
             // a category's own page → its first page; on a page → the next one of the category
-            if (Shell.settingsPage.startsWith("cat:")) {
-                const s = view.navSectionOf(Shell.settingsPage);
+            if (root.view.settingsNav.settingsPage.startsWith("cat:")) {
+                const s = view.navSectionOf(root.view.settingsNav.settingsPage);
                 if (s && s.pages.length) {
-                    Shell.settingsPage = s.pages[0];
-                    Shell.settingsSub = "";
+                    root.view.settingsNav.settingsPage = s.pages[0];
+                    root.view.settingsNav.settingsSub = "";
                 }
             } else
                 view.navPage(1);
@@ -98,7 +98,7 @@ Item {
         // you: the avatar, the name — your account
         Rectangle {
             id: you
-            readonly property bool sel: root.view.sectionOf(Shell.settingsPage) === "account"
+            readonly property bool sel: root.view.sectionOf(root.view.settingsNav.settingsPage) === "account"
             width: parent.width
             height: root.rail ? Theme.fit(20) : Theme.fit(26)
             color: sel ? Theme.mix(Theme.face, Theme.accent, 0.2) : youMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.1) : "transparent"
@@ -152,10 +152,13 @@ Item {
                 id: youMouse
                 anchors.fill: parent
                 hoverEnabled: true
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                 cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    Shell.settingsPage = SettingsTree.accountPage;
-                    Shell.settingsSub = "";
+                onClicked: mouse => {
+                    if (root.view.clickedNew(mouse, SettingsTree.accountPage))
+                        return;
+                    root.view.settingsNav.settingsPage = SettingsTree.accountPage;
+                    root.view.settingsNav.settingsSub = "";
                     root.view.focusNav();
                 }
             }
@@ -198,7 +201,7 @@ Item {
                     Rectangle {
                         id: cat
                         required property var modelData
-                        readonly property bool sel: root.view.sectionOf(Shell.settingsPage) === modelData.id
+                        readonly property bool sel: root.view.sectionOf(root.view.settingsNav.settingsPage) === modelData.id
                         width: catCol.width
                         height: Theme.fit(16)
                         color: sel ? Theme.mix(Theme.face, Theme.accent, 0.2) : catMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.1) : "transparent"
@@ -235,8 +238,11 @@ Item {
                             id: catMouse
                             anchors.fill: parent
                             hoverEnabled: true
+                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: {
+                            onClicked: mouse => {
+                                if (root.view.clickedNew(mouse, root.view.sectionTarget(cat.modelData)))
+                                    return;
                                 root.view.openSection(cat.modelData);
                                 root.view.focusNav();
                             }
@@ -269,7 +275,7 @@ Item {
             Flow {
                 id: crumbFlow
                 anchors.left: parent.left
-                anchors.right: undo.visible ? undo.left : parent.right
+                anchors.right: undo.visible ? undo.left : newWin.left
                 anchors.rightMargin: Theme.u * 3
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.u * 3
@@ -313,12 +319,25 @@ Item {
             PxButton {
                 id: undo
                 visible: Config.canUndo
-                anchors.right: parent.right
+                anchors.right: newWin.left
+                anchors.rightMargin: Theme.u * 2
                 anchors.verticalCenter: parent.verticalCenter
                 compact: true
                 icon: "refresh"
                 text: I18n.t("Отменить", "Undo") + (main.width > Theme.u * 320 && SettingsKeys.loaded ? " " + SettingsKeys.stepLabel(Config.lastStep) : "")
                 onClicked: Config.undo()
+            }
+            // this page in one more window (Ctrl+N; a middle click on a category does the same)
+            PxButton {
+                id: newWin
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                compact: true
+                flat: true
+                icon: "window"
+                enabled: Shell.settingsMore.count < Shell.settingsMoreMax
+                opacity: enabled ? 1 : 0.35
+                onClicked: root.view.openNew()
             }
         }
 

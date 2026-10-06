@@ -63,6 +63,15 @@ Item {
                 });
             else if (r.kind === "app")
                 out.push(appRow(r.app, I18n.t("Приложения", "Apps")));
+            else if (r.kind === "file")
+                out.push({
+                    "section": I18n.t("Файлы", "Files"),
+                    "label": r.file.name,
+                    "sub": FileSearch.where(r.file),
+                    "icon": FileSearch.pixelIcon(r.file),
+                    "file": r.file,
+                    "run": () => FileSearch.open(r.file)
+                });
             else
                 out.push({
                     "section": I18n.t("Настройки", "Settings"),
@@ -165,7 +174,7 @@ Item {
             anchors.rightMargin: Theme.u * 12
             anchors.verticalCenter: parent.verticalCenter
             kind: "title"
-            placeholder: I18n.t("Что найти? Приложение, настройку, папку, 2+2…", "Find anything: an app, a setting, a folder, 2+2…")
+            placeholder: I18n.t("Что найти? Приложение, настройку, файл, .jpeg, 2+2…", "Find anything: an app, a setting, a file, .jpeg, 2+2…")
             onEdited: {
                 root.query = text;
                 root.current = 0;
@@ -257,8 +266,16 @@ Item {
                             appId: row.modelData.app ? row.modelData.app.id || "" : ""
                             size: Math.round(Theme.u * 12 * root.prefs.icons)
                         }
+                        FileThumb {
+                            id: thumb
+                            visible: ok
+                            anchors.centerIn: parent
+                            width: Math.round(Theme.u * 14 * root.prefs.icons)
+                            height: width
+                            hit: row.modelData.file || null
+                        }
                         PxIcon {
-                            visible: !row.modelData.app
+                            visible: !row.modelData.app && !thumb.ok
                             anchors.centerIn: parent
                             name: row.modelData.icon || "heart"
                         }
@@ -303,7 +320,10 @@ Item {
                         onClicked: m => {
                             if (m.button === Qt.RightButton && row.modelData.app)
                                 StartApps.togglePin(row.modelData.app);
-                            else
+                            else if (m.button === Qt.RightButton && row.modelData.file) {
+                                root.closeRequested();
+                                FileSearch.reveal(row.modelData.file);
+                            } else
                                 root.runRow(row.modelData);
                         }
                     }
@@ -319,6 +339,6 @@ Item {
         color: Qt.alpha("#ffffff", 0.85)
         style: Text.Outline
         styleColor: Qt.alpha("#000000", 0.45)
-        text: I18n.t("↑↓ выбрать · Enter открыть · ПКМ закрепить · Esc закрыть", "↑↓ choose · Enter opens · right click pins · Esc closes")
+        text: I18n.t("↑↓ выбрать · Enter открыть · ПКМ закрепить (файл — показать в папке) · Esc закрыть", "↑↓ choose · Enter opens · right click pins (a file: show in folder) · Esc closes")
     }
 }

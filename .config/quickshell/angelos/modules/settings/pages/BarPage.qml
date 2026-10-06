@@ -449,7 +449,7 @@ PxPage {
                 text: I18n.t("Открыть", "Open")
                 icon: "layers"
                 onClicked: {
-                    Shell.settingsOpen = false;
+                    page.nav.settingsOpen = false;
                     Sidebar.open = true;
                 }
             }
@@ -601,6 +601,17 @@ PxPage {
                     text: I18n.t("Калькулятор: 2+2·3, 15% от 200, 10 км в милях, 100 usd в rub", "Calculator: 2+2·3, 15% of 200, 10 km in mi, 100 usd in rub")
                     checked: Config.launcher.calc !== false
                     onToggled: v => Config.launcher.calc = v
+                }
+                PxToggle {
+                    text: I18n.t("Файлы в домашней папке: по имени («отпуск») или типу («.jpeg», «.картинки», «.видео»)", "Files in the home folder: by name (\"holiday\") or type (\".jpeg\", \".images\", \".video\")")
+                    checked: Config.launcher.files !== false
+                    onToggled: v => Config.launcher.files = v
+                }
+                PxToggle {
+                    enabled: Config.launcher.files !== false
+                    text: I18n.t("Предпросмотр файлов: миниатюры картинок и видео", "File previews: thumbnails of pictures and videos")
+                    checked: Config.launcher.filePreview !== false
+                    onToggled: v => Config.launcher.filePreview = v
                 }
             }
         }

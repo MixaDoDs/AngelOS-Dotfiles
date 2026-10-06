@@ -81,7 +81,7 @@ Singleton {
                 "blocks": []
             }))
     function shown(p) {
-        return !!p && (!p.owner || Owner.enabled) && (!p.developer || Config.developer.enabled);
+        return !!p && (!p.owner || Owner.enabled) && (!p.developer || Config.developer.enabled) && (!p.game || Story.enabled);
     }
     // every page of the tree (the hidden ones too), id -> {id, label, icon, hint, blocks, open,
     // category, owner, developer}; "open": its groups shown open (a page of sub-pages only)
@@ -108,7 +108,8 @@ Singleton {
                     "open": p.open || [],
                     "category": c.id,
                     "owner": !!p.owner,
-                    "developer": !!p.developer
+                    "developer": !!p.developer,
+                    "game": !!p.game
                 };
         for (const p of pluginPages) {
             const after = ((tree.plugins || {}).after || {})[p.plugin];

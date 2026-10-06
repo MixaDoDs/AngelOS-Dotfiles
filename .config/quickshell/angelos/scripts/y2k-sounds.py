@@ -98,10 +98,10 @@ LOUDNESS = {"bark": -24.0, "voiceAngel": -25.0, "voiceDemon": -26.0, "voice": -2
             "voiceFallen1": -27.0, "voiceFallen2": -27.0, "voiceFallen3": -27.0, "voiceFallen4": -27.0, "voiceFallen5": -27.0,
             "choir": -23.0, "crack": -25.0, "rocks": -23.0, "shatter": -23.0,
             "key": -27.0, "key2": -27.0, "key3": -27.0, "clickRight": -22.0, "workspace": -24.0,
-            "circle": -21.0, "circleSoft": -27.0}
+            "circle": -21.0, "circleSoft": -27.0, "achievement": -23.0}
 # peaks, dBFS: the harp's strings ring together (a glissando stacks them)
 PEAKS = {"harp%d" % (i + 1): -10.0 for i in range(16)}
-PACK_VERSION = "8"
+PACK_VERSION = "9"
 
 
 def startup():
@@ -325,6 +325,18 @@ def usb_out():
     place(buf, bell(note(67), 0.5, index=0.9, decay=6) * 0.55, 0.2)
     place(buf, lowpass(noise(0.02, 43), 2400) * np.exp(-t_axis(0.02) * 200) * 0.35, 0.21)
     return lowpass(echo(buf, 0.13, 0.2, 2), 5200)
+
+
+def achievement():
+    """an achievement earned: a quick bright arpeggio up, a sparkle on top, a soft chord under"""
+    sec = 1.5
+    buf = np.zeros(int(sec * RATE))
+    for i, n in enumerate((84, 88, 91, 96)):
+        place(buf, bell(note(n), 0.7, index=0.9, decay=6) * (0.55 + i * 0.1), i * 0.07)
+    for n in (72, 76, 79):
+        place(buf, tri(note(n), 0.9) * env(int(0.9 * RATE), 0.02, 0.6) * 0.18, 0.28)
+    place(buf, bell(note(103), 0.4, index=0.5, decay=9) * 0.35, 0.34)
+    return echo(buf, 0.12, 0.3, 3)
 
 
 def demon():
@@ -611,7 +623,8 @@ SOUNDS = {"startup": startup, "notify": notify, "error": error, "click": click, 
           "clickRight": click_right, "key": key, "key2": lambda: key(1), "key3": lambda: key(2),
           "windowOpen": window_open, "workspace": workspace, "lock": lock, "unlock": unlock,
           "usbIn": usb_in, "usbOut": usb_out, "bark": bark, "circle": circle,
-          "circleSoft": lambda: circle(True), "harp": harp}
+          "circleSoft": lambda: circle(True), "harp": harp,
+          "achievement": achievement}
 SOUNDS.update({"harp%d" % (i + 1): (lambda i=i: harp_string(i)) for i in range(16)})
 # played by QtMultimedia's SoundEffect, which only takes .wav
 WAV_ONLY = {"voiceAngel", "voiceDemon", "voiceFallen1", "voiceFallen2", "voiceFallen3", "voiceFallen4", "voiceFallen5"} | {"harp%d" % (i + 1) for i in range(16)}

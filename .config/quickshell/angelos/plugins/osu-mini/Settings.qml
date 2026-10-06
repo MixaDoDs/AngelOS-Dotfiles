@@ -78,7 +78,7 @@ Column {
             icon: "play"
             accent: true
             onClicked: {
-                Shell.settingsOpen = false;
+                Shell.settingsNavFor(root).settingsOpen = false;
                 Shell.gameOpen = true;
             }
         }

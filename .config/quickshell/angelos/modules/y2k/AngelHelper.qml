@@ -19,44 +19,61 @@ import "DemonSpriteMini.js" as DemonMini
 // pauses while the screen is locked or covered by a fullscreen window; the
 // angel ↔ demon swap drops one through the floor into flames and brings the
 // other in.
+// On stream (services/StreamAngel) she moves to the streamed screen and sits on the
+// taskbar like a streamer at her desk: cut off at the waist on its top edge (the bottom
+// of the screen when the bar is elsewhere), her mouth on the streamer's mic, sized by
+// Settings → Y2K → The angel on stream (Ctrl + wheel on her too); clicks, the menu and
+// the throw into hell work as always.
 Scope {
     // created only while she is wanted (no binding on the window's own visible:
     // Quickshell re-applies it when the screen changes, which loops)
     LazyLoader {
-        active: Angel.shown && !Shell.bootOpen && !!Angel.screen
+        // hidden from you by Mod+Alt+A while OBS runs (StreamAngel.hidden): only her window
+        // for OBS draws her (StreamerCast)
+        active: Angel.shown && !Shell.bootOpen && !!Angel.screen && !StreamAngel.hidden
 
         PanelWindow {
             id: win
 
             screen: Angel.screen
+            // on stream: the bar is her desk. The window keeps out of the bar's exclusive
+            // zone, so with no gap under it she sits on the bar's top edge (on the
+            // screen's bottom edge when the bar is at the top or a side)
+            readonly property bool streamer: Angel.streamer
+            readonly property bool atLeft: streamer && Config.stream.streamerSide === "left"
             anchors {
                 bottom: true
-                right: true
+                right: !win.atLeft
+                left: win.atLeft
             }
             margins {
-                bottom: Theme.u * 4
-                right: Theme.u * 6
+                bottom: win.streamer ? 0 : Theme.u * 4
+                right: win.atLeft ? 0 : Theme.u * 6
+                left: win.atLeft ? Theme.u * 6 : 0
             }
             exclusionMode: ExclusionMode.Normal
             exclusiveZone: 0
             color: "transparent"
-            readonly property real availableWidth: Math.max(1, screen.width - margins.right - Theme.u * 6)
+            readonly property real availableWidth: Math.max(1, screen.width - Theme.u * 12)
             readonly property real spritePadding: Math.min(Theme.u * 12, availableWidth / 4)
             readonly property real maxSpriteWidth: Math.max(1, Math.floor(availableWidth - spritePadding))
             readonly property real maxSpriteHeight: Math.max(1, Math.floor(screen.height * 0.55))
             implicitWidth: Math.min(availableWidth, Math.max(Theme.u * 160, sprite.width + spritePadding))
             // room above her for the one coming down from the sky, or while she is held
-            readonly property int headroom: Angel.transition ? Theme.u * 70 : grab.held ? Theme.u * 30 : Novel.wantsClick ? Theme.u * 16 : 0
+            readonly property int headroom: (Angel.transition ? Theme.u * 70 : grab.held ? Theme.u * 30 : Novel.wantsClick ? Theme.u * 16 : 0) + liftRoom
             implicitHeight: body.height + headroom
-            WlrLayershell.layer: WlrLayer.Top
+            // on stream over fullscreen games too, as OBS sees the screen
+            WlrLayershell.layer: win.streamer ? WlrLayer.Overlay : WlrLayer.Top
             WlrLayershell.namespace: "angelos-angel"
             WlrLayershell.keyboardFocus: Angel.menuOpen && ["ask", "assistant"].includes(Angel.menuMode) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
             // the bubble's own `visible` follows the window's: the mask uses the state
             readonly property bool bubbleOn: (Angel.talking || Angel.menuOpen) && !Angel.transition
+            // a cutscene on her screen (the circle coming up, CircleFx) hides her: never over it
+            readonly property bool underCutscene: CircleFx.active && CircleFx.shownOn(Angel.screenName)
             mask: Region {
-                item: hit
+                item: win.underCutscene ? null : hit
                 Region {
-                    item: win.bubbleOn ? bubble : null
+                    item: win.bubbleOn && !win.underCutscene ? bubble : null
                 }
             }
 
@@ -74,8 +91,9 @@ Scope {
             readonly property string assistantMood: Angel.assistant && Angel.assistant.helperMood || ""
             readonly property bool assistantBusy: !!Angel.assistant && Angel.assistant.helperBusy === true
             readonly property bool expressive: !Motion.calm && !Angel.transition && !grab.held
-            readonly property bool awake: !still || stirring || Angel.talking || Angel.menuOpen || grab.held || Novel.wantsClick || assistantBusy || !!assistantMood
-            readonly property bool clockOn: win.visible && !Shell.hiddenScreen(Angel.screenName) && (awake || bellyClock)
+            readonly property bool awake: !still || stirring || Angel.talking || Angel.menuOpen || grab.held || Novel.wantsClick || voiceOn || assistantBusy || !!assistantMood
+            // on stream she stays awake over a fullscreen game: the viewers see her
+            readonly property bool clockOn: win.visible && (streamer ? !Shell.locked : !Shell.hiddenScreen(Angel.screenName)) && (awake || bellyClock)
             Timer {
                 interval: 125
                 running: win.clockOn
@@ -106,7 +124,10 @@ Scope {
             // the swap flips the sprite halfway through (Angel.becomeDemon/becomeAngel)
             readonly property bool demonArt: Angel.demon
             readonly property bool blinking: clockOn && awake && (tick % 29 === 0 || (expressive && assistantMood === "happy" && tick % 24 < 3))
-            readonly property bool mouthOpen: Angel.talking && typer.shown < Angel.text.length && tick % 2 === 0
+            // her own words type out; on stream the streamer's voice moves her mouth too
+            // (a PNGtuber's: open on loud syllables, flapping in between)
+            readonly property bool voiceOn: streamer && StreamAngel.talking && !Angel.transition
+            readonly property bool mouthOpen: (Angel.talking && typer.shown < Angel.text.length && tick % 2 === 0) || (voiceOn && (StreamAngel.level > StreamAngel.threshold * 1.5 || tick % 2 === 0))
             // Settings → Y2K → Looks, each of them apart: glitch (the cracked-halo angel /
             // the sleepless neon demon, SpriteRig), chibi (the first pictures), adult (the 30×40
             // pixel sprite, also when the pictures are missing) or mini (20×21); the angel's own
@@ -117,6 +138,26 @@ Scope {
             readonly property bool mini: look === "mini"
             // her requested size: 75…200 % in 5 % steps; screen bounds cap the rendered size
             readonly property real zoom: Math.max(0.75, Math.min(2, Config.y2k.helperScale || 1))
+            // on stream her size is the part above the bar: a share of the screen's height
+            // (10…50 %), whole screen pixels per art pixel while there are enough of them
+            readonly property real streamShare: Math.max(10, Math.min(50, Config.stream.streamerSize || 30))
+            readonly property real waist: sprite.ready && sprite.rig.waist ? sprite.rig.waist : 0.66
+            function streamPx(artH) {
+                const raw = (win.screen ? win.screen.height : 1080) * streamShare / 100 / Math.max(1, artH * waist);
+                return raw >= 3 ? Math.floor(raw) : Math.max(0.5, raw);
+            }
+            // below the waist she is under the bar's edge (the window ends there)
+            readonly property real sink: streamer ? Math.round(sprite.height * (1 - waist)) + Theme.u * 2 : 0
+            // she bobs up with the voice and breathes slowly while quiet
+            property real voiceBounce: voiceOn && !Motion.still ? StreamAngel.level : 0
+            Behavior on voiceBounce {
+                NumberAnimation {
+                    duration: 90
+                }
+            }
+            readonly property real artPx: sprite.ready ? sprite.px : pixelArt.exactPixel
+            readonly property real liftRoom: streamer ? Math.ceil(artPx * 6) : 0
+            readonly property real voiceLift: !streamer ? 0 : Math.round(voiceBounce * 4) * artPx + (Motion.still || (still && !stirring) ? 0 : [0, 0, 1, 1][Math.floor(tick / 4) % 4] * artPx)
             readonly property var art: mini ? (demonArt ? DemonMini : AngelMini) : (demonArt ? DemonArt : AngelArt)
             readonly property var frame: {
                 if (mouthOpen)
@@ -170,17 +211,25 @@ Scope {
 
             Item {
                 id: body
+                opacity: win.underCutscene ? 0 : 1
+                visible: opacity > 0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 180
+                    }
+                }
                 anchors.bottom: parent.bottom
                 width: parent.width
-                height: angel.height + (win.bubbleOn ? bubble.height + Theme.u * 2 : 0) + Theme.u * 4
+                height: angel.height + (win.bubbleOn ? bubble.height + Theme.u * 2 + win.liftRoom : 0) + Theme.u * 4
 
                 // ---- speech bubble / menu ----
                 PxBox {
                     id: bubble
                     visible: win.bubbleOn
-                    anchors.right: parent.right
+                    anchors.right: win.atLeft ? undefined : parent.right
+                    anchors.left: win.atLeft ? parent.left : undefined
                     anchors.bottom: angel.top
-                    anchors.bottomMargin: Theme.u * 2
+                    anchors.bottomMargin: Theme.u * 2 + win.liftRoom
                     width: Theme.u * 150
                     height: bubbleCol.implicitHeight + Theme.u * 8
                     // in hell the bubble is the circle's: its plate, its bone text, its buttons
@@ -542,10 +591,11 @@ Scope {
                 // ---- the angel (or the demon) ----
                 Item {
                     id: angel
-                    anchors.right: parent.right
+                    anchors.right: win.atLeft ? undefined : parent.right
+                    anchors.left: win.atLeft ? parent.left : undefined
                     anchors.bottom: parent.bottom
                     width: sprite.width
-                    height: sprite.height + Theme.u * 4
+                    height: sprite.height + Theme.u * 4 - win.sink
 
                     // the window takes the pointer over her body, where she stands at
                     // rest; the air around the wings and the tail lets clicks through
@@ -554,7 +604,7 @@ Scope {
                         x: sprite.body.x
                         y: Theme.u * 2 + sprite.body.y
                         width: sprite.body.width
-                        height: sprite.body.height
+                        height: Math.max(1, Math.min(sprite.body.height, angel.height - y))
                     }
 
                     // her stage reaches up into the sky and across the window while she
@@ -564,7 +614,8 @@ Scope {
                         id: stage
                         readonly property bool moving: !!Angel.transition || grab.held
                         anchors.bottom: parent.bottom
-                        anchors.right: parent.right
+                        anchors.right: win.atLeft ? undefined : parent.right
+                        anchors.left: win.atLeft ? parent.left : undefined
                         width: moving ? win.width : parent.width
                         height: parent.height + win.headroom
                         clip: moving
@@ -637,8 +688,8 @@ Scope {
                         // she blinks and talks (sprites/, SpriteRig)
                         SpriteRig {
                             id: sprite
-                            x: stage.width - width + win.offX
-                            y: stage.height - angel.height + Theme.u * 2 + (stage.moving ? 0 : win.bob * Math.max(1, Theme.u / 2)) + win.offY
+                            x: (win.atLeft ? 0 : stage.width - width) + win.offX
+                            y: stage.height - angel.height + Theme.u * 2 + (stage.moving ? 0 : win.streamer ? -win.voiceLift : win.bob * Math.max(1, Theme.u / 2)) + win.offY
                             width: ready ? implicitWidth : pixelArt.width
                             height: ready ? implicitHeight : pixelArt.height
                             who: win.demonArt ? "demon" : "angel"
@@ -652,6 +703,12 @@ Scope {
                             flutter: grab.held || (win.expressive && win.assistantMood === "happy")
                             // past cold she cries (story/game.json → angel.fallen); motion off: no drops
                             tears: !win.demonArt && Story.angelFallen && !Motion.still
+                            // her skin from heaven's prayers (services/HeavenStars)
+                            layer.enabled: !win.demonArt && ready && HeavenStars.worn !== null
+                            layer.smooth: false
+                            layer.effect: AngelSkinFx {
+                                skin: HeavenStars.worn
+                            }
                             use: win.look === "chibi" || win.look === "glitch" || win.look === "ophanim"
                             // each figure's pictures, both read up front: the swap flips at once
                             // even when the angel's look and the demon's differ
@@ -662,7 +719,7 @@ Scope {
                             skin: !win.demonArt ? "" : GameDebug.skin === "-" ? "" : GameDebug.skin || (Story.inHell ? HellLook.circle : "")
                             // At Theme.u=2, the 236px circle body is ~271px at 115%.
                             // Bound the whole rig, including wings, without changing the saved zoom.
-                            px: ready ? Math.min(Math.max(1, Theme.u / 2) * win.zoom,
+                            px: ready ? Math.min(win.streamer ? win.streamPx(rig.size[1]) : Math.max(1, Theme.u / 2) * win.zoom,
                                                  win.maxSpriteWidth / Math.max(1, rig.size[0]),
                                                  win.maxSpriteHeight / Math.max(1, rig.size[1]))
                                       : Math.max(1, Theme.u / 2) * win.zoom
@@ -677,7 +734,7 @@ Scope {
                                 visible: !sprite.ready
                                 bitmap: sprite.ready ? null : win.frame
                                 pixel: win.mini ? Theme.u * 2 : Math.max(2, Math.round(Theme.u * 1.5))
-                                exactPixel: Math.min(pixel * win.zoom,
+                                exactPixel: Math.min(win.streamer ? win.streamPx(win.frame.length) : pixel * win.zoom,
                                                      win.maxSpriteWidth / Math.max(1, win.frame.reduce((w, row) => Math.max(w, row.length), 0)),
                                                      win.maxSpriteHeight / Math.max(1, win.frame.length))
                                 // the mini ones: the colours they had, from the theme
@@ -777,7 +834,7 @@ Scope {
                                 lastY = m.y;
                                 lastT = now;
                             }
-                            dx = Math.max(-(win.width - sprite.width), Math.min(Theme.u * 4, m.x - start.x));
+                            dx = win.atLeft ? Math.max(-Theme.u * 4, Math.min(win.width - sprite.width, m.x - start.x)) : Math.max(-(win.width - sprite.width), Math.min(Theme.u * 4, m.x - start.x));
                             dy = Math.max(-Theme.u * 26, m.y - start.y);
                         }
                         onReleased: {
@@ -806,7 +863,8 @@ Scope {
                             dragging = false;
                             spring.start();
                         }
-                        // Ctrl + wheel: 75…200 %, 5 % a notch
+                        // Ctrl + wheel: 75…200 %, 5 % a notch; on stream her share of the
+                        // screen, 10…50 %, 2 % a notch
                         property real wheelRest: 0
                         onWheel: w => {
                             if (!(w.modifiers & Qt.ControlModifier)) {
@@ -818,6 +876,13 @@ Scope {
                             if (!notches)
                                 return;
                             wheelRest -= notches;
+                            if (win.streamer) {
+                                const share = Math.max(10, Math.min(50, Math.round(win.streamShare + notches * 2)));
+                                if (share !== Config.stream.streamerSize)
+                                    Config.stream.streamerSize = share;
+                                sizeNote.show();
+                                return;
+                            }
                             const next = Math.max(0.75, Math.min(2, Math.round((win.zoom + notches * 0.05) * 100) / 100));
                             if (next !== Config.y2k.helperScale)
                                 Config.y2k.helperScale = next;
@@ -894,8 +959,10 @@ Scope {
                 }
                 opacity: 0
                 visible: opacity > 0
-                anchors.right: parent.right
+                anchors.right: win.atLeft ? undefined : parent.right
+                anchors.left: win.atLeft ? parent.left : undefined
                 anchors.rightMargin: Theme.u * 2
+                anchors.leftMargin: Theme.u * 2
                 y: parent.height - angel.height + Theme.u * 2
                 width: sizeText.implicitWidth + Theme.u * 6
                 height: sizeText.implicitHeight + Theme.u * 3
@@ -903,7 +970,7 @@ Scope {
                 PxText {
                     id: sizeText
                     anchors.centerIn: parent
-                    text: Math.round(win.zoom * 100) + "%"
+                    text: Math.round(win.streamer ? win.streamShare : win.zoom * 100) + "%"
                     kind: "tiny"
                 }
                 Timer {

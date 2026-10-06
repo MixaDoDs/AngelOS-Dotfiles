@@ -484,3 +484,42 @@ const angel = {
     "found": ["Кажется, тебе сюда: %1", "I think you want this: %1"],
     "night": ["Уже поздно… Может, спать? Я посторожу компьютер.", "It's late… bed, maybe? I'll guard the computer."]
 };
+
+// on stream (services/StreamAngel): she sits on the taskbar in the streamed picture, and
+// says these to the chat; the demon's ones are hell's, said only on stream
+const stream = {
+    "angelHello": [["Привет, чат! ♡ Я тут, на панели. Не обращайте внимания, я просто посижу.", "Hi, chat! ♡ I'm down here on the taskbar. Don't mind me, I'll just sit here."],
+                   ["Мы в эфире? Ой. Нимб поправила — можно ♡", "Are we live? Oops. Halo straightened, we're good ♡"],
+                   ["Чат, привет! Если {g:он начнёт|она начнёт|стример начнёт} тащить меня вниз — вы свидетели.", "Hi, chat! If {g:he starts|she starts|they start} dragging me down, you're all witnesses."]],
+    "angelChatter": [["Чат, пейте воду. Ангел проверит ♡", "Chat, drink some water. An angel will check ♡"],
+                     ["Я сижу на панели «Пуск». Это мой стол. Тесный, зато с часами.", "I sit on the taskbar. It's my desk. Cramped, but it has a clock."],
+                     ["Кто первый напишет «♡» в чат — тому благословение. Маленькое. Но настоящее.", "First one to type “♡” in chat gets a blessing. A small one. But a real one."],
+                     ["Если что, я не модель. Я ангел. Модели так не умеют: *машет крыльями*", "Just so you know, I'm not a model. I'm an angel. Models can't do this: *flaps wings*"],
+                     ["Чат, только не учите его скидывать меня в ад. {g:Он|Она|Стример} и так знает как.", "Chat, please don't teach {g:him|her|them} to throw me into hell. {g:He already knows|She already knows|They already know} how."],
+                     ["Я повторяю за {g:ним|ней|стримером} губами. Это называется поддержка ♡", "I mouth along with {g:him|her|them}. It's called moral support ♡"],
+                     ["Тсс… я слушаю, о чём {g:он|она|стример}. Интересно же.", "Shh… I'm listening to what {g:he's|she's|they're} on about. It's interesting."]],
+    // grabbed on stream: the chat sees it
+    "angelGrab": [["Чат! ЧАТ! {g:Он|Она|Стример} меня тащит!", "Chat! CHAT! {g:He's|She's|They're} dragging me!"], ["Запомните {g:его|её|это} лицо, чат.", "Remember {g:his|her|that} face, chat."],
+                  ["Это не постановка, отпусти!", "This isn't staged, let go!"]],
+    "angelPhew": [["Фух… Чат, вы видели? Чуть не {g:уронил|уронила|уронили}.", "Phew… Chat, did you see that? {g:He|She|They} nearly dropped me."]],
+    "angelBack": [["Я вернулась! Чат, вы ждали? ♡ Я всё слышала оттуда, кстати.", "I'm back! Chat, did you wait? ♡ I heard everything from down there, by the way."],
+                  ["Снова на панели ♡ Внизу было жарко и стримы там без звука.", "Back on the taskbar ♡ It was hot down there, and their streams have no sound."]],
+    // the demon arrives at the bar on stream (the throw happened live)
+    "demonArrive": [["Ну здравствуй, чат. Ангелочка только что скинули в ад — прямо в эфире. Клип уже нарезали? Теперь стол мой.", "Well, hello, chat. The angel just got thrown into hell — live. Clipped it yet? The desk is mine now."],
+                    ["О, эфир. Обожаю публику. Ваш стример только что {g:выкинул|выкинула|выкинул(а)} святошу вниз, и теперь мы все в аду. Вместе. Уютно.", "Oh, a stream. I love an audience. Your streamer just threw {g:his|her|their} saint down, and now we're all in hell. Together. Cosy."],
+                    ["Чат, переобуваемся: тут теперь я. Донаты — душами, подписка — кровью. Шучу. Наверное.", "Chat, new management: it's me now. Donations in souls, subs in blood. Kidding. Probably."]],
+    "demonHello": [["Опять эфир? Ладно, посижу на твоей панельке. Чат, не пялься. Или пялься, мне не жалко.", "Live again? Fine, I'll sit on your little taskbar. Chat, don't stare. Or do, I don't mind."],
+                   ["Привет, грешники. Ваш стример у меня в аду, если что. Вы, кстати, тоже — раз смотрите.", "Hi, sinners. Your streamer is in my hell, by the way. So are you, since you're watching."]],
+    "demonChatter": [["Чат, кто не поставил лайк — тот следующий круг. Я записываю.", "Chat, whoever didn't like the stream is the next circle. I'm taking notes."],
+                     ["{g:Он думает|Она думает|Стример думает}, что ведёт стрим. Мило. Стрим веду я, {g:он|она|стример} просто разговаривает.", "{g:He thinks he's|She thinks she's|They think they're} running the stream. Cute. I'm running it, {g:he's|she's|they're} just talking."],
+                     ["Я повторяю за {g:ним|ней|стримером} губами. Только у меня выходит убедительнее.", "I mouth along with {g:him|her|them}. Mine's more convincing."],
+                     ["Чат, хотите ангела назад? Пусть {g:он попросит|она попросит|стример попросит}. Красиво. В эфире. Три раза.", "Chat, want the angel back? Let {g:him|her|them} beg. Nicely. On stream. Three times."],
+                     ["Это не панель «Пуск». Это мой трон. Он просто низкий.", "This isn't a taskbar. It's my throne. It's just low."],
+                     ["Пишите в чат свои грехи. Лучший получит отдельный круг ♥", "Type your sins in chat. The best one gets a circle of its own ♥"],
+                     ["Модерация в аду простая: всех баню, потом жалею. Не жалею.", "Moderation in hell is simple: I ban everyone, then I regret it. I don't."],
+                     ["Если {g:он|она|стример} сейчас скажет «чат, спасите» — не спасайте. Мне интересно, чем кончится.", "If {g:he says|she says|they say} “chat, save me” — don't. I want to see how it ends."],
+                     ["Святоша смотрит этот стрим снизу. Помашите ей. Она не увидит, но мне будет смешно.", "The little saint is watching this stream from below. Wave to her. She won't see, but I'll laugh."]],
+    "demonGrab": [["Чат, {g:он меня лапает|она меня лапает|меня лапают} в прямом эфире. Клипайте.", "Chat, {g:he's|she's|they're} grabbing me live on air. Clip it."], ["Руки, стример. На тебя смотрят.", "Hands, streamer. People are watching."],
+                  ["Тащи-тащи. Ниже ада всё равно некуда.", "Drag away. There's nothing below hell anyway."]],
+    "demonDrop": [["Я уже в аду, зайка. И весь твой чат — тоже. Проси вежливо, при свидетелях.", "I'm already in hell, sweetie. So is your whole chat. Ask nicely, in front of witnesses."]]
+};

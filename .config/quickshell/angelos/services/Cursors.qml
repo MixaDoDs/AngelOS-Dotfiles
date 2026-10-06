@@ -47,9 +47,17 @@ Singleton {
     readonly property bool macInstalled: catalog.some(e => e.theme === "macOS" && e.installed)
     readonly property string macTheme: macInstalled ? "macOS" : "capitaine-cursors"
     readonly property bool macCursor: GoldenGate.on && !hellOn && (macInstalled || other.includes(macTheme))
+    // angelOS Glitter is one of heaven's things (services/Heaven): until it is earned the
+    // pick stays, angelOS Pixel is worn instead
+    readonly property bool glitterOk: Heaven.has("cursor.glitter")
+    function allowed(t) {
+        return t === "angelOS-Glitter" && !glitterOk ? "angelOS-Pixel" : t;
+    }
     readonly property string heavenTheme: {
         if (macCursor)
             return macTheme;
+        if (theme === "angelOS-Glitter" && !glitterOk)
+            return angelStep >= 3 ? "angelOS-Frost" : "angelOS-Pixel";
         const own = theme === "angelOS-Pixel" || theme === "angelOS-Glitter";
         if (angelStep >= 3 && own)
             return "angelOS-Frost";
@@ -129,6 +137,7 @@ Singleton {
     function put(themeName, sz) {
         if (worker.running || Shell.dev || !themeName)
             return;
+        themeName = allowed(themeName);
         working = themeName;
         worker.after = "";
         worker.command = ["python3", script, "apply", themeName, String(sz)].concat(Config.cursor.flatpak ? [] : ["--no-flatpak"]);
@@ -301,7 +310,9 @@ Singleton {
                     Qt.callLater(() => {
                         if (Shell.dev)
                             return;
-                        if (hell || (Config.cursor.theme === t && !root.hellOn)) {
+                        if (!hell && root.allowed(t) !== t) {
+                            Qt.callLater(root.sync);
+                        } else if (hell || (Config.cursor.theme === t && !root.hellOn)) {
                             worker.command = ["python3", root.script, "apply", t, String(sz + 1)];
                             worker.after = "";
                             worker.nudgeBack = sz;

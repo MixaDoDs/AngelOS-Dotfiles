@@ -19,10 +19,12 @@ SettingRow {
     PxButton {
         compact: true
         text: root.target + " ›"
+        // inside Settings it goes on in the same window
         onClicked: {
-            Shell.openSettings(root.page);
-            if (root.group && Shell.settingsView)
-                Shell.settingsView.showGroup(root.group);
+            const v = Shell.settingsViewFor(root);
+            Shell.settingsGo(root, root.page);
+            if (root.group && v)
+                v.showGroup(root.group);
         }
     }
 }

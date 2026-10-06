@@ -33,31 +33,30 @@ Item {
 
     Component.onCompleted: {
         lastLoc = loc;
-        Shell.settingsView = win;
-        Theme.scriptWindow = scriptHost;
-        Theme.inkWindow = inkHost;
-        Theme.macWindow = macHost;
+        if (main)
+            Shell.settingsView = win;
+        Theme.settingsViews = Theme.settingsViews.concat([win]);
         if (typeof SettingsSearch.reload === "function")
             SettingsSearch.reload();
         else
             SettingsSearch.load();
         SettingsKeys.load();
+        // built already open (LazyWindows, a new window): what opening does
+        if (settingsNav.settingsOpen)
+            opened();
     }
     Component.onDestruction: {
         if (Shell.settingsView === win)
             Shell.settingsView = null;
-        if (Theme.scriptWindow === win.Window.window)
-            Theme.scriptWindow = null;
-        if (Theme.inkWindow === win.Window.window)
-            Theme.inkWindow = null;
-        if (Theme.macWindow === win.Window.window)
-            Theme.macWindow = null;
+        if (Shell.settingsActive === win)
+            Shell.settingsActive = null;
+        Theme.settingsViews = Theme.settingsViews.filter(v => v !== win);
     }
     function diagnostics() {
         return {
-            page: Shell.settingsPage,
-            sub: Shell.settingsSub,
-            section: sectionOf(Shell.settingsPage),
+            page: win.settingsNav.settingsPage,
+            sub: win.settingsNav.settingsSub,
+            section: sectionOf(win.settingsNav.settingsPage),
             view: viewId,
             dress: dressId,
             viewStatus: viewLoader.status,
@@ -73,6 +72,26 @@ Item {
         };
     }
     property var hostWindow: null
+    // where this window is: Shell for the main window, a SettingsNav for any other
+    // (Shell.newSettingsWindow); the pages find it by Shell.settingsNavFor
+    property var settingsNav: Shell
+    readonly property bool main: settingsNav === Shell
+    // the menu bar's System Settings menus act on the window in front
+    readonly property bool windowActive: Window.active
+    onWindowActiveChanged: if (windowActive)
+        Shell.settingsActive = win
+    // the page (or the one given) in a window of its own, next to this one
+    function openNew(page, sub) {
+        return Shell.newSettingsWindow(page || win.settingsNav.settingsPage, page ? sub : win.settingsNav.settingsSub);
+    }
+    // a click on a section, a page or a tile: a middle click (or Ctrl+click) opens it in a new
+    // window, like a link in a browser — then true, and the view does nothing more
+    function clickedNew(mouse, page) {
+        if (mouse.button !== Qt.MiddleButton && !(mouse.modifiers & Qt.ControlModifier))
+            return false;
+        openNew(page);
+        return true;
+    }
     readonly property Item frame: mac ? macFrame : pxFrame
     readonly property var pageItem: atHome ? null : page.item
     // while the demon rules (Y2K → Angel or demon → Settings in hell): a grimoire (GrimoireBook)
@@ -84,9 +103,7 @@ Item {
     // …written by hand: every PxText in this window takes the grimoire's script (Theme.fontScript)
     // (the letter, lust's dress, is handwritten too)
     readonly property var scriptHost: grimoire || dressId === "letter" ? win.Window.window : null
-    onScriptHostChanged: Theme.scriptWindow = scriptHost
     readonly property var inkHost: hellDress ? win.Window.window : null
-    onInkHostChanged: Theme.inkWindow = inkHost
     // Classic stays the default; Windose and Stream are optional settings skins. Golden Gate is
     // the whole desktop's skin (services/GoldenGate): here it is macOS's System Settings — its
     // own view (views/MacView.qml), the Windows 11 look's cards drawn as a Mac's grouped rows
@@ -94,7 +111,6 @@ Item {
     readonly property bool mac: skin === "goldengate" && !hellDress
     readonly property string settingsSkin: hellDress ? "classic" : mac ? "goldengate" : fluent ? "classic" : skin
     readonly property var macHost: mac ? win.Window.window : null
-    onMacHostChanged: Theme.macWindow = macHost
     // (there is no simple view or Expert any more: every page is a click away)
     readonly property bool expert: true
 
@@ -138,7 +154,7 @@ Item {
     readonly property var viewItem: viewLoader.item
     // a folder of icons / the tiles: "home" is the view's own screen, no page on it
     readonly property bool hasHome: viewId === "controlpanel" || viewId === "tiles"
-    readonly property bool atHome: hasHome && (Shell.settingsPage === "home" || Shell.settingsPage === "more")
+    readonly property bool atHome: hasHome && (win.settingsNav.settingsPage === "home" || win.settingsNav.settingsPage === "more")
     // properties: a section's pages and a page's sub-pages are its tabs, not links on the page
     readonly property bool ownsSubpages: viewId === "properties"
     // the grimoire's spread is the sidebar laid out as a book
@@ -211,7 +227,7 @@ Item {
                     }))
             }))
     readonly property var allPages: [pageEntry("account")].concat(visibleSections.reduce((a, s) => a.concat(s.pages.map(id => win.pageEntry(id))), [])).filter(p => !!p)
-    readonly property string currentId: Shell.settingsPage === "home" || Shell.settingsPage === "more" ? "account" : Shell.settingsPage
+    readonly property string currentId: win.settingsNav.settingsPage === "home" || win.settingsNav.settingsPage === "more" ? "account" : win.settingsNav.settingsPage
     readonly property var currentPage: currentId.startsWith("cat:") ? pageEntry(currentId) : allPages.find(p => p.id === currentId) || null
     function sectionFor(id) {
         return visibleSections.find(s => s.pages.includes(id)) || null;
@@ -248,9 +264,12 @@ Item {
         const s = sectionFor(id);
         return s && s.pages[0] === id ? s.pages.slice(1).map(p => win.pageEntry(p)).filter(p => !!p) : [];
     }
+    function sectionTarget(s) {
+        return fluent && s.pages.length > 1 ? "cat:" + s.id : s.pages[0];
+    }
     function openSection(s) {
-        Shell.settingsPage = fluent && s.pages.length > 1 ? "cat:" + s.id : s.pages[0];
-        Shell.settingsSub = "";
+        win.settingsNav.settingsPage = sectionTarget(s);
+        win.settingsNav.settingsSub = "";
     }
     // the page's advanced groups: its sub-pages ("Title ›")
     readonly property var subTitles: pageItem && pageItem.advancedGroups ? pageItem.advancedGroups.map(g => g.title) : []
@@ -278,14 +297,14 @@ Item {
         return out;
     }
     function goLocOf(l) {
-        if (Shell.settingsPage !== l.page)
-            Shell.settingsPage = l.page;
-        Shell.settingsSub = l.sub || "";
+        if (win.settingsNav.settingsPage !== l.page)
+            win.settingsNav.settingsPage = l.page;
+        win.settingsNav.settingsSub = l.sub || "";
     }
 
     // ---- old page ids (the wizard, the tour, the helper, scripts) → their places in the tree ----
     Connections {
-        target: Shell
+        target: win.settingsNav
         function onSettingsPageChanged() {
             win.redirect();
         }
@@ -298,10 +317,10 @@ Item {
         }
     }
     function redirect() {
-        const r = SettingsTree.resolve(Shell.settingsPage);
-        if (r.page === Shell.settingsPage)
+        const r = SettingsTree.resolve(win.settingsNav.settingsPage);
+        if (r.page === win.settingsNav.settingsPage)
             return;
-        Shell.settingsPage = r.page;
+        win.settingsNav.settingsPage = r.page;
         if (r.to)
             showGroup(r.to);
     }
@@ -320,7 +339,7 @@ Item {
         const list = navSections;
         if (!list.length)
             return;
-        let i = list.findIndex(s => s.id === sectionOf(Shell.settingsPage));
+        let i = list.findIndex(s => s.id === sectionOf(win.settingsNav.settingsPage));
         if (atHome)
             i = delta > 0 ? -1 : 0;
         const next = list[((i < 0 ? 0 : i) + delta + list.length * 2) % list.length];
@@ -330,18 +349,18 @@ Item {
         const locs = sectionLocs;
         if (locs.length < 2 || atHome)
             return;
-        const i = Math.max(0, locs.findIndex(l => l.page === currentId && l.sub === Shell.settingsSub));
+        const i = Math.max(0, locs.findIndex(l => l.page === currentId && l.sub === win.settingsNav.settingsSub));
         goLocOf(locs[(i + delta + locs.length) % locs.length]);
     }
     // up one level: a sub-page → its page → the section's first page → the view's home
     function goUp() {
-        if (Shell.settingsSub !== "") {
-            Shell.settingsSub = "";
+        if (win.settingsNav.settingsSub !== "") {
+            win.settingsNav.settingsSub = "";
             return true;
         }
         const parentId = parentOf(currentId);
         if (parentId) {
-            Shell.settingsPage = parentId;
+            win.settingsNav.settingsPage = parentId;
             return true;
         }
         if (hasHome && !atHome) {
@@ -351,8 +370,8 @@ Item {
         return false;
     }
     function goHome() {
-        Shell.settingsPage = hasHome ? "home" : "account";
-        Shell.settingsSub = "";
+        win.settingsNav.settingsPage = hasHome ? "home" : "account";
+        win.settingsNav.settingsSub = "";
     }
     // a page's subtitle, its first sentence (from the search index): the tiles' small print
     function pageHint(id) {
@@ -389,7 +408,7 @@ Item {
     property var forwardStack: []
     property string lastLoc: ""             // set once at start, then by recordLoc (no binding)
     property bool travelling: false
-    readonly property string loc: Shell.settingsPage + "|" + Shell.settingsSub
+    readonly property string loc: win.settingsNav.settingsPage + "|" + win.settingsNav.settingsSub
     onLocChanged: Qt.callLater(recordLoc)
     function recordLoc() {
         if (loc === lastLoc)
@@ -399,9 +418,9 @@ Item {
             forwardStack = [];
             // how often each page is opened: the account page's "Everyday" follows it (a
             // category's own page is a way through, not a page anyone wants back)
-            if (Config.ready && Shell.settingsOpen && Shell.settingsSub === "" && Shell.settingsPage !== "home" && Shell.settingsPage !== "more" && !Shell.settingsPage.startsWith("cat:")) {
+            if (Config.ready && win.settingsNav.settingsOpen && win.settingsNav.settingsSub === "" && win.settingsNav.settingsPage !== "home" && win.settingsNav.settingsPage !== "more" && !win.settingsNav.settingsPage.startsWith("cat:")) {
                 const u = Object.assign({}, Config.settingsUi.usage || {});
-                u[Shell.settingsPage] = (u[Shell.settingsPage] || 0) + 1;
+                u[win.settingsNav.settingsPage] = (u[win.settingsNav.settingsPage] || 0) + 1;
                 Config.settingsUi.usage = u;
             }
         }
@@ -409,27 +428,29 @@ Item {
         lastLoc = loc;
     }
     Connections {
-        target: Shell
+        target: win.settingsNav
         function onSettingsOpenChanged() {
-            if (!Shell.settingsOpen) {
+            if (!win.settingsNav.settingsOpen) {
                 win.backStack = [];
                 win.forwardStack = [];
                 win.sessionMarked = false;
                 win.query = "";
                 searchInput.text = "";
-            } else {
-                Config.flush();
-                win.sessionStep = Config.lastStep;
-                win.sessionMarked = true;
-                Qt.callLater(win.focusSearch);
-            }
+            } else
+                win.opened();
         }
+    }
+    function opened() {
+        Config.flush();
+        sessionStep = Config.lastStep;
+        sessionMarked = true;
+        Qt.callLater(focusSearch);
     }
     function goLoc(l) {
         const [p, sub] = l.split("|");
         travelling = true;
-        Shell.settingsPage = p;
-        Shell.settingsSub = sub || "";
+        win.settingsNav.settingsPage = p;
+        win.settingsNav.settingsSub = sub || "";
         Qt.callLater(recordLoc);
     }
     readonly property bool canBack: backStack.length > 0
@@ -471,8 +492,8 @@ Item {
                 if (!currentId.startsWith("cat:"))
                     out.push(labelOf(currentId));
             }
-            if (Shell.settingsSub)
-                out.push(Shell.settingsSub);
+            if (win.settingsNav.settingsSub)
+                out.push(win.settingsNav.settingsSub);
             return out;
         }
         if (hasHome)
@@ -488,8 +509,8 @@ Item {
                 out.push(labelOf(currentId));
         } else
             out.push(labelOf(currentId));
-        if (Shell.settingsSub)
-            out.push(Shell.settingsSub);
+        if (win.settingsNav.settingsSub)
+            out.push(win.settingsNav.settingsSub);
         return out;
     }
     // a crumb clicked: up to that level (the home, the section's first page, the page)
@@ -499,7 +520,7 @@ Item {
             if (index === 0 && c && c.pages.length > 1 && !currentId.startsWith("cat:"))
                 openSection(c);
             else
-                Shell.settingsSub = "";
+                win.settingsNav.settingsSub = "";
             return;
         }
         const at = hasHome ? index - 1 : index;
@@ -509,7 +530,7 @@ Item {
         if (at === 0 && s)
             openSection(s);
         else
-            Shell.settingsSub = "";
+            win.settingsNav.settingsSub = "";
     }
 
     // ---- search (services/SettingsSearch) ----
@@ -559,7 +580,7 @@ Item {
         searchInput.focusField();
     }
     function focusSearch() {
-        if (Shell.settingsOpen)
+        if (win.settingsNav.settingsOpen)
             searchInput.focusField();
     }
     function acceptGhost() {
@@ -576,12 +597,12 @@ Item {
         pendingTarget = r.kind === "page" ? null : r;
         query = "";
         searchInput.text = "";
-        if (Shell.settingsPage === r.page)
+        if (win.settingsNav.settingsPage === r.page)
             targetTimer.restart();
         else
-            Shell.settingsPage = r.page;
+            win.settingsNav.settingsPage = r.page;
         if (r.kind === "page")
-            Shell.settingsSub = "";
+            win.settingsNav.settingsSub = "";
     }
     // the found setting: on the page (a visible one) or anywhere in it (`any`)
     function findItem(item, r, any) {
@@ -621,8 +642,8 @@ Item {
         if (!it) {
             const hidden = findItem(pg.flick.contentItem, r, true) || (r.kind === "row" ? findItem(pg.flick.contentItem, groupHint, true) : null);
             const g = hidden ? groupOf(hidden) : null;
-            if (g && g.advanced && !r.opened && Shell.settingsSub !== g.title) {
-                Shell.settingsSub = g.title;
+            if (g && g.advanced && !r.opened && win.settingsNav.settingsSub !== g.title) {
+                win.settingsNav.settingsSub = g.title;
                 pendingTarget = Object.assign({}, r, {
                     "opened": true
                 });
@@ -710,6 +731,15 @@ Item {
     Shortcut {
         sequences: ["Ctrl+F", "Ctrl+K"]
         onActivated: win.focusSearch()
+    }
+    // one more window, on the same page (Ctrl+W closes this one)
+    Shortcut {
+        sequence: "Ctrl+N"
+        onActivated: win.openNew()
+    }
+    Shortcut {
+        sequence: "Ctrl+W"
+        onActivated: win.settingsNav.settingsOpen = false
     }
     // Ctrl+Z: the last change of a setting goes back (Config.undo)
     Shortcut {
@@ -814,7 +844,7 @@ Item {
         icon: win.atHome ? "gear" : win.currentPage ? win.currentPage.icon : "gear"
         minimizable: false
         maximizable: true
-        onCloseClicked: Shell.settingsOpen = false
+        onCloseClicked: win.settingsNav.settingsOpen = false
         onMaximizeClicked: if (win.hostWindow)
             win.hostWindow.maximized = !win.hostWindow.maximized
         onTitlePressed: if (win.hostWindow)
@@ -1036,7 +1066,7 @@ Item {
         // the page to show: a page of the tree is put together (ComposedPage) — the same file
         // for every one of them, so it is loaded anew with its key whenever the page changes
         readonly property string want: {
-            const id = Shell.settingsPage;
+            const id = win.settingsNav.settingsPage;
             if (id === "home" || id === "more") {
                 // the folder and the tiles show their own home, no page
                 if (win.hasHome)

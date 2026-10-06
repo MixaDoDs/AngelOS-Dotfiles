@@ -18,7 +18,7 @@ PxPage {
     subtitle: I18n.t("То же, что в боковой панели, только плитками.", "The same as in the sidebar, as tiles.")
 
     Repeater {
-        model: Shell.settingsView ? Shell.settingsView.visibleGroups : []
+        model: page.view ? page.view.visibleGroups : []
         PxGroup {
             name: "tiles"
             id: grp
@@ -44,7 +44,7 @@ PxPage {
                         small: true
                         icon: modelData.icon
                         text: modelData.label
-                        onClicked: Shell.settingsPage = modelData.id
+                        onClicked: page.nav.settingsPage = modelData.id
                     }
                 }
             }

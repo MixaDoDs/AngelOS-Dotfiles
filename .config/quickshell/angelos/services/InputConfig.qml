@@ -140,10 +140,14 @@ Singleton {
             else
                 t = t.replace(/^(\s*)(layout\s+"[^"]*".*)$/m, (m, i, l) => i + l + "\n" + i + 'options "' + ch.options + '"');
         }
+        // a file without the line gets it in `keyboard { }` (before, the slider moved and
+        // nothing was written: back to the old value on the next open)
+        if (ch.repeatDelay !== undefined || ch.repeatRate !== undefined)
+            t = ensureBlock(t, "keyboard", "input");
         if (ch.repeatDelay !== undefined)
-            t = /^\s*repeat-delay\s+\d+/m.test(t) ? t.replace(/^(\s*)repeat-delay\s+\d+/m, (m, i) => i + "repeat-delay " + Math.round(ch.repeatDelay)) : t;
+            t = setLine(t, /^(\s*)repeat-delay\s+\d+/m, "repeat-delay " + Math.round(ch.repeatDelay), "keyboard");
         if (ch.repeatRate !== undefined)
-            t = /^\s*repeat-rate\s+\d+/m.test(t) ? t.replace(/^(\s*)repeat-rate\s+\d+/m, (m, i) => i + "repeat-rate " + Math.round(ch.repeatRate)) : t;
+            t = setLine(t, /^(\s*)repeat-rate\s+\d+/m, "repeat-rate " + Math.round(ch.repeatRate), "keyboard");
         if (ch.numlock)
             numlockKick.restart();          // turn it on now too, not only at the next login
         if (ch.numlock !== undefined) {

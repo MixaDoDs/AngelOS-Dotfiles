@@ -29,13 +29,13 @@ Item {
         const i = pages.indexOf(view.currentId);
         if (e.key === Qt.Key_Down || e.key === Qt.Key_Up) {
             const n = Math.max(0, Math.min(pages.length - 1, i + (e.key === Qt.Key_Down ? 1 : -1)));
-            Shell.settingsPage = pages[n];
-            Shell.settingsSub = "";
+            root.view.settingsNav.settingsPage = pages[n];
+            root.view.settingsNav.settingsSub = "";
             return true;
         }
         if (e.key === Qt.Key_Home || e.key === Qt.Key_End) {
-            Shell.settingsPage = pages[e.key === Qt.Key_Home ? 0 : pages.length - 1];
-            Shell.settingsSub = "";
+            root.view.settingsNav.settingsPage = pages[e.key === Qt.Key_Home ? 0 : pages.length - 1];
+            root.view.settingsNav.settingsSub = "";
             return true;
         }
         if (e.key === Qt.Key_Left) {
@@ -47,7 +47,9 @@ Item {
     // this window in niri (for the minimize hook): by its title, -1 if niri doesn't list it
     function nativeId() {
         const t = view.hostWindow ? String(view.hostWindow.title) : "";
-        const w = Niri.windows.find(x => x.app_id === "org.quickshell" && x.title === t);
+        // there can be several Settings windows: the one clicked in has the focus
+        const same = Niri.windows.filter(x => x.app_id === "org.quickshell" && x.title === t);
+        const w = same.find(x => x.is_focused) || same[0];
         return w ? w.id : -1;
     }
     // a page's line icon on its category's colour
@@ -120,7 +122,7 @@ Item {
                         enabled: light.usable
                         onClicked: {
                             if (light.modelData[0] === "close")
-                                Shell.settingsOpen = false;
+                                root.view.settingsNav.settingsOpen = false;
                             else if (light.modelData[0] === "minimize")
                                 Minimize.request(root.nativeId(), "settings");
                             else if (root.view.hostWindow)
@@ -157,7 +159,7 @@ Item {
                 // you: the avatar, the name, "angelOS account"
                 Rectangle {
                     id: you
-                    readonly property bool sel: root.view.sectionOf(Shell.settingsPage) === "account"
+                    readonly property bool sel: root.view.sectionOf(root.view.settingsNav.settingsPage) === "account"
                     width: col.width
                     height: GoldenGate.px(52)
                     radius: GoldenGate.px(8)
@@ -211,9 +213,12 @@ Item {
                         id: youMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        onClicked: {
-                            Shell.settingsPage = SettingsTree.accountPage;
-                            Shell.settingsSub = "";
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                        onClicked: mouse => {
+                            if (root.view.clickedNew(mouse, SettingsTree.accountPage))
+                                return;
+                            root.view.settingsNav.settingsPage = SettingsTree.accountPage;
+                            root.view.settingsNav.settingsSub = "";
                             root.view.focusNav();
                         }
                     }
@@ -269,9 +274,12 @@ Item {
                                     id: rowMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    onClicked: {
-                                        Shell.settingsPage = row.modelData;
-                                        Shell.settingsSub = "";
+                                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                                    onClicked: mouse => {
+                                        if (root.view.clickedNew(mouse, row.modelData))
+                                            return;
+                                        root.view.settingsNav.settingsPage = row.modelData;
+                                        root.view.settingsNav.settingsSub = "";
                                         root.view.focusNav();
                                     }
                                 }
@@ -350,7 +358,7 @@ Item {
             MacText {
                 anchors.left: nav.right
                 anchors.leftMargin: GoldenGate.px(14)
-                anchors.right: undo.visible ? undo.left : parent.right
+                anchors.right: undo.visible ? undo.left : newWin.left
                 anchors.rightMargin: GoldenGate.px(12)
                 height: parent.height
                 text: root.view.currentPage ? root.view.currentPage.label : I18n.t("Системные настройки", "System Settings")
@@ -361,8 +369,8 @@ Item {
             Rectangle {
                 id: undo
                 visible: Config.canUndo
-                anchors.right: parent.right
-                anchors.rightMargin: GoldenGate.px(14)
+                anchors.right: newWin.left
+                anchors.rightMargin: GoldenGate.px(8)
                 anchors.verticalCenter: parent.verticalCenter
                 width: undoText.implicitWidth + GoldenGate.px(24)
                 height: GoldenGate.px(26)
@@ -376,6 +384,29 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: Config.undo()
+                }
+            }
+            // File → New Window (⌘N): this pane in one more window
+            Item {
+                id: newWin
+                anchors.right: parent.right
+                anchors.rightMargin: GoldenGate.px(14)
+                anchors.verticalCenter: parent.verticalCenter
+                width: GoldenGate.px(30)
+                height: GoldenGate.px(30)
+                opacity: Shell.settingsMore.count < Shell.settingsMoreMax ? 1 : 0.35
+                MacIcon {
+                    anchors.centerIn: parent
+                    name: "app-window"
+                    size: GoldenGate.px(16)
+                    stroke: 2
+                    color: newMouse.containsMouse ? GoldenGate.label : GoldenGate.secondaryLabel
+                }
+                MouseArea {
+                    id: newMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: root.view.openNew()
                 }
             }
         }

@@ -492,7 +492,21 @@ Singleton {
         ].filter(m => m.items.length > 0);
     }
 
-    // angelOS's Settings as System Settings: View lists the panes like macOS's does
+    // angelOS's Settings as System Settings: View lists the panes like macOS's does. There can be
+    // several Settings windows: the menus act on the one in front (SettingsView.windowActive)
+    readonly property var settingsFront: Shell.settingsActive || Shell.settingsView || ({
+            "settingsNav": Shell,
+            "openNew": () => Shell.newSettingsWindow(Shell.settingsPage),
+            "focusSearch": () => {},
+            "back": () => {},
+            "forward": () => {}
+        })
+    function settingsGo(id) {
+        const v = settingsFront;
+        if (v.settingsNav === Shell)
+            return Shell.openSettings(id);
+        v.settingsNav.settingsPage = SettingsTree.resolve(id).page;
+    }
     function settingsMenus() {
         const panes = [];
         for (const c of SettingsTree.categories || []) {
@@ -501,10 +515,10 @@ Singleton {
                 if (pg && SettingsTree.shown(pg))
                     panes.push(item("sp:" + id, pg.label, {
                         "kind": "fn",
-                        "fn": () => Shell.openSettings(id)
+                        "fn": () => root.settingsGo(id)
                     }, {
                         "toggle": "check",
-                        "checked": Shell.settingsPage === id
+                        "checked": root.settingsFront.settingsNav.settingsPage === id
                     }));
             }
             panes.push(sep("sc:" + c.id));
@@ -520,15 +534,26 @@ Singleton {
                         "fn": () => Shell.openSettings("about")
                     }), sep("s1"), item("s:quit", I18n.t("Завершить «", "Quit ") + name + I18n.t("»", ""), {
                         "kind": "fn",
-                        "fn": () => Shell.settingsOpen = false
+                        "fn": () => {
+                            Shell.settingsOpen = false;
+                            Shell.settingsMore.clear();
+                        }
                     })])
             },
             {
                 "id": "m:file",
                 "title": I18n.t("Файл", "File"),
-                "items": [item("s:close", I18n.t("Закрыть окно", "Close Window"), {
+                "items": [item("s:new", I18n.t("Новое окно", "New Window"), {
                         "kind": "fn",
-                        "fn": () => Shell.settingsOpen = false
+                        "fn": () => root.settingsFront.openNew()
+                    }, {
+                        "enabled": Shell.settingsMore.count < Shell.settingsMoreMax,
+                        "keys": ["ctrl", "n"]
+                    }), item("s:close", I18n.t("Закрыть окно", "Close Window"), {
+                        "kind": "fn",
+                        "fn": () => root.settingsFront.settingsNav.settingsOpen = false
+                    }, {
+                        "keys": ["ctrl", "w"]
                     })]
             },
             {
@@ -542,7 +567,7 @@ Singleton {
                         "keys": ["ctrl", "z"]
                     }), item("s:find", I18n.t("Найти", "Find"), {
                         "kind": "fn",
-                        "fn": () => Shell.settingsView && Shell.settingsView.focusSearch()
+                        "fn": () => root.settingsFront.focusSearch()
                     }, {
                         "keys": ["ctrl", "f"]
                     })])
@@ -552,12 +577,12 @@ Singleton {
                 "title": I18n.t("Вид", "View"),
                 "items": tidy([item("s:back", I18n.t("Назад", "Back"), {
                         "kind": "fn",
-                        "fn": () => Shell.settingsView && Shell.settingsView.back()
+                        "fn": () => root.settingsFront.back()
                     }, {
                         "keys": ["alt", "Left"]
                     }), item("s:fwd", I18n.t("Вперёд", "Forward"), {
                         "kind": "fn",
-                        "fn": () => Shell.settingsView && Shell.settingsView.forward()
+                        "fn": () => root.settingsFront.forward()
                     }, {
                         "keys": ["alt", "Right"]
                     }), sep("sv")].concat(panes))

@@ -503,6 +503,31 @@ PxPage {
         }
     }
 
+    // ---- Spotlight ----
+    PxGroup {
+        name: "spotlight"
+        title: "Spotlight"
+        icon: "search"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Файлы", "Files")
+            hint: I18n.t("Spotlight ищет файлы в домашней папке: по имени («отпуск») или типу («.jpeg», «.картинки», «.видео», «.музыка», «.документы»); новые выше. Скрытые папки не смотрит", "Spotlight finds files in the home folder by name (\"holiday\") or type (\".jpeg\", \".images\", \".video\", \".music\", \".docs\"); newest first. Hidden folders are skipped")
+            PxToggle {
+                checked: Config.launcher.files !== false
+                onToggled: v => Config.launcher.files = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Предпросмотр", "Preview")
+            hint: I18n.t("миниатюры картинок и видео в результатах и большая картинка справа", "thumbnails of pictures and videos in the results and a big one on the right")
+            PxToggle {
+                enabled: Config.launcher.files !== false
+                checked: Config.launcher.filePreview !== false
+                onToggled: v => Config.launcher.filePreview = v
+            }
+        }
+    }
+
     // ---- Windows ----
     PxGroup {
         name: "windows"

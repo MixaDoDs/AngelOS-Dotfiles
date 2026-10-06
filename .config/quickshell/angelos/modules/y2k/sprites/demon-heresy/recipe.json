@@ -42,16 +42,17 @@
  },
  "overlays": {
   "mouth": {
-   "scale": 0.85,
-   "x": 14,
-   "y": 66,
-   "clip": [
-    50,
-    87,
-    78,
-    98
+   "scale": 0.7,
+   "x": 34,
+   "y": 70,
+   "thr": 80,
+   "oval": [
+    75.5,
+    91,
+    9,
+    5.5
    ],
-   "thr": 80
+   "file": "~/Pictures/angelos-sprites/heresy/talk.png"
   },
   "eyes": {
    "scale": 0.825,

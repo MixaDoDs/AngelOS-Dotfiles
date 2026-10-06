@@ -365,7 +365,7 @@ Item {
             Choice {
                 width: parent.cardWidth
                 label: I18n.t("С игрой", "With the game")
-                hint: I18n.t("В углу живёт ангел, а что будет дальше, зависит от твоих выборов. Выйти можно в любой момент: angelos game off или Mod+Ctrl+Shift+Escape.", "An angel lives in the corner, and what happens next depends on your choices. Leave any time: angelos game off or Mod+Ctrl+Shift+Escape.")
+                hint: I18n.t("В углу живёт ангел, а что будет дальше, зависит от твоих выборов. За достижения открываются райские вещи (Крылья, Арфа, Glitter…). Выйти можно в любой момент: angelos game off или Mod+Ctrl+Shift+Escape.", "An angel lives in the corner, and what happens next depends on your choices. Achievements open heaven's things (Wings, Harp, Glitter…). Leave any time: angelos game off or Mod+Ctrl+Shift+Escape.")
                 checked: Config.game.enabled !== false
                 onPicked: Story.setEnabled(true)
                 PxIcon {
@@ -384,7 +384,7 @@ Item {
             Choice {
                 width: parent.cardWidth
                 label: I18n.t("Просто рабочий стол", "Just the desktop")
-                hint: I18n.t("Панель, окна и темы — без ангела, демоницы, новеллы и ада. Игру можно включить потом.", "The bar, windows and themes — no angel, demon, novel or hell. The game can be turned on later.")
+                hint: I18n.t("Панель, окна и темы — без ангела, демоницы, новеллы и ада, а всё райское открыто сразу. Игру можно включить потом.", "The bar, windows and themes — no angel, demon, novel or hell, and all of heaven's things open at once. The game can be turned on later.")
                 checked: Config.game.enabled === false
                 onPicked: Story.setEnabled(false)
                 PxIcon {

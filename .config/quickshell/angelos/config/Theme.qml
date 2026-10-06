@@ -571,14 +571,16 @@ Singleton {
 
     // ---- the grimoire's handwriting ----
     // Caveat (OFL, data/fonts; Latin and Cyrillic): while Settings are the demon's book
-    // (SettingsView sets scriptWindow to its window), every PxText and field in that window
+    // (SettingsView puts its window in scriptWindows), every PxText and field in that window
     // writes by hand, a size larger — a script's small letters need it to read. Elsewhere
-    // nothing changes and nothing is looked up (PxText checks scriptWindow first).
+    // nothing changes and nothing is looked up (PxText checks scriptWindows first).
     readonly property string fontScript: scriptFont.status === FontLoader.Ready ? scriptFont.name : fontBody
-    property var scriptWindow: null
-    // the window whose content is re-inked on paper (the grimoire, a circle's dress): its
+    // the open Settings windows (SettingsView: each adds itself, there can be several)
+    property var settingsViews: []
+    readonly property var scriptWindows: settingsViews.map(v => v.scriptHost).filter(w => !!w)
+    // the windows whose content is re-inked on paper (the grimoire, a circle's dress): their
     // pictures come out as engravings the right way round (widgets/GrimoirePhoto)
-    property var inkWindow: null
+    readonly property var inkWindows: settingsViews.map(v => v.inkHost).filter(w => !!w)
     // the window in the Golden Gate skin's System Settings look (SettingsView): every PxText in it
     // is set in the skin's font at macOS's sizes (widgets/PxText)
     property var macWindow: null

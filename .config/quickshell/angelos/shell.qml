@@ -27,6 +27,7 @@ import qs.modules.cursor
 import qs.modules.lens
 import qs.modules.novel
 import qs.modules.debug
+import qs.modules.diary
 import qs.modules.mac
 import qs.widgets
 
@@ -40,6 +41,7 @@ ShellRoot {
     MacDesktop {}
     StartOverlay {}
     SidebarHost {}
+    DiaryTab {}
     WorkspaceFx {}
     NotificationPopups {}
     Osd {}
@@ -52,8 +54,10 @@ ShellRoot {
     TourOverlay {}
     PluginHost {}
     AngelHelper {}
+    StreamerCast {}
     NovelHost {}
     HeavenRays {}
+    AchievementToast {}
     ScreenQuake {}
     HellFxOverlay {}
     CircleTransition {}
@@ -111,6 +115,8 @@ ShellRoot {
         Sounds.ready; // Y2K sound pack (generated on first use)
         StreamMode.active; // OBS watcher: stream mode while live
         Angel.demon; // the corner helper's schedule (tips, the demon's pranks)
+        Achievements.loaded; // the achievements: counting starts with the shell (the game on only)
+        Diary.loaded; // the Angel's diary: a page written later comes as a card (the game on only)
         AltTab.ours; // Alt+Tab: windows in MRU order, niri's binds follow the chosen style
         InputConfig.numlock; // NumLock on login: checked once per login (scripts/numlock.py)
         FastfetchLogo.signature; // fastfetch draws the chosen emblem (Settings → Bar → Logo)

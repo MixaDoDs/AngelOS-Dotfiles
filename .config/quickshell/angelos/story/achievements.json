@@ -1,0 +1,949 @@
+{
+  "_comment": [
+    "The achievements (services/Achievements). Edit here or on the owner's Settings page «Достижения: редактор»; «Опубликовать» ships the file.",
+    "tier: one of `tiers` (easy first). icon: a pixel icon (widgets/Icons.js). secret: shown as ??? until earned.",
+    "on: an event (services/Achievements → events, or act:<story/game.json action>), \"event:key\" for one kind; count: how many times (1); kinds: how many different keys instead.",
+    "within: seconds — the `count` events must come in a row, each at most this long after the one before (\"Six windows in a row\"). hell: true — hell's own card (also any card while the demon rules).",
+    "cond: a condition like the scenes' (docs/STORY.md) over the game's variables + days hour calmDays closeOwn mac earned chapters, count(\"event\") kinds(\"event\") got(\"id\"). With `on` both must hold.",
+    "reward: a heaven thing it opens (or a thing of story/items.json: it lies in the card, e.g. the diary key) (services/Heaven → items); a thing no achievement gives is open to everyone. The game off: all of heaven is open, no achievements."
+  ],
+  "tiers": [
+    {
+      "id": 1,
+      "ru": "Первые шаги",
+      "en": "First steps"
+    },
+    {
+      "id": 2,
+      "ru": "Обживаюсь",
+      "en": "Settling in"
+    },
+    {
+      "id": 3,
+      "ru": "Свой человек",
+      "en": "One of us"
+    },
+    {
+      "id": 4,
+      "ru": "Избранный",
+      "en": "The chosen one"
+    },
+    {
+      "id": 5,
+      "ru": "Тайны",
+      "en": "Secrets"
+    }
+  ],
+  "achievements": [
+    {
+      "id": "hello",
+      "tier": 1,
+      "icon": "heart",
+      "name": {
+        "ru": "Привет, ангел",
+        "en": "Hello, angel"
+      },
+      "desc": {
+        "ru": "Кликнуть по ангелу в углу",
+        "en": "Click the angel in the corner"
+      },
+      "on": "angel.menu:angel",
+      "reward": "fx.sparkles"
+    },
+    {
+      "id": "settings",
+      "tier": 1,
+      "icon": "gear",
+      "name": {
+        "ru": "Под капотом",
+        "en": "Under the hood"
+      },
+      "desc": {
+        "ru": "Открыть Настройки",
+        "en": "Open Settings"
+      },
+      "on": "settings.open",
+      "reward": "look.mini"
+    },
+    {
+      "id": "start",
+      "tier": 1,
+      "icon": "star",
+      "name": {
+        "ru": "Пуск!",
+        "en": "Start!"
+      },
+      "desc": {
+        "ru": "Открыть «Пуск»",
+        "en": "Open Start"
+      },
+      "on": "start.open"
+    },
+    {
+      "id": "wallpaper",
+      "tier": 1,
+      "icon": "image",
+      "name": {
+        "ru": "Новый вид",
+        "en": "A new view"
+      },
+      "desc": {
+        "ru": "Сменить обои",
+        "en": "Change the wallpaper"
+      },
+      "on": "wallpaper.set"
+    },
+    {
+      "id": "screenshot",
+      "tier": 1,
+      "icon": "camera",
+      "name": {
+        "ru": "Щёлк",
+        "en": "Snap"
+      },
+      "desc": {
+        "ru": "Сделать скриншот",
+        "en": "Take a screenshot"
+      },
+      "on": "screenshot"
+    },
+    {
+      "id": "desks",
+      "tier": 1,
+      "icon": "layers",
+      "name": {
+        "ru": "Переезд",
+        "en": "Moving out"
+      },
+      "desc": {
+        "ru": "Перейти на другой рабочий стол",
+        "en": "Go to another desk"
+      },
+      "on": "workspace.switch"
+    },
+    {
+      "id": "launcher",
+      "tier": 1,
+      "icon": "search",
+      "name": {
+        "ru": "Найдётся всё",
+        "en": "Everything's findable"
+      },
+      "desc": {
+        "ru": "Открыть поиск приложений",
+        "en": "Open the launcher"
+      },
+      "on": "launcher.open"
+    },
+    {
+      "id": "lock",
+      "tier": 1,
+      "icon": "lock",
+      "name": {
+        "ru": "Под замком",
+        "en": "Under lock"
+      },
+      "desc": {
+        "ru": "Заблокировать экран",
+        "en": "Lock the screen"
+      },
+      "on": "lock"
+    },
+    {
+      "id": "rmb",
+      "tier": 1,
+      "icon": "grid",
+      "name": {
+        "ru": "Правый клик",
+        "en": "Right click"
+      },
+      "desc": {
+        "ru": "Открыть меню по ПКМ на рабочем столе",
+        "en": "Open the right-click menu on the desk"
+      },
+      "on": "deskmenu.open"
+    },
+    {
+      "id": "theme",
+      "tier": 1,
+      "icon": "moon",
+      "name": {
+        "ru": "Свет и тень",
+        "en": "Light and shadow"
+      },
+      "desc": {
+        "ru": "Сменить тему: светлую, тёмную или авто",
+        "en": "Change the theme: light, dark or auto"
+      },
+      "on": "theme.set"
+    },
+    {
+      "id": "widget",
+      "tier": 2,
+      "icon": "calendar",
+      "name": {
+        "ru": "Уют",
+        "en": "Cosy"
+      },
+      "desc": {
+        "ru": "Поставить виджет на рабочий стол",
+        "en": "Put a widget on the desk"
+      },
+      "on": "widget.add"
+    },
+    {
+      "id": "accent",
+      "tier": 2,
+      "icon": "palette",
+      "name": {
+        "ru": "В цвет",
+        "en": "On colour"
+      },
+      "desc": {
+        "ru": "Сменить палитру (или акцент в Golden Gate)",
+        "en": "Change the palette (or the accent in Golden Gate)"
+      },
+      "on": "accent.set"
+    },
+    {
+      "id": "lens",
+      "tier": 2,
+      "icon": "search",
+      "name": {
+        "ru": "Ближе",
+        "en": "Closer"
+      },
+      "desc": {
+        "ru": "Посмотреть в лупу у курсора",
+        "en": "Look through the lens at the pointer"
+      },
+      "on": "lens.open"
+    },
+    {
+      "id": "clipboard",
+      "tier": 2,
+      "icon": "document",
+      "name": {
+        "ru": "Всё помню",
+        "en": "I remember it all"
+      },
+      "desc": {
+        "ru": "Открыть историю буфера обмена",
+        "en": "Open the clipboard history"
+      },
+      "on": "clipboard.open"
+    },
+    {
+      "id": "plugin",
+      "tier": 2,
+      "icon": "plug",
+      "name": {
+        "ru": "Расширяемся",
+        "en": "Expanding"
+      },
+      "desc": {
+        "ru": "Поставить плагин из каталога",
+        "en": "Install a plugin from the catalog"
+      },
+      "on": "plugin.install"
+    },
+    {
+      "id": "jokes",
+      "tier": 2,
+      "icon": "chat",
+      "name": {
+        "ru": "Ещё! Ещё!",
+        "en": "More! More!"
+      },
+      "desc": {
+        "ru": "Попросить у ангела десять шуток",
+        "en": "Ask the angel for ten jokes"
+      },
+      "on": "act:joke.more",
+      "count": 10,
+      "reward": "look.chibi"
+    },
+    {
+      "id": "love",
+      "tier": 2,
+      "icon": "heartSmall",
+      "name": {
+        "ru": "Признание",
+        "en": "Confession"
+      },
+      "desc": {
+        "ru": "Сказать ангелу «люблю»",
+        "en": "Tell the angel “I love you”"
+      },
+      "on": "act:ask.love",
+      "reward": "menu.wings"
+    },
+    {
+      "id": "windows25",
+      "tier": 2,
+      "icon": "window",
+      "name": {
+        "ru": "Многозадачность",
+        "en": "Multitasking"
+      },
+      "desc": {
+        "ru": "Открыть 25 окон",
+        "en": "Open 25 windows"
+      },
+      "on": "window.open",
+      "count": 25
+    },
+    {
+      "id": "six-windows",
+      "tier": 2,
+      "icon": "window",
+      "name": {
+        "ru": "Шесть окон подряд",
+        "en": "Six windows in a row"
+      },
+      "desc": {
+        "ru": "Открыть шесть окон подряд — не дольше десяти секунд между ними. В карточке кое-что останется",
+        "en": "Open six windows in a row, at most ten seconds apart. Something will be left in the card"
+      },
+      "on": "window.open",
+      "count": 6,
+      "within": 10,
+      "reward": "item.diary-key"
+    },
+    {
+      "id": "gallery",
+      "tier": 2,
+      "icon": "image",
+      "name": {
+        "ru": "Галерея",
+        "en": "The gallery"
+      },
+      "desc": {
+        "ru": "Сменить обои пять раз",
+        "en": "Change the wallpaper five times"
+      },
+      "on": "wallpaper.set",
+      "count": 5
+    },
+    {
+      "id": "photographer",
+      "tier": 2,
+      "icon": "camera",
+      "name": {
+        "ru": "Фотограф",
+        "en": "The photographer"
+      },
+      "desc": {
+        "ru": "Сделать десять скриншотов",
+        "en": "Take ten screenshots"
+      },
+      "on": "screenshot",
+      "count": 10
+    },
+    {
+      "id": "chameleon",
+      "tier": 2,
+      "icon": "palette",
+      "name": {
+        "ru": "Хамелеон",
+        "en": "The chameleon"
+      },
+      "desc": {
+        "ru": "Попробовать три разные палитры",
+        "en": "Try three different palettes"
+      },
+      "on": "accent.set",
+      "kinds": 3
+    },
+    {
+      "id": "cosy",
+      "tier": 2,
+      "icon": "calendar",
+      "name": {
+        "ru": "Уютный стол",
+        "en": "A cosy desk"
+      },
+      "desc": {
+        "ru": "Поставить три разных виджета",
+        "en": "Put three different widgets on the desk"
+      },
+      "on": "widget.add",
+      "kinds": 3
+    },
+    {
+      "id": "finder",
+      "tier": 2,
+      "icon": "search",
+      "name": {
+        "ru": "Ищейка",
+        "en": "The sleuth"
+      },
+      "desc": {
+        "ru": "Открыть файл прямо из поиска",
+        "en": "Open a file straight from the search"
+      },
+      "on": "file.open"
+    },
+    {
+      "id": "dear-diary",
+      "tier": 2,
+      "icon": "document",
+      "name": {
+        "ru": "Дорогой дневник",
+        "en": "Dear diary"
+      },
+      "desc": {
+        "ru": "Открыть дневник Ангела",
+        "en": "Open the Angel's diary"
+      },
+      "on": "diary.open"
+    },
+    {
+      "id": "bar",
+      "tier": 3,
+      "icon": "layers",
+      "name": {
+        "ru": "Перестановка",
+        "en": "Rearranged"
+      },
+      "desc": {
+        "ru": "Переставить элементы панели",
+        "en": "Rearrange the bar"
+      },
+      "on": "bar.edit"
+    },
+    {
+      "id": "custom-menu",
+      "tier": 3,
+      "icon": "plus",
+      "name": {
+        "ru": "Своё меню",
+        "en": "A menu of my own"
+      },
+      "desc": {
+        "ru": "Добавить свой пункт в меню по ПКМ",
+        "en": "Add an entry of your own to the right-click menu"
+      },
+      "on": "deskmenu.custom"
+    },
+    {
+      "id": "golden-gate",
+      "tier": 3,
+      "icon": "sun",
+      "name": {
+        "ru": "По ту сторону моста",
+        "en": "Across the bridge"
+      },
+      "desc": {
+        "ru": "Включить скин Golden Gate",
+        "en": "Turn on the Golden Gate skin"
+      },
+      "cond": "mac"
+    },
+    {
+      "id": "week",
+      "tier": 3,
+      "icon": "calendar",
+      "name": {
+        "ru": "Неделя вместе",
+        "en": "A week together"
+      },
+      "desc": {
+        "ru": "Семь дней с angelOS",
+        "en": "Seven days with angelOS"
+      },
+      "cond": "days >= 7",
+      "reward": "cursor.glitter"
+    },
+    {
+      "id": "owl",
+      "tier": 3,
+      "icon": "moon",
+      "name": {
+        "ru": "Ночная сова",
+        "en": "Night owl"
+      },
+      "desc": {
+        "ru": "Быть за компьютером в три часа ночи",
+        "en": "Be at the computer at three in the night"
+      },
+      "cond": "hour == 3"
+    },
+    {
+      "id": "windows100",
+      "tier": 3,
+      "icon": "window",
+      "name": {
+        "ru": "Сотня окон",
+        "en": "A hundred windows"
+      },
+      "desc": {
+        "ru": "Открыть 100 окон",
+        "en": "Open 100 windows"
+      },
+      "on": "window.open",
+      "count": 100,
+      "reward": "fx.rays"
+    },
+    {
+      "id": "nomad",
+      "tier": 3,
+      "icon": "layers",
+      "name": {
+        "ru": "Кочевник",
+        "en": "The nomad"
+      },
+      "desc": {
+        "ru": "Перейти между рабочими столами пятьдесят раз",
+        "en": "Switch desks fifty times"
+      },
+      "on": "workspace.switch",
+      "count": 50
+    },
+    {
+      "id": "quick-fingers",
+      "tier": 3,
+      "icon": "search",
+      "name": {
+        "ru": "Быстрые пальцы",
+        "en": "Quick fingers"
+      },
+      "desc": {
+        "ru": "Открыть поиск приложений пятьдесят раз",
+        "en": "Open the launcher fifty times"
+      },
+      "on": "launcher.open",
+      "count": 50
+    },
+    {
+      "id": "menu-expert",
+      "tier": 3,
+      "icon": "grid",
+      "name": {
+        "ru": "Знаток меню",
+        "en": "The menu expert"
+      },
+      "desc": {
+        "ru": "Открыть меню по ПКМ в четырёх разных видах",
+        "en": "Open the right-click menu in four different looks"
+      },
+      "on": "deskmenu.open",
+      "kinds": 4
+    },
+    {
+      "id": "lark",
+      "tier": 3,
+      "icon": "sun",
+      "name": {
+        "ru": "Жаворонок",
+        "en": "The lark"
+      },
+      "desc": {
+        "ru": "Быть за компьютером в шесть утра",
+        "en": "Be at the computer at six in the morning"
+      },
+      "cond": "hour == 6"
+    },
+    {
+      "id": "weekend",
+      "tier": 3,
+      "icon": "heartSmall",
+      "name": {
+        "ru": "Выходной",
+        "en": "A day off"
+      },
+      "desc": {
+        "ru": "Заглянуть к ангелу в воскресенье",
+        "en": "Drop in on the angel on a Sunday"
+      },
+      "cond": "weekday == 0 and days >= 1"
+    },
+    {
+      "id": "reader",
+      "tier": 3,
+      "icon": "document",
+      "name": {
+        "ru": "Читатель",
+        "en": "The reader"
+      },
+      "desc": {
+        "ru": "Прочитать пять страниц дневника",
+        "en": "Read five pages of the diary"
+      },
+      "on": "diary.page",
+      "kinds": 5
+    },
+    {
+      "id": "sneak",
+      "tier": 3,
+      "icon": "moon",
+      "name": {
+        "ru": "Тише мыши",
+        "en": "Quiet as a mouse"
+      },
+      "desc": {
+        "ru": "Открыть дневник, пока ангел отошла",
+        "en": "Open the diary while the angel is away"
+      },
+      "on": "diary.sneak"
+    },
+    {
+      "id": "spy",
+      "tier": 4,
+      "icon": "search",
+      "name": {
+        "ru": "Шпион",
+        "en": "The spy"
+      },
+      "desc": {
+        "ru": "Пять раз прочитать дневник за её спиной",
+        "en": "Read the diary behind her back five times"
+      },
+      "on": "diary.sneak",
+      "count": 5
+    },
+    {
+      "id": "creator",
+      "tier": 4,
+      "icon": "bot",
+      "name": {
+        "ru": "Творец",
+        "en": "Maker"
+      },
+      "desc": {
+        "ru": "Создать свой плагин",
+        "en": "Make a plugin of your own"
+      },
+      "on": "plugin.create"
+    },
+    {
+      "id": "all-starts",
+      "tier": 4,
+      "icon": "star",
+      "name": {
+        "ru": "Все двери",
+        "en": "Every door"
+      },
+      "desc": {
+        "ru": "Открыть «Пуск» в каждом из семи видов",
+        "en": "Open Start in each of its seven looks"
+      },
+      "on": "start.open",
+      "kinds": 7
+    },
+    {
+      "id": "month",
+      "tier": 4,
+      "icon": "calendar",
+      "name": {
+        "ru": "Месяц вместе",
+        "en": "A month together"
+      },
+      "desc": {
+        "ru": "Тридцать дней с angelOS",
+        "en": "Thirty days with angelOS"
+      },
+      "cond": "days >= 30",
+      "reward": "look.adult"
+    },
+    {
+      "id": "faithful",
+      "tier": 4,
+      "icon": "music",
+      "name": {
+        "ru": "Верность",
+        "en": "Faithful"
+      },
+      "desc": {
+        "ru": "Четырнадцать дней с тёплым ангелом: ни одного броска вниз",
+        "en": "Fourteen days with a warm angel: not one throw down"
+      },
+      "cond": "warmth == 0 and calmDays >= 14",
+      "reward": "menu.harp"
+    },
+    {
+      "id": "collector",
+      "tier": 4,
+      "icon": "sparkleStar",
+      "name": {
+        "ru": "Коллекционер",
+        "en": "Collector"
+      },
+      "desc": {
+        "ru": "Получить двадцать достижений",
+        "en": "Earn twenty achievements"
+      },
+      "cond": "earned >= 20"
+    },
+    {
+      "id": "hurricane",
+      "tier": 4,
+      "icon": "window",
+      "name": {
+        "ru": "Ураган",
+        "en": "The hurricane"
+      },
+      "desc": {
+        "ru": "Открыть двенадцать окон подряд — не дольше пяти секунд между ними",
+        "en": "Open twelve windows in a row, at most five seconds apart"
+      },
+      "on": "window.open",
+      "count": 12,
+      "within": 5
+    },
+    {
+      "id": "hundred-days",
+      "tier": 4,
+      "icon": "calendar",
+      "name": {
+        "ru": "Сто дней",
+        "en": "A hundred days"
+      },
+      "desc": {
+        "ru": "Сто дней с angelOS",
+        "en": "A hundred days with angelOS"
+      },
+      "cond": "days >= 100"
+    },
+    {
+      "id": "best-friend",
+      "tier": 4,
+      "icon": "heart",
+      "name": {
+        "ru": "Лучшая подруга",
+        "en": "Best friends"
+      },
+      "desc": {
+        "ru": "Кликнуть по ангелу сто раз",
+        "en": "Click the angel a hundred times"
+      },
+      "on": "angel.menu:angel",
+      "count": 100
+    },
+    {
+      "id": "completionist",
+      "tier": 4,
+      "icon": "sparkleStar",
+      "name": {
+        "ru": "Почти всё",
+        "en": "Nearly everything"
+      },
+      "desc": {
+        "ru": "Получить сорок достижений",
+        "en": "Earn forty achievements"
+      },
+      "cond": "earned >= 40"
+    },
+    {
+      "id": "fall",
+      "tier": 5,
+      "icon": "fire",
+      "name": {
+        "ru": "Падение",
+        "en": "The fall"
+      },
+      "desc": {
+        "ru": "Скинуть ангела вниз",
+        "en": "Throw the angel down"
+      },
+      "on": "fall",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "wheel",
+      "tier": 5,
+      "icon": "pentagram",
+      "name": {
+        "ru": "Колесо фортуны",
+        "en": "Wheel of fortune"
+      },
+      "desc": {
+        "ru": "Крутануть Колесо Ада",
+        "en": "Spin the Wheel of Hell"
+      },
+      "on": "act:wheel.spin",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "own",
+      "tier": 5,
+      "icon": "heartHorns",
+      "name": {
+        "ru": "Своя",
+        "en": "One of her own"
+      },
+      "desc": {
+        "ru": "Стать своей для демоницы круга",
+        "en": "Become one of her own for a circle's demon"
+      },
+      "cond": "closeOwn >= 1",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "pact",
+      "tier": 5,
+      "icon": "document",
+      "name": {
+        "ru": "Подпись",
+        "en": "The signature"
+      },
+      "desc": {
+        "ru": "Подписать договор",
+        "en": "Sign the pact"
+      },
+      "on": "outcome:pact",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "limbo",
+      "tier": 5,
+      "icon": "ghost",
+      "name": {
+        "ru": "Ни там ни тут",
+        "en": "Neither here nor there"
+      },
+      "desc": {
+        "ru": "Застрять в Лимбе",
+        "en": "Get stuck in Limbo"
+      },
+      "on": "outcome:limbo",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "nine",
+      "tier": 5,
+      "icon": "skull",
+      "name": {
+        "ru": "Все девять",
+        "en": "All nine"
+      },
+      "desc": {
+        "ru": "Побывать во всех девяти кругах",
+        "en": "Be in all nine circles"
+      },
+      "on": "circle",
+      "kinds": 9,
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "stars",
+      "tier": 5,
+      "icon": "sparkle",
+      "name": {
+        "ru": "К звёздам",
+        "en": "To the stars"
+      },
+      "desc": {
+        "ru": "Выйти из ада через дно",
+        "en": "Get out of hell through the bottom"
+      },
+      "on": "outcome:stars",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "cold",
+      "tier": 5,
+      "icon": "heartBroken",
+      "name": {
+        "ru": "Холод",
+        "en": "Cold"
+      },
+      "desc": {
+        "ru": "Ангел остыла навсегда",
+        "en": "The angel went cold for good"
+      },
+      "cond": "coldRoute",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "caught",
+      "tier": 5,
+      "icon": "heartBroken",
+      "name": {
+        "ru": "Попался",
+        "en": "Caught"
+      },
+      "desc": {
+        "ru": "Ангел застала тебя с её дневником",
+        "en": "The angel caught you with her diary"
+      },
+      "on": "diary.caught",
+      "secret": true
+    },
+    {
+      "id": "demon-hello",
+      "tier": 5,
+      "icon": "heartHorns",
+      "name": {
+        "ru": "Рожки",
+        "en": "Little horns"
+      },
+      "desc": {
+        "ru": "Кликнуть по демонице",
+        "en": "Click the demon"
+      },
+      "on": "angel.menu:demon",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "witching-hour",
+      "tier": 5,
+      "icon": "moon",
+      "name": {
+        "ru": "Ведьмин час",
+        "en": "The witching hour"
+      },
+      "desc": {
+        "ru": "Быть в аду ровно в полночь",
+        "en": "Be in hell at midnight"
+      },
+      "cond": "realm == \"hell\" and hour == 0",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "stolen-diary",
+      "tier": 5,
+      "icon": "pentagram",
+      "name": {
+        "ru": "Чужие записки",
+        "en": "Someone else's notes"
+      },
+      "desc": {
+        "ru": "Открыть дневник Ангела в аду",
+        "en": "Open the Angel's diary in hell"
+      },
+      "on": "diary.open:hell",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "hell-hurricane",
+      "tier": 5,
+      "icon": "fire",
+      "name": {
+        "ru": "Пожар",
+        "en": "Wildfire"
+      },
+      "desc": {
+        "ru": "Открыть шесть окон подряд в аду",
+        "en": "Open six windows in a row in hell"
+      },
+      "on": "window.open",
+      "count": 6,
+      "within": 10,
+      "cond": "realm == \"hell\"",
+      "secret": true,
+      "hell": true
+    }
+  ]
+}

@@ -42,6 +42,9 @@ Singleton {
     property bool ready: false
     property alias player: save.player
     property alias hell: save.hell
+    // the achievements' part of the save (services/Achievements)
+    property alias feats: save.achievements
+    readonly property double createdAt: save.createdAt || 0
     readonly property var vars: save.vars || ({})
     readonly property var novelState: save.novel
 
@@ -482,7 +485,10 @@ Singleton {
             "pact": !!hell.pact,
             "pactAfter": pactAfter,
             "limboAfter": limboAfter,
-            "realm": inHell ? "hell" : "heaven"
+            "realm": inHell ? "hell" : "heaven",
+            // her diary read behind her back (services/Diary)
+            "trust": Diary.trust,
+            "diaryCaught": player.diaryCaught || 0
         });
     }
     function render(text) {
@@ -511,6 +517,8 @@ Singleton {
             return false;
         if (a.realm && a.realm !== (inHell ? "hell" : "heaven"))
             return false;
+        // every time it is done counts for the achievements, the sins only as often as `every`
+        Achievements.note("act:" + name);
         const t = Date.now();
         if (a.every && t - (_actedAt[name] || 0) < a.every * 60000)
             return false;
@@ -573,6 +581,8 @@ Singleton {
         const changed = (hell.circle || "") !== (id || "");
         save.hell.circle = id || "";
         HellLook.circle = id || "base";
+        if (changed && id && inHell)
+            Achievements.note("circle", id);
         // the circle's own painting goes up (unseen: this runs while the screen is dark)
         if (changed && id && inHell)
             Angel.newHell();
@@ -585,6 +595,7 @@ Singleton {
             used = [];
         save.hell.fallCircles = used.concat([c]);
         save.hell.falls = (hell.falls || 0) + 1;
+        Achievements.note("fall");
         save.hell.path = [c];
         save.hell.attempts = 0;
         save.hell.silences = 0;
@@ -697,6 +708,7 @@ Singleton {
     // stays) · limbo (neither here nor there until the angel finds you) · amnesty (fell
     // under the old rules, before the circles: let out once, after the update)
     function outcome(kind) {
+        Achievements.note("outcome", kind);
         save.hell.outcomes = (hell.outcomes || []).concat([{
                     "kind": kind,
                     "circle": circle,
@@ -798,10 +810,7 @@ Singleton {
             return "";
         const l = list[Math.floor(Math.random() * list.length)];
         const text = Array.isArray(l) ? (I18n.english ? l[1] : l[0]) : l;
-        // Only introductions use %1/%2 for the circle. Wait and music lines
-        // leave those placeholders for their caller's minutes / artist / song.
-        const line = render(text);
-        return kind === "enter" ? line.replace("%1", circleName(circle)).replace("%2", Theme.roman(circleN(circle))) : line;
+        return render(text).replace("%1", circleName(circle)).replace("%2", Theme.roman(circleN(circle)));
     }
 
     // ---- on / off ----
@@ -927,6 +936,16 @@ Singleton {
         save.player.fallen = false;
         save.player.fallenSince = 0;
         save.player.fallenSeen = false;
+        save.player.trust = -1;
+        save.player.diaryCaught = 0;
+        save.player.diaryHidden = false;
+        save.player.trustMarks = [];
+        save.achievements.got = ({});
+        save.achievements.items = ({});
+        save.achievements.counts = ({});
+        save.achievements.kinds = ({});
+        save.achievements.since = 0;
+        save.achievements.diary = ({});
         _beforeThrow = null;
         setCircle("");
         Novel.reset();

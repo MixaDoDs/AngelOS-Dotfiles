@@ -55,6 +55,9 @@ import "../../widgets/IconSets.js" as IconSets
 //   motion    Motion off: no animation lengths, heaven ⇄ hell at once without the shows;
 //             calm is the game's calm; the old game.calm toggle migrates (C4); heaven's own
 //             menus never show in hell
+//   achievements  the list is valid, each heaven thing has its achievement; the game off opens
+//             all of heaven and counts nothing, on again re-locks; earning and taking back
+//             open and lock; counts, kinds, progress; the demon's pranks count for nothing
 //   cava      the cava widget (over a stand-in cava) starts, and starts again after it was
 //             hidden and shown with the same config (B4: the lock, sleep, a fullscreen game)
 //   rmb       a right-click menu opens where the button went down (B2); a right click into
@@ -110,6 +113,20 @@ Scope {
             id: view
             anchors.fill: parent
             hostWindow: win
+        }
+        // a second Settings window (Shell.newSettingsWindow): a place of its own, built for the
+        // "multi" phase only
+        Loader {
+            id: second
+            active: false
+            visible: false
+            width: 1000
+            height: 700
+            sourceComponent: SettingsView {
+                settingsNav: SettingsNav {
+                    settingsPage: "sound"
+                }
+            }
         }
         // A built-in app window without a skin override follows the selected Windose look.
         PxWindow {
@@ -397,7 +414,7 @@ Scope {
             "DeskSwitch": WorkspaceAnim.styles.map(s => s.id),
             "OpenFx": WindowAnim.openStyles.map(s => s.id),
             "CloseFx": WindowAnim.closeStyles.map(s => s.id),
-            "LockScreen": ["pixelate", "hearts", "reactions", "indicators", "stream"],
+            "LockScreen": ["pixelate", "hearts", "reactions", "indicators", "stream", "heaven", "fx:heart", "fx:pixels", "fx:crt", "fx:gate", "fx:glitch"],
             "CaptureSkin": ["ropes", "window", "stream"],
             "CircleFx": ["full", "calm", "off"],
             "Breakage": ["circle", "glass", "tv", "burn", "claws", "sigil", "fog", "whirl", "ooze", "coin", "ripple", "spatter", "pitch", "frost", "random"]
@@ -411,6 +428,7 @@ Scope {
     property int navStep: 0
     property int switchStep: 0
     property string navNote: ""
+    property int multiStep: 0
     property var settingsSkins: ["classic", "windose", "stream"]
     property int settingsSkinIndex: 0
     property bool settingsShotPending: false
@@ -625,6 +643,7 @@ Scope {
                 list.push([skin, page]);
         list.push(["windose", "home", "chosen"]);
         list.push(["stream", "home", "narrow"]);
+        list.push([settingsSkins[0], "stars"]);
         index = -1;
         phase = "settings-shots";
         nextSettingsShot();
@@ -736,7 +755,8 @@ Scope {
             if (settingsShotPending)
                 return;
             const d = view.diagnostics();
-            if (d.status !== Loader.Ready || d.page !== list[index][1] || Date.now() - started < 120)
+            // an old page id ("appearance") opens its page of the tree ("theme")
+            if (d.status !== Loader.Ready || d.page !== SettingsTree.resolve(list[index][1]).page || Date.now() - started < 120)
                 return;
             const [skin, page, size] = list[index];
             const file = shots + "/settings-" + skin + "-" + page + (size ? "-" + size : "") + ".png";
@@ -836,10 +856,69 @@ Scope {
                 return;
             }
             report("nav-back", navNote === "sound" && Shell.settingsPage === "sfx" && view.sectionOf("sfx") === "system", "taskbar›Иконки → ◀ ◀ " + navNote + " → ▶ " + Shell.settingsPage + " (section " + view.sectionOf(Shell.settingsPage) + ")");
-            phase = "view-switch";
-            switchStep = 0;
+            phase = "multi";
+            multiStep = 0;
             started = Date.now();
             return;
+        }
+        if (phase === "multi") {
+            // two Settings windows: each on its own page and sub-page, the pages in each find
+            // their own window (Shell.settingsNavFor), moving in one leaves the other where it is
+            if (multiStep === 0) {
+                Shell.settingsPage = "taskbar";
+                second.active = true;
+                multiStep = 1;
+                started = Date.now();
+                return;
+            }
+            const v2 = second.item;
+            const d2 = v2 ? v2.diagnostics() : null;
+            const d1 = view.diagnostics();
+            if (multiStep === 1) {
+                if ((!d2 || d2.status !== Loader.Ready || d1.status !== Loader.Ready || d1.page !== "taskbar") && Date.now() - started < 6000)
+                    return;
+                const nav2 = v2 ? v2.settingsNav : null;
+                const p2 = v2 ? v2.pageItem : null;
+                report("multi-open", !!d2 && d2.page === "sound" && d1.page === "taskbar" && Shell.settingsPage === "taskbar" && !!p2 && p2.nav === nav2 && Shell.settingsNavFor(p2) === nav2 && Shell.settingsViewFor(p2) === v2 && Shell.settingsNavFor(view.pageItem) === Shell && Theme.settingsViews.includes(v2) && Theme.settingsViews.includes(view),
+                       "second " + (d2 ? d2.page : "none") + ", main " + d1.page + ", page finds its window " + (!!p2 && Shell.settingsNavFor(p2) === nav2) + ", views " + Theme.settingsViews.length);
+                // a sub-page in the second window, another page in the main one
+                nav2.settingsPage = "taskbar";
+                nav2.settingsSub = "Иконки";
+                Shell.settingsPage = "sfx";
+                multiStep = 2;
+                started = Date.now();
+                return;
+            }
+            if (multiStep === 2) {
+                if ((d2.page !== "taskbar" || d2.status !== Loader.Ready || d1.page !== "sfx" || d1.status !== Loader.Ready || Date.now() - started < 200) && Date.now() - started < 6000)
+                    return;
+                const p2 = v2.pageItem;
+                const p1 = view.pageItem;
+                report("multi-apart", d2.sub === "Иконки" && !!p2 && p2.focusGroup === "Иконки" && d1.page === "sfx" && Shell.settingsSub === "" && !!p1 && p1.focusGroup === "" && v2.canBack && v2.backStack.every(l => l.indexOf("sfx") < 0),
+                       "second " + d2.page + "›" + d2.sub + " (focus " + (p2 ? p2.focusGroup : "?") + "), main " + d1.page + "›" + Shell.settingsSub + ", second's history " + JSON.stringify(v2.backStack));
+                // a link inside the second window goes on there (Shell.settingsGo), not in the main one
+                Shell.settingsGo(p2, "sound");
+                multiStep = 3;
+                started = Date.now();
+                return;
+            }
+            if (multiStep === 3) {
+                if (d2.page !== "sound" && Date.now() - started < 3000)
+                    return;
+                const before = Shell.settingsMore.count;
+                const made = Shell.newSettingsWindow("bar");
+                const row = made ? Shell.settingsMore.get(Shell.settingsMore.count - 1) : null;
+                const key = row ? row.key : -1;
+                const page = row ? row.page : "";
+                Shell.closeSettingsWindow(key);
+                report("multi-link", d2.page === "sound" && Shell.settingsPage === "sfx" && made && page === "taskbar" && Shell.settingsMore.count === before,
+                       "link in the second → " + d2.page + ", main stays " + Shell.settingsPage + "; new window at «bar» → " + page + ", closed " + (Shell.settingsMore.count === before));
+                second.active = false;
+                phase = "view-switch";
+                switchStep = 0;
+                started = Date.now();
+                return;
+            }
         }
         if (phase === "view-switch") {
             // Windows 11 → the sidebar → Windows 11 on one page (a hell dress moves the page into
@@ -1800,6 +1879,9 @@ Scope {
             // heaven's own menus (wings, harp) never come down: chosen as the usual menu, or even
             // written in as hell's by hand, hell puts its own look in their place
             const keepStyle = Config.desktop.menuStyle, keepHellMenu = Config.y2k.hellMenu;
+            // heaven's own are earned (services/Heaven): earned here, so heaven has them to give back
+            Achievements.grant("love", true);
+            Achievements.grant("faithful", true);
             const apart = [];
             for (const h of DeskMenu.heavenly) {
                 Config.desktop.menuStyle = h;
@@ -1833,6 +1915,152 @@ Scope {
             report("motion-off", zero && atOnce && back && stillPreview && movingAgain, "off: durations 0 " + zero + ", into hell and out at once " + (atOnce && back) + " (splashes asked " + (CircleFx.runs - runs) + ", none shown), a preview is one still frame " + stillPreview + " and moves again after " + movingAgain);
             report("motion-calm", calm && migrated, "calm: the game's calm " + calm + "; the old game.calm became motion calm " + migrated);
             Story.reset();
+            phase = "achievements";
+            return;
+        }
+        // the achievements and heaven's things (services/Achievements, services/Heaven): the list
+        // is valid, every thing has its achievement; the game off opens all of heaven and counts
+        // nothing; on again, all that isn't earned is locked again (a locked pick is kept, the
+        // usual shows); an earned one opens its thing, taken back it locks; the demon's pranks
+        // count for nothing
+        if (phase === "achievements") {
+            const bad = Achievements.problems(Achievements.doc);
+            report("ach-data", Achievements.loaded && !Achievements.loadError && Achievements.own.length >= 20 && bad.length === 0, Achievements.loadError || bad.join("; ") || Achievements.own.length + " achievements in " + Achievements.tiers.length + " tiers, valid");
+            const noGiver = Heaven.ids.filter(i => !Achievements.giverOf(i));
+            report("ach-heaven", noGiver.length === 0 && Heaven.ids.includes("menu.harp"), noGiver.length ? "nothing gives " + noGiver.join(", ") : Heaven.ids.length + " heaven things, each with its achievement");
+            const keepStyle = Config.desktop.menuStyle, keepLook = Config.y2k.angelLook, keepGame = Config.game.enabled;
+            Story.setEnabled(true);
+            Story.reset();
+            Config.desktop.menuStyle = "harp";
+            Config.y2k.angelLook = "adult";
+            const locked = !Heaven.has("menu.harp") && !Heaven.has("look.adult") && DeskMenu.chosen === "list" && Angel.angelLook === "glitch" && Config.desktop.menuStyle === "harp";
+            // the game off: all of heaven, nothing counted
+            Story.setEnabled(false);
+            const before = Achievements.count("settings.open");
+            Achievements.note("settings.open");
+            Achievements.check();
+            const allOpen = Heaven.ids.every(i => Heaven.has(i)) && DeskMenu.chosen === "harp" && Angel.angelLook === "adult" && Achievements.count("settings.open") === before && Achievements.earned === 0 && !Achievements.current;
+            // on again: locked again
+            Story.setEnabled(true);
+            const relocked = !Heaven.has("menu.harp") && DeskMenu.chosen === "list" && Angel.angelLook === "glitch";
+            report("ach-no-game", locked && allOpen && relocked, "game on, fresh save: harp and adult locked, the usual shows " + locked + "; game off: all open, nothing counted " + allOpen + "; on again: locked again " + relocked);
+            // earning: Settings opened → its achievement and the mini look
+            Achievements.note("settings.open");
+            Achievements.check();
+            const earned = Achievements.has("settings") && Heaven.has("look.mini") && !!Achievements.current;
+            Achievements.queue = [];
+            Achievements.current = null;
+            Achievements.grant("faithful", true);
+            const harp = Heaven.has("menu.harp") && DeskMenu.chosen === "harp";
+            Achievements.revoke("faithful");
+            const harpGone = !Heaven.has("menu.harp") && DeskMenu.chosen === "list";
+            // counted: ten jokes make "More! More!", the progress shows
+            for (let i = 0; i < 9; i++)
+                Achievements.note("act:joke.more");
+            const nine = Achievements.progress(Achievements.find("jokes"));
+            Achievements.note("act:joke.more");
+            Achievements.check();
+            const jokes = !!nine && nine.n === 9 && nine.of === 10 && Achievements.has("jokes") && Heaven.has("look.chibi");
+            // kinds: seven different Start looks
+            for (const st of ["classic", "win11", "fullscreen", "xmb", "windose", "wii"])
+                Achievements.note("start.open", st);
+            Achievements.check();
+            const six = !Achievements.has("all-starts");
+            Achievements.note("start.open", "spotlight");
+            Achievements.check();
+            const seven = six && Achievements.has("all-starts");
+            // the demon's pranks: muted
+            const w = Achievements.count("widget.add");
+            Achievements.mute++;
+            Achievements.note("widget.add", "clock");
+            Achievements.mute--;
+            const muted = Achievements.count("widget.add") === w;
+            // every condition reads
+            const condBad = Achievements.own.filter(a => a.cond && Achievements.condError(a.cond)).map(a => a.id + ": " + Achievements.condError(a.cond));
+            Achievements.queue = [];
+            Achievements.current = null;
+            // in a row: six windows ≤ 10 s apart leave the diary key in the card; a pause breaks the run
+            Achievements._times = ({});
+            for (let i = 0; i < 5; i++)
+                Achievements.note("window.open");
+            Achievements.check();
+            const fiveNot = !Achievements.has("six-windows") && Achievements.streak("window.open", 10) === 5;
+            const t0 = Date.now();
+            Achievements._times["window.open"] = [t0 - 60000, t0 - 45000, t0 - 30000, t0 - 15000, t0 - 100];
+            const broken = Achievements.streak("window.open", 10) === 1;
+            Achievements._times = ({});
+            for (let i = 0; i < 6; i++)
+                Achievements.note("window.open");
+            Achievements.check();
+            const card = Achievements.current && Achievements.current.id === "six-windows" ? Achievements.current : Achievements.queue.find(c => c.id === "six-windows");
+            const key = Achievements.has("six-windows") && Heaven.has("item.diary-key") && Diary.owned && !!card && card.thing === "item.diary-key" && !!card.texture && card.texture.rows.length > 4;
+            report("ach-streak", fiveNot && broken && key, "five in a row: not yet " + fiveNot + "; a 15 s pause breaks the run " + broken + "; six: the key lies in the card, the diary is had " + key);
+            // the diary: valid, its first page written, a secret one hidden, read marks kept, it opens
+            const dBad = Diary.problems(Diary.doc);
+            Diary.tick++;
+            const first = Diary.isOpen("found") && Diary.isOpen("hood");
+            const secretHidden = !Diary.isOpen("fall") && !Diary.shown.some(x => x.id === "fall");
+            Diary.markRead("found");
+            const read = !!Diary.readMarks["found"] && Achievements.kinds("diary.page") === 1;
+            // her diary: read while she is away
+            Diary.leave(1);
+            const awayNow = Angel.away && !Diary.watching;
+            const opened = Diary.open("found") && Shell.diaryOpen && Diary.startAt === "found" && Achievements.count("diary.open") === 1 && Achievements.count("diary.sneak") === 1;
+            Diary.close();
+            Angel.awayUntil = 0;
+            const backFine = !Angel.away && Diary.watching && Diary.caughtTimes === 0;
+            const sideOk = Diary.side === "right";
+            Config.game.diarySide = "left";
+            const sideLeft = Diary.side === "left";
+            Config.game.diarySide = "";
+            report("diary", Diary.loaded && dBad.length === 0 && Diary.pages.length >= 10 && first && secretHidden && read && awayNow && opened && backFine && sideOk && sideLeft && !Shell.diaryOpen, (dBad.join("; ") || Diary.pages.length + " pages, valid") + "; written from the start " + first + ", a secret page hidden " + secretHidden + ", read marks " + read + ", she walks off " + awayNow + ", opens at a page while she's away " + opened + ", back to a shut book: nothing " + backFine + ", side right → left " + (sideOk && sideLeft));
+            // caught: in front of her the first time she takes it and hides it (trust −1); then it
+            // opens but costs −2; open when she comes back: shut, −3, the mark 6 crossed chills her
+            const chill0 = Story.chill;
+            const firstTry = !Diary.open() && !Shell.diaryOpen && Diary.hidden && Diary.trust === 9 && Diary.caughtTimes === 1;
+            const againTry = Diary.open() && Shell.diaryOpen && Diary.trust === 7 && Diary.caughtTimes === 2;
+            Diary.close();
+            Diary.leave(1);
+            Diary.open();
+            const sneaking = Shell.diaryOpen && Diary.trust === 7;
+            Angel.awayUntil = 0;
+            const backCaught = !Shell.diaryOpen && Diary.trust === 4 && Diary.caughtTimes === 3 && Story.chill === chill0 + 1 && Diary.isOpen("caught") === true;
+            const backWhy = "away " + Angel.away + " watching " + Diary.watching + " open " + Shell.diaryOpen + " trust " + Diary.trust + " caught " + Diary.caughtTimes + " chill " + chill0 + "→" + Story.chill + " page " + Diary.isOpen("caught");
+            Diary.resetTrust();
+            Story.player.chill = chill0;
+            const reset = Diary.trust === Diary.trustStart && !Diary.hidden;
+            report("diary-caught", firstTry && againTry && sneaking && backCaught && reset, "in front of her: taken and hidden, trust 9 " + firstTry + "; again: opens, trust 7 " + againTry + "; while she's away: free " + sneaking + "; open when she's back: shut, trust 4, chilled, her page about it " + backCaught + (backCaught ? "" : " (" + backWhy + ")") + "; reset " + reset);
+            // hell's card: an achievement marked hell, or any card asked so
+            Achievements.queue = [];
+            Achievements.current = null;
+            Achievements.announce(Achievements.find("fall"), null);
+            const hellCard = !!Achievements.current && Achievements.current.hell === true;
+            Achievements.queue = [];
+            Achievements.current = null;
+            Achievements.announce(Achievements.find("start"), true);
+            const askedHell = !!Achievements.current && Achievements.current.hell === true;
+            Achievements.queue = [];
+            Achievements.current = null;
+            Achievements.announceDiary([Diary.page("found")], null);
+            const diaryCard = !!Achievements.current && Achievements.current.kind === "diary" && Achievements.current.page === "found";
+            Achievements.queue = [];
+            Achievements.current = null;
+            // the owner's tests: an event as if seen, reset
+            Achievements.mute++;
+            const sim = Achievements.simulate("lock") && Achievements.count("lock") === 1;
+            Achievements.mute--;
+            Achievements.check();
+            const lockGot = Achievements.has("lock");
+            Achievements.resetCounts();
+            const countsGone = Achievements.count("lock") === 0 && Achievements.has("lock");
+            Achievements.resetAll();
+            const allGone = Achievements.earned === 0 && !Heaven.has("item.diary-key") && Object.keys(Diary.readMarks).length === 0;
+            report("ach-hell-test", hellCard && askedHell && diaryCard && sim && lockGot && countsGone && allGone, "hell's card for «fall» " + hellCard + ", asked " + askedHell + "; a diary card " + diaryCard + "; simulate past the mute " + sim + " → «lock» " + lockGot + "; reset counts " + countsGone + ", reset all " + allGone);
+            report("ach-earn", earned && harp && harpGone && jokes && seven && muted && condBad.length === 0, "Settings → «settings» + mini " + earned + "; harp granted " + harp + ", taken back " + harpGone + "; 9/10 jokes then «jokes» + chibi " + jokes + "; seven Start looks " + seven + "; pranks muted " + muted + (condBad.length ? "; bad conditions: " + condBad.join(", ") : ""));
+            Story.reset();
+            Config.desktop.menuStyle = keepStyle;
+            Config.y2k.angelLook = keepLook;
+            Config.game.enabled = keepGame;
             cavaStage.active = true;
             started = Date.now();
             phase = "cava";

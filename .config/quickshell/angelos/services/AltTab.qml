@@ -22,6 +22,8 @@ import qs.config
 // ⌘Tab of the Golden Gate skin's Mac keys (`angelos alttab apps|appsback`) is the same switcher
 // in `mode` "apps": one item per app, every desktop, held by ⌘ (the Windows key) instead of Alt;
 // ⌘` (`angelos alttab appwin|appwinback`) steps through the front app's windows at once.
+// With the Mac keys in front (KeyProfile "macos") Alt+Tab is not bound at all — the block keeps
+// niri's own switcher off but leaves Alt(Option)+Tab to the apps, as on a Mac.
 Singleton {
     id: root
 
@@ -347,22 +349,26 @@ Singleton {
     }
 
     // ---- the niri side: binds + recent-windows off, or back to niri's own ----
-    property bool niriRouted: false          // cfg/angelos-windows.kdl has the angelOS block
+    // true (Alt+Tab → the shell) | false (niri's own) | "mac" (no Alt+Tab, ⌘Tab is the switcher)
+    readonly property var niriWant: KeyProfile.want === "macos" ? "mac" : ours
+    property var niriRouted: false           // what cfg/angelos-windows.kdl holds now
+    property var writing: false              // what the writer is putting there
     property bool niriRead: false
     property string log: ""
     function apply() {
         if (Shell.dev || writer.running)
             return;
+        writing = niriWant;
         writer.command = ["python3", Quickshell.shellDir + "/scripts/window-config.py", JSON.stringify({
-                "alttab": ours
+                "alttab": writing
             })];
         writer.running = true;
     }
     function sync() {
-        if (Config.ready && niriRead && niriRouted !== ours)
+        if (Config.ready && niriRead && niriRouted !== niriWant)
             apply();
     }
-    onOursChanged: sync()
+    onNiriWantChanged: sync()
     Connections {
         target: Config
         function onReadyChanged() {
@@ -376,7 +382,8 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    root.niriRouted = !!JSON.parse(text).alttab;
+                    const a = JSON.parse(text).alttab;
+                    root.niriRouted = a === "mac" ? "mac" : !!a;
                     root.niriRead = true;
                     root.sync();
                 } catch (e) {}
@@ -393,8 +400,10 @@ Singleton {
                 root.log = text.trim().split("\n").slice(-1)[0]
         }
         onExited: code => {
-            if (code === 0)
-                root.niriRouted = root.ours;
+            if (code !== 0)
+                return;
+            root.niriRouted = root.writing;
+            root.sync();                     // the style or the theme changed while writing
         }
     }
 }

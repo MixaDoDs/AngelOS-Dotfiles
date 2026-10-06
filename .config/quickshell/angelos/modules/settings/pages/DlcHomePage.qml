@@ -94,7 +94,7 @@ PxPage {
     // the defaults fill up while there is no history yet — always three, so the grid is even
     readonly property var frequent: {
         const usage = Config.settingsUi.usage || {};
-        const all = Shell.settingsView ? Shell.settingsView.allPages : [];
+        const all = page.view ? page.view.allPages : [];
         const top = Object.keys(usage).filter(id => id !== "wallpaper" && id !== "updates" && usage[id] >= 2 && all.some(p => p.id === id)).sort((a, b) => usage[b] - usage[a]).slice(0, 3).map(id => {
             const p = all.find(x => x.id === id);
             return {
@@ -112,7 +112,7 @@ PxPage {
         {
             "icon": "image",
             "label": I18n.t("Сменить обои", "Change wallpaper"),
-            "run": () => Shell.settingsPage = "wallpaper"
+            "run": () => page.nav.settingsPage = "wallpaper"
         },
         {
             "icon": Theme.dark ? "sun" : "moon",
@@ -136,12 +136,12 @@ PxPage {
             "icon": "download",
             "label": Updates.available ? I18n.t("Обновление ♡", "Update ♡") : I18n.t("Обновление", "Update"),
             "accent": Updates.available,
-            "run": () => Shell.settingsPage = "updates"
+            "run": () => page.nav.settingsPage = "updates"
         }
     ].concat(frequent.map(f => ({
                 "icon": f.icon,
                 "label": f.label,
-                "run": () => Shell.settingsPage = f.id
+                "run": () => page.nav.settingsPage = f.id
             })))
 
     // the stream's chat: tips from the angel, signed by viewers; a click opens the page
@@ -443,7 +443,7 @@ PxPage {
                         icon: modelData.icon
                         text: modelData.label
                         hint: modelData.hint
-                        onClicked: Shell.settingsPage = modelData.id
+                        onClicked: page.nav.settingsPage = modelData.id
                     }
                 }
             }
@@ -514,7 +514,7 @@ PxPage {
                                 hoverEnabled: true
                                 enabled: !!msg.modelData.page
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Shell.settingsPage = msg.modelData.page
+                                onClicked: page.nav.settingsPage = msg.modelData.page
                             }
                         }
                     }

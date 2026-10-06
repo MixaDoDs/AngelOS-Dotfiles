@@ -139,12 +139,15 @@ function tokens(src) {
     return out;
 }
 // recursive descent: or → and → not → compare → value
-function evalCond(expr, vars, seen) {
+// fns: more functions of one argument the condition may call ({name: fn}; the achievements'
+// count("event"), kinds("event"), got("id") — services/Achievements); seen() is always there
+function evalCond(expr, vars, seen, fns) {
     if (expr === undefined || expr === null || String(expr).trim() === "")
         return true;
     var ts = tokens(expr), p = 0;
     vars = vars || {};
     seen = seen || [];
+    fns = fns || {};
     function peek() {
         return ts[p];
     }
@@ -173,6 +176,8 @@ function evalCond(expr, vars, seen) {
                 eat(")");
                 if (k.v === "seen")
                     return seen.indexOf(String(arg)) >= 0;
+                if (typeof fns[k.v] === "function")
+                    return fns[k.v](arg);
                 throw new Error("нет функции " + k.v);
             }
             var x = vars[k.v];
@@ -234,9 +239,9 @@ function evalCond(expr, vars, seen) {
         throw new Error("лишнее в конце");
     return !!r;
 }
-function checkCond(expr) {
+function checkCond(expr, fns) {
     try {
-        evalCond(expr, {}, []);
+        evalCond(expr, {}, [], fns);
         return "";
     } catch (e) {
         return e.message;

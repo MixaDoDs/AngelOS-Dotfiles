@@ -210,7 +210,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Проверяются по порядку (стрелки меняют его), пока не найдётся текст с таймкодами. Название чистится от «(Official Video)», «[MV]», feat. и «- Topic»; «Артист - Песня» из браузера разбирается на части.", "Tried in order (arrows change it) until synced lyrics turn up. Titles lose “(Official Video)”, “[MV]”, feat. and “- Topic”; “Artist - Song” from a browser is split.")
+            text: I18n.t("Проверяются по порядку (стрелки меняют его), пока не найдётся текст с таймкодами. Название чистится от «(Official Video)», «[MV]», «(премьера клипа)», feat., хэштегов и «- Topic»; «Артист - Песня» и «Артист «Песня»» из браузера разбираются на части. Найденная песня сверяется с играющей: название, артист (кириллица и латиница — одно и то же), длительность и версия (ремикс, live, sped up), так что чужой текст не подставится. Для sped up / slowed подходит текст оригинала — его время растягивается. Голосовые из Telegram и звонки трек у музыкального плеера не перехватывают.", "Tried in order (arrows change it) until synced lyrics turn up. Titles lose “(Official Video)”, “[MV]”, feat., hashtags and “- Topic”; “Artist - Song” and “Artist «Song»” from a browser are split. A found song is checked against the playing one: title, artist (Cyrillic and Latin spellings meet), length and version (remix, live, sped up), so someone else's lyrics don't slip in. A sped up / slowed version takes the original's lyrics, stretched in time. Telegram voice messages and calls never take the song from a music player.")
         }
         Repeater {
             id: srcList
@@ -221,6 +221,9 @@ PxPage {
                     "netease": ["NetEase Cloud Music", I18n.t("синхронный текст, много азиатской и мировой музыки", "synced lyrics, large Asian and worldwide catalogue")],
                     "kugou": ["Kugou", I18n.t("синхронный текст, большой каталог (Китай, K-pop, мировые хиты)", "synced lyrics, large catalogue (China, K-pop, worldwide hits)")],
                     "qq": ["QQ Music", I18n.t("синхронный текст, нужен curl", "synced lyrics, needs curl")],
+                    "amll": ["AMLL TTML DB", I18n.t("тексты, выверенные по словам вручную; ищется по треку Spotify/NetEase или названию", "hand-timed lyrics; found by the Spotify/NetEase track or the name")],
+                    "lrccx": ["lrc.cx", I18n.t("синхронный текст, большое зеркало китайских магазинов и Apple Music", "synced lyrics, a large mirror of Chinese stores and Apple Music")],
+                    "musixmatch": ["Musixmatch", I18n.t("самый большой каталог; в некоторых странах без VPN не отвечает", "the largest catalogue; refuses some countries without a VPN")],
                     "ovh": ["lyrics.ovh", I18n.t("только текст без таймкодов, запасной вариант", "plain text only, last resort")]
                 })
             // enabled sources in their order, then the switched-off ones

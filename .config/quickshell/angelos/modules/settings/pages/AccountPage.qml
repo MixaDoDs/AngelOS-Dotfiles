@@ -38,7 +38,7 @@ PxPage {
             const to = SettingsTree.resolve(k).page;
             usage[to] = (usage[to] || 0) + raw[k];
         }
-        const all = Shell.settingsView ? Shell.settingsView.allPages : [];
+        const all = page.view ? page.view.allPages : [];
         const top = Object.keys(usage).filter(id => id !== "wallpaper" && id !== "theme" && id !== "updates" && id !== "account" && usage[id] >= 2 && all.some(p => p.id === id)).sort((a, b) => usage[b] - usage[a]).slice(0, 4).map(id => {
             const p = all.find(x => x.id === id);
             return {
@@ -187,7 +187,7 @@ PxPage {
                 text: I18n.t("Показать", "Show")
                 icon: "info"
                 onClicked: {
-                    Shell.settingsOpen = false;
+                    page.nav.settingsOpen = false;
                     Tour.start();
                 }
             }
@@ -205,19 +205,19 @@ PxPage {
             PxButton {
                 icon: "image"
                 text: I18n.t("Сменить обои", "Change wallpaper")
-                onClicked: Shell.settingsPage = "wallpaper"
+                onClicked: page.nav.settingsPage = "wallpaper"
             }
             // the theme and the size are set in one place (Theme and colours): a link to it
             PxButton {
                 icon: "palette"
                 text: I18n.t("Тема и размер ›", "Theme and size ›")
-                onClicked: Shell.settingsPage = "theme"
+                onClicked: page.nav.settingsPage = "theme"
             }
             PxButton {
                 icon: "download"
                 accent: Updates.available
                 text: Updates.available ? I18n.t("Обновление готово ♡", "Update available ♡") : I18n.t("Обновление", "Update")
-                onClicked: Shell.settingsPage = "updates"
+                onClicked: page.nav.settingsPage = "updates"
             }
             Repeater {
                 model: page.frequent
@@ -225,7 +225,7 @@ PxPage {
                     required property var modelData
                     icon: modelData.icon
                     text: modelData.label
-                    onClicked: Shell.settingsPage = modelData.id
+                    onClicked: page.nav.settingsPage = modelData.id
                 }
             }
         }

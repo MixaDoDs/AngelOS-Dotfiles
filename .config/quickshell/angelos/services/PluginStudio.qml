@@ -201,6 +201,7 @@ Singleton {
         if (!p)
             return;
         _enableAfterScan = "";
+        Achievements.note("plugin.create", id);
         Plugins.setEnabled(id, true);
         if (_addDesktop && p.desktopWidget && _screen && !DesktopWidgets.has("plugin:" + id, _screen))
             DesktopWidgets.add("plugin:" + id, _screen);

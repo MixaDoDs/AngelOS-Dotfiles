@@ -8,7 +8,7 @@ import "MacIcons.js" as MacIcons
 // and Stream: their own boxes.
 // `advanced` groups are sub-pages (the macOS "Title ›"): on their page they are not shown,
 // the page lists them as links at its top (PxPage) and opens one on its own
-// (Shell.settingsSub = its title); then the other groups of the page step aside. An
+// (the window's settingsSub = its title); then the other groups of the page step aside. An
 // advanced group that is only there sometimes says so with `shown`, not `visible`.
 Item {
     id: root
@@ -146,7 +146,7 @@ Item {
                 const open = root.folded;
                 root.unfolded = open;
                 if (!open && root.openSub === root.title)
-                    Shell.settingsSub = "";
+                    Shell.settingsNavFor(root).settingsSub = "";
             }
         }
     }

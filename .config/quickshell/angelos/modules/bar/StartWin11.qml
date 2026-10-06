@@ -85,6 +85,8 @@ PxBox {
             run(row.app);
         else if (row.kind === "setting")
             act(() => StartApps.openSetting(row.doc));
+        else if (row.kind === "file")
+            act(() => FileSearch.open(row.file));
         else if (row.kind === "calc") {
             Calc.copy(row.calc);
             if (row.calc.copy)
@@ -267,6 +269,7 @@ PxBox {
                 required property int index
                 readonly property bool sel: root.current === index
                 readonly property bool isCalc: modelData.kind === "calc"
+                readonly property bool isFile: modelData.kind === "file"
                 width: resultList.width
                 height: isCalc ? Theme.fit(22) : Theme.fit(16)
                 color: sel ? Qt.alpha(root.accentColor, 0.3) : hm.containsMouse ? Qt.alpha(root.accentColor, 0.14) : "transparent"
@@ -285,10 +288,16 @@ PxBox {
                         appId: visible ? hit.modelData.app.id || "" : ""
                         size: Theme.u * 12
                     }
+                    FileThumb {
+                        id: hitThumb
+                        visible: ok
+                        anchors.fill: parent
+                        hit: hit.isFile ? hit.modelData.file : null
+                    }
                     PxIcon {
-                        visible: hit.modelData.kind !== "app"
+                        visible: hit.modelData.kind !== "app" && !hitThumb.ok
                         anchors.centerIn: parent
-                        name: hit.isCalc ? "calc" : hit.modelData.kind === "setting" ? hit.modelData.doc.icon || "gear" : "sparkle"
+                        name: hit.isCalc ? "calc" : hit.modelData.kind === "setting" ? hit.modelData.doc.icon || "gear" : hit.isFile ? FileSearch.pixelIcon(hit.modelData.file) : "sparkle"
                     }
                 }
                 Column {
@@ -302,7 +311,7 @@ PxBox {
                         elide: Text.ElideRight
                         kind: hit.isCalc ? "title" : "body"
                         font.bold: hit.sel || hit.isCalc
-                        text: hit.isCalc ? hit.modelData.calc.title : hit.modelData.kind === "app" ? hit.modelData.app.name : hit.modelData.doc.title
+                        text: hit.isCalc ? hit.modelData.calc.title : hit.modelData.kind === "app" ? hit.modelData.app.name : hit.isFile ? hit.modelData.file.name : hit.modelData.doc.title
                     }
                     PxText {
                         width: parent.width
@@ -310,7 +319,7 @@ PxBox {
                         elide: Text.ElideRight
                         kind: "tiny"
                         dim: true
-                        text: hit.isCalc ? hit.modelData.calc.subtitle : hit.modelData.kind === "app" ? (hit.modelData.app.genericName || hit.modelData.app.comment || "") : (hit.modelData.doc.crumb || hit.modelData.doc.hint || "")
+                        text: hit.isCalc ? hit.modelData.calc.subtitle : hit.modelData.kind === "app" ? (hit.modelData.app.genericName || hit.modelData.app.comment || "") : hit.isFile ? FileSearch.where(hit.modelData.file) : (hit.modelData.doc.crumb || hit.modelData.doc.hint || "")
                     }
                 }
                 PxText {
@@ -320,7 +329,7 @@ PxBox {
                     anchors.verticalCenter: parent.verticalCenter
                     kind: "tiny"
                     dim: true
-                    text: hit.isCalc ? (hit.modelData.calc.copy ? "⧉" : "") : hit.modelData.kind === "app" ? I18n.t("приложение", "app") : I18n.t("настройка", "setting")
+                    text: hit.isCalc ? (hit.modelData.calc.copy ? "⧉" : "") : hit.modelData.kind === "app" ? I18n.t("приложение", "app") : hit.isFile ? (hit.modelData.file.isDir ? I18n.t("папка", "folder") : I18n.t("файл", "file")) : I18n.t("настройка", "setting")
                 }
                 MouseArea {
                     id: hm
@@ -332,6 +341,8 @@ PxBox {
                     onClicked: m => {
                         if (m.button === Qt.RightButton && hit.modelData.kind === "app")
                             StartApps.togglePin(hit.modelData.app);
+                        else if (m.button === Qt.RightButton && hit.isFile)
+                            root.act(() => FileSearch.reveal(hit.modelData.file));
                         else
                             root.activate(hit.modelData);
                     }

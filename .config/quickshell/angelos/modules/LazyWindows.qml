@@ -1,9 +1,11 @@
 import QtQuick
+import QtQml.Models
 import Quickshell
 import qs.services
 import qs.widgets
 import qs.modules.clipboard
 import qs.modules.debug
+import qs.modules.diary
 import qs.modules.launcher
 import qs.modules.session
 import qs.modules.settings
@@ -49,9 +51,36 @@ Scope {
         active: settingsKeep.alive
         SettingsWindow {}
     }
+    // the other Settings windows (Shell.newSettingsWindow): each goes as soon as it is closed
+    Instantiator {
+        model: Shell.settingsMore
+        delegate: SettingsWindow {
+            id: more
+            required property int key
+            required property string page
+            required property string sub
+            nav: SettingsNav {
+                settingsPage: more.page
+                Component.onCompleted: settingsSub = more.sub
+                onSettingsOpenChanged: if (!settingsOpen)
+                    Qt.callLater(Shell.closeSettingsWindow, more.key)
+            }
+        }
+    }
 
     LazyLoader {
         active: GameDebug.shown
         GameDebugWindow {}
+    }
+
+    // the Angel's diary (services/Diary): its closing swing plays inside the window
+    Linger {
+        id: diaryKeep
+        when: Shell.diaryOpen
+        ms: 8000
+    }
+    LazyLoader {
+        active: diaryKeep.alive
+        DiaryBook {}
     }
 }

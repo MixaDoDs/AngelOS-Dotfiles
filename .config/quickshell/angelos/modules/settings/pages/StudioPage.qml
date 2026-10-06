@@ -174,7 +174,7 @@ PxPage {
                 visible: !!page.editPlugin && !!page.editPlugin.settings && Plugins.isEnabled(page.editPlugin)
                 text: I18n.t("Его настройки", "Its settings")
                 icon: "gear"
-                onClicked: Shell.openSettings("plugin:" + PluginStudio.target)
+                onClicked: Shell.settingsGo(page, "plugin:" + PluginStudio.target)
             }
             PxButton {
                 visible: (PluginStudio.backups[PluginStudio.target] || 0) > 0
@@ -930,7 +930,7 @@ PxPage {
                 text: I18n.t("Настроить плагин", "Configure plugin")
                 icon: "gear"
                 enabled: !!Plugins.byId(PluginStudio.session.installed)
-                onClicked: Shell.openSettings("plugin:" + PluginStudio.session.installed)
+                onClicked: Shell.settingsGo(page, "plugin:" + PluginStudio.session.installed)
             }
             PxButton {
                 text: I18n.t("Доработать", "Improve it")
@@ -940,7 +940,7 @@ PxPage {
             }
             PxButton {
                 text: I18n.t("Все плагины", "All plugins")
-                onClicked: Shell.openSettings("plugins")
+                onClicked: Shell.settingsGo(page, "plugins")
             }
         }
     }

@@ -33,6 +33,7 @@ PopupWindow {
     // right-click shows the menu once, where it was asked for last.
     property bool reopening: false
     function openAt(x, y) {
+        Achievements.note("deskmenu.open", DeskMenu.style);
         if (ringStyle) {
             if (visible)
                 close();

@@ -107,7 +107,7 @@ Item {
                     id: tab
                     required property var modelData
                     required property int index
-                    readonly property bool cur: modelData.page === root.view.currentId && modelData.sub === Shell.settingsSub
+                    readonly property bool cur: modelData.page === root.view.currentId && modelData.sub === root.view.settingsNav.settingsSub
                     onCurChanged: if (cur)
                         Qt.callLater(tabs.reveal, tab)
                     width: Math.min(Theme.u * 110, tabText.implicitWidth + Theme.u * (modelData.child ? 10 : 14))
@@ -195,7 +195,7 @@ Item {
                 width: Math.max(implicitWidth, Theme.u * 40)
                 text: I18n.t("ОК", "OK")
                 accent: true
-                onClicked: Shell.settingsOpen = false
+                onClicked: root.view.settingsNav.settingsOpen = false
             }
             PxButton {
                 text: I18n.t("Отменить правки", "Revert changes")

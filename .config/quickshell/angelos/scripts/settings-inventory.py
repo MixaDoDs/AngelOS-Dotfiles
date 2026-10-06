@@ -25,7 +25,7 @@ PAIR = re.compile(r'I18n\.t\(\s*"((?:[^"\\]|\\.)*)"\s*,\s*"((?:[^"\\]|\\.)*)"\s*
 WRITE = re.compile(r'Config\.([a-z][A-Za-z0-9]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)')
 READ = re.compile(r'Config\.([a-z][A-Za-z0-9]*)\.([A-Za-z_][A-Za-z0-9_]*)')
 SAVERS = re.compile(r'\b([A-Z][A-Za-z0-9]+)\.(set[A-Z]?\w*|save\w*|apply\w*|pick\w*|toggle\w*|write\w*|put|remove\w*|add\w*)\(')
-LINK = re.compile(r'(?:openSettings\(\s*"([\w:-]+)"|settingsPage\s*=\s*"([\w:-]+)")')
+LINK = re.compile(r'(?:(?:openSettings\(|settingsGo\(\s*\w+\s*,)\s*"([\w:-]+)"|settingsPage\s*=\s*"([\w:-]+)")')
 TYPE = re.compile(r'^\s*([A-Z][A-Za-z0-9]*)\s*\{')
 # components of the settings themselves whose own writes belong to the group using them
 COMPONENT_DIRS = [HERE / "modules/settings", HERE / "widgets"]

@@ -77,7 +77,7 @@ PxPage {
                             width: parent.width
                             height: Math.round(width * 9 / 16)
                             // in the grimoire (or a dress): an engraving the right way round, not a negative
-                            layer.enabled: Theme.inkWindow !== null && Window.window === Theme.inkWindow
+                            layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
                             layer.effect: GrimoirePhoto {}
                             fillMode: Image.PreserveAspectFit
                             smooth: false
@@ -130,7 +130,7 @@ PxPage {
                 text: I18n.t("Скриншот области", "Region screenshot")
                 icon: "image"
                 onClicked: {
-                    Shell.settingsOpen = false;
+                    page.nav.settingsOpen = false;
                     Capture.screenshot();
                 }
             }
@@ -138,7 +138,7 @@ PxPage {
                 text: I18n.t("Запись области", "Region recording")
                 icon: "play"
                 onClicked: {
-                    Shell.settingsOpen = false;
+                    page.nav.settingsOpen = false;
                     Capture.record();
                 }
             }

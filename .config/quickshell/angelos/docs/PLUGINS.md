@@ -325,7 +325,30 @@ plugin.get("key", default)   // настройки плагина (хранят�
 plugin.set("key", value)
 plugin.settings()            // весь объект настроек
 plugin.url("file.png")       // file:// URL внутри папки плагина
+plugin.achieve("first-run")  // своё достижение — получено сразу (см. ниже)
+plugin.progress("ten-runs")  // шаг к достижению с "goal" (можно plugin.progress(id, 3))
+plugin.achieved("first-run") // уже получено?
 ```
+
+## Свои достижения
+
+Плагин может объявить достижения в `manifest.json` — они появятся в **Ангелочек →
+Достижения** рядом со встроенными, с той же карточкой «Достижение получено»:
+
+```json
+"achievements": [
+  { "id": "first-run", "name": {"ru": "Первый замер", "en": "First run"},
+    "desc": {"ru": "Запустить замер скорости", "en": "Run a speed test"}, "icon": "gauge" },
+  { "id": "ten-runs", "name": {"ru": "Метролог", "en": "Metrologist"},
+    "desc": {"ru": "Десять замеров", "en": "Ten speed tests"}, "goal": 10, "tier": 3 }
+]
+```
+
+`id` — латиница; `tier` — ступень (1–5, по умолчанию 2); `goal` — сколько раз нужно
+`plugin.progress(id)` (без него хватает одного `plugin.achieve(id)`); `secret: true` —
+«???» до получения; `icon` — пиксельный значок. Достижения плагина не открывают райские
+вещи (это делают только встроенные) и считаются, пока плагин включён и игра включена:
+в режиме «Просто рабочий стол» `achieve` и `progress` ничего не делают.
 
 ## Что можно импортировать
 

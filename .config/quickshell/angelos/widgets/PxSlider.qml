@@ -153,12 +153,28 @@ Item {
                 root.value = v;
             root.moved(v);
         }
-        onPressed: m => apply(m.x)
+        // a drag ends with `released` however it ends: a press taken away (an overlay that
+        // grabs the pointer, the window losing it) never sends onReleased, and a page that
+        // saves on release would keep the old value (the keyboard's repeat sliders)
+        property bool dragOpen: false
+        onPressed: m => {
+            dragOpen = true;
+            apply(m.x);
+        }
         onPositionChanged: m => {
             if (pressed)
                 apply(m.x);
         }
-        onReleased: m => root.released(root.valueAt(m.x))
+        onReleased: m => {
+            dragOpen = false;
+            root.released(root.valueAt(m.x));
+        }
+        onCanceled: {
+            if (!dragOpen)
+                return;
+            dragOpen = false;
+            root.released(root.value);
+        }
         onWheel: w => {
             const step = root.stepSize > 0 ? root.stepSize : (root.to - root.from) / 50;
             const v = Math.max(Math.min(root.from, root.to), Math.min(Math.max(root.from, root.to), root.value + (w.angleDelta.y > 0 ? step : -step)));

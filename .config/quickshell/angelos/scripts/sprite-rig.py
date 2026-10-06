@@ -30,7 +30,8 @@ How a sheet is cut (the same steps the sprites in the shell were made with):
      angle, only then shrunk (clean outlines), cropped to what all frames cover and put into
      the unrotated part's colours: a strip of frames; `at` is where the pivot sits on the body.
 A recipe (JSON): {"sheet", "block", "mask", "cell"?, "boxes": {part: [x0, y0, x1, y1]},
-"overlays": {"eyes"|"mouth": {"scale", "x", "y", "clip"?, "thr"?}},
+"overlays": {"eyes"|"mouth": {"scale", "x", "y", "clip"?, "oval"?: [cx, cy, rx, ry], "thr"?} |
+{"file": a finished overlay, the body's size}},
 "parts": {part: {"pivot", "at", "angles", "every", "under"?}}}.
 "colors": optional palette size (48 by default). A part may use "sequence": [box, ...]
 and optional "scale" instead of a pivot and angles: authored frames, placed at "at"; "key": N
@@ -208,6 +209,9 @@ def diff_overlay(body, patch, x, y, thr=38):
 
 def overlay(sheet, body, name):
     f = sheet.r["overlays"][name]
+    if "file" in f:
+        # finished by hand (a mouth too odd for a patch: fangs of the closed one to paint out)
+        return np.asarray(Image.open(expand(f["file"])).convert("RGBA")).copy()
     p = patch_art(sheet.part(name), f["scale"], sheet.r["block"])
     ov = diff_overlay(body, p, int(round(f["x"])), int(round(f["y"])), thr=f.get("thr", 38))
     if "clip" in f:
@@ -215,6 +219,12 @@ def overlay(sheet, body, name):
         keep = np.zeros(ov.shape[:2], bool)
         keep[y0:y1, x0:x1] = True
         ov[~keep] = 0
+    if "oval" in f:
+        # an oval instead of a box: no square edge around a mouth, and the closed one's
+        # fangs inside it covered by the face of the patch (with a low thr)
+        cx, cy, rx, ry = f["oval"]
+        yy, xx = np.mgrid[0:ov.shape[0], 0:ov.shape[1]]
+        ov[((xx + 0.5 - cx) / rx) ** 2 + ((yy + 0.5 - cy) / ry) ** 2 > 1] = 0
     return ov
 
 

@@ -10,9 +10,11 @@ import "../../widgets/MacIcons.js" as MacIcons
 // Spotlight of the Golden Gate skin (StartOverlay's look while the skin is on): a big dark glass
 // capsule a fifth down the screen, the results under it in a glass panel by section — the
 // calculator, apps, settings, folders, actions. On the capsule's right, like macOS 26/27, the
-// browsing modes: Apps (every app as a grid — the Dock's Apps opens it too), Files (the folders),
-// Actions and the Clipboard (its history). Ctrl+1…4 switch them, ↑↓ (←→ in the grid) choose,
-// Enter opens, Esc clears and closes. Same interface as the other Start looks.
+// browsing modes: Apps (every app as a grid — the Dock's Apps opens it too), Files (the folders,
+// and typed: files by name or type — FileSearch), Actions and the Clipboard (its history).
+// Ctrl+1…4 switch them, ↑↓ (←→ in the grid) choose, Enter opens, Ctrl+Enter shows a file in its
+// folder, Esc clears and closes. Found files get thumbnails and, on the panel's right, a preview
+// (Settings → Spotlight turns either off). Same interface as the other Start looks.
 Item {
     id: root
 
@@ -118,6 +120,16 @@ Item {
                     "r": r
                 }));
     }
+    function fileRow(f, section) {
+        return {
+            "section": section,
+            "label": f.name,
+            "sub": FileSearch.where(f),
+            "mac": FileSearch.macIcon(f),
+            "file": f,
+            "run": () => FileSearch.open(f)
+        };
+    }
     function plain(list, section, icon) {
         return list.map(r => ({
                     "section": section,
@@ -131,7 +143,7 @@ Item {
         if (mode === "apps")
             return StartApps.apps.filter(a => !searching || matches(a.name, query.trim().toLowerCase())).map(a => appRow(a, ""));
         if (mode === "files")
-            return plain(StartItems.places, I18n.t("Папки", "Folders"), "folder").filter(r => !searching || matches(r.label, query.trim().toLowerCase()));
+            return plain(StartItems.places, I18n.t("Папки", "Folders"), "folder").filter(r => !searching || matches(r.label, query.trim().toLowerCase())).concat(searching ? FileSearch.rows(query, 60).map(f => fileRow(f, I18n.t("Файлы", "Files"))) : []);
         if (mode === "actions")
             return plain(StartItems.power.concat(StartItems.settings), I18n.t("Действия", "Actions"), "zap").filter(r => !searching || matches(r.label, query.trim().toLowerCase()));
         if (mode === "clipboard")
@@ -160,6 +172,8 @@ Item {
                 });
             else if (r.kind === "app")
                 out.push(appRow(r.app, I18n.t("Приложения", "Applications")));
+            else if (r.kind === "file")
+                out.push(fileRow(r.file, I18n.t("Файлы", "Files")));
             else
                 out.push({
                     "section": I18n.t("Системные настройки", "System Settings"),
@@ -230,7 +244,15 @@ Item {
         else
             list.positionViewAtIndex(current, ListView.Contain);
     }
+    readonly property var pickedFile: rows[current] && rows[current].file ? rows[current].file : null
     function key(e) {
+        if ((e.modifiers & Qt.ControlModifier) && (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && pickedFile) {
+            const f = pickedFile;
+            closeRequested();
+            FileSearch.reveal(f);
+            e.accepted = true;
+            return;
+        }
         if ((e.modifiers & Qt.ControlModifier) && e.key >= Qt.Key_1 && e.key <= Qt.Key_4) {
             setMode(["apps", "files", "actions", "clipboard"][e.key - Qt.Key_1]);
             e.accepted = true;
@@ -326,7 +348,7 @@ Item {
             MacText {
                 visible: field.text === ""
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.mode === "apps" ? I18n.t("Поиск в приложениях", "Search Applications") : root.mode === "files" ? I18n.t("Поиск папок", "Search Folders") : root.mode === "actions" ? I18n.t("Поиск действий", "Search Actions") : root.mode === "clipboard" ? I18n.t("Поиск в буфере обмена", "Search Clipboard") : I18n.t("Поиск", "Search")
+                text: root.mode === "apps" ? I18n.t("Поиск в приложениях", "Search Applications") : root.mode === "files" ? I18n.t("Поиск файлов: имя или .jpeg", "Search Files: a name or .jpeg") : root.mode === "actions" ? I18n.t("Поиск действий", "Search Actions") : root.mode === "clipboard" ? I18n.t("Поиск в буфере обмена", "Search Clipboard") : I18n.t("Поиск", "Search")
                 size: GoldenGate.px(22)
                 color: Qt.rgba(1, 1, 1, 0.45)
             }
@@ -372,15 +394,18 @@ Item {
         visible: root.rows.length > 0
         y: root.capH + GoldenGate.px(10)
         width: parent.width
-        height: root.grid ? Math.min(GoldenGate.px(460), gridView.contentHeight + GoldenGate.px(20)) : Math.min(root.maxRows, root.rows.length) * root.rowH + sections * GoldenGate.px(26) + GoldenGate.px(16)
+        height: root.grid ? Math.min(GoldenGate.px(460), gridView.contentHeight + GoldenGate.px(20)) : Math.max(previewPane.visible ? GoldenGate.px(300) : 0, Math.min(root.maxRows, root.rows.length) * root.rowH + sections * GoldenGate.px(26) + GoldenGate.px(16))
         readonly property int sections: root.grid ? 0 : new Set(root.rows.slice(0, root.maxRows).map(r => r.section)).size
         radius: GoldenGate.panelRadius
 
         ListView {
             id: list
             visible: !root.grid
-            anchors.fill: parent
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
             anchors.margins: GoldenGate.px(8)
+            width: (previewPane.visible ? parent.width * 0.56 : parent.width) - GoldenGate.px(16)
             clip: true
             model: root.grid ? [] : root.rows
             boundsBehavior: Flickable.StopAtBounds
@@ -419,6 +444,15 @@ Item {
                     smooth: true
                     source: row.modelData.app && row.modelData.app.icon ? (String(row.modelData.app.icon).startsWith("/") ? "file://" + row.modelData.app.icon : Quickshell.iconPath(row.modelData.app.icon, true)) : ""
                 }
+                FileThumb {
+                    id: fileThumb
+                    visible: ok
+                    x: GoldenGate.px(8)
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: GoldenGate.px(28)
+                    height: width
+                    hit: row.modelData.file || null
+                }
                 Image {
                     id: favicon
                     visible: !row.modelData.app && !!row.modelData.image && status === Image.Ready
@@ -432,7 +466,7 @@ Item {
                     source: row.modelData.image || ""
                 }
                 MacIcon {
-                    visible: !row.modelData.app && !favicon.visible
+                    visible: !row.modelData.app && !favicon.visible && !fileThumb.ok
                     x: GoldenGate.px(12)
                     anchors.verticalCenter: parent.verticalCenter
                     name: row.modelData.mac || "circle-help"
@@ -463,6 +497,76 @@ Item {
                     hoverEnabled: true
                     onPositionChanged: m => root.pointed(this, m, row.index)
                     onClicked: root.runRow(row.modelData)
+                }
+            }
+        }
+        // the picked file, as Spotlight shows it: the picture big, then its name, kind, size, date
+        Item {
+            id: previewPane
+            readonly property var f: root.pickedFile
+            visible: !root.grid && FileSearch.preview && root.rows.some(r => !!r.file)
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.margins: GoldenGate.px(8)
+            width: parent.width * 0.44 - GoldenGate.px(8)
+            Rectangle {
+                width: 1
+                height: parent.height
+                color: GoldenGate.separator
+            }
+            Item {
+                id: pictureBox
+                x: GoldenGate.px(16)
+                y: GoldenGate.px(10)
+                width: parent.width - GoldenGate.px(28)
+                height: parent.height - info.height - GoldenGate.px(30)
+                FileThumb {
+                    id: bigThumb
+                    anchors.fill: parent
+                    crop: false
+                    decode: 640
+                    hit: previewPane.f
+                }
+                MacIcon {
+                    visible: !bigThumb.ok
+                    anchors.centerIn: parent
+                    name: previewPane.f ? FileSearch.macIcon(previewPane.f) : root.rows[root.current] ? root.rows[root.current].mac || "search" : "search"
+                    size: GoldenGate.px(72)
+                    stroke: 1.4
+                    color: GoldenGate.secondaryLabel
+                }
+            }
+            Column {
+                id: info
+                x: GoldenGate.px(16)
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: GoldenGate.px(6)
+                width: parent.width - GoldenGate.px(28)
+                spacing: GoldenGate.px(2)
+                MacText {
+                    width: parent.width
+                    text: previewPane.f ? previewPane.f.name : root.rows[root.current] ? root.rows[root.current].label : ""
+                    semibold: true
+                    elide: Text.ElideMiddle
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                MacText {
+                    visible: !!previewPane.f
+                    width: parent.width
+                    text: previewPane.f ? (previewPane.f.isDir ? I18n.t("Папка", "Folder") : FileSearch.sizeText(previewPane.f.size)) + " · " + FileSearch.dateText(previewPane.f) : ""
+                    size: GoldenGate.smallSize
+                    color: GoldenGate.secondaryLabel
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                MacText {
+                    visible: !!previewPane.f
+                    width: parent.width
+                    text: previewPane.f ? FileSearch.where(previewPane.f) + "  ·  " + I18n.t("⌃↩ показать в папке", "⌃↩ Show in Folder") : ""
+                    size: GoldenGate.smallSize
+                    color: GoldenGate.secondaryLabel
+                    elide: Text.ElideMiddle
+                    horizontalAlignment: Text.AlignHCenter
                 }
             }
         }
