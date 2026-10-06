@@ -46,7 +46,9 @@ THEMES = {"pixel": "пиксельная тема", "macos": "тема macOS (Go
 # other files with binds, read-only here: (path, section, read after the profile?). Files niri
 # reads after the profile (config.kdl's include order) replace a key of it — their keys can't be
 # given to a bind here; the common file is read before it
-EXTRA = ([(CONFIG.parent / "cfg/keybinds-common.kdl", "Общие для обеих тем (cfg/keybinds-common.kdl)", False)] if PROFILE else []) + [
+EXTRA = ([(CONFIG.parent / "cfg/keybinds-common.kdl", "Общие для обеих тем (cfg/keybinds-common.kdl)", False),
+          # a binds block written by hand into the selector: both themes, read after the profile
+          (keyprofile.SELECTOR, "Свои, для обеих тем (cfg/keybinds.kdl, правятся в файле)", True)] if PROFILE else []) + [
     (CONFIG.parent / "cfg/angelos-windows.kdl", "angelOS: Alt+Tab, лупа (Настройки → Окна, Клавиатура и мышь)", True),
     (CONFIG.parent / "angelos.kdl", "angelOS: сгенерировано темой", True),
 ]

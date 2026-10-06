@@ -6,6 +6,8 @@
   keyprofile.py sync              -> the profile settings.json asks for (skin + mac.keys)
   keyprofile.py init              -> the profile files, if missing (templates/keybinds)
   keyprofile.py path              -> the file of the profile in front (what Settings edits)
+  keyprofile.py merge BASE OURS NEW -> an update's profile: the repository's changes (BASE → NEW)
+                                     brought into the user's file OURS, printed (install.sh)
 
 ~/.config/niri/cfg/keybinds.kdl is a selector angelOS writes — two includes:
 
@@ -18,11 +20,20 @@ that theme only. A switch writes only the selector: a copy of the niri config wi
 the new selector must pass `niri validate` first, then one rename puts it in place
 (niri reloads once and never sees half of one profile and half of the other), the
 real config is validated again and the old selector comes back if it fails. Backups:
-~/.local/state/angelos/backups/keyprofile-*.
+~/.local/state/angelos/backups/keyprofile-*. Only the profile's include line changes:
+whatever else someone wrote into keybinds.kdl (a binds block of their own) stays, for
+both themes, and is read after the profile.
 
-`init` on a config from before profiles (keybinds.kdl with a binds block of its own):
-that file is backed up and becomes the pixel profile minus the binds the common file
-holds the same way; the Golden Gate profile comes from the template.
+`init` on a config from before profiles (keybinds.kdl with a binds block and no include of a
+profile): that file is backed up and becomes the pixel profile minus the binds the common
+file holds the same way — also when a pixel profile is there already (an update installs the
+repository's next to the user's old keybinds.kdl; that one is what the user's keys are, the
+other is backed up); the Golden Gate profile comes from the template.
+
+`merge`: an update's three-way merge, key by key — a bind the user left as it came follows
+the repository (changed, moved, removed), a key the repository adds comes in unless the
+user's file binds it or the user removed it, every change of the user's stays. Workspace keys
+routed through angelOS or not (workspace-anim.py) count the same and keep the user's way.
 """
 import fcntl
 import json
@@ -46,6 +57,7 @@ BACKUPS = HOME / ".local/state/angelos/backups"
 SETTINGS = HOME / ".config/angelos/settings.json"
 PROFILES = ("pixel", "macos")
 FILES = {"common": "keybinds-common.kdl", "pixel": "keybinds-pixel.kdl", "macos": "keybinds-macos.kdl"}
+BINDS = re.compile(r'(?m)^\s*binds\s*\{')
 INCLUDE = re.compile(r'(?m)^\s*include\s+"(?:\./)?keybinds-(pixel|macos)\.kdl"')
 HEADER = """// angelOS: the key profile of the theme in front — written by angelOS (scripts/keyprofile.py),
 // switched with the theme. Edit the profiles, not this file (Settings → Keyboard does):
@@ -54,7 +66,10 @@ HEADER = """// angelOS: the key profile of the theme in front — written by ang
 """
 
 
-def selector_text(profile):
+def selector_text(profile, old=""):
+    """the selector for `profile`; an existing one keeps everything but its profile include"""
+    if INCLUDE.search(old):
+        return INCLUDE.sub(lambda m: m.group(0).replace(f"keybinds-{m.group(1)}.kdl", FILES[profile]), old, count=1)
     return HEADER + f'include "{FILES["common"]}"\ninclude "{FILES[profile]}"\n'
 
 
@@ -119,23 +134,31 @@ def _norm(b):
     return (b["key"].lower(), b["action"].replace("@HOME@", str(HOME)), json.dumps(b["props"], sort_keys=True))
 
 
+def _script(name, module):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(module, SHELL / "scripts" / name)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _keybinds():
+    return _script("keybinds.py", "angelos_keybinds")
+
+
 def init():
     """the profile files from the templates where missing; a pre-profile keybinds.kdl becomes
     the pixel profile (without what the common file holds the same way)"""
     made = []
     CFG.mkdir(parents=True, exist_ok=True)
-    legacy = SELECTOR.exists() and not current() and "binds" in SELECTOR.read_text()
-    folder = backup(SELECTOR) if legacy else None
+    legacy = SELECTOR.exists() and not current() and BINDS.search(SELECTOR.read_text()) is not None
+    folder = backup(SELECTOR, CFG / FILES["pixel"]) if legacy else None
     if not (CFG / FILES["common"]).exists():
         atomic_write(CFG / FILES["common"], template(FILES["common"]))
         made.append(FILES["common"])
-    if not (CFG / FILES["pixel"]).exists():
+    if legacy or not (CFG / FILES["pixel"]).exists():
         if legacy:
-            sys.path.insert(0, str(SHELL / "scripts"))
-            import importlib.util
-            spec = importlib.util.spec_from_file_location("angelos_keybinds", SHELL / "scripts/keybinds.py")
-            kb = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(kb)
+            kb = _keybinds()
             common = {_norm(dict(b, key=kb.norm_key(b["key"]))) for b in kb.parse((CFG / FILES["common"]).read_text())[2]}
             text = SELECTOR.read_text()
             lines, _, binds, _ = kb.parse(text)
@@ -158,9 +181,9 @@ def apply(profile):
     # keybinds.py and workspace-anim.py edit the profiles under the same lock
     with (BACKUPS / ".anim.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        made = init()
-        new = selector_text(profile)
         old = SELECTOR.read_text() if SELECTOR.exists() else ""
+        made = init()
+        new = selector_text(profile, old if current() else "")
         if old == new:
             return {"profile": profile, "changed": False, **made}
         with tempfile.TemporaryDirectory(prefix="angelos-keyprofile-") as tmp:
@@ -177,6 +200,67 @@ def apply(profile):
                 atomic_write(SELECTOR, old)
             raise
         return {"profile": profile, "changed": True, "backup": str(folder), **made}
+
+
+def _sig(wa, b):
+    """what a bind does, spacing and workspace routing aside"""
+    action = wa.route("{ " + re.sub(r"\s+", " ", b["action"]) + "; }", False)
+    return (action, b["title"], json.dumps(b["props"], sort_keys=True))
+
+
+def merge(base, ours, new):
+    """the repository's change base → new brought into ours (see the module doc); None when
+    a file can't be merged bind by bind (a multi-line bind, a key twice, no binds block)"""
+    kb, wa = _keybinds(), _script("workspace-anim.py", "angelos_workspace_anim")
+    try:
+        parsed = [kb.parse(t) for t in (base, ours, new)]
+    except ValueError:
+        return None
+    keyed = []
+    for _, _, binds, _ in parsed:
+        d = {}
+        for b in binds:
+            k = kb.norm_key(b["key"])
+            if not b["editable"] or k in d:
+                return None
+            d[k] = b
+        keyed.append(d)
+    B, O, N = keyed
+    lines, (start, _), _, _ = parsed[1]
+    nlines = parsed[2][0]
+    sig = lambda b: _sig(wa, b)  # noqa: E731
+    replace, drop, after = {}, set(), {}
+    for k, b in O.items():
+        if k in B and sig(b) == sig(B[k]):          # as it came: follows the repository
+            if k not in N:
+                drop.add(b["line"])
+            elif sig(N[k]) != sig(b):
+                replace[b["line"]] = nlines[N[k]["line"]]
+    have = {l.strip() for l in lines}
+    anchor, pending = None, []                      # each new key after the one it follows
+    for k, b in N.items():
+        if k in O:
+            anchor = O[k]["line"]
+            if pending:                             # new keys ahead of every old one: before it
+                at = anchor - 1 if anchor - 1 > start and kb.SECTION.match(lines[anchor - 1]) else anchor
+                after.setdefault(at - 1, []).extend(pending + [""])
+                pending = []
+            continue
+        if k in B:                                  # the user took it out
+            continue
+        add = []
+        head = nlines[b["line"] - 1] if b["line"] > 0 else ""
+        if kb.SECTION.match(head) and head.strip() not in have:
+            add += ["", head] if anchor is not None else [head]
+            have.add(head.strip())
+        (pending if anchor is None else after.setdefault(anchor, [])).extend(add + [nlines[b["line"]]])
+    after.setdefault(start, []).extend(pending)     # an O with no key of N at all
+    out = []
+    for i, l in enumerate(lines):
+        if i not in drop:
+            out.append(replace.get(i, l))
+        out.extend(after.get(i, []))
+    return wa.route("\n".join(out), wa.routed(ours))
 
 
 def status():
@@ -198,8 +282,14 @@ def main():
             out = apply(wanted())
         elif len(args) == 2 and args[0] == "apply":
             out = apply(args[1])
+        elif len(args) == 4 and args[0] == "merge":
+            text = merge(*(Path(a).read_text() for a in args[1:]))
+            if text is None:
+                return 3
+            sys.stdout.write(text)
+            return 0
         else:
-            raise ValueError("usage: keyprofile.py status | apply pixel|macos | sync | init | path")
+            raise ValueError("usage: keyprofile.py status | apply pixel|macos | sync | init | path | merge BASE OURS NEW")
     except (OSError, ValueError) as e:
         print(json.dumps({"error": str(e)}, ensure_ascii=False))
         return 1

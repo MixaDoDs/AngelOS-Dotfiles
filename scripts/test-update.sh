@@ -137,9 +137,26 @@ set +e
 new_case success
 v2_edits
 echo '// v2 binds' >>"$W/work/.config/niri/cfg/keybinds.kdl"
+# the pixel key profile in v2: a new key, a changed one; the user's copy has a key moved and one
+# of their own (Settings → Shortcuts) — the update has to merge, not park
+PIXEL=".config/niri/cfg/keybinds-pixel.kdl"
+key_edit() { # FILE PYTHON-EXPR-ON-t
+  python3 - "$1" "$2" <<'PY'
+import sys
+p, expr = sys.argv[1], sys.argv[2]
+t = open(p).read()
+i = t.rstrip().rfind("}")
+t = eval(expr)
+open(p, "w").write(t)
+PY
+}
+key_edit "$W/work/$PIXEL" 't[:i] + "    Mod+Shift+F9 hotkey-overlay-title=\"v2 key\" { spawn \"v2-new\"; }\n" + t[i:]'
+key_edit "$W/work/$PIXEL" 't.replace("{ focus-workspace-previous; }", "{ focus-workspace-previous; } // v2 changed").replace("hotkey-overlay-title=\"Previous workspace\"", "hotkey-overlay-title=\"Previous desk v2\"")'
 publish v2
 V2="$(git -C "$W/work" rev-parse HEAD)"
 echo '// my own binds' >>"$H/.config/niri/cfg/keybinds.kdl"     # the user's change before the update
+key_edit "$H/$PIXEL" 't[:i] + "    Mod+Shift+F8 { spawn \"mine\"; }\n" + t[i:]'
+key_edit "$H/$PIXEL" 't.replace("    Mod+Space ", "    Mod+Ctrl+F7 ", 1)'
 update
 if ((RC == 0)); then pass "success: exit 0"; else fail "success: exit $RC"; show "$W/$CASE.out"; fi
 check "success: UPDATED is the last line, with old/new commits" \
@@ -151,6 +168,12 @@ check "success: shell code updated, new file installed" \
 check "success: the user's binds kept, the new version parked in kept-updates" \
   bash -c "grep -q 'my own binds' '$H/.config/niri/cfg/keybinds.kdl' && ! grep -q 'v2 binds' '$H/.config/niri/cfg/keybinds.kdl' &&
            grep -q 'v2 binds' '$STATE/kept-updates/.config/niri/cfg/keybinds.kdl'"
+check "success: key profile merged — the user's keys kept, v2's new and changed keys in" \
+  bash -c "f='$H/$PIXEL'; grep -q 'spawn \"mine\"' \"\$f\" && grep -q 'Mod+Ctrl+F7' \"\$f\" && ! grep -qE '^ *Mod\+Space ' \"\$f\" &&
+           grep -q 'v2-new' \"\$f\" && grep -q 'Previous desk v2' \"\$f\" && ls '$H/.config/niri/cfg/' | grep -q 'keybinds-pixel.kdl.bak.' &&
+           [[ ! -e '$STATE/kept-updates/$PIXEL' ]]"
+check "success: the manifest keeps v2's own checksum of the profile (the next update merges again)" \
+  bash -c "grep -q \"\$(sed 's#@HOME@#$H#g' '$REPO/$PIXEL' | sha256sum | cut -d' ' -f1)  $PIXEL\" '$STATE/installed-files.sha256'"
 check "success: settings.json untouched" grep -qx '{"setup":{"complete":true},"mine":1}' "$H/.config/angelos/settings.json"
 check "success: snapshot recorded as ok" test "$(meta "$BACKUP" status)" = ok
 "${ENVS[@]}" bash "$SCRIPT" --last >"$W/last" 2>&1 || true

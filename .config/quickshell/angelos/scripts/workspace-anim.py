@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Read or set niri's workspace-switch animation (cfg/animation.kdl) and whether
-the workspace keys go through angelOS (cfg/keybinds.kdl).
+the workspace keys go through angelOS (both themes' key profiles, cfg/keybinds-*.kdl).
 
   workspace-anim.py                          -> {"preset": "soft|dash|instant|custom", "routed": bool,
                                                  "slowdown": float, "speed": float, "ms": int}
@@ -38,6 +38,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import keyprofile  # noqa: E402
 # the workspace keys of the theme in front (its key profile, scripts/keyprofile.py)
 KEYBINDS = keyprofile.path()
+# routing is one setting for both themes: every theme's profile is written, or the keys of
+# the theme not in front stay as they were and its switch has no animation after a theme change
+ROUTE_FILES = [p for p in (keyprofile.CFG / keyprofile.FILES[n] for n in keyprofile.PROFILES) if p.exists()] \
+    if keyprofile.current() else [KEYBINDS]
 BACKUPS = Path.home() / ".local/state/angelos/backups"
 BLOCK = re.compile(r"(?m)^([ \t]*)workspace-switch\s*\{([^{}]*)\}")
 ANGELOS = "exec ~/.config/quickshell/angelos/bin/angelos ws "
@@ -152,10 +156,10 @@ def save(preset, route_mode, speed=1.0):
     BACKUPS.mkdir(parents=True, exist_ok=True)
     with (BACKUPS / ".anim.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        old = {ANIMATIONS: ANIMATIONS.read_text(), KEYBINDS: KEYBINDS.read_text()}
-        new = {ANIMATIONS: update(old[ANIMATIONS], preset, speed), KEYBINDS: old[KEYBINDS]}
-        if route_mode is not None:
-            new[KEYBINDS] = route(old[KEYBINDS], route_mode)
+        old = {ANIMATIONS: ANIMATIONS.read_text(), **{p: p.read_text() for p in ROUTE_FILES}}
+        new = {ANIMATIONS: update(old[ANIMATIONS], preset, speed)}
+        for p in ROUTE_FILES:
+            new[p] = old[p] if route_mode is None else route(old[p], route_mode)
         changed = [p for p in new if new[p] != old[p]]
         if not changed:
             return "Unchanged"

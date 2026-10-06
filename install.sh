@@ -786,11 +786,12 @@ install_voxtype_model() {
 
 # ── Config files ─────────────────────────────────────────────────────────────
 
-N_INSTALLED=0 N_UNCHANGED=0 N_KEPT=0 N_PARKED=0
+N_INSTALLED=0 N_UNCHANGED=0 N_KEPT=0 N_PARKED=0 N_MERGED=0
 OVERWRITE_CONFIGS="${OVERWRITE_CONFIGS:-0}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME_DIR/.local/state}/angelos"
 MANIFEST="$STATE_DIR/installed-files.sha256"
 PARKED_DIR="$STATE_DIR/kept-updates"
+BASES_DIR="$STATE_DIR/key-profile-bases"
 declare -A PREV_SUM=() NEW_SUM=()
 NVIM_OURS=0
 
@@ -898,11 +899,14 @@ install_file() {
   [[ "$rel" == .config/niri/cfg/keybinds.kdl ]] && key_profile_into "$tmp" "$dst"
   if [[ -e "$dst" ]] && cmp -s -- "$tmp" "$dst"; then
     NEW_SUM["$rel"]="$(sum_of "$tmp")"
+    save_base "$rel" "$tmp"
     N_UNCHANGED=$((N_UNCHANGED + 1)); return 0
   fi
   # changed since the installer wrote it (by hand, or by angelOS's settings:
-  # hotkeys, animations, the default browser…): the user's version stays
+  # hotkeys, animations, the default browser…): the user's version stays —
+  # a theme's key profile gets the repository's new keys merged in around the user's
   if [[ -e "$dst" && "$OVERWRITE_CONFIGS" != 1 ]] && ! is_program "$rel" && ! untouched "$rel" "$dst" "$srel"; then
+    merge_key_profile "$rel" "$dst" "$srel" "$tmp" "$src" && return 0
     mkdir -p -- "$(dirname -- "$PARKED_DIR/$rel")"
     cp -p -- "$tmp" "$PARKED_DIR/$rel"
     chmod --reference="$src" "$PARKED_DIR/$rel"
@@ -914,7 +918,59 @@ install_file() {
   cp -p -- "$tmp" "$dst"
   chmod --reference="$src" "$dst"
   NEW_SUM["$rel"]="$(sum_of "$dst")"
+  save_base "$rel" "$tmp"
   N_INSTALLED=$((N_INSTALLED + 1))
+}
+
+# The themes' niri key profiles (cfg/keybinds-{common,pixel,macos}.kdl) are edited by
+# Settings → Shortcuts, so they are the user's — and still have to receive the keys
+# angelOS adds or changes. An update merges them three ways (scripts/keyprofile.py merge):
+# base = the repository's version the installer put there last time (a copy in
+# $BASES_DIR, else found in git history by the manifest's checksum), ours = the file as it
+# is, new = the repository's now. Keys the user left as they came follow the repository,
+# new keys come in unless the user binds that key or took it out, the user's own stay.
+# The manifest keeps the repository version's checksum, not the merged file's: the next
+# update sees the user's edits again and merges again. No base, or a file it can't merge
+# (multi-line binds): parked like any other config.
+is_key_profile() { [[ "$1" =~ ^\.config/niri/cfg/keybinds-(common|pixel|macos)\.kdl$ ]]; }
+
+save_base() { # rel rendered-repo-file
+  is_key_profile "$1" || return 0
+  mkdir -p -- "$(dirname -- "$BASES_DIR/$1")" && cp -- "$2" "$BASES_DIR/$1" || true
+}
+
+base_of() { # rel repo-file out: the repository's version the installer put at rel last time
+  local rel="$1" srel="$2" out="$3" want="${PREV_SUM[$1]:-}" h raw
+  [[ -n "$want" ]] || return 1
+  if [[ -f "$BASES_DIR/$rel" && "$(sum_of "$BASES_DIR/$rel")" == "$want" ]]; then
+    cp -- "$BASES_DIR/$rel" "$out"; return 0
+  fi
+  git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1 || return 1
+  raw="$(mktemp)"; TMP_FILES+=("$raw")
+  while read -r h; do
+    git -C "$ROOT" show "$h:$srel" >"$raw" 2>/dev/null || continue
+    render "$raw" "$out"
+    [[ "$(sum_of "$out")" == "$want" ]] && return 0
+  done < <(git -C "$ROOT" log --format=%H -n 200 -- "$srel" 2>/dev/null)
+  return 1
+}
+
+merge_key_profile() { # rel installed-file repo-file rendered-new src
+  local rel="$1" dst="$2" srel="$3" tmp="$4" src="$5" base merged
+  is_key_profile "$rel" && command -v python3 >/dev/null 2>&1 || return 1
+  base="$(mktemp)" merged="$(mktemp)"; TMP_FILES+=("$base" "$merged")
+  base_of "$rel" "$srel" "$base" || return 1
+  python3 "$ROOT/.config/quickshell/angelos/scripts/keyprofile.py" merge "$base" "$dst" "$tmp" >"$merged" 2>/dev/null \
+    && [[ -s "$merged" ]] || return 1
+  NEW_SUM["$rel"]="$(sum_of "$tmp")"
+  save_base "$rel" "$tmp"
+  if cmp -s -- "$merged" "$dst"; then
+    N_UNCHANGED=$((N_UNCHANGED + 1)); return 0
+  fi
+  backup "$dst"
+  cp -- "$merged" "$dst"
+  chmod --reference="$src" "$dst"
+  N_MERGED=$((N_MERGED + 1))
 }
 
 # The theme's niri keys: cfg/keybinds.kdl picks the pixel or the Mac profile (angelOS's
@@ -1358,6 +1414,10 @@ summary() {
   fi
   say "$(_ "Files: $N_INSTALLED installed, $N_UNCHANGED unchanged, $N_KEPT kept" \
            "Файлы: $N_INSTALLED установлено, $N_UNCHANGED без изменений, $N_KEPT сохранено")"
+  if ((N_MERGED)); then
+    say "$(_ "Shortcuts: angelOS's new keys merged into $N_MERGED key profile(s), yours kept (backup: *.bak.$STAMP)" \
+             "Горячие клавиши: новые клавиши angelOS добавлены в $N_MERGED профил(я/ей), твои сохранены (бэкап: *.bak.$STAMP)")"
+  fi
   if ((N_PARKED)); then
     say "$(_ "Your changes kept in $N_PARKED config file(s); their new versions: ${PARKED_DIR/#$HOME_DIR/\~}/ (OVERWRITE_CONFIGS=1 replaces them, with a backup)" \
              "Твои изменения сохранены в $N_PARKED файл(ах) конфигов; их новые версии: ${PARKED_DIR/#$HOME_DIR/\~}/ (OVERWRITE_CONFIGS=1 заменит их, с бэкапом)")"
