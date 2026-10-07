@@ -1119,22 +1119,64 @@ Singleton {
     }
 
     // ---- manual search from Settings → Lyrics ----
+    // Every result says what happened when it is picked (#34): its lyrics are fetched
+    // (`picking` = its uid), or it has none (`pickFailed[uid]`) — a click is never silent.
+    // A source that never answers no longer holds the list back: what came in 10 s is shown.
     property var results: []
     property bool searching: false
+    property int searchGen: 0
+    property string picking: ""
+    property var pickFailed: ({})
+    Timer {
+        id: searchWatch
+        property var finish: null
+        interval: 10000
+        onTriggered: if (finish)
+            finish()
+    }
+    Timer {
+        id: pickWatch
+        property string uid: ""
+        interval: 12000
+        onTriggered: root.pickDone(uid, false)
+    }
+    function pickDone(uid, ok) {
+        if (!uid || picking !== uid)
+            return;
+        picking = "";
+        pickWatch.stop();
+        if (!ok) {
+            const f = Object.assign({}, pickFailed);
+            f[uid] = true;
+            pickFailed = f;
+        }
+    }
     function search(text) {
         text = String(text || "").trim();
         if (!text)
             return;
+        const gen = ++searchGen;
         searching = true;
         results = [];
+        picking = "";
+        pickFailed = ({});
         let pending = 5;
         const out = [];
-        const done = () => {
-            if (--pending === 0) {
-                searching = false;
-                results = out;
-            }
+        const finish = () => {
+            if (gen !== searchGen || !searching)
+                return;
+            searching = false;
+            searchWatch.stop();
+            results = out.map((r, i) => Object.assign({
+                    "uid": gen + ":" + i
+                }, r));
         };
+        const done = () => {
+            if (--pending === 0)
+                finish();
+        };
+        searchWatch.finish = finish;
+        searchWatch.restart();
         http("https://lrclib.net/api/search?" + query({
             "q": text
         }), (code, list) => {
@@ -1215,8 +1257,9 @@ Singleton {
     // use a search result for the current track (remembered in the cache)
     function pick(r) {
         const key = trackKey;
-        if (!title || !r)
+        if (!title || !r || picking !== "")
             return;
+        const uid = r.uid || "";
         if (r.data) {
             const data = Object.assign({
                 "source": "lrclib"
@@ -1225,12 +1268,18 @@ Singleton {
             apply(data);
             return;
         }
+        picking = uid;
+        pickWatch.uid = uid;
+        pickWatch.restart();
         const use = (source, lrc) => {
-            if (!lrc || key !== trackKey)
-                return;
+            if (key !== trackKey)
+                return pickDone(uid, true);
+            if (!lrc)
+                return pickDone(uid, false);
             const data = root.lrcData(source, lrc);
             store(key, data);
             apply(data);
+            pickDone(uid, true);
         };
         if (r.hash)
             return kugouLyrics(r.hash, (r.duration || 0) * 1000, lrc => use("Kugou", lrc));
@@ -1239,7 +1288,7 @@ Singleton {
         http("https://music.163.com/api/song/lyric?id=" + r.id + "&lv=1", (code, lyr) => {
             const lrc = lyr && lyr.lrc ? root.stripCredits(lyr.lrc.lyric) : "";
             if (!lrc || key !== trackKey)
-                return;
+                return pickDone(uid, key !== trackKey);
             const data = /\[\d+:\d+/.test(lrc) ? {
                 "source": "NetEase",
                 "syncedLyrics": lrc
@@ -1249,6 +1298,7 @@ Singleton {
             };
             store(key, data);
             apply(data);
+            pickDone(uid, true);
         });
     }
 }

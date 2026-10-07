@@ -357,9 +357,13 @@ PxPage {
             PxBox {
                 id: res
                 required property var modelData
+                // what a click did (#34): fetching its lyrics, or it turned out to have none
+                readonly property bool busy: Lyrics.picking !== "" && Lyrics.picking === modelData.uid
+                readonly property bool failed: !!Lyrics.pickFailed[modelData.uid]
                 width: parent.width
                 height: resCol.implicitHeight + Theme.u * 6
-                color: resMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.15) : Theme.face
+                opacity: failed ? 0.55 : 1
+                color: busy ? Theme.mix(Theme.face, Theme.accent, 0.3) : resMouse.containsMouse && !failed ? Theme.mix(Theme.face, Theme.accent, 0.15) : Theme.face
                 Column {
                     id: resCol
                     x: Theme.u * 4
@@ -374,13 +378,14 @@ PxPage {
                     PxText {
                         kind: "tiny"
                         dim: true
-                        text: res.modelData.source + " · " + (res.modelData.synced ? I18n.t("с таймкодами", "synced") : I18n.t("без таймкодов", "plain")) + (res.modelData.duration ? " · " + Math.floor(res.modelData.duration / 60) + ":" + String(Math.round(res.modelData.duration % 60)).padStart(2, "0") : "")
+                        text: res.modelData.source + " · " + (res.busy ? I18n.t("загружаю текст…", "fetching the lyrics…") : res.failed ? I18n.t("текста у этого результата нет", "this one has no lyrics") : res.modelData.data ? (res.modelData.synced ? I18n.t("с таймкодами", "synced") : I18n.t("без таймкодов", "plain")) : I18n.t("текст загрузится при выборе", "lyrics load when picked")) + (res.modelData.duration ? " · " + Math.floor(res.modelData.duration / 60) + ":" + String(Math.round(res.modelData.duration % 60)).padStart(2, "0") : "")
                     }
                 }
                 MouseArea {
                     id: resMouse
                     anchors.fill: parent
                     hoverEnabled: true
+                    enabled: !res.failed && Lyrics.picking === ""
                     cursorShape: Qt.PointingHandCursor
                     onClicked: Lyrics.pick(res.modelData)
                 }
