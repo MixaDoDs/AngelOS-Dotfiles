@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # The GitHub check (.github/workflows/angelos.yml) run here, the way GitHub runs it:
 # the job's container image as root, the tree as a fresh commit owned by another
-# user, 4 CPUs, `bash -e` per step, the first failing step ends the job. The steps
+# user, CI_CPUS CPUs (all by default), `bash -e` per step, the first failing step ends the job. The steps
 # before actions/checkout set the machine up (packages) and are baked into a cached
-# image — rebuilt when they change or when it is a day old, since the workflow
+# image — rebuilt when they change or when it is a week old, since the workflow
 # installs from the rolling archlinux:latest. A tool the workflow doesn't install
 # is missing here as well, so "passes on my machine, fails on GitHub" shows up
 # before the push.
@@ -11,7 +11,8 @@
 #   scripts/ci-local.sh [TREE]     TREE = a checkout of the repo (default: this one),
 #                                  its files as `git add -A` would commit them
 #   CI_ENGINE=docker|podman …      the container engine (default: whichever is found)
-#   CI_IMAGE_MAX_AGE=24 …          hours before the package image is rebuilt
+#   CI_IMAGE_MAX_AGE=168 …         hours before the package image is rebuilt (a rebuild takes minutes;
+#                                  a changed package list rebuilds it at once)
 #   CI_REBUILD=1 …                 rebuild the package image now
 #   CI_CPUS=4 …                    CPUs for the job (default: all of this machine's; GitHub's
 #                                  ubuntu-latest has 4 — CI_CPUS=4 for its pace)
@@ -126,7 +127,7 @@ if [[ -n "$HISTORY" && -d "$HISTORY/objects" ]]; then
 fi
 
 WS=/__w/AngelOS-Dotfiles/AngelOS-Dotfiles
-MAX_AGE_H="${CI_IMAGE_MAX_AGE:-24}"
+MAX_AGE_H="${CI_IMAGE_MAX_AGE:-168}"
 start=$SECONDS
 njobs=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))))' "$W/jobs.json")
 for ((j = 0; j < njobs; j++)); do
