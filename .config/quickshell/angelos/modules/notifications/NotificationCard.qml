@@ -78,11 +78,20 @@ PxWindow {
                     sunken: true
                     color: Theme.sunken
                     Image {
+                        id: iconImage
                         anchors.fill: parent
                         source: iconBox.img
                         fillMode: Image.PreserveAspectCrop
                         sourceSize: Qt.size(width * 2, height * 2)
                         asynchronous: true
+                        visible: status !== Image.Error
+                    }
+                    // a name the icon theme can't draw (Qt doesn't follow every inherited
+                    // theme GTK does): a bell, not the pink-and-black checkerboard (#47)
+                    PxIcon {
+                        visible: iconImage.status === Image.Error
+                        anchors.centerIn: parent
+                        name: "bell"
                     }
                 }
             }
