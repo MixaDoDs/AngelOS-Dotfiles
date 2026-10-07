@@ -57,7 +57,7 @@ job() {
   while (( $(jobs -rp | wc -l) >= JOBS )); do wait -n 2>/dev/null || true; show_done; done
   NAMES+=("$name")
   # set -e inside, as for the whole script: a step that breaks stops its job, which fails
-  { set +e; local t=$SECONDS rc pid dog limit="${CHECK_TIMEOUT:-300}"
+  { set +e; local t=$SECONDS rc pid dog limit="${JOB_LIMIT:-${CHECK_TIMEOUT:-300}}"
     (set -e; renice -n "${JOB_NICE:-15}" -p "$BASHPID" >/dev/null 2>&1 || true; "$@") & pid=$!
     { sleep "$limit"; touch "$WORK/job-$name.hung"; killtree "$pid"; } & dog=$!
     wait "$pid"; rc=$?
@@ -778,7 +778,8 @@ check_hygiene() {
 # ── Run ──────────────────────────────────────────────────────────────────────
 
 # the slowest first, so none of them waits for a free slot at the end
-[[ "${CHECK_UI:-0}" == 1 ]] && timed ui check_ui
+# (its own shards stop at 8 min each)
+[[ "${CHECK_UI:-0}" == 1 ]] && JOB_LIMIT=600 timed ui check_ui
 if [[ "${SKIP_INSTALL_TEST:-0}" == 1 ]]; then
   skip "installer tests (SKIP_INSTALL_TEST=1)"
   skip "update tests (SKIP_INSTALL_TEST=1)"
