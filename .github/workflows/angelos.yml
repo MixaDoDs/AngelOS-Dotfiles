@@ -1,9 +1,10 @@
 # angelOS checks on every push and pull request that touches the shell, the
 # configs, the installer, the check scripts or the package lists:
-# the offscreen UI self-test (every settings page, preview scene, search speed,
-# the right-click crash guard), `niri validate` of the shipped config, and the
-# repository check (scripts/check.sh: syntax, shellcheck, Plugin Studio, the
-# installer end to end, Settings → Updates update/failure/restore with its UI).
+# `niri validate` of the shipped config, and the repository check (scripts/check.sh:
+# syntax, shellcheck, Plugin Studio, the installer end to end, Settings → Updates
+# update/failure/restore with its UI, and with CHECK_UI=1 the offscreen UI self-test —
+# every settings page, preview scene, search speed, the right-click crash guard — all
+# side by side).
 # Any failing check fails the job.
 name: angelOS
 
@@ -59,12 +60,11 @@ jobs:
       # the checkout belongs to another user than the container's root
       - name: Git
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - name: UI self-test (offscreen)
-        run: bash .config/quickshell/angelos/scripts/test-ui.sh .config/quickshell/angelos
       - name: niri validate
         run: |
           T="$(mktemp -d)"; mkdir -p "$T/.config"; cp -r .config/niri "$T/.config/"
           grep -rlF '@HOME@' "$T/.config/niri" | xargs -r sed -i "s#@HOME@#$T#g"
           HOME="$T" XDG_CONFIG_HOME="$T/.config" niri validate -c "$T/.config/niri/config.kdl"
-      - name: Repository checks (scripts/check.sh)
-        run: REQUIRE_UI=1 bash scripts/check.sh
+      # the UI self-test runs inside check.sh, alongside the rest (CHECK_UI=1): all at once
+      - name: Repository checks and the UI self-test (scripts/check.sh)
+        run: CHECK_UI=1 REQUIRE_UI=1 bash scripts/check.sh

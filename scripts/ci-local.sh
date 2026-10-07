@@ -13,7 +13,10 @@
 #   CI_ENGINE=docker|podman …      the container engine (default: whichever is found)
 #   CI_IMAGE_MAX_AGE=24 …          hours before the package image is rebuilt
 #   CI_REBUILD=1 …                 rebuild the package image now
-#   CI_CPUS=4 …                    CPUs for the job (GitHub's ubuntu-latest has 4)
+#   CI_CPUS=4 …                    CPUs for the job (default: all of this machine's; GitHub's
+#                                  ubuntu-latest has 4 — CI_CPUS=4 for its pace)
+#   CI_HISTORY=path …              a clone whose history the old-install update tests take their
+#                                  old commits from (default: TREE's own .git) instead of GitHub
 #   CI_MIRRORLIST=/etc/pacman.d/mirrorlist …   pacman mirrors for the package image (default:
 #                                  this machine's, when it has one; "none" keeps the image's)
 #   CI_NETWORK=host …              container network (host: a VPN's tun route on this
@@ -113,6 +116,14 @@ for jid, job in (doc.get("jobs") or {}).items():
 PY
 
 ENGINE_FLAGS=(--network "${CI_NETWORK:-host}")
+CPUS="${CI_CPUS:-$(nproc 2>/dev/null || echo 4)}"
+# fewer CPUs than here: pinned to that many, so nproc inside says so too (as on GitHub)
+(( CPUS < $(nproc 2>/dev/null || echo 4) )) && ENGINE_FLAGS+=(--cpuset-cpus "0-$((CPUS - 1))")
+# the old commits scripts/test-update-old.sh installs from: lent read-only, not fetched from GitHub
+HISTORY="$(git -C "${CI_HISTORY:-$TREE}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+if [[ -n "$HISTORY" && -d "$HISTORY/objects" ]]; then
+  ENGINE_FLAGS+=(-v "$HISTORY:/ci-history:ro" -e UPDATE_OLD_REPO=/ci-history)
+fi
 
 WS=/__w/AngelOS-Dotfiles/AngelOS-Dotfiles
 MAX_AGE_H="${CI_IMAGE_MAX_AGE:-24}"
@@ -170,13 +181,13 @@ for s in job["steps"]:
 PY
   } >"$W/$JOB-run.sh"
 
-  say "job $JOB: $(git -C "$TREE" ls-files -co --exclude-standard | wc -l) files, $(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))[int(sys.argv[2])]["steps"]))' "$W/jobs.json" "$j") steps, ${CI_CPUS:-4} CPUs"
+  say "job $JOB: $(git -C "$TREE" ls-files -co --exclude-standard | wc -l) files, $(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))[int(sys.argv[2])]["steps"]))' "$W/jobs.json" "$j") steps, $CPUS CPUs"
   set +e
   git -C "$TREE" ls-files -co --exclude-standard -z \
     | while IFS= read -r -d '' f; do [[ -e "$TREE/$f" || -L "$TREE/$f" ]] && printf '%s\0' "$f"; done \
     | tar -C "$TREE" --null --no-recursion -T - -cf - \
     | "$ENGINE" run --rm -i --name "$CONTAINER" "${ENGINE_FLAGS[@]}" \
-        --cpus "${CI_CPUS:-4}" -v "$W:/ci:ro" -w "$WS" \
+        --cpus "$CPUS" -v "$W:/ci:ro" -w "$WS" \
         -e CI=true -e GITHUB_ACTIONS=true -e GITHUB_WORKSPACE="$WS" -e HOME=/github/home -e RUNNER_TEMP=/__w/_temp \
         "$TAG" bash -c "bash /ci/$JOB-run.sh"
   rc=$?

@@ -9,9 +9,11 @@
 #   scripts/test-update-old.sh SHA[:alarm] …   other commits (":alarm" = installed on Arch Linux ARM)
 #   REQUIRE_OLD=1 …                       an old commit that can't be had is a failure, not a skip
 #   KEEP_TEST_DIR=1 …                     keep the scratch folder for a look afterwards
+#   UPDATE_OLD_REPO=path …                another clone to take the old commits from
 #
-# The old commits come from this clone's history, else from GitHub (a shallow fetch: CI
-# checks out one commit). After the old script's update, the new one must update again.
+# The old commits come from this clone's history, else from UPDATE_OLD_REPO (scripts/ci-local.sh
+# lends the container the repository's), else from GitHub (a shallow fetch: CI checks out one
+# commit). The versions run side by side. After the old script's update, the new one must update again.
 set -Eeuo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -86,6 +88,9 @@ one() { # SHA[:alarm] LABEL
   "${G[@]}" -C "$SRC" init -q
   if git -C "$ROOT" cat-file -e "$sha^{commit}" 2>/dev/null; then
     "${G[@]}" -C "$SRC" fetch -q "$ROOT" "$sha"
+  elif [[ -n "${UPDATE_OLD_REPO:-}" ]] && git -c safe.directory='*' -C "$UPDATE_OLD_REPO" cat-file -e "$sha^{commit}" 2>/dev/null; then
+    # (someone else's: the container's root reads the owner's repository)
+    "${G[@]}" -c safe.directory='*' -C "$SRC" fetch -q "$UPDATE_OLD_REPO" "$sha"
   elif ! "${G[@]}" -C "$SRC" fetch -q --depth 1 "$OFFICIAL" "$sha" 2>"$D/fetch.log"; then
     if [[ "${REQUIRE_OLD:-0}" == 1 ]]; then fail "$short: the old commit can't be had (no history, no network)"; show "$D/fetch.log"
     else skip "$short ($label): not in this clone's history and GitHub can't be reached"; fi
@@ -143,11 +148,24 @@ one() { # SHA[:alarm] LABEL
   ((rc == 0)) || show "$D/update2.out"
 }
 
+# the versions side by side (each in its own folder), their lines printed in order
+specs=() labels=()
 if (($#)); then
-  for s in "$@"; do one "$s" "$s"; done
+  for s in "$@"; do specs+=("$s"); labels+=("$s"); done
 else
-  for p in "${PINNED[@]}"; do one "${p%%|*}" "${p#*|}"; done
+  for p in "${PINNED[@]}"; do specs+=("${p%%|*}"); labels+=("${p#*|}"); done
 fi
+for i in "${!specs[@]}"; do
+  # set -e inside, as when they ran one after the other: a step that breaks stops that version
+  { set +e; (set -e; one "${specs[i]}" "${labels[i]}"); rc=$?
+    ((rc == 0)) || fail "${specs[i]}: stopped (exit $rc)"; } >"$W/one-$i.log" 2>&1 &
+done
+wait || true
+for i in "${!specs[@]}"; do
+  cat "$W/one-$i.log"
+  failures=$((failures + $(grep -c '^\[update-old\] FAIL' "$W/one-$i.log" || true)))
+  skipped=$((skipped + $(grep -c '^\[update-old\] SKIP' "$W/one-$i.log" || true)))
+done
 
 if ((failures)); then
   printf '[update-old] %d check(s) failed\n' "$failures" >&2

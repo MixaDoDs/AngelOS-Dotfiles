@@ -793,6 +793,9 @@ MANIFEST="$STATE_DIR/installed-files.sha256"
 PARKED_DIR="$STATE_DIR/kept-updates"
 BASES_DIR="$STATE_DIR/key-profile-bases"
 declare -A PREV_SUM=() NEW_SUM=()
+# filled once per run by install_configs (one grep, two sha256sum runs instead of a few
+# processes per file): repo files holding a placeholder, checksums of repo and installed files
+declare -A HAS_PH=() SRC_SUM=() DST_SUM=() MADE_DIR=()
 NVIM_OURS=0
 
 sed_escape() { printf '%s' "$1" | sed -e 's/[\/&|\\]/\\&/g'; }
@@ -835,6 +838,25 @@ keep_existing() {
 
 sum_of() { sha256sum -- "$1" | cut -d' ' -f1; }
 
+# sums_into MAP FILE… : MAP[file]=sha256 for every FILE that exists, in one sha256sum run
+sums_into() {
+  local -n into="$1"; shift
+  local line
+  (($#)) || return 0
+  while IFS= read -r -d '' line; do
+    # shellcheck disable=SC2034  # a nameref: the caller's map
+    into["${line#*  }"]="${line%%  *}"
+  done < <(printf '%s\0' "$@" | xargs -0 -r sha256sum -z -- 2>/dev/null)
+}
+
+# CUR = the installed file's checksum: from the run's first look, unless it changed since
+dst_sum() { CUR="${DST_SUM[$1]:-}"; [[ -n "$CUR" ]] || CUR="$(sum_of "$1")"; }
+
+mkdir_for() { # the folder of file $1, made once per run
+  local dir="${1%/*}"
+  [[ -n "${MADE_DIR[$dir]:-}" ]] || { mkdir -p -- "$dir"; MADE_DIR["$dir"]=1; }
+}
+
 load_manifest() {
   local sum rel
   [[ -f "$MANIFEST" ]] || return 0
@@ -873,8 +895,8 @@ is_program() {
 # installs that have one; before it existed, any earlier version of the repo
 # file $3 (rendered like now) counts as untouched.
 untouched() {
-  local rel="$1" dst="$2" srel="$3" cur h raw tmp
-  cur="$(sum_of "$dst")"
+  local rel="$1" dst="$2" srel="$3" cur h raw tmp CUR
+  dst_sum "$dst"; cur="$CUR"
   if [[ -n "${PREV_SUM[$rel]:-}" ]]; then
     [[ "$cur" == "${PREV_SUM[$rel]}" ]]
     return
@@ -890,35 +912,43 @@ untouched() {
 }
 
 install_file() {
-  local src="$1" rel="$2" dst="$HOME_DIR/$2" tmp srel="${1#"$ROOT/"}"
+  local src="$1" rel="$2" dst="$HOME_DIR/$2" new sum CUR srel="${1#"$ROOT/"}"
   if keep_existing "$rel" && [[ -e "$dst" ]]; then
     N_KEPT=$((N_KEPT + 1)); return 0
   fi
-  tmp="$(mktemp)"; TMP_FILES+=("$tmp")
-  render "$src" "$tmp"
-  [[ "$rel" == .config/niri/cfg/keybinds.kdl ]] && key_profile_into "$tmp" "$dst"
-  if [[ -e "$dst" ]] && cmp -s -- "$tmp" "$dst"; then
-    NEW_SUM["$rel"]="$(sum_of "$tmp")"
-    save_base "$rel" "$tmp"
+  # $new: the repository's version as it lands here — the repo file itself, or rendered
+  # (placeholders filled, the theme's key profile picked) into a temporary file
+  if [[ -n "${HAS_PH[$src]:-}" || -z "${SRC_SUM[$src]:-}" || "$rel" == .config/niri/cfg/keybinds.kdl ]]; then
+    new="$(mktemp)"; TMP_FILES+=("$new")
+    render "$src" "$new"
+    [[ "$rel" == .config/niri/cfg/keybinds.kdl ]] && key_profile_into "$new" "$dst"
+    sum="$(sum_of "$new")"
+  else
+    new="$src" sum="${SRC_SUM[$src]}"
+  fi
+  if [[ -e "$dst" ]] && dst_sum "$dst" && [[ "$CUR" == "$sum" ]]; then
+    NEW_SUM["$rel"]="$sum"
+    save_base "$rel" "$new"
     N_UNCHANGED=$((N_UNCHANGED + 1)); return 0
   fi
   # changed since the installer wrote it (by hand, or by angelOS's settings:
   # hotkeys, animations, the default browser…): the user's version stays —
   # a theme's key profile gets the repository's new keys merged in around the user's
   if [[ -e "$dst" && "$OVERWRITE_CONFIGS" != 1 ]] && ! is_program "$rel" && ! untouched "$rel" "$dst" "$srel"; then
-    merge_key_profile "$rel" "$dst" "$srel" "$tmp" "$src" && return 0
+    merge_key_profile "$rel" "$dst" "$srel" "$new" "$src" && return 0
     mkdir -p -- "$(dirname -- "$PARKED_DIR/$rel")"
-    cp -p -- "$tmp" "$PARKED_DIR/$rel"
+    cp -- "$new" "$PARKED_DIR/$rel"
     chmod --reference="$src" "$PARKED_DIR/$rel"
     [[ -n "${PREV_SUM[$rel]:-}" ]] && NEW_SUM["$rel"]="${PREV_SUM[$rel]}"
     N_PARKED=$((N_PARKED + 1)); return 0
   fi
-  mkdir -p -- "$(dirname -- "$dst")"
+  mkdir_for "$dst"
   backup "$dst"
-  cp -p -- "$tmp" "$dst"
+  unset 'DST_SUM[$dst]'
+  cp -- "$new" "$dst"
   chmod --reference="$src" "$dst"
-  NEW_SUM["$rel"]="$(sum_of "$dst")"
-  save_base "$rel" "$tmp"
+  NEW_SUM["$rel"]="$sum"
+  save_base "$rel" "$new"
   N_INSTALLED=$((N_INSTALLED + 1))
 }
 
@@ -988,9 +1018,10 @@ key_profile_into() { # rendered-file installed-file
   return 0
 }
 
-# Where does repo file $1 go for the chosen options? Prints nothing to skip it.
+# Where does repo file $1 go for the chosen options? Sets DEST, empty to skip it.
 destination() {
   local rel="$1"
+  DEST=""
   case "$rel" in
     */__pycache__/*|*.pyc|*.bak.*|.config/quickshell/angelos/owner/*) return 0 ;;
     # Niri: the Noctalia and the plain variants share one destination.
@@ -1018,11 +1049,11 @@ destination() {
     .local/bin/niri-record-region|.local/bin/niri-screenshot-region|.local/bin/niri-record-overlay)
       [[ "$MODE" == full ]] || return 0 ;;
   esac
-  printf '%s' "$rel"
+  DEST="$rel"
 }
 
 install_configs() {
-  local src rel dest
+  local src i
   mkdir -p -- "$HOME_DIR/.config" "$HOME_DIR/.local/bin"
   say "$(_ 'Installing configuration…' 'Установка конфигурации…')"
   load_manifest
@@ -1036,11 +1067,20 @@ install_configs() {
              'Конфиг LazyVim не ставится: ~/.config/nvim — ваш')"
   fi
 
+  local -a srcs=() rels=() dsts=()
   while IFS= read -r -d '' src; do
-    rel="${src#"$ROOT/"}"
-    dest="$(destination "$rel")"
-    [[ -n "$dest" ]] && install_file "$src" "$dest"
+    destination "${src#"$ROOT/"}"
+    [[ -n "$DEST" ]] || continue
+    srcs+=("$src"); rels+=("$DEST"); dsts+=("$HOME_DIR/$DEST")
   done < <(find "$ROOT/.config" "$ROOT/.local/bin" -type f -print0 | sort -z)
+  HAS_PH=() SRC_SUM=() DST_SUM=() MADE_DIR=()
+  while IFS= read -r -d '' src; do HAS_PH["$src"]=1; done \
+    < <(printf '%s\0' "${srcs[@]}" | xargs -0 -r grep -lIZE -- "$PLACEHOLDERS" 2>/dev/null)
+  sums_into SRC_SUM "${srcs[@]}"
+  sums_into DST_SUM "${dsts[@]}"
+  for i in "${!srcs[@]}"; do
+    install_file "${srcs[i]}" "${rels[i]}"
+  done
 
   # The light variants also answer to the regular command names.
   if [[ "$MODE" == tech ]]; then

@@ -7,12 +7,15 @@ import os
 from pathlib import Path
 import stat
 import subprocess
+import sys
 import tempfile
 import unittest
 import urllib.error
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+# the sandboxed runtime check lets timers fire for 2.5 s after loading; these fixtures have none
+os.environ.setdefault("ANGELOS_CHECK_SETTLE_MS", "300")
 WORKER = ROOT / ".config/quickshell/angelos/scripts/plugin-studio.py"
 spec = importlib.util.spec_from_file_location("studio", WORKER)
 studio = importlib.util.module_from_spec(spec)
@@ -262,7 +265,7 @@ class StudioTest(unittest.TestCase):
         result = subprocess.run(["python3", str(WORKER)], input=json.dumps({
             "action": "status", "language": "en",
         }) + "\n", text=True, capture_output=True,
-            env={**os.environ, "HOME": str(self.home)}, timeout=5)
+            env={**os.environ, "HOME": str(self.home)}, timeout=30)
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stderr, "")
         self.assertEqual(json.loads(result.stdout)["event"], "result")
@@ -456,5 +459,39 @@ class EditTest(StudioTest):
 for _name in [n for n in vars(StudioTest) if n.startswith("test_")]:
     setattr(EditTest, _name, None)
 
+
+def run_one(name):
+    """One test in its own process: (passed, its verbose report)."""
+    import io
+    stream = io.StringIO()
+    suite = unittest.defaultTestLoader.loadTestsFromName(name, sys.modules[__name__])
+    result = unittest.TextTestRunner(stream=stream, verbosity=2).run(suite)
+    return result.wasSuccessful(), stream.getvalue()
+
+
+def run_parallel():
+    """Every test at once (each one starts quickshell for its runtime check: one after the
+    other they took minutes); reports in the usual order, exit 1 when any failed."""
+    import multiprocessing
+
+    def ids(suite):
+        for t in suite:
+            yield from ids(t) if isinstance(t, unittest.TestSuite) else [t.id().split(".", 1)[1]]
+    names = list(ids(unittest.defaultTestLoader.loadTestsFromModule(sys.modules[__name__])))
+    # half the CPUs: each test starts quickshell, and the other checks run beside these
+    with multiprocessing.get_context("fork").Pool(max(2, min(len(names), (os.cpu_count() or 4) // 2))) as pool:
+        results = pool.map(run_one, names, chunksize=1)
+    failed = [n for n, (ok, _) in zip(names, results) if not ok]
+    for ok, report in results:
+        lines = report.splitlines()
+        # the runner's own footer ("Ran 1 test", "OK") once, below
+        print("\n".join(l for l in lines if not l.startswith(("Ran ", "---")) and l not in ("OK", "")))
+    print(f"Ran {len(names)} tests in parallel: " + (f"FAILED {', '.join(failed)}" if failed else "OK"))
+    sys.exit(1 if failed else 0)
+
+
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    if len(sys.argv) > 1:
+        unittest.main(verbosity=2)
+    else:
+        run_parallel()
