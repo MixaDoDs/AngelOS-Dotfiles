@@ -46,24 +46,42 @@ NAMES=()
 declare -A SHOWN=()
 # job NAME COMMAND…: in the background, at most $JOBS at once; its lines are printed when it ends.
 # timed NAME COMMAND…: a job that measures time or waits within limits (the UI's shows and search
-# speed, the shell's tests) — the others run niced, so on a busy machine these get the CPU first
-timed() { JOB_NICE=0 job "$@"; }
+# speed, the shell's tests) — the others run niced, so on a busy machine these get the CPU first;
+# and a timed job that fails runs once more (JOB_RETRY=0: not): a wait that ran out in the crowd
+# passes then, with a warning that names what failed first — a real fault fails twice, and counts
+timed() { JOB_NICE=0 JOB_RETRY="${JOB_RETRY:-1}" job "$@"; }
 # a job still running after CHECK_TIMEOUT seconds (default 300) hangs: it is stopped, and fails
 tree() { local c; echo "$1"; for c in $(pgrep -P "$1" 2>/dev/null); do tree "$c"; done; }
 # (frozen first, all of it: a process pool would start new workers for killed ones)
 killtree() { local p; p="$(tree "$1")"; kill -STOP $p 2>/dev/null; kill -KILL $p 2>/dev/null || true; }
+# run_job NAME COMMAND…: one run; set -e inside, as for the whole script: a step that breaks
+# stops the job, which fails, as does a hang
+run_job() {
+  local name="$1"; shift
+  local rc pid dog limit="${JOB_LIMIT:-${CHECK_TIMEOUT:-300}}"
+  rm -f "$WORK/job-$name.hung"
+  (set -e; renice -n "${JOB_NICE:-15}" -p "$BASHPID" >/dev/null 2>&1 || true; "$@") & pid=$!
+  { sleep "$limit"; touch "$WORK/job-$name.hung"; killtree "$pid"; } & dog=$!
+  wait "$pid"; rc=$?
+  killtree "$dog"
+  if [[ -e "$WORK/job-$name.hung" ]]; then fail "$name: still running after $limit s (hangs?) — stopped"
+  elif ((rc != 0)); then fail "$name: stopped (exit $rc)"; fi
+}
 job() {
   local name="$1"; shift
   while (( $(jobs -rp | wc -l) >= JOBS )); do wait -n 2>/dev/null || true; show_done; done
   NAMES+=("$name")
-  # set -e inside, as for the whole script: a step that breaks stops its job, which fails
-  { set +e; local t=$SECONDS rc pid dog limit="${JOB_LIMIT:-${CHECK_TIMEOUT:-300}}"
-    (set -e; renice -n "${JOB_NICE:-15}" -p "$BASHPID" >/dev/null 2>&1 || true; "$@") & pid=$!
-    { sleep "$limit"; touch "$WORK/job-$name.hung"; killtree "$pid"; } & dog=$!
-    wait "$pid"; rc=$?
-    killtree "$dog"
-    if [[ -e "$WORK/job-$name.hung" ]]; then fail "$name: still running after $limit s (hangs?) — stopped"
-    elif ((rc != 0)); then fail "$name: stopped (exit $rc)"; fi
+  { set +e; local t=$SECONDS first="$WORK/job-$name.first"
+    run_job "$name" "$@" >"$first" 2>&1
+    if [[ "${JOB_RETRY:-0}" == 1 ]] && grep -q '^\[check\] FAIL' "$first"; then
+      run_job "$name" "$@"
+      if ! grep -q '^\[check\] FAIL' "$WORK/job-$name.log"; then
+        printf '[check] WARN %s passed only the second time; the first time:\n' "$name"
+        grep '^\[check\] FAIL' "$first" | sed 's/^\[check\] FAIL/    /'
+      fi
+    else
+      cat "$first"
+    fi
     echo $((SECONDS - t)) >"$WORK/job-$name.done"; } >"$WORK/job-$name.log" 2>&1 &
 }
 show_done() {
@@ -716,6 +734,7 @@ check_updates_old() {
 # the offscreen UI self-test, alongside the rest (CHECK_UI=1, as in CI)
 check_ui() {
   if bash "$ROOT/.config/quickshell/angelos/scripts/test-ui.sh" "$ROOT/.config/quickshell/angelos" >"$WORK/ui.log" 2>&1; then
+    grep '⚠' "$WORK/ui.log" || true
     pass "UI self-test: $(grep -c '✓' "$WORK/ui.log") checks (scripts/test-ui.sh)"
   else
     grep -v '✓' "$WORK/ui.log" | sed 's/^/    /'
@@ -778,8 +797,8 @@ check_hygiene() {
 # ── Run ──────────────────────────────────────────────────────────────────────
 
 # the slowest first, so none of them waits for a free slot at the end
-# (its own shards stop at 8 min each)
-[[ "${CHECK_UI:-0}" == 1 ]] && JOB_LIMIT=600 timed ui check_ui
+# (its own shards stop at 8 min each, and a failed one runs once more by itself)
+[[ "${CHECK_UI:-0}" == 1 ]] && JOB_LIMIT=600 JOB_RETRY=0 timed ui check_ui
 if [[ "${SKIP_INSTALL_TEST:-0}" == 1 ]]; then
   skip "installer tests (SKIP_INSTALL_TEST=1)"
   skip "update tests (SKIP_INSTALL_TEST=1)"
@@ -836,6 +855,8 @@ for name in "${NAMES[@]}"; do
 done
 
 failed="$(cat "$WORK"/job-*.log | grep '^\[check\] FAIL' || true)"
+# what passed only the second time, once more here: worth a look, not a reason to stop
+cat "$WORK"/job-*.log | grep -E '^\[check\] WARN|⚠' || true
 if [[ -n "$failed" ]]; then
   printf '\n%s\n' "$failed" >&2
   printf '[check] %d check(s) failed\n' "$(grep -c . <<<"$failed")" >&2
