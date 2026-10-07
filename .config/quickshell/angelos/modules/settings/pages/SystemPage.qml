@@ -14,7 +14,7 @@ PxPage {
 
     PxGroup {
         name: "rendering"
-        title: I18n.t("Отрисовка", "Rendering")
+        title: I18n.t("Движок отрисовки", "Renderer")
         advanced: true
         icon: "monitor"
         width: parent.width

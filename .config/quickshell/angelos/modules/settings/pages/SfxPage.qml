@@ -343,7 +343,7 @@ PxPage {
     PxGroup {
         name: "angel-demon"
         width: parent.width
-        title: Angel.hellShown ? I18n.t("Ангел и демоница", "Angel and demon") : I18n.t("Ангелочек", "The angel")
+        title: Angel.hellShown ? I18n.t("Голос ангела и демоницы", "The angel's and the demon's voice") : I18n.t("Голос ангела", "The angel's voice")
         icon: "heart"
         SettingRow {
             label: I18n.t("Её голос", "Her voice")

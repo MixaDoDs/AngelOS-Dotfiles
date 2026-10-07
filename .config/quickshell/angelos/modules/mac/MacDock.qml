@@ -341,6 +341,11 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.namespace: "angelos-macdock"
     WlrLayershell.layer: WlrLayer.Top
+    // the edge it keeps from windows, for the screenshot selector (services/Zones)
+    ZoneReport {
+        win: win
+        key: "macdock"
+    }
     // a rectangle of the stage in the window: Region { item } takes an item's geometry as it is,
     // not turned with the stage
     function winRect(x, y, w, h) {

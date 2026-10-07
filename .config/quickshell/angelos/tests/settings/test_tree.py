@@ -42,8 +42,9 @@ def tree_pages(tree=None):
 
 
 def blocks(tree=None):
+    # a page's groups: shown at once ("blocks") and folded under «Ещё…» ("more")
     for p in tree_pages(tree):
-        for b in p["blocks"]:
+        for b in p["blocks"] + p.get("more", []):
             yield p["id"], b
 
 
@@ -57,6 +58,8 @@ class Tree(unittest.TestCase):
                 continue
             src, _, name = b.partition("/")
             self.assertIn(src, files, f"{pid}: no page file {src!r}")
+            if name == "@":          # what sits outside src's groups, no group of its own
+                continue
             covered = [(s, n) for s, n in groups if s == src and (not name or n == name)]
             self.assertTrue(covered or not name, f"{pid}: no group {b!r}")
             for g in covered:
@@ -72,10 +75,12 @@ class Tree(unittest.TestCase):
         own = {(s, n) for s, n in groups if s in MAC_FILES}
         seen = {}
         for pid, b in blocks(mac):
+            if b.startswith("@owner/"):
+                continue
             src, _, name = b.partition("/")
             self.assertIn(src, files, f"mac {pid}: no page file {src!r}")
             self.assertNotIn(src, SKIN_HOMES, f"mac {pid}: {src!r} is a view's home")
-            self.assertTrue(not name or (src, name) in groups, f"mac {pid}: no group {b!r}")
+            self.assertTrue(not name or name == "@" or (src, name) in groups, f"mac {pid}: no group {b!r}")
             if (src, name) in own:
                 self.assertNotIn((src, name), seen, f"group {b} is on {seen.get((src, name))} and on {pid}")
                 seen[(src, name)] = pid
@@ -93,7 +98,7 @@ class Tree(unittest.TestCase):
         reached = set()
         by_group = {(g["page"], g["name"]): g for g in INV}
         for _, b in list(blocks()) + list(blocks(TREE["mac"])):
-            if b.startswith("@owner/"):
+            if b.startswith("@owner/") or b.endswith("/@"):
                 continue
             src, _, name = b.partition("/")
             for (s, n), g in by_group.items():
@@ -141,8 +146,13 @@ class Tree(unittest.TestCase):
                 seen.add(p["id"])
                 self.assertTrue(p.get("ru") and p.get("en"), p["id"])
                 self.assertTrue(p["blocks"], f"empty page {p['id']}")
+                self.assertFalse(set(p["blocks"]) & set(p.get("more", [])), f"{p['id']}: a group both at once and under «Ещё…»")
                 for o in p.get("open", []):
                     self.assertIn(o, p["blocks"], f"{p['id']} opens {o!r}, not a group of it")
+                # links lead to pages of the tree
+                all_ids = {q["id"] for cc in TREE["categories"] for q in cc["pages"]}
+                for l in p.get("links", []):
+                    self.assertIn(l.split(":")[0], all_ids, f"{p['id']} links to no page: {l!r}")
                 # two levels only: a page holds groups, never pages
                 self.assertNotIn("pages", p, f"{p['id']} has pages of its own")
 

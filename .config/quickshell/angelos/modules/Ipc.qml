@@ -610,16 +610,28 @@ IpcHandler {
             return "no more than " + Shell.settingsMoreMax + " more windows";
         return "windows: " + (Shell.settingsMore.count + (Shell.settingsOpen ? 1 : 0));
     }
-    // how Settings lay the pages out: `angelos settingsView controlpanel` (no argument: which one)
+    // what's new in Settings (services/SettingsNews): `angelos settingsNews` (what is starred) |
+    // seen (all of it read) | forget <file/group[/Russian label]> (starred again)
+    function settingsNews(cmd: string): string {
+        const c = String(cmd || "").trim();
+        if (c === "seen") {
+            SettingsNews.seeAll();
+            return "all seen";
+        }
+        if (c.startsWith("forget ")) {
+            SettingsNews.forget(c.slice(7).trim());
+            return "forgot " + c.slice(7).trim();
+        }
+        const n = SettingsNews.news;
+        return JSON.stringify({
+            "count": n.count,
+            "pages": Object.keys(n.pages),
+            "underMore": Object.keys(n.more)
+        });
+    }
+    // how Settings lay the pages out: Windows 11, or System Settings under Golden Gate (no choice)
     function settingsView(view: string): string {
-        const views = ["win11", "sidebar", "controlpanel", "properties", "tiles"];
-        const v = String(view || "").trim().toLowerCase();
-        if (v === "")
-            return Config.settingsUi.view + "  (" + views.join(" | ") + ")";
-        if (!views.includes(v))
-            return "unknown view " + v + ": " + views.join(" | ");
-        Config.settingsUi.view = v;
-        return "ok";
+        return GoldenGate.on ? "mac" : "win11";
     }
     // what Settings wear: `angelos settingsSkin windose` (no argument: which one)
     function settingsSkin(skin: string): string {

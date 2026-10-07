@@ -9,48 +9,31 @@ PxPage {
     subtitle: I18n.t("Основная тема angelOS и дополнительные светлые и тёмные палитры.", "The original angelOS theme and additional light and dark palettes.")
     Component.onCompleted: BlurConfig.refresh()
 
-    // How Settings lay the pages out (the view) and what they wear (the skin): two
-    // separate choices, any view in any skin; colours follow the theme either way.
+    // what the whole desktop wears: angelOS classic, Windose, Stream, or Golden Gate (macOS 27)
     PxGroup {
-        name: "settings-look"
+        name: "skin"
         id: skinGroup
-        title: I18n.t("Вид настроек", "Settings look")
-        advanced: true
+        title: I18n.t("Скин рабочего стола", "Desktop skin")
         icon: "window"
         width: parent.width
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Как разложены разделы. Страницы везде одни и те же, поиск и клавиши (Ctrl+F, стрелки, Alt+↑) — тоже. Ещё: `angelos settingsView <вид>`.", "How the sections are laid out. The pages are the same in every view, and so are the search and the keys (Ctrl+F, arrows, Alt+↑). Also: `angelos settingsView <view>`.")
+            text: I18n.t("Классика angelOS — исходное. Windose — с ярлыками на столе, Стрим — с панелью эфира; оба следуют за выбранными цветами. Golden Gate превращает весь стол в macOS 27: строка меню, Dock, Spotlight, окна со светофором.", "angelOS classic is the original. Windose has desktop shortcuts, Stream a broadcast panel; both follow your colours. Golden Gate turns the whole desktop into macOS 27: a menu bar, the Dock, Spotlight, windows with traffic lights.")
         }
         Flow {
+            id: skinFlow
             width: parent.width
             spacing: Theme.u * 4
-            Repeater {
-                model: ["win11", "sidebar", "controlpanel", "properties", "tiles"]
-                SettingsViewCard {
-                    required property string modelData
-                    view: modelData
-                    width: Math.min(Theme.u * 100, (skinGroup.width - Theme.u * 20) / 5)
-                }
-            }
-        }
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            dim: true
-            text: I18n.t("Оформление. Классика angelOS — исходное. Дополнительно: Windose с ярлыками рабочего стола и Стрим с панелью эфира — они подходят к любому виду и следуют за выбранными цветами. Golden Gate меняет весь рабочий стол: он как macOS 27 — строка меню с меню программ, Dock, Spotlight, окна со светофором, «Системные настройки».", "Skin. angelOS classic is the original. Also: Windose with desktop shortcuts and Stream with a broadcast panel — they fit any view and follow your colours. Golden Gate changes the whole desktop into macOS 27's: a menu bar with the apps' menus, the Dock, Spotlight, windows with traffic lights, System Settings.")
-        }
-        Flow {
-            width: parent.width
-            spacing: Theme.u * 4
+            // four in a row while each has room for its name, else two
+            readonly property int cols: width >= Theme.u * 4 * 96 ? 4 : 2
             Repeater {
                 model: ["classic", "windose", "stream", "goldengate"]
                 SettingsSkinCard {
                     required property string modelData
                     skin: modelData
-                    width: Math.min(Theme.u * 100, (skinGroup.width - Theme.u * 16) / 4)
+                    width: Math.min(Theme.u * 100, (skinFlow.width - skinFlow.spacing * (skinFlow.cols - 1)) / skinFlow.cols - 1)
                 }
             }
         }
@@ -137,7 +120,7 @@ PxPage {
         }
         SettingRow {
             visible: Config.appearance.flavor === "wallpaper"
-            label: I18n.t("Следовать за обоями", "Follow the wallpaper")
+            label: I18n.t("Цвета из обоев", "Colours from the wallpaper")
             hint: I18n.t("новые обои — новые цвета, автоматически", "New wallpaper, new colours — automatically")
             PxToggle {
                 checked: Config.appearance.autoWallpaperColors
@@ -256,7 +239,7 @@ PxPage {
 
     PxGroup {
         name: "glass-pixels"
-        title: I18n.t("Стекло и пиксели", "Glass and pixels")
+        title: I18n.t("Прозрачность и пиксели", "Transparency and pixels")
 
         advanced: true
         icon: "sparkle"
@@ -331,6 +314,19 @@ PxPage {
             text: BlurConfig.log
         }
         SettingRow {
+            label: I18n.t("Жёсткие пиксельные тени", "Pixel shadows")
+            PxToggle {
+                checked: Config.appearance.shadows
+                onToggled: c => Config.appearance.shadows = c
+            }
+        }
+    }
+    PxGroup {
+        name: "ui-size"
+        title: I18n.t("Размер интерфейса", "Interface size")
+        icon: "grid"
+        width: parent.width
+        SettingRow {
             label: I18n.t("Размер пикселя", "Pixel size")
             hint: I18n.t("1 арт-пиксель = N экранных; только целые — половинка размазала бы каждую рамку", "1 art pixel = N screen pixels; whole ones only — a half would smear every frame")
             PxSpin {
@@ -339,13 +335,6 @@ PxPage {
                 value: Config.appearance.px
                 suffix: " px"
                 onMoved: v => Config.appearance.px = v
-            }
-        }
-        SettingRow {
-            label: I18n.t("Жёсткие пиксельные тени", "Pixel shadows")
-            PxToggle {
-                checked: Config.appearance.shadows
-                onToggled: c => Config.appearance.shadows = c
             }
         }
     }

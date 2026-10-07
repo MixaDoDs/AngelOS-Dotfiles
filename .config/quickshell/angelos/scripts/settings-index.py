@@ -20,6 +20,8 @@ from pathlib import Path
 
 PAIR = re.compile(r'I18n\.t\(\s*"((?:[^"\\]|\\.)*)"\s*,\s*"((?:[^"\\]|\\.)*)"\s*\)')
 LIT = re.compile(r'^"((?:[^"\\]|\\.)+)"\s*;?\s*(//.*)?$')
+CHECKED = re.compile(r'^\s*checked:\s*Config\.(\w+\.\w+)\s*$')
+SETS = re.compile(r'onToggled:\s*(\w+)\s*=>\s*Config\.(\w+\.\w+)\s*=\s*\1\s*;?\s*$')
 PROP = re.compile(r'^\s*"?(heading|subtitle|title|label|hint|text|placeholder)"?\s*:\s*(.*)$')
 OPEN = re.compile(r"^\s*([A-Z][\w.]*)\s*\{")
 DEV = re.compile(r"^\s*(shown|visible)\s*:\s*Config\.developer\.enabled\s*$")
@@ -68,6 +70,16 @@ def index_page(path):
             stack.append((comp, depth, entry))
         if DEV.match(code) and stack and stack[-1][2] is not None and stack[-1][0] in ("PxGroup", "SettingRow"):
             stack[-1][2]["developer"] = True
+        # a row that is one plain switch (checked: Config.a.b, set back the same way): the
+        # search shows the switch right in its results
+        row = next((e for c, _, e in reversed(stack) if c == "SettingRow" and e), None)
+        if row is not None:
+            ck = CHECKED.match(code)
+            if ck:
+                row["_checks"] = row.get("_checks", []) + [ck.group(1)]
+            st = SETS.search(code)
+            if st:
+                row["_sets"] = row.get("_sets", []) + [st.group(2)]
         nm = NAME.match(code)
         if nm and stack and stack[-1][0] == "PxGroup" and stack[-1][2] is not None:
             stack[-1][2]["name"] = nm.group(1)
@@ -109,6 +121,10 @@ def index_page(path):
         depth += code.count("{") - code.count("}")
         while stack and depth <= stack[-1][1]:
             stack.pop()
+    for e in out:
+        checks, sets = e.pop("_checks", []), e.pop("_sets", [])
+        if len(checks) == 1 and sets == checks:
+            e["toggle"] = checks[0]
     # rows without a literal label (built from a model) are not reachable by name
     return [e for e in out if e["ru"] or e["kind"] == "page"]
 

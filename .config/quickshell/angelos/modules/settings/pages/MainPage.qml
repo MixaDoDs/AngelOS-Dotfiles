@@ -5,88 +5,171 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// Main (the flat settings list's first section, 2026-10-07): the things people come to Settings
-// for, one click away — big tiles that open their place, and the switches changed most often
-// right here. Typing anywhere in Settings searches every setting.
+// Home (2026-10-07 rebuild, like Windows 11's): you and how the system is doing on one strip —
+// the avatar, the name, the release, Wi-Fi, Bluetooth, sound and updates, each opening its
+// page — then the pages you open most (SettingsView.frequent, the visits counted per page),
+// topped up with the usual ones while there are few. Typing anywhere searches every setting.
 PxPage {
     id: page
 
     heading: I18n.t("Главная", "Home")
-    subtitle: I18n.t("Самое частое — в один клик. Чтобы найти любую настройку, просто начни печатать.", "The everyday things, one click away. To find any setting, just start typing.")
+    subtitle: I18n.t("Чтобы найти любую настройку, просто начни печатать.", "To find any setting, just start typing.")
 
-    // a tile: the page it opens, and the group it scrolls to there
-    readonly property var tiles: [
+    function go(id) {
+        if (page.nav) {
+            page.nav.settingsPage = id;
+            page.nav.settingsSub = "";
+        }
+    }
+
+    // ---- the status chips ----
+    readonly property var chips: [
         {
-            "icon": "image",
-            "label": I18n.t("Обои", "Wallpaper"),
-            "page": "wallpaper"
+            "icon": Wifi.enabled ? "wifi" : "wifiOff",
+            "label": Wifi.connected ? (Wifi.connected.name || "Wi-Fi") : Wifi.online ? I18n.t("Кабель", "Cable") : Wifi.enabled ? I18n.t("Нет сети", "Offline") : I18n.t("Wi-Fi выключен", "Wi-Fi off"),
+            "page": "network",
+            "warn": !Wifi.online
         },
         {
-            "icon": "palette",
-            "label": I18n.t("Тема и цвета", "Theme and colours"),
-            "page": "theme"
+            "icon": Bt.enabled ? "bluetooth" : "bluetoothOff",
+            "label": !Bt.available ? I18n.t("Bluetooth нет", "No Bluetooth") : !Bt.enabled ? I18n.t("Bluetooth выключен", "Bluetooth off") : Bt.connectedDevices.length ? Bt.connectedDevices.map(d => d.name || d.deviceName).join(", ") : I18n.t("Bluetooth включён", "Bluetooth on"),
+            "page": "bluetooth",
+            "warn": false
         },
         {
-            "icon": "speaker",
-            "label": I18n.t("Звук", "Sound"),
-            "page": "sound"
-        },
-        {
-            "icon": "wifi",
-            "label": "Wi-Fi",
-            "page": "network"
-        },
-        {
-            "icon": "bluetooth",
-            "label": "Bluetooth",
-            "page": "bluetooth"
-        },
-        {
-            "icon": "keyboard",
-            "label": I18n.t("Раскладки", "Layouts"),
-            "page": "keyboard"
-        },
-        {
-            "icon": "monitor",
-            "label": I18n.t("Мониторы", "Displays"),
-            "page": "display"
-        },
-        {
-            "icon": "lock",
-            "label": I18n.t("Блокировка", "Lock screen"),
-            "page": "lock"
-        },
-        {
-            "icon": "sparkleStar",
-            "label": I18n.t("Звёзды и сундуки", "Stars and chests"),
-            "page": "stars",
-            "game": true
+            "icon": Audio.muted ? "speakerMute" : "speaker",
+            "label": !Audio.ready ? I18n.t("Звука нет", "No sound") : Audio.muted ? I18n.t("Без звука", "Muted") : Math.round(Audio.volume * 100) + " %",
+            "page": "sound",
+            "warn": !Audio.ready
         },
         {
             "icon": "download",
-            "label": Updates.available ? I18n.t("Обновление ♡", "Update ♡") : I18n.t("Обновления", "Updates"),
-            "page": "updates"
-        },
-        {
-            "icon": "refresh",
-            "label": I18n.t("Восстановление", "Recovery"),
-            "page": "account"
-        },
-        {
-            "icon": "package",
-            "label": I18n.t("Плагины", "Plugins"),
-            "page": "plugins"
+            "label": Updates.available ? I18n.t("Есть обновление ♡", "An update is here ♡") : I18n.t("Обновлено", "Up to date"),
+            "page": "updates",
+            "warn": Updates.available
         }
-    ].filter(t => !t.game || Story.enabled)
-    function go(id) {
-        if (page.nav)
-            page.nav.settingsPage = id;
+    ]
+
+    // ---- the tiles: what you open most, then the usual places ----
+    readonly property var usual: ["wallpaper", "theme", "sound", "network", "bluetooth", "display", "keyboard", "taskbar"]
+    readonly property var tiles: {
+        const v = page.view;
+        if (!v || !v.frequent)
+            return [];
+        const out = v.frequent(8).filter(p => !!p && p.id !== "main");
+        for (const id of usual) {
+            if (out.length >= 8)
+                break;
+            const p = v.pageEntry(id);
+            if (p && !out.some(x => x.id === id))
+                out.push(p);
+        }
+        return out.slice(0, 8);
+    }
+
+    PxGroup {
+        name: "profile"
+        width: parent.width
+        Item {
+            width: parent.width
+            height: Math.max(face.height, who.implicitHeight) + Theme.u * 4
+            PxBox {
+                id: face
+                anchors.verticalCenter: parent.verticalCenter
+                width: Theme.u * 30
+                height: width
+                color: Theme.accent
+                Image {
+                    id: avatarPic
+                    anchors.fill: parent
+                    anchors.margins: face.inset
+                    source: StartPrefs.avatarUrl
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    sourceSize: Config.bar.avatarPixel ? Qt.size(20, 20) : Qt.size(width * 2, height * 2)
+                    smooth: !Config.bar.avatarPixel
+                    visible: status === Image.Ready
+                }
+                PxIcon {
+                    visible: avatarPic.status !== Image.Ready
+                    anchors.centerIn: parent
+                    name: "heart"
+                    fill: "#ffffff"
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: page.go(SettingsTree.accountPage)
+                }
+            }
+            Column {
+                id: who
+                anchors.left: face.right
+                anchors.leftMargin: Theme.u * 5
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Theme.u
+                PxText {
+                    width: parent.width
+                    text: StartPrefs.userName
+                    kind: "title"
+                    elide: Text.ElideRight
+                }
+                PxText {
+                    width: parent.width
+                    text: Updates.release ? Wallpapers.releaseLabel(Updates.release) : "angelOS"
+                    dim: true
+                    elide: Text.ElideRight
+                }
+            }
+        }
+        Flow {
+            id: chipFlow
+            width: parent.width
+            spacing: Theme.u * 2
+            Repeater {
+                model: page.chips
+                Item {
+                    id: chip
+                    required property var modelData
+                    width: Math.min(chipFlow.width, chipRow.implicitWidth + Theme.u * 8)
+                    height: chipRow.implicitHeight + Theme.u * 4
+                    PxBox {
+                        anchors.fill: parent
+                        color: chipMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.18) : chip.modelData.warn ? Theme.mix(Theme.face, Theme.accent, 0.1) : Theme.face
+                        sunken: chipMouse.pressed
+                    }
+                    Row {
+                        id: chipRow
+                        anchors.centerIn: parent
+                        spacing: Theme.u * 2
+                        PxIcon {
+                            name: chip.modelData.icon
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        PxText {
+                            text: chip.modelData.label
+                            width: Math.min(implicitWidth, chipFlow.width - Theme.u * 20)
+                            elide: Text.ElideRight
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                    MouseArea {
+                        id: chipMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: page.go(chip.modelData.page)
+                    }
+                }
+            }
+        }
     }
 
     PxGroup {
         name: "tiles"
         width: parent.width
-        title: I18n.t("Что хочешь сделать?", "What would you like to do?")
+        title: I18n.t("Часто открываешь", "You open often")
         icon: "star"
         Grid {
             id: grid
@@ -111,7 +194,7 @@ PxPage {
                         spacing: Theme.u * 2
                         PxIcon {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            name: tile.modelData.icon
+                            name: tile.modelData.icon || "gear"
                             pixel: Math.max(1, Math.round(Theme.u * 1.2))
                         }
                         PxText {
@@ -126,90 +209,15 @@ PxPage {
                         id: tileMouse
                         anchors.fill: parent
                         hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: page.go(tile.modelData.page)
+                        onClicked: mouse => {
+                            if (page.view && page.view.clickedNew && page.view.clickedNew(mouse, tile.modelData.id))
+                                return;
+                            page.go(tile.modelData.id);
+                        }
                     }
                 }
-            }
-        }
-    }
-
-    PxGroup {
-        name: "quick"
-        width: parent.width
-        title: I18n.t("Быстро поменять", "Quick switches")
-        icon: "sparkle"
-        SettingRow {
-            label: I18n.t("Тема", "Theme")
-            PxSegmented {
-                model: [
-                    {
-                        "label": I18n.t("Светлая", "Light"),
-                        "value": "light"
-                    },
-                    {
-                        "label": I18n.t("Тёмная", "Dark"),
-                        "value": "dark"
-                    },
-                    {
-                        "label": I18n.t("Авто", "Auto"),
-                        "value": "auto"
-                    }
-                ]
-                currentValue: Config.appearance.mode
-                onActivated: v => Config.appearance.mode = v
-            }
-        }
-        SettingRow {
-            label: I18n.t("Громкость", "Volume")
-            hint: Audio.ready ? "" : I18n.t("звук не найден", "no sound device")
-            PxSlider {
-                width: parent.width
-                from: 0
-                to: 150
-                stepSize: 1
-                value: Math.round(Audio.volume * 100)
-                suffix: " %"
-                enabled: Audio.ready
-                onMoved: v => Audio.setVolume(v / 100)
-            }
-        }
-        SettingRow {
-            label: I18n.t("Анимации", "Animations")
-            hint: I18n.t("«Спокойно» — без вспышек и тряски", "“Calm”: no flashes or shaking")
-            PxSegmented {
-                model: [
-                    {
-                        "label": I18n.t("Все", "All"),
-                        "value": "full"
-                    },
-                    {
-                        "label": I18n.t("Спокойно", "Calm"),
-                        "value": "calm"
-                    },
-                    {
-                        "label": I18n.t("Без", "Off"),
-                        "value": "off"
-                    }
-                ]
-                currentValue: Motion.level
-                onActivated: v => Motion.set(v)
-            }
-        }
-        SettingRow {
-            label: I18n.t("Не беспокоить", "Do not disturb")
-            hint: I18n.t("уведомления не всплывают, копятся в истории", "notifications don't pop up, they wait in the history")
-            PxToggle {
-                checked: Config.notifications.dnd
-                onToggled: v => Config.notifications.dnd = v
-            }
-        }
-        SettingRow {
-            label: I18n.t("Стрим-режим", "Stream mode")
-            hint: StreamMode.active ? I18n.t("сейчас включён: angelOS не лезет в кадр", "on now: angelOS stays out of the picture") : I18n.t("сам включается, когда OBS выходит в эфир", "turns on by itself when OBS goes live")
-            PxToggle {
-                checked: StreamMode.active
-                onToggled: v => StreamMode.set(v ? "on" : "auto")
             }
         }
     }

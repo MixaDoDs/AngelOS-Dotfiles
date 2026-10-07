@@ -439,6 +439,8 @@ Scope {
     property bool expertPass: false
     property int navStep: 0
     property int switchStep: 0
+    property string switchNote: ""
+    property int newsStep: 0
     property string navNote: ""
     property int multiStep: 0
     property var settingsSkins: ["classic", "windose", "stream"]
@@ -475,6 +477,8 @@ Scope {
     readonly property string shardFrom: Quickshell.env("ANGELOS_TEST_FROM") || ""
     readonly property string shardUntil: Quickshell.env("ANGELOS_TEST_UNTIL") || ""
     readonly property double booted: Date.now()
+    // the waits below ("until it is so, at most 20 s") are ceilings, not timings: a run beside the
+    // other checks on GitHub's 4 CPUs is slow, and a ceiling only costs time when something hangs
 
     Timer {
         id: tick
@@ -483,10 +487,10 @@ Scope {
         running: true
         onTriggered: root.step()
     }
-    // a whole run must not hang CI (test-ui.sh gives the whole shell 300 s; a run takes
-    // ~110 s here and GitHub's runner is slower, so 140 s was too tight)
+    // a whole run must not hang CI (test-ui.sh gives each shard 480 s; a shard takes under a
+    // minute here, GitHub's runner beside the other checks is several times slower)
     Timer {
-        interval: 285000
+        interval: 450000
         running: true
         onTriggered: {
             root.report("timeout", false, "phase " + root.phase);
@@ -500,9 +504,12 @@ Scope {
         Qt.callLater(Qt.quit);
     }
 
+    // the pages pass: each settings skin, then Golden Gate's own tree (macPass)
+    property bool macPass: false
+    readonly property string pageSkin: macPass ? "goldengate" : settingsSkins[settingsSkinIndex]
     function startPages(expert) {
         expertPass = false;
-        Config.settingsUi.skin = settingsSkins[settingsSkinIndex];
+        Config.settingsUi.skin = pageSkin;
         const ids = view.allPages.map(p => p.id);
         list = ["home"].concat(ids);
         index = -1;
@@ -512,12 +519,18 @@ Scope {
     function nextPage() {
         index++;
         if (index >= list.length) {
-            if (settingsSkinIndex + 1 < settingsSkins.length) {
+            if (!macPass && settingsSkinIndex + 1 < settingsSkins.length) {
                 settingsSkinIndex++;
                 startPages(false);
-            }
-            else
+            } else if (!macPass) {
+                macPass = true;
+                startPages(false);
+            } else {
+                macPass = false;
+                settingsSkinIndex = 0;
+                Config.settingsUi.skin = "classic";
                 startViews();
+            }
             return;
         }
         console.log("TEST-PAGE " + list[index]);
@@ -526,7 +539,7 @@ Scope {
     }
     function startViews() {
         viewCases = [];
-        for (const v of ["win11", "sidebar", "controlpanel", "properties", "tiles"])
+        for (const v of ["win11"])
             for (const skin of settingsSkins)
                 viewCases.push([v, skin]);
         viewCase = -1;
@@ -537,7 +550,7 @@ Scope {
         viewCase++;
         viewStep = 0;
         if (viewCase >= viewCases.length) {
-            Config.settingsUi.view = "sidebar";
+            Config.settingsUi.view = "win11";
             Config.settingsUi.skin = "classic";
             view.setQuery("");
             if (shots)
@@ -561,7 +574,7 @@ Scope {
         const d = view.diagnostics();
         const ms = Date.now() - started;
         const ready = d.viewStatus === Loader.Ready && d.view === v && (d.atHome || d.status === Loader.Ready);
-        const waiting = ms < 6000;
+        const waiting = ms < 20000;
         const next = () => {
             viewStep++;
             started = Date.now();
@@ -735,7 +748,7 @@ Scope {
             return;
         }
         if (phase === "wait" && shardFrom) {
-            if (!(Config.ready && view.allPages.length > 0 && Story.ready && Novel.loaded) && Date.now() - booted < 10000)
+            if (!(Config.ready && view.allPages.length > 0 && Story.ready && Novel.loaded) && Date.now() - booted < 120000)
                 return;
             console.log("TEST-PAGE shard:" + shardFrom);
             if (shardFrom === "previews")
@@ -776,13 +789,13 @@ Scope {
         if (phase === "pages") {
             const d = view.diagnostics();
             const ms = Date.now() - started;
-            if (d.status === Loader.Loading && ms < 8000)
+            if (d.status === Loader.Loading && ms < 20000)
                 return;
-            const name = "page:" + settingsSkins[settingsSkinIndex] + ":" + list[index];
-            report(name, d.status === Loader.Ready && view.frame.skin === settingsSkins[settingsSkinIndex] && d.settingsSkin === settingsSkins[settingsSkinIndex],
+            const name = "page:" + pageSkin + ":" + list[index];
+            report(name, d.status === Loader.Ready && (macPass ? SettingsTree.mac && view.mac : view.frame.skin === pageSkin && d.settingsSkin === pageSkin),
                    d.status === Loader.Ready ? ms + " ms, page skin " + d.settingsSkin : "status " + d.status + " " + d.source);
-            if (list[index] === "home" || list[index] === "appearance")
-                report("sidebar:" + settingsSkins[settingsSkinIndex] + ":" + list[index], d.sidebarVisible === true);
+            if (!macPass && (list[index] === "home" || list[index] === "appearance"))
+                report("sidebar:" + pageSkin + ":" + list[index], d.sidebarVisible === true);
             nextPage();
             return;
         }
@@ -808,7 +821,7 @@ Scope {
         }
         if (phase === "previews") {
             const [scene, variant] = list[index];
-            if (preview.stageStatus === Loader.Loading && Date.now() - started < 4000)
+            if (preview.stageStatus === Loader.Loading && Date.now() - started < 20000)
                 return;
             if (preview.stageStatus !== Loader.Ready) {
                 report("preview:" + scene + (variant ? "/" + variant : ""), false, "status " + preview.stageStatus);
@@ -848,6 +861,20 @@ Scope {
             const avg = total / queries.length;
             report("search-speed", SettingsSearch.loaded && avg <= 15 && worst <= 60, "avg " + avg.toFixed(1) + " ms, worst " + worst + " ms");
             report("search-results", empty <= 4, empty + "/" + queries.length + " queries found nothing");
+            // every row is found by its own name (the same page, among the first 30)
+            const misses = [];
+            for (const d of SettingsSearch.docs) {
+                if (d.kind !== "row" || !d.title)
+                    continue;
+                const r = SettingsSearch.search(d.title, 30);
+                if (!r.some(x => x.page === d.page && x.title === d.title))
+                    misses.push(d.page + ": " + d.title);
+            }
+            report("search-every-row", misses.length === 0, misses.length ? misses.length + " not found by name: " + misses.slice(0, 8).join("; ") : "all rows found by name");
+            // everyday words lead to their page (among the first three)
+            const wordsTo = [["fastfetch", "terminal"], ["неофетч", "terminal"], ["скрин", "capture"], ["запись экрана", "capture"], ["obs", "obs"], ["лупа", "lens"], ["контраст", "contrast"], ["хоткеи", "shortcuts"], ["блюр", "theme"], ["диктовка", "voice"], ["сундуки", "rewards"], ["заставка", "lock"], ["стример", "stream-angel"], ["режим разработчика", "lab"], ["таскбар", "taskbar"]];
+            const wrong = wordsTo.filter(([q, page]) => !SettingsSearch.search(q, 3).some(x => x.page === page)).map(([q, page]) => q + " → " + page + " (got " + SettingsSearch.search(q, 3).map(x => x.page).join(", ") + ")");
+            report("search-words", wrong.length === 0, wrong.length ? wrong.join("; ") : wordsTo.length + " words lead to their pages");
             phase = "nav";
             return;
         }
@@ -856,7 +883,7 @@ Scope {
             // twice lands on sound, forward once on System sounds again. Each step waits until
             // the last one is in the history (recordLoc runs later, Qt.callLater): on a slow
             // machine the next tick came first and a page never got into it
-            if (navStep > 0 && view.lastLoc !== Shell.settingsPage + "|" + Shell.settingsSub && Date.now() - started < 3000)
+            if (navStep > 0 && view.lastLoc !== Shell.settingsPage + "|" + Shell.settingsSub && Date.now() - started < 20000)
                 return;
             started = Date.now();
             if (navStep === 0) {
@@ -864,7 +891,7 @@ Scope {
                 navStep = 1;
                 return;
             }
-            const go = [["sound", ""], ["keyboard", ""], ["taskbar", "Иконки"]];
+            const go = [["sound", ""], ["keyboard", ""], ["taskbar", ""]];
             if (navStep <= go.length) {
                 Shell.settingsPage = go[navStep - 1][0];
                 Shell.settingsSub = go[navStep - 1][1];
@@ -872,17 +899,12 @@ Scope {
                 return;
             }
             if (navStep === go.length + 1) {
-                const it = view.diagnostics();
+                // a page shows its main groups, the rest waits folded under «Ещё…» (not loaded)
                 const pg = view.pageItem;
-                // the sub-page: in the Windows 11 look its card unfolds in place, the others stay
-                // folded; in the older views its heading is the group, the other groups step aside
-                const groups = pg && pg.advancedGroups ? pg.advancedGroups : [];
-                const own = groups.find(c => c.title === "Иконки");
-                const others = groups.filter(c => c.title !== "Иконки");
-                if (view.fluent)
-                    report("subpage", it.sub === "Иконки" && !!own && !own.folded && others.length > 0 && others.every(c => c.visible && c.folded), "taskbar › " + it.sub + ": unfolded " + (own ? !own.folded : "none") + ", others folded " + others.filter(c => c.folded).length + "/" + others.length);
-                else
-                    report("subpage", it.sub === "Иконки" && !!pg && pg.focusGroup === "Иконки" && others.length > 0 && others.every(c => !c.visible), "taskbar › " + it.sub + ", " + others.filter(c => c.visible).length + " other groups still shown");
+                report("more-folded", !!pg && pg.hasMore === true && pg.moreOpen === false && (pg.breathing === true || Motion.calm) && !view.findItem(pg.flick.contentItem, {
+                    "kind": "name",
+                    "target": "icons"
+                }, false), "taskbar: more " + (pg ? pg.hasMore + "/" + pg.moreOpen + ", waves " + pg.breathing : "no page"));
                 view.back();
                 navStep++;
                 return;
@@ -899,7 +921,7 @@ Scope {
                 navNote = afterBack;
                 return;
             }
-            report("nav-back", navNote === "sound" && Shell.settingsPage === "keyboard" && view.sectionOf("keyboard") === "keyboard", "taskbar›Иконки → ◀ ◀ " + navNote + " → ▶ " + Shell.settingsPage + " (section " + view.sectionOf(Shell.settingsPage) + ")");
+            report("nav-back", navNote === "sound" && Shell.settingsPage === "keyboard" && view.sectionOf("keyboard") === "devices", "taskbar → ◀ ◀ " + navNote + " → ▶ " + Shell.settingsPage + " (section " + view.sectionOf(Shell.settingsPage) + ")");
             phase = "multi";
             multiStep = 0;
             started = Date.now();
@@ -919,7 +941,7 @@ Scope {
             const d2 = v2 ? v2.diagnostics() : null;
             const d1 = view.diagnostics();
             if (multiStep === 1) {
-                if ((!d2 || d2.status !== Loader.Ready || d1.status !== Loader.Ready || d1.page !== "taskbar") && Date.now() - started < 6000)
+                if ((!d2 || d2.status !== Loader.Ready || d1.status !== Loader.Ready || d1.page !== "taskbar") && Date.now() - started < 20000)
                     return;
                 const nav2 = v2 ? v2.settingsNav : null;
                 const p2 = v2 ? v2.pageItem : null;
@@ -934,7 +956,7 @@ Scope {
                 return;
             }
             if (multiStep === 2) {
-                if ((d2.page !== "taskbar" || d2.status !== Loader.Ready || d1.page !== "keyboard" || d1.status !== Loader.Ready || Date.now() - started < 200) && Date.now() - started < 6000)
+                if ((d2.page !== "taskbar" || d2.status !== Loader.Ready || d1.page !== "keyboard" || d1.status !== Loader.Ready || Date.now() - started < 200) && Date.now() - started < 20000)
                     return;
                 const p2 = v2.pageItem;
                 const p1 = view.pageItem;
@@ -947,7 +969,7 @@ Scope {
                 return;
             }
             if (multiStep === 3) {
-                if (d2.page !== "sound" && Date.now() - started < 3000)
+                if (d2.page !== "sound" && Date.now() - started < 20000)
                     return;
                 const before = Shell.settingsMore.count;
                 const made = Shell.newSettingsWindow("bar");
@@ -965,39 +987,76 @@ Scope {
             }
         }
         if (phase === "view-switch") {
-            // Windows 11 → the sidebar → Windows 11 on one page (a hell dress moves the page into
-            // its frame the same way): the folded cards come back, and a sub-page unfolds in place
+            // the search leads to a setting under «Ещё…»: it opens, loads, the row flashes
             if (switchStep === 0) {
                 Shell.settingsPage = "taskbar";
                 Shell.settingsSub = "";
-                Config.settingsUi.view = "win11";
+                SettingsTree.setMoreOpen("taskbar", false);
                 switchStep = 1;
                 started = Date.now();
                 return;
             }
-            const d = view.diagnostics();
-            const want = switchStep === 2 ? "sidebar" : "win11";
-            if ((d.view !== want || d.status !== Loader.Ready || d.page !== "taskbar" || Date.now() - started < 300) && Date.now() - started < 6000)
-                return;
-            if (switchStep <= 2) {
-                Config.settingsUi.view = switchStep === 1 ? "sidebar" : "win11";
-                switchStep++;
+            const pg = view.pageItem;
+            if (switchStep === 1) {
+                if ((!pg || view.diagnostics().page !== "taskbar" || Date.now() - started < 300) && Date.now() - started < 20000)
+                    return;
+                const r = SettingsSearch.search("плотность трея", 5).find(x => x.page === "taskbar" && x.kind === "row");
+                switchNote = r ? r.target : "";
+                if (r)
+                    view.openResult(r);
+                switchStep = 2;
                 started = Date.now();
                 return;
             }
-            const groups = view.pageItem && view.pageItem.advancedGroups ? view.pageItem.advancedGroups : [];
-            if (switchStep === 3) {
-                report("view-switch", view.fluent && groups.length > 0 && groups.every(g => g.visible && g.folded), "win11 → sidebar → win11 on taskbar: " + groups.filter(g => g.visible && g.folded).length + "/" + groups.length + " folded cards shown");
-                Shell.settingsSub = "Иконки";
-                switchStep++;
+            const found = pg && switchNote ? view.findItem(pg.flick.contentItem, {
+                "kind": "row",
+                "target": switchNote
+            }, false) : null;
+            if (!found && Date.now() - started < 20000)
+                return;
+            report("more-search", !!switchNote && !!pg && pg.moreOpen === true && pg.breathing === false && !!found, "«" + switchNote + "» on taskbar: more open " + (pg ? pg.moreOpen : "?") + ", row shown " + !!found);
+            SettingsTree.setMoreOpen("taskbar", false);
+            phase = "news";
+            newsStep = 0;
+            started = Date.now();
+            return;
+        }
+        if (phase === "news") {
+            // what's new wears a star (services/SettingsNews): a row the last look didn't have
+            // shows on its row, its page's section; leaving the page makes it seen
+            const id = "capture/shots/Копировать в буфер";
+            if (newsStep === 0) {
+                const m = {};
+                for (const e of SettingsNews.entries) {
+                    const x = SettingsNews.idOf(e);
+                    if (x && x !== id)
+                        m[x] = "2999-01-01";
+                }
+                SettingsNews.seen = m;
+                SettingsNews.hadFile = true;
+                Shell.settingsPage = "capture";
+                newsStep = 1;
                 started = Date.now();
                 return;
             }
-            const own = groups.find(c => c.title === "Иконки");
-            const others = groups.filter(c => c.title !== "Иконки");
-            report("subpage-win11", !!own && own.visible && !own.folded && others.length > 0 && others.every(c => c.visible && c.folded), "taskbar › Иконки: unfolded " + (own ? !own.folded : "none") + ", others folded " + others.filter(c => c.visible && c.folded).length + "/" + others.length);
-            Shell.settingsSub = "";
-            Config.settingsUi.view = "sidebar";
+            const pg = view.pageItem;
+            if (newsStep === 1) {
+                if ((!pg || view.diagnostics().page !== "capture" || Date.now() - started < 300) && Date.now() - started < 20000)
+                    return;
+                const row = view.findItem(pg.flick.contentItem, {
+                    "kind": "row",
+                    "target": "Копировать в буфер"
+                }, false);
+                const sys = view.navSections.find(x => x.id === "system");
+                report("news-star", !!row && row.isNew === true && SettingsNews.pageNew("capture") && SettingsNews.sectionNew(sys) && !SettingsNews.pageNew("display"), "row " + (row ? row.isNew : "missing") + ", page " + SettingsNews.pageNew("capture") + ", section " + SettingsNews.sectionNew(sys) + ", count " + SettingsNews.news.count);
+                Shell.settingsPage = "display";
+                newsStep = 2;
+                started = Date.now();
+                return;
+            }
+            if (view.diagnostics().page !== "display" && Date.now() - started < 20000)
+                return;
+            report("news-seen", !SettingsNews.fresh(id) && !SettingsNews.pageNew("capture"), "after leaving: fresh " + SettingsNews.fresh(id) + ", page " + SettingsNews.pageNew("capture"));
             // settings undo puts a changed setting back
             const before = Config.appearance.shadows;
             phase = "undo";
@@ -1009,7 +1068,7 @@ Scope {
         }
         if (phase === "undo") {
             // wait for the save (debounced) that records the step
-            if (Config.undoStack.length <= undoSteps && !undoDone && Date.now() - started < 3000)
+            if (Config.undoStack.length <= undoSteps && !undoDone && Date.now() - started < 20000)
                 return;
             if (phase === "undo" && !undoDone) {
                 undoDone = true;
@@ -1017,7 +1076,7 @@ Scope {
                 started = Date.now();
                 return;
             }
-            if (Config.appearance.shadows !== undoFrom && Date.now() - started < 3000)
+            if (Config.appearance.shadows !== undoFrom && Date.now() - started < 20000)
                 return;
             report("settings-undo", Config.appearance.shadows === undoFrom, "shadows back to " + Config.appearance.shadows);
             // "Reset this page" brings defaults back
@@ -1049,7 +1108,7 @@ Scope {
                     if (!atOnce)
                         return;
                 }
-                if (!atOnce && rig.file.loadedPath !== rig.file.path && Date.now() - started < 2000)
+                if (!atOnce && rig.file.loadedPath !== rig.file.path && Date.now() - started < 20000)
                     return;
                 rigAsked = false;
                 rigStep++;
@@ -1099,7 +1158,7 @@ Scope {
                 started = Date.now();
                 return;
             }
-            if (altTabStage.status === Loader.Loading && Date.now() - started < 4000)
+            if (altTabStage.status === Loader.Loading && Date.now() - started < 20000)
                 return;
             const it = altTabStage.item;
             const ok = altTabStage.status === Loader.Ready && it && it.implicitWidth > 0 && it.implicitHeight > 0;
@@ -1115,7 +1174,7 @@ Scope {
                 });
                 return;
             }
-            if (altTabShot === "wait" && Date.now() - started < 3000)
+            if (altTabShot === "wait" && Date.now() - started < 20000)
                 return;
             altTabShot = "";
             for (let i = 0; i < 6; i++)
@@ -1138,7 +1197,7 @@ Scope {
             return;
         }
         if (phase === "bar") {
-            if (barStage.status === Loader.Loading && Date.now() - started < 4000)
+            if (barStage.status === Loader.Loading && Date.now() - started < 20000)
                 return;
             const b = barStage.item;
             const ok = barStage.status === Loader.Ready && !!b && b.wifi.width > 0 && b.bt.width > 0 && b.wired.width > 0;
@@ -1210,7 +1269,7 @@ Scope {
                 });
                 return;
             }
-            if (startShot === "wait" && Date.now() - started < 3000)
+            if (startShot === "wait" && Date.now() - started < 20000)
                 return;
             startShot = "";
             startTried = true;
@@ -1615,7 +1674,7 @@ Scope {
             return;
         }
         if (phase === "game") {
-            if (!Novel.loaded && Date.now() - started < 8000)
+            if (!Novel.loaded && Date.now() - started < 120000)
                 return;
             report("game-save", Story.ready && Story.player.character === "angel" && Story.enabled, "save " + Story.file + (Story.ready ? "" : " not loaded"));
             const missing = Story.order.filter(id => !HellLook.looks[id] || HellLook.looks[id].n !== Story.order.indexOf(id) + 1);
@@ -1655,7 +1714,7 @@ Scope {
             return;
         }
         if (phase === "game-out") {
-            if ((Story.inHell || Angel.transition) && Date.now() - started < 25000)
+            if ((Story.inHell || Angel.transition) && Date.now() - started < 60000)
                 return;
             report("game-pact", !Story.inHell && Story.marked && Story.circle === "" && HellLook.circle === "base" && Story.hell.outcomes.length === 1, "out by " + (Story.hell.outcomes[0] || {}).kind + " in " + (Date.now() - started) + " ms, marked " + Story.marked);
             Story.setEnabled(false);
@@ -1695,11 +1754,14 @@ Scope {
             // down, too. She then shows as the story's look whatever is picked (the pick kept),
             // her lines never twice running; a reset undoes it all
             const ride = () => {
-                // the fall follows the throw at once (Story.markDescent: within 15 s): on a busy
-                // machine the steps above alone took longer — the throw's moment is now
-                if (Story._beforeThrow)
-                    Story._beforeThrow.at = Date.now();
                 Story.player.character = "demon";
+                // the throw starts the fall (Story.markDescent: within 15 s, the swap's show);
+                // the character's switch above is no show, but on a slow runner it alone took
+                // up to a minute: the throw's moment is now
+                if (Story._beforeThrow)
+                    Story._beforeThrow = Object.assign({}, Story._beforeThrow, {
+                        "at": Date.now()
+                    });
                 Story.fell("limbo");
                 const due = !!Story.player.fallenDue;
                 Story.player.character = "angel";
@@ -1835,7 +1897,7 @@ Scope {
             return;
         }
         if (phase === "exit-limbo") {
-            if ((Story.inHell || Angel.transition) && Date.now() - started < 25000)
+            if ((Story.inHell || Angel.transition) && Date.now() - started < 60000)
                 return;
             report("exit-limbo", !Story.inHell && !Story.hell.limbo, "limbo of 11 min at a start → " + (Story.inHell ? "still in hell" : "out") + " in " + (Date.now() - started) + " ms");
             // a player stuck under the old rules: settings.json's y2k with a broken counter
@@ -1855,7 +1917,7 @@ Scope {
             return;
         }
         if (phase === "exit-amnesty") {
-            if ((Story.inHell || Angel.transition) && Date.now() - started < 25000)
+            if ((Story.inHell || Angel.transition) && Date.now() - started < 60000)
                 return;
             report("exit-amnesty", !Story.inHell && !Story.hell.amnesty && Story.player.returns === 1 && (Story.hell.outcomes || []).some(o => o.kind === "amnesty"), "let out in " + (Date.now() - started) + " ms, returns " + Story.player.returns);
             Story.clockShift = 0;
@@ -1899,7 +1961,7 @@ Scope {
         }
         if (phase === "pace") {
             // the shows take longer on a slow machine (GitHub's): wait for them, not a clock
-            if (Angel.transition && Date.now() - started < 25000)
+            if (Angel.transition && Date.now() - started < 60000)
                 return;
             const shown = Angel.demon && CircleFx.runs === paceRuns + 1;
             // back and forth right after: at once, no splash, no burn
@@ -1917,7 +1979,7 @@ Scope {
             return;
         }
         if (phase === "pace-slow") {
-            if ((Angel.transition || DesktopWidgets.burning) && Date.now() - started < 25000)
+            if ((Angel.transition || DesktopWidgets.burning) && Date.now() - started < 60000)
                 return;
             report("pace-slow", paceSlow && !Angel.demon && Theme.realm === "heaven", "a switch " + (Story.quickSwitchMs / 1000 + 1) + " s after the last: the full show " + paceSlow + ", heaven again " + (Theme.realm === "heaven"));
             // D2 in heaven: the angel shows the paper, no way out to list
@@ -2208,7 +2270,7 @@ Scope {
         // same config — it must start again and print frames
         if (phase === "cava") {
             const w = cavaStage.item;
-            if ((!w || w.starts < 1 || Date.now() - w.lastFrame > 500) && Date.now() - started < 8000)
+            if ((!w || w.starts < 1 || Date.now() - w.lastFrame > 500) && Date.now() - started < 20000)
                 return;
             if (!w) {
                 report("cava-back", false, "the cava widget did not load");
@@ -2232,7 +2294,7 @@ Scope {
         if (phase === "cava-back") {
             const w = cavaStage.item;
             const back = w.starts > cavaFirst && Date.now() - w.lastFrame < 500;
-            if (!back && Date.now() - started < 6000)
+            if (!back && Date.now() - started < 20000)
                 return;
             report("cava-back", back && !w.missing, "started " + cavaFirst + "×, hidden and shown → " + w.starts + "×, frames " + (back ? "again" : "stopped") + " after " + (Date.now() - started) + " ms" + (w.missing ? " (cava missing)" : ""));
             cavaStage.active = false;
@@ -2261,7 +2323,7 @@ Scope {
             return;
         }
         if (phase === "rmb-click") {
-            if (bare.activeFocusItem !== null && Date.now() - started < 1500)
+            if (bare.activeFocusItem !== null && Date.now() - started < 20000)
                 return;
             // Qt 6.11 dies on a right click into pixel (0,0) nobody accepts while
             // the window has no focus item (tests/qt/tst_rightclick_origin.qml);
@@ -2311,7 +2373,7 @@ Scope {
             const a = wizard.assistant;
             const cur = wizard.cur;
             const ready = !!a && !!a.shown && a.shown.id === cur.id && !!a.answer && !!a.answer.item;
-            if (!ready && Date.now() - started < 4000)
+            if (!ready && Date.now() - started < 20000)
                 return;
             let ok = ready && Shell.setupLocked && !Shell.settingsOpen;
             if (ready && cur.blocks)

@@ -10,17 +10,19 @@
     "\"developer\"/\"owner\"/\"game\": shown only in developer mode / to the owner / while the game is on. \"plugins\": the category",
     "where plugins' own settings pages are listed (\"after\": a plugin page that goes after a page).",
     "\"mac\": the Golden Gate skin's own tree (services/GoldenGate.on): its look-and-feel pages (modules/settings/pages/MacPage.qml and the groups of the other files that fit a Mac) and the system pages without the pixel skins' groups. Its own \"legacy\" leads the old ids there; an id it doesn't know goes to \"fallback\". The pixel tree's pages are not shown while the skin is on.",
-    "2026-10-07: one flat list: each section is one page (its old pages' groups stacked); owner and developer pages keep pages of their own. Old page ids lead on through legacy."
+    "2026-10-07 rebuild: Windows 11 sections, each with short pages. A page shows its \"blocks\" at once and folds its \"more\" under «Ещё…» (loaded when opened; the search opens it). \"src/@\" adds what sits outside src's groups (the Apply buttons, a log line). \"ruHell\"/\"enHell\": the name while the demon rules."
   ],
   "account": {
     "page": "account",
-    "ru": "Аккаунт",
+    "ru": "Учётная запись",
     "en": "Account",
     "icon": "heart",
-    "hintRu": "имя, аватарка, язык, мастер и подсказки",
-    "hintEn": "name, avatar, language, the wizard and the tips",
+    "hintRu": "имя, аватарка, язык, восстановление",
+    "hintEn": "name, avatar, language, recovery",
     "blocks": [
-      "account"
+      "account/you",
+      "account/language-getting-started",
+      "account/recovery"
     ]
   },
   "categories": [
@@ -30,16 +32,16 @@
       "en": "Home",
       "icon": "heart",
       "tint": "#ff69b4",
-      "hintRu": "частое: обои, тема, звук, Wi-Fi — и быстрые переключатели",
-      "hintEn": "the everyday things: wallpaper, theme, sound, Wi-Fi, and quick switches",
+      "hintRu": "ты, состояние системы и то, что открываешь чаще всего",
+      "hintEn": "you, how the system is doing, and what you open most",
       "pages": [
         {
           "id": "main",
           "ru": "Главная",
           "en": "Home",
           "icon": "heart",
-          "hintRu": "частое: обои, тема, звук, Wi-Fi — и быстрые переключатели",
-          "hintEn": "the everyday things: wallpaper, theme, sound, Wi-Fi, and quick switches",
+          "hintRu": "ты, состояние системы и то, что открываешь чаще всего",
+          "hintEn": "you, how the system is doing, and what you open most",
           "blocks": [
             "main"
           ]
@@ -47,62 +49,493 @@
       ]
     },
     {
-      "id": "theme",
-      "ru": "Обои и тема",
-      "en": "Wallpaper and theme",
-      "icon": "palette",
-      "tint": "#6b5bd6",
-      "hintRu": "светлая и тёмная, обои, шрифты, курсор",
-      "hintEn": "light and dark, wallpaper, fonts, the cursor",
+      "id": "system",
+      "ru": "Система",
+      "en": "System",
+      "icon": "chip",
+      "tint": "#2f7de8",
+      "hintRu": "экраны, звук, уведомления, питание, снимки, о системе",
+      "hintEn": "displays, sound, notifications, power, screenshots, about",
       "pages": [
         {
-          "id": "theme",
-          "ru": "Обои и тема",
-          "en": "Wallpaper and theme",
-          "icon": "palette",
-          "hintRu": "светлая и тёмная, обои, шрифты, курсор",
-          "hintEn": "light and dark, wallpaper, fonts, the cursor",
+          "id": "display",
+          "ru": "Экраны",
+          "en": "Displays",
+          "icon": "monitor",
+          "hintRu": "главный экран, яркость, расположение мониторов",
+          "hintEn": "the main screen, brightness, arranging monitors",
           "blocks": [
-            "appearance",
-            "wallpaper",
-            "fonts",
-            "cursor",
-            "y2k/glitter"
+            "monitor/main-screen",
+            "monitor/brightness-colour",
+            "monitor/arrangement",
+            "monitor/output",
+            "monitor/@"
+          ],
+          "links": [
+            "power"
+          ]
+        },
+        {
+          "id": "sound",
+          "ru": "Звук",
+          "en": "Sound",
+          "icon": "speaker",
+          "hintRu": "динамики, микрофон, громкость приложений",
+          "hintEn": "speakers, microphone, app volume",
+          "blocks": [
+            "sound/output",
+            "sound/input",
+            "sound/applications"
+          ],
+          "more": [
+            "sound/osd"
+          ],
+          "links": [
+            "sfx"
+          ]
+        },
+        {
+          "id": "sfx",
+          "ru": "Звуки",
+          "en": "Sounds",
+          "icon": "music",
+          "hintRu": "щелчки, звуки событий, голос ангела, свои звуки",
+          "hintEn": "clicks, event sounds, the angel's voice, your own sounds",
+          "blocks": [
+            "sfx/general"
+          ],
+          "more": [
+            "sfx/mouse-keyboard",
+            "sfx/system-events",
+            "sfx/angel-demon",
+            "sfx/your-own-sounds"
+          ],
+          "links": [
+            "sound"
+          ]
+        },
+        {
+          "id": "notifications",
+          "ru": "Уведомления",
+          "en": "Notifications",
+          "icon": "bell",
+          "hintRu": "не беспокоить, где и сколько висят, история",
+          "hintEn": "do not disturb, where and how long, history",
+          "blocks": [
+            "notifications/behavior"
+          ],
+          "more": [
+            "notifications/history"
+          ]
+        },
+        {
+          "id": "power",
+          "ru": "Питание",
+          "en": "Power",
+          "icon": "power",
+          "hintRu": "профиль питания, когда блокировать и гасить экран",
+          "hintEn": "the power profile, when to lock and blank the screen",
+          "blocks": [
+            "system/power",
+            "lock/lock-timers",
+            "lock/idle-timer"
+          ],
+          "links": [
+            "lock"
+          ]
+        },
+        {
+          "id": "capture",
+          "ru": "Снимки и запись",
+          "en": "Screenshots and recording",
+          "icon": "camera",
+          "hintRu": "снимки экрана, запись, куда сохранять",
+          "hintEn": "screenshots, recording, where they go",
+          "blocks": [
+            "capture/shots",
+            "capture/recording"
+          ],
+          "more": [
+            "capture/shots-more",
+            "capture/recording-more",
+            "capture/skin"
+          ]
+        },
+        {
+          "id": "lab",
+          "ru": "Лаборатория",
+          "en": "Lab",
+          "icon": "sparkle",
+          "hintRu": "эксперименты и режим разработчика",
+          "hintEn": "experiments and developer mode",
+          "blocks": [
+            "system/development",
+            "bar/sidebar-experimental",
+            "windows/window-menu-experimental"
+          ],
+          "more": [
+            "system/rendering",
+            "system/game-developer-tools"
+          ]
+        },
+        {
+          "id": "about",
+          "ru": "О системе",
+          "en": "About",
+          "icon": "info",
+          "hintRu": "этот компьютер, версия angelOS, сообщить о проблеме",
+          "hintEn": "this computer, the angelOS version, report a problem",
+          "blocks": [
+            "system/this-computer",
+            "system/angelos",
+            "system/report-problem"
+          ],
+          "more": [
+            "system/your-setup"
           ]
         }
       ]
     },
     {
-      "id": "taskbar",
-      "ru": "Панель и «Пуск»",
-      "en": "Taskbar and Start",
+      "id": "devices",
+      "ru": "Устройства",
+      "en": "Devices",
+      "icon": "mouse",
+      "tint": "#2f62d6",
+      "hintRu": "Bluetooth, мышь, клавиатура, сочетания клавиш, геймпад",
+      "hintEn": "Bluetooth, mouse, keyboard, shortcuts, gamepad",
+      "pages": [
+        {
+          "id": "bluetooth",
+          "ru": "Bluetooth",
+          "en": "Bluetooth",
+          "icon": "bluetooth",
+          "hintRu": "устройства рядом и сопряжённые",
+          "hintEn": "devices nearby and paired",
+          "blocks": [
+            "bluetooth"
+          ]
+        },
+        {
+          "id": "mouse",
+          "ru": "Мышь",
+          "en": "Mouse",
+          "icon": "mouse",
+          "hintRu": "чувствительность и ускорение",
+          "hintEn": "sensitivity and acceleration",
+          "blocks": [
+            "mouse/mouse",
+            "mouse/@"
+          ],
+          "links": [
+            "lens",
+            "shake",
+            "cursor"
+          ]
+        },
+        {
+          "id": "keyboard",
+          "ru": "Клавиатура",
+          "en": "Keyboard",
+          "icon": "keyboard",
+          "hintRu": "раскладки и их переключение, повтор клавиш",
+          "hintEn": "layouts and switching them, key repeat",
+          "blocks": [
+            "keyboard/keyboard-layouts",
+            "keyboard/@"
+          ],
+          "more": [
+            "keyboard/key-repeat"
+          ],
+          "links": [
+            "shortcuts",
+            "voice"
+          ]
+        },
+        {
+          "id": "shortcuts",
+          "ru": "Сочетания клавиш",
+          "en": "Keyboard shortcuts",
+          "icon": "keyboard",
+          "hintRu": "все сочетания и свои",
+          "hintEn": "every shortcut, and your own",
+          "blocks": [
+            "shortcuts/all-shortcuts"
+          ],
+          "more": [
+            "shortcuts/new-shortcut"
+          ],
+          "links": [
+            "keyboard",
+            "stream-angel:stream-angel-obs"
+          ]
+        },
+        {
+          "id": "gamepad",
+          "ru": "Геймпад",
+          "en": "Gamepad",
+          "icon": "gamepad",
+          "hintRu": "контроллер, кнопки и оси",
+          "hintEn": "the controller, its buttons and axes",
+          "blocks": [
+            "gamepad/controller"
+          ],
+          "more": [
+            "gamepad/all-buttons-axes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "network",
+      "ru": "Сеть",
+      "en": "Network",
+      "icon": "wifi",
+      "tint": "#3a86ff",
+      "hintRu": "Wi-Fi и кабель",
+      "hintEn": "Wi-Fi and cable",
+      "pages": [
+        {
+          "id": "network",
+          "ru": "Сеть",
+          "en": "Network",
+          "icon": "wifi",
+          "hintRu": "Wi-Fi и кабель",
+          "hintEn": "Wi-Fi and cable",
+          "blocks": [
+            "network"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "personal",
+      "ru": "Персонализация",
+      "en": "Personalization",
+      "icon": "palette",
+      "tint": "#6b5bd6",
+      "hintRu": "обои, цвета, шрифты, курсор, экран блокировки, терминал",
+      "hintEn": "wallpaper, colours, fonts, the cursor, the lock screen, the terminal",
+      "pages": [
+        {
+          "id": "wallpaper",
+          "ru": "Обои",
+          "en": "Wallpaper",
+          "icon": "image",
+          "hintRu": "картинки, обои релизов, переход",
+          "hintEn": "pictures, release wallpapers, the transition",
+          "blocks": [
+            "wallpaper/@",
+            "wallpaper/releases",
+            "wallpaper/images"
+          ],
+          "more": [
+            "wallpaper/destination",
+            "wallpaper/transition"
+          ],
+          "links": [
+            "theme"
+          ]
+        },
+        {
+          "id": "theme",
+          "ru": "Цвета и тема",
+          "en": "Colours and theme",
+          "icon": "palette",
+          "hintRu": "светлая или тёмная, цветовая схема, прозрачность, значки",
+          "hintEn": "light or dark, the colour scheme, transparency, icons",
+          "blocks": [
+            "appearance/skin",
+            "appearance/theme"
+          ],
+          "more": [
+            "appearance/glass-pixels",
+            "appearance/icons",
+            "appearance/window-titles",
+            "appearance/application-theme",
+            "y2k/glitter"
+          ],
+          "links": [
+            "wallpaper",
+            "fonts"
+          ]
+        },
+        {
+          "id": "fonts",
+          "ru": "Шрифты",
+          "en": "Fonts",
+          "icon": "document",
+          "hintRu": "готовые наборы и масштаб текста",
+          "hintEn": "presets and text size",
+          "blocks": [
+            "fonts/presets",
+            "fonts/interface"
+          ],
+          "more": [
+            "fonts/pixel-fonts"
+          ],
+          "links": [
+            "uisize"
+          ]
+        },
+        {
+          "id": "cursor",
+          "ru": "Курсор",
+          "en": "Cursor",
+          "icon": "cursor",
+          "hintRu": "пиксельные темы и размер",
+          "hintEn": "pixel themes and size",
+          "blocks": [
+            "cursor/pixel-themes",
+            "cursor/size-compatibility"
+          ],
+          "links": [
+            "shake",
+            "game:cursor-hell"
+          ]
+        },
+        {
+          "id": "lock",
+          "ru": "Экран блокировки",
+          "en": "Lock screen",
+          "icon": "lock",
+          "hintRu": "блокировка, экран входа, заставка, загрузка",
+          "hintEn": "the lock screen, the login screen, the screensaver, boot",
+          "blocks": [
+            "lock/lock-screen"
+          ],
+          "more": [
+            "lock/lock-details",
+            "lock/lock-stream",
+            "lock/lock-rewards",
+            "lock/login-screen",
+            "lock/idle-screen",
+            "y2k/loading-screen"
+          ],
+          "links": [
+            "power"
+          ]
+        },
+        {
+          "id": "terminal",
+          "ru": "Терминал",
+          "en": "Terminal",
+          "icon": "terminal",
+          "hintRu": "fastfetch: стиль, анимация, превью",
+          "hintEn": "fastfetch: style, animation, preview",
+          "blocks": [
+            "system/fastfetch"
+          ],
+          "links": [
+            "defaults",
+            "theme:application-theme"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop",
+      "ru": "Рабочий стол",
+      "en": "Desktop",
       "icon": "grid",
       "tint": "#7a5ce0",
-      "hintRu": "панель задач, «Пуск», виджеты, меню правой кнопки",
-      "hintEn": "the taskbar, Start, widgets, the right-click menu",
+      "hintRu": "панель задач, Пуск, виджеты, меню правой кнопки, лирика",
+      "hintEn": "the taskbar, Start, widgets, the right-click menu, lyrics",
       "pages": [
         {
           "id": "taskbar",
-          "ru": "Панель и «Пуск»",
-          "en": "Taskbar and Start",
+          "ru": "Панель задач",
+          "en": "Taskbar",
           "icon": "grid",
-          "hintRu": "панель задач, «Пуск», виджеты, меню правой кнопки",
-          "hintEn": "the taskbar, Start, widgets, the right-click menu",
+          "hintRu": "вид, автоскрытие, часы, трей, кнопки окон",
+          "hintEn": "the look, auto-hide, the clock, the tray, window buttons",
           "blocks": [
             "bar/style",
-            "bar/contents",
+            "bar/contents"
+          ],
+          "more": [
+            "bar/taskbar-windows",
+            "bar/taskbar-buttons",
             "bar/layout",
             "bar/icons",
-            "bar/sidebar-experimental",
-            "windows/closing-windows",
-            "bar/start-button",
-            "bar/start-avatar-fine",
-            "bar/angelos-logo",
-            "widgets",
-            "deskmenu"
+            "bar/taskbar-screens",
+            "bar/taskbar-other",
+            "windows/closing-windows"
           ],
-          "open": [
+          "links": [
+            "start",
+            "widgets"
+          ]
+        },
+        {
+          "id": "start",
+          "ru": "Пуск",
+          "en": "Start",
+          "icon": "heart",
+          "hintRu": "стиль, где открывается, поиск, логотип",
+          "hintEn": "the style, where it opens, search, the logo",
+          "blocks": [
             "bar/start-button"
+          ],
+          "more": [
+            "bar/start-meta",
+            "bar/start-avatar-fine",
+            "bar/angelos-logo"
+          ],
+          "links": [
+            "taskbar"
+          ]
+        },
+        {
+          "id": "widgets",
+          "ru": "Виджеты",
+          "en": "Widgets",
+          "icon": "layers",
+          "hintRu": "часы, визуализатор и другие на столе",
+          "hintEn": "clocks, the visualizer and more on the desktop",
+          "blocks": [
+            "widgets/add",
+            "widgets/on-desktop"
+          ],
+          "more": [
+            "widgets/behavior"
+          ]
+        },
+        {
+          "id": "deskmenu",
+          "ru": "Меню правой кнопки",
+          "en": "Right-click menu",
+          "icon": "grid",
+          "hintRu": "вид, быстрые кнопки, свои пункты",
+          "hintEn": "the look, quick buttons, your own entries",
+          "blocks": [
+            "deskmenu/look",
+            "deskmenu/quick-buttons"
+          ],
+          "more": [
+            "deskmenu/entries",
+            "deskmenu/your-own-entries"
+          ],
+          "links": [
+            "game:hell"
+          ]
+        },
+        {
+          "id": "lyrics",
+          "ru": "Лирика",
+          "en": "Lyrics",
+          "icon": "music",
+          "hintRu": "текст песни на экране: где, откуда, яркость",
+          "hintEn": "song lyrics on screen: where, from where, brightness",
+          "blocks": [
+            "lyrics/display",
+            "lyrics/current"
+          ],
+          "more": [
+            "lyrics/brightness-follows-volume",
+            "lyrics/sources",
+            "lyrics/search-by-title",
+            "lyrics/song-lyrics"
           ]
         }
       ]
@@ -118,188 +551,280 @@
       "pages": [
         {
           "id": "windows",
-          "ru": "Окна и столы",
-          "en": "Windows and desks",
+          "ru": "Окна",
+          "en": "Windows",
           "icon": "window",
-          "hintRu": "окна, Alt+Tab, анимации, рабочие столы",
-          "hintEn": "windows, Alt+Tab, animations, desks",
+          "hintRu": "кнопки в заголовке, отступы, ширина новых окон",
+          "hintEn": "title bar buttons, gaps, new windows' width",
           "blocks": [
             "windows/window-decorations",
-            "windows/alt-tab",
-            "windows/window-animations",
             "windows/layout",
-            "windows/window-widths",
-            "windows/window-menu-experimental",
+            "windows/@"
+          ],
+          "more": [
+            "windows/window-widths"
+          ],
+          "links": [
+            "alttab",
             "workspaces"
           ]
-        }
-      ]
-    },
-    {
-      "id": "display",
-      "ru": "Экраны",
-      "en": "Displays",
-      "icon": "monitor",
-      "tint": "#2f7de8",
-      "hintRu": "мониторы, яркость, питание и отрисовка",
-      "hintEn": "monitors, brightness, power and rendering",
-      "pages": [
+        },
         {
-          "id": "display",
-          "ru": "Экраны",
-          "en": "Displays",
-          "icon": "monitor",
-          "hintRu": "мониторы, яркость, питание и отрисовка",
-          "hintEn": "monitors, brightness, power and rendering",
+          "id": "alttab",
+          "ru": "Alt+Tab",
+          "en": "Alt+Tab",
+          "icon": "window",
+          "hintRu": "какие окна, подписи, задержка",
+          "hintEn": "which windows, labels, delay",
           "blocks": [
-            "monitor",
-            "system/rendering",
-            "system/power"
+            "windows/alt-tab"
+          ]
+        },
+        {
+          "id": "animations",
+          "ru": "Анимации",
+          "en": "Animations",
+          "icon": "sparkle",
+          "hintRu": "как открываются окна и переключаются столы",
+          "hintEn": "how windows open and desks switch",
+          "blocks": [
+            "windows/window-animations",
+            "workspaces/switch-animation"
+          ],
+          "links": [
+            "motion"
+          ]
+        },
+        {
+          "id": "workspaces",
+          "ru": "Рабочие столы",
+          "en": "Desks",
+          "icon": "grid",
+          "hintRu": "имена, значок стола, подсказка при смене",
+          "hintEn": "names, the desk icon, the hint when switching",
+          "blocks": [
+            "workspaces/names",
+            "workspaces/desk-sprite-animation"
+          ],
+          "more": [
+            "workspaces/workspace-switching"
           ]
         }
       ]
     },
     {
-      "id": "sound",
-      "ru": "Звук",
-      "en": "Sound",
-      "icon": "speaker",
-      "tint": "#2f7de8",
-      "hintRu": "выход, микрофон, звуки системы, лирика",
-      "hintEn": "output, microphone, system sounds, lyrics",
+      "id": "apps",
+      "ru": "Приложения",
+      "en": "Apps",
+      "icon": "package",
+      "tint": "#5b6b80",
+      "hintRu": "по умолчанию, диспетчер задач, плагины",
+      "hintEn": "defaults, the task manager, plugins",
       "pages": [
         {
-          "id": "sound",
-          "ru": "Звук",
-          "en": "Sound",
-          "icon": "speaker",
-          "hintRu": "выход, микрофон, звуки системы, лирика",
-          "hintEn": "output, microphone, system sounds, lyrics",
+          "id": "defaults",
+          "ru": "По умолчанию",
+          "en": "Default apps",
+          "icon": "star",
+          "hintRu": "браузер, файлы, терминал и другие",
+          "hintEn": "browser, files, terminal and more",
           "blocks": [
-            "sound/output",
-            "sound/input",
-            "sound/applications",
-            "sound/osd",
-            "sfx",
-            "lyrics"
+            "defaults/defaults",
+            "system/programs",
+            "defaults/@"
+          ],
+          "more": [
+            "defaults/files-nautilus"
           ]
+        },
+        {
+          "id": "taskmanager",
+          "ru": "Диспетчер задач",
+          "en": "Task manager",
+          "icon": "gauge",
+          "hintRu": "какая программа и где открывается",
+          "hintEn": "which program and where it opens",
+          "blocks": [
+            "system/task-manager"
+          ]
+        },
+        {
+          "id": "plugins",
+          "ru": "Плагины",
+          "en": "Plugins",
+          "icon": "plug",
+          "hintRu": "каталог, обновления, установленные",
+          "hintEn": "the catalog, updates, installed",
+          "blocks": [
+            "plugins/@",
+            "plugins/community",
+            "plugins/installed",
+            "plugins/available"
+          ],
+          "more": [
+            "plugins/removed",
+            "plugins/new-plugin"
+          ],
+          "links": [
+            "studio"
+          ]
+        },
+        {
+          "id": "studio",
+          "ru": "Мастер плагинов",
+          "en": "Plugin Studio",
+          "icon": "sparkle",
+          "hintRu": "плагин из описания словами",
+          "hintEn": "a plugin from a description in words",
+          "blocks": [
+            "studio"
+          ],
+          "developer": true
         }
       ]
     },
     {
-      "id": "keyboard",
-      "ru": "Клавиатура",
-      "en": "Keyboard",
-      "icon": "keyboard",
-      "tint": "#2f62d6",
-      "hintRu": "раскладки, повтор, голосовой ввод, горячие клавиши",
-      "hintEn": "layouts, repeat, voice typing, shortcuts",
+      "id": "stream",
+      "ru": "Стрим",
+      "en": "Streaming",
+      "icon": "camera",
+      "tint": "#e0457a",
+      "hintRu": "стрим-режим, ангел на стриме, OBS",
+      "hintEn": "stream mode, the angel on stream, OBS",
       "pages": [
         {
-          "id": "keyboard",
-          "ru": "Клавиатура",
-          "en": "Keyboard",
-          "icon": "keyboard",
-          "hintRu": "раскладки, повтор, голосовой ввод, горячие клавиши",
-          "hintEn": "layouts, repeat, voice typing, shortcuts",
+          "id": "stream",
+          "ru": "Стрим-режим",
+          "en": "Stream mode",
+          "icon": "camera",
+          "hintRu": "что прятать и глушить, пока идёт эфир",
+          "hintEn": "what to hide and mute while you're live",
           "blocks": [
-            "keyboard",
-            "sound/voice-typing-voxtype",
-            "shortcuts"
+            "y2k/stream-mode"
+          ],
+          "more": [
+            "y2k/stream-mode-more"
+          ],
+          "links": [
+            "stream-angel",
+            "capture"
           ]
-        }
-      ]
-    },
-    {
-      "id": "mouse",
-      "ru": "Мышь и устройства",
-      "en": "Mouse and devices",
-      "icon": "mouse",
-      "tint": "#2f62d6",
-      "hintRu": "мышь, лупа, Bluetooth, геймпад",
-      "hintEn": "the mouse, the lens, Bluetooth, gamepads",
-      "pages": [
+        },
         {
-          "id": "mouse",
-          "ru": "Мышь и устройства",
-          "en": "Mouse and devices",
-          "icon": "mouse",
-          "hintRu": "мышь, лупа, Bluetooth, геймпад",
-          "hintEn": "the mouse, the lens, Bluetooth, gamepads",
+          "id": "obs",
+          "ru": "OBS",
+          "en": "OBS",
+          "icon": "camera",
+          "hintRu": "подключение к OBS: состояние и порт",
+          "hintEn": "the link to OBS: status and port",
           "blocks": [
-            "mouse",
-            "bluetooth",
-            "gamepad"
+            "obs/obs"
+          ],
+          "links": [
+            "stream",
+            "stream-angel"
           ]
-        }
-      ]
-    },
-    {
-      "id": "network",
-      "ru": "Сеть",
-      "en": "Network",
-      "icon": "wifi",
-      "tint": "#3a86ff",
-      "hintRu": "Wi-Fi и проводная сеть",
-      "hintEn": "Wi-Fi and wired",
-      "pages": [
+        },
         {
-          "id": "network",
-          "ru": "Сеть",
-          "en": "Network",
-          "icon": "wifi",
-          "hintRu": "Wi-Fi и проводная сеть",
-          "hintEn": "Wi-Fi and wired",
+          "id": "stream-angel",
+          "ru": "Ангел на стриме",
+          "en": "The angel on stream",
+          "icon": "mic",
+          "hintRu": "сидит в кадре и говорит твоим голосом",
+          "hintEn": "sits in the frame and talks with your voice",
           "blocks": [
-            "network"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "notifications",
-      "ru": "Уведомления и стрим",
-      "en": "Notifications and streaming",
-      "icon": "bell",
-      "tint": "#2f7de8",
-      "hintRu": "уведомления, скриншоты и запись, стрим-режим",
-      "hintEn": "notifications, screenshots and recording, stream mode",
-      "pages": [
-        {
-          "id": "notifications",
-          "ru": "Уведомления и стрим",
-          "en": "Notifications and streaming",
-          "icon": "bell",
-          "hintRu": "уведомления, скриншоты и запись, стрим-режим",
-          "hintEn": "notifications, screenshots and recording, stream mode",
-          "blocks": [
-            "notifications",
-            "capture",
-            "y2k/stream-mode",
             "y2k/stream-angel"
+          ],
+          "more": [
+            "y2k/stream-angel-voice",
+            "y2k/stream-angel-obs"
+          ],
+          "links": [
+            "stream"
           ]
         }
       ]
     },
     {
-      "id": "lock",
-      "ru": "Блокировка",
-      "en": "Lock screen",
-      "icon": "lock",
-      "tint": "#6b5bd6",
-      "hintRu": "экран блокировки, вход, заставка",
-      "hintEn": "the lock screen, the login screen, the screensaver",
+      "id": "a11y",
+      "ru": "Спецвозможности",
+      "en": "Accessibility",
+      "icon": "eye",
+      "tint": "#0e95d6",
+      "hintRu": "движение, лупа, найти курсор, голосовой ввод",
+      "hintEn": "motion, the lens, finding the pointer, voice typing",
       "pages": [
         {
-          "id": "lock",
-          "ru": "Блокировка",
-          "en": "Lock screen",
-          "icon": "lock",
-          "hintRu": "экран блокировки, вход, заставка",
-          "hintEn": "the lock screen, the login screen, the screensaver",
+          "id": "uisize",
+          "ru": "Размер интерфейса",
+          "en": "Interface size",
+          "icon": "grid",
+          "hintRu": "крупнее или мельче всё сразу",
+          "hintEn": "everything bigger or smaller at once",
           "blocks": [
-            "lock",
-            "y2k/loading-screen"
+            "appearance/ui-size"
+          ],
+          "links": [
+            "fonts",
+            "cursor"
+          ]
+        },
+        {
+          "id": "motion",
+          "ru": "Меньше движения",
+          "en": "Reduce motion",
+          "icon": "sparkle",
+          "hintRu": "анимации интерфейса",
+          "hintEn": "interface animations",
+          "blocks": [
+            "appearance/motion"
+          ],
+          "links": [
+            "animations"
+          ]
+        },
+        {
+          "id": "contrast",
+          "ru": "Контраст и прозрачность",
+          "en": "Contrast and transparency",
+          "icon": "eye",
+          "hintRu": "чётче текст, сплошные панели",
+          "hintEn": "crisper text, solid panels",
+          "blocks": [
+            "accessibility/contrast"
+          ]
+        },
+        {
+          "id": "lens",
+          "ru": "Лупа у курсора",
+          "en": "Lens at the pointer",
+          "icon": "search",
+          "hintRu": "увеличение под курсором",
+          "hintEn": "magnifying under the pointer",
+          "blocks": [
+            "mouse/lens-at-pointer"
+          ]
+        },
+        {
+          "id": "shake",
+          "ru": "Найти курсор",
+          "en": "Find the pointer",
+          "icon": "cursor",
+          "hintRu": "курсор растёт, если потрясти мышью",
+          "hintEn": "the pointer grows when you shake the mouse",
+          "blocks": [
+            "cursor/shake-find-pointer"
+          ]
+        },
+        {
+          "id": "voice",
+          "ru": "Голосовой ввод",
+          "en": "Voice typing",
+          "icon": "mic",
+          "hintRu": "VoxType: индикатор и где он",
+          "hintEn": "VoxType: the indicator and where it shows",
+          "blocks": [
+            "sound/voice-typing-voxtype"
           ]
         }
       ]
@@ -310,80 +835,86 @@
       "en": "Angel ✧",
       "icon": "heart",
       "tint": "#f06aa8",
-      "hintRu": "игра, достижения, звёзды и сундуки, помощница, ад, новелла",
-      "hintEn": "the game, achievements, stars and chests, the helper, hell, the novel",
+      "hintRu": "она в углу, игра, награды, дневник",
+      "hintEn": "her in the corner, the game, rewards, the diary",
       "pages": [
+        {
+          "id": "helper",
+          "ru": "Ангел",
+          "en": "The angel",
+          "icon": "heart",
+          "hintRu": "показывать, размер, экран, болтовня, внешность",
+          "hintEn": "show her, size, screen, chatter, looks",
+          "blocks": [
+            "y2k/demon-corner"
+          ],
+          "more": [
+            "y2k/looks"
+          ],
+          "ruHell": "Демоница",
+          "enHell": "The demon",
+          "links": [
+            "sfx:angel-demon",
+            "stream-angel"
+          ]
+        },
         {
           "id": "game",
-          "ru": "Ангелочек ✧",
-          "en": "Angel ✧",
-          "icon": "heart",
-          "hintRu": "игра, достижения, звёзды и сундуки, помощница, ад, новелла",
-          "hintEn": "the game, achievements, stars and chests, the helper, hell, the novel",
+          "ru": "Игра",
+          "en": "The game",
+          "icon": "star",
+          "hintRu": "игра, рай и ад, эффекты, новелла",
+          "hintEn": "the game, heaven and hell, effects, the novel",
           "blocks": [
             "system/game",
-            "achievements",
-            "stars",
-            "y2k/demon-corner",
-            "y2k/looks",
-            "y2k/angel-or-demon",
-            "y2k/sounds",
+            "y2k/angel-or-demon"
+          ],
+          "more": [
+            "y2k/game-effects",
             "y2k/hell",
-            "y2k/novel"
+            "cursor/cursor-hell",
+            "y2k/novel",
+            "y2k/sounds"
+          ],
+          "links": [
+            "rewards",
+            "helper"
           ]
         },
         {
-          "id": "achievements-admin",
-          "ru": "Достижения: редактор",
-          "en": "Achievements: editor",
-          "icon": "lock",
-          "owner": true,
-          "hintRu": "добавить и поправить достижения (только автору)",
-          "hintEn": "add and edit achievements (the author only)",
+          "id": "rewards",
+          "ru": "Награды",
+          "en": "Rewards",
+          "icon": "sparkleStar",
+          "hintRu": "достижения, звёзды, сундуки, пропуск",
+          "hintEn": "achievements, stars, chests, the pass",
           "blocks": [
-            "@owner/AchievementsAdmin.qml"
+            "achievements/achievements",
+            "stars/stars-wish",
+            "stars/stars-tasks"
+          ],
+          "more": [
+            "stars/stars-album",
+            "stars/stars-pass",
+            "stars/stars-skins",
+            "achievements/heaven"
+          ],
+          "game": true,
+          "links": [
+            "diary"
           ]
         },
         {
-          "id": "diary-admin",
-          "ru": "Дневник: редактор",
-          "en": "Diary: editor",
-          "icon": "lock",
-          "owner": true,
-          "hintRu": "страницы дневника Ангела, картинка ключа (только автору)",
-          "hintEn": "the Angel's diary pages, the key's picture (the author only)",
+          "id": "diary",
+          "ru": "Дневник",
+          "en": "Diary",
+          "icon": "document",
+          "hintRu": "закладка и как он открывается",
+          "hintEn": "the bookmark and how it opens",
           "blocks": [
-            "@owner/DiaryAdmin.qml"
-          ]
-        }
-      ],
-      "ruHell": "Демоница ⛧",
-      "enHell": "The demon ⛧",
-      "iconHell": "pentagram",
-      "tintHell": "#b3142b"
-    },
-    {
-      "id": "defaults",
-      "ru": "Приложения",
-      "en": "Apps",
-      "icon": "package",
-      "tint": "#5b6b80",
-      "hintRu": "по умолчанию, диспетчер задач, плагины",
-      "hintEn": "defaults, the task manager, plugins",
-      "pages": [
-        {
-          "id": "defaults",
-          "ru": "Приложения",
-          "en": "Apps",
-          "icon": "package",
-          "hintRu": "по умолчанию, диспетчер задач, плагины",
-          "hintEn": "defaults, the task manager, plugins",
-          "blocks": [
-            "defaults",
-            "system/task-manager",
-            "system/programs",
-            "plugins"
-          ]
+            "achievements/things"
+          ],
+          "game": true
         }
       ]
     },
@@ -404,63 +935,60 @@
           "hintRu": "обновить angelOS, вернуть прежнюю версию",
           "hintEn": "update angelOS, go back to the previous version",
           "blocks": [
-            "updates"
-          ]
-        },
-        {
-          "id": "dotfiles",
-          "ru": "Dotfiles",
-          "en": "Dotfiles",
-          "icon": "package",
-          "owner": true,
-          "hintRu": "публикация (только автору)",
-          "hintEn": "publishing (the author only)",
-          "blocks": [
-            "@owner/DotfilesPage.qml"
+            "updates/status",
+            "updates/what-s-new"
+          ],
+          "more": [
+            "updates/restored",
+            "updates/log"
           ]
         }
       ]
     },
     {
-      "id": "about",
-      "ru": "О системе",
-      "en": "About",
-      "icon": "info",
-      "tint": "#2f7de8",
-      "hintRu": "этот компьютер, сообщить о проблеме, для разработчиков",
-      "hintEn": "this computer, report a problem, for developers",
+      "id": "author",
+      "ru": "Автор",
+      "en": "Author",
+      "icon": "lock",
+      "tint": "#8e8e93",
+      "hintRu": "публикация и редакторы (только автору)",
+      "hintEn": "publishing and editors (the author only)",
       "pages": [
         {
-          "id": "about",
-          "ru": "О системе",
-          "en": "About",
-          "icon": "info",
-          "hintRu": "этот компьютер, сообщить о проблеме, для разработчиков",
-          "hintEn": "this computer, report a problem, for developers",
+          "id": "dotfiles",
+          "ru": "Публикация",
+          "en": "Publishing",
+          "icon": "package",
+          "hintRu": "выкатить обновление, обои релиза",
+          "hintEn": "ship an update, release wallpapers",
           "blocks": [
-            "system/this-computer",
-            "system/your-setup",
-            "system/fastfetch",
-            "system/angelos",
-            "system/report-problem",
-            "system/development",
-            "system/game-developer-tools"
+            "@owner/DotfilesPage.qml"
           ],
-          "open": [
-            "system/development"
-          ]
+          "owner": true
         },
         {
-          "id": "studio",
-          "ru": "Мастер плагинов",
-          "en": "Plugin Studio",
-          "icon": "sparkle",
-          "developer": true,
-          "hintRu": "плагин из описания словами",
-          "hintEn": "a plugin from a description in words",
+          "id": "achievements-admin",
+          "ru": "Редактор достижений",
+          "en": "Achievements editor",
+          "icon": "star",
+          "hintRu": "добавить и поправить достижения",
+          "hintEn": "add and edit achievements",
           "blocks": [
-            "studio"
-          ]
+            "@owner/AchievementsAdmin.qml"
+          ],
+          "owner": true
+        },
+        {
+          "id": "diary-admin",
+          "ru": "Редактор дневника",
+          "en": "Diary editor",
+          "icon": "document",
+          "hintRu": "страницы дневника, картинка ключа",
+          "hintEn": "the diary's pages, the key's picture",
+          "blocks": [
+            "@owner/DiaryAdmin.qml"
+          ],
+          "owner": true
         }
       ]
     }
@@ -472,100 +1000,24 @@
     "dlcMore"
   ],
   "plugins": {
-    "category": "defaults",
+    "category": "apps",
     "after": {
-      "nightlight": "display"
+      "nightlight": "display",
+      "screen-magnifier": "lens",
+      "speedtest": "network",
+      "stream-stats": "stream-angel",
+      "realm-toggle": "game",
+      "window-visibility-indicator": "windows",
+      "emoji-picker": "keyboard",
+      "web-search": "start",
+      "community-search": "start",
+      "claude-companion": "helper",
+      "codex-companion": "helper",
+      "open-llm": "helper",
+      "pixel-blinds": "wallpaper"
     }
   },
   "legacy": {
-    "wallpaper": {
-      "page": "theme",
-      "to": "wallpaper/releases"
-    },
-    "fonts": {
-      "page": "theme",
-      "to": "fonts/presets"
-    },
-    "cursor": {
-      "page": "theme",
-      "to": "cursor/pixel-themes"
-    },
-    "start": {
-      "page": "taskbar",
-      "to": "bar/start-button"
-    },
-    "widgets": {
-      "page": "taskbar",
-      "to": "widgets/add"
-    },
-    "deskmenu": {
-      "page": "taskbar",
-      "to": "deskmenu/look"
-    },
-    "workspaces": {
-      "page": "windows",
-      "to": "workspaces/switch-animation"
-    },
-    "power": {
-      "page": "display",
-      "to": "system/rendering"
-    },
-    "sfx": {
-      "page": "sound",
-      "to": "sfx/general"
-    },
-    "lyrics": {
-      "page": "sound",
-      "to": "lyrics/display"
-    },
-    "shortcuts": {
-      "page": "keyboard",
-      "to": "shortcuts/new-shortcut"
-    },
-    "bluetooth": {
-      "page": "mouse",
-      "to": "bluetooth/adapter"
-    },
-    "gamepad": {
-      "page": "mouse",
-      "to": "gamepad/controller"
-    },
-    "capture": {
-      "page": "notifications",
-      "to": "capture/skin"
-    },
-    "stream": {
-      "page": "notifications",
-      "to": "y2k/stream-mode"
-    },
-    "achievements": {
-      "page": "game",
-      "to": "achievements/achievements"
-    },
-    "stars": {
-      "page": "game",
-      "to": "stars/stars-wish"
-    },
-    "helper": {
-      "page": "game",
-      "to": "y2k/demon-corner"
-    },
-    "hell": {
-      "page": "game",
-      "to": "y2k/hell"
-    },
-    "novel": {
-      "page": "game",
-      "to": "y2k/novel"
-    },
-    "plugins": {
-      "page": "defaults",
-      "to": "plugins/community"
-    },
-    "developer": {
-      "page": "about",
-      "to": "system/development"
-    },
     "appearance": {
       "page": "theme"
     },
@@ -576,8 +1028,7 @@
       "page": "taskbar"
     },
     "y2k": {
-      "page": "game",
-      "to": "y2k/demon-corner"
+      "page": "helper"
     },
     "system": {
       "page": "about"
@@ -587,64 +1038,341 @@
     },
     "dlcMore": {
       "page": "account"
+    },
+    "achievements": {
+      "page": "rewards",
+      "to": "achievements/achievements"
+    },
+    "stars": {
+      "page": "rewards",
+      "to": "stars/stars-wish"
+    },
+    "hell": {
+      "page": "game",
+      "to": "y2k/hell"
+    },
+    "novel": {
+      "page": "game",
+      "to": "y2k/novel"
+    },
+    "developer": {
+      "page": "lab",
+      "to": "system/development"
     }
   },
   "mac": {
     "fallback": "mac-look",
     "plugins": {
-      "category": "mac-system",
+      "category": "mac-general",
       "after": {
-        "nightlight": "display"
+        "nightlight": "display",
+        "screen-magnifier": "lens",
+        "speedtest": "network",
+        "stream-stats": "stream-angel",
+        "realm-toggle": "game",
+        "window-visibility-indicator": "windows",
+        "emoji-picker": "keyboard",
+        "web-search": "start",
+        "community-search": "start",
+        "claude-companion": "helper",
+        "codex-companion": "helper",
+        "open-llm": "helper",
+        "pixel-blinds": "wallpaper"
       }
     },
     "categories": [
       {
-        "id": "mac-theme",
-        "ru": "Оформление",
-        "en": "Look and feel",
-        "icon": "palette",
+        "id": "mac-net",
+        "ru": "Сеть",
+        "en": "Network",
+        "icon": "wifi",
         "tint": "#0a84ff",
-        "hintRu": "Dock, внешний вид, обои, виджеты, клавиатура, окна",
-        "hintEn": "the Dock, appearance, wallpaper, widgets, keyboard, windows",
+        "hintRu": "Wi-Fi, кабель, Bluetooth",
+        "hintEn": "Wi-Fi, cable, Bluetooth",
         "pages": [
           {
-            "id": "mac-dock",
-            "ru": "Dock",
-            "en": "Dock",
-            "icon": "grid",
-            "hintRu": "размер, увеличение, положение, автоскрытие, порядок значков",
-            "hintEn": "size, magnification, position, hiding, the icons' order",
+            "id": "network",
+            "ru": "Wi-Fi и сеть",
+            "en": "Wi-Fi and network",
+            "icon": "wifi",
+            "hintRu": "Wi-Fi и кабель",
+            "hintEn": "Wi-Fi and cable",
             "blocks": [
-              "mac/dock",
-              "mac/dock-apps"
+              "network"
             ]
           },
+          {
+            "id": "bluetooth",
+            "ru": "Bluetooth",
+            "en": "Bluetooth",
+            "icon": "bluetooth",
+            "hintRu": "устройства рядом и сопряжённые",
+            "hintEn": "devices nearby and paired",
+            "blocks": [
+              "bluetooth"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mac-notify",
+        "ru": "Уведомления и звук",
+        "en": "Notifications and sound",
+        "icon": "bell",
+        "tint": "#ff3b30",
+        "hintRu": "уведомления, звук",
+        "hintEn": "notifications, sound",
+        "pages": [
+          {
+            "id": "notifications",
+            "ru": "Уведомления",
+            "en": "Notifications",
+            "icon": "bell",
+            "hintRu": "не беспокоить, где и сколько висят, история",
+            "hintEn": "do not disturb, where and how long, history",
+            "blocks": [
+              "notifications/behavior"
+            ],
+            "more": [
+              "notifications/history"
+            ]
+          },
+          {
+            "id": "sound",
+            "ru": "Звук",
+            "en": "Sound",
+            "icon": "speaker",
+            "hintRu": "выход, вход, громкость приложений, звуковые эффекты",
+            "hintEn": "output, input, app volume, sound effects",
+            "blocks": [
+              "sound/output",
+              "sound/input",
+              "sound/applications"
+            ],
+            "more": [
+              "mac/sounds",
+              "sound/osd"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mac-general",
+        "ru": "Основные",
+        "en": "General",
+        "icon": "gear",
+        "tint": "#8e8e93",
+        "hintRu": "о системе, обновления, программы, снимки, плагины",
+        "hintEn": "about, updates, apps, screenshots, plugins",
+        "pages": [
+          {
+            "id": "about",
+            "ru": "О системе",
+            "en": "About",
+            "icon": "info",
+            "hintRu": "этот компьютер, версия angelOS, сообщить о проблеме",
+            "hintEn": "this computer, the angelOS version, report a problem",
+            "blocks": [
+              "system/this-computer",
+              "system/angelos",
+              "system/report-problem"
+            ],
+            "more": [
+              "system/your-setup"
+            ]
+          },
+          {
+            "id": "updates",
+            "ru": "Обновление ПО",
+            "en": "Software Update",
+            "icon": "download",
+            "hintRu": "обновить angelOS, вернуть прежнюю версию",
+            "hintEn": "update angelOS, go back to the previous version",
+            "blocks": [
+              "updates/status",
+              "updates/what-s-new"
+            ],
+            "more": [
+              "updates/restored",
+              "updates/log"
+            ]
+          },
+          {
+            "id": "defaults",
+            "ru": "Приложения по умолчанию",
+            "en": "Default apps",
+            "icon": "star",
+            "hintRu": "браузер, файлы, терминал, диспетчер задач",
+            "hintEn": "browser, files, terminal, task manager",
+            "blocks": [
+              "defaults/defaults",
+              "system/programs",
+              "defaults/@"
+            ],
+            "more": [
+              "defaults/files-nautilus",
+              "system/task-manager"
+            ]
+          },
+          {
+            "id": "capture",
+            "ru": "Снимки и запись",
+            "en": "Screenshots and recording",
+            "icon": "camera",
+            "hintRu": "снимки экрана, запись, куда сохранять",
+            "hintEn": "screenshots, recording, where they go",
+            "blocks": [
+              "capture/shots",
+              "capture/recording"
+            ],
+            "more": [
+              "capture/shots-more",
+              "capture/recording-more",
+              "capture/skin"
+            ]
+          },
+          {
+            "id": "terminal",
+            "ru": "Терминал",
+            "en": "Terminal",
+            "icon": "terminal",
+            "hintRu": "fastfetch: стиль, анимация, превью",
+            "hintEn": "fastfetch: style, animation, preview",
+            "blocks": [
+              "system/fastfetch"
+            ]
+          },
+          {
+            "id": "plugins",
+            "ru": "Плагины",
+            "en": "Plugins",
+            "icon": "plug",
+            "hintRu": "каталог, обновления, установленные",
+            "hintEn": "the catalog, updates, installed",
+            "blocks": [
+              "plugins/@",
+              "plugins/community",
+              "plugins/installed",
+              "plugins/available"
+            ],
+            "more": [
+              "plugins/removed",
+              "plugins/new-plugin"
+            ]
+          },
+          {
+            "id": "studio",
+            "ru": "Мастер плагинов",
+            "en": "Plugin Studio",
+            "icon": "sparkle",
+            "hintRu": "плагин из описания словами",
+            "hintEn": "a plugin from a description in words",
+            "blocks": [
+              "studio"
+            ],
+            "developer": true
+          },
+          {
+            "id": "power",
+            "ru": "Аккумулятор и питание",
+            "en": "Battery and power",
+            "icon": "power",
+            "hintRu": "профиль питания, когда блокировать и гасить экран",
+            "hintEn": "the power profile, when to lock and blank the screen",
+            "blocks": [
+              "system/power",
+              "lock/lock-timers",
+              "lock/idle-timer"
+            ]
+          },
+          {
+            "id": "lab",
+            "ru": "Лаборатория",
+            "en": "Lab",
+            "icon": "sparkle",
+            "hintRu": "эксперименты и режим разработчика",
+            "hintEn": "experiments and developer mode",
+            "blocks": [
+              "system/development"
+            ],
+            "more": [
+              "system/rendering",
+              "system/game-developer-tools",
+              "windows/window-menu-experimental"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mac-look-cat",
+        "ru": "Внешний вид",
+        "en": "Appearance",
+        "icon": "palette",
+        "tint": "#0a84ff",
+        "hintRu": "оформление, спецвозможности",
+        "hintEn": "appearance, accessibility",
+        "pages": [
           {
             "id": "mac-look",
             "ru": "Внешний вид",
             "en": "Appearance",
             "icon": "palette",
-            "hintRu": "светлое, тёмное, авто, акцент, прозрачность, уменьшить прозрачность, сброс",
-            "hintEn": "light, dark, auto, accent, transparency, reduce transparency, reset",
+            "hintRu": "светлое, тёмное, акцент, Liquid Glass, размер текста",
+            "hintEn": "light, dark, accent, Liquid Glass, text size",
             "blocks": [
-              "mac/look",
+              "mac/look"
+            ],
+            "more": [
               "mac/skin",
               "mac/reset"
             ]
           },
           {
-            "id": "mac-wallpaper",
-            "ru": "Обои",
-            "en": "Wallpaper",
-            "icon": "image",
-            "hintRu": "обои Golden Gate или свои картинки",
-            "hintEn": "Golden Gate's wallpaper or your pictures",
+            "id": "mac-a11y",
+            "ru": "Универсальный доступ",
+            "en": "Accessibility",
+            "icon": "eye",
+            "hintRu": "контраст, меньше движения, увеличение, курсор, голос",
+            "hintEn": "contrast, reduce motion, zoom, pointer, voice",
             "blocks": [
-              "mac/wallpaper",
-              "wallpaper/releases",
-              "wallpaper/images",
-              "wallpaper/destination",
-              "wallpaper/transition"
+              "accessibility/contrast",
+              "appearance/motion"
+            ],
+            "more": [
+              "mouse/lens-at-pointer",
+              "cursor/shake-find-pointer",
+              "sound/voice-typing-voxtype"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mac-desk",
+        "ru": "Рабочий стол и Dock",
+        "en": "Desktop and Dock",
+        "icon": "grid",
+        "tint": "#5e5ce6",
+        "hintRu": "Dock, окна, виджеты, Spotlight, лирика",
+        "hintEn": "the Dock, windows, widgets, Spotlight, lyrics",
+        "pages": [
+          {
+            "id": "mac-dock",
+            "ru": "Рабочий стол и Dock",
+            "en": "Desktop and Dock",
+            "icon": "grid",
+            "hintRu": "размер, увеличение, положение, окна",
+            "hintEn": "size, magnification, position, windows",
+            "blocks": [
+              "mac/dock",
+              "mac/dock-apps"
+            ],
+            "more": [
+              "mac/windows",
+              "windows/layout",
+              "windows/window-widths",
+              "windows/window-animations",
+              "workspaces/names",
+              "workspaces/switch-animation"
             ]
           },
           {
@@ -656,7 +1384,9 @@
             "hintEn": "widgets on the desktop",
             "blocks": [
               "widgets/add",
-              "widgets/on-desktop",
+              "widgets/on-desktop"
+            ],
+            "more": [
               "widgets/behavior"
             ]
           },
@@ -672,195 +1402,320 @@
             ]
           },
           {
-            "id": "mac-input",
-            "ru": "Клавиатура и мышь",
-            "en": "Keyboard and mouse",
-            "icon": "keyboard",
-            "hintRu": "клавиши Mac, раскладки, мышь, курсор, сочетания",
-            "hintEn": "Mac keys, layouts, the mouse, the pointer, shortcuts",
+            "id": "lyrics",
+            "ru": "Лирика",
+            "en": "Lyrics",
+            "icon": "music",
+            "hintRu": "текст песни на экране: где, откуда, яркость",
+            "hintEn": "song lyrics on screen: where, from where, brightness",
             "blocks": [
-              "mac/keys",
-              "keyboard/keyboard-layouts",
-              "keyboard/key-repeat",
-              "mouse/mouse",
-              "cursor/shake-find-pointer",
-              "cursor/size-compatibility",
-              "mouse/lens-at-pointer",
-              "shortcuts/all-shortcuts",
-              "shortcuts/new-shortcut"
-            ]
-          },
-          {
-            "id": "mac-windows",
-            "ru": "Окна",
-            "en": "Windows",
-            "icon": "window",
-            "hintRu": "плавающие окна, заголовки, колонки niri",
-            "hintEn": "floating windows, title bars, niri's columns",
-            "blocks": [
-              "mac/windows",
-              "windows/layout",
-              "windows/window-widths",
-              "windows/window-animations"
+              "lyrics/display",
+              "lyrics/current"
+            ],
+            "more": [
+              "lyrics/brightness-follows-volume",
+              "lyrics/sources",
+              "lyrics/search-by-title",
+              "lyrics/song-lyrics"
             ]
           }
         ]
       },
       {
-        "id": "mac-system",
-        "ru": "Система",
-        "en": "System",
-        "icon": "chip",
-        "tint": "#8e8e93",
-        "hintRu": "экран, звук, сеть, программы, обновления",
-        "hintEn": "display, sound, network, apps, updates",
+        "id": "mac-screen",
+        "ru": "Дисплеи и обои",
+        "en": "Displays and wallpaper",
+        "icon": "monitor",
+        "tint": "#30b0c7",
+        "hintRu": "мониторы, обои, экран блокировки",
+        "hintEn": "monitors, wallpaper, the lock screen",
         "pages": [
           {
             "id": "display",
-            "ru": "Экран",
-            "en": "Display",
+            "ru": "Дисплеи",
+            "en": "Displays",
             "icon": "monitor",
-            "hintRu": "мониторы, главный экран, яркость и цвет",
-            "hintEn": "monitors, the main screen, brightness and colour",
+            "hintRu": "главный экран, яркость, расположение мониторов",
+            "hintEn": "the main screen, brightness, arranging monitors",
             "blocks": [
-              "monitor"
+              "monitor/main-screen",
+              "monitor/brightness-colour",
+              "monitor/arrangement",
+              "monitor/output",
+              "monitor/@"
             ]
           },
           {
-            "id": "sound",
-            "ru": "Звук",
-            "en": "Sound",
-            "icon": "speaker",
-            "hintRu": "выход, микрофон, громкость приложений, индикаторы, звуковые эффекты",
-            "hintEn": "output, microphone, app volume, indicators, sound effects",
+            "id": "mac-wallpaper",
+            "ru": "Обои",
+            "en": "Wallpaper",
+            "icon": "image",
+            "hintRu": "обои Golden Gate или свои картинки",
+            "hintEn": "Golden Gate's wallpaper or your pictures",
             "blocks": [
-              "sound/output",
-              "sound/input",
-              "sound/applications",
-              "mac/sounds"
-            ]
-          },
-          {
-            "id": "notifications",
-            "ru": "Уведомления",
-            "en": "Notifications",
-            "icon": "bell",
-            "hintRu": "не беспокоить, где и сколько висят, история",
-            "hintEn": "do not disturb, where and how long, history",
-            "blocks": [
-              "notifications"
-            ]
-          },
-          {
-            "id": "bluetooth",
-            "ru": "Bluetooth",
-            "en": "Bluetooth",
-            "icon": "bluetooth",
-            "hintRu": "устройства рядом и сопряжённые",
-            "hintEn": "devices nearby and paired",
-            "blocks": [
-              "bluetooth"
-            ]
-          },
-          {
-            "id": "network",
-            "ru": "Сеть и интернет",
-            "en": "Network and internet",
-            "icon": "wifi",
-            "hintRu": "Wi-Fi и кабель",
-            "hintEn": "Wi-Fi and cable",
-            "blocks": [
-              "network"
-            ]
-          },
-          {
-            "id": "defaults",
-            "ru": "Приложения по умолчанию",
-            "en": "Default apps",
-            "icon": "star",
-            "hintRu": "браузер, файлы, терминал, диспетчер задач",
-            "hintEn": "browser, files, terminal, task manager",
-            "blocks": [
-              "defaults",
-              "system/task-manager",
-              "system/programs"
-            ]
-          },
-          {
-            "id": "plugins",
-            "ru": "Плагины",
-            "en": "Plugins",
-            "icon": "plug",
-            "hintRu": "каталог сообщества, обновления, установленные",
-            "hintEn": "the community catalog, updates, installed",
-            "blocks": [
-              "plugins"
-            ]
-          },
-          {
-            "id": "power",
-            "ru": "Питание и отрисовка",
-            "en": "Power and rendering",
-            "icon": "chip",
-            "hintRu": "профиль питания, движок отрисовки",
-            "hintEn": "power profile, the renderer",
-            "blocks": [
-              "system/rendering",
-              "system/power"
-            ]
-          },
-          {
-            "id": "updates",
-            "ru": "Обновления",
-            "en": "Updates",
-            "icon": "download",
-            "hintRu": "проверить, обновить, вернуть как было",
-            "hintEn": "check, update, restore",
-            "blocks": [
-              "updates"
-            ]
-          },
-          {
-            "id": "about",
-            "ru": "О системе",
-            "en": "About",
-            "icon": "heart",
-            "hintRu": "этот компьютер, твой сетап, отчёт о проблеме",
-            "hintEn": "this computer, your setup, reporting a problem",
-            "blocks": [
-              "system/this-computer",
-              "system/your-setup",
-              "system/fastfetch",
-              "system/angelos",
-              "system/report-problem"
-            ]
-          },
-          {
-            "id": "developer",
-            "ru": "Для разработчиков",
-            "en": "For developers",
-            "icon": "gear",
-            "hintRu": "режим разработчика, отладка игры",
-            "hintEn": "developer mode, the game's debug tools",
-            "blocks": [
-              "system/development",
-              "system/game-developer-tools"
+              "mac/wallpaper",
+              "wallpaper/@",
+              "wallpaper/images"
             ],
-            "open": [
-              "system/development"
+            "more": [
+              "wallpaper/releases",
+              "wallpaper/destination",
+              "wallpaper/transition"
             ]
           },
           {
-            "id": "mac-achievements",
-            "ru": "Достижения",
-            "en": "Achievements",
-            "icon": "star",
-            "game": true,
-            "hintRu": "что получено, что откроется в раю",
-            "hintEn": "what is earned, what heaven will open",
+            "id": "lock",
+            "ru": "Экран блокировки",
+            "en": "Lock Screen",
+            "icon": "lock",
+            "hintRu": "блокировка, экран входа, заставка, загрузка",
+            "hintEn": "the lock screen, the login screen, the screensaver, boot",
             "blocks": [
-              "achievements"
+              "lock/lock-screen"
+            ],
+            "more": [
+              "lock/lock-details",
+              "lock/lock-stream",
+              "lock/lock-rewards",
+              "lock/login-screen",
+              "lock/idle-screen",
+              "y2k/loading-screen"
             ]
+          }
+        ]
+      },
+      {
+        "id": "mac-input-cat",
+        "ru": "Клавиатура и мышь",
+        "en": "Keyboard and mouse",
+        "icon": "keyboard",
+        "tint": "#8e8e93",
+        "hintRu": "клавиатура, сочетания, мышь, геймпад",
+        "hintEn": "keyboard, shortcuts, mouse, game controllers",
+        "pages": [
+          {
+            "id": "mac-keyboard",
+            "ru": "Клавиатура",
+            "en": "Keyboard",
+            "icon": "keyboard",
+            "hintRu": "клавиши Mac, раскладки, повтор",
+            "hintEn": "Mac keys, layouts, key repeat",
+            "blocks": [
+              "mac/keys",
+              "keyboard/keyboard-layouts",
+              "keyboard/@"
+            ],
+            "more": [
+              "keyboard/key-repeat"
+            ]
+          },
+          {
+            "id": "shortcuts",
+            "ru": "Сочетания клавиш",
+            "en": "Keyboard shortcuts",
+            "icon": "keyboard",
+            "hintRu": "все сочетания и свои",
+            "hintEn": "every shortcut, and your own",
+            "blocks": [
+              "shortcuts/all-shortcuts"
+            ],
+            "more": [
+              "shortcuts/new-shortcut"
+            ]
+          },
+          {
+            "id": "mac-mouse",
+            "ru": "Мышь",
+            "en": "Mouse",
+            "icon": "mouse",
+            "hintRu": "чувствительность, размер курсора",
+            "hintEn": "sensitivity, pointer size",
+            "blocks": [
+              "mouse/mouse",
+              "mouse/@"
+            ],
+            "more": [
+              "cursor/size-compatibility"
+            ]
+          },
+          {
+            "id": "gamepad",
+            "ru": "Игровые контроллеры",
+            "en": "Game controllers",
+            "icon": "gamepad",
+            "hintRu": "контроллер, кнопки и оси",
+            "hintEn": "the controller, its buttons and axes",
+            "blocks": [
+              "gamepad/controller"
+            ],
+            "more": [
+              "gamepad/all-buttons-axes"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mac-fun",
+        "ru": "Стрим и Ангелочек",
+        "en": "Streaming and the angel",
+        "icon": "heart",
+        "tint": "#ff375f",
+        "hintRu": "стрим, OBS, ангел, игра, награды",
+        "hintEn": "streaming, OBS, the angel, the game, rewards",
+        "pages": [
+          {
+            "id": "stream",
+            "ru": "Стрим-режим",
+            "en": "Stream mode",
+            "icon": "camera",
+            "hintRu": "что прятать и глушить, пока идёт эфир",
+            "hintEn": "what to hide and mute while you're live",
+            "blocks": [
+              "y2k/stream-mode"
+            ],
+            "more": [
+              "y2k/stream-mode-more"
+            ]
+          },
+          {
+            "id": "obs",
+            "ru": "OBS",
+            "en": "OBS",
+            "icon": "camera",
+            "hintRu": "подключение к OBS: состояние и порт",
+            "hintEn": "the link to OBS: status and port",
+            "blocks": [
+              "obs/obs"
+            ]
+          },
+          {
+            "id": "stream-angel",
+            "ru": "Ангел на стриме",
+            "en": "The angel on stream",
+            "icon": "mic",
+            "hintRu": "сидит в кадре и говорит твоим голосом",
+            "hintEn": "sits in the frame and talks with your voice",
+            "blocks": [
+              "y2k/stream-angel"
+            ],
+            "more": [
+              "y2k/stream-angel-voice",
+              "y2k/stream-angel-obs"
+            ]
+          },
+          {
+            "id": "helper",
+            "ru": "Ангел",
+            "en": "The angel",
+            "icon": "heart",
+            "hintRu": "показывать, размер, экран, болтовня, внешность",
+            "hintEn": "show her, size, screen, chatter, looks",
+            "blocks": [
+              "y2k/demon-corner"
+            ],
+            "more": [
+              "y2k/looks"
+            ],
+            "ruHell": "Демоница",
+            "enHell": "The demon"
+          },
+          {
+            "id": "game",
+            "ru": "Игра",
+            "en": "The game",
+            "icon": "star",
+            "hintRu": "игра, рай и ад, эффекты, новелла",
+            "hintEn": "the game, heaven and hell, effects, the novel",
+            "blocks": [
+              "system/game",
+              "y2k/angel-or-demon"
+            ],
+            "more": [
+              "y2k/game-effects",
+              "y2k/hell",
+              "cursor/cursor-hell",
+              "y2k/novel",
+              "y2k/sounds"
+            ]
+          },
+          {
+            "id": "rewards",
+            "ru": "Награды",
+            "en": "Rewards",
+            "icon": "sparkleStar",
+            "hintRu": "достижения, звёзды, сундуки, пропуск",
+            "hintEn": "achievements, stars, chests, the pass",
+            "blocks": [
+              "achievements/achievements",
+              "stars/stars-wish",
+              "stars/stars-tasks"
+            ],
+            "more": [
+              "stars/stars-album",
+              "stars/stars-pass",
+              "stars/stars-skins",
+              "achievements/heaven"
+            ],
+            "game": true
+          },
+          {
+            "id": "diary",
+            "ru": "Дневник",
+            "en": "Diary",
+            "icon": "document",
+            "hintRu": "закладка и как он открывается",
+            "hintEn": "the bookmark and how it opens",
+            "blocks": [
+              "achievements/things"
+            ],
+            "game": true
+          }
+        ]
+      },
+      {
+        "id": "mac-author",
+        "ru": "Автор",
+        "en": "Author",
+        "icon": "lock",
+        "tint": "#8e8e93",
+        "hintRu": "публикация и редакторы (только автору)",
+        "hintEn": "publishing and editors (the author only)",
+        "pages": [
+          {
+            "id": "dotfiles",
+            "ru": "Публикация",
+            "en": "Publishing",
+            "icon": "package",
+            "hintRu": "выкатить обновление, обои релиза",
+            "hintEn": "ship an update, release wallpapers",
+            "blocks": [
+              "@owner/DotfilesPage.qml"
+            ],
+            "owner": true
+          },
+          {
+            "id": "achievements-admin",
+            "ru": "Редактор достижений",
+            "en": "Achievements editor",
+            "icon": "star",
+            "hintRu": "добавить и поправить достижения",
+            "hintEn": "add and edit achievements",
+            "blocks": [
+              "@owner/AchievementsAdmin.qml"
+            ],
+            "owner": true
+          },
+          {
+            "id": "diary-admin",
+            "ru": "Редактор дневника",
+            "en": "Diary editor",
+            "icon": "document",
+            "hintRu": "страницы дневника, картинка ключа",
+            "hintEn": "the diary's pages, the key's picture",
+            "blocks": [
+              "@owner/DiaryAdmin.qml"
+            ],
+            "owner": true
           }
         ]
       }
@@ -893,6 +1748,18 @@
       "dock": {
         "page": "mac-dock"
       },
+      "windows": {
+        "page": "mac-dock"
+      },
+      "alttab": {
+        "page": "mac-dock"
+      },
+      "animations": {
+        "page": "mac-dock"
+      },
+      "workspaces": {
+        "page": "mac-dock"
+      },
       "wallpaper": {
         "page": "mac-wallpaper"
       },
@@ -900,22 +1767,19 @@
         "page": "mac-widgets"
       },
       "keyboard": {
-        "page": "mac-input"
+        "page": "mac-keyboard"
       },
       "mouse": {
-        "page": "mac-input"
-      },
-      "shortcuts": {
-        "page": "mac-input"
+        "page": "mac-mouse"
       },
       "cursor": {
-        "page": "mac-input"
+        "page": "mac-mouse"
       },
-      "windows": {
-        "page": "mac-windows"
+      "mac-input": {
+        "page": "mac-keyboard"
       },
-      "workspaces": {
-        "page": "mac-windows"
+      "mac-windows": {
+        "page": "mac-dock"
       },
       "monitor": {
         "page": "display"
@@ -923,8 +1787,56 @@
       "system": {
         "page": "about"
       },
+      "developer": {
+        "page": "lab"
+      },
+      "mac-achievements": {
+        "page": "rewards"
+      },
       "achievements": {
-        "page": "mac-achievements"
+        "page": "rewards"
+      },
+      "stars": {
+        "page": "rewards"
+      },
+      "sfx": {
+        "page": "sound"
+      },
+      "taskmanager": {
+        "page": "defaults"
+      },
+      "uisize": {
+        "page": "mac-look"
+      },
+      "contrast": {
+        "page": "mac-a11y"
+      },
+      "motion": {
+        "page": "mac-a11y"
+      },
+      "lens": {
+        "page": "mac-a11y"
+      },
+      "shake": {
+        "page": "mac-a11y"
+      },
+      "voice": {
+        "page": "mac-a11y"
+      },
+      "deskmenu": {
+        "page": "mac-dock"
+      },
+      "y2k": {
+        "page": "helper"
+      },
+      "hell": {
+        "page": "game"
+      },
+      "novel": {
+        "page": "game"
+      },
+      "main": {
+        "page": "mac-look"
       }
     }
   }

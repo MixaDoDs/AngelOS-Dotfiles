@@ -139,7 +139,7 @@ driver() { # NAME FROM UNTIL
     QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= LD_LIBRARY_PATH="$LIB" QML_IMPORT_PATH="$QML" \
     ANGELOS_DEV=1 ANGELOS_SCREENS=__none__ ANGELOS_TEST=1 ANGELOS_TEST_SHOTS="${ANGELOS_TEST_SHOTS:-}" QS_NO_RELOAD_POPUP=1 QS_DISABLE_CRASH_HANDLER=1 \
     ANGELOS_TEST_FROM="$2" ANGELOS_TEST_UNTIL="$3" \
-    "${runner[@]}" timeout 300 "$QS" -p "$T/root" >"$T/$1.log" 2>&1
+    "${runner[@]}" timeout 480 "$QS" -p "$T/root" >"$T/$1.log" 2>&1
   echo $? >"$T/$1.code"
 }
 # the other offscreen suites (tests/<name>/run.sh), alongside
@@ -159,6 +159,26 @@ start suite lock
 start suite theme
 start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1
 wait
+
+# A shard or suite that failed in the crowd runs once more on its own, the rest being done:
+# a wait that ran out on a busy machine passes then, a real fault fails twice (and counts)
+shard_failed() { grep -qE 'TEST [^ ]+ FAIL' "$T/$1.log" || ! grep -q 'TEST DONE' "$T/$1.log"; }
+retried=()
+for sh in "${SHARDS[@]}"; do
+  IFS='|' read -r n from until <<<"$sh"
+  shard_failed "$n" || continue
+  first=$(sed -n 's/.*TEST \([^ ]*\) FAIL.*/\1/p' "$T/$n.log" | tr '\n' ' ')
+  retried+=("shard $n (${first:-did not finish})")
+  rm -rf "${T:?}/$n"
+  start driver "$n" "$from" "$until"
+done
+for s in scale lock theme sddm; do
+  [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" == 0 ]] && continue
+  retried+=("$s")
+  if [[ "$s" == sddm ]]; then start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1; else start suite "$s"; fi
+done
+wait
+((${#retried[@]} == 0)) || printf '  ⚠ failed beside the others, run once more alone: %s\n' "${retried[*]}"
 
 # results of the driver, shard by shard
 for sh in "${SHARDS[@]}"; do

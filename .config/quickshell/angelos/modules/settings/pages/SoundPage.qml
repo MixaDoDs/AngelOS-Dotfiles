@@ -11,7 +11,7 @@ PxPage {
 
     PxGroup {
         name: "output"
-        title: I18n.t("Выход", "Output")
+        title: I18n.t("Динамики и наушники", "Speakers and headphones")
         icon: "speaker"
         width: parent.width
         SettingRow {
@@ -51,7 +51,7 @@ PxPage {
 
     PxGroup {
         name: "input"
-        title: I18n.t("Вход", "Input")
+        title: I18n.t("Микрофон", "Microphone")
         icon: "mic"
         width: parent.width
         SettingRow {
@@ -117,7 +117,7 @@ PxPage {
 
     PxGroup {
         name: "applications"
-        title: I18n.t("Приложения", "Applications")
+        title: I18n.t("Громкость приложений", "App volume")
         icon: "music"
         width: parent.width
         PxText {
@@ -147,7 +147,7 @@ PxPage {
 
     PxGroup {
         name: "osd"
-        title: "OSD"
+        title: I18n.t("Индикаторы на экране", "On-screen indicators")
 
         advanced: true
         icon: "heart"
@@ -191,7 +191,7 @@ PxPage {
 
     PxGroup {
         name: "voice-typing-voxtype"
-        title: I18n.t("Голосовой ввод (VoxType)", "Voice typing (VoxType)")
+        title: I18n.t("Голосовой ввод", "Voice typing")
 
         advanced: true
         icon: "mic"

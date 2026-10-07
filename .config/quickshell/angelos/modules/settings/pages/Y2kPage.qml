@@ -42,7 +42,7 @@ PxPage {
             }
         }
         SettingRow {
-            label: I18n.t("Сам по OBS", "Follow OBS")
+            label: I18n.t("Включать сам, когда OBS в эфире", "On by itself while OBS is live")
             hint: I18n.t("включается, пока OBS ведёт трансляцию (obs-websocket, порт ", "On while OBS is streaming (obs-websocket, port ") + Config.stream.port + ")"
             PxToggle {
                 checked: Config.stream.auto
@@ -69,8 +69,14 @@ PxPage {
                 }
             }
         }
+    }
+    PxGroup {
+        name: "stream-mode-more"
+        title: I18n.t("Что меняется в эфире", "What changes while live")
+        icon: "camera"
+        width: parent.width
         SettingRow {
-            label: I18n.t("Ангелочек уходит с экрана", "The angel leaves the screen")
+            label: I18n.t("Ангел уходит с экрана", "The angel leaves the screen")
             hint: I18n.t("на другой экран, а если его нет — прячется", "To another screen, or hides if there is none")
             PxToggle {
                 checked: Config.stream.hideAngel
@@ -111,7 +117,7 @@ PxPage {
         advanced: true
         icon: "chat"
         SettingRow {
-            label: I18n.t("Сидит в кадре", "On camera")
+            label: I18n.t("Показывать на стриме", "Show her on stream")
             hint: I18n.t("пока идёт эфир OBS, ангелочек (или демоница) переходит на экран в эфире и сидит на панели «Пуска», как за столом (панель не снизу — на нижнем краю экрана), и говорит твоим микрофоном. Клик, меню и бросок в ад работают как обычно; в эфире у неё свои реплики", "While OBS streams, the angel (or the demon) moves to the streamed screen and sits on the taskbar like at a desk (on the screen's bottom edge when the bar is elsewhere) and talks with your mic. Clicks, her menu and the throw into hell work as usual; on stream she has lines of her own")
             PxToggle {
                 checked: !!Config.stream.streamer
@@ -127,6 +133,39 @@ PxPage {
                 onClicked: StreamAngel.set("test")
             }
         }
+        SettingRow {
+            label: I18n.t("Размер", "Size")
+            hint: I18n.t("какую часть высоты экрана она занимает над панелью; ещё — Ctrl + колесо на ней", "How much of the screen's height she takes above the bar; also Ctrl + wheel over her")
+            PxSlider {
+                width: Math.min(parent.width, Theme.u * 120)
+                from: 10
+                to: 50
+                stepSize: 2
+                value: Config.stream.streamerSize || 30
+                suffix: "%"
+                onMoved: v => Config.stream.streamerSize = Math.round(v)
+            }
+        }
+        SettingRow {
+            label: I18n.t("Угол", "Corner")
+            PxCombo {
+                model: [{
+                        "label": I18n.t("Справа внизу", "Bottom right"),
+                        "value": "right"
+                    }, {
+                        "label": I18n.t("Слева внизу", "Bottom left"),
+                        "value": "left"
+                    }]
+                currentValue: Config.stream.streamerSide || "right"
+                onActivated: v => Config.stream.streamerSide = v
+            }
+        }
+    }
+    PxGroup {
+        name: "stream-angel-voice"
+        title: I18n.t("Голос", "Voice")
+        icon: "mic"
+        width: parent.width
         SettingRow {
             label: I18n.t("Микрофон", "Microphone")
             hint: (StreamAngel.using ? I18n.t("слушает: ", "Listening to: ") + StreamAngel.using.replace(/^obs:/, "OBS → ").replace(/^pw:/, "PipeWire → ") : StreamAngel.error === "no-mic" ? I18n.t("микрофон не найден — выбери вход", "No microphone found — pick an input") : I18n.t("из OBS: тот вход, что он слышит, после его ползунка; заглушён в OBS — ангел молчит", "From OBS: the input it hears, after its slider; muted in OBS, she's quiet")) 
@@ -180,33 +219,12 @@ PxPage {
                 }
             }
         }
-        SettingRow {
-            label: I18n.t("Размер", "Size")
-            hint: I18n.t("какую часть высоты экрана она занимает над панелью; ещё — Ctrl + колесо на ней", "How much of the screen's height she takes above the bar; also Ctrl + wheel over her")
-            PxSlider {
-                width: Math.min(parent.width, Theme.u * 120)
-                from: 10
-                to: 50
-                stepSize: 2
-                value: Config.stream.streamerSize || 30
-                suffix: "%"
-                onMoved: v => Config.stream.streamerSize = Math.round(v)
-            }
-        }
-        SettingRow {
-            label: I18n.t("Угол", "Corner")
-            PxCombo {
-                model: [{
-                        "label": I18n.t("Справа внизу", "Bottom right"),
-                        "value": "right"
-                    }, {
-                        "label": I18n.t("Слева внизу", "Bottom left"),
-                        "value": "left"
-                    }]
-                currentValue: Config.stream.streamerSide || "right"
-                onActivated: v => Config.stream.streamerSide = v
-            }
-        }
+    }
+    PxGroup {
+        name: "stream-angel-obs"
+        title: I18n.t("Экран и OBS", "Screen and OBS")
+        icon: "camera"
+        width: parent.width
         SettingRow {
             visible: page.screenNames.length > 1
             label: I18n.t("Экран", "Screen")
@@ -222,6 +240,7 @@ PxPage {
                 onActivated: v => Config.stream.streamerScreen = v
             }
         }
+        // Mod+Alt+A: off your own screen; her window for OBS has her either way
         // Mod+Alt+A: off your own screen; her window for OBS has her either way
         SettingRow {
             label: I18n.t("Спрятать от себя", "Hide her from you")
@@ -409,7 +428,7 @@ PxPage {
     PxGroup {
         name: "demon-corner"
         width: parent.width
-        title: Angel.demon ? I18n.t("Демоница в углу", "The demon in the corner") : I18n.t("Ангелочек-помощник", "Helper angel")
+        title: I18n.t("В углу экрана", "In the corner of the screen")
         icon: Angel.demon ? "fire" : "heart"
         // with the game off (the setup wizard's "Just the desktop", `angelos game off`) nobody is
         // in the corner whatever this says: the toggle shows that, and switching her on brings
@@ -614,7 +633,7 @@ PxPage {
     PxGroup {
         name: "angel-or-demon"
         width: parent.width
-        title: Angel.hellShown ? I18n.t("Ангел или демон", "Angel or demon") : I18n.t("Ангел и портал", "Angel and the portal")
+        title: Angel.hellShown ? I18n.t("Рай и ад", "Heaven and hell") : I18n.t("Ангел и портал", "Angel and the portal")
         icon: Angel.hellShown ? "fire" : "heart"
         SettingRow {
             label: I18n.t("Кто живёт в углу", "Who lives in the corner")
@@ -635,6 +654,12 @@ PxPage {
                 onClicked: Angel.portal()
             }
         }
+    }
+    PxGroup {
+        name: "game-effects"
+        title: I18n.t("Эффекты", "Effects")
+        icon: "sparkle"
+        width: parent.width
         SettingRow {
             label: I18n.t("Дрожание текста", "Text tremble")
             hint: I18n.t("буквы в её репликах иногда подёргиваются на пиксель, как в Undertale", "Now and then a letter in her lines twitches by a pixel, like in Undertale")

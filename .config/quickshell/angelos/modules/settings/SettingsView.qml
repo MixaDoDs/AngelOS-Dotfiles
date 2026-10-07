@@ -121,33 +121,10 @@ Item {
             "file": "Win11View.qml",
             "label": I18n.t("Как в Windows 11", "Like Windows 11"),
             "hint": I18n.t("категории слева, карточки справа", "categories on the left, cards on the right")
-        },
-        {
-            "id": "sidebar",
-            "file": "SidebarView.qml",
-            "label": I18n.t("Боковая панель", "Sidebar"),
-            "hint": I18n.t("разделы слева, страница справа", "sections on the left, the page on the right")
-        },
-        {
-            "id": "controlpanel",
-            "file": "ControlPanelView.qml",
-            "label": I18n.t("Панель управления", "Control Panel"),
-            "hint": I18n.t("папка значков, как в Win98", "a folder of icons, like Win98")
-        },
-        {
-            "id": "properties",
-            "file": "PropertiesView.qml",
-            "label": I18n.t("Свойства", "Properties"),
-            "hint": I18n.t("раздел сверху, его страницы — вкладки", "a section on top, its pages as tabs")
-        },
-        {
-            "id": "tiles",
-            "file": "TilesView.qml",
-            "label": I18n.t("Плитки", "Tiles"),
-            "hint": I18n.t("крупный поиск и большие плитки", "a big search and big tiles")
         }
     ]
-    readonly property string viewId: mac ? "mac" : views.some(v => v.id === Config.settingsUi.view) ? Config.settingsUi.view : "win11"
+    // two looks only (2026-10-07): Windows 11 for the pixel skins, System Settings for Golden Gate
+    readonly property string viewId: mac ? "mac" : "win11"
     // the Windows 11 look: a category with several pages has a page of its own ("cat:<id>",
     // CategoryPage), sub-pages unfold in place (PxGroup), every setting is a card (SettingRow)
     readonly property bool fluent: viewId === "win11" || viewId === "mac"
@@ -544,6 +521,10 @@ Item {
         if (!query.trim())
             results = [];
         searchTimer.restart();
+        if (query.trim().length >= 3)
+            missTimer.restart();
+        else
+            missTimer.stop();
     }
     // one frame: keys typed together are searched once (a search takes ~1 ms)
     Timer {
@@ -643,8 +624,20 @@ Item {
         };
         let it = findItem(pg.flick.contentItem, r, false) || (r.kind === "row" ? findItem(pg.flick.contentItem, groupHint, false) : null);
         if (!it) {
-            const hidden = findItem(pg.flick.contentItem, r, true) || (r.kind === "row" ? findItem(pg.flick.contentItem, groupHint, true) : null);
-            const g = hidden ? groupOf(hidden) : null;
+            // a group left out of this part (its file is loaded for other groups) doesn't count
+            const anyHit = findItem(pg.flick.contentItem, r, true) || (r.kind === "row" ? findItem(pg.flick.contentItem, groupHint, true) : null);
+            const anyGroup = anyHit ? groupOf(anyHit) : null;
+            const hidden = anyGroup && anyGroup.leftOut ? null : anyHit;
+            const g = hidden ? anyGroup : null;
+            // under «Ещё…» (ComposedPage): open it, the parts load, then look again
+            if (!hidden && pg.hasMore && !pg.moreOpen && !r.moreOpened) {
+                pg.openMore();
+                pendingTarget = Object.assign({}, r, {
+                    "moreOpened": true
+                });
+                targetTimer.restart();
+                return;
+            }
             if (g && g.advanced && !r.opened && win.settingsNav.settingsSub !== g.title) {
                 win.settingsNav.settingsSub = g.title;
                 pendingTarget = Object.assign({}, r, {
@@ -998,9 +991,29 @@ Item {
                     visible: win.results.length === 0
                     width: parent.width
                     wrapMode: Text.Wrap
-                    text: SettingsSearch.loaded ? I18n.t("Ничего не нашлось. Попробуй другое слово — «экран», «прозрачность», «хоткеи»…", "Nothing found. Try another word — “display”, “transparency”, “hotkeys”…") : "…"
+                    text: SettingsSearch.loaded ? I18n.t("Ничего не нашлось. Попробуй другое слово — «экран», «прозрачность», «хоткеи»… или спроси ангела.", "Nothing found. Try another word — “display”, “transparency”, “hotkeys”… or ask the angel.") : "…"
                     dim: true
                     leftPadding: Theme.u * 3
+                }
+                // nothing found: ask her (she knows the settings and more), and the miss is noted
+                PxButton {
+                    visible: win.results.length === 0 && SettingsSearch.loaded && Angel.shown
+                    x: Theme.u * 3
+                    compact: true
+                    icon: "chat"
+                    text: (Angel.demon ? I18n.t("Спросить демоницу: «", "Ask the demon: “") : I18n.t("Спросить ангела: «", "Ask the angel: “")) + win.query.trim() + I18n.t("»", "”")
+                    onClicked: {
+                        const q = win.query.trim();
+                        win.setQuery("");
+                        Angel.answer(q);
+                    }
+                }
+                Timer {
+                    // a query that found nothing and stayed for a while is a miss worth noting
+                    id: missTimer
+                    interval: 1500
+                    onTriggered: if (win.results.length === 0 && SettingsSearch.loaded)
+                        SettingsSearch.logMiss(win.query)
                 }
                 Repeater {
                     model: win.results
@@ -1023,7 +1036,7 @@ Item {
                                 ink: res.picked ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
                             }
                             Column {
-                                width: res.width - Theme.u * 20
+                                width: res.width - Theme.u * 20 - (resToggle.visible ? resToggle.width + Theme.u * 4 : 0)
                                 PxText {
                                     width: parent.width
                                     text: res.modelData.title
@@ -1048,6 +1061,17 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onEntered: win.sel = res.index
                             onClicked: win.openResult(res.modelData)
+                        }
+                        // a plain switch: flipped right in the results, the page stays where it is
+                        PxToggle {
+                            id: resToggle
+                            readonly property var key: res.modelData.toggle ? String(res.modelData.toggle).split(".") : []
+                            visible: key.length === 2 && !!Config[key[0]]
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.u * 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            checked: visible && !!Config[key[0]][key[1]]
+                            onToggled: v => Config[key[0]][key[1]] = v
                         }
                     }
                 }

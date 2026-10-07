@@ -428,12 +428,14 @@ Singleton {
     readonly property color face: base.face
     readonly property color faceAlt: base.faceAlt
     readonly property color sunken: base.sunken
-    readonly property color text: base.text
-    readonly property color textDim: base.textDim
+    // Accessibility → Contrast: text toward black or white, dim text nearly as strong, crisper edges
+    readonly property bool highContrast: Config.ready && !!Config.appearance.highContrast
+    readonly property color text: highContrast ? mix(base.text, dark ? "#ffffff" : "#000000", 0.6) : base.text
+    readonly property color textDim: highContrast ? mix(base.textDim, text, 0.7) : base.textDim
     readonly property color titleText: base.text
     readonly property color hi: base.hi
-    readonly property color lo: base.lo
-    readonly property color edge: base.edge
+    readonly property color lo: highContrast ? mix(base.lo, dark ? "#ffffff" : "#000000", 0.35) : base.lo
+    readonly property color edge: highContrast ? mix(base.edge, dark ? "#ffffff" : "#000000", 0.35) : base.edge
     readonly property color accent: macLook ? macAccent : flavor.accent
     readonly property color accent2: macLook ? macBase.accent2 : flavor.accent2
     readonly property color accent3: base.accent3

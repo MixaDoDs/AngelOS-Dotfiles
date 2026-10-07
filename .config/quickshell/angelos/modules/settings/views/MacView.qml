@@ -265,10 +265,22 @@ Item {
                                     anchors.left: tile.right
                                     anchors.leftMargin: GoldenGate.px(9)
                                     anchors.right: parent.right
-                                    anchors.rightMargin: GoldenGate.px(6)
+                                    anchors.rightMargin: GoldenGate.px(newDot.visible ? 20 : 6)
                                     height: parent.height
                                     text: root.view.labelOf(row.modelData)
                                     color: row.sel ? "#ffffff" : GoldenGate.label
+                                }
+                                // something new on the page (services/SettingsNews): a dot, as macOS marks updates
+                                Rectangle {
+                                    id: newDot
+                                    visible: SettingsNews.pageNew(row.modelData)
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: GoldenGate.px(8)
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: GoldenGate.px(7)
+                                    height: width
+                                    radius: width / 2
+                                    color: row.sel ? "#ffffff" : Theme.accent
                                 }
                                 MouseArea {
                                     id: rowMouse

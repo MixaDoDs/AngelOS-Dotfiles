@@ -58,7 +58,10 @@ Scope {
         command: ["sh", root.script, "status"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const [here, st, who] = text.trim().split(/\s+/);
+                // split on spaces without a RegExp: a regex argument here reached a QString
+                // overload ("Cannot assign QRegularExpression to QString")
+                const parts = String(text || "").replace(/\n/g, " ").trim().split(" ").filter(x => x !== "");
+                const here = parts[0] || "", st = parts[1] || "", who = parts[2] || "";
                 root.login = who || "";
                 if (st === "access" && here === "here") {
                     root.state = "ready";

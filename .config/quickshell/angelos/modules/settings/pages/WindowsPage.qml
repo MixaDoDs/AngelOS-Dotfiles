@@ -92,7 +92,7 @@ PxPage {
         name: "window-decorations"
         id: decorGroup
         width: parent.width
-        title: I18n.t("Декорации окон", "Window decorations")
+        title: I18n.t("Заголовки окон", "Title bars")
         icon: "window"
         SettingRow {
             label: I18n.t("Кнопки GTK-окон как в angelOS", "GTK window buttons like angelOS's")
@@ -600,7 +600,7 @@ PxPage {
     PxGroup {
         name: "layout"
         width: parent.width
-        title: I18n.t("Размещение", "Layout")
+        title: I18n.t("Колонки и отступы", "Columns and gaps")
         advanced: true
         icon: "window"
         enabled: !WindowConfig.busy
@@ -765,7 +765,7 @@ PxPage {
 
     PxGroup {
         name: "window-menu-experimental"
-        title: I18n.t("Меню окна (эксперимент)", "Window menu (experimental)")
+        title: I18n.t("Меню окна", "Window menu")
         advanced: true
         icon: "layers"
         width: parent.width

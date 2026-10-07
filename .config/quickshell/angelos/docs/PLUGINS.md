@@ -40,10 +40,16 @@ OpenAI и Claude, русский и английский интерфейс. [Р
   "desktopWidget": "DesktopWidget.qml",
   "realms": ["heaven", "hell"],
   "settings": "Settings.qml",
+  "settingsNear": "display",
   "main": "Main.qml",
   "launcher": "Launcher.qml"
 }
 ```
+
+`settingsNear` (optional): the settings page your plugin's own page goes right after, so it sits
+next to its topic (`display`, `network`, `sound`, `keyboard`, `windows`, `wallpaper`, `start`,
+`helper`, `stream-angel`, `game`…; the page ids are in `modules/settings/tree.json`). Without it
+the page is listed under Apps.
 
 Все поля кроме `id`/`name` необязательны. `themes` — в каких темах плагин выглядит
 правильно: `"pixel"` (исходная пиксельная), `"mac"` (macOS / Golden Gate) или обе;

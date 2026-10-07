@@ -27,6 +27,33 @@ Singleton {
         if (!indexer.running)
             indexer.running = true;
     }
+    // what people looked for and didn't find (~/.local/state/angelos/settings-search-misses.log,
+    // one "date<TAB>query" a line): the words to teach the search next
+    function logMiss(q) {
+        const t = String(q || "").trim();
+        if (t.length < 3 || Shell.dev || Quickshell.env("ANGELOS_TEST") === "1")
+            return;
+        Quickshell.execDetached(["sh", "-c", 'mkdir -p "$1" && printf "%s\t%s\n" "$(date -Iseconds)" "$2" >> "$1/settings-search-misses.log"', "sh", Config.stateDir, t]);
+    }
+    // words groups and rows are found by besides their own names (data/settings-keywords.json)
+    property var keywords: ({})
+    FileView {
+        path: Quickshell.shellDir + "/data/settings-keywords.json"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                root.keywords = JSON.parse(text());
+            } catch (e) {
+                root.keywords = {};
+            }
+        }
+    }
+    function keywordsOf(e) {
+        if (e.kind === "page" || !e.name)
+            return [];
+        return (e.kind === "group" ? keywords[e.page + "/" + e.name] : keywords[e.page + "/" + e.name + "/" + e.ru]) || [];
+    }
     Process {
         id: indexer
         command: ["python3", Quickshell.shellDir + "/scripts/settings-index.py"]
@@ -47,41 +74,55 @@ Singleton {
     readonly property var aliases: ({
             // only words the page itself doesn't say (its rows are found by their own names)
             // the pages of the settings tree (modules/settings/tree.json)
-            "account": ["аккаунт", "имя", "аватарка", "язык", "мастер", "подсказки", "account", "name", "avatar", "language", "wizard", "tips"],
-            "theme": ["тема", "цвет", "цвета", "палитра", "акцент", "оформление", "внешний вид", "theme", "color", "colour", "palette", "accent", "look", "appearance"],
+            "account": ["аккаунт", "учётка", "учетная запись", "имя", "аватарка", "язык", "мастер", "подсказки", "восстановление", "бэкап", "account", "name", "avatar", "language", "wizard", "tips", "backup", "recovery"],
+            "main": ["главная", "домой", "home", "start page"],
+            "theme": ["тема", "цвет", "цвета", "палитра", "акцент", "оформление", "внешний вид", "скин", "windose", "golden gate", "macos", "theme", "color", "colour", "palette", "accent", "look", "appearance", "skin"],
             "fonts": ["шрифт", "текст", "размер текста", "буквы", "font", "text size", "typeface"],
             "wallpaper": ["обои", "фон", "картинка", "заставка стола", "wallpaper", "background", "picture", "image"],
-            "capture": ["скриншот", "снимок экрана", "запись экрана", "screenshot", "recording", "capture"],
+            "capture": ["скриншот", "скрин", "снимок экрана", "запись экрана", "видео", "обс", "screenshot", "recording", "capture", "video", "grim", "wf-recorder"],
             "cursor": ["курсор", "указатель", "cursor", "pointer"],
             "widgets": ["виджет", "часы", "визуализатор", "cava", "widget", "clock", "visualizer"],
             "deskmenu": ["пкм", "правая кнопка", "контекстное меню", "меню рабочего стола", "меню обоев", "кольцо", "радиальное меню", "right click", "context menu", "desktop menu", "radial menu", "pie menu"],
-            "taskbar": ["панель", "таскбар", "трей", "кнопки окон", "часы", "taskbar", "panel", "tray", "dock", "clock"],
-            "start": ["пуск", "меню пуск", "кнопка пуск", "start", "start menu", "start button"],
-            "workspaces": ["рабочие столы", "воркспейсы", "столы", "сердечки", "переход", "desks", "virtual desktops", "workspaces", "transition"],
+            "taskbar": ["панель", "таскбар", "трей", "кнопки окон", "часы", "taskbar", "panel", "tray", "clock"],
+            "start": ["пуск", "меню пуск", "кнопка пуск", "meta", "win", "start", "start menu", "start button"],
+            "workspaces": ["рабочие столы", "воркспейсы", "столы", "сердечки", "desks", "virtual desktops", "workspaces"],
             "lyrics": ["лирика", "текст песни", "караоке", "песня", "музыка", "lyrics", "song", "karaoke", "music"],
-            "display": ["экран", "дисплей", "монитор", "разрешение", "частота", "герцы", "масштаб", "display", "screen", "monitor", "resolution", "refresh rate", "hz", "scale"],
-            "keyboard": ["клавиатура", "раскладка", "голосовой ввод", "диктовка", "keyboard", "layout", "voice typing", "dictation"],
-            "mouse": ["мышь", "мышка", "тачпад", "чувствительность", "лупа", "увеличение", "зум", "приблизить", "mouse", "touchpad", "sensitivity", "lens", "magnifier", "zoom"],
+            "display": ["экран", "дисплей", "монитор", "разрешение", "частота", "герцы", "масштаб", "ночной свет", "display", "screen", "monitor", "resolution", "refresh rate", "hz", "scale", "night light"],
+            "keyboard": ["клавиатура", "раскладка", "повтор клавиш", "numlock", "keyboard", "layout", "key repeat"],
+            "mouse": ["мышь", "мышка", "тачпад", "чувствительность", "ускорение", "mouse", "touchpad", "sensitivity", "acceleration"],
             "shortcuts": ["горячие клавиши", "хоткеи", "сочетания", "бинды", "клавиши", "shortcuts", "hotkeys", "keybinds", "bindings", "keys"],
-            "windows": ["окна", "закрытие окон", "анимация закрытия", "отступы", "колонки", "диспетчер", "windows", "close", "gaps", "columns"],
-            "sound": ["звук", "громкость", "микрофон", "аудио", "колонки", "наушники", "sound", "audio", "volume", "microphone", "speakers", "headphones"],
-            "sfx": ["звуки", "звуки системы", "клик", "клики", "щелчок", "клавиши", "набор", "печать", "звук уведомления", "тихие часы", "sounds", "system sounds", "click", "clicks", "keys", "typing", "notification sound", "quiet hours"],
-            "network": ["сеть", "интернет", "вайфай", "wifi", "network", "internet"],
-            "bluetooth": ["блютуз", "беспроводные", "bluetooth", "wireless"],
+            "windows": ["окна", "заголовок", "кнопки окна", "отступы", "колонки", "фокус", "windows", "title bar", "gaps", "columns", "focus"],
+            "alttab": ["альт таб", "переключение окон", "alt tab", "window switcher"],
+            "animations": ["анимации", "анимация окон", "открытие окон", "animations", "window animation"],
+            "sound": ["звук", "громкость", "микрофон", "аудио", "колонки", "наушники", "osd", "sound", "audio", "volume", "microphone", "speakers", "headphones"],
+            "sfx": ["звуки", "звуки системы", "клик", "клики", "щелчок", "клавиши", "набор", "печать", "звук уведомления", "тихие часы", "sounds", "system sounds", "click", "clicks", "typing", "notification sound", "quiet hours"],
+            "network": ["сеть", "интернет", "вайфай", "кабель", "wifi", "network", "internet", "ethernet"],
+            "bluetooth": ["блютуз", "беспроводные", "наушники", "bluetooth", "wireless"],
             "gamepad": ["геймпад", "джойстик", "контроллер", "gamepad", "controller", "joystick"],
-            "defaults": ["по умолчанию", "браузер", "терминал", "редактор", "файловый менеджер", "диспетчер задач", "default apps", "browser", "terminal", "editor", "file manager", "task manager"],
+            "defaults": ["по умолчанию", "браузер", "терминал", "редактор", "файловый менеджер", "default apps", "browser", "terminal", "editor", "file manager"],
+            "taskmanager": ["диспетчер задач", "системный монитор", "btop", "htop", "task manager", "system monitor"],
             "notifications": ["уведомления", "не беспокоить", "notifications", "do not disturb", "dnd"],
-            "plugins": ["плагины", "расширения", "plugins", "extensions", "addons"],
-            "lock": ["блокировка", "заставка", "пароль", "экран блокировки", "lock", "idle", "lock screen", "screensaver"],
-            "updates": ["обновления", "версия", "updates", "upgrade", "version"],
-            "about": ["система", "о системе", "компьютер", "отчёт", "system", "about", "computer", "report"],
-            "power": ["питание", "производительность", "отрисовка", "power", "performance", "renderer"],
-            "developer": ["разработчик", "режим разработчика", "отладка", "developer", "debug"],
-            "stream": ["стрим", "эфир", "obs", "трансляция", "stream", "broadcast", "on air"],
-            "game": ["игра", "спокойный режим", "выключить игру", "game", "calm"],
+            "plugins": ["плагины", "расширения", "каталог", "plugins", "extensions", "addons", "store"],
+            "studio": ["мастер плагинов", "создать плагин", "ии", "plugin studio", "ai"],
+            "lock": ["блокировка", "заставка", "пароль", "экран блокировки", "экран входа", "sddm", "загрузка", "lock", "idle", "lock screen", "screensaver", "login screen", "boot"],
+            "updates": ["обновления", "версия", "релиз", "откат", "updates", "upgrade", "version", "release", "rollback"],
+            "about": ["система", "о системе", "компьютер", "отчёт", "баг", "system", "about", "computer", "report", "bug"],
+            "power": ["питание", "производительность", "энергосбережение", "сон", "простой", "power", "performance", "sleep", "idle"],
+            "lab": ["лаборатория", "эксперименты", "разработчик", "режим разработчика", "отладка", "отрисовка", "движок", "nvidia", "lab", "experiments", "developer", "debug", "renderer"],
+            "terminal": ["терминал", "fastfetch", "фастфетч", "неофетч", "neofetch", "логотип в терминале", "консоль", "terminal", "console", "logo"],
+            "stream": ["стрим", "эфир", "трансляция", "стример", "stream", "broadcast", "on air", "streamer"],
+            "obs": ["obs", "обс", "websocket", "порт", "port"],
+            "stream-angel": ["ангел на стриме", "стример", "вебка", "голос", "микрофон", "angel on stream", "streamer", "voice"],
+            "uisize": ["размер интерфейса", "масштаб", "крупнее", "мельче", "пиксель", "ui size", "scale", "bigger", "smaller", "pixel"],
+            "motion": ["меньше движения", "анимации", "тряска", "вспышки", "спокойно", "reduce motion", "animations", "shaking", "flashes", "calm"],
+            "contrast": ["контраст", "прозрачность", "чёткость", "читаемость", "contrast", "transparency", "readability"],
+            "lens": ["лупа", "увеличение", "зум", "приблизить", "magnifier", "lens", "zoom"],
+            "shake": ["найти курсор", "потрясти мышь", "потерял курсор", "shake", "find pointer"],
+            "voice": ["голосовой ввод", "диктовка", "voxtype", "voice typing", "dictation"],
             "helper": ["y2k", "ангел", "ангелочек", "помощник", "помощница", "демоница", "облик", "angel", "helper", "demon", "looks"],
-            "hell": ["ад", "круги", "демоница", "hell", "circles", "demon"],
-            "novel": ["новелла", "истории", "сюжет", "novel", "stories", "story"]
+            "game": ["игра", "спокойный режим", "ад", "круги", "портал", "новелла", "истории", "game", "calm", "hell", "circles", "portal", "novel"],
+            "rewards": ["награды", "достижения", "ачивки", "звёзды", "звезды", "сундуки", "сундук", "пропуск", "молитвы", "rewards", "achievements", "stars", "chests", "pass"],
+            "diary": ["дневник", "закладка", "diary", "bookmark"]
         })
     // words that mean the same thing; a query word pulls in its whole group
     readonly property var synonyms: [
@@ -263,13 +304,13 @@ Singleton {
     readonly property var hellOnly: ["cursor|Курсор в аду", "y2k|Демоница", "y2k|ПКМ в аду", "y2k|Настройки в аду", "y2k|Виджеты в аду", "y2k|Курсор в аду", "y2k|Какой ад на обоях", "y2k|Трещины на экране", "y2k|Alt+Tab в аду", "y2k|Терминал в аду", "y2k|Приложения в аду", "y2k|Лирика в аду", "y2k|Колесо Ада", "y2k|Панель в аду", "y2k|Ад"]
     // … and these groups go by the angel's name there
     readonly property var heavenGroups: ({
-            "y2k|Ангел или демон": {
+            "y2k|Рай и ад": {
                 "ru": "Ангел и портал",
                 "en": "Angel and the portal"
             },
-            "sfx|Ангел и демоница": {
-                "ru": "Ангелочек",
-                "en": "The angel"
+            "sfx|Голос ангела и демоницы": {
+                "ru": "Голос ангела",
+                "en": "The angel's voice"
             }
         })
     function _inHeaven(e) {
@@ -316,11 +357,13 @@ Singleton {
                 "target": e.kind === "page" ? "" : e[lang],
                 "crumb": e.kind === "row" && e.group && e.group[lang] ? info.label + " › " + e.group[lang] : e.kind === "page" ? "" : info.label,
                 "hint": e.hint ? e.hint[lang] : "",
+                // a plain switch ("section.key"): the results show it, flipped right there
+                "toggle": e.kind === "row" && e.toggle ? e.toggle : "",
                 "icon": info.icon,
                 "primary": words(title + (e.kind === "page" ? " " + (e[lang] || "") : "")),
                 "other": words(e[other] || ""),
-                "aliasNames": e.kind === "page" ? (aliases[page] || []).map(a => norm(a)) : [],
-                "alias": e.kind === "page" ? words((aliases[page] || []).join(" ")) : [],
+                "aliasNames": (e.kind === "page" ? aliases[page] || [] : keywordsOf(raw)).map(a => norm(a)),
+                "alias": words((e.kind === "page" ? aliases[page] || [] : keywordsOf(raw)).join(" ")),
                 "secondary": words((e.hint ? e.hint[lang] + " " + e.hint[other] : "") + " " + (e.words ? e.words[lang].join(" ") + " " + e.words[other].join(" ") : "")),
                 "context": words(e.kind === "row" && e.group ? e.group[lang] + " " + e.group[other] : "")
             });

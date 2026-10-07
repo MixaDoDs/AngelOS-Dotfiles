@@ -85,9 +85,10 @@ Singleton {
     }
     // where she stood before this throw (act() keeps it for the fall it starts)
     property var _beforeThrow: null
-    function markDescent() {
-        // the throw that starts this fall was a moment ago (a stale one is no part of it)
-        const thrown = _beforeThrow && Date.now() - _beforeThrow.at < 15000;
+    function markDescent(at) {
+        // the throw that starts this fall was a moment ago (a stale one is no part of it);
+        // `at`: when the fall began (fell() does a lot before it asks)
+        const thrown = _beforeThrow && (at || Date.now()) - _beforeThrow.at < 15000;
         const was = thrown ? _beforeThrow : {
             "cold": !!player.coldRoute,
             "betrayals": player.betrayals || 0
@@ -589,6 +590,7 @@ Singleton {
     }
     // the angel went down (Angel.becomeDemon, halfway through the swap); `target`: a dev jump
     function fell(target) {
+        const began = Date.now();
         const c = order.includes(target) ? target : circleForFall();
         let used = (hell.fallCircles || []).filter(x => order.includes(x));
         if (used.length >= order.length)
@@ -600,7 +602,7 @@ Singleton {
         save.hell.attempts = 0;
         save.hell.silences = 0;
         save.hell.limbo = false;
-        markDescent();
+        markDescent(began);
         setCircle(c);
         return c;
     }

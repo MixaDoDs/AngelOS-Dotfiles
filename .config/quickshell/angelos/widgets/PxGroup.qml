@@ -30,6 +30,15 @@ Item {
     property bool advanced: false
     property bool shown: true
     default property alias content: col.data
+    // new since you last looked (services/SettingsNews), looked up when the news change
+    readonly property bool isNew: {
+        if (!SettingsNews.news.count || !name)
+            return false;
+        for (let p = root.parent; p; p = p.parent)
+            if (p.srcName !== undefined)
+                return SettingsNews.groupNew(p.srcName, name);
+        return false;
+    }
 
     // the page this is on (PxPage: focusGroup), if any
     readonly property var page: {
@@ -213,6 +222,11 @@ Item {
             kind: root.classic || root.fluent ? "body" : "title"
             color: root.settingsSkin === "stream" ? Theme.streamText : root.settingsSkin === "windose" ? Theme.windoseInk : Theme.textDim
             font.bold: true
+            anchors.verticalCenter: parent.verticalCenter
+        }
+        // a group new since you last looked (services/SettingsNews)
+        NewStar {
+            visible: root.isNew
             anchors.verticalCenter: parent.verticalCenter
         }
     }

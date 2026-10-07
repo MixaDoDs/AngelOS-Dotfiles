@@ -100,6 +100,56 @@ PxPage {
             }
         }
         SettingRow {
+            id: pixelRow
+            label: I18n.t("Пикселизовать обои", "Pixelate the wallpaper")
+            preview: "LockScreen"
+            PxToggle {
+                checked: Config.lock.pixelate
+                onToggled: c => {
+                    Config.lock.pixelate = c;
+                    if (c)
+                        pixelRow.show("pixelate", I18n.t("пиксели", "pixels"));
+                }
+            }
+        }
+        Row {
+            spacing: Theme.u * 4
+            PxButton {
+                text: I18n.t("Предпросмотр", "Preview")
+                icon: "sparkle"
+                onClicked: {
+                    lockPage.nav.settingsOpen = false;
+                    Shell.lockPreview = true;
+                }
+            }
+            PxButton {
+                text: I18n.t("Показать вход", "Show the unlock")
+                icon: "heart"
+                onClicked: {
+                    lockPage.nav.settingsOpen = false;
+                    Shell.lockPreviewDemo = "angel";
+                    Shell.lockPreview = true;
+                }
+            }
+            PxButton {
+                text: I18n.t("Заблокировать", "Lock now")
+                icon: "lock"
+                onClicked: Shell.lock()
+            }
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("В предпросмотре пароль не проверяется: пустой Enter показывает ошибку, любой текст — вход. Esc закрывает.", "The preview never checks a password: an empty Enter shows the mistake, any text the unlock. Esc closes it.")
+        }
+    }
+    PxGroup {
+        name: "lock-timers"
+        title: I18n.t("Когда блокировать", "When to lock")
+        icon: "lock"
+        width: parent.width
+        SettingRow {
             label: I18n.t("Блокировать после простоя", "Lock when idle")
             hint: I18n.t("0 = никогда", "0 = never")
             PxSpin {
@@ -120,19 +170,12 @@ PxPage {
             }
         }
         // each look below plays as a small gif when it is switched on
-        SettingRow {
-            id: pixelRow
-            label: I18n.t("Пикселизовать обои", "Pixelate the wallpaper")
-            preview: "LockScreen"
-            PxToggle {
-                checked: Config.lock.pixelate
-                onToggled: c => {
-                    Config.lock.pixelate = c;
-                    if (c)
-                        pixelRow.show("pixelate", I18n.t("пиксели", "pixels"));
-                }
-            }
-        }
+    }
+    PxGroup {
+        name: "lock-details"
+        title: I18n.t("Детали блокировки", "Lock screen details")
+        icon: "sparkle"
+        width: parent.width
         SettingRow {
             id: heartsRow
             label: I18n.t("Летающие сердечки", "Floating hearts")
@@ -182,6 +225,12 @@ PxPage {
                 onToggled: c => Config.lock.logo = c
             }
         }
+    }
+    PxGroup {
+        name: "lock-stream"
+        title: I18n.t("Эфир на блокировке", "Stream on the lock screen")
+        icon: "camera"
+        width: parent.width
         SettingRow {
             id: streamRow
             visible: Config.lock.style !== "heaven"
@@ -275,6 +324,12 @@ PxPage {
                 onToggled: c => Config.lock.highlights = c
             }
         }
+    }
+    PxGroup {
+        name: "lock-rewards"
+        title: I18n.t("Награды при входе", "Rewards at login")
+        icon: "star"
+        width: parent.width
         SettingRow {
             visible: Config.lock.style === "heaven"
             label: I18n.t("Ангел у врат", "The angel by the gate")
@@ -318,43 +373,12 @@ PxPage {
                 onToggled: c => Config.lock.notices = c
             }
         }
-        Row {
-            spacing: Theme.u * 4
-            PxButton {
-                text: I18n.t("Предпросмотр", "Preview")
-                icon: "sparkle"
-                onClicked: {
-                    lockPage.nav.settingsOpen = false;
-                    Shell.lockPreview = true;
-                }
-            }
-            PxButton {
-                text: I18n.t("Показать вход", "Show the unlock")
-                icon: "heart"
-                onClicked: {
-                    lockPage.nav.settingsOpen = false;
-                    Shell.lockPreviewDemo = "angel";
-                    Shell.lockPreview = true;
-                }
-            }
-            PxButton {
-                text: I18n.t("Заблокировать", "Lock now")
-                icon: "lock"
-                onClicked: Shell.lock()
-            }
-        }
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            dim: true
-            text: I18n.t("В предпросмотре пароль не проверяется: пустой Enter показывает ошибку, любой текст — вход. Esc закрывает.", "The preview never checks a password: an empty Enter shows the mistake, any text the unlock. Esc closes it.")
-        }
     }
 
     PxGroup {
         id: sddmGroup
         name: "login-screen"
-        title: I18n.t("Экран входа (SDDM)", "Login screen (SDDM)")
+        title: I18n.t("Экран входа", "Login screen")
         icon: "monitor"
         width: parent.width
         property var info: ({})
@@ -647,22 +671,10 @@ PxPage {
 
     PxGroup {
         name: "idle-screen"
-        title: I18n.t("Заставка (Idle)", "Idle screen")
+        title: I18n.t("Заставка", "Screensaver")
         advanced: true
         icon: "moon"
         width: parent.width
-        SettingRow {
-            label: I18n.t("Включать после простоя", "Start when idle")
-            hint: I18n.t("0 = только вручную: «Пуск», меню выключения или angelos idle", "0 = by hand only: Start, the power menu or `angelos idle`")
-            PxSpin {
-                from: 0
-                to: 60
-                stepSize: 1
-                value: Config.idle.minutes
-                suffix: I18n.t(" мин", " min")
-                onMoved: v => Config.idle.minutes = v
-            }
-        }
         SettingRow {
             label: I18n.t("Эффект", "Effect")
             PxCombo {
@@ -763,6 +775,24 @@ PxPage {
                 text: I18n.t("Вернуть логотип", "Restore logo")
                 icon: "refresh"
                 onClicked: Config.idle.text = ""
+            }
+        }
+    }
+    PxGroup {
+        name: "idle-timer"
+        title: I18n.t("Заставка после простоя", "Screensaver after idle")
+        icon: "moon"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Включать после простоя", "Start when idle")
+            hint: I18n.t("0 = только вручную: «Пуск», меню выключения или angelos idle", "0 = by hand only: Start, the power menu or `angelos idle`")
+            PxSpin {
+                from: 0
+                to: 60
+                stepSize: 1
+                value: Config.idle.minutes
+                suffix: I18n.t(" мин", " min")
+                onMoved: v => Config.idle.minutes = v
             }
         }
     }

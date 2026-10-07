@@ -41,7 +41,20 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GtkLayerShell", "0.1")
 from gi.repository import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
 
-OUTDIR = os.path.expanduser("~/Pictures/Screenshots")
+def load_capture_settings():
+    """angelOS Settings → System → Screenshots and recording (settings.json "capture")."""
+    import json
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    try:
+        with open(os.path.join(base, "angelos/settings.json")) as f:
+            return json.load(f).get("capture") or {}
+    except Exception:
+        return {}
+
+
+CAPTURE = load_capture_settings()
+OUTDIR = os.path.expanduser(CAPTURE.get("shotDir") or "~/Pictures/Screenshots")
+SHOT_JPG = CAPTURE.get("shotFormat") == "jpg"
 DIM = 0.35
 SEGMENTS_BORDER = 10
 SEGMENTS_TETHER = 12
@@ -70,6 +83,177 @@ def load_skin():
 
 
 SKIN = load_skin()
+
+# A click without a drag takes the window under the pointer (like ShareX): it lights up as the
+# pointer moves over it; over the desktop or a bar, the click takes the whole screen.
+CLICK_SLOP = 4  # px the pointer may wander between press and release and still be a click
+
+
+def niri_request(name):
+    """One request on niri's socket ("Windows", "Workspaces", "Outputs"): its reply or None."""
+    import json
+    import socket
+    path = os.environ.get("NIRI_SOCKET")
+    if not path:
+        return None
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.settimeout(1.0)
+            s.connect(path)
+            s.sendall((json.dumps(name) + "\n").encode())
+            buf = b""
+            while not buf.endswith(b"\n"):
+                chunk = s.recv(65536)
+                if not chunk:
+                    break
+                buf += chunk
+        ok = json.loads(buf).get("Ok")
+        return ok.get(name) if isinstance(ok, dict) else None
+    except Exception:
+        return None
+
+
+def niri_layout():
+    """gaps, center-focused-column and struts from niri's config (angelOS: cfg/layout.kdl)."""
+    import re
+    base = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "niri")
+    text = ""
+    for name in ("cfg/layout.kdl", "config.kdl"):
+        try:
+            with open(os.path.join(base, name)) as f:
+                text += re.sub(r"//[^\n]*", "", f.read()) + "\n"
+        except OSError:
+            pass
+
+    def num(pattern, body, default=0.0):
+        m = re.search(pattern, body, re.M)
+        return float(m.group(1)) if m else default
+
+    m = re.search(r"^\s*center-focused-column\s+\"?([\w-]+)", text, re.M)
+    s = re.search(r"^\s*struts\s*\{([^}]*)\}", text, re.M)
+    body = s.group(1) if s else ""
+    struts = {e: num(r"\b" + e + r"\s+(-?[\d.]+)", body) for e in ("left", "right", "top", "bottom")}
+    return num(r"^\s*gaps\s+([\d.]+)", text, 16.0), m.group(1) if m else "never", struts
+
+
+def read_zones():
+    """The edges angelOS's bars keep from windows, per output (services/Zones in the shell)."""
+    import json
+    try:
+        with open(os.path.join(os.environ.get("XDG_RUNTIME_DIR") or "/tmp", "angelos", "zones.json")) as f:
+            return json.load(f) or {}
+    except Exception:
+        return {}
+
+
+def split_zone(total, a, b):
+    """How much of `total` (what the bars keep across one axis, measured) is on the a side
+    (top or left), given what the shell says each side keeps."""
+    if a + b == total or total <= 0:
+        return max(0, min(a, total))
+    if not b:
+        return total
+    if not a:
+        return 0
+    return round(total * a / (a + b))
+
+
+def window_rects(parents):
+    """The windows on the screens, topmost first: [(x, y, w, h, title)] in global logical
+    coordinates (grim's), each cut to its output. `parents` = output name -> (w, h) of the
+    area the bars leave (niri's parent area, measured by a layer-shell probe).
+
+    niri tells where floating windows are, not tiled ones; these are laid out the way niri
+    does it: the active column centred in the working area (center-focused-column "always"),
+    the others beside it with the gaps, tiles from the top. Otherwise no tiled windows."""
+    windows = niri_request("Windows") or []
+    workspaces = niri_request("Workspaces") or []
+    outputs = niri_request("Outputs") or {}
+    gaps, center, struts = niri_layout()
+    zones = read_zones()
+    found = []
+    for ws in workspaces:
+        out = outputs.get(ws.get("output") or "") or {}
+        lg = out.get("logical")
+        if not ws.get("is_active") or not lg:
+            continue
+        name = ws["output"]
+        ox, oy, ow, oh = lg["x"], lg["y"], lg["width"], lg["height"]
+        pw, ph = parents.get(name) or (ow, oh)
+        z = zones.get(name) or {}
+        px = split_zone(ow - pw, z.get("left", 0), z.get("right", 0))
+        py = split_zone(oh - ph, z.get("top", 0), z.get("bottom", 0))
+        wx, wy = px + struts["left"], py + struts["top"]
+        ww, wh = pw - struts["left"] - struts["right"], ph - struts["top"] - struts["bottom"]
+        mine = [w for w in windows if w.get("workspace_id") == ws["id"] and (w.get("layout") or {}).get("window_size")]
+        placed = []  # (z order key, x, y, w, h, title) in output coordinates
+
+        def add(w, tx, ty, key):
+            lay = w["layout"]
+            dx, dy = lay.get("window_offset_in_tile") or (0, 0)
+            placed.append((key, tx + dx, ty + dy, lay["window_size"][0], lay["window_size"][1], w.get("title") or w.get("app_id") or ""))
+
+        # floating ones over the tiled, the last focused on top (niri raises a window on focus)
+        for w in mine:
+            pos = w["layout"].get("tile_pos_in_workspace_view")
+            if w.get("is_floating") and pos:
+                add(w, pos[0], pos[1], (1, w.get("focus_timestamp") or {}))
+
+        tiled = [w for w in mine if not w.get("is_floating") and w["layout"].get("pos_in_scrolling_layout") and w["layout"].get("tile_size")]
+        if tiled and center == "always":
+            cols = {}
+            for w in tiled:
+                cols.setdefault(w["layout"]["pos_in_scrolling_layout"][0], []).append(w)
+            width = {c: max(w["layout"]["tile_size"][0] for w in ts) for c, ts in cols.items()}
+            colx, x = {}, 0.0
+            for c in sorted(cols):
+                colx[c] = x
+                x += width[c] + gaps
+            by_id = {w["id"]: w for w in tiled}
+            act = by_id.get(ws.get("active_window_id")) or max(tiled, key=lambda w: ts_key(w.get("focus_timestamp")))
+            ac = act["layout"]["pos_in_scrolling_layout"][0]
+
+            def mode(ts):
+                tw, th = max(t["layout"]["tile_size"][0] for t in ts), max(t["layout"]["tile_size"][1] for t in ts)
+                if tw >= ow - 0.5 and th >= oh - 0.5:
+                    return "fullscreen"
+                if tw >= pw - 0.5 and th >= ph - 0.5:
+                    return "maximized"
+                return "normal"
+
+            am, aw = mode(cols[ac]), width[ac]
+            if am == "fullscreen":
+                xa = 0.0
+            elif am == "maximized":
+                xa = px
+            elif aw >= ww:
+                xa = wx  # wider than the view: niri puts it at the left
+            else:
+                xa = wx + (ww - aw) / 2
+            for c, ts in cols.items():
+                cx = xa + colx[c] - colx[ac]
+                m = mode(ts)
+                y = 0.0 if m == "fullscreen" else py if m == "maximized" else wy + gaps
+                for w in sorted(ts, key=lambda w: w["layout"]["pos_in_scrolling_layout"][1]):
+                    tw, th = w["layout"]["tile_size"]
+                    add(w, cx + (width[c] - tw) / 2, y, (0, w.get("focus_timestamp") or {}))
+                    y += th + gaps
+
+        placed.sort(key=lambda p: (p[0][0], ts_key(p[0][1])), reverse=True)
+        for _key, x, y, w, h, title in placed:
+            # only what is on this output
+            x0, y0 = max(round(x), 0), max(round(y), 0)
+            x1, y1 = min(round(x + w), ow), min(round(y + h), oh)
+            if x1 - x0 >= MIN_SIZE and y1 - y0 >= MIN_SIZE:
+                found.append((ox + x0, oy + y0, x1 - x0, y1 - y0, title))
+    return found
+
+
+def ts_key(ts):
+    """niri's focus_timestamp ({secs, nanos} or None) as a number to sort by."""
+    if not isinstance(ts, dict):
+        return 0
+    return ts.get("secs", 0) * 1_000_000_000 + ts.get("nanos", 0)
 
 
 @dataclass
@@ -191,12 +375,14 @@ class ScreenOverlay(Gtk.Window):
             Gdk.EventMask.BUTTON_PRESS_MASK
             | Gdk.EventMask.BUTTON_RELEASE_MASK
             | Gdk.EventMask.POINTER_MOTION_MASK
+            | Gdk.EventMask.ENTER_NOTIFY_MASK
             | Gdk.EventMask.KEY_PRESS_MASK
         )
         self.connect("draw", self.on_draw)
         self.connect("button-press-event", self.on_press)
         self.connect("button-release-event", self.on_release)
         self.connect("motion-notify-event", self.on_motion)
+        self.connect("enter-notify-event", self.on_motion)
         self.connect("key-press-event", self.on_key)
         self.set_can_focus(True)
         self.show_all()
@@ -209,21 +395,31 @@ class ScreenOverlay(Gtk.Window):
         if event.button != 1:
             return False
         gx, gy = self.to_global(event.x, event.y)
-        self.app.begin_drag(gx, gy)
+        self.app.press(gx, gy)
         return True
 
     def on_motion(self, _w, event):
-        if not self.app.dragging:
-            return False
         gx, gy = self.to_global(event.x, event.y)
-        self.app.update_drag(gx, gy)
+        if self.app.dragging:
+            self.app.update_drag(gx, gy)
+        elif self.app.pressed is not None:
+            # a click until the pointer wanders off: then a region from where it was pressed
+            px, py = self.app.pressed
+            if abs(gx - px) > CLICK_SLOP or abs(gy - py) > CLICK_SLOP:
+                self.app.begin_drag(px, py)
+                self.app.update_drag(gx, gy)
+        else:
+            self.app.hover_at(gx, gy)
         return True
 
     def on_release(self, _w, event):
         if event.button != 1:
             return False
         gx, gy = self.to_global(event.x, event.y)
-        self.app.end_drag(gx, gy)
+        if self.app.dragging:
+            self.app.end_drag(gx, gy)
+        elif self.app.pressed is not None:
+            self.app.click(gx, gy)
         return True
 
     def on_key(self, _w, event):
@@ -350,9 +546,49 @@ class ScreenOverlay(Gtk.Window):
             cr.fill()
 
 
+class WorkProbe(Gtk.Window):
+    """An invisible layer surface over the whole of one output less the bars' exclusive
+    zones: the size niri gives it is that area (Wayland doesn't say where it is; the shell's
+    zones.json says which edges the bars took)."""
+
+    def __init__(self, monitor: Gdk.Monitor, on_size):
+        super().__init__()
+        self.set_app_paintable(True)
+        self.set_decorated(False)
+        self.set_size_request(1, 1)
+        visual = self.get_screen().get_rgba_visual()
+        if visual is not None:
+            self.set_visual(visual)
+        GtkLayerShell.init_for_window(self)
+        GtkLayerShell.set_namespace(self, "niri-screenshot-probe")
+        GtkLayerShell.set_layer(self, GtkLayerShell.Layer.BACKGROUND)
+        GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.NONE)
+        GtkLayerShell.set_exclusive_zone(self, 0)
+        GtkLayerShell.set_monitor(self, monitor)
+        for edge in (GtkLayerShell.Edge.LEFT, GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.RIGHT, GtkLayerShell.Edge.BOTTOM):
+            GtkLayerShell.set_anchor(self, edge, True)
+        self.connect("draw", self._clear)
+        self.connect("size-allocate", lambda _w, a: a.width > 1 and a.height > 1 and on_size(a.width, a.height))
+        self.show_all()
+        self.input_shape_combine_region(cairo.Region())
+
+    @staticmethod
+    def _clear(_w, cr):
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        cr.set_source_rgba(0, 0, 0, 0)
+        cr.paint()
+        return True
+
+
 class ScreenshotApp:
     def __init__(self):
         self.dragging = False
+        self.pressed = None  # where button 1 went down, until it is a drag or a click
+        self.hover = None  # the window (or screen) under the pointer: what a click takes
+        self.pointer = None
+        self.rects = []  # window_rects(), once the probes have measured the screens
+        self._parents = {}
+        self._probes = []
         self.x0 = self.y0 = 0.0
         self.x1 = self.y1 = 0.0
         self.ropes: list[Rope] = []
@@ -383,7 +619,73 @@ class ScreenshotApp:
 
         GLib.timeout_add(5, self._tick)  # ~200Hz physics tick; drawing is throttled separately
 
+        # the windows under the pointer: measure the screens' working areas, then lay them out
+        for win in self.windows:
+            g = win.geo
+            self._probes.append(WorkProbe(win.monitor, lambda w, h, g=g: self._measured(g, w, h)))
+        GLib.timeout_add(400, self._find_windows)
+
+    def _measured(self, g, w, h):
+        self._parents[(g.x, g.y)] = (w, h)
+        if len(self._parents) >= len(self.windows):
+            GLib.idle_add(self._find_windows)
+
+    def _find_windows(self):
+        if not self._probes or self._done:
+            return False
+        for probe in self._probes:
+            probe.destroy()
+        self._probes = []
+        outputs = niri_request("Outputs") or {}
+        parents = {}
+        for name, out in outputs.items():
+            lg = out.get("logical") or {}
+            size = self._parents.get((lg.get("x"), lg.get("y")))
+            if size:
+                parents[name] = size
+        try:
+            self.rects = window_rects(parents)
+        except Exception as e:
+            print("niri-screenshot-region: no windows:", e, file=sys.stderr)
+            self.rects = []
+        if self.pointer is not None and self.pressed is None and not self.dragging:
+            self.hover = None
+            self.hover_at(*self.pointer)
+        return False
+
+    def target_at(self, gx, gy):
+        """What a click at (gx, gy) takes: the topmost window there, else the whole screen."""
+        for x, y, w, h, _title in self.rects:
+            if x <= gx < x + w and y <= gy < y + h:
+                return x, y, w, h
+        for win in self.windows:
+            g = win.geo
+            if g.x <= gx < g.x + g.width and g.y <= gy < g.y + g.height:
+                return g.x, g.y, g.width, g.height
+        return None
+
+    def hover_at(self, gx, gy):
+        self.pointer = (gx, gy)
+        rect = self.target_at(gx, gy)
+        if rect != self.hover:
+            self.hover = rect
+            self._sync_ropes()
+            self.redraw(all_monitors=True)
+
+    def press(self, gx, gy):
+        self.pressed = (gx, gy)
+
+    def click(self, gx, gy):
+        self.pressed = None
+        sel = self.target_at(gx, gy)
+        if sel is None:
+            self.cancel()
+            return
+        self.finish(sel)
+
     def selection_global(self):
+        if not self.dragging and self.hover is not None:
+            return self.hover
         if not self.dragging and abs(self.x1 - self.x0) < 1 and abs(self.y1 - self.y0) < 1:
             # idle before first drag — no selection
             if self.x0 == 0 and self.x1 == 0 and self.y0 == 0 and self.y1 == 0:
@@ -446,6 +748,8 @@ class ScreenshotApp:
 
     def begin_drag(self, gx, gy):
         self.dragging = True
+        self.pressed = None
+        self.hover = None
         self.x0 = self.x1 = gx
         self.y0 = self.y1 = gy
         self.ropes = []
@@ -466,6 +770,9 @@ class ScreenshotApp:
         if sel is None or sel[2] < MIN_SIZE or sel[3] < MIN_SIZE:
             self.cancel()
             return
+        self.finish(sel)
+
+    def finish(self, sel):
         # hide overlays so they aren't in the shot / recorder
         for w in self.windows:
             w.hide()
@@ -488,10 +795,11 @@ class ScreenshotApp:
         x, y, w, h = sel
         os.makedirs(OUTDIR, exist_ok=True)
         stamp = time.strftime("%Y-%m-%d %H-%M-%S")
-        path = os.path.join(OUTDIR, f"Screenshot from {stamp}.png")
+        path = os.path.join(OUTDIR, f"Screenshot from {stamp}." + ("jpg" if SHOT_JPG else "png"))
         geom = f"{x},{y} {w}x{h}"
         try:
-            subprocess.run(["grim", "-g", geom, path], check=True, timeout=10)
+            grim = ["grim", "-g", geom] + (["-c"] if CAPTURE.get("shotCursor") else []) + (["-t", "jpeg", "-q", "92"] if SHOT_JPG else [])
+            subprocess.run(grim + [path], check=True, timeout=10)
             # the overlays go away for good before the slower steps (issue #4)
             for win in self.windows:
                 win.destroy()
@@ -506,13 +814,16 @@ class ScreenshotApp:
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-            with open(path, "rb") as f:
-                subprocess.run(
-                    ["wl-copy", "--type", "image/png"],
-                    input=f.read(),
-                    check=False,
-                    timeout=5,
-                )
+            if CAPTURE.get("shotCopy", True):
+                with open(path, "rb") as f:
+                    subprocess.run(
+                        ["wl-copy", "--type", "image/jpeg" if SHOT_JPG else "image/png"],
+                        input=f.read(),
+                        check=False,
+                        timeout=5,
+                    )
+            if CAPTURE.get("shotOpen"):
+                subprocess.Popen(["xdg-open", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
             subprocess.run(
                 ["notify-send", "-a", "Screenshot", "Скриншот сохранён", path],
                 check=False,

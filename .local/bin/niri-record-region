@@ -4,10 +4,44 @@ set -euo pipefail
 PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/niri-record-region.pid"
 OVERLAY_PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/niri-record-overlay.pid"
 OUTFILE_META="${XDG_RUNTIME_DIR:-/tmp}/niri-record-region.out"
-OUTDIR="${HOME}/Videos"
 OVERLAY_BIN="${HOME}/.local/bin/niri-record-overlay"
 SELECTOR="${HOME}/.local/bin/niri-screenshot-region"
-FPS="${NIRI_RECORD_FPS:-60}"
+# angelOS Settings → System → Screenshots and recording (settings.json "capture"):
+# folder, frame rate, sound, codec — one line each
+mapfile -t CAP < <(python3 - <<'PY' 2>/dev/null
+import json, os
+base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+try:
+    c = json.load(open(os.path.join(base, "angelos/settings.json"))).get("capture") or {}
+except Exception:
+    c = {}
+print(os.path.expanduser(c.get("recordDir") or "~/Videos"))
+print(int(c.get("recordFps") or 60))
+print(c.get("recordAudio") or "none")
+print(c.get("recordCodec") or "auto")
+PY
+)
+OUTDIR="${CAP[0]:-${HOME}/Videos}"
+FPS="${NIRI_RECORD_FPS:-${CAP[1]:-60}}"
+AUDIO="${CAP[2]:-none}"
+CODEC="${CAP[3]:-auto}"
+if [[ "$CODEC" == auto ]]; then
+  if [[ -e /proc/driver/nvidia/version ]]; then CODEC=nvenc
+  elif compgen -G "/dev/dri/renderD*" >/dev/null; then CODEC=vaapi
+  else CODEC=x264; fi
+fi
+case "$CODEC" in
+  nvenc) ENC=(-c hevc_nvenc -p cq=26 -p preset=p4 -p tune=ll -b 0); CODEC_LABEL="HEVC NVENC" ;;
+  vaapi) ENC=(-c hevc_vaapi -d "$(compgen -G '/dev/dri/renderD*' | head -n1)"); CODEC_LABEL="HEVC VA-API" ;;
+  *) ENC=(-c libx264 -p crf=23 -p preset=veryfast); CODEC_LABEL="x264" ;;
+esac
+# the sound: what you hear (the default output's monitor), the microphone, or both (wf-recorder
+# takes one device: "both" records what you hear)
+AUD=()
+case "$AUDIO" in
+  system|both) mon="$(pactl get-default-sink 2>/dev/null).monitor"; AUD=(--audio="$mon") ;;
+  mic) src="$(pactl get-default-source 2>/dev/null)"; AUD=(--audio="$src") ;;
+esac
 mkdir -p "$OUTDIR"
 
 notify() {
@@ -38,7 +72,7 @@ if [[ -f "$PIDFILE" ]]; then
     rm -f "$PIDFILE"
     stop_overlay
     if [[ -n "$outfile" && -f "$outfile" ]]; then
-      notify "Сохранено (${FPS} fps · HEVC NVENC)" "$outfile"
+      notify "Сохранено (${FPS} fps)" "$outfile"
     else
       notify "Запись остановлена" "смотри /tmp/niri-record-region.log"
     fi
@@ -69,10 +103,9 @@ if [[ -x "$OVERLAY_BIN" ]]; then
   sleep 0.05
 fi
 
-wf-recorder -g "$geom" -f "$outfile" -r "$FPS" -D \
-  -c hevc_nvenc -p cq=26 -p preset=p4 -p tune=ll -b 0 \
+wf-recorder -g "$geom" -f "$outfile" -r "$FPS" -D "${ENC[@]}" "${AUD[@]}" \
   >/tmp/niri-record-region.log 2>&1 &
 echo $! >"$PIDFILE"
 disown || true
 
-notify "Запись ${FPS} fps · HEVC NVENC" "Meta+Shift+R — стоп · ${outfile##*/}"
+notify "Запись ${FPS} fps · ${CODEC_LABEL}" "Meta+Shift+R — стоп · ${outfile##*/}"

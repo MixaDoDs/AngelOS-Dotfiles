@@ -197,14 +197,17 @@ Singleton {
         return locked || setupLocked || fullscreenOn(name);
     }
 
-    // with no page given Settings open where they were left, like macOS
+    // with no page given Settings open on Home (a window already open stays where it is)
     function openSettings(page, sub) {
         // an old page id leads to its page in the tree (SettingsTree.resolve: "bar" → taskbar…);
         // the views with a home of their own (a folder of icons, the tiles) open there
         if (page)
             settingsPage = SettingsTree.resolve(page).page;
-        else if (!settingsOpen && ["controlpanel", "tiles"].includes(Config.settingsUi.view))
-            settingsPage = "home";
+        else if (!settingsOpen) {
+            // a fresh window always opens on Home
+            settingsPage = "main";
+            settingsSub = "";
+        }
         if (sub)
             settingsSub = sub;
         settingsOpen = true;

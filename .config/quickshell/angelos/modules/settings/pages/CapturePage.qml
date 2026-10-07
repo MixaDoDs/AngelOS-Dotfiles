@@ -10,8 +10,8 @@ import qs.widgets
 PxPage {
     id: page
 
-    heading: I18n.t("Скриншоты и запись", "Screenshots and recording")
-    subtitle: I18n.t("Как выглядит выделение области (Mod+Shift+S) и рамка записи (Mod+Shift+R).", "How the region selector (Mod+Shift+S) and the recording frame (Mod+Shift+R) look.")
+    heading: I18n.t("Снимки и запись", "Screenshots and recording")
+    subtitle: I18n.t("Снимок области — Mod+Shift+S, запись области — Mod+Shift+R (ещё раз — стоп).", "A region screenshot is Mod+Shift+S, recording a region is Mod+Shift+R (again to stop).")
 
     readonly property var skins: [
         {
@@ -39,7 +39,11 @@ PxPage {
     Process {
         id: previews
         command: ["sh", "-c", 'mkdir -p "$1" && for s in ropes window stream; do python3 "$2" --preview "$s" "$1/capture-$s.png"; done', "sh", Config.cacheDir, Quickshell.shellDir + "/scripts/capture_skins.py"]
-        onExited: page.stamp++
+        // only pictures that were drawn (no python-cairo: none, and no broken images)
+        onExited: code => {
+            if (code === 0)
+                page.stamp++;
+        }
     }
     Connections {
         target: Config.capture
@@ -48,9 +52,192 @@ PxPage {
         }
     }
 
+    // a folder from the desktop's file chooser (scripts/pick-file.py --dir) into a capture key
+    property string pickKey: ""
+    function pickDir(key, title) {
+        pickKey = key;
+        dirPicker.command = ["python3", Quickshell.shellDir + "/scripts/pick-file.py", "--dir", title];
+        dirPicker.running = true;
+    }
+    Process {
+        id: dirPicker
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const d = text.trim();
+                if (d && page.pickKey)
+                    Config.capture[page.pickKey] = d;
+            }
+        }
+    }
+    component DirRow: SettingRow {
+        id: dirRow
+        property string key: ""
+        property string fallback: ""
+        property string pickTitle: ""
+        Row {
+            spacing: Theme.u * 3
+            PxText {
+                width: Math.min(implicitWidth, Theme.u * 110)
+                anchors.verticalCenter: parent.verticalCenter
+                text: Config.capture[dirRow.key] || dirRow.fallback
+                elide: Text.ElideMiddle
+                dim: !Config.capture[dirRow.key]
+            }
+            PxButton {
+                compact: true
+                icon: "folder"
+                text: I18n.t("Выбрать…", "Choose…")
+                onClicked: page.pickDir(dirRow.key, dirRow.pickTitle)
+            }
+            PxButton {
+                compact: true
+                visible: !!Config.capture[dirRow.key]
+                icon: "refresh"
+                onClicked: Config.capture[dirRow.key] = ""
+            }
+        }
+    }
+
+    PxGroup {
+        name: "shots"
+        title: I18n.t("Снимки", "Screenshots")
+        icon: "camera"
+        width: parent.width
+        DirRow {
+            label: I18n.t("Папка для снимков", "Screenshots folder")
+            key: "shotDir"
+            fallback: "~/Pictures/Screenshots"
+            pickTitle: I18n.t("Куда сохранять снимки", "Where screenshots go")
+        }
+        SettingRow {
+            label: I18n.t("Копировать в буфер", "Copy to the clipboard")
+            hint: I18n.t("снимок сразу можно вставить в чат", "paste the shot into a chat right away")
+            PxToggle {
+                checked: Config.capture.shotCopy
+                onToggled: v => Config.capture.shotCopy = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Открывать после снимка", "Open after the shot")
+            hint: I18n.t("в просмотрщике картинок", "in the image viewer")
+            PxToggle {
+                checked: Config.capture.shotOpen
+                onToggled: v => Config.capture.shotOpen = v
+            }
+        }
+    }
+    PxGroup {
+        name: "shots-more"
+        title: I18n.t("Формат снимка", "Screenshot format")
+        icon: "image"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Формат", "Format")
+            hint: I18n.t("PNG — без потерь, JPG — меньше весит", "PNG is lossless, JPG is smaller")
+            PxSegmented {
+                model: [
+                    {
+                        "label": "PNG",
+                        "value": "png"
+                    },
+                    {
+                        "label": "JPG",
+                        "value": "jpg"
+                    }
+                ]
+                currentValue: Config.capture.shotFormat
+                onActivated: v => Config.capture.shotFormat = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Курсор на снимке", "The pointer in the shot")
+            PxToggle {
+                checked: Config.capture.shotCursor
+                onToggled: v => Config.capture.shotCursor = v
+            }
+        }
+    }
+    PxGroup {
+        name: "recording"
+        title: I18n.t("Запись экрана", "Screen recording")
+        icon: "play"
+        width: parent.width
+        DirRow {
+            label: I18n.t("Папка для записей", "Recordings folder")
+            key: "recordDir"
+            fallback: "~/Videos"
+            pickTitle: I18n.t("Куда сохранять записи", "Where recordings go")
+        }
+        SettingRow {
+            label: I18n.t("Звук в записи", "Sound in the recording")
+            hint: I18n.t("«Система» — то, что ты слышишь", "“System” is what you hear")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Без звука", "None"),
+                        "value": "none"
+                    },
+                    {
+                        "label": I18n.t("Система", "System"),
+                        "value": "system"
+                    },
+                    {
+                        "label": I18n.t("Микрофон", "Microphone"),
+                        "value": "mic"
+                    }
+                ]
+                currentValue: Config.capture.recordAudio === "both" ? "system" : Config.capture.recordAudio
+                onActivated: v => Config.capture.recordAudio = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Кадров в секунду", "Frames per second")
+            PxSegmented {
+                model: [30, 60, 120].map(n => ({
+                            "label": String(n),
+                            "value": n
+                        }))
+                currentValue: Config.capture.recordFps
+                onActivated: v => Config.capture.recordFps = v
+            }
+        }
+    }
+    PxGroup {
+        name: "recording-more"
+        title: I18n.t("Кодек записи", "Recording codec")
+        icon: "chip"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Кодек", "Codec")
+            hint: I18n.t("«Авто»: NVENC на NVIDIA, иначе VA-API, иначе x264 на процессоре", "“Auto”: NVENC on NVIDIA, else VA-API, else x264 on the CPU")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Авто", "Auto"),
+                        "value": "auto"
+                    },
+                    {
+                        "label": "NVENC",
+                        "value": "nvenc"
+                    },
+                    {
+                        "label": "VA-API",
+                        "value": "vaapi"
+                    },
+                    {
+                        "label": "x264",
+                        "value": "x264"
+                    }
+                ]
+                currentValue: Config.capture.recordCodec
+                onActivated: v => Config.capture.recordCodec = v
+            }
+        }
+    }
+
     PxGroup {
         name: "skin"
-        title: I18n.t("Скин", "Skin")
+        title: I18n.t("Вид рамки", "Frame look")
         icon: "image"
         width: parent.width
         Grid {

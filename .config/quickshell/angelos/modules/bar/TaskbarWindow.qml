@@ -75,6 +75,11 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.namespace: "angelos-bar"
     WlrLayershell.layer: WlrLayer.Top
+    // the edge it keeps from windows, for the screenshot selector (services/Zones)
+    ZoneReport {
+        win: win
+        key: "taskbar"
+    }
 
     BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
     Region {

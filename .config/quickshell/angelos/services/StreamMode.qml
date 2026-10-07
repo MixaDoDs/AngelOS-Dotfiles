@@ -128,6 +128,16 @@ Singleton {
             Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "camera-web", I18n.t("OBS и ангел", "OBS and the angel"), text]);
     }
 
+    // Settings → Streaming → OBS: connect again (a new port, OBS just started)
+    function reconnect() {
+        watch.running = false;
+        rewatch.restart();
+    }
+    Timer {
+        id: rewatch
+        interval: 300
+        onTriggered: watch.running = Qt.binding(() => Config.ready)
+    }
     Process {
         id: watch
         // always, so the achievements and the hint know about OBS; stream mode itself still

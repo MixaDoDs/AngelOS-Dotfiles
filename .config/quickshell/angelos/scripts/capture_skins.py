@@ -291,7 +291,7 @@ class WindowSkin(Skin):
         self.dim(cr, W, H, 0.42)
         self.dots(cr, W, H, rgb(self.c["accent"], 0.10))
         if sel is None:
-            self.hint(cr, W, H, "✧ " + exe("screenshot") + " ✧", "выдели область мышкой ♡  ·  Esc — отмена")
+            self.hint(cr, W, H, "✧ " + exe("screenshot") + " ✧", "выдели область или кликни по окну ♡  ·  Esc — отмена")
             return
         x, y, w, h = sel
         self.hole(cr, x, y, w, h)
@@ -380,7 +380,7 @@ class StreamSkin(Skin):
         self.px(cr, 0, 0, W, H, rgb(self.c["accent"], 0.06))
         self.scanlines(cr, W, H)
         if sel is None:
-            self.hint(cr, W, H, "♡ angel stream ♡", "выдели кадр для стрима  ·  Esc — отмена")
+            self.hint(cr, W, H, "♡ angel stream ♡", "выдели кадр или кликни по окну  ·  Esc — отмена")
             return
         x, y, w, h = sel
         self.hole(cr, x, y, w, h)

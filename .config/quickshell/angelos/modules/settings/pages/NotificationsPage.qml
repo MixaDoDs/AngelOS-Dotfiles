@@ -9,7 +9,7 @@ PxPage {
 
     PxGroup {
         name: "behavior"
-        title: I18n.t("Поведение", "Behavior")
+        title: I18n.t("Как показывать", "How they show")
         icon: "bell"
         width: parent.width
         SettingRow {
@@ -21,7 +21,7 @@ PxPage {
             }
         }
         SettingRow {
-            label: I18n.t("Висит на экране", "Display duration")
+            label: I18n.t("Сколько висят", "How long they stay")
             PxSlider {
                 width: parent.width
                 from: 2000

@@ -1,0 +1,18 @@
+{
+  "_comment": "What the release changed in Settings, shown with a star until seen (services/SettingsNews). Ids: \"file/group\" (a group) or \"file/group/Russian label\" (a row); the date: the release day — a setting seen before that day shows as new again. New settings an update adds need no line here: they are starred by themselves.",
+  "items": {
+    "main/profile": "2026-10-08",
+    "capture/shots": "2026-10-08",
+    "capture/recording": "2026-10-08",
+    "capture/shots-more": "2026-10-08",
+    "capture/recording-more": "2026-10-08",
+    "accessibility/contrast": "2026-10-08",
+    "obs/obs": "2026-10-08",
+    "appearance/skin": "2026-10-08",
+    "lock/lock-timers": "2026-10-08",
+    "lock/idle-timer": "2026-10-08",
+    "appearance/ui-size": "2026-10-08",
+    "y2k/stream-angel-voice": "2026-10-08",
+    "y2k/stream-angel-obs": "2026-10-08"
+  }
+}

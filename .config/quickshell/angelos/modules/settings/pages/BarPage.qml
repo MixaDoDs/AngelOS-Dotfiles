@@ -87,6 +87,12 @@ PxPage {
                 onMoved: v => Config.bar.autoHideMs = Math.round(v)
             }
         }
+    }
+    PxGroup {
+        name: "taskbar-windows"
+        title: I18n.t("Окна и столы на панели", "Windows and desks on the taskbar")
+        icon: "window"
+        width: parent.width
         SettingRow {
             label: I18n.t("Подписывать окна", "Show window titles")
             hint: I18n.t("подписи видны, пока хватает места; дальше только иконки, потом прокрутка. Выключи — всегда иконки", "Titles show while there is room, then icons only, then scrolling. Off: always icons")
@@ -166,6 +172,12 @@ PxPage {
                 onMoved: v => Config.bar.workspaceIcons = v
             }
         }
+    }
+    PxGroup {
+        name: "taskbar-screens"
+        title: I18n.t("Мониторы с панелью", "Monitors with the taskbar")
+        icon: "monitor"
+        width: parent.width
         SettingRow {
             label: I18n.t("Мониторы", "Monitors")
             hint: I18n.t("ничего не выбрано = на всех", "No selection = all displays")
@@ -192,25 +204,11 @@ PxPage {
 
     PxGroup {
         name: "contents"
-        title: I18n.t("Содержимое", "Contents")
+        title: I18n.t("Часы и плеер", "Clock and player")
 
         advanced: true
         icon: "layers"
         width: parent.width
-        SettingRow {
-            label: I18n.t("Кнопки окон", "Window buttons")
-            PxToggle {
-                checked: Config.bar.showWindows
-                onToggled: c => Config.bar.showWindows = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Окна со всех воркспейсов", "Windows from all workspaces")
-            PxToggle {
-                checked: Config.bar.allWindows
-                onToggled: c => Config.bar.allWindows = c
-            }
-        }
         SettingRow {
             label: I18n.t("Мини-плеер", "Mini player")
             PxToggle {
@@ -247,6 +245,32 @@ PxPage {
                 onToggled: c => Config.bar.showSeconds = c
             }
         }
+    }
+    PxGroup {
+        name: "taskbar-buttons"
+        title: I18n.t("Кнопки окон", "Window buttons")
+        icon: "window"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Кнопки окон", "Window buttons")
+            PxToggle {
+                checked: Config.bar.showWindows
+                onToggled: c => Config.bar.showWindows = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("Окна со всех воркспейсов", "Windows from all workspaces")
+            PxToggle {
+                checked: Config.bar.allWindows
+                onToggled: c => Config.bar.allWindows = c
+            }
+        }
+    }
+    PxGroup {
+        name: "taskbar-other"
+        title: I18n.t("Другое", "Other")
+        icon: "gear"
+        width: parent.width
         SettingRow {
             label: I18n.t("Компактно на вертикальных", "Compact on portrait displays")
             hint: I18n.t("узкие экраны: без плеера, окна иконками", "Narrow screens: compact player and window icons")
@@ -396,7 +420,7 @@ PxPage {
 
     PxGroup {
         name: "sidebar-experimental"
-        title: I18n.t("Сайдбар (эксперимент)", "Sidebar (experimental)")
+        title: I18n.t("Боковая панель", "Sidebar")
 
         advanced: true
         icon: "layers"
@@ -466,7 +490,7 @@ PxPage {
 
     PxGroup {
         name: "start-button"
-        title: I18n.t("Кнопка «Пуск»", "Start button")
+        title: I18n.t("Пуск", "Start")
         advanced: true
         icon: "pill"
         width: parent.width
@@ -623,6 +647,12 @@ PxPage {
                 onToggled: c => Config.bar.metaTap = c
             }
         }
+    }
+    PxGroup {
+        name: "start-meta"
+        title: I18n.t("Пуск по клавише Meta", "Start on the Meta key")
+        icon: "keyboard"
+        width: parent.width
         SettingRow {
             visible: Config.bar.metaTap
             label: I18n.t("Самое долгое нажатие", "Longest tap")
@@ -671,7 +701,7 @@ PxPage {
     // the avatar and the deep settings of every Start look (StartTuner, services/StartPrefs)
     PxGroup {
         name: "start-avatar-fine"
-        title: I18n.t("«Пуск»: аватарка и тонкая настройка", "Start: avatar and fine-tuning")
+        title: I18n.t("Аватарка и тонкая настройка", "Avatar and fine-tuning")
         advanced: true
         icon: "star"
         width: parent.width

@@ -78,7 +78,9 @@ Singleton {
                 "label": I18n.label(p.name),
                 "icon": p.icon || "plug",
                 "hint": "",
-                "blocks": []
+                "blocks": [],
+                // the manifest's "settingsNear": the page it goes after ("display", "network"…)
+                "near": p.settingsNear || ""
             }))
     function shown(p) {
         return !!p && (!p.owner || Owner.enabled) && (!p.developer || Config.developer.enabled) && (!p.game || Story.enabled);
@@ -104,7 +106,12 @@ Singleton {
                     "label": label(p),
                     "icon": p.icon || c.icon,
                     "hint": hint(p),
-                    "blocks": p.blocks || [],
+                    // every group of the page; "top" shows at once, "more" folded under «Ещё…»
+                    "blocks": (p.blocks || []).concat(p.more || []),
+                    "top": p.blocks || [],
+                    "more": p.more || [],
+                    // pages next door ("lens", "game:y2k/hell" — a page, and a group on it)
+                    "links": p.links || [],
                     "open": p.open || [],
                     "category": c.id,
                     "owner": !!p.owner,
@@ -112,7 +119,7 @@ Singleton {
                     "game": !!p.game
                 };
         for (const p of pluginPages) {
-            const after = ((tree.plugins || {}).after || {})[p.plugin];
+            const after = ((tree.plugins || {}).after || {})[p.plugin] || p.near;
             m[p.id] = Object.assign({}, p, {
                 "category": after && m[after] ? m[after].category : (tree.plugins || {}).category || ""
             });
@@ -124,13 +131,15 @@ Singleton {
         const pl = tree.plugins || {};
         const after = pl.after || {};
         const out = [];
+        // a plugin whose page to follow isn't in this tree (or hidden) goes to the plugins' category
+        const everyId = (tree.categories || []).reduce((a, c) => a.concat((c.pages || []).filter(p => root.shown(p)).map(p => p.id)), []);
         for (const c of tree.categories || []) {
             let ids = (c.pages || []).filter(p => root.shown(p)).map(p => p.id);
             for (const p of pluginPages) {
-                const a = after[p.plugin];
+                const a = after[p.plugin] || p.near;
                 if (a && ids.includes(a))
                     ids.splice(ids.indexOf(a) + 1, 0, p.id);
-                else if (!a && pl.category === c.id)
+                else if ((!a || !everyId.includes(a)) && pl.category === c.id)
                     ids.push(p.id);
             }
             if (!ids.length)
@@ -146,6 +155,21 @@ Singleton {
         }
         return out;
     }
+    // «Ещё…» opened on a page stays open for the session (page id -> true)
+    property var moreOpen: ({})
+    function setMoreOpen(id, open) {
+        const m = Object.assign({}, moreOpen);
+        if (open)
+            m[id] = true;
+        else
+            delete m[id];
+        moreOpen = m;
+    }
+    // the page's group (its "src/name") is under «Ещё…»
+    function inMore(id, src, name) {
+        const p = pages[id];
+        return !!p && (p.more || []).some(b => b === src + "/" + name || b === src);
+    }
     readonly property string accountPage: data.account ? data.account.page : "account"
     function page(id) {
         return pages[id] || null;
@@ -158,7 +182,8 @@ Singleton {
         const m = {};
         for (const id in pages)
             for (const b of pages[id].blocks)
-                m[b] = id;
+                if (!b.endsWith("/@"))
+                    m[b] = id;
         return m;
     }
     // the page a group of a page file is on now: "bar", "style" -> "taskbar"
@@ -211,12 +236,15 @@ Singleton {
     }
     // the parts a page is put together from: one per run of blocks from the same file
     // [{file, only: [names] (empty: all), loose}] — "monitor" is the whole file
-    function partsOf(id) {
+    // `which`: "top" (shown at once, the default), "more" (under «Ещё…») or "all"
+    // "src/@" adds what sits outside the groups of src (a log line, the Apply buttons)
+    function partsOf(id, which) {
         const p = pages[id];
         if (!p)
             return [];
         const out = [];
-        for (const b of p.blocks) {
+        const list = which === "more" ? (p.more || []) : which === "all" ? p.blocks : (p.top || p.blocks);
+        for (const b of list) {
             if (b.startsWith("@owner/")) {
                 out.push({
                     "file": "file://" + Owner.dir + "/" + b.slice(7),
@@ -228,6 +256,18 @@ Singleton {
             }
             const [src, name] = b.split("/");
             const last = out.length ? out[out.length - 1] : null;
+            if (name === "@") {
+                if (last && last.src === src)
+                    last.loose = true;
+                else
+                    out.push({
+                        "file": fileOf(src),
+                        "src": src,
+                        "only": ["@"],
+                        "loose": true
+                    });
+                continue;
+            }
             if (last && last.src === src && name && last.only.length) {
                 last.only.push(name);
                 continue;

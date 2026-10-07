@@ -227,12 +227,19 @@ Item {
                             }
                             PxText {
                                 visible: !root.rail
-                                width: cat.width - Theme.u * 24
+                                width: cat.width - Theme.u * 24 - (catStar.visible ? catStar.width + Theme.u * 4 : 0)
                                 anchors.verticalCenter: parent.verticalCenter
                                 elide: Text.ElideRight
                                 text: cat.modelData.label
                                 font.bold: cat.sel
                             }
+                        }
+                        // something new in it (services/SettingsNews); on the rail, on the tile's corner
+                        NewStar {
+                            id: catStar
+                            visible: SettingsNews.sectionNew(cat.modelData)
+                            x: root.rail ? (parent.width + Theme.u * 11) / 2 - width / 2 : parent.width - width - Theme.u * 4
+                            y: root.rail ? Theme.u : (parent.height - height) / 2
                         }
                         MouseArea {
                             id: catMouse

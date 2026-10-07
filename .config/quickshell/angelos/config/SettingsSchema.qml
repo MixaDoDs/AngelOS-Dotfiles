@@ -6,6 +6,7 @@ import Quickshell.Io
 // copy as `Config.defaults` ("Reset this page", undo labels).
 JsonAdapter {
     property JsonObject appearance: JsonObject {
+        property bool highContrast: false   // Accessibility → Contrast: stronger text and edges (config/Theme.qml)
         property string customAccent: "#c77dff"
         property string motion: "full"      // how much moves: full | calm (no flashes, shaking, sudden loud sounds) | off (no animations: the shell, niri, hell) — config/Motion
         property string iconStyle: "angelos" // the shell's icons: angelos (our own) | pixelarticons | hackernoon — widgets/IconSets.js (D3)
@@ -263,6 +264,17 @@ JsonAdapter {
     property JsonObject capture: JsonObject {
         property string skin: "ropes"       // ropes | window | stream — region selector and recording overlay
         property bool themeColors: false    // NGO skins in the angelOS theme instead of the NGO palette
+        // Settings → System → Screenshots and recording (read by ~/.local/bin/niri-screenshot-region
+        // and niri-record-region straight from settings.json)
+        property string shotDir: ""         // "" = ~/Pictures/Screenshots
+        property string shotFormat: "png"   // png | jpg
+        property bool shotCursor: false     // the pointer on the picture
+        property bool shotCopy: true        // copied to the clipboard as well
+        property bool shotOpen: false       // opened in the image viewer after
+        property string recordDir: ""       // "" = ~/Videos
+        property int recordFps: 60
+        property string recordAudio: "none" // none | system (what you hear) | mic | both
+        property string recordCodec: "auto" // auto (NVENC on NVIDIA, else VA-API, else x264) | nvenc | vaapi | x264
     }
 
     property JsonObject plugins: JsonObject {

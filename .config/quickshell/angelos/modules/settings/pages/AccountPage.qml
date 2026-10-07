@@ -265,40 +265,4 @@ PxPage {
         }
     }
 
-    PxGroup {
-        name: "everyday"
-        width: parent.width
-        title: I18n.t("Частое", "Everyday")
-        icon: "star"
-        Flow {
-            width: parent.width
-            spacing: Theme.u * 3
-            PxButton {
-                icon: "image"
-                text: I18n.t("Сменить обои", "Change wallpaper")
-                onClicked: page.nav.settingsPage = "wallpaper"
-            }
-            // the theme and the size are set in one place (Theme and colours): a link to it
-            PxButton {
-                icon: "palette"
-                text: I18n.t("Тема и размер ›", "Theme and size ›")
-                onClicked: page.nav.settingsPage = "theme"
-            }
-            PxButton {
-                icon: "download"
-                accent: Updates.available
-                text: Updates.available ? I18n.t("Обновление готово ♡", "Update available ♡") : I18n.t("Обновление", "Update")
-                onClicked: page.nav.settingsPage = "updates"
-            }
-            Repeater {
-                model: page.frequent
-                PxButton {
-                    required property var modelData
-                    icon: modelData.icon
-                    text: modelData.label
-                    onClicked: page.nav.settingsPage = modelData.id
-                }
-            }
-        }
-    }
 }

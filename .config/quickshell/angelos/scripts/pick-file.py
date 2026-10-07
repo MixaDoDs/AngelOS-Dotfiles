@@ -3,6 +3,7 @@
 or -gtk, packages/pacman.txt — on every install), else zenity or kdialog when one is there.
 
 usage: pick-file.py TITLE [FILTER_NAME PATTERN...]
+       pick-file.py --dir TITLE        a folder instead of a file
 
 Prints the chosen file's path. Exit 1: cancelled. Exit 2: no file chooser at all (why on stderr).
 The avatar picker used zenity alone, which angelOS never installs: without it the button did
@@ -15,6 +16,7 @@ import sys
 from urllib.parse import unquote, urlparse
 
 CANCELLED, NONE = 1, 2
+DIRECTORY = False      # --dir: pick a folder
 
 
 def portal(title, name, patterns):
@@ -45,6 +47,8 @@ def portal(title, name, patterns):
     sub = bus.signal_subscribe("org.freedesktop.portal.Desktop", "org.freedesktop.portal.Request", "Response",
                                None, None, Gio.DBusSignalFlags.NONE, response)
     options = {"handle_token": GLib.Variant("s", token), "modal": GLib.Variant("b", True)}
+    if DIRECTORY:
+        options["directory"] = GLib.Variant("b", True)
     if patterns:
         flt = (name or "", [(0, p) for p in patterns])
         options["filters"] = GLib.Variant("a(sa(us))", [flt])
@@ -77,11 +81,11 @@ def portal(title, name, patterns):
 def tool(title, name, patterns):
     """zenity or kdialog: the path, "" when cancelled, None without either"""
     if shutil.which("zenity"):
-        cmd = ["zenity", "--file-selection", f"--title={title}"]
+        cmd = ["zenity", "--file-selection", f"--title={title}"] + (["--directory"] if DIRECTORY else [])
         if patterns:
             cmd.append(f"--file-filter={name} | {' '.join(patterns)}")
     elif shutil.which("kdialog"):
-        cmd = ["kdialog", "--title", title, "--getopenfilename", os.path.expanduser("~")]
+        cmd = ["kdialog", "--title", title, "--getexistingdirectory" if DIRECTORY else "--getopenfilename", os.path.expanduser("~")]
         if patterns:
             cmd.append(f"{' '.join(patterns)}|{name}")
     else:
@@ -91,6 +95,10 @@ def tool(title, name, patterns):
 
 
 def main():
+    global DIRECTORY
+    if len(sys.argv) > 1 and sys.argv[1] == "--dir":
+        DIRECTORY = True
+        del sys.argv[1]
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     title, name, patterns = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else ""), sys.argv[3:]

@@ -325,7 +325,7 @@ Scope {
         }
     }
     Timer {
-        interval: 110000
+        interval: 200000
         running: true
         onTriggered: {
             root.report("timeout", false, "combo " + root.ci + " surface " + root.si);

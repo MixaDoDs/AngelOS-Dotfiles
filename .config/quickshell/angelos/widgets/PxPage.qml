@@ -28,7 +28,8 @@ PxScroll {
     property var only: []                   // group names (PxGroup.name) to show; empty: all
     property bool loose: true               // what sits outside the groups (a note, buttons)
     property string partOf: ""              // the page it is a part of (nav.settingsPage)
-    property var unfold: []                 // groups that are the whole page: never a sub-page here
+    property string srcName: ""             // its page file's id ("bar" for BarPage.qml): SettingsNews' ids
+    property var unfold: []                 // groups shown open, never a sub-page here ("*": all of them)
     scrolls: !embedded
     implicitHeight: embedded ? contentHeight : 0
     function wants(g) {
@@ -251,7 +252,7 @@ PxScroll {
 
     Row {
         id: footer
-        visible: !root.embedded && root.pageId !== "home" && root.pageId !== "more" && SettingsKeys.keysOf(root.pageId).length > 0 && (root.changed.length > 0 || root.resetCount >= 0)
+        visible: !root.embedded && root.pageId !== "home" && root.pageId !== "more" && root.pageId !== "main" && SettingsKeys.keysOf(root.pageId).length > 0 && (root.changed.length > 0 || root.resetCount >= 0)
         x: col.x
         y: col.y + col.implicitHeight + Theme.u * 8
         spacing: Theme.u * 4
@@ -287,7 +288,7 @@ PxScroll {
         SettingsKeys.load();
         // a sub-page that is all the page shows is just the page (Stream mode, Hell…)
         for (const c of col.children)
-            if (c.advanced === true && unfold && unfold.indexOf(c.name) >= 0)
+            if (c.advanced === true && unfold && (unfold.indexOf(c.name) >= 0 || unfold.indexOf("*") >= 0))
                 c.advanced = false;
         bindAside();
     }

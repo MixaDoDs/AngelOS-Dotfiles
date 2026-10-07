@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import qs.services
 
 // "label ........ control" row with an optional hint below the label.
 // With `preview` set to a scene (widgets/previews/<scene>.qml), controls call
@@ -24,6 +25,24 @@ Item {
     property string previewCaption: ""
     property bool previewOpen: false
     readonly property int rowHeight: streamLayout ? labels.implicitHeight + slot.childrenRect.height + Theme.u * 12 : fluent ? Math.max(Theme.fit(20), Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * 8) : Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (settingsSkin === "windose" ? 8 : 2)
+
+    // new since you last looked (services/SettingsNews): a star after the label. The row's group
+    // and page file come from its place on the page
+    // (looked up when the news change: by then the page is put together)
+    readonly property bool isNew: {
+        if (!SettingsNews.news.count || !label)
+            return false;
+        let group = null, src = "";
+        for (let p = root.parent; p; p = p.parent) {
+            if (!group && p.advanced !== undefined && p.name !== undefined && p.title !== undefined)
+                group = p;
+            if (p.srcName !== undefined) {
+                src = p.srcName;
+                break;
+            }
+        }
+        return !!group && SettingsNews.rowNew(src, group.name, label);
+    }
 
     function show(value, caption) {
         if (!preview)
@@ -87,10 +106,17 @@ Item {
         width: root.labelWidth
         y: root.streamLayout ? Theme.u * 4 : (root.rowHeight - implicitHeight) / 2
         PxText {
-            width: parent.width
+            id: labelText
+            width: parent.width - (root.isNew ? newStar.width + Theme.u * 3 : 0)
             text: root.label
             wrapMode: Text.Wrap
             font.bold: root.settingsSkin !== "classic" && !root.mac
+            NewStar {
+                id: newStar
+                visible: root.isNew
+                x: Math.min(labelText.contentWidth, labelText.width) + Theme.u * 2
+                y: Math.max(0, (Math.min(labelText.contentHeight, labelText.font.pixelSize * 1.4) - height) / 2)
+            }
         }
         PxText {
             visible: root.hint !== ""

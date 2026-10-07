@@ -52,7 +52,7 @@ JSON
     QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= LD_LIBRARY_PATH="$LIB" QML_IMPORT_PATH="$QML" \
     ANGELOS_DEV=1 ANGELOS_SCREENS=__none__ ANGELOS_TEST=1 QS_NO_RELOAD_POPUP=1 QS_DISABLE_CRASH_HANDLER=1 \
     ANGELOS_SCALE_ONLY="$2" \
-    "${runner[@]}" timeout 120 "$QS" -p "$T/root" >"$T/$1.log" 2>&1
+    "${runner[@]}" timeout 220 "$QS" -p "$T/root" >"$T/$1.log" 2>&1
   echo $? >"$T/$1.code"
 }
 for i in "${!PARTS[@]}"; do part "$i" "${PARTS[i]}" & done

@@ -45,9 +45,17 @@ PxPage {
                     anchors.rightMargin: Theme.u * 4
                     anchors.verticalCenter: parent.verticalCenter
                     PxText {
-                        width: parent.width
+                        id: cardLabel
+                        width: Math.min(implicitWidth, parent.width - (cardStar.visible ? cardStar.width + Theme.u * 3 : 0))
                         text: card.entry ? card.entry.label : card.modelData
                         elide: Text.ElideRight
+                        // something new on the page (services/SettingsNews)
+                        NewStar {
+                            id: cardStar
+                            visible: SettingsNews.pageNew(card.modelData)
+                            x: cardLabel.width + Theme.u * 2
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
                     PxText {
                         visible: text !== ""

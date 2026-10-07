@@ -14,7 +14,7 @@ PxPage {
     PxGroup {
         name: "desk-sprite-animation"
         id: heartsGroup
-        title: I18n.t("Значок и его анимация", "Desk sprite and its animation")
+        title: I18n.t("Значок стола", "Desk icon")
         icon: "heart"
         width: parent.width
         readonly property var heartStyles: [
@@ -389,7 +389,7 @@ PxPage {
 
     PxGroup {
         name: "workspace-switching"
-        title: I18n.t("Смена воркспейса", "Workspace switching")
+        title: I18n.t("Подсказка при смене стола", "Hint when switching desks")
         icon: "sparkle"
         width: parent.width
         SettingRow {
@@ -459,7 +459,7 @@ PxPage {
 
     PxGroup {
         name: "names"
-        title: I18n.t("Имена", "Names")
+        title: I18n.t("Имена столов", "Desk names")
         icon: "heart"
         width: parent.width
         PxText {
