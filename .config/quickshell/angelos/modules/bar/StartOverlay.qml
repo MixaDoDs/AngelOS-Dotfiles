@@ -102,11 +102,13 @@ Variants {
         }
 
         // where the Start button of this screen sits (layer shell does not tell
-        // us the bar position, so it is derived from the bar window's anchors)
+        // us the bar position, so it is derived from the bar window's anchors).
+        // A screen without a bar: the bottom-left corner itself, not a gap for a
+        // taskbar that isn't there (#48)
         readonly property rect button: {
             const b = Shell.startButtons[screenName];
             if (!b || !b.item || !b.window)
-                return Qt.rect(Theme.u * 2, height - Theme.u * 20, Theme.u * 40, Theme.u * 18);
+                return Qt.rect(Theme.u * 2, height - Theme.u * 2, Theme.u * 40, 0);
             const w = b.window, it = b.item;
             const p = it.mapToItem(w.contentItem, 0, 0);
             const bottom = w.anchors && w.anchors.bottom && !w.anchors.top;

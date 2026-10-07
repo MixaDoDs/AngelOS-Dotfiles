@@ -52,6 +52,7 @@ Column {
             "sound": [I18n.t("Звук при открытии", "Sound on opening"), I18n.t("из «Звуков системы»", "from System sounds")],
             "sort": [I18n.t("Порядок приложений", "App order"), ""],
             "openOn": [I18n.t("Где открывать", "Open on"), I18n.t("по Meta и из `angelos`; кнопка «Пуск» — всегда на своём экране", "for a Meta tap and `angelos`; the Start button always opens on its screen")],
+            "withBar": [I18n.t("Только где есть панель", "Only where the bar is"), I18n.t("на экране без панели «Пуск» откроется на главном экране с панелью", "on a screen without a bar Start opens on the main screen's bar")],
             "clickOutside": [I18n.t("Закрывать кликом мимо", "Close on a click outside"), I18n.t("выключено — экран под меню работает, закрывает Esc или «Пуск»", "off: the screen under it keeps working, Esc or Start close it")],
             "typeSearch": [I18n.t("Печать — сразу поиск", "Typing searches at once"), ""]
         })

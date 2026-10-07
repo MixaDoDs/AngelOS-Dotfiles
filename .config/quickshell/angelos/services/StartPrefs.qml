@@ -13,7 +13,7 @@ import qs.config
 //   sections      user (avatar + name), pinned, recommended, power, search, clock, extras
 //   look          opacity, accent, shadow
 //   animation     anim, animSpeed, animKind, sound
-//   behaviour     sort, openOn, clickOutside, typeSearch
+//   behaviour     sort, openOn, withBar, clickOutside, typeSearch
 // Also the user block every look can show: the avatar (Config.bar.avatar — a copy in
 // ~/.local/share/angelos, picked in Settings; else AccountsService's icon or ~/.face)
 // and the name (Config.bar.userName, else $USER).
@@ -177,6 +177,11 @@ Singleton {
                 "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
                 "group": "behavior"
             },
+            "withBar": {
+                "def": false,
+                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "group": "behavior"
+            },
             "clickOutside": {
                 "def": true,
                 "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
@@ -246,14 +251,23 @@ Singleton {
         return list.slice().sort((a, b) => (u[b.id] || 0) - (u[a.id] || 0) || String(a.name).localeCompare(String(b.name)));
     }
     // where Start opens when nothing says (a Meta tap, IPC): where the focus is, under the
-    // pointer (as far as angelOS knows it), or on the main screen
+    // pointer (as far as angelOS knows it), or on the main screen. "Only where the bar is"
+    // (withBar, #48): a screen without a Start button hands it to the main screen's bar, or
+    // the first one there is
     function screenFor() {
-        const how = of(current).openOn;
-        if (how === "pointer" && Pointer.screen)
-            return Pointer.screen;
-        if (how === "primary" && Shell.primaryName)
-            return Shell.primaryName;
-        return "";
+        const o = of(current);
+        let s = "";
+        if (o.openOn === "pointer" && Pointer.screen)
+            s = Pointer.screen;
+        else if (o.openOn === "primary" && Shell.primaryName)
+            s = Shell.primaryName;
+        if (!o.withBar)
+            return s;
+        s = s || (Shell.focusedScreen ? Shell.focusedScreen.name : "");
+        const bars = Object.keys(Shell.startButtons);
+        if (!s || Shell.startButtons[s] || !bars.length)
+            return s;
+        return bars.includes(Shell.primaryName) ? Shell.primaryName : bars[0];
     }
 
     // ---- the user block ----
