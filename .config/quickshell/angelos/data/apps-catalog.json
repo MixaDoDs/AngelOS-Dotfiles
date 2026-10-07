@@ -1,0 +1,30 @@
+{
+  "_comment": "The setup wizard's «Who are you?» and «Apps» steps (SetupAssistant), installed by scripts/apps-install.py: the distribution's package first (pacman), else the AUR (paru/yay), else Flathub (per user).",
+  "browsers": ["helium", "firefox"],
+  "apps": [
+    {"id": "telegram", "ru": "Telegram", "en": "Telegram", "hintRu": "мессенджер, angelOS его тематизирует", "hintEn": "the messenger; angelOS themes it", "icon": "chat", "pacman": "telegram-desktop", "flatpak": "org.telegram.desktop"},
+    {"id": "helium", "ru": "Helium", "en": "Helium", "hintRu": "браузер на Chromium без лишнего, тот, что в Dock", "hintEn": "a lean Chromium browser, the one in the Dock", "icon": "search", "pacman": "helium-browser-bin", "aur": "helium-browser-bin"},
+    {"id": "firefox", "ru": "Firefox", "en": "Firefox", "hintRu": "браузер Mozilla", "hintEn": "Mozilla's browser", "icon": "search", "pacman": "firefox", "flatpak": "org.mozilla.firefox"},
+    {"id": "obs", "ru": "OBS Studio", "en": "OBS Studio", "hintRu": "стрим и запись экрана", "hintEn": "streaming and screen recording", "icon": "camera", "pacman": "obs-studio", "flatpak": "com.obsproject.Studio"},
+    {"id": "discord", "ru": "Discord", "en": "Discord", "hintRu": "голос и чаты", "hintEn": "voice and chats", "icon": "mic", "pacman": "discord", "flatpak": "com.discordapp.Discord"},
+    {"id": "steam", "ru": "Steam", "en": "Steam", "hintRu": "игры", "hintEn": "games", "icon": "gamepad", "pacman": "steam", "flatpak": "com.valvesoftware.Steam"},
+    {"id": "spotify", "ru": "Spotify", "en": "Spotify", "hintRu": "музыка, лирика на панели идёт за ним", "hintEn": "music; the bar's lyrics follow it", "icon": "music", "pacman": "spotify-launcher", "flatpak": "com.spotify.Client"},
+    {"id": "mpv", "ru": "mpv", "en": "mpv", "hintRu": "видеоплеер", "hintEn": "the video player", "icon": "play", "pacman": "mpv", "flatpak": "io.mpv.Mpv"},
+    {"id": "bitwarden", "ru": "Bitwarden", "en": "Bitwarden", "hintRu": "менеджер паролей", "hintEn": "a password manager", "icon": "lock", "pacman": "bitwarden", "flatpak": "com.bitwarden.desktop"},
+    {"id": "libreoffice", "ru": "LibreOffice", "en": "LibreOffice", "hintRu": "документы, таблицы, презентации", "hintEn": "documents, spreadsheets, slides", "icon": "document", "pacman": "libreoffice-fresh", "flatpak": "org.libreoffice.LibreOffice"},
+    {"id": "obsidian", "ru": "Obsidian", "en": "Obsidian", "hintRu": "заметки", "hintEn": "notes", "icon": "document", "pacman": "obsidian", "flatpak": "md.obsidian.Obsidian"},
+    {"id": "thunderbird", "ru": "Thunderbird", "en": "Thunderbird", "hintRu": "почта и календарь", "hintEn": "mail and calendar", "icon": "bell", "pacman": "thunderbird", "flatpak": "org.mozilla.Thunderbird"},
+    {"id": "code", "ru": "VS Code", "en": "VS Code", "hintRu": "редактор кода (Code - OSS)", "hintEn": "a code editor (Code - OSS)", "icon": "terminal", "pacman": "code", "flatpak": "com.visualstudio.code"},
+    {"id": "blender", "ru": "Blender", "en": "Blender", "hintRu": "3D, анимация, монтаж", "hintEn": "3D, animation, editing", "icon": "layers", "pacman": "blender", "flatpak": "org.blender.Blender"},
+    {"id": "krita", "ru": "Krita", "en": "Krita", "hintRu": "рисование", "hintEn": "painting", "icon": "palette", "pacman": "krita", "flatpak": "org.kde.krita"},
+    {"id": "gimp", "ru": "GIMP", "en": "GIMP", "hintRu": "фото и картинки", "hintEn": "photos and pictures", "icon": "image", "pacman": "gimp", "flatpak": "org.gimp.GIMP"},
+    {"id": "inkscape", "ru": "Inkscape", "en": "Inkscape", "hintRu": "векторная графика", "hintEn": "vector graphics", "icon": "sparkle", "pacman": "inkscape", "flatpak": "org.inkscape.Inkscape"},
+    {"id": "kdenlive", "ru": "Kdenlive", "en": "Kdenlive", "hintRu": "монтаж видео", "hintEn": "video editing", "icon": "cd", "pacman": "kdenlive", "flatpak": "org.kde.kdenlive"}
+  ],
+  "personas": [
+    {"id": "streamer", "ru": "Стример", "en": "Streamer", "hintRu": "стримы, запись, игры, музыка", "hintEn": "streams, recording, games, music", "icon": "camera", "apps": ["telegram", "obs", "discord", "steam", "spotify", "mpv"]},
+    {"id": "worker", "ru": "Работяга", "en": "Worker", "hintRu": "документы, почта, заметки, код", "hintEn": "documents, mail, notes, code", "icon": "document", "apps": ["telegram", "libreoffice", "obsidian", "thunderbird", "bitwarden", "code"]},
+    {"id": "regular", "ru": "Обычный чел", "en": "Just a person", "hintRu": "общаться, играть, смотреть, слушать", "hintEn": "chat, play, watch, listen", "icon": "heart", "apps": ["telegram", "steam", "discord", "spotify", "mpv"]},
+    {"id": "creative", "ru": "Творческая деятельность", "en": "Creative work", "hintRu": "3D, рисунок, фото, монтаж", "hintEn": "3D, drawing, photos, video", "icon": "palette", "apps": ["telegram", "blender", "krita", "gimp", "inkscape", "kdenlive", "obs"]}
+  ]
+}

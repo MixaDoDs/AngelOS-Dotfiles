@@ -359,8 +359,45 @@ PxPage {
         width: parent.width
         property var info: ({})
         property string palette: "ngo"
+        property string pick: "stream"           // the look shown in the preview
+        property string screenKind: "wide"
         property string log: ""
+        readonly property string previewDir: (Quickshell.env("XDG_CACHE_HOME") || Quickshell.env("HOME") + "/.cache") + "/angelos/sddm/preview"
+        readonly property var looks: [
+            {
+                "id": "stream",
+                "icon": "chat",
+                "name": I18n.t("NGO-стрим", "NGO stream"),
+                "hint": I18n.t("«скоро эфир»: пиксельные обои, сердечки вместо пароля, чат ждёт", "“starting soon”: pixel wallpaper, hearts for the password, a waiting chat")
+            },
+            {
+                "id": "heaven",
+                "icon": "sparkle",
+                "name": I18n.t("Небеса", "Heaven"),
+                "hint": I18n.t("золотые врата над облаками, небо по времени суток, ангел дремлет рядом", "a gold gate above the clouds, the sky of the hour, the angel dozing by it")
+            },
+            {
+                "id": "retro",
+                "icon": "monitor",
+                "name": "angelOS 98",
+                "hint": I18n.t("Y2K-рабочий стол: окно входа, «Пуск», ошибка как в 98-й", "a Y2K desktop: the logon dialog, Start, the error box of ’98")
+            },
+            {
+                "id": "hell",
+                "icon": "ghost",
+                "name": I18n.t("Ад", "Hell"),
+                "hint": I18n.t("пентаграмма, угли, договор о душе — подпись паролем", "a pentagram, embers, a contract for your soul signed with the password")
+            },
+            {
+                "id": "quiet",
+                "icon": "moon",
+                "name": I18n.t("Тишина", "Quiet"),
+                "hint": I18n.t("только обои, большие часы и одно тонкое поле", "just the wallpaper, a big clock and one slim field")
+            }
+        ]
+        readonly property bool canSwitch: info.installed === true && info.user === true && info.walls === true
         Component.onCompleted: sddmStatus.running = true
+        onPaletteChanged: previewBuild.start()
         Process {
             id: sddmStatus
             command: ["python3", Quickshell.shellDir + "/scripts/sddm-theme.py", "status"]
@@ -368,13 +405,40 @@ PxPage {
                 onStreamFinished: {
                     try {
                         sddmGroup.info = JSON.parse(text);
+                        if (sddmGroup.info.look)
+                            sddmGroup.pick = sddmGroup.info.look;
+                        if (sddmGroup.info.palette === "system" || sddmGroup.info.palette === "ngo")
+                            sddmGroup.palette = sddmGroup.info.palette;
                     } catch (e) {}
+                    previewBuild.start();
                 }
+            }
+        }
+        // the theme for the preview, built like the real one (the colours, the wallpapers)
+        Process {
+            id: previewBuild
+            property bool again: false
+            function start() {
+                if (running) {
+                    again = true;
+                    return;
+                }
+                command = ["python3", Quickshell.shellDir + "/scripts/sddm-theme.py", "build", "--out", sddmGroup.previewDir, "--palette", sddmGroup.palette, "--look", sddmGroup.pick, "--wallpaper", Wallpapers.loginWalls()[0] || "", "--tall", Wallpapers.loginWalls()[1] || ""];
+                running = true;
+            }
+            onExited: code => {
+                if (again) {
+                    again = false;
+                    start();
+                    return;
+                }
+                if (code === 0)
+                    preview.stamp++;
             }
         }
         Process {
             id: sddmInstall
-            command: ["python3", Quickshell.shellDir + "/scripts/sddm-theme.py", "install", "--palette", sddmGroup.palette, "--wallpaper", Wallpapers.loginWalls()[0] || "", "--tall", Wallpapers.loginWalls()[1] || ""]
+            command: ["python3", Quickshell.shellDir + "/scripts/sddm-theme.py", "install", "--palette", sddmGroup.palette, "--look", sddmGroup.pick, "--wallpaper", Wallpapers.loginWalls()[0] || "", "--tall", Wallpapers.loginWalls()[1] || ""]
             stderr: StdioCollector {
                 onStreamFinished: if (text.trim() !== "")
                     sddmGroup.log = text.trim().split("\n").slice(-1)[0]
@@ -384,14 +448,147 @@ PxPage {
                 sddmStatus.running = true;
             }
         }
+        // a look (and colours) for the installed theme: walls/theme.conf.user, no password
+        Process {
+            id: sddmLook
+            command: ["python3", Quickshell.shellDir + "/scripts/sddm-theme.py", "look", sddmGroup.pick, "--palette", sddmGroup.palette]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    let r = {};
+                    try {
+                        r = JSON.parse(text);
+                    } catch (e) {}
+                    sddmGroup.log = r.set ? I18n.t("готово: при следующем входе — «", "done: the next login shows “") + sddmGroup.looks.find(l => l.id === sddmGroup.pick).name + I18n.t("» ♡", "” ♡") : I18n.t("не вышло — обновите тему входа кнопкой рядом", "it did not work: update the login theme with the button beside it");
+                    sddmStatus.running = true;
+                }
+            }
+        }
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Тема angelOS для экрана входа: тот же NGO-стрим, только «скоро эфир» — пиксельные обои, сердечки вместо пароля, чат ждёт, кнопки питания. Устанавливается в систему, поэтому спросит пароль администратора.", "angelOS's theme for the login screen: the same NGO stream, “starting soon” — pixel wallpaper, hearts for the password, a waiting chat, power buttons. It goes into the system, so it asks for the admin password.")
+            text: I18n.t("Как выглядит вход в систему, ещё до angelOS. Выберите облик — ниже он живой, с вашими обоями и цветами. Первая установка спросит пароль администратора; потом облик и цвета меняются без пароля.", "What logging in looks like, before angelOS starts. Pick a look — it runs live below, with your wallpaper and colours. The first install asks for the admin password; after that the look and colours change without one.")
+        }
+        // the looks: a card each; the one picked plays below
+        Flow {
+            width: parent.width
+            spacing: Theme.u * 4
+            Repeater {
+                model: sddmGroup.looks
+                Item {
+                    id: card
+                    required property var modelData
+                    readonly property bool picked: sddmGroup.pick === modelData.id
+                    readonly property bool current: sddmGroup.info.installed === true && sddmGroup.info.look === modelData.id
+                    width: Math.floor((parent.width - Theme.u * 8) / 3)
+                    height: cardCol.implicitHeight + Theme.u * 10
+                    PxBox {
+                        anchors.fill: parent
+                        sunken: card.picked
+                        color: card.picked ? Theme.mix(Theme.face, Theme.accent, 0.22) : cm.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.1) : Theme.face
+                        edgeColor: card.picked ? Theme.accent : Theme.edge
+                    }
+                    Column {
+                        id: cardCol
+                        x: Theme.u * 5
+                        y: Theme.u * 5
+                        width: parent.width - Theme.u * 10
+                        spacing: Theme.u * 2
+                        Row {
+                            spacing: Theme.u * 3
+                            PxIcon {
+                                name: card.modelData.icon
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            PxText {
+                                text: card.modelData.name
+                                font.bold: true
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            PxText {
+                                visible: card.current
+                                text: I18n.t("· сейчас", "· now")
+                                kind: "tiny"
+                                color: Theme.accent
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+                        PxText {
+                            width: parent.width
+                            text: card.modelData.hint
+                            kind: "tiny"
+                            dim: true
+                            wrapMode: Text.Wrap
+                        }
+                    }
+                    MouseArea {
+                        id: cm
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: sddmGroup.pick = card.modelData.id
+                    }
+                }
+            }
+        }
+        // the live preview and what to show on it
+        PxBox {
+            width: parent.width
+            height: preview.height + Theme.u * 6
+            sunken: true
+            color: Theme.sunken
+            SddmPreview {
+                id: preview
+                x: Theme.u * 3
+                y: Theme.u * 3
+                width: parent.width - Theme.u * 6
+                look: sddmGroup.pick
+                screenKind: sddmGroup.screenKind
+                themeDir: stamp > 0 ? sddmGroup.previewDir : ""
+            }
+            PxText {
+                anchors.centerIn: parent
+                visible: !preview.ready
+                text: previewBuild.running ? I18n.t("собираю предпросмотр…", "building the preview…") : I18n.t("предпросмотра нет", "no preview")
+                dim: true
+            }
+        }
+        Row {
+            spacing: Theme.u * 4
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Экран", "Screen"),
+                        "value": "wide"
+                    },
+                    {
+                        "label": I18n.t("Вертикальный", "Portrait"),
+                        "value": "tall"
+                    },
+                    {
+                        "label": I18n.t("Второй экран", "Second screen"),
+                        "value": "cam"
+                    }
+                ]
+                currentValue: sddmGroup.screenKind
+                onActivated: v => sddmGroup.screenKind = v
+            }
+            PxButton {
+                text: I18n.t("Ошибка", "Mistake")
+                icon: "warn"
+                enabled: preview.ready && sddmGroup.screenKind !== "cam"
+                onClicked: preview.failed()
+            }
+            PxButton {
+                text: I18n.t("Вход", "Log in")
+                icon: "heart"
+                enabled: preview.ready && sddmGroup.screenKind !== "cam"
+                onClicked: preview.succeeded()
+            }
         }
         SettingRow {
             label: I18n.t("Цвета", "Colours")
+            hint: I18n.t("Небеса и Ад держат свои цвета; остальные облики — NGO-розовый или цвета системы", "Heaven and Hell keep their own colours; the other looks take NGO pink or the desktop's")
             PxSegmented {
                 model: [
                     {
@@ -417,10 +614,22 @@ PxPage {
         }
         Row {
             spacing: Theme.u * 4
+            // the theme is in place and knows the looks: just switch, no password
+            PxButton {
+                visible: sddmGroup.canSwitch
+                text: I18n.t("Поставить этот облик", "Use this look")
+                icon: "heart"
+                accent: true
+                enabled: !sddmLook.running && (sddmGroup.pick !== sddmGroup.info.look || sddmGroup.palette !== sddmGroup.info.palette)
+                onClicked: {
+                    sddmGroup.log = "";
+                    sddmLook.running = true;
+                }
+            }
             PxButton {
                 text: sddmGroup.info.installed ? I18n.t("Обновить тему входа", "Update the login theme") : I18n.t("Установить тему входа", "Install the login theme")
                 icon: "download"
-                accent: true
+                accent: !sddmGroup.canSwitch
                 enabled: !sddmInstall.running && sddmGroup.info.sddm !== false
                 onClicked: {
                     sddmGroup.log = I18n.t("ставлю… (спросит пароль)", "installing… (asks for the password)");
@@ -431,7 +640,7 @@ PxPage {
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
-            text: sddmGroup.log !== "" ? sddmGroup.log : sddmGroup.info.sddm === false ? I18n.t("SDDM не установлен", "SDDM is not installed") : I18n.t("сейчас: ", "now: ") + (sddmGroup.info.current || "—") + (sddmGroup.info.current === "angelos" ? " ♡" : "")
+            text: sddmGroup.log !== "" ? sddmGroup.log : sddmGroup.info.sddm === false ? I18n.t("SDDM не установлен", "SDDM is not installed") : sddmGroup.info.installed && !sddmGroup.canSwitch ? I18n.t("тема входа старая: обновите её один раз — дальше облики меняются без пароля", "the login theme is an old one: update it once, then the looks change without a password") : I18n.t("сейчас: ", "now: ") + (sddmGroup.info.current || "—") + (sddmGroup.info.current === "angelos" ? " · " + ((sddmGroup.looks.find(l => l.id === sddmGroup.info.look) || {}).name || "") + " ♡" : "")
             dim: sddmGroup.log === ""
         }
     }

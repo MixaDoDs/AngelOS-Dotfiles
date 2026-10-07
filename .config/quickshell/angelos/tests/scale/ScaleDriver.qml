@@ -26,7 +26,12 @@ Scope {
     }
 
     // art pixel, font scale: the first is the reference
-    readonly property var combos: [[2, 1], [2, 2], [1, 1], [4, 1], [3, 1.5], [4, 2]]
+    readonly property var allCombos: [[2, 1], [2, 2], [1, 1], [4, 1], [3, 1.5], [4, 2]]
+    // ANGELOS_SCALE_ONLY="1 2": the reference and those of the rest (run.sh runs a few at once)
+    readonly property var combos: {
+        const only = (Quickshell.env("ANGELOS_SCALE_ONLY") || "").trim();
+        return only ? [allCombos[0]].concat(only.split(/\s+/).map(i => allCombos[Number(i)])) : allCombos;
+    }
     readonly property var surfaces: ["settings:home", "settings:appearance", "settings:updates", "settings:monitor", "settings:notifications", "settings:bar", "start:win11", "start:classic", "start:windose", "start:spotlight", "bar", "notification"]
 
     FloatingWindow {

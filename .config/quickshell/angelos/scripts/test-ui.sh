@@ -67,9 +67,10 @@ sys.exit(1 if bad else 0)
 PY
 ); then ok "no hard-coded .exe: titles follow the ending setting"; else bad "hard-coded .exe (use I18n.exe):"; printf '%s\n' "$out" | head -20 | sed 's/^/      /'; fi
 
-# python helpers at least compile
-if out=$(python3 -m py_compile "$DIR"/scripts/*.py 2>&1); then ok "scripts/*.py compile"; else bad "python: $out"; fi
-find "$DIR/scripts" -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null
+# python helpers at least compile (the bytecode out of the tree: check.sh copies it meanwhile)
+pyc="$(mktemp -d)"
+if out=$(PYTHONPYCACHEPREFIX="$pyc" python3 -m py_compile "$DIR"/scripts/*.py 2>&1); then ok "scripts/*.py compile"; else bad "python: $out"; fi
+rm -rf "$pyc"
 
 # the live lens runs as its own quickshell (extras/lens-live) and may not read outside its
 # folder: its copy of the lens shader must be the shell's own
@@ -83,8 +84,8 @@ fi
 
 # a short runtime dir: Quickshell's IPC socket path must fit in 108 bytes
 T="$(mktemp -d /tmp/aos-test.XXXXXX)"
-trap 'rm -rf "$T"' EXIT
-mkdir -p "$T/home/.config/angelos" "$T/rt" "$T/root" && chmod 700 "$T/rt"
+trap 'kill $(jobs -p) 2>/dev/null; rm -rf "$T"' EXIT
+mkdir -p "$T/root"
 
 # The real shell.qml minus its screen windows (layer-shell needs a compositor):
 # same imports, type anchors and service start-up, plus the test driver.
@@ -98,7 +99,7 @@ print(text[:text.rfind("}")] + "    Driver {}\n}")
 PY
 # quiet, offline settings: no OBS, no sounds, no first-run jobs; developer mode on, so its
 # pages (Plugin Studio) load with the rest — a page nobody opens in CI breaks unseen
-cat >"$T/home/.config/angelos/settings.json" <<'JSON'
+cat >"$T/settings.json" <<'JSON'
 {"setup": {"complete": true}, "stream": {"auto": false}, "y2k": {"sounds": false, "helper": false, "boot": false},
  "bar": {"metaTap": false}, "updates": {"autoCheck": false}, "system": {"nautilusDefaults": true},
  "developer": {"enabled": true}}
@@ -122,63 +123,83 @@ while True:
     time.sleep(1 / 30)
 CAVA
 chmod +x "$T/bin/cava"
-log="${ANGELOS_TEST_LOG:-$T/qs.log}"
 runner=()
 command -v dbus-run-session >/dev/null && runner=(dbus-run-session --)
-env -i PATH="$T/bin:$PATH" LANG=C.UTF-8 HOME="$T/home" USER="${USER:-angel}" \
-  XDG_CONFIG_HOME="$T/home/.config" XDG_STATE_HOME="$T/home/.local/state" \
-  XDG_CACHE_HOME="$T/home/.cache" XDG_DATA_HOME="$T/home/.local/share" XDG_RUNTIME_DIR="$T/rt" \
-  QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= LD_LIBRARY_PATH="$LIB" QML_IMPORT_PATH="$QML" \
-  ANGELOS_DEV=1 ANGELOS_SCREENS=__none__ ANGELOS_TEST=1 ANGELOS_TEST_SHOTS="${ANGELOS_TEST_SHOTS:-}" QS_NO_RELOAD_POPUP=1 QS_DISABLE_CRASH_HANDLER=1 \
-  "${runner[@]}" timeout 300 "$QS" -p "$T/root" >"$log" 2>&1
-code=$?
 
-# results of the driver
-sed -n 's/.*\(TEST \(PASS\|FAIL\|[a-z].*\)\)/\1/p' "$log" | grep -E '^TEST [^ ]+ (PASS|FAIL)' | while read -r _ name res detail; do
-  if [[ "$res" == PASS ]]; then printf '  ✓ %s %s\n' "$name" "$detail"; else printf '  ✕ %s %s\n' "$name" "$detail"; fi
+# The driver in shards that run at once (one after the other the phases took over two
+# minutes): each its own HOME and runtime dir, phases FROM…UNTIL (tests/ui/Driver.qml).
+SHARDS=("a||previews" "b|previews|game" "c|game|game-exit" "d|game-exit|")
+driver() { # NAME FROM UNTIL
+  local h="$T/$1"
+  mkdir -p "$h/home/.config/angelos" "$h/rt" && chmod 700 "$h/rt"
+  cp "$T/settings.json" "$h/home/.config/angelos/settings.json"
+  env -i PATH="$T/bin:$PATH" LANG=C.UTF-8 HOME="$h/home" USER="${USER:-angel}" \
+    XDG_CONFIG_HOME="$h/home/.config" XDG_STATE_HOME="$h/home/.local/state" \
+    XDG_CACHE_HOME="$h/home/.cache" XDG_DATA_HOME="$h/home/.local/share" XDG_RUNTIME_DIR="$h/rt" \
+    QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= LD_LIBRARY_PATH="$LIB" QML_IMPORT_PATH="$QML" \
+    ANGELOS_DEV=1 ANGELOS_SCREENS=__none__ ANGELOS_TEST=1 ANGELOS_TEST_SHOTS="${ANGELOS_TEST_SHOTS:-}" QS_NO_RELOAD_POPUP=1 QS_DISABLE_CRASH_HANDLER=1 \
+    ANGELOS_TEST_FROM="$2" ANGELOS_TEST_UNTIL="$3" \
+    "${runner[@]}" timeout 300 "$QS" -p "$T/root" >"$T/$1.log" 2>&1
+  echo $? >"$T/$1.code"
+}
+# the other offscreen suites (tests/<name>/run.sh), alongside
+suite() { # NAME [VAR=value…]
+  local name="$1" rc=0; shift
+  env ANGELOS_TEST_LOG= "$@" bash "$DIR/tests/$name/run.sh" "$DIR" >"$T/suite-$name.out" 2>&1 || rc=$?
+  echo "$rc" >"$T/suite-$name.code"
+}
+# at most ANGELOS_TEST_JOBS at once (default: the CPUs), the longest first
+JOBS="${ANGELOS_TEST_JOBS:-$(nproc 2>/dev/null || echo 4)}"
+start() { while (( $(jobs -rp | wc -l) >= JOBS )); do wait -n 2>/dev/null || true; done; "$@" & }
+start suite scale
+for s in b c d a; do
+  for sh in "${SHARDS[@]}"; do [[ "${sh%%|*}" == "$s" ]] && { IFS='|' read -r n from until <<<"$sh"; start driver "$n" "$from" "$until"; }; done
 done
-grep -qE 'TEST [^ ]+ FAIL' "$log" && fail=1
-grep -q 'TEST DONE' "$log" || bad "the self-test did not finish (crash or hang, exit $code): $(tail -3 "$log" | tr '\n' ' ' | cut -c1-300)"
+start suite lock
+start suite theme
+start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1
+wait
+
+# results of the driver, shard by shard
+for sh in "${SHARDS[@]}"; do
+  n="${sh%%|*}" log="$T/${sh%%|*}.log"
+  sed -n 's/.*\(TEST \(PASS\|FAIL\|[a-z].*\)\)/\1/p' "$log" | grep -E '^TEST [^ ]+ (PASS|FAIL)' | while read -r _ name res detail; do
+    if [[ "$res" == PASS ]]; then printf '  ✓ %s %s\n' "$name" "$detail"; else printf '  ✕ %s %s\n' "$name" "$detail"; fi
+  done
+  grep -qE 'TEST [^ ]+ FAIL' "$log" && fail=1
+  grep -q 'TEST DONE' "$log" || bad "the self-test (shard $n: ${sh#*|}) did not finish (crash or hang, exit $(cat "$T/$n.code" 2>/dev/null)): $(tail -3 "$log" | tr '\n' ' ' | cut -c1-300)"
+done
+[[ -z "${ANGELOS_TEST_LOG:-}" ]] || for sh in "${SHARDS[@]}"; do cat "$T/${sh%%|*}.log"; done >"$ANGELOS_TEST_LOG"
 
 # errors in the log, with the page that was loading
-errs=$(awk '/TEST-PAGE /{sub(/.*TEST-PAGE /,""); page=$0; next}
+errs=$(for sh in "${SHARDS[@]}"; do cat "$T/${sh%%|*}.log"; done | awk '/TEST-PAGE /{sub(/.*TEST-PAGE /,""); page=$0; next}
   /is not a type|Binding loop detected|TypeError|ReferenceError|Cannot assign|Unable to assign|is not defined|Cannot read property|Cannot call method|failed to load component|Error loading|Cannot open: file/ {
-    line=$0; gsub(/\033\[[0-9;]*m/,"",line); print "[" (page==""?"startup":page) "] " substr(line,1,220) }' "$log" | sort -u)
+    line=$0; gsub(/\033\[[0-9;]*m/,"",line); print "[" (page==""?"startup":page) "] " substr(line,1,220) }' | sort -u)
 if [[ -n "$errs" ]]; then
   bad "errors in the log:"; printf '%s\n' "$errs" | head -30 | sed 's/^/      /'
 else
   ok "no QML errors, binding loops, JS exceptions or missing images"
 fi
 
+# suite NAME "what it checks": its result, the lines that are not ✓ when it failed
+result() {
+  if [[ "$(cat "$T/suite-$1.code" 2>/dev/null)" == 0 ]]; then
+    ok "$2"
+  else
+    bad "$3 (tests/$1/run.sh):"; grep -v '✓' "$T/suite-$1.out" | head -"$4" | sed 's/^/      /'
+  fi
+}
 # the theme export to the apps (tests/theme): heaven ⇄ hell in any order and timing, the last
 # state is the one on disk (window borders stayed hell's after a return "as in the game")
-if out=$(bash "$DIR/tests/theme/run.sh" "$DIR" 2>&1); then
-  ok "theme export: the last state reaches the apps (late realm, toggles during a render, late hell accent)"
-else
-  bad "theme export (tests/theme/run.sh):"; printf '%s\n' "$out" | grep -v '✓' | head -20 | sed 's/^/      /'
-fi
-
+result theme "theme export: the last state reaches the apps (late realm, toggles during a render, late hell accent)" "theme export" 20
 # the scale matrix (tests/scale): Settings, the Start looks, the bar and a notification at art
 # pixel 1–4 and fonts ×1, ×1.5 (the step between) and ×2 — nothing runs over, out of its box or off
-if out=$(bash "$DIR/tests/scale/run.sh" "$DIR" 2>&1); then
-  ok "scale matrix: px 2 ×2, px 1, px 4, px 3 ×1.5, px 4 ×2 — no text over text, cut or overflowing"
-else
-  bad "scale matrix (tests/scale/run.sh):"; printf '%s\n' "$out" | grep -v '✓' | head -30 | sed 's/^/      /'
-fi
-
+result scale "scale matrix: px 2 ×2, px 1, px 4, px 3 ×1.5, px 4 ×2 — no text over text, cut or overflowing" "scale matrix" 30
 # the lock screen (tests/lock): both looks type, fail and unlock, the stream's audience
 # follows the days, the replay plays, every unlock style draws; and the SDDM theme
 # (tests/sddm) under a stand-in SDDM — both offscreen here
-if out=$(ANGELOS_TEST_LOG= bash "$DIR/tests/lock/run.sh" "$DIR" 2>&1); then
-  ok "lock screen: NGO and heaven looks, typing, mistakes, unlock styles, the stream's audience by day"
-else
-  bad "lock screen (tests/lock/run.sh):"; printf '%s\n' "$out" | grep -v '✓' | head -20 | sed 's/^/      /'
-fi
-if out=$(ANGELOS_TEST_LOG= ANGELOS_SDDM_TEST_OFFSCREEN=1 bash "$DIR/tests/sddm/run.sh" "$DIR" 2>&1); then
-  ok "SDDM theme: builds, loads, types, fails and logs in"
-else
-  bad "SDDM theme (tests/sddm/run.sh):"; printf '%s\n' "$out" | grep -v '✓' | head -20 | sed 's/^/      /'
-fi
+result lock "lock screen: NGO and heaven looks, typing, mistakes, unlock styles, the stream's audience by day" "lock screen" 20
+result sddm "SDDM theme: builds, loads, types, fails and logs in" "SDDM theme" 20
 
 if ((fail)); then echo "» UI SELF-TEST FAILED"; exit 1; fi
 echo "» UI self-test passed ♡"

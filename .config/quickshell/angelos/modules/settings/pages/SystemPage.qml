@@ -6,6 +6,7 @@ import Quickshell.Io
 import qs.config
 import qs.services
 import qs.widgets
+import "../../../widgets/Logos.js" as Logos
 
 PxPage {
     id: systemPage
@@ -204,6 +205,225 @@ PxPage {
             icon: "refresh"
             text: I18n.t("Проверить снова", "Check again")
             onClicked: SystemInfo.refresh()
+        }
+    }
+
+    // fastfetch in angelOS's styles (scripts/fastfetch_style.py, services/FastfetchLogo):
+    // a card each, the picked one run for real below — in heaven or in any circle of hell
+    PxGroup {
+        id: ffGroup
+        name: "fastfetch"
+        title: "fastfetch"
+        icon: "monitor"
+        width: parent.width
+        property string pick: FastfetchLogo.style
+        property string realm: Angel.demon ? (HellLook.circle || "base") : "heaven"
+        readonly property var styles: FastfetchLogo.styles
+        readonly property var circles: ["base", "limbo", "lust", "gluttony", "greed", "wrath", "heresy", "violence", "fraud", "treachery"]
+        // what ThemeExport.fastfetchHell gives terminal-hell.py, for any circle
+        function hellOf(c) {
+            const look = HellLook.merged(HellLook.fallback, HellLook.looks.base, c !== "base" ? HellLook.looks[c] : null);
+            const p = look.palette, n = look.n || 0;
+            const h = x => Theme.hex(Qt.color(x));
+            const lab = id => look.labels && look.labels[id] ? I18n.label(look.labels[id]) : "";
+            return {
+                "circle": c,
+                "number": n,
+                "roman": n > 0 ? Theme.roman(n) : "",
+                "name": I18n.label(look.name || {}),
+                "where": I18n.label(look.where || {}),
+                "circleWord": I18n.t("Круг", "Circle"),
+                "labels": {
+                    "cpu": lab("cpu"),
+                    "gpu": lab("gpu"),
+                    "ram": lab("ram")
+                },
+                "keys": h(p.accent),
+                "title": h(p.text),
+                "dim": h(p.textDim),
+                "palette": {
+                    "#": h(Theme.mix(Qt.color(p.accent), Qt.color(p.edge), 0.55)),
+                    "o": h(p.accent),
+                    "x": h(p.blood),
+                    "y": h(p.flame),
+                    "w": h(p.text),
+                    "f": h(p.textDim),
+                    "r": h(p.accent),
+                    "p": h(Theme.mix(Qt.color(p.accent), Qt.color(p.text), 0.45))
+                }
+            };
+        }
+        function refresh() {
+            if (ffPreview.running) {
+                ffPreview.again = true;
+                return;
+            }
+            const st = pick === "own" ? "compact" : pick;
+            let cmd = FastfetchLogo.args("preview", st);
+            if (realm !== "heaven") {
+                cmd = cmd.concat(["--hell", JSON.stringify(hellOf(realm))]);
+                // before any circle: the emblem with horns
+                cmd[cmd.indexOf("--emblem-rows") + 1] = JSON.stringify(Logos.emblem(FastfetchLogo.emblem, true));
+            }
+            ffPreview.command = cmd;
+            ffPreview.running = true;
+        }
+        onPickChanged: refresh()
+        onRealmChanged: refresh()
+        Component.onCompleted: refresh()
+        Process {
+            id: ffPreview
+            property bool again: false
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        const r = JSON.parse(text);
+                        if (r.lines)
+                            ffScreen.screen = r;
+                    } catch (e) {}
+                }
+            }
+            onExited: if (again) {
+                again = false;
+                ffGroup.refresh();
+            }
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Что печатает fastfetch в новом терминале. Цвета и значок — из темы и «Пуска»; в аду у каждого круга своя печать, свои цвета и слова.", "What fastfetch prints in a new terminal. The colours and emblem come from the theme and Start; in hell each circle has its own sigil, colours and words.")
+        }
+        Flow {
+            width: parent.width
+            spacing: Theme.u * 4
+            Repeater {
+                model: ffGroup.styles
+                Item {
+                    id: ffCard
+                    required property var modelData
+                    readonly property bool picked: ffGroup.pick === modelData.id
+                    width: Math.floor((parent.width - Theme.u * 8) / 3)
+                    height: ffCol.implicitHeight + Theme.u * 10
+                    PxBox {
+                        anchors.fill: parent
+                        sunken: ffCard.picked
+                        color: ffCard.picked ? Theme.mix(Theme.face, Theme.accent, 0.22) : ffm.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.1) : Theme.face
+                        edgeColor: ffCard.picked ? Theme.accent : Theme.edge
+                    }
+                    Column {
+                        id: ffCol
+                        x: Theme.u * 5
+                        y: Theme.u * 5
+                        width: parent.width - Theme.u * 10
+                        spacing: Theme.u * 2
+                        PxText {
+                            text: (ffCard.picked ? "♡ " : "") + ffCard.modelData.name
+                            font.bold: true
+                        }
+                        PxText {
+                            width: parent.width
+                            text: ffCard.modelData.hint
+                            kind: "tiny"
+                            dim: true
+                            wrapMode: Text.Wrap
+                        }
+                    }
+                    MouseArea {
+                        id: ffm
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            ffGroup.pick = ffCard.modelData.id;
+                            Config.bar.fastfetchStyle = ffCard.modelData.id;
+                        }
+                    }
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Анимация", "Animation")
+            hint: I18n.t("картинка оживает в новом терминале: машет крыльями, блестит, искрится; любая клавиша — сразу к делу", "the picture comes alive in a new terminal: wings flap, it shines and sparkles; any key gets you straight to work")
+            PxCombo {
+                width: Theme.u * 110
+                model: [
+                    {
+                        "label": I18n.t("Выключена", "Off"),
+                        "value": "off"
+                    },
+                    {
+                        "label": I18n.t("Коротко — 2,5 с", "Short: 2.5 s"),
+                        "value": "short"
+                    },
+                    {
+                        "label": I18n.t("Подольше — 6 с", "Longer: 6 s"),
+                        "value": "long"
+                    }
+                ]
+                currentValue: Config.bar.fastfetchAnim || "short"
+                onActivated: v => Config.bar.fastfetchAnim = v
+            }
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            visible: Motion.still && Config.bar.fastfetchAnim !== "off"
+            text: I18n.t("Сейчас картинка стоит: анимации выключены (Оформление → Анимации).", "The picture stays still for now: animations are off (Appearance → Animations).")
+        }
+        SettingRow {
+            label: I18n.t("Показать", "Show")
+            hint: I18n.t("рай — как сейчас; круги — как будет в аду (там fastfetch меняется сам)", "heaven is how it is now; the circles are how hell shows it (it changes there by itself)")
+            PxCombo {
+                width: Theme.u * 110
+                model: [
+                    {
+                        "label": I18n.t("Рай", "Heaven"),
+                        "value": "heaven"
+                    }
+                ].concat(ffGroup.circles.map(c => {
+                    const look = c === "base" ? null : HellLook.looks[c];
+                    return {
+                        "label": c === "base" ? I18n.t("Ад (до кругов)", "Hell (before the circles)") : (look && look.n ? Theme.roman(look.n) + " · " : "") + I18n.label(look ? look.name || {} : {}),
+                        "value": c
+                    };
+                }))
+                currentValue: ffGroup.realm
+                onActivated: v => ffGroup.realm = v
+            }
+        }
+        PxBox {
+            width: parent.width
+            height: ffScreen.height * ffScreen.scale + Theme.u * 4
+            sunken: true
+            color: ffScreen.background
+            clip: true
+            FastfetchPreview {
+                id: ffScreen
+                animate: Config.bar.fastfetchAnim !== "off"
+                x: Theme.u * 2
+                y: Theme.u * 2
+                width: implicitWidth
+                height: implicitHeight
+                transformOrigin: Item.TopLeft
+                scale: Math.min(1, (parent.width - Theme.u * 4) / Math.max(1, implicitWidth))
+            }
+            PxText {
+                anchors.centerIn: parent
+                visible: !(ffScreen.screen.lines || []).length
+                text: ffPreview.running ? I18n.t("запускаю fastfetch…", "running fastfetch…") : I18n.t("fastfetch не установлен?", "is fastfetch installed?")
+                dim: true
+            }
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            visible: ffGroup.pick === "own"
+            text: I18n.t("Выше — «Компакт» для сравнения. Свой config.jsonc angelOS не меняет; значок в logo.txt рисует, если включено «fastfetch рисует этот значок» (Панель → Логотип).", "Above: Compact, to compare. angelOS leaves your config.jsonc alone; it draws the emblem into logo.txt if “fastfetch draws this emblem” is on (Bar → Logo).")
         }
     }
 

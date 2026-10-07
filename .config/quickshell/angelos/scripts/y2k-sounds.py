@@ -98,10 +98,11 @@ LOUDNESS = {"bark": -24.0, "voiceAngel": -25.0, "voiceDemon": -26.0, "voice": -2
             "voiceFallen1": -27.0, "voiceFallen2": -27.0, "voiceFallen3": -27.0, "voiceFallen4": -27.0, "voiceFallen5": -27.0,
             "choir": -23.0, "crack": -25.0, "rocks": -23.0, "shatter": -23.0,
             "key": -27.0, "key2": -27.0, "key3": -27.0, "clickRight": -22.0, "workspace": -24.0,
-            "circle": -21.0, "circleSoft": -27.0, "achievement": -23.0}
+            "circle": -21.0, "circleSoft": -27.0, "achievement": -23.0, "stars": -31.0,
+            "chestOpen": -27.0, "chestTick": -32.0, "chestPrize": -26.0, "chestLegend": -24.0}
 # peaks, dBFS: the harp's strings ring together (a glissando stacks them)
 PEAKS = {"harp%d" % (i + 1): -10.0 for i in range(16)}
-PACK_VERSION = "9"
+PACK_VERSION = "11"
 
 
 def startup():
@@ -337,6 +338,59 @@ def achievement():
         place(buf, tri(note(n), 0.9) * env(int(0.9 * RATE), 0.02, 0.6) * 0.18, 0.28)
     place(buf, bell(note(103), 0.4, index=0.5, decay=9) * 0.35, 0.34)
     return echo(buf, 0.12, 0.3, 3)
+
+
+def stars():
+    """heaven's stars ✦ came in: two soft high glints and a breath of shimmer — quiet, it comes
+    with every reward (the old one was the full notification bell)"""
+    sec = 0.8
+    buf = np.zeros(int(sec * RATE))
+    place(buf, bell(note(96), 0.45, index=0.35, decay=10) * 0.5, 0.0)
+    place(buf, bell(note(100), 0.5, index=0.35, decay=9) * 0.42, 0.09)
+    place(buf, bell(note(108), 0.35, index=0.2, decay=12) * 0.18, 0.16)
+    return echo(buf, 0.11, 0.22, 2)
+
+
+def chest_open():
+    """the chest's lid bursts: a wooden knock, a creak, then an airy rising sparkle"""
+    sec = 1.1
+    buf = np.zeros(int(sec * RATE))
+    t = t_axis(0.12)
+    place(buf, np.sin(2 * np.pi * np.cumsum(140 * np.exp(-t * 18) + 60) / RATE) * np.exp(-t * 30) * 0.9, 0.0)
+    t = t_axis(0.25)
+    creak = np.sign(np.sin(2 * np.pi * np.cumsum(180 + 60 * np.sin(2 * np.pi * 7 * t)) / RATE)) * 0.15
+    place(buf, creak * env(len(t), 0.02, 0.15), 0.05)
+    for i, n in enumerate((84, 88, 91, 96, 100)):
+        place(buf, bell(note(n), 0.35, index=0.3, decay=12) * (0.25 + i * 0.05), 0.28 + i * 0.05)
+    return echo(buf, 0.1, 0.25, 2)
+
+
+def chest_tick():
+    """one item passing the reel's frame"""
+    sec = 0.05
+    t = t_axis(sec)
+    return np.sin(2 * np.pi * 1800 * t) * np.exp(-t * 120) * 0.8
+
+
+def chest_prize():
+    """the reel stops on a prize: a bright little fanfare up"""
+    sec = 1.2
+    buf = np.zeros(int(sec * RATE))
+    for i, n in enumerate((79, 84, 88, 91)):
+        place(buf, tri(note(n), 0.3) * env(int(0.3 * RATE), 0.005, 0.2) * 0.5, i * 0.08)
+    place(buf, bell(note(96), 0.8, index=0.6, decay=5) * 0.5, 0.32)
+    return echo(buf, 0.12, 0.25, 2)
+
+
+def chest_legend():
+    """5★: a choir-ish chord swelling under a cascade of bells"""
+    sec = 2.4
+    buf = np.zeros(int(sec * RATE))
+    for n in (60, 67, 72, 76, 79):
+        place(buf, tri(note(n), 1.8) * env(int(1.8 * RATE), 0.35, 1.0) * 0.16, 0.0)
+    for i, n in enumerate((84, 88, 91, 96, 100, 103, 108)):
+        place(buf, bell(note(n), 0.6, index=0.5, decay=7) * 0.4, 0.15 + i * 0.07)
+    return echo(buf, 0.14, 0.3, 3)
 
 
 def demon():
@@ -624,7 +678,8 @@ SOUNDS = {"startup": startup, "notify": notify, "error": error, "click": click, 
           "windowOpen": window_open, "workspace": workspace, "lock": lock, "unlock": unlock,
           "usbIn": usb_in, "usbOut": usb_out, "bark": bark, "circle": circle,
           "circleSoft": lambda: circle(True), "harp": harp,
-          "achievement": achievement}
+          "achievement": achievement, "stars": stars, "chestOpen": chest_open, "chestTick": chest_tick,
+          "chestPrize": chest_prize, "chestLegend": chest_legend}
 SOUNDS.update({"harp%d" % (i + 1): (lambda i=i: harp_string(i)) for i in range(16)})
 # played by QtMultimedia's SoundEffect, which only takes .wav
 WAV_ONLY = {"voiceAngel", "voiceDemon", "voiceFallen1", "voiceFallen2", "voiceFallen3", "voiceFallen4", "voiceFallen5"} | {"harp%d" % (i + 1) for i in range(16)}

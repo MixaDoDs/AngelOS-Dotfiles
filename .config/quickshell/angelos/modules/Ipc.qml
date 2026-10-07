@@ -100,14 +100,15 @@ IpcHandler {
             "obs": StreamMode.obsUp ? (StreamMode.obsLive ? "live" : "up") : (StreamMode.obsAuth ? "password" : "down")
         });
     }
-    // the angel on stream (services/StreamAngel): on | off | toggle | test (show her now,
+    // the angel on stream (services/StreamAngel): on | off | toggle | drop (her menu's
+    // "stop being a streamer": off, and her menu offers it back) | test (show her now,
     // without a stream; again hides her) | view (Mod+Alt+A: on the bar ⇄ hidden) |
     // screen | obs (on your screen too, or only in her window for OBS) | status
     function streamer(mode: string): string {
-        if (["on", "off", "toggle", "test", "view", "screen", "obs"].includes(mode))
+        if (["on", "off", "toggle", "drop", "test", "view", "screen", "obs"].includes(mode))
             StreamAngel.set(mode);
         else if (mode !== "status" && mode !== "")
-            return "on | off | toggle | test | view | screen | obs | status";
+            return "on | off | toggle | drop | test | view | screen | obs | status";
         return JSON.stringify({
             "enabled": StreamAngel.enabled,
             "shown": StreamAngel.shown,
@@ -511,6 +512,14 @@ IpcHandler {
             return "no widget " + uid + "; have: " + Object.keys(DesktopWidgets.faces).join(", ");
         return f.grabToImage(r => r.saveToFile(path)) ? "ok (saving " + path + ")" : "grab failed";
     }
+    // the open Settings as they are drawn (also under other windows), saved to a file
+    function settingsShot(path: string): string {
+        const v = Shell.settingsView;
+        if (!v)
+            return "Settings are closed";
+        const f = v.Window.window ? v.Window.window.activeFocusItem : null;
+        return (v.grabToImage(r => r.saveToFile(path)) ? "ok (saving " + path + ")" : "grab failed") + "; focus: " + (f ? (f.objectName || String(f)) + (f.parent ? " in " + (f.parent.objectName || String(f.parent)) : "") : "none");
+    }
     // a desktop widget's two copies (DesktopWidgetHost face/input), for diagnostics
     function widgetState(uid: string): string {
         const h = DesktopWidgets.hosts[uid], f = DesktopWidgets.faces[uid];
@@ -580,6 +589,13 @@ IpcHandler {
         if (Shell.setupLocked)
             return;
         DesktopActions.launchMonitor();
+    }
+    // heaven's chest: the day's free one, else one for 160 ✦ ("ten": ten for 1600 ✦)
+    function chest(n: string): string {
+        if (Shell.setupLocked)
+            return "the setup wizard is open";
+        const ok = n === "demo" ? Chests.demo(1) : n === "demo10" ? Chests.demo(10) : n === "ten" ? Chests.openTen() : Chests.openOne();
+        return ok ? "opened" : "no chest: " + HeavenStars.stars + " ✦";
     }
     function settingsPage(page: string): void {
         if (Shell.setupLocked)

@@ -45,6 +45,16 @@ PxPage {
         }
 
         SettingRow {
+            visible: Updates.release !== null
+            label: I18n.t("Релиз", "Release")
+            hint: Updates.release ? Updates.release.date : ""
+            PxText {
+                width: parent.width
+                text: Updates.release ? Wallpapers.releaseLabel(Updates.release) : ""
+                color: Theme.accent
+            }
+        }
+        SettingRow {
             visible: !!Updates.repo
             label: I18n.t("Репозиторий", "Repository")
             hint: Updates.remote

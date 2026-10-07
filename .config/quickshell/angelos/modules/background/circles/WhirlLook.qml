@@ -8,6 +8,9 @@ import qs.widgets
 // The look of RadialMenu in the circle of lust: the entries are petals caught in the
 // whirlwind — strung along a spiral that winds out from the pointer, each petal turned along
 // the wind; opening, the wind turns them into place. The middle is the eye of the storm.
+// The toy (CircleToy): stir the wind round the eye and it carries the petals with it — the
+// faster, the further out they're flung and the more of them tear off; a right click is a
+// gust. Let go and the storm calms down, the petals where it left them.
 Item {
     id: look
 
@@ -36,17 +39,50 @@ Item {
     readonly property real reach: outer + slotSize / 2 + labelRoom + Theme.u * 4
     readonly property Item blurItem: null
     // the wind's turn while it opens: everything comes in from further round the spiral
-    readonly property real spin: (1 - menu.reveal) * -2.2
+    readonly property real spin: (1 - menu.reveal) * -2.2 + turn
+    // the toy: the wind's turn by hand and its speed (rad/s); fast wind flings the petals out
+    property real turn: 0
+    property real vel: 0
+    property real lastA: 0
+    property real lastT: 0
+    readonly property real fling: 1 + Math.min(0.3, Math.abs(vel) * 0.03)
     function angleOf(i) {
         return -Math.PI / 2 + pts[i].t + spin;
     }
     function radiusOf(i) {
-        return pts[i].r * (0.35 + 0.65 * menu.reveal);
+        return pts[i].r * (0.35 + 0.65 * menu.reveal) * fling;
+    }
+    // petals torn off by the wind, off the outer end of the spiral
+    function tear(n) {
+        const a = -Math.PI / 2 + (look.n ? pts[look.n - 1].t : 0) + spin, r = outer * fling;
+        bits.burst(menu.cx + Math.cos(a) * r, menu.cy + Math.sin(a) * r, {
+            "n": n || 3,
+            "colors": [Theme.hellAccent, Theme.hellFaceAlt, Theme.hellRim],
+            "size": 2,
+            "speed": 60 + Math.abs(vel) * 12,
+            "dir": a + Math.PI / 2 * Math.sign(vel || 1),
+            "spread": 1.2,
+            "gravity": 40,
+            "life": 1100
+        });
     }
     function nav(e) {
         return menu.walk(e);
     }
     anchors.fill: parent
+
+    FrameAnimation {
+        running: look.vel !== 0 && !toy.held
+        onTriggered: {
+            const dt = Math.min(0.05, frameTime);
+            look.turn += look.vel * dt;
+            look.vel *= Math.pow(0.35, dt);
+            if (Math.abs(look.vel) > 6 && Math.random() < dt * Math.abs(look.vel) * 0.4)
+                look.tear(2);
+            if (Math.abs(look.vel) < 0.05 || Motion.still)
+                look.vel = 0;
+        }
+    }
 
     // the wind: the spiral's path in dotted streaks, turning with the petals
     Canvas {
@@ -73,6 +109,44 @@ Item {
                 const x = c + Math.cos(-Math.PI / 2 + t - 0.35) * r, y = c + Math.sin(-Math.PI / 2 + t - 0.35) * r;
                 ctx.fillRect(Math.round(x / u) * u, Math.round(y / u) * u, u, u);
             }
+        }
+    }
+
+    CircleToy {
+        id: toy
+        menu: look.menu
+        radius: look.reach
+        cursorShape: held ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        hoverEnabled: on
+        onDown: (x, y, right) => {
+            if (right) {
+                look.vel += (look.vel < 0 ? -1 : 1) * 10;
+                Sounds.playSoft("circleSoft", 0.7);
+                look.tear(10);
+                held = false;
+                return;
+            }
+            look.lastA = Math.atan2(y - look.menu.cy, x - look.menu.cx);
+            look.lastT = Date.now();
+        }
+        onDrag: (x, y) => {
+            const a = Math.atan2(y - look.menu.cy, x - look.menu.cx);
+            let d = a - look.lastA;
+            if (d > Math.PI)
+                d -= 2 * Math.PI;
+            if (d < -Math.PI)
+                d += 2 * Math.PI;
+            const now = Date.now(), dt = Math.max(1, now - look.lastT) / 1000;
+            look.turn += d;
+            look.vel = Math.max(-30, Math.min(30, look.vel * 0.6 + (d / dt) * 0.4));
+            look.lastA = a;
+            look.lastT = now;
+            if (Math.abs(look.vel) > 6 && Math.random() < 0.15)
+                look.tear(2);
+        }
+        onUp: (x, y) => {
+            if (Date.now() - look.lastT > 150)
+                look.vel = 0;
         }
     }
 
@@ -129,6 +203,16 @@ Item {
                 text: petal.label
             }
         }
+    }
+
+    CircleBits {
+        id: bits
+    }
+
+    CircleHint {
+        menu: look.menu
+        rule: "whirl"
+        below: look.reach
     }
 
     CircleFly {

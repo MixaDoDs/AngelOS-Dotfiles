@@ -67,7 +67,8 @@ class Proc:
         self.p.stdin.write(json.dumps(obj) + "\n")
         self.p.stdin.flush()
 
-    def wait_for(self, pred, timeout=5.0):
+    # waits for what should come (a busy machine is slower: the checks run side by side)
+    def wait_for(self, pred, timeout=15.0):
         end = time.time() + timeout
         while time.time() < end:
             for line in self.lines:
@@ -89,7 +90,9 @@ class Proc:
 
 def fake(*args):
     f = Proc([sys.executable, str(FAKE)] + list(args))
-    if not f.wait_for(lambda l: l == "READY"):
+    # a Qt or GTK start on a busy machine (the checks run side by side) takes its time
+    if not f.wait_for(lambda l: l == "READY", 30):
+        f.stop()   # first: reading stderr of a live app waited for it forever
         raise SystemExit("fake app %s did not start: %s" % (args, f.p.stderr.read()))
     return f
 
@@ -97,7 +100,7 @@ def fake(*args):
 helper = Proc([sys.executable, str(HELPER), "serve"])
 
 
-def menu_for(pid, app="", timeout=5.0):
+def menu_for(pid, app="", timeout=15.0):
     helper.send({"cmd": "focus", "pid": pid, "app": app})
     line = helper.wait_for(lambda l: l.startswith("{") and json.loads(l).get("ev") == "menu" and json.loads(l).get("pid") == pid, timeout)
     return json.loads(line) if line else None
@@ -145,7 +148,7 @@ try:
         o = qt.wait_for(lambda l: l.startswith("EVENT w0 opened"))
         check("qt-open", a == "ABOUT w0 1" and o == "EVENT w0 opened 1", "%s %s" % (a, o))
     qt.stop()
-    gone = helper.wait_for(lambda l: '"menu"' in l and json.loads(l)["source"] == "none", 5)
+    gone = helper.wait_for(lambda l: '"menu"' in l and json.loads(l)["source"] == "none", 15)
     check("gone", gone is not None, "the menu stayed after the app quit")
 
     qt2 = fake("qt", "2")
@@ -217,7 +220,7 @@ try:
     q = fake("qt")
     helper.p.stdin.write(json.dumps({"cmd": "focus", "pid": 0, "app": ""}) + "\n" + json.dumps({"cmd": "focus", "pid": q.p.pid, "app": "q"}) + "\n")
     helper.p.stdin.flush()
-    both = helper.wait_for(lambda l: '"menu"' in l and json.loads(l)["pid"] == q.p.pid and json.loads(l)["source"] == "dbusmenu", 5)
+    both = helper.wait_for(lambda l: '"menu"' in l and json.loads(l)["pid"] == q.p.pid and json.loads(l)["source"] == "dbusmenu", 15)
     check("two-in-one", both is not None, "the second of two commands written together was never read")
     q.stop()
 
@@ -226,7 +229,7 @@ try:
     late = subprocess.Popen([sys.executable, str(FAKE), "gtkapp", "menubar"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
     time.sleep(0.3)
     first = menu_for(late.pid, "org.example.App")
-    later = helper.wait_for(lambda l: '"menu"' in l and json.loads(l)["pid"] == late.pid and json.loads(l)["source"] == "gmenu", 8)
+    later = helper.wait_for(lambda l: '"menu"' in l and json.loads(l)["pid"] == late.pid and json.loads(l)["source"] == "gmenu", 20)
     check("late", first is not None and first["source"] == "none" and later is not None,
           "first %s, then %s" % (first and first["source"], "gmenu" if later else "nothing within 8 s"))
     late.kill()

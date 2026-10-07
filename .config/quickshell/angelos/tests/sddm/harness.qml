@@ -17,7 +17,7 @@ ShellRoot {
     }
     function shot(name) {
         if (shots)
-            stage.grabToImage(r => r.saveToFile(shots + "/sddm-" + name + ".png"));
+            stage.grabToImage(r => r.saveToFile(shots + "/sddm-" + (config.look || "stream") + "-" + name + ".png"));
     }
     function find(item, name) {
         if (!item)
@@ -95,10 +95,16 @@ ShellRoot {
         path: "@THEME@/theme.conf"
         blockLoading: true
     }
+    // SDDM reads theme.conf.user over theme.conf (the build keeps it in walls/)
+    FileView {
+        id: userConfFile
+        path: "@THEME@/walls/theme.conf.user"
+        blockLoading: true
+    }
     QtObject {
         id: config
         Component.onCompleted: {
-            for (const line of String(confFile.text()).split("\n")) {
+            for (const line of (String(confFile.text()) + "\n" + String(userConfFile.text())).split("\n")) {
                 const m = line.match(/^([A-Za-z0-9]+)=(.*)$/);
                 if (m)
                     config[m[1]] = m[2];
@@ -125,6 +131,8 @@ ShellRoot {
         property string palette
         property string background
         property string suffix
+        property string look
+        property string role
     }
 
     FloatingWindow {
@@ -210,9 +218,10 @@ ShellRoot {
     }
     function shotOf(item, name) {
         if (shots)
-            item.grabToImage(r => r.saveToFile(shots + "/sddm-" + name + ".png"));
+            item.grabToImage(r => r.saveToFile(shots + "/sddm-" + (config.look || "stream") + "-" + name + ".png"));
     }
 
+    readonly property bool stream: (config.look || "stream") === "stream"
     property int step: 0
     Timer {
         interval: 1200
@@ -222,14 +231,18 @@ ShellRoot {
             const pw = shell.find(theme.item, "password");
             switch (shell.step++) {
             case 0:
-                shell.report("load", theme.status === Loader.Ready && pw !== null, "status " + theme.status);
+                shell.report("load", theme.status === Loader.Ready && pw !== null, "status " + theme.status + ", look " + (theme.item ? theme.item.look : "?"));
+                shell.report("look", !!theme.item && theme.item.look === (config.look || "stream"), "asked " + config.look);
                 shell.shot("idle");
-                shell.layout("wide", theme, ["center", "chat"]);
-                shell.layout("tall", tallTheme, ["center", "chat"]);
-                shell.layout("cam-tall", camTallTheme, ["camMain", "camChat"]);
-                shell.layout("cam-wide", camWideTheme, ["camMain", "camChat"]);
-                shell.report("cam-no-login", !!camTallTheme.item && !shell.find(camTallTheme.item, "login").visible && shell.find(camTallTheme.item, "cam").visible, "");
-                shell.report("cam-angel", !!camTallTheme.item && shell.find(camTallTheme.item, "angel") !== null && shell.find(camTallTheme.item, "angel").ready, "");
+                shell.layout("wide", theme, stream ? ["center", "chat"] : ["center"]);
+                shell.layout("tall", tallTheme, stream ? ["center", "chat"] : ["center"]);
+                shell.layout("cam-tall", camTallTheme, stream ? ["camMain", "camChat"] : ["camMain"]);
+                shell.layout("cam-wide", camWideTheme, stream ? ["camMain", "camChat"] : ["camMain"]);
+                const camLogin = camTallTheme.item ? shell.find(camTallTheme.item, "login") || shell.find(camTallTheme.item, "center") : null;
+                shell.report("cam-no-login", !!camTallTheme.item && !(camLogin && camLogin.visible) && shell.find(camTallTheme.item, "camMain").visible, "");
+                if (stream)
+                    shell.report("cam-angel", !!camTallTheme.item && shell.find(camTallTheme.item, "angel") !== null && shell.find(camTallTheme.item, "angel").ready, "");
+                shell.shotOf(stage, "wide");
                 shell.shotOf(tallStage, "tall");
                 shell.shotOf(camTallStage, "cam-tall");
                 shell.shotOf(camWideStage, "cam-wide");

@@ -30,7 +30,7 @@ Singleton {
         if (String(p["node.virtual"]) === "true" || String(p["node.link-group"] || "").startsWith("loopback"))
             return false;
         const app = String(p["application.name"] || p["node.name"] || n.name || "");
-        if (app === "quickshell" || app === "pw-play" || app === "pw-cat")
+        if (app === "quickshell" || app === "pw-play" || app === "pw-cat" || app === "angelos-sfx")
             return false;
         return String(p["media.name"] || "").indexOf("/angelos/sounds/") < 0;
     }

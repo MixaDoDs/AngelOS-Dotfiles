@@ -171,7 +171,7 @@ PxPage {
         SettingRow {
             visible: !Shell.setupOpen
             label: I18n.t("Мастер первого запуска", "The setup wizard")
-            hint: I18n.t("пройти ещё раз в окне: язык, игра, раскладки, тема, движение", "Go through it again in a window: language, the game, layouts, theme, motion")
+            hint: I18n.t("пройти ещё раз на весь экран: язык, игра, раскладки, тема, движение", "Go through it again, full screen: language, the game, layouts, theme, motion")
             PxButton {
                 compact: true
                 text: I18n.t("Открыть", "Open")
@@ -191,6 +191,77 @@ PxPage {
                     Tour.start();
                 }
             }
+        }
+    }
+
+    // Recovery: progress + settings on your GitHub (a private repo) or in a file
+    PxGroup {
+        name: "recovery"
+        width: parent.width
+        title: I18n.t("Восстановление", "Recovery")
+        icon: "refresh"
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Прогресс игры (сюжет, ачивки, звёзды ✦) и все настройки, плагины и горячие клавиши — на твоём GitHub в приватном репозитории angelos-save или в файле. На новом компьютере или после переустановки — вернуть одной кнопкой.", "The game's progress (the story, achievements, stars ✦) and every setting, plugin and shortcut, on your GitHub in a private repository, angelos-save, or in a file. On a new computer or after a reinstall, bring it back with one button.")
+        }
+        SettingRow {
+            label: "GitHub"
+            hint: !Recovery.checked ? I18n.t("проверяю…", "checking…") : !Recovery.gh ? I18n.t("нет входа: Мастер первого запуска → GitHub (или gh auth login)", "not logged in: the setup wizard → GitHub (or gh auth login)") : Recovery.exists ? I18n.t("последнее сохранение: ", "last save: ") + (Recovery.last || "?") : I18n.t("сохранений ещё нет", "no saves yet")
+            Row {
+                spacing: Theme.u * 2
+                PxButton {
+                    compact: true
+                    icon: "arrowUp"
+                    enabled: Recovery.gh && Recovery.busy === ""
+                    text: Recovery.busy === "push" ? I18n.t("Сохраняю…", "Saving…") : I18n.t("Сохранить", "Save")
+                    onClicked: Recovery.push()
+                }
+                PxButton {
+                    compact: true
+                    icon: "download"
+                    enabled: Recovery.gh && Recovery.exists && Recovery.busy === ""
+                    text: Recovery.busy === "pull" ? I18n.t("Восстанавливаю…", "Restoring…") : I18n.t("Восстановить", "Restore")
+                    onClicked: Recovery.pull()
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Сохранять каждый день", "Save every day")
+            hint: I18n.t("сам, раз в сутки, пока есть вход в GitHub", "by itself, once a day, while you're logged in to GitHub")
+            PxToggle {
+                checked: Config.recovery.auto
+                onToggled: v => Config.recovery.auto = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Файл", "A file")
+            hint: I18n.t("без GitHub: сохранить в ~/Documents или вернуть из файла", "without GitHub: save into ~/Documents or restore from a file")
+            Row {
+                spacing: Theme.u * 2
+                PxButton {
+                    compact: true
+                    icon: "folder"
+                    enabled: Recovery.busy === ""
+                    text: I18n.t("В файл", "To a file")
+                    onClicked: Recovery.exportNow()
+                }
+                PxButton {
+                    compact: true
+                    icon: "folder"
+                    enabled: Recovery.busy === ""
+                    text: I18n.t("Из файла…", "From a file…")
+                    onClicked: Recovery.pickImport()
+                }
+            }
+        }
+        PxText {
+            visible: Recovery.message !== ""
+            width: parent.width
+            wrapMode: Text.Wrap
+            color: Recovery.failed ? Theme.danger : Theme.accent
+            text: (Recovery.failed ? "✕ " : "✓ ") + Recovery.message
         }
     }
 

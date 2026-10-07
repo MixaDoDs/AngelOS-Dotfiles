@@ -944,6 +944,86 @@
       "cond": "realm == \"hell\"",
       "secret": true,
       "hell": true
+    },
+    {
+      "id": "streamer",
+      "tier": 3,
+      "icon": "camera",
+      "name": {
+        "ru": "Стример",
+        "en": "Streamer"
+      },
+      "desc": {
+        "ru": "Провести 10 стримов в OBS (от минуты)",
+        "en": "Stream 10 times in OBS (a minute or more)"
+      },
+      "on": "obs.stream",
+      "count": 10
+    },
+    {
+      "id": "camera-roll",
+      "tier": 3,
+      "icon": "camera",
+      "name": {
+        "ru": "Камера, мотор!",
+        "en": "Camera, action!"
+      },
+      "desc": {
+        "ru": "Записать в OBS 10 видео (от минуты)",
+        "en": "Record 10 videos in OBS (a minute or more)"
+      },
+      "on": "obs.record",
+      "count": 10
+    },
+    {
+      "id": "hell-toys",
+      "tier": 3,
+      "icon": "fire",
+      "name": {
+        "ru": "Пальцем в небо… то есть в ад",
+        "en": "Poking at hell"
+      },
+      "desc": {
+        "ru": "Поиграть с меню по ПКМ в трёх разных кругах",
+        "en": "Play with the right-click menu in three different circles"
+      },
+      "on": "deskmenu.toy",
+      "kinds": 3,
+      "hell": true
+    },
+    {
+      "id": "hell-toys-all",
+      "tier": 5,
+      "icon": "star",
+      "name": {
+        "ru": "Турист по преисподней",
+        "en": "Tourist of the underworld"
+      },
+      "desc": {
+        "ru": "Поиграть с меню по ПКМ в каждом круге и с пентаграммой",
+        "en": "Play with the right-click menu in every circle and with the pentagram"
+      },
+      "on": "deskmenu.toy",
+      "kinds": 10,
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "summoner",
+      "tier": 4,
+      "icon": "fire",
+      "name": {
+        "ru": "Медиум",
+        "en": "The medium"
+      },
+      "desc": {
+        "ru": "Призвать свечами пентаграммы пять разных душ",
+        "en": "Summon five different souls with the pentagram's candles"
+      },
+      "on": "hell.summon",
+      "kinds": 5,
+      "secret": true,
+      "hell": true
     }
   ]
 }

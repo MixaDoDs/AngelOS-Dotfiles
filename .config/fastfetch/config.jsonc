@@ -1,108 +1,104 @@
+// angelOS fastfetch style: stream
+// Written by angelOS (Settings → System → fastfetch). Pick "own" there and this file
+// is yours again (the one you had first is config.before-angelos.jsonc).
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/master/doc/json_schema.json",
-
-  // NEEDY GIRL OVERDOSE: KAngel's winged heart, halo and a pill (truecolor
-  // half-blocks, so the size is given: raw ANSI can't be measured)
   "logo": {
     "type": "file-raw",
-    "source": "~/.config/fastfetch/logo.txt",
-    "width": 40,
-    "height": 16,
+    "source": "@HOME@/.config/fastfetch/angelos-logo.txt",
+    "width": 44,
+    "height": 15,
     "padding": {
-      "top": 1,
+      "top": 0,
+      "left": 1,
       "right": 3
     }
   },
-
   "display": {
-    "separator": " ♡ ",
+    "separator": ": ",
     "color": {
-      "keys": "38;2;255;111;176",
-      "title": "38;2;201;182;255"
+      "keys": "38;2;122;120;179",
+      "title": "38;2;167;166;204",
+      "separator": "38;2;180;181;183"
     }
   },
-
   "modules": [
-    "title",
-    "separator",
-
     {
-      "type": "os",
-      "key": "OS"
+      "type": "title",
+      "format": "{#1;38;2;167;166;204}{user-name}{#} {#38;2;180;181;183}стримит с {host-name}{#}"
     },
     {
-      "type": "disk",
-      "key": "OS Age",
-      "folders": "/",
-      "format": "{days} days"
+      "type": "custom",
+      "format": "{#38;2;180;181;183}── чат ────────────────────────────{#}"
     },
-    {
-      "type": "host",
-      "key": "Host"
-    },
-    {
-      "type": "kernel",
-      "key": "Kernel"
-    },
-    {
-      "type": "uptime",
-      "key": "Uptime"
-    },
-
-    "break",
-
     {
       "type": "cpu",
-      "key": "CPU"
+      "key": "cpu_enjoyer",
+      "keyColor": "1;38;2;79;195;247",
+      "format": "{name}"
     },
     {
       "type": "gpu",
-      "key": "GPU",
+      "key": "rtx_tyan",
+      "keyColor": "1;38;2;186;104;200",
       "format": "{name}"
     },
     {
       "type": "memory",
-      "key": "RAM",
+      "key": "ram_eater",
+      "keyColor": "1;38;2;129;199;132",
       "format": "{used} / {total}"
     },
     {
-      "type": "disk",
-      "key": "Disk",
-      "format": "{size-used} / {size-total}"
+      "type": "os",
+      "key": "linux_enjoyer",
+      "keyColor": "1;38;2;255;183;77",
+      "format": "{pretty-name}"
     },
-
-    "break",
-
-    // popular gear that costs more than $100 (angelOS scripts/gear.py);
-    // nothing printed = the line is left out
+    {
+      "type": "uptime",
+      "key": "no_sleep_andy",
+      "keyColor": "1;38;2;240;98;146"
+    },
+    {
+      "type": "packages",
+      "key": "pkg_hoarder",
+      "keyColor": "1;38;2;77;182;172"
+    },
+    {
+      "type": "wm",
+      "key": "tiling_fan",
+      "keyColor": "1;38;2;149;117;205",
+      "format": "{pretty-name}"
+    },
+    {
+      "type": "custom",
+      "format": "{#38;2;180;181;183}── суперчаты ──────────────────────{#}"
+    },
     {
       "type": "command",
-      "key": "Keyboard",
-      "text": "python3 ~/.config/quickshell/angelos/scripts/gear.py --kind keyboard"
+      "key": " ",
+      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{tier} {price} {#} {name}' --lang ru --nth 0"
     },
     {
       "type": "command",
-      "key": "Mouse",
-      "text": "python3 ~/.config/quickshell/angelos/scripts/gear.py --kind mouse"
+      "key": " ",
+      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{tier} {price} {#} {name}' --lang ru --nth 1"
     },
     {
       "type": "command",
-      "key": "Mic",
-      "text": "python3 ~/.config/quickshell/angelos/scripts/gear.py --kind mic"
-    },
-
-    "break",
-
-    {
-      "type": "terminal",
-      "key": "Terminal"
+      "key": " ",
+      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{tier} {price} {#} {name}' --lang ru --nth 2"
     },
     {
-      "type": "localip",
-      "key": "IP"
+      "type": "command",
+      "key": " ",
+      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{tier} {price} {#} {name}' --lang ru --nth 3"
     },
-
-    "break",
-    "colors"
+    {
+      "type": "command",
+      "key": " ",
+      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{#1;38;2;220;196;126}♡ донатов на сетап: {total}{#}' --lang ru --total --zero"
+    }
   ]
 }

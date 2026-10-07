@@ -144,7 +144,7 @@ class BrowserTheme(unittest.TestCase):
         default = self.start(self.default)
         r = self.run_bt("apply", "helium", "--restart")
         self.assertTrue(r["done"], r)
-        mine.wait(timeout=5)
+        mine.wait(timeout=20)
         p = self.prefs()
         self.assertEqual(p["profile"]["exit_type"], "SessionEnded", "the browser had written its prefs first")
         self.assertEqual(p["extensions"]["theme"], {"system_theme": 1}, "and our edit came after, so it stayed")

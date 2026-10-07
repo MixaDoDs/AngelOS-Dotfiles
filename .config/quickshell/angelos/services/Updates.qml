@@ -38,6 +38,23 @@ Singleton {
     // memory: UpdatePrompt asks to restart now or leave it for the next login
     property bool needsRestart: false
     property bool askRestart: false
+    // which big release this shell is (data/release.json, written when one is published):
+    // {number, codename, date}, null before the first
+    property var release: null
+    FileView {
+        path: Quickshell.shellDir + "/data/release.json"
+        printErrors: false
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                root.release = JSON.parse(text());
+            } catch (e) {
+                root.release = null;
+            }
+        }
+        onLoadFailed: root.release = null
+    }
     property int landed: 0                        // commits the last update brought
     // after a restore the prompt says "the previous version is back"
     property bool restored: false

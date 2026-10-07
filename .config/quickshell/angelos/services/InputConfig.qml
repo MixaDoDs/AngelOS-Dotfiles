@@ -23,6 +23,7 @@ Singleton {
     readonly property string accelProfile: (block("mouse").match(/^\s*accel-profile\s+"([^"]*)"/m) || [])[1] || "adaptive"
     readonly property real accelSpeed: parseFloat((block("mouse").match(/^\s*accel-speed\s+(-?[\d.]+)/m) || [])[1] || "0")
     readonly property bool focusFollowsMouse: /^\s*focus-follows-mouse\b/m.test(text)
+    readonly property bool naturalScroll: /^\s*natural-scroll\b/m.test(block("touchpad"))
 
     readonly property var switchOptions: [
         {
@@ -129,7 +130,7 @@ Singleton {
         return src.replace(re, "");
     }
 
-    // changes: {layouts, options, repeatDelay, repeatRate, numlock, accelProfile, accelSpeed, focusFollowsMouse}
+    // changes: {layouts, options, repeatDelay, repeatRate, numlock, accelProfile, accelSpeed, focusFollowsMouse, naturalScroll}
     function save(ch) {
         let t = text;
         if (ch.layouts !== undefined)
@@ -164,6 +165,20 @@ Singleton {
             t = setLine(t, /^(\s*)accel-profile\s+"[^"]*"/m, 'accel-profile "' + ch.accelProfile + '"', "mouse");
         if (ch.accelSpeed !== undefined)
             t = setLine(t, /^(\s*)accel-speed\s+-?[\d.]+/m, "accel-speed " + Number(ch.accelSpeed).toFixed(2), "mouse");
+        // the touchpad's scrolling direction, only inside `touchpad { }`
+        if (ch.naturalScroll !== undefined) {
+            t = ensureBlock(t, "touchpad", "input");
+            const tr = blockRange("touchpad", t);
+            if (tr) {
+                let inner = t.slice(tr[0], tr[1]);
+                const has = /^\s*natural-scroll\b/m.test(inner);
+                if (ch.naturalScroll && !has)
+                    inner = inner.replace(/\s*$/, "\n        natural-scroll\n    ");
+                else if (!ch.naturalScroll && has)
+                    inner = inner.replace(/^[ \t]*natural-scroll\b.*\n?/m, "");
+                t = t.slice(0, tr[0]) + inner + t.slice(tr[1]);
+            }
+        }
         if (ch.focusFollowsMouse !== undefined) {
             const has = /^\s*focus-follows-mouse\b/m.test(t);
             if (ch.focusFollowsMouse && !has)

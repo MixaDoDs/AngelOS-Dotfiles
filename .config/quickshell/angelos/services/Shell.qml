@@ -14,16 +14,21 @@ Singleton {
     property bool setupOpen: false
     signal setupStepRequested(int step)
     signal setupSkipRequested()       // `angelos setup skip`: out of the wizard at once
-    // The first run (modules/settings/SetupWizard): until the wizard is done it covers every
-    // screen and the desktop waits — Start, the launcher, Settings, the menus and the shell's
-    // hotkeys do nothing. "Set up later" and `angelos setup skip` let it go at once. Opened
-    // again from Settings (or `angelos setup`) it is a window that holds nothing.
+    // The setup wizard (modules/settings/SetupWizard) covers every screen and the desktop
+    // waits — Start, the launcher, Settings, the menus, the shell's hotkeys and niri's do
+    // nothing. The first run lets go only when it is done (or `angelos setup skip`); opened
+    // again from Settings (or `angelos setup`) it has "Close", and Settings come back after.
     property bool setupFirstRun: false
-    readonly property bool setupLocked: setupOpen && setupFirstRun
+    readonly property bool setupLocked: setupOpen
+    property bool settingsAfterSetup: false
     onSetupLockedChanged: if (setupLocked) {
+        settingsAfterSetup = settingsOpen && !setupFirstRun;
         closeTransient("");
         settingsOpen = false;
         settingsMore.clear();
+    } else if (settingsAfterSetup) {
+        settingsAfterSetup = false;
+        settingsOpen = true;
     }
     onSettingsOpenChanged: if (settingsOpen && setupLocked)
         settingsOpen = false

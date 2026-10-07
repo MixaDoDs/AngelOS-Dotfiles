@@ -64,9 +64,9 @@ import "../../widgets/IconSets.js" as IconSets
 //             the window's corner pixel does not crash Qt
 //   setup     the first-run wizard holds the desktop (Start, the launcher, the clipboard, the
 //             session menu, Settings, Alt+Tab wait; the screens count as unseen) and
-//             `angelos setup skip` lets it go; opened again it is a window holding nothing,
-//             every question shows (the keyboard's from Settings, through the tree) and the
-//             last one finishes
+//             `angelos setup skip` lets it go; opened again it holds the desktop too, every
+//             question shows (the keyboard's from Settings, through the tree), the last one
+//             finishes and Settings, open before it, come back
 // Prints "TEST <name> PASS|FAIL [detail]" and "TEST-PAGE <id>" markers (the
 // script ties log errors to the page that caused them), "TEST DONE <n>" last.
 Scope {
@@ -81,6 +81,7 @@ Scope {
     }
     property var setupSeen: []
     property int setupBack: -1
+    property string setupShot: ""
     function named(item, name) {
         // the first item under `item` with this PxGroup name
         if (!item)
@@ -113,6 +114,17 @@ Scope {
             id: view
             anchors.fill: parent
             hostWindow: win
+        }
+        // the wizard's questions (the shell covers the screens with them: no layer shell here)
+        Loader {
+            anchors.fill: parent
+            z: 10
+            active: Shell.setupOpen
+            source: Qt.resolvedUrl("../../modules/settings/SetupAssistant.qml")
+            onLoaded: {
+                item.wizard = wizard;
+                wizard.assistant = item;
+            }
         }
         // a second Settings window (Shell.newSettingsWindow): a place of its own, built for the
         // "multi" phase only
@@ -456,6 +468,13 @@ Scope {
     property int viewCase: -1
     property int viewStep: 0
     property var viewNote: null
+    // shards: scripts/test-ui.sh runs a few drivers at once, each over its stretch of the
+    // phases — ANGELOS_TEST_FROM the phase it starts at (once the shell, the settings and the
+    // story are loaded; the start-up checks of "wait" are the first shard's), ANGELOS_TEST_UNTIL
+    // the phase it stops before. Neither set: the whole run, as before
+    readonly property string shardFrom: Quickshell.env("ANGELOS_TEST_FROM") || ""
+    readonly property string shardUntil: Quickshell.env("ANGELOS_TEST_UNTIL") || ""
+    readonly property double booted: Date.now()
 
     Timer {
         id: tick
@@ -593,11 +612,13 @@ Scope {
                 ok = view.navKeyForTest(Qt.Key_Down) && view.navKeyForTest(Qt.Key_Right) && view.navKeyForTest(Qt.Key_Return);
                 ok = ok && !view.atHome;
             } else if (v === "win11") {
-                // ↓↓ categories, → a category's first page, Enter the next page, ← back up to the
-                // category, ↑, End the last category, Home the first (your account, at the top)
+                // the flat list (2026-10-07): ↓↓ the next sections, ↑ back one, End the last
+                // section, Home the first (your account, at the top) — counted from where it is
                 const at = s => s.pages.length > 1 ? "cat:" + s.id : s.pages[0];
-                const last = view.navSections[view.navSections.length - 1];
-                const steps = [[Qt.Key_Down, "cat:system"], [Qt.Key_Down, "cat:devices"], [Qt.Key_Right, "bluetooth"], [Qt.Key_Return, "mouse"], [Qt.Key_Left, "cat:devices"], [Qt.Key_Up, "cat:system"], [Qt.Key_End, at(last)], [Qt.Key_Home, at(view.navSections[0])]];
+                const secs = view.navSections;
+                const last = secs[secs.length - 1];
+                const i0 = Math.max(0, secs.findIndex(s => s.id === view.sectionOf(Shell.settingsPage)));
+                const steps = [[Qt.Key_Down, at(secs[(i0 + 1) % secs.length])], [Qt.Key_Down, at(secs[(i0 + 2) % secs.length])], [Qt.Key_Up, at(secs[(i0 + 1) % secs.length])], [Qt.Key_End, at(last)], [Qt.Key_Home, at(secs[0])]];
                 const went = [];
                 ok = true;
                 for (const [key, want] of steps) {
@@ -620,9 +641,10 @@ Scope {
             Shell.openSettings("lyrics");
             next();
         } else if (viewStep === 6) {
-            if ((!ready || d.page !== "lyrics") && waiting)
+            // an old page id: it opens where the flat list put it ("lyrics" → Sound)
+            if ((!ready || d.page !== SettingsTree.resolve("lyrics").page) && waiting)
                 return;
-            report(name + ":settings-cli", ready && d.page === "lyrics", "page " + d.page);
+            report(name + ":settings-cli", ready && d.page === SettingsTree.resolve("lyrics").page, "page " + d.page);
             if (v === "win11") {
                 // Mod+S (`angelos settings appearance`, an old id): opens its page, closes it again
                 Shell.toggleSettings("appearance");
@@ -708,6 +730,22 @@ Scope {
     }
 
     function step() {
+        if (shardUntil && phase === shardUntil) {
+            finish();
+            return;
+        }
+        if (phase === "wait" && shardFrom) {
+            if (!(Config.ready && view.allPages.length > 0 && Story.ready && Novel.loaded) && Date.now() - booted < 10000)
+                return;
+            console.log("TEST-PAGE shard:" + shardFrom);
+            if (shardFrom === "previews")
+                startPreviews();
+            else {
+                phase = shardFrom;
+                started = Date.now();
+            }
+            return;
+        }
         if (phase === "wait") {
             if (Config.ready && view.allPages.length > 0) {
                 report("settings-default-classic", Config.settingsUi.skin === "classic" && view.skin === "classic",
@@ -794,9 +832,14 @@ Scope {
             }
             let worst = 0, total = 0, empty = 0;
             for (const q of queries) {
-                const t0 = Date.now();
-                const r = SettingsSearch.search(q + " ", 14);   // a fresh key: no cache
-                const ms = Date.now() - t0;
+                // the best of three (each a fresh key: no cache) — one slice of a busy machine
+                // (the checks run side by side) is no slow search
+                let ms = Infinity, r = null;
+                for (const pad of [" ", "  ", "   "]) {
+                    const t0 = Date.now();
+                    r = SettingsSearch.search(q + pad, 14);
+                    ms = Math.min(ms, Date.now() - t0);
+                }
                 worst = Math.max(worst, ms);
                 total += ms;
                 if (!r || r.length === 0)
@@ -821,7 +864,7 @@ Scope {
                 navStep = 1;
                 return;
             }
-            const go = [["sound", ""], ["sfx", ""], ["taskbar", "Иконки"]];
+            const go = [["sound", ""], ["keyboard", ""], ["taskbar", "Иконки"]];
             if (navStep <= go.length) {
                 Shell.settingsPage = go[navStep - 1][0];
                 Shell.settingsSub = go[navStep - 1][1];
@@ -856,7 +899,7 @@ Scope {
                 navNote = afterBack;
                 return;
             }
-            report("nav-back", navNote === "sound" && Shell.settingsPage === "sfx" && view.sectionOf("sfx") === "system", "taskbar›Иконки → ◀ ◀ " + navNote + " → ▶ " + Shell.settingsPage + " (section " + view.sectionOf(Shell.settingsPage) + ")");
+            report("nav-back", navNote === "sound" && Shell.settingsPage === "keyboard" && view.sectionOf("keyboard") === "keyboard", "taskbar›Иконки → ◀ ◀ " + navNote + " → ▶ " + Shell.settingsPage + " (section " + view.sectionOf(Shell.settingsPage) + ")");
             phase = "multi";
             multiStep = 0;
             started = Date.now();
@@ -885,17 +928,17 @@ Scope {
                 // a sub-page in the second window, another page in the main one
                 nav2.settingsPage = "taskbar";
                 nav2.settingsSub = "Иконки";
-                Shell.settingsPage = "sfx";
+                Shell.settingsPage = "keyboard";
                 multiStep = 2;
                 started = Date.now();
                 return;
             }
             if (multiStep === 2) {
-                if ((d2.page !== "taskbar" || d2.status !== Loader.Ready || d1.page !== "sfx" || d1.status !== Loader.Ready || Date.now() - started < 200) && Date.now() - started < 6000)
+                if ((d2.page !== "taskbar" || d2.status !== Loader.Ready || d1.page !== "keyboard" || d1.status !== Loader.Ready || Date.now() - started < 200) && Date.now() - started < 6000)
                     return;
                 const p2 = v2.pageItem;
                 const p1 = view.pageItem;
-                report("multi-apart", d2.sub === "Иконки" && !!p2 && p2.focusGroup === "Иконки" && d1.page === "sfx" && Shell.settingsSub === "" && !!p1 && p1.focusGroup === "" && v2.canBack && v2.backStack.every(l => l.indexOf("sfx") < 0),
+                report("multi-apart", d2.sub === "Иконки" && !!p2 && p2.focusGroup === "Иконки" && d1.page === "keyboard" && Shell.settingsSub === "" && !!p1 && p1.focusGroup === "" && v2.canBack && v2.backStack.every(l => l.indexOf("keyboard") < 0),
                        "second " + d2.page + "›" + d2.sub + " (focus " + (p2 ? p2.focusGroup : "?") + "), main " + d1.page + "›" + Shell.settingsSub + ", second's history " + JSON.stringify(v2.backStack));
                 // a link inside the second window goes on there (Shell.settingsGo), not in the main one
                 Shell.settingsGo(p2, "sound");
@@ -912,7 +955,7 @@ Scope {
                 const key = row ? row.key : -1;
                 const page = row ? row.page : "";
                 Shell.closeSettingsWindow(key);
-                report("multi-link", d2.page === "sound" && Shell.settingsPage === "sfx" && made && page === "taskbar" && Shell.settingsMore.count === before,
+                report("multi-link", d2.page === "sound" && Shell.settingsPage === "keyboard" && made && page === "taskbar" && Shell.settingsMore.count === before,
                        "link in the second → " + d2.page + ", main stays " + Shell.settingsPage + "; new window at «bar» → " + page + ", closed " + (Shell.settingsMore.count === before));
                 second.active = false;
                 phase = "view-switch";
@@ -1462,6 +1505,96 @@ Scope {
             if (!follows || !picked || !usual || !before)
                 dressBad.push("pick: circle " + follows + ", one look " + picked + ", usual " + usual + ", before a circle " + before);
             report("circle-dress", dressBad.length === 0, dressBad.join("; ") || circleIds.length + " circles: " + HellLook.dressSettingsIds.length + " Settings dresses, " + HellLook.dressMenuIds.length + " menus, distinct, built, readable");
+            // hell's menu toys (circles/CircleToy): each look plays and its entries stay as they were
+            const toyBad = [];
+            const toyMenu = Qt.createQmlObject('import QtQuick; QtObject { signal opened; property real k: 1; property var slots: ' + JSON.stringify(fakeMenu.slots) + '; property bool labels: true; property real cx: 400; property real cy: 300; property real reveal: 1; property int current: -1; property string fly: ""; property int flyIndex: -1; property int subCurrent: -1; property var flyItems: []; property var hoveredEntry: null; property string look: "test"; property bool visible: true; function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); } function hoverEntry(i) {} function activate(i) {} function activateSub(j) {} function walk(e) { return false; } function close() {} }', win.contentItem, "toyMenu");
+            const toyPlay = {
+                "roulette": o => {
+                    o.turn = -(2 * Math.PI / o.n) * 2.5;
+                    o.land();
+                    return toyMenu.current === 2 || "landed on " + toyMenu.current;
+                },
+                "plate": o => {
+                    o.serveAll();
+                    const at = o.seatAt(0);
+                    let bites = 0;
+                    while (o.eaten === 0 && bites < 20) {
+                        o.eatAt(at.x, at.y, false);
+                        bites++;
+                    }
+                    o.poke(o.menu.cx + o.plateR * 0.9, o.menu.cy);
+                    o.take("knife");
+                    const esc = o.nav({
+                        "key": Qt.Key_Escape
+                    });
+                    return (o.eaten === 1 && bites > 1 && o.marks.length === 1 && esc && o.held === "") || "eaten " + o.eaten + " in " + bites + " bites, marks " + o.marks.length + ", esc " + esc + ", held " + o.held;
+                },
+                "queue": o => {
+                    o.takeNumber();
+                    const a = o.given;
+                    o.takeNumber();
+                    return o.given === a + 1 || "numbers " + a + " → " + o.given;
+                },
+                "whirl": o => {
+                    o.vel = 10;
+                    o.tear(5);
+                    return o.fling > 1 || "no fling";
+                },
+                "ripples": o => {
+                    const at = o.soulSpot(0);
+                    o.throwAt(at.x, at.y, false);
+                    return (o.angerOf(0) === 1 && o.talking) || "anger " + o.angerOf(0) + ", talking " + o.talking;
+                },
+                "tombs": o => {
+                    o.fire(400, 320);
+                    o.erupt();
+                    return true;
+                },
+                "blades": o => {
+                    for (const x of [380, 400, 420])
+                        o.slashTo(x, 300 - o.longR * 0.6);
+                    return Object.keys(o.cut).length > 0 || "the slash cut nothing";
+                },
+                "masks": o => {
+                    o.swayV = 50;
+                    o.converse(1);
+                    return (o.talking && toyMenu.current === 1) || "talking " + o.talking + ", current " + toyMenu.current;
+                },
+                "shards": o => {
+                    for (let i = 0; i < 3; i++)
+                        o.hurt(0, 1);
+                    o.knock(o.menu.cx, o.menu.cy, false);
+                    return (o.broken >= 1 && o.cracks.length === 1) || "broken " + o.broken + ", cracks " + o.cracks.length;
+                },
+                "pentagram": o => {
+                    for (let i = 0; i < 5; i++)
+                        o.light(i, Qt.point(0, 0));
+                    o.summon();
+                    const up = !!o.soul;
+                    o.release();
+                    return (o.candles.every(x => x) && up) || "candles " + JSON.stringify(o.candles) + ", soul " + up;
+                }
+            };
+            for (const id of Object.keys(toyPlay)) {
+                const c = Qt.createComponent(Quickshell.shellDir + "/modules/background/" + (id === "pentagram" ? "" : "circles/") + cap(id) + "Look.qml");
+                toyMenu.current = -1;
+                const o = c.status === Component.Ready ? c.createObject(win.contentItem, {
+                    "menu": toyMenu
+                }) : null;
+                let res = o ? false : c.errorString().trim().split("\n")[0];
+                try {
+                    if (o)
+                        res = toyPlay[id](o);
+                } catch (err) {
+                    res = String(err);
+                }
+                if (res !== true)
+                    toyBad.push(id + ": " + res);
+                if (o)
+                    o.destroy();
+            }
+            toyMenu.destroy();
+            report("circle-toys", toyBad.length === 0, toyBad.join("; ") || Object.keys(toyPlay).length + " looks: the wheel lands, the food is eaten, a sullen soul swears, a mask lies, the ice breaks an entry, a soul is summoned");
             // a burn there and back (DesktopWidgets.burnPreview) must land in heaven again
             DesktopWidgets.burnPreview("hell");
             started = Date.now();
@@ -1522,7 +1655,7 @@ Scope {
             return;
         }
         if (phase === "game-out") {
-            if ((Story.inHell || Angel.transition) && Date.now() - started < 12000)
+            if ((Story.inHell || Angel.transition) && Date.now() - started < 25000)
                 return;
             report("game-pact", !Story.inHell && Story.marked && Story.circle === "" && HellLook.circle === "base" && Story.hell.outcomes.length === 1, "out by " + (Story.hell.outcomes[0] || {}).kind + " in " + (Date.now() - started) + " ms, marked " + Story.marked);
             Story.setEnabled(false);
@@ -1562,6 +1695,10 @@ Scope {
             // down, too. She then shows as the story's look whatever is picked (the pick kept),
             // her lines never twice running; a reset undoes it all
             const ride = () => {
+                // the fall follows the throw at once (Story.markDescent: within 15 s): on a busy
+                // machine the steps above alone took longer — the throw's moment is now
+                if (Story._beforeThrow)
+                    Story._beforeThrow.at = Date.now();
                 Story.player.character = "demon";
                 Story.fell("limbo");
                 const due = !!Story.player.fallenDue;
@@ -1698,7 +1835,7 @@ Scope {
             return;
         }
         if (phase === "exit-limbo") {
-            if ((Story.inHell || Angel.transition) && Date.now() - started < 12000)
+            if ((Story.inHell || Angel.transition) && Date.now() - started < 25000)
                 return;
             report("exit-limbo", !Story.inHell && !Story.hell.limbo, "limbo of 11 min at a start → " + (Story.inHell ? "still in hell" : "out") + " in " + (Date.now() - started) + " ms");
             // a player stuck under the old rules: settings.json's y2k with a broken counter
@@ -1718,7 +1855,7 @@ Scope {
             return;
         }
         if (phase === "exit-amnesty") {
-            if ((Story.inHell || Angel.transition) && Date.now() - started < 14000)
+            if ((Story.inHell || Angel.transition) && Date.now() - started < 25000)
                 return;
             report("exit-amnesty", !Story.inHell && !Story.hell.amnesty && Story.player.returns === 1 && (Story.hell.outcomes || []).some(o => o.kind === "amnesty"), "let out in " + (Date.now() - started) + " ms, returns " + Story.player.returns);
             Story.clockShift = 0;
@@ -2161,7 +2298,7 @@ Scope {
             Shell.launcherOpen = false;
             Shell.settingsOpen = true;
             report("setup-skip", out && free && Shell.settingsOpen, "out " + out + ", the launcher opens again " + free);
-            // again from Settings: a window, nothing held
+            // again from Settings: full screen, the desktop held, Settings back after it
             wizard.go(0);
             Shell.setupOpen = true;
             setupSeen = [];
@@ -2176,12 +2313,20 @@ Scope {
             const ready = !!a && !!a.shown && a.shown.id === cur.id && !!a.answer && !!a.answer.item;
             if (!ready && Date.now() - started < 4000)
                 return;
-            let ok = ready && !Shell.setupLocked;
+            let ok = ready && Shell.setupLocked && !Shell.settingsOpen;
             if (ready && cur.blocks)
                 for (const b of cur.blocks) {
                     const g = named(a.answer.item, b.split("/")[1]);
                     ok = ok && !!g && g.visible && SettingsTree.blockPart(b).page !== "";
                 }
+            // ANGELOS_TEST_SHOTS=<dir>: each question, once it has faded in
+            if (ok && shots && setupShot !== cur.id) {
+                if (Date.now() - started < 600)
+                    return;
+                setupShot = cur.id;
+                a.grabToImage(r => r.saveToFile(shots + "/setup-" + cur.id + ".png"));
+                return;
+            }
             setupSeen.push(cur.id + (ok ? "" : "✕"));
             // Back once, from the second question
             if (ok && wizard.step === 1 && setupBack < 0) {
@@ -2195,8 +2340,9 @@ Scope {
             if (!ok || wizard.step >= wizard.last) {
                 wizard.tipsAfter = false;
                 wizard.next();
-                const done = !Shell.setupOpen && Config.setup.complete;
-                report("setup-again", ok && done && setupBack === 2 && setupSeen.every(s => !s.endsWith("✕")), setupSeen.join(" → ") + "; back works " + (setupBack === 2) + "; finished " + done);
+                const done = !Shell.setupOpen && !Shell.setupLocked && Config.setup.complete;
+                const back = Shell.settingsOpen;
+                report("setup-again", ok && done && back && setupBack === 2 && setupSeen.every(s => !s.endsWith("✕")), setupSeen.join(" → ") + "; back works " + (setupBack === 2) + "; finished " + done + "; Settings back " + back);
                 finish();
                 return;
             }

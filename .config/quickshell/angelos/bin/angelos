@@ -14,14 +14,15 @@
 #   sounds; off = no animations at all (the shell, niri, hell), an optimisation mode
 #   angelos author status|fetch|login — the author's own tools (the chapter editor), only for
 #   the GitHub account with access to the author's private repository; gh keeps the login
-#   angelos setup — the setup wizard again (a window); `angelos setup skip` — out of the
+#   angelos setup — the setup wizard again (full screen, with Close); `angelos setup skip` — out of the
 #   first-run wizard at once, also from a text console (Ctrl+Alt+F3) when it is broken
 #   angelos keys [status] | pixel | macos | sync — the niri key profile of a theme (cfg/keybinds-*.kdl):
 #   it follows `angelos settingsSkin …` by itself while the shell runs; sync = the one settings.json asks for
 #   angelos updates [status] | check | update — Settings → Updates from the terminal: follows the
 #   run to its end and says what happened (without a running shell the update runs right here)
-#   angelos sddm [status] | build | install [--palette ngo|system] — the login screen (SDDM) in
-#   angelOS's look: the NGO stream "starting soon"; install asks for the admin password (pkexec)
+#   angelos sddm [status] | build | install [--palette ngo|system] [--look L] | look L — the login
+#   screen (SDDM) in one of angelOS's looks (stream heaven retro hell quiet); install asks for the
+#   admin password (pkexec), `look` after that needs none
 SHELL_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/angelos"
 CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/angelos"
 RUN_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/angelos"

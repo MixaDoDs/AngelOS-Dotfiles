@@ -1,0 +1,27 @@
+{
+  "number": 1,
+  "codename": "Angel",
+  "date": "2026-10-07",
+  "walls": [
+    {
+      "name": "Перья",
+      "night": "perya-night.png"
+    },
+    {
+      "name": "Озеро",
+      "day": "ozero.png",
+      "night": "ozero-night.png"
+    },
+    {
+      "name": "Офаним",
+      "day": "ofanim.png",
+      "night": "ofanim-night.png"
+    },
+    {
+      "name": "Провода",
+      "day": "provoda.png",
+      "night": "provoda-night.png"
+    }
+  ],
+  "art": "made for angelOS by its author, MIT like the rest of the repository"
+}

@@ -118,7 +118,9 @@ Singleton {
                 "critical": n.urgency === NotificationUrgency.Critical,
                 "quiet": dnd
             });
-            const sound = n.urgency === NotificationUrgency.Critical ? "error" : root.isScreenshot(entry) ? "screenshot" : "notify";
+            // a sender of ours may name its own sound (x-angelos-sound: heaven's stars ✦ have a quiet one)
+            const own = String((n.hints || {})["x-angelos-sound"] || "");
+            const sound = n.urgency === NotificationUrgency.Critical ? "error" : root.isScreenshot(entry) ? "screenshot" : Sounds.events.includes(own) ? own : "notify";
             if (root.isScreenshot(entry))
                 Achievements.note("screenshot");
             // Golden Gate's shutter sounds under Do Not Disturb too (like a Mac's)

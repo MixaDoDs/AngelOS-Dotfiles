@@ -1,0 +1,39 @@
+{
+ "rows": [
+  "....b...........gggggggg...........b....",
+  "...bhb........gg........gg........bhb...",
+  "....b...........gggggggg...........b....",
+  "........................................",
+  "........................................",
+  "aaa...........aaaa....aaaa...........aaa",
+  "ahhaa........affeea..aeeeea........aahha",
+  "ahhhhaa.....afhheeeaaeeeedda.....aahhhha",
+  ".achhhhaa..afhheeeeeeeeeeedda..aahhhhca.",
+  "..acchhhhaaafheeeeeeeeeeeeddaaahhhhcca..",
+  ".aahcchhhhaaeeeeeeeeeeeeedddaahhhhcchaa.",
+  "ahhhhcchha.aeeeeeeeeeeeeeedda.ahhcchhhha",
+  ".achhhhha...aeeeeeeeeeeeeeda...ahhhhhca.",
+  "..acchha.....aeeeeeeeeeeeda.....ahhcca..",
+  "...aaha.......aeeeeeeeeeda.......ahaa...",
+  ".....a.........aeeeeeeeda.........a.....",
+  "................aeeeeeda.............b..",
+  ".................aeeeda.............bhb.",
+  "..b...............aeda...............b..",
+  ".bhb...............aa...................",
+  "..b.....................................",
+  "............................aaaaaaaa....",
+  ".........b...........b.....afffffhhha...",
+  "........bhb.........bhb....affffhhhha...",
+  ".........b...........b......aaaaaaaa...."
+ ],
+ "palette": {
+  "a": "#5b2a6e",
+  "b": "#8fe3ff",
+  "c": "#c9b6ff",
+  "d": "#e0468f",
+  "e": "#ff6fb0",
+  "f": "#ffb3d9",
+  "g": "#ffe066",
+  "h": "#ffffff"
+ }
+}

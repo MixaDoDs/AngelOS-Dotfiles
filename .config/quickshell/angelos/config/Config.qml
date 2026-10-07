@@ -51,6 +51,7 @@ Singleton {
     property alias decor: adapter.decor
     property alias windows: adapter.windows
     property alias mac: adapter.mac
+    property alias recovery: adapter.recovery
     // the same schema, never loaded: every setting's default value
     readonly property SettingsSchema defaults: SettingsSchema {}
 
@@ -97,8 +98,8 @@ Singleton {
     // ---- Undo (Settings → "Undo"): every save remembers what the user changed ----
     // Each step is [{path, old, new}]; bookkeeping the shell does by itself
     // (counters, the angel's state, update checks) is never a step.
-    readonly property var sections: ["appearance", "bar", "wallpaper", "workspaces", "alttab", "lyrics", "setup", "notifications", "osd", "launcher", "voxtype", "desktop", "lock", "idle", "sidebar", "capture", "plugins", "dotfiles", "system", "developer", "settingsUi", "y2k", "cursor", "updates", "network", "stream", "lens", "decor", "windows", "novel", "game", "mac"]
-    readonly property var notUndoable: ["launcher.usage", "settingsUi.usage", "settingsUi.expert", "settingsUi.skinChosen", "settingsUi.viewPicked", "settingsUi.win11Once", "updates.lastCheck", "updates.available", "setup.complete", "setup.gameAsked", "setup.keyboardAsked", "lyrics.sourcesVersion", "desktop.initialized", "plugins.data", "plugins.lastCheck", "plugins.notifiedFor", "plugins.storeRetired", "stream.dndSet", "stream.suppressed", "y2k.helperGreeted", "y2k.character", "y2k.demonSince", "y2k.pleas", "y2k.lastPlea", "y2k.pranks", "y2k.nextPrank", "y2k.seenTips", "y2k.angelSaved", "y2k.raysSeen", "y2k.returns", "cursor.beforeHell", "cursor.beforeHellSize", "cursor.beforeMac", "mac.wallBefore", "wallpaper.themes", "wallpaper.themeOf", "appearance.customAccentHell", "game.enabled"]
+    readonly property var sections: ["appearance", "bar", "wallpaper", "workspaces", "alttab", "lyrics", "setup", "notifications", "osd", "launcher", "voxtype", "desktop", "lock", "idle", "sidebar", "capture", "plugins", "dotfiles", "system", "developer", "settingsUi", "y2k", "cursor", "updates", "network", "stream", "lens", "decor", "windows", "novel", "game", "mac", "recovery"]
+    readonly property var notUndoable: ["launcher.usage", "settingsUi.usage", "settingsUi.expert", "settingsUi.skinChosen", "settingsUi.viewPicked", "settingsUi.win11Once", "updates.lastCheck", "updates.available", "setup.complete", "setup.gameAsked", "setup.keyboardAsked", "lyrics.sourcesVersion", "desktop.initialized", "plugins.data", "plugins.lastCheck", "plugins.notifiedFor", "plugins.storeRetired", "stream.dndSet", "stream.suppressed", "stream.castHinted", "lock.chestNotified", "y2k.helperGreeted", "y2k.character", "y2k.demonSince", "y2k.pleas", "y2k.lastPlea", "y2k.pranks", "y2k.nextPrank", "y2k.seenTips", "y2k.angelSaved", "y2k.raysSeen", "y2k.returns", "cursor.beforeHell", "cursor.beforeHellSize", "cursor.beforeMac", "mac.wallBefore", "wallpaper.themes", "wallpaper.themeOf", "wallpaper.releaseSeen", "recovery.lastPush", "appearance.customAccentHell", "game.enabled"]
     property var undoStack: []
     readonly property bool canUndo: undoStack.length > 0
     readonly property var lastStep: undoStack.length ? undoStack[undoStack.length - 1] : null

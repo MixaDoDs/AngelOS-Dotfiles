@@ -66,6 +66,13 @@ PxBox {
             "act": () => GameDebug.open = true
         },
         {
+            "text": I18n.t("Сундуки ✦", "Chests ✦") + (Chests.count > 0 ? " · " + Chests.count : ""),
+            "extra": true,
+            "icon": "sparkleStar",
+            "show": Story.enabled && (Chests.freeReady || HeavenStars.stars >= Chests.cost),
+            "act": () => Chests.openOne()
+        },
+        {
             "text": "Dotfiles",
             "extra": true,
             "icon": "package",

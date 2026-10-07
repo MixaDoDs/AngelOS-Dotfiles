@@ -23,8 +23,6 @@ Singleton {
         if (Config.stream.suppressed)
             Config.stream.suppressed = false;
     }
-    onObsLiveChanged: if (!obsLive)
-        unsuppress()
     // OBS answered but isn't streaming: the stream that was switched off is over
     Timer {
         id: notLive
@@ -89,9 +87,52 @@ Singleton {
         }
     }
 
+    // ---- OBS as a habit: the two achievements (a stream or a recording of a minute or more
+    // counts) and, once, the angel's hint that she can sit on the stream (StreamerCast) ----
+    property bool obsRec: false
+    property real liveSince: 0
+    property real recSince: 0
+    onObsLiveChanged: {
+        if (!obsLive)
+            unsuppress();
+        if (obsLive)
+            liveSince = Date.now();
+        else if (liveSince && Date.now() - liveSince >= 60000)
+            Achievements.note("obs.stream");
+        if (!obsLive)
+            liveSince = 0;
+    }
+    onObsRecChanged: {
+        if (obsRec)
+            recSince = Date.now();
+        else if (recSince && Date.now() - recSince >= 60000)
+            Achievements.note("obs.record");
+        if (!obsRec)
+            recSince = 0;
+    }
+    onObsUpChanged: if (obsUp)
+        hintTimer.restart()
+    Timer {
+        id: hintTimer
+        interval: 8000
+        onTriggered: root.hintCast()
+    }
+    function hintCast() {
+        if (Config.stream.castHinted || !root.obsUp || Shell.setupLocked)
+            return;
+        Config.stream.castHinted = true;
+        const text = I18n.t("Пст… в OBS можно взять меня с края экрана на стрим: «Источник → Захват экрана (PipeWire)» → окно «%1». Сяду в уголок кадра ♡", "Psst… OBS can take me from the edge of your screen onto the stream: “Source → Screen Capture (PipeWire)” → the window “%1”. I'll sit in the corner of the frame ♡").arg(Niri.castTitle);
+        if (Angel.present && !Angel.demon)
+            Angel.say(text, [], 14000);
+        else
+            Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "camera-web", I18n.t("OBS и ангел", "OBS and the angel"), text]);
+    }
+
     Process {
         id: watch
-        running: Config.ready && Config.stream.auto
+        // always, so the achievements and the hint know about OBS; stream mode itself still
+        // switches only with Config.stream.auto (`active` above)
+        running: Config.ready
         command: ["python3", "-u", Quickshell.shellDir + "/scripts/obs-watch.py", "--port", String(Config.stream.port || 4455)]
         stdout: SplitParser {
             onRead: line => {
@@ -102,6 +143,7 @@ Singleton {
                 } else if (line === "down") {
                     root.obsUp = false;
                     root.obsLive = false;
+                    root.obsRec = false;
                     root.unsuppress();
                 } else if (line === "live") {
                     notLive.stop();
@@ -109,6 +151,10 @@ Singleton {
                 } else if (line === "off") {
                     root.obsLive = false;
                     root.unsuppress();
+                } else if (line === "rec") {
+                    root.obsRec = true;
+                } else if (line === "recoff") {
+                    root.obsRec = false;
                 }
                 else if (line === "auth")
                     root.obsAuth = true;
@@ -117,6 +163,7 @@ Singleton {
         onRunningChanged: if (!running) {
             root.obsUp = false;
             root.obsLive = false;
+            root.obsRec = false;
         }
     }
 }

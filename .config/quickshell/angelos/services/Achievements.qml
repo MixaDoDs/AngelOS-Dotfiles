@@ -114,9 +114,31 @@ Singleton {
             "en": "Take a screenshot"
         },
         {
+            "id": "obs.stream",
+            "ru": "Стрим в OBS (от минуты)",
+            "en": "A stream in OBS (a minute or more)"
+        },
+        {
+            "id": "obs.record",
+            "ru": "Запись в OBS (от минуты)",
+            "en": "A recording in OBS (a minute or more)"
+        },
+        {
             "id": "workspace.switch",
             "ru": "Перейти на другой рабочий стол",
             "en": "Go to another desk"
+        },
+        {
+            "id": "hell.summon",
+            "ru": "Призвать душу свечами пентаграммы",
+            "en": "Summon a soul with the pentagram's candles",
+            "key": "the soul's circle"
+        },
+        {
+            "id": "deskmenu.toy",
+            "ru": "Поиграть с меню по ПКМ в аду (колесо, вилка, камни…)",
+            "en": "Play with hell's right-click menu (the wheel, the fork, the stones…)",
+            "key": "the menu's look"
         },
         {
             "id": "deskmenu.open",

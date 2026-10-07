@@ -578,14 +578,14 @@ Item {
                     }
                     PxText {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: !root.got ? "" : (root.got.kind === "skin" ? I18n.t("скин ангела: ", "the angel's skin: ") : I18n.t("карточка: ", "card: ")) + root.got.name
+                        text: !root.got ? "" : !root.lockScope.previewing ? I18n.t("капсула откроется на рабочем столе ✦", "the capsule opens on the desktop ✦") : (root.got.kind === "skin" ? I18n.t("скин ангела: ", "the angel's skin: ") : I18n.t("карточка: ", "card: ")) + root.got.name
                         kind: "title"
                         font.bold: true
                     }
                 }
                 PxText {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: !root.got ? "" : root.got.fresh ? I18n.t("НОВОЕ! ♡", "NEW! ♡") : I18n.t("повтор · +%1 ✦", "duplicate · +%1 ✦").arg(root.got.refund)
+                    text: !root.got || !root.lockScope.previewing ? "" : root.got.fresh ? I18n.t("НОВОЕ! ♡", "NEW! ♡") : I18n.t("повтор · +%1 ✦", "duplicate · +%1 ✦").arg(root.got.refund)
                     color: root.got && root.got.fresh ? Theme.accent : Theme.textDim
                     font.bold: true
                 }

@@ -25,6 +25,9 @@ Singleton {
     property bool preview: false
 
     readonly property bool enabled: Config.ready && !!Config.stream.streamer
+    // back on from anywhere (Settings, `angelos streamer on`): her menu stops offering it
+    onEnabledChanged: if (enabled && Config.stream.streamerDropped)
+        Config.stream.streamerDropped = false
     readonly property bool live: obsLive || StreamMode.active
     readonly property bool shown: (enabled && live) || preview
     // the voice: talking above the threshold, quiet again a little under it (no flicker)
@@ -63,13 +66,19 @@ Singleton {
             Config.stream.streamerView = view === "screen" ? "obs" : "screen";
         else if (["screen", "obs"].includes(mode))
             Config.stream.streamerView = mode;
-        else if (mode === "on")
+        else if (mode === "on") {
             Config.stream.streamer = true;
-        else if (mode === "off") {
+            Config.stream.streamerDropped = false;
+        } else if (mode === "off") {
             Config.stream.streamer = false;
             preview = false;
+        } else if (mode === "drop") {
+            // from her own menu: small again, and the menu keeps a button to come back
+            Config.stream.streamer = false;
+            Config.stream.streamerDropped = true;
+            preview = false;
         } else if (mode === "toggle")
-            Config.stream.streamer = !Config.stream.streamer;
+            set(Config.stream.streamer ? "off" : "on");
         else if (mode === "test")
             preview = !preview;
     }

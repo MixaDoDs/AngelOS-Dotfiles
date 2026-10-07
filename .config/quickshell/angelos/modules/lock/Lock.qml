@@ -82,6 +82,10 @@ Scope {
                 claimed = LockStream.claim();
             if (previewing ? Config.lock.wish : HeavenStars.canWish && HeavenStars.payWish(true))
                 wished = HeavenStars.pull(previewing);
+            // the lock only teases the rarity (the falling star's colour): the prize itself
+            // opens in the chest on the desktop (services/Chests)
+            if (wished && !previewing)
+                Chests.fromLock(wished);
         }
         success();
         if (!previewing)

@@ -9,6 +9,9 @@ import qs.widgets
 // sector per entry, dark and blood by turns, gold between them and studs round the rim; the
 // sector you're on lights up under the gold pointer's gaze. Opening, the wheel spins and
 // stops with every entry in its place; the names stand outside the rim.
+// The toy (CircleToy): grab the wheel and spin it, or right-click it for a croupier's spin —
+// it ticks past the pointer, slows down, and the entry it stops on is chosen (Enter or a
+// click runs it, as always) with a shower of coins.
 Item {
     id: look
 
@@ -23,14 +26,105 @@ Item {
     readonly property real reach: nameR + Theme.u * 10
     readonly property Item blurItem: null
     // the spin: one and a half turns, slowing to a stop with the menu's opening
-    readonly property real spin: (1 - menu.reveal) * Math.PI * 3
+    readonly property real spin: (1 - menu.reveal) * Math.PI * 3 + turn
+    // the toy: how far it's been turned by hand, and how fast it still goes (rad/s)
+    property real turn: 0
+    property real vel: 0
+    property real lastA: 0
+    property real lastT: 0
+    property int lastTick: 0
+    property real moved: 0                  // how far this grab turned it
     function angleOf(i) {
         return -Math.PI / 2 + (i + 0.5) * 2 * Math.PI / n + spin;
+    }
+    // the entry under the pointer at the top
+    function under() {
+        const a = ((-turn) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        return Math.floor(a / (2 * Math.PI / n)) % n;
+    }
+    function tick() {
+        const i = under();
+        if (i !== lastTick) {
+            lastTick = i;
+            Sounds.playSoft("chestTick", 0.6);
+        }
+    }
+    function land() {
+        vel = 0;
+        menu.current = under();
+        menu.fly = "";
+        Sounds.play("chestPrize");
+        coins.burst(menu.cx, menu.cy - wheelR, {
+            "n": 18,
+            "colors": [Theme.hellGold, Theme.mix(Theme.hellGold, Theme.hellText, 0.4), Theme.hellEmber],
+            "size": 2.5,
+            "speed": 160,
+            "up": 120,
+            "spread": Math.PI * 0.9,
+            "life": 900
+        });
     }
     function nav(e) {
         return menu.walk(e);
     }
     anchors.fill: parent
+
+    // the spin running down
+    FrameAnimation {
+        running: look.vel !== 0 && !toy.held
+        onTriggered: {
+            const dt = Math.min(0.05, frameTime);
+            look.turn += look.vel * dt;
+            look.tick();
+            // friction: a little drag, more when it's slow, so it settles with a click
+            const slow = Math.max(0, Math.abs(look.vel) - (0.9 + Math.abs(look.vel) * 0.55) * dt);
+            look.vel = Math.sign(look.vel) * slow;
+            if (slow < 0.12 || Motion.still)
+                look.land();
+        }
+    }
+    CircleToy {
+        id: toy
+        menu: look.menu
+        radius: look.wheelR
+        cursorShape: held ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        hoverEnabled: on
+        onDown: (x, y, right) => {
+            if (right) {
+                // the croupier's spin: hard and either way
+                look.vel = (Math.random() < 0.5 ? -1 : 1) * (9 + Math.random() * 7);
+                held = false;
+                return;
+            }
+            look.vel = 0;
+            look.moved = 0;
+            look.lastA = Math.atan2(y - look.menu.cy, x - look.menu.cx);
+            look.lastT = Date.now();
+        }
+        onDrag: (x, y) => {
+            const a = Math.atan2(y - look.menu.cy, x - look.menu.cx);
+            let d = a - look.lastA;
+            if (d > Math.PI)
+                d -= 2 * Math.PI;
+            if (d < -Math.PI)
+                d += 2 * Math.PI;
+            const now = Date.now(), dt = Math.max(1, now - look.lastT) / 1000;
+            look.turn += d;
+            look.moved += Math.abs(d);
+            look.vel = look.vel * 0.5 + (d / dt) * 0.5;
+            look.lastA = a;
+            look.lastT = now;
+            look.tick();
+        }
+        onUp: (x, y) => {
+            // a throw keeps going; a slow let-go stops where it is
+            if (Date.now() - look.lastT > 120 || Math.abs(look.vel) < 1.5)
+                look.vel = 0;
+            look.vel = Math.max(-28, Math.min(28, look.vel));
+            if (look.vel === 0 && look.moved > 0.05)
+                look.land();
+        }
+    }
 
     // the wheel: sectors, gold spokes and rim, studs
     Canvas {
@@ -127,6 +221,16 @@ Item {
                 text: sector.label
             }
         }
+    }
+
+    CircleBits {
+        id: coins
+    }
+
+    CircleHint {
+        menu: look.menu
+        rule: "roulette"
+        below: look.reach
     }
 
     CircleFly {

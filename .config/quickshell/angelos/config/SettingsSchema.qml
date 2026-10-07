@@ -61,6 +61,13 @@ JsonAdapter {
         property string logoStyle: "classic" // wordmark: classic | angel | windose (NGO, pill O) | hell (gothic, drips) | chrome (Y2K)
         property string logoEmblem: "heart" // emblem: heart (winged, halo) | pill | star | cd | kitty
         property bool logoFastfetch: true   // fastfetch draws the chosen emblem (~/.config/fastfetch/logo.txt)
+        // fastfetch's style (scripts/fastfetch_style.py, FastfetchLogo.styles): compact | angel |
+        // helper | receipt | stream | window | mini, or "own"
+        // (the config is left to the user; then only logoFastfetch draws into logo.txt)
+        property string fastfetchStyle: "compact"
+        // its picture moving for a moment in a new terminal (scripts/fastfetch_anim.py): off |
+        // short (2.5 s) | long (6 s); still whenever motion is off
+        property string fastfetchAnim: "short"
         property bool logoText: true        // the wordmark next to the emblem on the Start button (false: the emblem only)
         property bool metaTap: true         // a short Meta tap opens Start (Windows-like)
         property int metaTapMs: 400         // longer presses are holds, not taps
@@ -89,6 +96,8 @@ JsonAdapter {
         // workspaces above are the set of the theme in front (themeOf), saved here when it goes
         property var themes: ({})
         property string themeOf: ""
+        // the newest release whose wallpapers were offered (services/Wallpapers: releases)
+        property int releaseSeen: 0
     }
 
     property JsonObject workspaces: JsonObject {
@@ -150,8 +159,11 @@ JsonAdapter {
 
     property JsonObject setup: JsonObject {
         property bool complete: false       // the first-run wizard done or set up later (it holds the desktop until then)
-        property bool gameAsked: false      // the installer already asked "with the game?" (ANGELOS_GAME): the wizard does not ask again
+        property bool gameAsked: false      // the installer already asked "with the game?" (ANGELOS_GAME): the wizard shows that answer
         property bool keyboardAsked: false  // …and the keyboard layouts (KB_LAYOUTS)
+        property string from: ""            // the wizard's "where do you come from": windows | mac | linux | new | ""
+        property string persona: ""         // the wizard's "who are you": streamer | worker | regular | creative | ""
+        property var apps: []               // the apps ticked in the wizard (data/apps-catalog.json ids), browsers included
     }
 
     property JsonObject notifications: JsonObject {
@@ -184,6 +196,7 @@ JsonAdapter {
         property bool menuIcons: true       // icons in the list
         property bool menuLabels: true      // names under the ring's icons
         property bool menuAnim: true        // the ring flies out, the list pops
+        property bool menuToys: true        // hell's menu looks play: the wheel spins, the fork pokes… (circles/CircleToy)
     }
 
     property JsonObject voxtype: JsonObject {
@@ -225,6 +238,7 @@ JsonAdapter {
         property bool dailyReward: true     // heaven: the daily login reward calendar
         property bool notices: true         // heaven: the notice board (updates, notifications, music…)
         property bool wishPaid: true        // heaven: past the day's free prayer, an unlock prays for 160 ✦ (HeavenStars)
+        property string chestNotified: ""   // the day the "day's chest is waiting" notification came (services/Chests)
         property string frame: ""           // heaven: the login plate's frame from the pass: "" | rose | holo
         property bool sddmWalls: true       // the login screen (SDDM theme) follows the desktop's wallpapers
     }
@@ -376,6 +390,12 @@ JsonAdapter {
         property real helperScale: 1.0      // 0.75–2.00: Ctrl + mouse wheel, 5 % a notch; rendered size capped to screen (Y2K → Helper → Size)
     }
 
+    // Recovery (services/Recovery, scripts/recovery.py): progress and settings on your GitHub
+    property JsonObject recovery: JsonObject {
+        property bool auto: true            // with gh logged in: save to the private repo once a day
+        property string lastPush: ""        // ISO time of the last save there
+    }
+
     // the game: angelOS is a story played over the real desktop (services/Story, story/).
     // The player's save is its own file (~/.config/angelos/save.json), not here.
     property JsonObject game: JsonObject {
@@ -417,9 +437,12 @@ JsonAdapter {
         property bool effects: true         // no sparkles, loading screen or angel/demon effects on the streamed screens
         property bool dndSet: false         // stream mode switched DND on (switched off again when the stream ends)
         property bool suppressed: false     // switched off by hand during this stream (kept through a shell restart)
+        property bool castHinted: false     // the angel told once that OBS can take her onto the stream (StreamMode.hintCast)
         // the angel on stream (services/StreamAngel, modules/y2k/AngelHelper): she sits on the
         // streamed screen's taskbar (its bottom edge when the bar is elsewhere) and talks with the mic
         property bool streamer: false
+        // turned off from her own menu ("Перестать быть стримером"): her menu offers it back
+        property bool streamerDropped: false
         property string streamerMic: "auto" // auto | obs:<OBS input> | pw:<PipeWire source> (scripts/stream-mic.py)
         property int streamerThreshold: 30  // % of the voice meter (-55…-12 dBFS) where her mouth opens
         property int streamerSize: 30       // % of the screen's height above the bar (10–50; Ctrl + wheel on her)

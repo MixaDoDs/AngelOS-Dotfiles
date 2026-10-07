@@ -455,7 +455,7 @@ Singleton {
         if (why && !Shell.locked && !Shell.lockPreview)
             // our own picture, not the theme's "starred": icon themes without a "status"
             // context (pixora on Windose…) have none, and the card showed a broken image (#47)
-            notify.exec(["notify-send", "-a", "angelOS", "-i", Quickshell.shellDir + "/data/icons/heaven-star.svg", I18n.t("Небеса", "Heaven"), text]);
+            notify.exec(["notify-send", "-a", "angelOS", "-h", "string:x-angelos-sound:stars", "-i", Quickshell.shellDir + "/data/icons/heaven-star.svg", I18n.t("Небеса", "Heaven"), text]);
     }
     Process {
         id: notify

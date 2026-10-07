@@ -9,18 +9,20 @@ rules). This writes what the templates can't:
   ~/.local/share/angelos/terminal/realm          heaven | hell
   ~/.local/share/angelos/terminal/hell-lines.txt  her lines for a new terminal, one a line
   ~/.local/share/angelos/terminal/hell.png        kitty's scorched background (painted once)
-  ~/.local/share/angelos/terminal/fastfetch.jsonc in hell: the user's own fastfetch config
-                                                  (~/.config/fastfetch/config.jsonc) in the
-                                                  circle — its number and name and its one line
-                                                  under the title, the words for the readings
-                                                  ("CPU · жар", "RAM · души"), its colours, ⛧
-  ~/.local/share/angelos/terminal/fastfetch-logo.txt  the emblem with horns in the circle's
-                                                  colours, the circle's number and name under it
+  ~/.local/share/angelos/terminal/fastfetch.jsonc in hell: fastfetch in the circle. With one
+                                                  of angelOS's styles (scripts/fastfetch_style.py)
+                                                  that style in the circle: the circle's own sigil
+                                                  (each of the nine has one), its number, name and
+                                                  line, its words for the readings ("cpu · жар"),
+                                                  its colours. With a config of the user's own:
+                                                  that config in the circle, the same way
+  ~/.local/share/angelos/terminal/fastfetch-logo.txt  its picture
   ~/.config/fish/conf.d/angelos-realm.fish        in hell: command colours from the circle's
                                                   palette for the session, fastfetch with the
                                                   circle's config, and one of her lines before
                                                   the first prompt (only if fish is set up)
 """
+import importlib.util
 import json
 import random
 import re
@@ -54,7 +56,8 @@ set -g fish_color_comment {textDim}
 set -g fish_color_selection --background={lo}
 set -g fish_color_search_match --background={bgAlt}
 # fastfetch in the circle (the greeting runs it: CachyOS's fish config does)
-if test -f $__angelos_dir/fastfetch.jsonc
+# (angelos-fastfetch.fish, when it's there, already does this, its picture moving)
+if test -f $__angelos_dir/fastfetch.jsonc; and not functions -q fastfetch
     function fastfetch --wraps fastfetch
         command fastfetch --config (set -q XDG_DATA_HOME; and echo $XDG_DATA_HOME; or echo $HOME/.local/share)/angelos/terminal/fastfetch.jsonc $argv
     end
@@ -206,6 +209,26 @@ def fastfetch_config(ff, user, logo_path):
     return "// angelOS: fastfetch in the circle — written from ~/.config/fastfetch/config.jsonc by\n// scripts/terminal-hell.py; edits here are overwritten (edit your own config instead)\n" + json.dumps(cfg, ensure_ascii=False, indent=2) + "\n"
 
 
+def styled_fastfetch(ff, logo_path):
+    """(config text, logo text, what moves) of angelOS's fastfetch style in the circle, or None
+    when the user's config isn't one of the styles"""
+    style = ff.get("style")
+    try:
+        spec = importlib.util.spec_from_file_location("fastfetch_style", Path(__file__).with_name("fastfetch_style.py"))
+        fs = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fs)
+    except (OSError, ImportError, SyntaxError):
+        return None
+    if style not in fs.STYLES or not FASTFETCH.exists() or not FASTFETCH.read_text(errors="replace").startswith(fs.MARK):
+        return None
+    logo = ff.get("logo") or {}
+    pal = logo.get("palette") or {"#": "#040303", "o": ff.get("keys", "#e2703f"), "x": "#6b2420", "y": "#c99a5e",
+                                  "w": ff.get("title", "#d9cbbd"), "f": ff.get("dim", "#9c8f85"), "r": ff.get("keys", "#e2703f")}
+    hell = {**ff, "palette": pal}
+    return fs.render_all(style, {"lang": ff.get("lang", "ru")}, logo.get("rows") or fs.SIGILS["limbo"], pal, logo_path, hell,
+                         ff.get("emblem", ""), float(ff.get("anim") or 0))
+
+
 def paint(path):
     """a scorched pixel background: near-black, a little lighter low down, a few charred
     cracks and a pentagram barely there. Nothing glows. Drawn at 1/4 size, scaled up crisp."""
@@ -261,7 +284,19 @@ def main():
     # fastfetch in the circle: only in hell, and only next to a fastfetch config of the user's
     ff = pal.get("fastfetch") if realm == "hell" else None
     conf, logo = OUT / "fastfetch.jsonc", OUT / "fastfetch-logo.txt"
-    if ff and FASTFETCH.exists():
+    anim = OUT / "fastfetch-anim.json"
+    styled = styled_fastfetch(ff, logo) if ff and FASTFETCH.exists() else None
+    if styled:
+        conf_text, logo_text, spec = styled
+        if logo_text:
+            write(logo, logo_text)
+        write(conf, conf_text)
+        # its picture moves for a moment too (scripts/fastfetch_anim.py, angelos-fastfetch.fish)
+        if spec:
+            write(anim, json.dumps(spec, ensure_ascii=False) + "\n")
+        elif anim.exists():
+            anim.unlink()
+    elif ff and FASTFETCH.exists():
         try:
             user = jsonc(FASTFETCH.read_text())
         except (OSError, ValueError):
@@ -269,8 +304,10 @@ def main():
         if ff.get("logo"):
             write(logo, fastfetch_logo(ff))
         write(conf, fastfetch_config(ff, user, logo))
+        if anim.exists():
+            anim.unlink()
     else:
-        for f in (conf, logo):
+        for f in (conf, logo, anim):
             if f.exists():
                 f.unlink()
     # fish: only where fish is the user's shell (its config dir exists)

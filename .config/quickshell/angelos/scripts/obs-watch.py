@@ -8,6 +8,8 @@ Prints one word per line:
   down    OBS closed or unreachable (tried again every 10 s, silently)
   live    the stream started (also at connect time if it is already running)
   off     the stream stopped
+  rec     the recording started (also at connect time)
+  recoff  the recording stopped
   auth    OBS wants a password that is not configured / is wrong
 
 The password is read from OBS's own obs-websocket config (native or Flatpak)
@@ -134,19 +136,27 @@ def session(port, password, state):
     state["up"] = True
     say("up")
     ws.send({"op": 6, "d": {"requestType": "GetStreamStatus", "requestId": "angelos-stream"}})
+    ws.send({"op": 6, "d": {"requestType": "GetRecordStatus", "requestId": "angelos-record"}})
     while True:
         if not ws.pending(60):
             continue
         msg = ws.recv()
         op, d = msg.get("op"), msg.get("d") or {}
-        live = None
+        live = rec = None
         if op == 7 and d.get("requestId") == "angelos-stream":
             live = bool((d.get("responseData") or {}).get("outputActive"))
+        elif op == 7 and d.get("requestId") == "angelos-record":
+            rec = bool((d.get("responseData") or {}).get("outputActive"))
         elif op == 5 and d.get("eventType") == "StreamStateChanged":
             live = bool((d.get("eventData") or {}).get("outputActive"))
+        elif op == 5 and d.get("eventType") == "RecordStateChanged":
+            rec = bool((d.get("eventData") or {}).get("outputActive"))
         if live is not None and live != state["live"]:
             state["live"] = live
             say("live" if live else "off")
+        if rec is not None and rec != state["rec"]:
+            state["rec"] = rec
+            say("rec" if rec else "recoff")
 
 
 def main():
@@ -160,7 +170,7 @@ def main():
     ap.add_argument("--port", type=int, default=4455)
     ap.add_argument("--password", default=None)
     args = ap.parse_args()
-    state = {"live": False, "up": None}
+    state = {"live": False, "rec": False, "up": None}
     while True:
         password = args.password if args.password is not None else config_password()
         try:
@@ -171,6 +181,9 @@ def main():
         if state["live"]:
             state["live"] = False
             say("off")
+        if state["rec"]:
+            state["rec"] = False
+            say("recoff")
         if code == "down" and state["up"] is not False:
             say("down")
         state["up"] = False

@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 PAIR = re.compile(r'I18n\.t\(\s*"((?:[^"\\]|\\.)*)"\s*,\s*"((?:[^"\\]|\\.)*)"\s*\)')
+LIT = re.compile(r'^"((?:[^"\\]|\\.)+)"\s*;?\s*(//.*)?$')
 PROP = re.compile(r'^\s*"?(heading|subtitle|title|label|hint|text|placeholder)"?\s*:\s*(.*)$')
 OPEN = re.compile(r"^\s*([A-Z][\w.]*)\s*\{")
 DEV = re.compile(r"^\s*(shown|visible)\s*:\s*Config\.developer\.enabled\s*$")
@@ -72,6 +73,11 @@ def index_page(path):
             stack[-1][2]["name"] = nm.group(1)
         p = PROP.match(code)
         pairs = [(unescape(a), unescape(b)) for a, b in PAIR.findall(code)]
+        # a name that is the same in both languages ("fastfetch", "Bluetooth"): a plain string
+        if p and not pairs and p.group(1) in ("title", "label"):
+            lit = LIT.match(p.group(2))
+            if lit:
+                pairs = [(unescape(lit.group(1)), unescape(lit.group(1)))]
         if p and pairs:
             prop = p.group(1)
             e = owner()

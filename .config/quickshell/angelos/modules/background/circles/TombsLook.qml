@@ -9,6 +9,9 @@ import qs.widgets
 // pointer — the entries are headstones in rows, the far rows smaller, each with the embers of
 // its open tomb at its foot; the one you're on burns. Opening, the stones rise out of the
 // ground row by row. The logo stands at the gate, above the graves.
+// The toy (CircleToy): set the heretics' fire going — hold the button down on the graveyard
+// and flames climb out of the ground after the pointer, the tombs near it flare up; a right
+// click and every open tomb erupts at once.
 Item {
     id: look
 
@@ -37,10 +40,78 @@ Item {
         const inRow = row === rows - 1 ? n - row * cols : cols;
         return Qt.point(menu.cx + (col - (inRow - 1) / 2) * colW * scaleOf(row), y0 + gateH + row * rowH + stoneH / 2);
     }
+    // the toy: a flame out of the ground at (x, y); the graves near it flare up
+    property real lastFire: 0
+    function fire(x, y, quiet) {
+        flame.createObject(fireLayer, {
+            "x0": x,
+            "y0": y
+        });
+        embers.burst(x, y, {
+            "n": 4,
+            "colors": [Theme.hellFlame, Theme.hellEmber, Theme.hellGold],
+            "size": 1.5,
+            "speed": 40,
+            "up": 70,
+            "spread": 1.2,
+            "gravity": -60,
+            "life": 900
+        });
+        for (let i = 0; i < graves.count; i++) {
+            const g = graves.itemAt(i);
+            if (g && Math.hypot(g.x + g.width / 2 - x, g.y + g.height / 2 - y) < colW)
+                g.flare();
+        }
+        if (!quiet)
+            Sounds.playSoft("key", 0.5);
+    }
+    function erupt() {
+        Sounds.play("demon");
+        for (let i = 0; i < graves.count; i++) {
+            const g = graves.itemAt(i);
+            if (!g)
+                continue;
+            g.flare();
+            embers.burst(g.x + g.width / 2, g.y + stoneH * g.s, {
+                "n": 6,
+                "colors": [Theme.hellFlame, Theme.hellEmber, Theme.hellGold],
+                "size": 2,
+                "speed": 50,
+                "up": 140,
+                "spread": 0.8,
+                "gravity": -40,
+                "life": 1100
+            });
+        }
+    }
     function nav(e) {
         return menu.walk(e);
     }
     anchors.fill: parent
+
+    // a tongue of the heretics' fire: climbs, flickers, burns out
+    Component {
+        id: flame
+        PxIcon {
+            id: fl
+            property real x0
+            property real y0
+            property real f: 0
+            bitmap: ["..r..", ".rr..", ".ryr.", "ryyr.", "ryyyr", ".ryr."]
+            pixel: Math.max(1, Math.round(Theme.u * look.k * (1.2 - f * 0.5)))
+            bad: Theme.hellFlame
+            fill3: Theme.hellGold
+            x: x0 - width / 2 + Math.sin(f * 14) * Theme.u * 2
+            y: y0 - height - f * Theme.u * 26
+            opacity: 1 - f * f
+            NumberAnimation on f {
+                from: 0
+                to: 1
+                duration: Math.max(300, Motion.ms(800))
+                onFinished: fl.destroy()
+            }
+        }
+    }
 
     // the gate of Dis: the logo between two posts
     CircleHub {
@@ -80,11 +151,46 @@ Item {
         }
     }
 
+    CircleToy {
+        id: toy
+        menu: look.menu
+        zone: Qt.rect(look.menu.cx - look.gridW / 2, look.y0 + look.gateH - Theme.u * 4, look.gridW, look.gridH - look.gateH + Theme.u * 4)
+        cursorShape: Qt.CrossCursor
+        hoverEnabled: on
+        onDown: (x, y, right) => {
+            if (right) {
+                look.erupt();
+                held = false;
+                return;
+            }
+            look.lastFire = Date.now();
+            look.fire(x, y);
+        }
+        onDrag: (x, y) => {
+            if (Date.now() - look.lastFire < 70)
+                return;
+            look.lastFire = Date.now();
+            look.fire(x, y, true);
+        }
+    }
+
     Repeater {
+        id: graves
         model: look.menu.slots
         CircleEntry {
             id: grave
             menu: look.menu
+            // set alight by the toy for a moment
+            property bool burning: false
+            function flare() {
+                burning = true;
+                burnOut.restart();
+            }
+            Timer {
+                id: burnOut
+                interval: 900
+                onTriggered: grave.burning = false
+            }
             readonly property int row: Math.floor(index / look.cols)
             readonly property real s: look.scaleOf(row)
             readonly property point c: look.centreOf(index)
@@ -125,13 +231,13 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: parent.width * 0.6
                         height: Math.max(1, Theme.u)
-                        color: grave.hot ? Theme.hellFlame : Qt.alpha(Theme.hellEmber, 0.7)
+                        color: grave.hot || grave.burning ? Theme.hellFlame : Qt.alpha(Theme.hellEmber, 0.7)
                     }
                 }
             }
             // the one you're on burns: a flame on the stone
             PxIcon {
-                visible: grave.hot
+                visible: grave.hot || grave.burning
                 bitmap: ["..r..", ".rr..", ".ryr.", "ryyr.", "ryyyr", ".ryr."]
                 pixel: Math.max(1, Math.round(Theme.u * look.k * 0.75))
                 bad: Theme.hellFlame
@@ -149,6 +255,20 @@ Item {
                 text: grave.label
             }
         }
+    }
+
+    Item {
+        id: fireLayer
+        anchors.fill: parent
+    }
+    CircleBits {
+        id: embers
+    }
+
+    CircleHint {
+        menu: look.menu
+        rule: "tombs"
+        below: look.gridH / 2
     }
 
     CircleFly {

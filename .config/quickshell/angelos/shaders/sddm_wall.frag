@@ -64,7 +64,7 @@ void main() {
     // twinkle: a few big pixels flare for a moment
     float slot = floor(time * 1.3);
     float h = hash(floor(px / b) + slot * 17.0);
-    if (h > 0.9965) {
+    if (b > 2.0 && h > 0.9965) {      // not on a picture shown as it is: it would be noise
         float k = sin(fract(time * 1.3) * 3.14159);
         c.rgb = mix(c.rgb, vec3(1.0), 0.35 * k);
     }

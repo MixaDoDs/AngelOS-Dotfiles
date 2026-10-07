@@ -1,0 +1,78 @@
+{
+  "_comment": "ЧЕРНОВИК — все реплики здесь черновики Claude, финальные тексты утверждает автор. What hell's right-click menu toys say (services/HellToys, modules/background/circles/*Look). Each line [ru, en]. hints: one line under each menu look, its rule. wrath: the sullen souls under the Styx — what a soul says on the 1st, 2nd hit and in its rage on the 3rd. gluttony: the courses served (name, bitmap rows of one-letter colours, colours) and what is said when one is eaten / every 5th. fraud: the masks, one per ditch of Malebolge — what it claims (%1 = another entry's name), its confession (%1 = its real name), what it says when you believe it. treachery: said when an entry shatters (%1 = its name) and when the ice grows back. summon: the souls the pentagram pulls out — name, circle, what they say at first, when asked who, why here, and goodbye.",
+  "hints": {
+    "roulette": ["Хватай колесо и крути · ПКМ — крупье крутит сам", "Grab the wheel and spin · right click: the croupier spins"],
+    "plate": ["Тыкай вилкой в еду — ешь · нож тоже ест · ПКМ — положить", "Poke the food with the fork to eat · the knife eats too · right click puts it down"],
+    "queue": ["Нажми «Возьмите талон» — встань в очередь", "Press «Take a number» to join the queue"],
+    "whirl": ["Крути ветер вокруг центра · ПКМ — порыв", "Stir the wind round the middle · right click: a gust"],
+    "ripples": ["Пузыри — угрюмые души под водой Стикса. Кинь в них камень", "The bubbles are sullen souls under the Styx. Throw a stone at them"],
+    "tombs": ["Зажми на кладбище — огонь еретиков · ПКМ — все гробницы", "Hold on the graveyard: the heretics' fire · right click: every tomb"],
+    "blades": ["Режь воздух драгом · ПКМ — сложить веер", "Slash the air with a drag · right click snaps the fan"],
+    "masks": ["ПКМ по маске — поговорить · тяни нитку — раскачать · ПКМ мимо — перевернуть", "Right-click a mask to talk · tug the string to swing · right click elsewhere turns them"],
+    "shards": ["ПКМ по льдинке — бить (три удара — пункт разбит) · клик по льду — трещина", "Right-click an ice tile to hit it (three hits break it) · click the ice to crack it"],
+    "pentagram": ["Зажги все пять свечей — и кто-нибудь придёт", "Light all five candles and someone will come"]
+  },
+  "wrath": {
+    "hit": [
+      [["Буль… Кто там кидается?", "Blub… who's throwing?"], ["Мы тут тихо злимся, не мешай.", "We're quietly angry down here, don't interrupt."], ["Ещё один камень на мою голову. Как и вся жизнь.", "Another stone on my head. Like my whole life."], ["Гррр… буль.", "Grrr… blub."]],
+      [["Ещё раз кинешь — вылезу!", "Throw one more and I'm coming out!"], ["Ты нарочно, да?! НАРОЧНО?!", "You're doing it on purpose, aren't you?!"], ["Я тут с тринадцатого века кипячусь, а ты камнями!", "I've been simmering here since the 13th century and you throw stones!"], ["Всё. Я злой. Я очень злой.", "That's it. I'm angry. Very angry."]]
+    ],
+    "rage": [["А-А-А! ВСЕХ УТОПЛЮ!", "AAARGH! I'LL DROWN YOU ALL!"], ["ДЕРЖИ СДАЧИ!", "HAVE SOME BACK!"], ["ГНЕЕЕВ!", "WRAAATH!"], ["Вот тебе волна, раз ты такой умный!", "Here's a wave for you, smart one!"]],
+    "miss": [["Плюх. Мимо — души там, где пузыри.", "Plop. Missed: the souls are where the bubbles are."]],
+    "count": ["разозлено душ: %1", "souls enraged: %1"]
+  },
+  "gluttony": {
+    "foods": [
+      {"name": ["яблоко", "an apple"], "rows": ["...g....", "..g.....", ".rrrrr..", "rrrwrrr.", "rrrrrrr.", "rrrrrrr.", ".rrrrr..", "..r.r..."], "colors": {"r": "#c8323c", "g": "#5a9a3a", "w": "#ffd0d0"}},
+      {"name": ["окорочок", "a drumstick"], "rows": ["..bbbb..", ".bbBbbb.", "bbbbbbbb", "bbbbbbbB", ".bbbbbb.", "..bbbb..", "...ww...", "..w..w.."], "colors": {"b": "#a8622a", "B": "#d48a4a", "w": "#efe6d2"}},
+      {"name": ["тортик", "a cake"], "rows": ["...r....", "..ccc...", ".ccccc..", "pppppppp", "ssssssss", "pppppppp", "ssssssss", "........"], "colors": {"r": "#d02040", "c": "#fff4f0", "p": "#f09ab0", "s": "#7a4a2a"}},
+      {"name": ["пицца", "a pizza slice"], "rows": ["kkkkkkkk", "yyrryyy.", ".yyyyrr.", ".ryyyy..", "..yyry..", "..yyy...", "...y....", "...y...."], "colors": {"k": "#c08040", "y": "#f0c040", "r": "#c03020"}},
+      {"name": ["пончик", "a donut"], "rows": ["..pppp..", ".pwppwp.", "pppppppp", "ppp..ppp", "ppp..ppp", "pwpppppp", ".dddddd.", "..dddd.."], "colors": {"p": "#e070a0", "w": "#ffffff", "d": "#b07840"}},
+      {"name": ["виноград", "grapes"], "rows": ["....g...", "...g....", ".vvvv...", "vvvvvv..", ".vvvvv..", "..vvvv..", "...vv...", "....v..."], "colors": {"v": "#7a3aa0", "g": "#5a9a3a"}},
+      {"name": ["глаз в желе", "an eye in jelly"], "rows": ["..jjjj..", ".jjjjjj.", "jjwwwwjj", "jjwbbwjj", "jjwbbwjj", "jjwwwwjj", ".jjjjjj.", "..jjjj.."], "colors": {"j": "#5ab84a", "w": "#f4f4f4", "b": "#202020"}}
+    ],
+    "eaten": [["Ням! Ещё!", "Yum! More!"], ["Мало!", "Not enough!"], ["Несите следующее!", "Bring the next one!"], ["Это была закуска.", "That was a starter."], ["Ещё, ещё!", "More, more!"]],
+    "five": [["Обжорство не знает слова «хватит».", "Gluttony doesn't know the word 'enough'."], ["Ремень расстегнуть? Нет, ешь дальше.", "Loosen your belt? No, keep eating."], ["Цербер завидует твоему аппетиту.", "Cerberus envies your appetite."]],
+    "count": ["съедено: %1", "eaten: %1"],
+    "served": ["подано: %1", "served: %1"]
+  },
+  "fraud": {
+    "masks": [
+      {"who": ["Льстец", "The flatterer"], "claim": ["Какой у вас прекрасный курсор! Я — «%1», честное слово.", "What a beautiful cursor you have! I'm «%1», honest."], "confess": ["Ладно… я «%1». Но курсор правда ничего.", "Fine… I'm «%1». The cursor is nice though."], "fooled": ["Вы так умны, что поверили мне! Ой.", "You're so clever you believed me! Oops."]},
+      {"who": ["Гадалка", "The soothsayer"], "claim": ["Я вижу будущее: ты нажмёшь на меня, и откроется «%1».", "I see the future: you'll press me and «%1» will open."], "confess": ["Будущее я не вижу — у меня голова задом наперёд. Я «%1».", "I can't see the future: my head is on backwards. I'm «%1»."], "fooled": ["Я так и знала, что ты поверишь. Это я хотя бы предсказала.", "I knew you'd believe me. That much I foresaw."]},
+      {"who": ["Лицемер", "The hypocrite"], "claim": ["Я никогда не вру. Я — «%1».", "I never lie. I'm «%1»."], "confess": ["Эта позолоченная мантия из свинца, а я — «%1».", "This gilded cloak is lead, and I'm «%1»."], "fooled": ["Видишь, как легко быть честным? Хе.", "See how easy honesty is? Heh."]},
+      {"who": ["Вор", "The thief"], "claim": ["Я ничего не крал. Я просто «%1».", "I didn't steal anything. I'm just «%1»."], "confess": ["Ну стащил я чужое имя. Я «%1». Верни кошелёк, кстати, — а, он мой.", "So I stole a name. I'm «%1». Give me back the wallet — oh, it's mine."], "fooled": ["Спасибо за доверие. Я его тоже украду.", "Thanks for the trust. I'll steal that too."]},
+      {"who": ["Лукавый советчик", "The false counsellor"], "claim": ["Послушай моего совета: я — «%1», жми смело.", "Take my advice: I'm «%1», go ahead and press."], "confess": ["Советовать я мастер, а сам — «%1». Совет: не слушай советчиков.", "I'm great at advice; I'm «%1». Advice: never listen to advisers."], "fooled": ["Отличный совет, правда? Мой последний был про деревянного коня.", "Great advice, wasn't it? My last one was about a wooden horse."]},
+      {"who": ["Сеятель раздора", "The sower of discord"], "claim": ["Остальные маски врут, а я — «%1».", "The other masks lie, but I'm «%1»."], "confess": ["Я всех поссорил, а сам «%1». Скажи им, что это они начали.", "I set them all against each other; I'm «%1». Tell them they started it."], "fooled": ["Вот видишь, теперь ты с ними в ссоре. Работает.", "See, now you've fallen out with them. It works."]},
+      {"who": ["Фальшивомонетчик", "The forger"], "claim": ["Я — «%1». Оригинал. С печатью.", "I'm «%1». The original. Stamped."], "confess": ["Печать нарисована. Я «%1», самый настоящий.", "The stamp is drawn on. I'm «%1», the genuine one."], "fooled": ["Подделка, которой поверили, почти как настоящая.", "A fake that's believed is nearly real."]},
+      {"who": ["Продавец индульгенций", "The pardoner"], "claim": ["Купи меня — и грехи прочь! Я «%1».", "Buy me and your sins are gone! I'm «%1»."], "confess": ["Грехи не снимаю, я «%1». Деньги не возвращаю.", "I remove no sins; I'm «%1». No refunds."], "fooled": ["С вас одна душа. Шучу. Наверное.", "That'll be one soul. Kidding. Probably."]}
+    ],
+    "ask": ["Кто ты?", "Who are you?"],
+    "believe": ["Верю", "I believe you"],
+    "unmask": ["Сорвать маску", "Tear off the mask"],
+    "open": ["Открыть «%1»", "Open «%1»"],
+    "hang": ["Повесить обратно", "Hang it back"],
+    "unmasked": ["разоблачено: %1 · обмануло тебя: %2", "unmasked: %1 · fooled you: %2"]
+  },
+  "treachery": {
+    "broken": [["«%1» предан.", "«%1» betrayed."], ["Ты разбил «%1». В лёд его.", "You broke «%1». Into the ice with it."], ["«%1» тебе доверял.", "«%1» trusted you."]],
+    "allBroken": [["Ни одного не осталось. Лёд нарастает снова…", "Not one left. The ice grows back…"]],
+    "back": ["Откроешь меню снова — лёд нарастёт", "Open the menu again and the ice grows back"]
+  },
+  "summon": {
+    "souls": [
+      {"name": ["Пётр, бухгалтер", "Peter, an accountant"], "circle": "greed", "hello": ["Ой. Где я? Свечи… опять сатанисты? Сколько стоит выход?", "Oh. Where am I? Candles… satanists again? How much is the way out?"], "who": ["Сорок лет вёл учёт. Последние десять — в аду. Баланс не сходится.", "Forty years of bookkeeping. The last ten in hell. The books still don't balance."], "why": ["Округлял в свою пользу. Всего по копейке. Миллион раз.", "Rounded in my favour. A kopeck at a time. A million times."], "bye": ["Если найдёте мою копейку — не возвращайте.", "If you find my kopeck, don't bring it back."]},
+      {"name": ["Франческа", "Francesca"], "circle": "lust", "hello": ["Ветер стих? Впервые за семьсот лет…", "The wind's dropped? For the first time in seven hundred years…"], "who": ["Я читала книгу о любви. Мы оба читали. Дальше в тот день не читали.", "I was reading a book about love. We both were. That day we read no further."], "why": ["За поцелуй. И за мужа, который не оценил.", "For a kiss. And a husband who didn't approve."], "bye": ["Ветер зовёт. Не читай вдвоём, ладно?", "The wind calls. Don't read in pairs, all right?"]},
+      {"name": ["Чакко", "Ciacco"], "circle": "gluttony", "hello": ["Тут есть еда? Почему тут нет еды?!", "Is there food here? Why is there no food?!"], "who": ["Флорентиец. Свинья — так меня звали. Ласково.", "A Florentine. 'The Hog' they called me. Fondly."], "why": ["Ел. Много. Иногда за других.", "I ate. A lot. Sometimes for others too."], "bye": ["Я обратно в грязь под дождём. Оставь мне крошек.", "Back to the mud and the rain. Leave me some crumbs."]},
+      {"name": ["Филиппо Ардженти", "Filippo Argenti"], "circle": "wrath", "hello": ["КТО МЕНЯ ВЫТАЩИЛ?! Я был занят! Я злился!", "WHO PULLED ME OUT?! I was busy! I was being angry!"], "who": ["Тот, кто подковал коня серебром. И кусал себя в Стиксе.", "The one who shod his horse with silver. And bit himself in the Styx."], "why": ["Я просто ЛЮБЛЮ ПОКРИЧАТЬ. Это преступление?!", "I just LIKE TO SHOUT. Is that a crime?!"], "bye": ["И НЕ ЗОВИ БОЛЬШЕ! …Ну разве что иногда.", "AND DON'T CALL AGAIN! …Well, maybe sometimes."]},
+      {"name": ["Фарината", "Farinata"], "circle": "heresy", "hello": ["Я поднялся из гробницы по пояс, будто ад мне нипочём.", "I rose from my tomb to the waist, as though hell were nothing to me."], "who": ["Глава гибеллинов. Знаю будущее, но не настоящее.", "Leader of the Ghibellines. I see the future, not the present."], "why": ["Не верил в душу после смерти. Неловко вышло.", "I didn't believe in the soul after death. Awkward."], "bye": ["Крышку за мной закроешь? Сквозит.", "Close the lid after me? There's a draught."]},
+      {"name": ["Улисс", "Ulysses"], "circle": "fraud", "hello": ["Я горю, но говорю. Ты меня позвал? Хитро.", "I'm burning, but I speak. You summoned me? Clever."], "who": ["Тот, кто придумал деревянного коня. Ну, вы поняли.", "The one who came up with the wooden horse. You know."], "why": ["Хитрость. И одно последнее плавание за край мира.", "Cunning. And one last voyage past the edge of the world."], "bye": ["Плыви дальше, чем можешь. Но меня не слушай.", "Sail further than you can. But don't listen to me."]},
+      {"name": ["Граф Уголино", "Count Ugolino"], "circle": "treachery", "hello": ["Холодно… Здесь теплее. Свечи хорошие.", "Cold… It's warmer here. Nice candles."], "who": ["Граф из Пизы. Изо льда, по шею.", "A count from Pisa. Up to my neck in ice."], "why": ["Предал. Меня предали. Мы теперь соседи по льду.", "I betrayed. I was betrayed. Now we're neighbours in the ice."], "bye": ["Лёд ждёт. Не доверяй тем, кто держит свечи.", "The ice is waiting. Don't trust people holding candles."]},
+      {"name": ["Вирджилий", "Virgil"], "circle": "limbo", "hello": ["А, ещё один путник. Проводить?", "Ah, another traveller. Shall I guide you?"], "who": ["Поэт. В Лимбе — не грешил, но и не крестился.", "A poet. In Limbo: no sins, but no baptism either."], "why": ["Родился слишком рано. Тут так бывает.", "Born too early. It happens."], "bye": ["Я провожал одного флорентийца. Тебя тоже проведу, когда будешь готов.", "I once guided a Florentine. I'll guide you too, when you're ready."]}
+    ],
+    "askWho": ["Кто ты?", "Who are you?"],
+    "askWhy": ["За что ты здесь?", "Why are you here?"],
+    "letGo": ["Отпустить", "Let go"],
+    "count": ["призвано душ: %1", "souls summoned: %1"]
+  }
+}

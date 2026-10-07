@@ -3,6 +3,7 @@ import QtQml.Models
 import Quickshell
 import qs.services
 import qs.widgets
+import qs.modules.chest
 import qs.modules.clipboard
 import qs.modules.debug
 import qs.modules.diary
@@ -21,6 +22,16 @@ Scope {
     LazyLoader {
         active: launcherKeep.alive
         Launcher {}
+    }
+
+    // heaven's chest (services/Chests): built when one opens
+    Linger {
+        id: chestKeep
+        when: Chests.open
+    }
+    LazyLoader {
+        active: chestKeep.alive
+        ChestOverlay {}
     }
 
     Linger {

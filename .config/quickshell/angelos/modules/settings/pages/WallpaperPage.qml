@@ -161,6 +161,100 @@ PxPage {
         }
     }
 
+    // every big release of angelOS brings wallpapers drawn for it (services/Wallpapers: releases)
+    PxGroup {
+        name: "releases"
+        visible: !page.hell && Wallpapers.releases.length > 0
+        title: I18n.t("Обои релизов angelOS", "angelOS release wallpapers")
+        icon: "sparkle"
+        width: parent.width
+
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("С каждым крупным релизом приходят свои обои, нарисованные для angelOS: днём и ночью. Клик — поставить.", "Every big release comes with wallpapers drawn for angelOS, a day and a night one. Click to apply.")
+        }
+        Repeater {
+            model: Wallpapers.releases
+            Column {
+                id: relCol
+                required property var modelData
+                required property int index
+                width: parent.width
+                spacing: Theme.u * 2
+                PxText {
+                    text: Wallpapers.releaseLabel(relCol.modelData) + (relCol.index === 0 ? I18n.t("  · новые", "  · newest") : "") + "   " + relCol.modelData.date
+                    color: relCol.index === 0 ? Theme.accent : Theme.text
+                }
+                Flow {
+                    width: parent.width
+                    spacing: Theme.u * 4
+                    Repeater {
+                        model: relCol.modelData.walls
+                        Column {
+                            id: wallCol
+                            required property var modelData
+                            spacing: Theme.u
+                            Row {
+                                spacing: Theme.u * 2
+                                Repeater {
+                                    model: [wallCol.modelData.day, wallCol.modelData.night].filter(f => !!f)
+                                    Item {
+                                        id: rt
+                                        required property string modelData
+                                        readonly property bool active: (page.target === "all" ? Wallpapers.resolve(Quickshell.screens[0].name, 1) : page.target === "output" ? Wallpapers.resolve(page.output, -1) : Wallpapers.resolve(page.output, page.wsIdx)) === modelData
+                                        width: Theme.u * 56
+                                        height: Theme.u * 32
+                                        PxBox {
+                                            anchors.fill: parent
+                                            sunken: true
+                                            color: Theme.sunken
+                                            edgeColor: rt.active ? Theme.accent : Theme.edge
+                                            Image {
+                                                anchors.fill: parent
+                                                source: "file://" + rt.modelData
+                                                sourceSize: Qt.size(480, 270)
+                                                fillMode: Image.PreserveAspectCrop
+                                                asynchronous: true
+                                                smooth: false
+                                            }
+                                        }
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: "transparent"
+                                            border.width: rm.containsMouse || rt.active ? Theme.u * 2 : 0
+                                            border.color: Theme.accent
+                                        }
+                                        PxIcon {
+                                            visible: rt.active
+                                            anchors.right: parent.right
+                                            anchors.top: parent.top
+                                            anchors.margins: Theme.u * 2
+                                            name: "heart"
+                                        }
+                                        MouseArea {
+                                            id: rm
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: page.pick(rt.modelData)
+                                        }
+                                    }
+                                }
+                            }
+                            PxText {
+                                visible: wallCol.modelData.name !== ""
+                                text: wallCol.modelData.name
+                                dim: true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     PxGroup {
         name: "transition"
         title: I18n.t("Переход", "Transition")

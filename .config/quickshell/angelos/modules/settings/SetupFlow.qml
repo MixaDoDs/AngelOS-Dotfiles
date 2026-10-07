@@ -5,12 +5,10 @@ import Quickshell
 import Quickshell.Io
 import qs.config
 import qs.services
-import qs.widgets
 
-// The setup wizard's course (SetupWizard.qml covers the screens with it on the first run):
-// the questions in order, where one is, how it ends — done, or "set up later" — and when it
-// opens by itself. Opened again from Settings or `angelos setup` it is the window below,
-// holding nothing.
+// The setup wizard's course (SetupWizard.qml covers the screens with it): the questions in
+// order, where one is, how it ends — done, closed (opened again) or `angelos setup skip` —
+// and when it opens by itself.
 Scope {
     id: root
 
@@ -18,34 +16,50 @@ Scope {
     property bool tipsAfter: true
     property bool offered: false
     property var assistant: null    // the questions on screen now (tests walk them)
-    // the screen the questions are on (first run); the others say where they are
+    // GitHub's login lives here: it goes on while the steps change
+    readonly property alias github: githubLogin
+    SetupGitHub {
+        id: githubLogin
+    }
+    // a touchpad here (the mouse step offers its scrolling direction then)
+    property bool touchpad: false
+    Process {
+        id: touchpadProbe
+        command: ["grep", "-qi", "touchpad", "/proc/bus/input/devices"]
+        onExited: code => root.touchpad = code === 0
+    }
+    // Golden Gate switched on by "I come from a Mac": another answer takes it back
+    property bool macByWizard: false
+    // the screen the questions are on; the others say where they are
     property string hostName: ""
     readonly property var host: Shell.screenByName(hostName) || Shell.focusedScreen || Shell.screens[0] || null
 
-    // The questions, in order. `blocks`: the groups of the settings tree (tree.json) a step
-    // shows as they are on their Settings page — the page is found by the group, wherever
-    // the tree puts it. A step with `when: false` is skipped.
+    // The questions, in order: ten for someone who has just come from another system — the
+    // language, where they come from (the look and the keys follow), the game, the keys and
+    // the pointer, how windows work here (niri's ribbon, the biggest difference), light or
+    // dark, the wallpaper, fastfetch, motion, GitHub (the author's tools) and the keys to start with. `blocks`: the
+    // groups of the settings tree (tree.json) a step shows as they are on their Settings page
+    // — the page is found by the group, wherever the tree puts it. A step with `when: false`
+    // is skipped. `attention`: where the pulsing outline points first — "answer" (until
+    // something is picked, then Continue) or "next".
     readonly property var stepList: [
         {
             "id": "hello",
             "icon": "heart",
             "title": I18n.t("Привет ♡", "Hello ♡"),
-            "text": I18n.t("Несколько вопросов — и можно работать. Всё, что выберешь, потом меняется в Настройках.", "A few questions and you're ready. Everything you pick here can be changed in Settings later.")
+            "text": I18n.t("Несколько коротких вопросов — и можно работать. Всё, что выберешь, потом меняется в Настройках.", "A few short questions and you're ready. Everything you pick here can be changed in Settings later.")
+        },
+        {
+            "id": "from",
+            "icon": "monitor",
+            "title": I18n.t("Откуда ты пришёл?", "Where are you coming from?"),
+            "text": I18n.t("Подстрою вид, кнопки окон и подсказки под то, к чему ты привык.", "The look, the window buttons and the hints will match what you're used to.")
         },
         {
             "id": "game",
             "icon": "sparkle",
             "title": I18n.t("Как пользоваться angelOS?", "How do you want angelOS?"),
-            "text": I18n.t("angelOS — это ещё и игра поверх рабочего стола. Работать она не мешает.", "angelOS is also a game played over your desktop. It never gets in the way of work."),
-            // the installer asked it already (ANGELOS_GAME): not again on the first run
-            "when": !(Shell.setupFirstRun && Config.setup.gameAsked)
-        },
-        {
-            // the Golden Gate skin for people coming from a Mac (services/GoldenGate)
-            "id": "mac",
-            "icon": "window",
-            "title": I18n.t("Переходите с Mac?", "Coming from a Mac?"),
-            "text": I18n.t("angelOS может выглядеть и вести себя как macOS 27 Golden Gate: строка меню с меню программ, Dock, Spotlight, окна со светофором, «Системные настройки». Пиксельный angelOS всегда можно вернуть в Настройках.", "angelOS can look and work like macOS 27 Golden Gate: a menu bar with the apps' menus, the Dock, Spotlight, windows with traffic lights, System Settings. The pixel angelOS is always one setting away.")
+            "text": I18n.t("angelOS — это ещё и игра поверх рабочего стола. Работать она не мешает.", "angelOS is also a game played over your desktop. It never gets in the way of work.")
         },
         {
             "id": "screens",
@@ -59,9 +73,19 @@ Scope {
             "icon": "keyboard",
             "title": I18n.t("Раскладки клавиатуры", "Keyboard layouts"),
             "text": I18n.t("На каких языках печатаешь и как между ними переключаться.", "The languages you type in, and how to switch between them."),
-            "blocks": ["keyboard/keyboard-layouts"],
-            // the installer asked it already (KB_LAYOUTS): not again on the first run
-            "when": !(Shell.setupFirstRun && Config.setup.keyboardAsked)
+            "blocks": ["keyboard/keyboard-layouts"]
+        },
+        {
+            "id": "mouse",
+            "icon": "mouse",
+            "title": I18n.t("Мышь и тачпад", "Mouse and touchpad"),
+            "text": I18n.t("Как быстро бегает курсор и куда крутится прокрутка.", "How fast the pointer moves, and which way scrolling goes.")
+        },
+        {
+            "id": "windows",
+            "icon": "window",
+            "title": I18n.t("Как здесь живут окна", "How windows work here"),
+            "text": I18n.t("Окна не лежат друг на друге, а встают в ленту слева направо — её листают, как страницы. Какой ширины открывать новые?", "Windows don't pile up: they line up in a ribbon, left to right, that you scroll like pages. How wide should new ones open?")
         },
         {
             "id": "look",
@@ -70,18 +94,103 @@ Scope {
             "text": I18n.t("Можно и по времени суток: днём светлая, вечером тёмная.", "Or by the time of day: light in the day, dark in the evening.")
         },
         {
+            "id": "wallpaper",
+            "icon": "image",
+            "title": I18n.t("Обои", "Wallpaper"),
+            "text": I18n.t("Что будет на рабочем столе. Первые — обои этого релиза angelOS, днём и ночью под твою тему.", "What goes on your desktop. The first ones are this angelOS release's wallpapers, day or night to match your theme."),
+            "when": Wallpapers.images.length > 0
+        },
+        {
+            "id": "fastfetch",
+            "icon": "terminal",
+            "title": I18n.t("Что покажет терминал?", "What should the terminal show?"),
+            "text": I18n.t("Каждый новый терминал начинается с fastfetch: что за компьютер и сколько стоит твой сетап. Выбери, как он выглядит, — картинка рядом настоящая.", "Every new terminal starts with fastfetch: what the computer is and what your gear cost. Pick how it looks; the picture next to this is the real thing."),
+            "when": FastfetchLogo.installed
+        },
+        {
             "id": "motion",
             "icon": "sparkle",
             "title": I18n.t("Сколько всего движется?", "How much should move?"),
             "text": I18n.t("В angelOS много анимаций, а в игре бывают вспышки и тряска экрана.", "angelOS has plenty of animation, and the game has flashes and screen shaking.")
         },
         {
+            "id": "who",
+            "icon": "heart",
+            "title": I18n.t("Кто ты?", "Who are you?"),
+            "text": I18n.t("Подберу программы под то, чем ты занимаешься. На следующем шаге можно поправить список.", "I'll pick apps for what you do. You can change the list on the next step.")
+        },
+        {
+            "id": "apps",
+            "icon": "package",
+            "title": I18n.t("Какие программы поставить?", "Which apps should I install?"),
+            "text": I18n.t("Отмеченные поставятся, когда закончишь: откроется терминал, спросит пароль и покажет, как идёт. Уже стоящие помечены ✓.", "The ticked ones get installed when you finish: a terminal opens, asks for your password and shows how it goes. The ones you have are marked ✓.")
+        },
+        {
+            "id": "github",
+            "icon": "plug",
+            "title": I18n.t("GitHub — сохранение и восстановление", "GitHub: save and restore"),
+            "text": I18n.t("Войди — и прогресс игры со всеми настройками будет храниться в твоём приватном репозитории. Уже играл на другом компьютере? Здесь же вернёшь всё одной кнопкой. Не хочешь — «Пропустить».", "Log in and your game progress with every setting is kept in a private repository of yours. Played on another computer before? Bring it all back right here with one button. Don't want to? Skip."),
+            "attention": "next",
+            "when": github.state !== "no-gh"
+        },
+        {
             "id": "ready",
             "icon": "check",
             "title": I18n.t("Всё готово ♡", "You're ready ♡"),
-            "text": I18n.t("Три клавиши, чтобы начать. Mod — это клавиша Windows.", "Three keys to start with. Mod is the Windows key.")
+            "text": Config.setup.from === "mac" ? I18n.t("Самое нужное. Mod — это ⌘ Command (на обычной клавиатуре — клавиша Windows).", "The keys you'll need. Mod is ⌘ Command (the Windows key on a PC keyboard).") : I18n.t("Самое нужное. Mod — это клавиша Windows.", "The keys you'll need. Mod is the Windows key."),
+            "attention": "next"
         }
     ]
+    // ---- the apps (data/apps-catalog.json, scripts/apps-install.py) ----
+    property var catalog: ({
+            "apps": [],
+            "personas": [],
+            "browsers": []
+        })
+    property var appStatus: ({})        // id -> {installed, via}; empty until checked
+    readonly property bool appsChecked: Object.keys(appStatus).length > 0
+    FileView {
+        path: Quickshell.shellDir + "/data/apps-catalog.json"
+        printErrors: false
+        onLoaded: {
+            try {
+                root.catalog = JSON.parse(text());
+            } catch (e) {}
+        }
+    }
+    Process {
+        id: appProbe
+        command: ["python3", Quickshell.shellDir + "/scripts/apps-install.py", "status"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.appStatus = JSON.parse(text);
+                } catch (e) {}
+            }
+        }
+    }
+    // a persona ticks its apps (and keeps the browser the user picked, Helium by default)
+    function pickPersona(id) {
+        const p = catalog.personas.find(x => x.id === id);
+        Config.setup.persona = id;
+        if (!p)
+            return;
+        const browsers = (Config.setup.apps || []).filter(a => catalog.browsers.includes(a));
+        Config.setup.apps = (browsers.length ? browsers : ["helium"]).concat(p.apps.filter(a => !catalog.browsers.includes(a)));
+    }
+    function toggleApp(id, on) {
+        const now = (Config.setup.apps || []).filter(a => a !== id);
+        Config.setup.apps = on ? now.concat([id]) : now;
+    }
+    // what is left to install: ticked and not there yet
+    readonly property var appsToInstall: (Config.setup.apps || []).filter(a => !(appStatus[a] || {}).installed && (!appsChecked || (appStatus[a] || {}).via))
+    function installApps() {
+        const ids = appsToInstall;
+        if (ids.length === 0 || Shell.dev || Quickshell.env("ANGELOS_TEST") === "1")
+            return;
+        Shell.exec(Shell.terminalArgv(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "install"].concat(ids), "angelos-apps"));
+    }
+
     readonly property var steps: stepList.filter(s => s.when === undefined || s.when)
     readonly property int last: steps.length - 1
     readonly property var cur: steps[Math.min(step, last)] || steps[0]
@@ -101,6 +210,8 @@ Scope {
             step--;
     }
     function close() {
+        if (githubLogin.state === "waiting")
+            githubLogin.cancel();
         Shell.setupOpen = false;
         Shell.setupFirstRun = false;
         step = 0;
@@ -108,11 +219,12 @@ Scope {
     function finish() {
         Config.setup.complete = true;
         const tour = tipsAfter;
+        installApps();
         close();
         if (tour)
             tipsTimer.start();
     }
-    // "Set up later", Esc, `angelos setup skip`: done for now; Settings → Account has it again
+    // `angelos setup skip`: done for now; Settings → Account has it again
     function later() {
         Config.setup.complete = true;
         close();
@@ -134,6 +246,11 @@ Scope {
                 root.later();
         }
         function onSetupOpenChanged() {
+            if (Shell.setupOpen) {
+                githubLogin.refresh();
+                touchpadProbe.running = true;
+                appProbe.running = true;
+            }
             if (Shell.setupOpen && root.hostName === "")
                 root.hostName = Shell.focusedScreen ? Shell.focusedScreen.name : "";
             else if (!Shell.setupOpen)
@@ -165,40 +282,5 @@ Scope {
             Shell.setupFirstRun = true;
             Shell.setupOpen = true;
         }
-    }
-
-    // ---- again from Settings or `angelos setup`: a window, nothing held ----
-    FloatingWindow {
-        id: again
-        title: Shell.appTitle + " · " + I18n.t("Мастер настройки", "Setup wizard")
-        visible: Shell.setupOpen && !Shell.setupFirstRun
-        color: "transparent"
-        implicitWidth: 860
-        implicitHeight: 660
-        minimumSize: Qt.size(560, 460)
-        onClosed: root.close()
-        onVisibleChanged: if (!visible && Shell.setupOpen && !Shell.setupFirstRun)
-            root.close()
-
-        PxWindow {
-            anchors.fill: parent
-            anchors.rightMargin: Theme.u * 2
-            anchors.bottomMargin: Theme.u * 2
-            title: again.title
-            icon: "heart"
-            bodyPadding: 0
-            onCloseClicked: root.close()
-            onTitlePressed: again.startSystemMove()
-            Loader {
-                anchors.fill: parent
-                active: again.visible
-                source: "SetupAssistant.qml"
-                onLoaded: {
-                    item.wizard = root;
-                    root.assistant = item;
-                }
-            }
-        }
-        RightClickGuard {}
     }
 }

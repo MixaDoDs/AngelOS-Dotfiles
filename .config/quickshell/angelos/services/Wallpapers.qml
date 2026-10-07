@@ -56,8 +56,86 @@ Singleton {
 
     function resolve(output, idx) {
         const w = shown;
-        const p = (w.workspaces || {})[key(output, idx)] || (w.outputs || {})[output] || w.fallback || (shown === Config.wallpaper ? images[0] : "") || "";
+        const p = (w.workspaces || {})[key(output, idx)] || (w.outputs || {})[output] || w.fallback || (shown === Config.wallpaper ? (releaseWall() || images[0]) : "") || "";
         return Config.expand(p);
+    }
+
+    // ---- the wallpapers of angelOS's big releases ----
+    // every big release brings its own (drawn by the author): Pictures/AngelOS/NN-name/ with a
+    // release.json {number, codename, date, files}, put into ~/Pictures by the installer. A fresh
+    // system shows the newest; a system with a picture of its own is asked once per release.
+    readonly property string releasesDir: Config.home + "/Pictures/AngelOS"
+    property var releases: []          // newest first: {number, codename, date, dir, walls: [{name, day, night}], main}
+    readonly property var latestRelease: releases.length ? releases[0] : null
+    function releaseWall() {
+        return latestRelease ? latestRelease.main : "";
+    }
+    function releaseLabel(r) {
+        return r ? "angelOS " + r.number + (r.codename ? " «" + r.codename + "»" : "") : "";
+    }
+    function _offerRelease() {
+        const r = latestRelease;
+        if (!r || r.number <= Config.wallpaper.releaseSeen || hellOn || Shell.setupLocked || Shell.dev || Quickshell.env("ANGELOS_TEST") === "1")
+            return;
+        Config.wallpaper.releaseSeen = r.number;
+        // nothing picked yet: the newest release's picture is already on the screens
+        const own = Config.wallpaper.fallback || Object.keys(Config.wallpaper.outputs || {}).length || Object.keys(Config.wallpaper.workspaces || {}).length;
+        if (!own || !r.main)
+            return;
+        releaseNotify.command = ["notify-send", "-a", "angelOS", "-i", "preferences-desktop-wallpaper", "--wait", "-A", "set=" + I18n.t("Поставить", "Set it"), "-A", "open=" + I18n.t("Посмотреть", "Show"), I18n.t("Новые обои: ", "New wallpapers: ") + releaseLabel(r), I18n.t("С этим релизом пришли его обои, сделанные для angelOS (" + r.walls.length + "). Твои обои останутся, пока не поставишь новые.", "This release brought its own wallpapers, made for angelOS (" + r.walls.length + "). Yours stay until you set the new ones.")];
+        releaseNotify.running = true;
+    }
+    Process {
+        id: releaseScanner
+        command: ["sh", "-c", 'for f in "$1"/*/release.json; do [ -f "$f" ] || continue; printf "%s\t" "${f%/release.json}"; tr -d "\n" < "$f"; echo; done', "sh", root.releasesDir]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const out = [];
+                for (const line of text.split("\n")) {
+                    const tab = line.indexOf("\t");
+                    if (tab < 0)
+                        continue;
+                    const dir = line.slice(0, tab);
+                    try {
+                        const j = JSON.parse(line.slice(tab + 1));
+                        const walls = (j.walls || []).map(w => ({
+                                    "name": w.name || "",
+                                    "day": w.day ? dir + "/" + w.day : "",
+                                    "night": w.night ? dir + "/" + w.night : ""
+                                })).filter(w => w.day || w.night);
+                        out.push({
+                            "number": j.number || 0,
+                            "codename": j.codename || "",
+                            "date": j.date || "",
+                            "dir": dir,
+                            "walls": walls,
+                            "main": walls.length ? walls[0].day || walls[0].night : ""
+                        });
+                    } catch (e) {}
+                }
+                root.releases = out.sort((a, b) => b.number - a.number);
+                releaseOffer.restart();
+            }
+        }
+    }
+    // settled: Config.ready comes before the settings' values (and the wizard, the demon)
+    Timer {
+        id: releaseOffer
+        interval: 20000
+        onTriggered: if (Config.ready)
+            root._offerRelease()
+    }
+    Process {
+        id: releaseNotify
+        stdout: SplitParser {
+            onRead: line => {
+                const r = root.latestRelease;
+                if (line.trim() === "set" && r)
+                    root.setEverywhere(r.main);
+                else if (line.trim() === "open")
+                    Shell.openSettings("wallpaper");
+            }
+        }
     }
 
     // a pick in hell: hell's wallpaper for this circle only (the next circle puts its own)
@@ -163,6 +241,8 @@ Singleton {
     function scan() {
         scanner.running = false;
         scanner.running = true;
+        releaseScanner.running = false;
+        releaseScanner.running = true;
         hellScanner.running = false;
         hellScanner.running = true;
     }

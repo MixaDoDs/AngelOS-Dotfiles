@@ -806,7 +806,9 @@ PxPage {
             checked: Config.bar.logoText !== false
             onToggled: c => Config.bar.logoText = c
         }
+        // fastfetch's own styles draw the emblem anyway (System → fastfetch); this is for a config of one's own
         PxToggle {
+            visible: Config.bar.fastfetchStyle === "own"
             text: I18n.t("fastfetch рисует этот значок", "fastfetch draws this emblem")
             checked: Config.bar.logoFastfetch
             onToggled: v => Config.bar.logoFastfetch = v
@@ -815,7 +817,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: Angel.hellShown ? I18n.t("Classic 95 и Angel + — шрифтом темы, Windose, Hell и Y2K Chrome — пиксельные буквы. Цвета следуют теме (Hell всегда кровавый). Сердце в fastfetch — прежний рисунок с нимбом и таблеткой.", "Classic 95 and Angel + use the theme font; Windose, Hell and Y2K Chrome are pixel letters. Colours follow the theme (Hell is always blood red). The heart in fastfetch keeps the original drawing with the halo and pill.") : I18n.t("Classic 95 и Angel + — шрифтом темы, Windose и Y2K Chrome — пиксельные буквы. Цвета следуют теме. Сердце в fastfetch — прежний рисунок с нимбом и таблеткой.", "Classic 95 and Angel + use the theme font; Windose and Y2K Chrome are pixel letters. Colours follow the theme. The heart in fastfetch keeps the original drawing with the halo and pill.")
+            text: Angel.hellShown ? I18n.t("Classic 95 и Angel + — шрифтом темы, Windose, Hell и Y2K Chrome — пиксельные буквы. Цвета следуют теме (Hell всегда кровавый). Этот же значок рисует fastfetch (Система → fastfetch).", "Classic 95 and Angel + use the theme font; Windose, Hell and Y2K Chrome are pixel letters. Colours follow the theme (Hell is always blood red). fastfetch draws this emblem too (System → fastfetch).") : I18n.t("Classic 95 и Angel + — шрифтом темы, Windose и Y2K Chrome — пиксельные буквы. Цвета следуют теме. Этот же значок рисует fastfetch (Система → fastfetch).", "Classic 95 and Angel + use the theme font; Windose and Y2K Chrome are pixel letters. Colours follow the theme. fastfetch draws this emblem too (System → fastfetch).")
         }
     }
 }

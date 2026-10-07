@@ -13,7 +13,10 @@ Item {
     property int segments: 24
     property real floorDb: -60
     readonly property real peak: monitor.peak || 0
-    readonly property real db: peak > 0 ? 20 * Math.log(peak) / Math.LN10 : -120
+    // Quickshell gives the peak on PipeWire's cubic volume scale (a 0.1 sine reads 0.464,
+    // its cube root): the amplitude is peak³, so dB = 60·log10(peak). Read as amplitude
+    // the meter showed a quiet room at -24 dB instead of -66 dB
+    readonly property real db: peak > 0 ? 60 * Math.log(peak) / Math.LN10 : -120
     // 0..1 along the meter
     readonly property real level: Math.max(0, Math.min(1, (db - floorDb) / -floorDb))
     property real shown: 0          // smoothed: fast attack, slower release

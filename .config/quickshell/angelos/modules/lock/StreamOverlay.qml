@@ -521,8 +521,8 @@ Item {
             const w = root.lockScope.wished;
             if (w) {
                 wishTalk.lines = w.stars >= 5 ? [I18n.t("ЛЕГЕНДАРКА!!!", "LEGENDARY!!!"), I18n.t("5★ ПОЗДРАВЛЯЮ", "5★ CONGRATS"), I18n.t("ВОТ ЭТО ВЕЗЕНИЕ", "WHAT LUCK"), I18n.t("золото!!", "gold!!"), "OMG"] : w.stars === 4 ? [I18n.t("фиолетовая!", "purple!"), I18n.t("4★ неплохо", "4★ not bad"), "W", "pog"] : [I18n.t("синяя…", "blue…"), I18n.t("ну хоть что-то", "better than nothing"), I18n.t("3★ классика", "3★ classic"), "F"];
-                if (w.kind === "skin")
-                    wishTalk.lines = wishTalk.lines.concat([I18n.t("НОВЫЙ СКИН!!", "NEW SKIN!!"), I18n.t("%1 ей идёт", "%1 suits her").arg(w.name)]);
+                // what it is stays in the chest on the desktop; the chat only sees the colour
+                wishTalk.lines = wishTalk.lines.concat([I18n.t("открывай сундук!!", "open the chest!!")]);
                 wishTalk.interval = w.stars >= 5 ? 1300 : w.stars === 4 ? 1000 : 800;
                 wishTalk.restart();
             }

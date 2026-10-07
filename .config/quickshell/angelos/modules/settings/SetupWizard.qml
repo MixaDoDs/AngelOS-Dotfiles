@@ -11,11 +11,14 @@ import qs.widgets
 // "Back" and "Continue", calm transitions (SetupAssistant.qml, the course in SetupFlow.qml).
 // Only what one can't start without; everything else lives in Settings.
 //
-// The first run covers every screen (layer shell, overlay) and holds the desktop
-// (Shell.setupLocked: no Start, launcher, Settings, menus or shell hotkeys) until the last
-// step. The way out is always there: "Set up later" on every screen, Esc, `angelos setup skip`
-// from a text console — and when the questions themselves fail to load, the screens are let
-// go at once. Opened again from Settings or `angelos setup`: a window that holds nothing.
+// Always full screen: it covers every screen (layer shell, overlay), takes the keyboard and
+// holds the desktop (Shell.setupLocked: no Start, launcher, Settings, menus or shell hotkeys)
+// and niri's own keys too (a shortcut inhibitor: Mod+T, Mod+Q, workspaces… wait; only the
+// binds marked allow-inhibiting=false — media keys, Mod+Escape — still go to niri).
+// The first run has no way out on screen: the questions to the end. The way out for when it
+// is broken: `angelos setup skip` from a text console, and when the questions themselves
+// fail to load, the screens are let go at once. Opened again from Settings or `angelos
+// setup` it is the same full screen, with "Close" and Esc.
 Scope {
     id: root
 
@@ -23,7 +26,7 @@ Scope {
         id: flow
     }
 
-    // ---- the first run: every screen covered, the questions on one of them ----
+    // ---- every screen covered, the questions on one of them ----
     Variants {
         model: Shell.setupLocked ? Shell.screens : []
 
@@ -44,9 +47,38 @@ Scope {
             color: Theme.desk
             WlrLayershell.namespace: "angelos-setup"
             WlrLayershell.layer: WlrLayer.Overlay
-            // takes input: the wizard holds the desktop until it is done or set up later;
+            // takes input: the wizard holds the desktop until it is done (or closed, opened again);
             // the keys go to the questions (dev runs sit next to a live session: on demand)
             WlrLayershell.keyboardFocus: hosting ? (Shell.dev ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive) : WlrKeyboardFocus.None
+
+            // niri's own keys wait too (Mod+T would open a terminal nobody sees under the
+            // cover). Mod+Escape (toggle-keyboard-shortcuts-inhibit) switches the inhibitor
+            // off; it is asked for again at once — a frozen shell can't, so there Mod+Escape
+            // still gives niri back (dev runs sit next to a live session: never)
+            ShortcutInhibitor {
+                id: inhibitor
+                property bool seen: false
+                property bool rearming: false
+                window: cover
+                enabled: cover.hosting && !Shell.dev && !rearming
+                onActiveChanged: {
+                    if (active)
+                        seen = true;
+                    else if (seen && enabled)
+                        rearm();
+                }
+                onCancelled: rearm()
+                function rearm() {
+                    seen = false;
+                    rearming = true;
+                    rearmTimer.restart();
+                }
+            }
+            Timer {
+                id: rearmTimer
+                interval: 300
+                onTriggered: inhibitor.rearming = false
+            }
 
             // a calm ground: the theme's desk fading into its accent, a few hearts drifting up
             Rectangle {
@@ -111,42 +143,21 @@ Scope {
                 }
             }
 
-            // the way out, on every screen: "Set up later" (asks once more), and a word on the
-            // text console for when nothing here answers
-            Row {
+            // opened again (from Settings, `angelos setup`): "Close" and Esc, on every screen.
+            // The first run has none — only `angelos setup skip` from a text console
+            PxButton {
+                visible: !Shell.setupFirstRun
                 anchors.top: parent.top
                 anchors.right: parent.right
                 anchors.margins: Theme.u * 8
-                spacing: Theme.u * 3
-                PxText {
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: laterButton.armed
-                    kind: "tiny"
-                    dim: true
-                    text: I18n.t("мастер останется в Настройки → Аккаунт", "the wizard stays in Settings → Account")
-                }
-                PxButton {
-                    id: laterButton
-                    property bool armed: false
-                    compact: true
-                    flat: !armed
-                    danger: armed
-                    text: armed ? I18n.t("Точно? Нажми ещё раз", "Sure? Click again") : I18n.t("Настроить позже", "Set up later")
-                    onClicked: {
-                        if (!armed) {
-                            armed = true;
-                            disarm.restart();
-                        } else
-                            flow.later();
-                    }
-                    Timer {
-                        id: disarm
-                        interval: 5000
-                        onTriggered: laterButton.armed = false
-                    }
-                }
+                compact: true
+                flat: true
+                icon: "close"
+                text: I18n.t("Закрыть", "Close")
+                onClicked: flow.close()
             }
             PxText {
+                visible: Shell.setupFirstRun
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom
                 anchors.margins: Theme.u * 6
@@ -155,11 +166,10 @@ Scope {
                 opacity: 0.7
                 text: I18n.t("Мастер не отвечает? Ctrl+Alt+F3, войди и набери: angelos setup skip", "Wizard stuck? Ctrl+Alt+F3, log in and type: angelos setup skip")
             }
-            // Esc: the same way out, asked once more
             Shortcut {
                 sequence: "Escape"
-                enabled: cover.hosting
-                onActivated: laterButton.clicked()
+                enabled: cover.hosting && !Shell.setupFirstRun
+                onActivated: flow.close()
             }
             RightClickGuard {}
         }

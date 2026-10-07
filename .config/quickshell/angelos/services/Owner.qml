@@ -30,6 +30,14 @@ Singleton {
     property string login: ""
     readonly property bool verified: check === "admin" || check === "cached"
     readonly property bool enabled: hasDir && hasMarker && verified
+    // look again for owner/ and the marker, then ask GitHub (the setup wizard, after it
+    // fetched the author's tools)
+    function refresh() {
+        dirProbe.running = false;
+        dirProbe.running = true;
+        marker.reload();
+        recheck();
+    }
     // ask GitHub again (the Dotfiles page has a button; also every 6 hours)
     function recheck() {
         if (!hasDir || !hasMarker || !checkRepo)
@@ -60,11 +68,13 @@ Singleton {
     readonly property var jobs: jobsLoader.item
 
     Process {
+        id: dirProbe
         running: true
         command: ["test", "-f", root.dir + "/DotfilesJobs.qml"]
         onExited: code => root.hasDir = code === 0
     }
     FileView {
+        id: marker
         path: root.markerPath
         printErrors: false
         watchChanges: true

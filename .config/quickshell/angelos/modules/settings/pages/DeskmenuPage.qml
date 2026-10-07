@@ -133,6 +133,14 @@ PxPage {
             }
         }
         SettingRow {
+            label: I18n.t("Игрушки в меню ада", "Toys in hell's menus")
+            hint: I18n.t("в каждом круге с меню можно поиграть: крутить колесо, тыкать вилкой, бросать камни, зажигать свечи… Пункты работают как раньше", "every circle's menu can be played with: spin the wheel, poke with the fork, throw stones, light the candles… The entries work as before")
+            PxToggle {
+                checked: Config.desktop.menuToys !== false
+                onToggled: c => Config.desktop.menuToys = c
+            }
+        }
+        SettingRow {
             label: I18n.t("Анимация", "Animation")
             hint: I18n.t("кольцо вылетает из центра, список чуть «выпрыгивает»", "the ring flies out of the middle, the list pops")
             PxToggle {

@@ -45,6 +45,7 @@ PxPage {
             "shatter": [I18n.t("Экран ломается", "The screen breaks"), ""],
             "bark": [I18n.t("Цербер лает", "Cerberus barks"), I18n.t("когда Колесо Ада выпускает щенка", "When the Wheel of Hell lets the puppy out")],
             "achievement": [I18n.t("Достижение", "Achievement"), I18n.t("когда выезжает карточка «Достижение получено»", "When the “Achievement earned” card slides in")],
+            "stars": [I18n.t("Звёзды ✦", "Stars ✦"), I18n.t("награды Небес: вход дня, задания, пропуск — тихий перезвон", "Heaven's rewards: the day's login, tasks, the pass — a quiet chime")],
             "harp": [I18n.t("Арфа", "The harp"), I18n.t("ПКМ-меню «Арфа»: струна звенит под курсором, при открытии — глиссандо", "The Harp right-click menu: a string rings under the pointer, a glissando as it opens")]
         })
     function labelOf(id) {
@@ -363,7 +364,7 @@ PxPage {
         }
         Repeater {
             // the demon's own sounds (her lines, the glass, the rocks) only while she rules
-            model: (Angel.hellShown ? ["angel", "demon", "voice", "choir", "crack", "rocks", "shatter", "bark"] : ["angel", "voice", "choir"]).concat(Story.enabled ? ["achievement"] : [])
+            model: (Angel.hellShown ? ["angel", "demon", "voice", "choir", "crack", "rocks", "shatter", "bark"] : ["angel", "voice", "choir"]).concat(Story.enabled ? ["achievement", "stars"] : [])
             delegate: eventRow
         }
     }

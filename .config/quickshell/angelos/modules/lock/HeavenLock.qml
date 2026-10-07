@@ -1048,14 +1048,15 @@ Item {
                     spacing: Theme.u * 4
                     PxIcon {
                         anchors.verticalCenter: parent.verticalCenter
-                        name: root.got ? root.got.icon : "heart"
+                        name: root.lockScope.previewing && root.got ? root.got.icon : "sparkleStar"
                         pixel: Theme.u * 2
                         ink: root.outline
                         fill: root.starColor
                     }
                     PxText {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: !root.got ? "" : (root.got.kind === "skin" ? I18n.t("скин ангела: ", "the angel's skin: ") : I18n.t("карточка: ", "card: ")) + root.got.name + (root.got.fresh ? I18n.t("  · НОВОЕ!", "  · NEW!") : I18n.t("  · повтор +%1 ✦", "  · duplicate +%1 ✦").arg(root.got.refund))
+                        // the prize opens in the chest on the desktop (services/Chests); the preview tells it here
+                        text: !root.got ? "" : !root.lockScope.previewing ? I18n.t("сундук с наградой ждёт на рабочем столе ✦", "a chest with the prize waits on the desktop ✦") : (root.got.kind === "skin" ? I18n.t("скин ангела: ", "the angel's skin: ") : I18n.t("карточка: ", "card: ")) + root.got.name + (root.got.fresh ? I18n.t("  · НОВОЕ!", "  · NEW!") : I18n.t("  · повтор +%1 ✦", "  · duplicate +%1 ✦").arg(root.got.refund))
                         color: root.ink
                         font.bold: root.got && root.got.fresh
                     }

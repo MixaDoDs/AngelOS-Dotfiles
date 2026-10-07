@@ -227,13 +227,16 @@ Item {
                     }))
             }))
     readonly property var allPages: [pageEntry("account")].concat(visibleSections.reduce((a, s) => a.concat(s.pages.map(id => win.pageEntry(id))), [])).filter(p => !!p)
-    readonly property string currentId: win.settingsNav.settingsPage === "home" || win.settingsNav.settingsPage === "more" ? "account" : win.settingsNav.settingsPage
+    // "home": the view's own screen (the folder, the tiles); the others open on Home (MainPage)
+    readonly property string currentId: win.settingsNav.settingsPage === "home" || win.settingsNav.settingsPage === "more" ? (hasHome ? "account" : "main") : win.settingsNav.settingsPage
     readonly property var currentPage: currentId.startsWith("cat:") ? pageEntry(currentId) : allPages.find(p => p.id === currentId) || null
     function sectionFor(id) {
         return visibleSections.find(s => s.pages.includes(id)) || null;
     }
     function sectionOf(id) {
-        if (id === "home" || id === "more" || id === "account")
+        if (id === "home" || id === "more")
+            return hasHome ? "account" : "main";
+        if (id === "account")
             return "account";
         if (String(id).startsWith("cat:"))
             return id.slice(4);
@@ -370,7 +373,7 @@ Item {
         return false;
     }
     function goHome() {
-        win.settingsNav.settingsPage = hasHome ? "home" : "account";
+        win.settingsNav.settingsPage = hasHome ? "home" : "main";
         win.settingsNav.settingsSub = "";
     }
     // a page's subtitle, its first sentence (from the search index): the tiles' small print
@@ -1071,8 +1074,9 @@ Item {
                 // the folder and the tiles show their own home, no page
                 if (win.hasHome)
                     return "";
-                // the old home: your account in Classic, Windose and Stream keep their own
-                return win.skin === "classic" || win.hellDress || win.viewId !== "sidebar" ? "tree:" + SettingsTree.accountPage : id === "home" ? "pages/HomePage.qml" : "pages/MorePage.qml";
+                // Home (MainPage, the flat list's first section); Windose and Stream in the sidebar
+                // view keep their own home
+                return win.skin === "classic" || win.hellDress || win.viewId !== "sidebar" ? "tree:main" : id === "home" ? "pages/HomePage.qml" : "pages/MorePage.qml";
             }
             if (id.startsWith("plugin:"))
                 return "pages/PluginSettingsPage.qml";

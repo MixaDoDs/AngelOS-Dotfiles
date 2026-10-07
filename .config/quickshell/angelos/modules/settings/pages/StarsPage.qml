@@ -54,18 +54,19 @@ PxPage {
         }
         Row {
             spacing: Theme.u * 4
+            // the prayers open as chests (services/Chests, modules/chest/ChestOverlay)
             PxButton {
-                text: I18n.t("Молитва ×1 · %1 ✦", "Pray ×1 · %1 ✦").arg(HeavenStars.wishCost)
+                text: Chests.freeReady ? I18n.t("Сундук дня · бесплатно", "The day's chest · free") : I18n.t("Сундук ×1 · %1 ✦", "Chest ×1 · %1 ✦").arg(HeavenStars.wishCost)
                 icon: "sparkle"
                 accent: true
-                enabled: HeavenStars.stars >= HeavenStars.wishCost && !reveal.running
-                onClicked: wishGroup.pray(1)
+                enabled: Chests.freeReady || HeavenStars.stars >= HeavenStars.wishCost
+                onClicked: Chests.openOne()
             }
             PxButton {
-                text: I18n.t("Молитва ×10 · %1 ✦", "Pray ×10 · %1 ✦").arg(HeavenStars.wishCost * 10)
+                text: I18n.t("Сундуки ×10 · %1 ✦", "Chests ×10 · %1 ✦").arg(HeavenStars.wishCost * 10)
                 icon: "sparkleStar"
-                enabled: HeavenStars.stars >= HeavenStars.wishCost * 10 && !reveal.running
-                onClicked: wishGroup.pray(10)
+                enabled: HeavenStars.stars >= HeavenStars.wishCost * 10
+                onClicked: Chests.openTen()
             }
         }
         function pray(n) {
@@ -94,7 +95,7 @@ PxPage {
             width: parent.width
             spacing: Theme.u * 3
             Repeater {
-                model: wishGroup.results.slice(0, wishGroup.shown)
+                model: Chests.results
                 PxBox {
                     id: res
                     required property var modelData

@@ -682,10 +682,10 @@ ShellRoot {
         }
         done.start();
     }
-    // let timers and first process runs fire once
+    // let timers and first process runs fire once (ANGELOS_CHECK_SETTLE_MS: the tests' fixtures have none)
     Timer {
         id: done
-        interval: 2500
+        interval: Number(Quickshell.env("ANGELOS_CHECK_SETTLE_MS")) || 2500
         onTriggered: { console.log("CHECK-DONE"); Qt.quit(); }
     }
 }
@@ -911,6 +911,8 @@ class Studio:
             env = {"HOME": str(home), "XDG_RUNTIME_DIR": str(run), "QT_QPA_PLATFORM": "offscreen",
                    "ANGELOS_DEV": "1", "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "ANGELOS_CHECK": json.dumps(check)}
             env.update(extra_env)
+            if os.environ.get("ANGELOS_CHECK_SETTLE_MS", "").isdigit():
+                env["ANGELOS_CHECK_SETTLE_MS"] = os.environ["ANGELOS_CHECK_SETTLE_MS"]
             # the home is hidden; the scratch dir first, then the read-only shell parts inside it
             argv = [bwrap, "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
                     "--tmpfs", "/tmp", "--tmpfs", "/run", "--tmpfs", str(Path.home()), "--bind", str(tmp), str(tmp)]

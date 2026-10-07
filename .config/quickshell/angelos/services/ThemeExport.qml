@@ -191,6 +191,11 @@ Singleton {
         const lab = id => HellLook.look.labels && HellLook.look.labels[id] ? I18n.label(HellLook.look.labels[id]) : "";
         const ink = Theme.mix(Theme.hellAccent, Theme.hellEdge, 0.55);
         return {
+            "style": FastfetchLogo.style,
+            "windowTitle": I18n.exe("AngelOS"),
+            "lang": I18n.english ? "en" : "ru",
+            "anim": FastfetchLogo.animSeconds,      // its picture moves for a moment (scripts/fastfetch_anim.py)
+            "circle": HellLook.circle,
             "number": n,
             "roman": n > 0 ? Theme.roman(n) : "",
             "name": I18n.label(HellLook.title),

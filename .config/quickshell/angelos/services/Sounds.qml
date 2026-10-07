@@ -30,7 +30,7 @@ import qs.config
 Singleton {
     id: root
 
-    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "harp", "achievement"]
+    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend"]
     // off until switched on in System sounds (typing and such would surprise)
     readonly property var optIn: ["clickRight", "key", "windowOpen", "workspace", "lock", "unlock"]
     // the input ones: quiet over a fullscreen window (games) when asked
@@ -130,7 +130,7 @@ Singleton {
         }
     }
     // scripts/y2k-sounds.py PACK_VERSION: an older pack is synthesised again
-    readonly property string packVersion: "9"
+    readonly property string packVersion: "11"
     readonly property string base: Config.home + "/.local/share/angelos/sounds"
     readonly property string dir: base + "/y2k"
     readonly property string pack: Config.y2k.soundPack === "overdose" ? "overdose" : "y2k"
@@ -166,9 +166,37 @@ Singleton {
     function macEnabled(name) {
         return Config.mac.sounds && (name !== "volume" || Config.mac.volumeSound);
     }
-    // one pw-play (paplay without it) per sound, gone when it ends: yours first, then the skin's
+    // ---- Output: scripts/sfx-player.py, one long-lived stream for every sound. A pw-play per
+    // sound made a new stream each click, and Discord sharing the screen with sound opened and
+    // dropped a capture for each one: the share froze and Discord grew to 13 GB (2026-10-07).
+    // pw-play stays as the fallback while the player isn't up.
+    Process {
+        id: sfx
+        running: Config.ready
+        stdinEnabled: true
+        command: ["python3", "-u", Quickshell.shellDir + "/scripts/sfx-player.py"]
+        onExited: if (Config.ready && !sfxRestart.running)
+            sfxRestart.start()
+    }
+    Timer {
+        id: sfxRestart
+        interval: 3000
+        onTriggered: if (Config.ready)
+            sfx.running = true
+    }
+    // the first of `paths` that exists plays
+    function _out(vol, paths) {
+        if (!sfx.running)
+            return false;
+        sfx.write(vol + "\t" + paths.join("\t") + "\n");
+        return true;
+    }
+
+    // yours first, then the skin's (pw-play, or paplay without it, if the player is down)
     function _playMac(name, vol) {
         const file = macEvents[name];
+        if (_out(vol, [macUserDir, macDir].reduce((all, d) => all.concat(["ogg", "oga", "opus", "wav", "flac", "aiff", "aif", "caf", "mp3"].map(e => d + "/" + file + "." + e)), [])))
+            return;
         Quickshell.execDetached(["sh", "-c", 'for d in "$1" "$2"; do for e in ogg oga opus wav flac aiff aif caf mp3; do f="$d/$3.$e"; [ -f "$f" ] || continue; command -v pw-play >/dev/null && exec pw-play --volume "$4" "$f"; exec paplay --volume "$5" "$f"; done; done', "sh", macUserDir, macDir, file, String(vol), String(Math.round(vol * 65536))]);
     }
 
@@ -215,7 +243,8 @@ Singleton {
         const vol = String(Math.max(0, Math.min(1, volumeOf(name) * (soft || 1))));
         const chosen = soundOf(name);
         if (chosen.startsWith("file:")) {
-            Quickshell.execDetached(["pw-play", "--volume", vol, chosen.slice(5)]);
+            if (!_out(vol, [chosen.slice(5)]))
+                Quickshell.execDetached(["pw-play", "--volume", vol, chosen.slice(5)]);
             return;
         }
         // another event's sound, or its own; typing picks one of three
@@ -233,6 +262,8 @@ Singleton {
             return;
         }
         const first = overdose ? base + "/overdose" : dir;
+        if (_out(vol, [first + "/" + id + ".ogg", dir + "/" + id + ".ogg", dir + "/" + id + ".wav"]))
+            return;
         Quickshell.execDetached(["sh", "-c", 'f="$1/$3.ogg"; [ -f "$f" ] || f="$2/$3.ogg"; [ -f "$f" ] || f="$2/$3.wav"; exec pw-play --volume "$4" "$f"', "sh", first, dir, id, vol]);
     }
 

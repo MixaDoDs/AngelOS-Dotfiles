@@ -375,6 +375,30 @@ Scope {
                                     Shell.openSettings();
                                 }
                             }
+                            // on stream she is big (her share of the screen): back to the
+                            // little helper, and the way back while OBS runs or after that
+                            PxButton {
+                                hell: Angel.demon
+                                visible: Angel.streamer
+                                compact: true
+                                icon: "micMute"
+                                text: I18n.t("Перестать быть стримером", "Stop being a streamer")
+                                onClicked: {
+                                    Angel.hush();
+                                    StreamAngel.set("drop");
+                                }
+                            }
+                            PxButton {
+                                hell: Angel.demon
+                                visible: !Angel.streamer && !Config.stream.streamer && (!!Config.stream.streamerDropped || StreamMode.obsUp)
+                                compact: true
+                                icon: "mic"
+                                text: I18n.t("Снова стример", "Streamer again")
+                                onClicked: {
+                                    Angel.hush();
+                                    StreamAngel.set("on");
+                                }
+                            }
                             PxButton {
                                 hell: Angel.demon
                                 compact: true

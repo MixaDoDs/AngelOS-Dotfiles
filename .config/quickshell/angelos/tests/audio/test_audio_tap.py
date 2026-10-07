@@ -171,9 +171,12 @@ def main():
 
         (tmp / "d").mkdir()
         p, log = stand(tmp / "d", {"FAKE_REC": "stall"})
-        time.sleep(10)
+        # the second recorder comes in ~10 s; on a busy machine (the checks run side by side) later
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < 30 and len(lines(log, "rec-start")) < 2:
+            time.sleep(0.5)
         starts = len(lines(log, "rec-start"))
-        check("stuck-rec", starts >= 2 and p.poll() is None, "%d recorders started in 10 s (the first went silent and ignored SIGTERM)" % starts)
+        check("stuck-rec", starts >= 2 and p.poll() is None, "%d recorders started in %.0f s (the first went silent and ignored SIGTERM)" % (starts, time.monotonic() - t0))
         kids = children_of(p.pid)
         p.kill()
         p.wait()

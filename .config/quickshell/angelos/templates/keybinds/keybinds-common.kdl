@@ -9,15 +9,15 @@ binds {
     Mod+Alt+S                           hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
     Mod+Shift+Q                         hotkey-overlay-title="angelOS: выключение" { spawn-sh "qs -c angelos ipc call angelos session"; }
     Mod+E                               hotkey-overlay-title="File Manager: Nautilus" { spawn "nautilus"; }
-    XF86AudioRaiseVolume                allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos volumeUp"; }
-    XF86AudioLowerVolume                allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos volumeDown"; }
-    XF86AudioMute                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos mute"; }
-    XF86AudioMicMute                    allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos micMute"; }
-    XF86AudioNext                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media next"; }
-    XF86AudioPrev                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media previous"; }
-    XF86AudioPlay                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media toggle"; }
-    XF86AudioPause                      allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media pause"; }
-    XF86AudioStop                       allow-when-locked=true { spawn-sh "qs -c angelos ipc call angelos media pause"; }
+    XF86AudioRaiseVolume                allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos volumeUp"; }
+    XF86AudioLowerVolume                allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos volumeDown"; }
+    XF86AudioMute                       allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos mute"; }
+    XF86AudioMicMute                    allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos micMute"; }
+    XF86AudioNext                       allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos media next"; }
+    XF86AudioPrev                       allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos media previous"; }
+    XF86AudioPlay                       allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos media toggle"; }
+    XF86AudioPause                      allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos media pause"; }
+    XF86AudioStop                       allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos media pause"; }
     Mod+Shift+Left                      { focus-monitor-left; }
     Mod+Shift+Right                     { focus-monitor-right; }
     Mod+Shift+UP                        { focus-monitor-up; }

@@ -101,6 +101,10 @@ ShellRoot {
         id: grimoirePhotoTypeAnchor
         GrimoirePhoto {}
     }
+    Component {
+        id: fastfetchPreviewTypeAnchor
+        FastfetchPreview {}
+    }
 
     Component.onCompleted: {
         ThemeExport.signature; // wake the template exporter
