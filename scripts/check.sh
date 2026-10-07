@@ -62,6 +62,7 @@ run_job() {
   rm -f "$WORK/job-$name.hung"
   (set -e; renice -n "${JOB_NICE:-15}" -p "$BASHPID" >/dev/null 2>&1 || true; "$@") & pid=$!
   { sleep "$limit"; touch "$WORK/job-$name.hung"; killtree "$pid"; } & dog=$!
+  disown "$dog"   # (no "Killed" in the log when it is called off)
   wait "$pid"; rc=$?
   killtree "$dog"
   if [[ -e "$WORK/job-$name.hung" ]]; then fail "$name: still running after $limit s (hangs?) — stopped"
