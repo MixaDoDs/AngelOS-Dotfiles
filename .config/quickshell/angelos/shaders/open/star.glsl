@@ -1,4 +1,4 @@
-// angelOS open: the window opens through a growing Y2K sparkle star ✦ with a shiny white-pink rim.
+// angelOS open: the window opens through a growing Y2K sparkle star ✦ with a shiny rim, the theme's accent going white.
 float angelos_star(vec2 q) {
     q = abs(q);
     return sqrt(q.x) + sqrt(q.y) - 1.0;
@@ -25,7 +25,7 @@ vec4 open_color(vec3 coords_geo, vec3 size_geo) {
     float edge = smoothstep(-0.14, 0.0, h) * (1.0 - smoothstep(0.55, 1.0, p));
     // a glint travels round the rim
     float glint = step(0.75, fract(atan(q.y, q.x) * 0.3183 + p * 2.0));
-    vec3 rim = mix(vec3(1.0, 0.5, 0.8), vec3(1.0), glint);
+    vec3 rim = mix(ANGELOS_ACCENT, vec3(1.0), glint);
     color.rgb = mix(color.rgb, rim * color.a, edge * 0.9);
     return color * smoothstep(0.0, 0.12, p);
 }

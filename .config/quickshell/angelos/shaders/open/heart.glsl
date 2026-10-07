@@ -1,4 +1,4 @@
-// angelOS open: the window appears through a growing heart with a pink rim.
+// angelOS open: the window appears through a growing heart with a rim in the theme's accent.
 float angelos_heart(vec2 q) {
     float a = q.x * q.x + q.y * q.y - 1.0;
     return a * a * a - q.x * q.x * q.y * q.y * q.y;
@@ -23,6 +23,6 @@ vec4 open_color(vec3 coords_geo, vec3 size_geo) {
     if (h > 0.0)
         return vec4(0.0);
     float edge = smoothstep(-0.25, 0.0, h) * (1.0 - smoothstep(0.6, 1.0, p));
-    color.rgb = mix(color.rgb, vec3(1.0, 0.42, 0.68) * color.a, edge * 0.85);
+    color.rgb = mix(color.rgb, ANGELOS_ACCENT * color.a, edge * 0.85);
     return color * smoothstep(0.0, 0.12, p);
 }

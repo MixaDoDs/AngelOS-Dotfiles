@@ -26,5 +26,7 @@
                "~/.config/qt6ct/qss/angelos-frame-{raised,sunken,default,focus}.png", "~/.config/qt6ct/.angelos-stamp"] },
   { "id": "golden-gate", "name": "Golden Gate: системный шрифт, значки, модуль меню GTK 3", "command": "python3 {{shellDir}}/scripts/goldengate.py {{paletteFile}}",
     "writes": ["~/.config/gtk-3.0/settings.ini", "~/.config/gtk-4.0/settings.ini", "~/.local/state/angelos/goldengate-before.json"] },
-  { "id": "niri",      "name": "niri (рамки окон)", "template": "niri.kdl", "target": "~/.config/niri/angelos.kdl", "variants": { "goldengate": "niri-mac.kdl" } }
+  { "id": "niri",      "name": "niri (рамки окон)", "template": "niri.kdl", "target": "~/.config/niri/angelos.kdl", "variants": { "goldengate": "niri-mac.kdl" } },
+  { "id": "window-anim", "name": "niri: анимации окон в цветах темы", "command": "python3 {{shellDir}}/scripts/window-anim.py recolor {{paletteFile}}",
+    "writes": ["~/.config/niri/cfg/animation.kdl"] }
 ]

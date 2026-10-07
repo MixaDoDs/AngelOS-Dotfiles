@@ -7,12 +7,17 @@
       write it: a staged copy is validated with `niri validate`, the old file is
       backed up under ~/.local/state/angelos/backups/window-anim-*, and restored
       if the final validation fails.
+  window-anim.py recolor [palette.json]
+      the theme changed (templates.json hook): the shader presets in use are written
+      again in its colours; nothing else is touched.
 
 Presets: default (niri's own), off, and angelOS shaders from shaders/open/*.glsl
 and shaders/close/*.glsl. The speed (0.25–4, 2 = twice as fast) divides the
 preset's duration; the block remembers it in its marker comment
 (`// angelOS close: pixel ×1.5`). niri compiles the shader when it loads the
 config; a broken one only logs a warning and falls back to the default.
+A shader's ANGELOS_ACCENT / ANGELOS_ACCENT2 become the theme's accents as vec3
+(~/.cache/angelos/palette.json; angelOS pink and cyan without one) — #43.
 """
 import fcntl
 import json
@@ -29,6 +34,9 @@ SHADERS = HERE.parent / "shaders"
 CONFIG = Path.home() / ".config/niri/config.kdl"
 ANIMATIONS = CONFIG.parent / "cfg/animation.kdl"
 BACKUPS = Path.home() / ".local/state/angelos/backups"
+PALETTE = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "angelos/palette.json"
+# shader placeholder -> palette key, and the colour without a palette
+COLOURS = {"ANGELOS_ACCENT2": ("accent2", "#73e6ff"), "ANGELOS_ACCENT": ("accent", "#ff73bf")}
 KINDS = ("open", "close")
 BLOCKS = {"open": "window-open", "close": "window-close"}
 # length and curve per preset at speed 1; shader presets ease inside the shader
@@ -56,6 +64,28 @@ TIMING = {
     },
 }
 FALLBACK = {"open": (150, 'curve "ease-out-expo"'), "close": (150, 'curve "ease-out-quad"')}
+
+
+def palette(path=None):
+    try:
+        data = json.loads(Path(path or PALETTE).read_text())
+    except (OSError, ValueError):
+        data = {}
+    return data if isinstance(data, dict) else {}
+
+
+def vec3(colour, fallback):
+    m = re.fullmatch(r"#?([0-9a-fA-F]{6})(?:[0-9a-fA-F]{2})?", str(colour or "").strip())
+    h = m.group(1) if m else fallback.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    return f"vec3({r:.3f}, {g:.3f}, {b:.3f})"
+
+
+def colourize(code, pal):
+    # ACCENT2 first: ACCENT is its prefix
+    for name, (key, fallback) in COLOURS.items():
+        code = code.replace(name, vec3(pal.get(key), fallback))
+    return code
 
 
 def mark(kind):
@@ -124,7 +154,7 @@ def current(text, kind):
     return {"preset": "default", "speed": 1.0, "ms": ms}
 
 
-def render(kind, preset, speed, indent):
+def render(kind, preset, speed, indent, pal=None):
     inner = indent + "    "
     name = BLOCKS[kind]
     if preset == "off":
@@ -135,7 +165,7 @@ def render(kind, preset, speed, indent):
     lines = [f"{indent}{name} {{", f"{inner}{mark(kind)}{label}",
              f"{inner}duration-ms {max(40, round(ms / speed))}", inner + curve]
     if preset != "default":
-        code = (SHADERS / kind / f"{preset}.glsl").read_text()
+        code = colourize((SHADERS / kind / f"{preset}.glsl").read_text(), palette() if pal is None else pal)
         if '"#' in code:
             raise ValueError("shader must not contain \"#")
         lines.append(inner + 'custom-shader r#"')
@@ -145,14 +175,23 @@ def render(kind, preset, speed, indent):
     return "\n".join(lines)
 
 
-def update(text, kind, preset, speed=1.0):
+def update(text, kind, preset, speed=1.0, pal=None):
     b = find_block(text, BLOCKS[kind])
     if b:
-        return text[:b[0]] + render(kind, preset, speed, b[2]) + text[b[1]:]
+        return text[:b[0]] + render(kind, preset, speed, b[2], pal) + text[b[1]:]
     opening = re.search(r"(?m)^([ \t]*)animations\s*\{", text)
     if not opening:
         raise ValueError("animations block not found in cfg/animation.kdl")
-    return text[:opening.end()] + "\n" + render(kind, preset, speed, opening.group(1) + "    ") + text[opening.end():]
+    return text[:opening.end()] + "\n" + render(kind, preset, speed, opening.group(1) + "    ", pal) + text[opening.end():]
+
+
+def recoloured(text, pal):
+    """the text with the shader presets in use rendered again in `pal`'s colours"""
+    for kind in KINDS:
+        cur = current(text, kind)
+        if cur["preset"] in presets(kind) and cur["preset"] not in ("default", "off"):
+            text = update(text, kind, cur["preset"], cur["speed"], pal)
+    return text
 
 
 def validate(config):
@@ -178,12 +217,16 @@ def save(kind, preset, speed):
         raise ValueError("open or close, not " + kind)
     if preset not in presets(kind):
         raise ValueError("unknown preset: " + preset)
+    return write(lambda old: update(old, kind, preset, speed))
+
+
+def write(change):
     BACKUPS.mkdir(parents=True, exist_ok=True)
     # the same lock as workspace-anim.py: both edit cfg/animation.kdl
     with (BACKUPS / ".anim.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         old = ANIMATIONS.read_text()
-        new = update(old, kind, preset, speed)
+        new = change(old)
         if new == old:
             return "Unchanged"
         with tempfile.TemporaryDirectory(prefix="angelos-window-anim-") as tmp:
@@ -211,11 +254,17 @@ def main():
             text = ANIMATIONS.read_text()
             print(json.dumps({"open": current(text, "open"), "close": current(text, "close"),
                               "presets": {k: presets(k) for k in KINDS}}))
+        elif sys.argv[1] == "recolor":
+            if not ANIMATIONS.exists():
+                print(json.dumps({"ok": "No animation.kdl"}))
+                return 0
+            pal = palette(sys.argv[2] if len(sys.argv) > 2 else None)
+            print(json.dumps({"ok": write(lambda old: recoloured(old, pal))}))
         elif len(sys.argv) >= 3:
             speed = clamp_speed(sys.argv[3]) if len(sys.argv) > 3 else 1.0
             print(json.dumps({"ok": save(sys.argv[1], sys.argv[2], speed)}))
         else:
-            raise ValueError("usage: window-anim.py [open|close <preset> [speed]]")
+            raise ValueError("usage: window-anim.py [open|close <preset> [speed] | recolor [palette.json]]")
     except (OSError, ValueError, RuntimeError) as error:
         print(json.dumps({"error": str(error)}))
         return 1

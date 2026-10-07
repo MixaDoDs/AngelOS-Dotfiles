@@ -1,4 +1,4 @@
-// angelOS close: the window shrinks away inside a pink-edged heart.
+// angelOS close: the window shrinks away inside a heart edged in the theme's accent.
 float angelos_heart(vec2 q) {
     float a = q.x * q.x + q.y * q.y - 1.0;
     return a * a * a - q.x * q.x * q.y * q.y * q.y;
@@ -21,6 +21,6 @@ vec4 close_color(vec3 coords_geo, vec3 size_geo) {
         return vec4(0.0);
     vec4 color = texture2D(niri_tex, (niri_geo_to_tex * coords_geo).st);
     float edge = smoothstep(-0.25, 0.0, h) * smoothstep(0.0, 0.15, p);
-    color.rgb = mix(color.rgb, vec3(1.0, 0.42, 0.68) * color.a, edge * 0.85);
+    color.rgb = mix(color.rgb, ANGELOS_ACCENT * color.a, edge * 0.85);
     return color * (1.0 - smoothstep(0.8, 1.0, p));
 }

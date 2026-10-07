@@ -7,7 +7,8 @@ import qs.config
 
 // niri's window open and close animations: its own, off, or an angelOS shader
 // (shaders/open/*.glsl, shaders/close/*.glsl), each at its own speed —
-// written into cfg/animation.kdl by scripts/window-anim.py (backed up, validated).
+// written into cfg/animation.kdl by scripts/window-anim.py (backed up, validated), in the
+// theme's accents — templates.json's "window-anim" writes them again when the theme changes.
 // cfg/animation.kdl is where the choice lives, like the workspace slide.
 Singleton {
     id: root
@@ -21,7 +22,7 @@ Singleton {
         {
             "id": "pop",
             "label": I18n.t("Пузырь", "Bubble"),
-            "hint": I18n.t("выпрыгивает, как Y2K-пузырь: пружинит, розово-голубой блик", "pops up like a Y2K bubble: springs, a pink-and-cyan shine")
+            "hint": I18n.t("выпрыгивает, как Y2K-пузырь: пружинит, блик в цветах темы", "pops up like a Y2K bubble: springs, a shine in the theme's colours")
         },
         {
             "id": "pixel",
@@ -31,7 +32,7 @@ Singleton {
         {
             "id": "heart",
             "label": I18n.t("Сердечко", "Heart"),
-            "hint": I18n.t("проявляется в растущем розовом сердце", "appears inside a growing pink heart")
+            "hint": I18n.t("проявляется в растущем сердце цвета темы", "appears inside a growing heart in the theme's colour")
         },
         {
             "id": "star",
@@ -83,7 +84,7 @@ Singleton {
         {
             "id": "heart",
             "label": I18n.t("Сердечко", "Heart"),
-            "hint": I18n.t("окно сжимается внутри розового сердца", "the window shrinks away inside a pink heart")
+            "hint": I18n.t("окно сжимается внутри сердца цвета темы", "the window shrinks away inside a heart in the theme's colour")
         },
         {
             "id": "crt",
