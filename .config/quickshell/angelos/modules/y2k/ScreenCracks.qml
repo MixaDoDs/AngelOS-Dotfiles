@@ -33,10 +33,15 @@ Item {
         sourceComponent: Item {
             id: glass
             // 1 far away … 0 on the impact, stepped in eight like everything pixel; the
-            // glass keeps a faint 10 % even then
+            // glass keeps a faint 10 % even then. Over an app window on this screen niri
+            // tells nobody where the pointer is, and the glass only shows through a see-through
+            // window (a browser with its side panel…): it stays faint there, as if the pointer
+            // were near — it used to keep the last spot from the desk, at full strength (#32)
             readonly property real away: {
                 if (Pointer.screen !== root.screenName)
                     return 1;
+                if (!Pointer.over)
+                    return 0.25;
                 const side = root.sq.side;
                 const ix = root.sq.x + side * Cracks.impact.x, iy = root.sq.y + side * Cracks.impact.y;
                 const d = Math.hypot(Pointer.x - ix, Pointer.y - iy);
