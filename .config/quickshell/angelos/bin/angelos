@@ -78,19 +78,28 @@ service_active() { systemctl --user is-active --quiet "$UNIT" 2>/dev/null; }
 main_pid() { systemctl --user show -p MainPID --value "$UNIT" 2>/dev/null; }
 # pids of running angelOS instances (qs list)
 instances() { "$(qs_bin)" -c angelos list 2>/dev/null | sed -n 's/^ *Process ID: *\([0-9]*\).*/\1/p'; }
-# a copy started outside the service (older login, `angelos run` by hand) would
-# keep the service's copy from starting (-n): close it the clean way
+# R running, S sleeping, T stopped (kill -STOP, a debugger) … of a pid
+proc_state() { sed 's/^.*) //' "/proc/$1/stat" 2>/dev/null | cut -c1; }
+# close an instance the clean way; one that doesn't answer (hung, stopped) is woken and
+# terminated, then killed — its windows (a dock, a bar) stay on screen as long as the
+# process lives (#46)
+end_instance() {
+  timeout 2 "$(qs_bin)" kill --pid "$1" >/dev/null 2>&1
+  for _ in 1 2 3 4 5 6 7 8 9 10; do kill -0 "$1" 2>/dev/null || return 0; sleep 0.2; done
+  kill -CONT "$1" 2>/dev/null; kill -TERM "$1" 2>/dev/null
+  for _ in 1 2 3 4 5 6 7 8 9 10; do kill -0 "$1" 2>/dev/null || return 0; sleep 0.2; done
+  kill -KILL "$1" 2>/dev/null
+}
+# a copy started outside the service (older login, `angelos run` by hand, a plain
+# `qs -c angelos`) would keep the service's copy from starting (-n), or leave a second
+# dock and bar. Quickshell restarted after a crash runs as `quickshell` with no arguments,
+# so `pkill -x qs` misses it — `qs list` knows it by its config.
 stop_strays() {
   main="$(main_pid)"
   for p in $(instances); do
-    [ "$p" = "$main" ] || "$(qs_bin)" kill --pid "$p" >/dev/null 2>&1
+    [ "$p" = "$main" ] || end_instance "$p" &
   done
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    left=""
-    for p in $(instances); do [ "$p" = "$main" ] || left=1; done
-    [ -z "$left" ] && return 0
-    sleep 0.2
-  done
+  wait
 }
 save_env() { python3 "$SHELL_DIR/scripts/session-env.py" "$1" "$RUN_DIR/session.env" 2>/dev/null; }
 
@@ -113,6 +122,11 @@ case "$1" in
     pid="${2:?pid}" misses=0 first="${ANGELOS_GUARD_FIRST:-25}" tick="${ANGELOS_GUARD_TICK:-3}" probe_timeout="${ANGELOS_GUARD_TIMEOUT:-2}"
     sleep "$first"
     while kill -0 "$pid" 2>/dev/null; do
+      # stopped on purpose (kill -STOP, a debugger): a SIGABRT would wait for SIGCONT and
+      # crash it the moment it wakes (#46)
+      case "$(proc_state "$pid")" in
+        T|t) misses=0; sleep "$tick"; continue ;;
+      esac
       if timeout "$probe_timeout" "$(qs_bin)" ipc --pid "$pid" show >/dev/null 2>&1; then
         misses=0
       else
@@ -137,7 +151,8 @@ case "$1" in
     exec setsid -f "$0" run >/dev/null 2>&1 ;;
   stop)
     if service_active; then systemctl --user stop "$UNIT"; fi
-    exec qs -c angelos kill ;;
+    for p in $(instances); do end_instance "$p" & done
+    wait ;;
   restart)
     if use_service; then
       # keep the login's environment; moving an older instance under the service takes its one
@@ -154,7 +169,8 @@ case "$1" in
         systemctl --user start "$UNIT" && exit 0
       fi
     fi
-    qs -c angelos kill >/dev/null 2>&1; sleep 0.5; exec setsid -f "$0" run >/dev/null 2>&1 ;;
+    for p in $(instances); do end_instance "$p" & done
+    wait; exec setsid -f "$0" run >/dev/null 2>&1 ;;
   # ExecStop of the service: a clean exit, so Quickshell stops its helper processes
   quit)
     [ -n "${2:-}" ] || exit 0
