@@ -1340,7 +1340,8 @@ Item {
             clip: true
             PxIcon {
                 anchors.centerIn: parent
-                name: chip.on || chip.have ? "check" : chip.modelData.icon
+                // ✓ only for what is there: a ticked app is not installed yet (it looked as if it were)
+                name: chip.have ? "check" : chip.modelData.icon
                 pixel: Math.max(1, Math.round(Theme.u * 0.85))
             }
         }

@@ -3,9 +3,11 @@
 
   apps-install.py status            JSON {id: {"installed": bool, "via": "pacman|aur|flatpak|"}}
   apps-install.py install ID…       in a terminal (the wizard opens one when it ends): the
-                                    distribution's packages with sudo pacman, the AUR's with
-                                    paru/yay, Flathub's per user; asks before each, says what it
-                                    skipped and why, waits for Enter at the end
+                                    distribution's packages with sudo pacman -Syu (a plain -S on
+                                    an old package list fails halfway with 404s), the AUR's with
+                                    paru/yay, Flathub's per user; asks before each, then checks
+                                    each app is really there and says which are not and why
+                                    (exit 1 then), waits for Enter at the end
 
 Each app: its pacman package if a repository has it (CachyOS has helium-browser-bin, Arch's
 AUR does), else the AUR when paru or yay is there, else its Flathub id when flatpak is.
@@ -87,27 +89,47 @@ def install(ids):
         else:
             skipped.append(a["ru"])
     say("angelOS ставит программы, которые ты выбрал в мастере ♡")
-    rc = 0
+    failed = set()
     if pac:
         say("из репозиториев: " + " ".join(pac))
-        rc |= subprocess.run(["sudo", "pacman", "-S", "--needed"] + pac).returncode
+        if subprocess.run(["sudo", "pacman", "-Syu", "--needed"] + pac).returncode:
+            failed.add("pacman")
     if aur:
         helper = aur_helper()
         say(f"из AUR ({helper}): " + " ".join(aur))
-        rc |= subprocess.run([helper, "-S", "--needed"] + aur).returncode
+        if subprocess.run([helper, "-S", "--needed"] + aur).returncode:
+            failed.add(helper)
     if flat:
         say("из Flathub: " + " ".join(flat))
         subprocess.run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
                         "https://dl.flathub.org/repo/flathub.flatpakrepo"])
-        rc |= subprocess.run(["flatpak", "install", "--user", "-y", "flathub"] + flat).returncode
-    if skipped:
-        say("не нашлось ни в репозиториях, ни в AUR, ни во Flathub: " + ", ".join(skipped))
-    names = [cat[i]["ru"] for i in ids if i in cat]
-    if rc == 0:
-        say("готово ♡ — " + ", ".join(names))
-        subprocess.run(["notify-send", "-a", "angelOS", "-i", "system-software-install", "Программы поставлены ♡", ", ".join(names)])
+        if subprocess.run(["flatpak", "install", "--user", "-y", "flathub"] + flat).returncode:
+            failed.add("flatpak")
+    # what is there now, not what the package managers said: a picked app that is missing
+    # must not be reported as installed (its shortcut would lead nowhere)
+    done, missing = [], []
+    for i in ids:
+        a = cat.get(i)
+        if not a:
+            continue
+        (done if resolve(a)[0] else missing).append(a["ru"])
+    if done:
+        say("стоят: " + ", ".join(done))
+    if missing:
+        nowhere = [m for m in missing if m in skipped]
+        broke = [m for m in missing if m not in skipped]
+        if broke:
+            say(f"\033[1;31mне поставились\033[0m: {', '.join(broke)} (ошибка {', '.join(sorted(failed)) or 'установки'} — смотри выше)")
+        if nowhere:
+            say(f"\033[1;31mне нашлись\033[0m ни в репозиториях, ни в AUR, ни во Flathub: {', '.join(nowhere)}"
+                " (для AUR нужен paru или yay, для Flathub — flatpak)")
+        say("запустить снова: Настройки → Аккаунт → мастер")
+        subprocess.run(["notify-send", "-a", "angelOS", "-u", "critical", "-i", "dialog-warning",
+                        "Не все программы поставились", ", ".join(missing)])
     else:
-        say("что-то не поставилось — смотри выше; запустить снова: Настройки → Аккаунт → мастер")
+        say("готово ♡ — " + ", ".join(done))
+        subprocess.run(["notify-send", "-a", "angelOS", "-i", "system-software-install", "Программы поставлены ♡", ", ".join(done)])
+    rc = 1 if missing else 0
     try:
         input("\nEnter — закрыть окно ")
     except EOFError:
