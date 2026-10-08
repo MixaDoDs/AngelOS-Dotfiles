@@ -40,12 +40,15 @@ Singleton {
     property bool loaded: false
     property bool gift: false
     signal rewarded(string text)
-    // the first day of heaven: one prayer's worth to start with
+    // the first day of heaven: one prayer's worth to start with. Quietly, no desktop
+    // notification: it also comes to every shell started on a fresh state (an update that
+    // brings heaven, a test stand next to the live one sharing its D-Bus) and read like a
+    // reward for publishing; the stars are just there, on the heaven lock and in Settings
     function welcome() {
         if (gift)
             return;
         gift = true;
-        earn(wishCost, I18n.t("подарок на старт", "a gift to start with"));
+        earn(wishCost, I18n.t("подарок на старт", "a gift to start with"), true);
     }
 
     // ---- the catalogue ----
@@ -444,7 +447,7 @@ Singleton {
     }
 
     // ---- earning and spending ----
-    function earn(n, why) {
+    function earn(n, why, quiet) {
         if (n <= 0)
             return;
         stars += n;
@@ -452,7 +455,7 @@ Singleton {
         save();
         const text = "+" + n + " ✦ · " + why;
         rewarded(text);
-        if (why && !Shell.locked && !Shell.lockPreview)
+        if (why && !quiet && !Shell.locked && !Shell.lockPreview)
             // our own picture, not the theme's "starred": icon themes without a "status"
             // context (pixora on Windose…) have none, and the card showed a broken image (#47)
             notify.exec(["notify-send", "-a", "angelOS", "-h", "string:x-angelos-sound:stars", "-i", Quickshell.shellDir + "/data/icons/heaven-star.svg", I18n.t("Небеса", "Heaven"), text]);
