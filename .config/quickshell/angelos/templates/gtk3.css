@@ -120,3 +120,25 @@ entry:focus,
 spinbutton:focus {
     box-shadow: inset 0 0 0 2px {{accent}};
 }
+
+/* Helium and Chromium on the "GTK" theme read their colours from style paths of their own, made of
+   nodes hung straight under a window (ui/gtk/gtk_color_mixers.cc), so these rules reach no real
+   GTK app. Text selection — the address bar, fields, the page: adw-gtk3's quarter of the accent
+   over the window colour is almost black on black there; ours is the accent itself, a softer one
+   in an unfocused window. Tabs: Helium paints the strip, every tab and the toolbar in one colour,
+   so only the titles can show which tab is open — the others' titles dim (headerbar label.title
+   is the inactive tab's text, the active one keeps the label colour). GTK 3 drops a rule with
+   :focus-within, so the selectors leave it out. */
+window > textview.view > text > selection,
+window > textview.view > text > selection:focus {
+    background-color: @accent_bg_color;
+    color: @window_fg_color;
+}
+window > textview.view:backdrop > text:backdrop > selection:backdrop {
+    background-color: mix(@accent_bg_color, @window_bg_color, 0.3);
+    color: @window_fg_color;
+}
+window > headerbar.header-bar.titlebar > label.title,
+window > headerbar.header-bar.titlebar:backdrop > label.title {
+    color: mix(@window_fg_color, @window_bg_color, 0.5);
+}

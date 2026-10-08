@@ -53,6 +53,8 @@ Loader {
             return Bt.available && Config.network.showBluetooth;
         if (wid === "wired")
             return Wifi.available && !!Wifi.wiredDevice && Config.network.showWired;
+        if (wid === "battery")
+            return Power.hasBattery && Config.power.showBattery;
         if (wid === "media")
             return Config.bar.showMedia && !!Lyrics.player && Lyrics.title !== "";
         if (wid === "lyrics")
@@ -106,6 +108,8 @@ Loader {
             return btC;
         case "wired":
             return wiredC;
+        case "battery":
+            return batteryC;
         case "clock":
             return clockC;
         default:
@@ -190,6 +194,12 @@ Loader {
     Component {
         id: wiredC
         WiredButton {
+            above: root.bar.above
+        }
+    }
+    Component {
+        id: batteryC
+        BatteryButton {
             above: root.bar.above
         }
     }

@@ -255,6 +255,17 @@ Singleton {
             "ru": "Прочитать страницу дневника",
             "en": "Read a page of the diary",
             "key": "the page"
+        },
+        {
+            "id": "wellbeing.water",
+            "ru": "Выпить стакан воды (Благополучие)",
+            "en": "Drink a glass of water (Wellbeing)"
+        },
+        {
+            "id": "wellbeing.break",
+            "ru": "Сделать перерыв по напоминанию",
+            "en": "Take a break when reminded",
+            "key": "eyes | move"
         }
     ]
     // + "act:<name>" for every action of story/game.json (a joke, "I love you", the throws…)

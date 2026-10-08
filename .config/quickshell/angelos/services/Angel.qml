@@ -139,6 +139,30 @@ Singleton {
         return list[i];
     }
 
+    // ---- the laptop's battery (services/Power; Settings → Battery → "notices") ----
+    // 0 fine, 1 tired (yawns), 2 wings down, 3 asleep; her words stay in during games and on stream
+    readonly property int tired: !Config.ready || !Config.power.angel || !Power.discharging ? 0 : Power.level === "critical" ? 3 : Power.level === "veryLow" ? 2 : Power.level === "low" ? 1 : 0
+    readonly property bool batteryHush: StreamMode.active || MetaTap.coversOutput(Niri.focusedWindow)
+    property bool _wasTired: false
+    onTiredChanged: if (tired > 0)
+        _wasTired = true
+    Connections {
+        target: Power
+        function onLevelReached(level) {
+            if (!Config.power.angel || root.batteryHush || root.transition)
+                return;
+            const set = root.demon ? Lines.battery.demon : Lines.battery.angel;
+            if (set[level])
+                root.say(root.line(set[level], "battery-" + level + root.demon));
+        }
+        function onPluggedIn() {
+            if (!Config.power.angel || !root._wasTired || root.batteryHush || root.transition)
+                return;
+            root._wasTired = false;
+            root.say(root.line((root.demon ? Lines.battery.demon : Lines.battery.angel).plugged, "battery-plugged" + root.demon));
+        }
+    }
+
     function say(msg, acts, ms, silent) {
         if (!shown || !msg)
             return;
@@ -371,6 +395,12 @@ Singleton {
             "page": "shortcuts",
             "ru": "Все сочетания клавиш — на странице «Горячие клавиши», любое можно поменять.",
             "en": "Every shortcut is on the Shortcuts page, and any of them can be changed."
+        },
+        {
+            "re": /экранн|сколько.*(сижу|сидел|времен)|перерыв|напомина|попить|вод[уы]|глаз|screen time|break|remind|water/,
+            "page": "wellbeing",
+            "ru": "Сколько ты за компьютером, лимит и мои напоминания про воду и перерывы — в «Благополучии» ♡",
+            "en": "How long you're at the computer, a limit, and my water and break reminders are in Wellbeing ♡"
         }
     ]
     // whole questions first, then without the filler words, then word by word

@@ -18,7 +18,7 @@ Singleton {
     // change re-renders — also the ones that come late: Theme.realm turns midway through the
     // widgets' burn, after Angel.demon (a return "as in the game" used to render heaven's
     // file with hell's accent and stay so); hell's wallpaper accent lands a beat after the circle
-    readonly property string paletteText: JSON.stringify(Object.assign(Theme.exportPalette(), decorPalette(), terminalPalette(), appsPalette(), hellPalette(), macPalette()), null, 2)
+    readonly property string paletteText: JSON.stringify(Object.assign(Theme.exportPalette(), decorPalette(), terminalPalette(), appsPalette(), hellPalette(), macPalette(), fontPalette()), null, 2)
     readonly property string disabled: (Config.appearance.disabledTemplates || []).join(",")
     readonly property string signature: Config.appearance.themeApps + "|" + disabled + "|" + paletteText
     property string lastLog: ""
@@ -253,6 +253,17 @@ Singleton {
                 "edge": h(Theme.hellEdge),
                 "select": h(Theme.mix(Theme.hellRim, Theme.hellBlood, 0.5))
             }
+        };
+    }
+
+    // the fonts, for apps that take a stylesheet (scripts/discord-theme.py): the user's own
+    // choice and the body size on its pixel grid (13 px at ×1)
+    function fontPalette() {
+        return {
+            "fontTitle": Theme.fontTitle,
+            "fontBody": Theme.fontBody,
+            "fontMono": Theme.fontMono,
+            "sizeBody": Theme.sizeBody
         };
     }
 

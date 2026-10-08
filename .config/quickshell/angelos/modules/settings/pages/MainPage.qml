@@ -48,7 +48,14 @@ PxPage {
             "page": "updates",
             "warn": Updates.available
         }
-    ]
+    ].concat(Config.wellbeing.track ? [
+            {
+                "icon": "clock",
+                "label": I18n.t("Сегодня ", "Today ") + Wellbeing.fmt(Wellbeing.todaySeconds),
+                "page": "wellbeing",
+                "warn": Config.wellbeing.dailyLimit > 0 && Wellbeing.todaySeconds >= Config.wellbeing.dailyLimit * 60
+            }
+        ] : [])
 
     // ---- the tiles: what you open most, then the usual places ----
     readonly property var usual: ["wallpaper", "theme", "sound", "network", "bluetooth", "display", "keyboard", "taskbar"]

@@ -99,6 +99,16 @@ JsonAdapter {
         property string themeOf: ""
         // the newest release whose wallpapers were offered (services/Wallpapers: releases)
         property int releaseSeen: 0
+        // half-alive wallpapers (services/LiveWalls): stars twinkle and fall in a night sky,
+        // water ripples and mirrors them, the picture's lights twinkle
+        property bool live: true
+        property int liveStrength: 60      // 10 … 100
+        property bool liveStars: true
+        property bool liveMeteors: true
+        property bool liveWater: true
+        property bool liveLights: true
+        property int liveFps: 24
+        property var liveOverrides: ({})   // path -> {sky, water: "on"|"off", axis: 0..1}
     }
 
     property JsonObject workspaces: JsonObject {
@@ -340,6 +350,53 @@ JsonAdapter {
         property bool showWired: true       // bar: the wired connection's indicator (when there is a wired adapter)
     }
 
+    // laptops: the battery and what runs on it (services/Power; Settings → System → Battery, Power)
+    property JsonObject power: JsonObject {
+        property bool showBattery: true     // bar: the battery as hearts (only where there is a battery)
+        property bool barPercent: false     // …and the percentage next to them
+        property bool alerts: true          // a notification at lowAt, veryLowAt and criticalAt (once per discharge)
+        property int lowAt: 20
+        property int veryLowAt: 10
+        property int criticalAt: 5
+        property string criticalAction: "suspend" // at criticalAt, after a minute's warning: suspend | hibernate | poweroff | nothing
+        property bool plugSound: true       // the charger in / out: the USB in / out sounds (Golden Gate: its own "power")
+        property bool angel: true           // the angel (the demon) notices the battery: tired, sleepy, glad of the charger
+        property string eco: "auto"         // the eco mode (Motion "off" + no blur + niri's animations off): auto | on | off
+        property int ecoAt: 30              // auto: on battery at or below this; 100 = whenever on battery
+        property bool ecoWithSaver: true    // auto: also while the power profile is "power-saver"
+        property bool ecoSaverProfile: true // the eco mode switches the profile to power-saver (and back when it ends)
+        property int chargeLimit: 100       // stop charging at this % (charge_control_end_threshold; 100 = off), set again at every login
+        // idle on battery (−1 = as on mains); on mains: lock.idleMinutes, screenOffMinutes, sleepMinutes
+        property int batteryLockMinutes: -1
+        property int screenOffMinutes: 0    // the screens go dark (niri power-off-monitors); 0 = never
+        property int batteryScreenOffMinutes: 5
+        property int sleepMinutes: 0        // suspend when idle; 0 = never
+        property int batterySleepMinutes: 15
+        property bool dim: true             // the backlight dims 30 s before the screens go off (or the lock, or sleep)
+        property string lidAction: "suspend"     // the lid closed on battery: suspend | hibernate | lock | nothing
+        property string lidActionAc: "suspend"   // …on mains; with a monitor plugged in the lid does nothing (niri turns the panel off)
+    }
+
+    // laptops: keys, the backlight, the lid, a convertible (services/Laptop, Backlight)
+    property JsonObject laptop: JsonObject {
+        property bool keys: true            // cfg/angelos-laptop.kdl: brightness, keyboard light, touchpad, airplane, Mod+P projection keys
+        property int brightnessStep: 5      // % per brightness key press
+        property real minBrightness: 0.02   // the keys never go darker than this (0 would black out some panels)
+        property bool kbdAuto: true         // the keyboard light goes out with the screen and comes back with it
+        property bool autoRotate: true      // a convertible in tablet mode turns the screen with the accelerometer
+        property bool rotationLock: false   // …held where it is
+        property bool tabletKeyboard: true  // tablet mode starts the on-screen keyboard (wvkbd / squeekboard when installed)
+        property bool fingerprint: true     // the lock takes a finger too (fprintd with an enrolled finger)
+    }
+
+    // touchpad gestures of angelOS's own (scripts/gesture-watch.py; niri keeps its 3-finger
+    // swipes and the 4-finger one up/down); gesture -> action id (services/Gestures.actions)
+    property JsonObject gestures: JsonObject {
+        property bool enabled: true
+        property var map: ({})              // {"pinchIn": "launcher", …}; missing = Gestures.defaults
+        property string sensitivity: "normal" // low | normal | high
+    }
+
     property JsonObject y2k: JsonObject {
         property bool helper: true          // the pixel angel in a screen corner
         property string helperScreen: ""   // "" = the main screen (Shell.primaryScreen), "focus" = where the focus is
@@ -406,6 +463,30 @@ JsonAdapter {
     property JsonObject recovery: JsonObject {
         property bool auto: true            // with gh logged in: save to the private repo once a day
         property string lastPush: ""        // ISO time of the last save there
+    }
+
+    // Wellbeing (services/Wellbeing; Settings → Wellbeing), like GNOME's: how long you sit at the
+    // computer (~/.local/state/angelos/screen-time.json), a daily limit, and breaks the angel
+    // (the demon) reminds you of — the eyes, a stretch, water
+    property JsonObject wellbeing: JsonObject {
+        property bool track: true           // count the screen time (input within the last 2 minutes, unlocked)
+        property bool apps: true            // …and per app (the focused window's app id)
+        property int dailyLimit: 0          // minutes a day; 0 = no limit
+        property bool limitWarn: true       // at the limit: the angel says so (and again after "15 more minutes")
+        property bool breaks: true          // the reminders at all
+        property string via: "angel"        // angel (a notification when she's not around) | notify
+        property bool eyes: true            // look into the distance (20-20-20)
+        property int eyesEvery: 20          // minutes of use
+        property bool move: true            // get up and stretch
+        property int moveEvery: 60
+        property int moveLength: 5          // minutes away from the computer that count as the break
+        property bool water: true           // a glass of water
+        property int waterEvery: 60
+        property int waterGoal: 8           // glasses a day
+        property bool quietFullscreen: true // a game or a video fills the screen: the reminder waits
+        property bool quietStream: true     // the stream mode: the reminder waits
+        property bool quietDnd: false       // do not disturb: the reminder waits (off: she is not a notification)
+        property int keepDays: 60           // history kept
     }
 
     // the game: angelOS is a story played over the real desktop (services/Story, story/).

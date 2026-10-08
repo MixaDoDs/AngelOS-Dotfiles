@@ -24,6 +24,16 @@ Singleton {
     readonly property real accelSpeed: parseFloat((block("mouse").match(/^\s*accel-speed\s+(-?[\d.]+)/m) || [])[1] || "0")
     readonly property bool focusFollowsMouse: /^\s*focus-follows-mouse\b/m.test(text)
     readonly property bool naturalScroll: /^\s*natural-scroll\b/m.test(block("touchpad"))
+    // the touchpad (Settings → Devices → Touchpad): niri's `touchpad { }` lines
+    readonly property string tpBlock: block("touchpad")
+    readonly property bool touchpadOff: tpFlag("off")
+    function tpFlag(name) {
+        return new RegExp("^\\s*" + name + "\\b(?!-)", "m").test(tpBlock);
+    }
+    function tpValue(name, def) {
+        const m = tpBlock.match(new RegExp("^\\s*" + name + "\\s+(\"[^\"]*\"|[-\\w.]+)", "m"));
+        return m ? m[1].replace(/^"|"$/g, "") : def;
+    }
 
     readonly property var switchOptions: [
         {
@@ -165,6 +175,41 @@ Singleton {
             t = setLine(t, /^(\s*)accel-profile\s+"[^"]*"/m, 'accel-profile "' + ch.accelProfile + '"', "mouse");
         if (ch.accelSpeed !== undefined)
             t = setLine(t, /^(\s*)accel-speed\s+-?[\d.]+/m, "accel-speed " + Number(ch.accelSpeed).toFixed(2), "mouse");
+        // the touchpad: {flags: {tap: true, dwt: false…}, values: {"accel-speed": 0.2, "click-method": null…}}
+        // (null = the line goes); touchpadOff is the `off` flag (its key, services/Laptop)
+        if (ch.touchpadOff !== undefined)
+            ch.touchpad = {
+                "flags": {
+                    "off": !!ch.touchpadOff
+                }
+            };
+        if (ch.touchpad) {
+            t = ensureBlock(t, "touchpad", "input");
+            const tr = blockRange("touchpad", t);
+            if (tr) {
+                let inner = t.slice(tr[0], tr[1]);
+                const flags = ch.touchpad.flags || {};
+                for (const name in flags) {
+                    const re = new RegExp("^[ \\t]*" + name + "\\b(?!-)[^\\n]*\\n?", "m");
+                    const has = re.test(inner);
+                    if (flags[name] && !has)
+                        inner = inner.replace(/\s*$/, "\n        " + name + "\n    ");
+                    else if (!flags[name] && has)
+                        inner = inner.replace(re, "");
+                }
+                const values = ch.touchpad.values || {};
+                for (const name in values) {
+                    const re = new RegExp("^([ \\t]*)" + name + "\\s+[^\\n]*", "m");
+                    const v = values[name];
+                    const line = v === null || v === undefined ? "" : name + " " + (typeof v === "boolean" ? String(v) : typeof v === "number" ? (Number.isInteger(v) ? v : v.toFixed(2)) : '"' + v + '"');
+                    if (re.test(inner))
+                        inner = line ? inner.replace(re, (m, i) => i + line) : inner.replace(new RegExp("^[ \\t]*" + name + "\\s+[^\\n]*\\n?", "m"), "");
+                    else if (line)
+                        inner = inner.replace(/\s*$/, "\n        " + line + "\n    ");
+                }
+                t = t.slice(0, tr[0]) + inner + t.slice(tr[1]);
+            }
+        }
         // the touchpad's scrolling direction, only inside `touchpad { }`
         if (ch.naturalScroll !== undefined) {
             t = ensureBlock(t, "touchpad", "input");

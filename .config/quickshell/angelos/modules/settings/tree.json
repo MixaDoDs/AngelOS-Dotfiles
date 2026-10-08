@@ -67,9 +67,11 @@
           "blocks": [
             "monitor/main-screen",
             "monitor/brightness-colour",
+            "laptop/backlight",
             "monitor/arrangement",
             "monitor/output",
-            "monitor/@"
+            "monitor/@",
+            "laptop/tablet"
           ],
           "links": [
             "power"
@@ -137,11 +139,34 @@
           "hintEn": "the power profile, when to lock and blank the screen",
           "blocks": [
             "system/power",
+            "laptop/power-idle",
+            "laptop/lid",
             "lock/lock-timers",
             "lock/idle-timer"
           ],
           "links": [
+            "battery",
             "lock"
+          ]
+        },
+        {
+          "id": "battery",
+          "ru": "Батарея",
+          "en": "Battery",
+          "icon": "battery",
+          "needs": "battery",
+          "hintRu": "заряд, предупреждения, режим экономии, бережная зарядка",
+          "hintEn": "the charge, warnings, the eco mode, gentle charging",
+          "blocks": [
+            "battery/status",
+            "battery/eco"
+          ],
+          "more": [
+            "battery/alerts",
+            "battery/charge-limit"
+          ],
+          "links": [
+            "power"
           ]
         },
         {
@@ -234,6 +259,25 @@
           ]
         },
         {
+          "id": "touchpad",
+          "ru": "Тачпад",
+          "en": "Touchpad",
+          "icon": "touchpad",
+          "needs": "touchpad",
+          "hintRu": "касания, прокрутка, скорость, жесты",
+          "hintEn": "taps, scrolling, speed, gestures",
+          "blocks": [
+            "touchpad/touchpad",
+            "touchpad/gestures"
+          ],
+          "more": [
+            "touchpad/touchpad-more"
+          ],
+          "links": [
+            "mouse"
+          ]
+        },
+        {
           "id": "keyboard",
           "ru": "Клавиатура",
           "en": "Keyboard",
@@ -245,7 +289,8 @@
             "keyboard/@"
           ],
           "more": [
-            "keyboard/key-repeat"
+            "keyboard/key-repeat",
+            "laptop/laptop-keys"
           ],
           "links": [
             "shortcuts",
@@ -322,11 +367,12 @@
           "ru": "Обои",
           "en": "Wallpaper",
           "icon": "image",
-          "hintRu": "картинки, обои релизов, переход",
-          "hintEn": "pictures, release wallpapers, the transition",
+          "hintRu": "картинки, обои релизов, живые обои, переход",
+          "hintEn": "pictures, release wallpapers, alive wallpaper, the transition",
           "blocks": [
             "wallpaper/@",
             "wallpaper/releases",
+            "wallpaper/live",
             "wallpaper/images"
           ],
           "more": [
@@ -406,6 +452,7 @@
           ],
           "more": [
             "lock/lock-details",
+            "laptop/fingerprint",
             "lock/lock-stream",
             "lock/lock-rewards",
             "lock/login-screen",
@@ -830,6 +877,38 @@
       ]
     },
     {
+      "id": "wellbeing",
+      "ru": "Благополучие",
+      "en": "Wellbeing",
+      "icon": "clock",
+      "tint": "#2fb36d",
+      "hintRu": "экранное время, перерывы, вода",
+      "hintEn": "screen time, breaks, water",
+      "pages": [
+        {
+          "id": "wellbeing",
+          "ru": "Экранное время и перерывы",
+          "en": "Screen time and breaks",
+          "icon": "clock",
+          "hintRu": "сколько ты за компьютером, лимит, напоминания ангела про воду и перерывы",
+          "hintEn": "how long you're at the computer, a limit, the angel's water and break reminders",
+          "blocks": [
+            "wellbeing/screen-time",
+            "wellbeing/breaks",
+            "wellbeing/limit"
+          ],
+          "more": [
+            "wellbeing/quiet",
+            "wellbeing/history"
+          ],
+          "links": [
+            "notifications",
+            "helper"
+          ]
+        }
+      ]
+    },
+    {
       "id": "game",
       "ru": "Ангелочек ✧",
       "en": "Angel ✧",
@@ -1157,6 +1236,32 @@
         ]
       },
       {
+        "id": "mac-screentime",
+        "ru": "Экранное время",
+        "en": "Screen Time",
+        "icon": "clock",
+        "tint": "#5e5ce6",
+        "hintRu": "экранное время, перерывы, вода",
+        "hintEn": "screen time, breaks, water",
+        "pages": [
+          {
+            "id": "wellbeing",
+            "ru": "Экранное время",
+            "en": "Screen Time",
+            "icon": "clock",
+            "hintRu": "сколько ты за компьютером, лимит, напоминания ангела про воду и перерывы",
+            "hintEn": "how long you're at the computer, a limit, the angel's water and break reminders",
+            "blocks": [
+              "wellbeing/screen-time",
+              "wellbeing/breaks",
+              "wellbeing/limit",
+              "wellbeing/quiet",
+              "wellbeing/history"
+            ]
+          }
+        ]
+      },
+      {
         "id": "mac-general",
         "ru": "Основные",
         "en": "General",
@@ -1281,8 +1386,33 @@
             "hintEn": "the power profile, when to lock and blank the screen",
             "blocks": [
               "system/power",
+              "laptop/power-idle",
+              "laptop/lid",
               "lock/lock-timers",
               "lock/idle-timer"
+            ],
+            "links": [
+              "battery"
+            ]
+          },
+          {
+            "id": "battery",
+            "ru": "Батарея",
+            "en": "Battery",
+            "icon": "battery",
+            "needs": "battery",
+            "hintRu": "заряд, предупреждения, режим экономии, бережная зарядка",
+            "hintEn": "the charge, warnings, the eco mode, gentle charging",
+            "blocks": [
+              "battery/status",
+              "battery/eco"
+            ],
+            "more": [
+              "battery/alerts",
+              "battery/charge-limit"
+            ],
+            "links": [
+              "power"
             ]
           },
           {
@@ -1440,9 +1570,11 @@
             "blocks": [
               "monitor/main-screen",
               "monitor/brightness-colour",
+              "laptop/backlight",
               "monitor/arrangement",
               "monitor/output",
-              "monitor/@"
+              "monitor/@",
+              "laptop/tablet"
             ]
           },
           {
@@ -1475,6 +1607,7 @@
             ],
             "more": [
               "lock/lock-details",
+              "laptop/fingerprint",
               "lock/lock-stream",
               "lock/lock-rewards",
               "lock/login-screen",
@@ -1506,7 +1639,8 @@
               "keyboard/@"
             ],
             "more": [
-              "keyboard/key-repeat"
+              "keyboard/key-repeat",
+              "laptop/laptop-keys"
             ]
           },
           {
@@ -1536,6 +1670,25 @@
             ],
             "more": [
               "cursor/size-compatibility"
+            ]
+          },
+          {
+            "id": "touchpad",
+            "ru": "Тачпад",
+            "en": "Touchpad",
+            "icon": "touchpad",
+            "needs": "touchpad",
+            "hintRu": "касания, прокрутка, скорость, жесты",
+            "hintEn": "taps, scrolling, speed, gestures",
+            "blocks": [
+              "touchpad/touchpad",
+              "touchpad/gestures"
+            ],
+            "more": [
+              "touchpad/touchpad-more"
+            ],
+            "links": [
+              "mouse"
             ]
           },
           {

@@ -34,7 +34,7 @@ Scope {
     property string hostName: ""
     readonly property var host: Shell.screenByName(hostName) || Shell.focusedScreen || Shell.screens[0] || null
 
-    // The questions, in order: ten for someone who has just come from another system — the
+    // The questions, in order (a laptop gets one more, "laptop"): ten for someone who has just come from another system — the
     // language, where they come from (the look and the keys follow), the game, the keys and
     // the pointer, how windows work here (niri's ribbon, the biggest difference), light or
     // dark, the wallpaper, fastfetch, motion, GitHub (the author's tools) and the keys to start with. `blocks`: the
@@ -112,6 +112,15 @@ Scope {
             "icon": "sparkle",
             "title": I18n.t("Сколько всего движется?", "How much should move?"),
             "text": I18n.t("В angelOS много анимаций, а в игре бывают вспышки и тряска экрана.", "angelOS has plenty of animation, and the game has flashes and screen shaking.")
+        },
+        {
+            "id": "laptop",
+            "icon": "battery",
+            "title": I18n.t("Это ноутбук ♡", "This is a laptop ♡"),
+            "text": I18n.t("Батарея — сердечки на панели. На батарее angelOS может стихать, чтобы её хватило надольше, а заряжать — бережно. Жесты тачпада и клавиши яркости уже работают.", "The battery shows as hearts on the bar. On battery angelOS can quiet down to make it last, and charge gently. The touchpad gestures and the brightness keys work already."),
+            "blocks": ["battery/eco", "battery/charge-limit"],
+            "attention": "next",
+            "when": Laptop.isLaptop
         },
         {
             "id": "who",

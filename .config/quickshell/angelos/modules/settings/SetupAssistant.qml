@@ -1432,7 +1432,7 @@ Item {
                     width: parent.cardWidth
                     label: modelData[2]
                     hint: modelData[3]
-                    checked: Motion.level === modelData[0]
+                    checked: Motion.chosen === modelData[0]
                     onPicked: Motion.set(modelData[0])
                     PxIcon {
                         anchors.horizontalCenter: parent.horizontalCenter

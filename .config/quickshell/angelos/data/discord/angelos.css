@@ -1,0 +1,666 @@
+/* angelOS for Discord and Vesktop (scripts/discord-theme.py): the static half of the theme.
+   The --ao-* colours, the fonts, --ao-size and the chat's --ao-pattern are written above it
+   for every palette (heaven or hell, light or dark); everything here only uses them.
+   Discord's own variables are listed after midnight-discord's colors.css (MIT, refact0r) —
+   the 2025–26 "visual refresh" names; its placeholder colours left out. */
+
+:root {
+    color-scheme: var(--ao-scheme);
+    --ao-hover-a: color-mix(in srgb, var(--ao-accent) 14%, transparent);
+    --ao-active-a: color-mix(in srgb, var(--ao-accent) 26%, transparent);
+    --ao-mention: color-mix(in srgb, var(--ao-accent) 16%, transparent);
+    --ao-reply: color-mix(in srgb, var(--ao-text) 9%, transparent);
+    /* the Win98 bevel of angelOS's PxBox: light from the top left, a frame round it */
+    --ao-raised: inset 2px 2px 0 var(--ao-hi), inset -2px -2px 0 var(--ao-lo), 0 0 0 2px var(--ao-edge);
+    --ao-sunk: inset 2px 2px 0 var(--ao-lo), inset -2px -2px 0 var(--ao-hi), 0 0 0 2px var(--ao-edge);
+    --ao-float: inset 2px 2px 0 var(--ao-hi), inset -2px -2px 0 var(--ao-lo), 0 0 0 2px var(--ao-edge), 4px 4px 0 2px var(--ao-shadow);
+    /* the corners: a little round, as niri rounds angelOS's windows (4 px); what floats a bit more */
+    --ao-r: 4px;
+    --ao-r-lg: 8px;
+}
+
+/* ---- Discord's colours, angelOS's: the same for its light and dark themes (angelOS's mode
+   decides). The selector outweighs Discord's .visual-refresh.theme-dark, which loads later. ---- */
+:root:root:is(.theme-dark, .theme-light, .theme-darker, .theme-midnight),
+:root .theme-dark:not(.custom-user-profile-theme),
+:root .theme-light:not(.custom-user-profile-theme),
+:root .theme-darker:not(.custom-user-profile-theme),
+:root .theme-midnight:not(.custom-user-profile-theme) {
+    /* the corners: a little round (--ao-r) */
+    --radius-xs: 2px;
+    --radius-sm: var(--ao-r);
+    --radius-md: var(--ao-r);
+    --radius-lg: var(--ao-r-lg);
+    --radius-xl: var(--ao-r-lg);
+    --radius-xxl: var(--ao-r-lg);
+    --radius-round: var(--ao-r-lg);
+
+    /* the fonts */
+    --font-primary: var(--ao-font-body);
+    --font-display: var(--ao-font-title);
+    --font-headline: var(--ao-font-title);
+    --font-code: var(--ao-font-mono);
+
+    /* the older names: Vencord's plugins and a few corners of Discord still use them */
+    --background-primary: var(--ao-sunken);
+    --background-secondary: var(--ao-face);
+    --background-tertiary: var(--ao-deep);
+    --background-floating: var(--ao-face);
+    --background-nested-floating: var(--ao-faceAlt);
+    --background-modifier-hover: var(--ao-hover-a);
+    --background-modifier-active: var(--ao-active-a);
+    --background-modifier-selected: var(--ao-active-a);
+    --background-modifier-accent: var(--ao-lo);
+    --background-message-hover: var(--ao-hover-a);
+    --background-message-highlight: var(--ao-reply);
+    --background-mentioned: var(--ao-mention);
+    --background-mentioned-hover: var(--ao-mention);
+    --header-primary: var(--ao-text);
+    --header-secondary: var(--ao-textDim);
+    --text-normal: var(--ao-text);
+    --text-secondary: var(--ao-textDim);
+    --text-tertiary: var(--ao-muted);
+    --text-positive: var(--ao-ok);
+    --text-warning: var(--ao-warn);
+    --text-danger: var(--ao-danger);
+    --interactive-normal: var(--ao-textDim);
+    --interactive-active: var(--ao-text);
+    --status-danger-background: var(--ao-danger);
+    --info-danger-foreground: var(--ao-danger);
+    --info-positive-foreground: var(--ao-ok);
+    --info-warning-foreground: var(--ao-warn);
+    --elevation-low: none;
+    --elevation-medium: none;
+    --elevation-high: none;
+    --elevation-stroke: none;
+    --shadow-low: none;
+    --shadow-medium: none;
+    --shadow-high: none;
+    --shadow-border: none;
+    --border-faint: var(--ao-lo);
+
+    /* the visual refresh */
+    --app-frame-background: var(--ao-deep);
+    --app-frame-border: var(--ao-edge);
+    --app-message-embed-secondary-text: var(--ao-text);
+    --background-accent: var(--ao-faceAlt);
+    --background-base-low: var(--ao-sunken);
+    --background-base-lower: var(--ao-face);
+    --background-base-lowest: var(--ao-deep);
+    --background-brand: var(--ao-accent);
+    --background-code: var(--ao-face);
+    --background-code-addition: color-mix(in srgb, var(--ao-ok), transparent 80%);
+    --background-code-deletion: color-mix(in srgb, var(--ao-danger), transparent 80%);
+    --background-feedback-critical: color-mix(in srgb, var(--ao-danger), transparent 80%);
+    --background-feedback-info: color-mix(in srgb, var(--ao-accent2), transparent 80%);
+    --background-feedback-positive: color-mix(in srgb, var(--ao-ok), transparent 80%);
+    --background-feedback-warning: color-mix(in srgb, var(--ao-warn), transparent 80%);
+    --background-feedback-notification: var(--ao-danger);
+    --background-mod-muted: var(--ao-hover-a);
+    --background-mod-normal: var(--ao-faceAlt);
+    --background-mod-strong: var(--ao-active);
+    --background-mod-subtle: var(--ao-hover-a);
+    --background-scrim: color-mix(in srgb, var(--ao-deep) 75%, transparent);
+    --background-scrim-lightbox: color-mix(in srgb, var(--ao-deep) 92%, transparent);
+    --background-secondary-alt: var(--ao-face);
+    --background-surface-high: var(--ao-face);
+    --background-surface-higher: var(--ao-faceAlt);
+    --background-surface-highest: var(--ao-faceAlt);
+    --badge-background-default: var(--ao-accent);
+    --badge-expressive-background-default: var(--ao-accent);
+    --badge-expressive-text-default: var(--ao-onAccent);
+    --badge-notification-background: var(--ao-danger);
+    --badge-text-default: var(--ao-onAccent);
+    --bg-surface-overlay-tmp: var(--ao-face);
+    --bg-surface-raised: var(--ao-face);
+    --border-feedback-critical: var(--ao-edge);
+    --border-focus: var(--ao-edge);
+    --border-muted: var(--ao-lo);
+    --border-normal: var(--ao-edge);
+    --border-strong: var(--ao-edge);
+    --border-subtle: var(--ao-edge);
+    --button-outline-primary-text: var(--ao-strong);
+    --card-background-default: var(--ao-face);
+    --channel-icon: var(--ao-textDim);
+    --channel-text-area-placeholder: var(--ao-muted);
+    --channels-default: var(--ao-textDim);
+    --channeltextarea-background: var(--ao-sunken);
+    --chat-background-default: var(--ao-sunken);
+    --chat-text-muted: var(--ao-muted);
+    --checkbox-background-default: var(--ao-faceAlt);
+    --checkbox-background-hover: var(--ao-active);
+    --checkbox-background-selected-default: var(--ao-accent);
+    --checkbox-background-selected-hover: var(--ao-accent);
+    --checkbox-border-active: var(--ao-edge);
+    --checkbox-border-default: var(--ao-edge);
+    --checkbox-border-hover: var(--ao-edge);
+    --checkbox-border-selected-default: var(--ao-edge);
+    --checkbox-border-selected-hover: var(--ao-edge);
+    --checkbox-icon-active: var(--ao-onAccent);
+    --content-inventory-media-seekbar-container: var(--ao-active);
+    --content-inventory-overlay-text-primary: var(--ao-text);
+    --content-inventory-overlay-text-secondary: var(--ao-text);
+    --control-brand-foreground: var(--ao-accent);
+    --control-connect-background-active: var(--ao-accentActive);
+    --control-connect-background-default: var(--ao-accentHover);
+    --control-connect-background-hover: var(--ao-accent);
+    --control-connect-border-active: var(--ao-edge);
+    --control-connect-border-default: var(--ao-edge);
+    --control-connect-border-hover: var(--ao-edge);
+    --control-connect-icon-active: var(--ao-onAccent);
+    --control-connect-icon-default: var(--ao-onAccent);
+    --control-connect-icon-hover: var(--ao-onAccent);
+    --control-connect-text-active: var(--ao-onAccent);
+    --control-connect-text-default: var(--ao-onAccent);
+    --control-connect-text-hover: var(--ao-onAccent);
+    --control-critical-primary-background-active: var(--ao-danger);
+    --control-critical-primary-background-default: var(--ao-danger);
+    --control-critical-primary-background-hover: var(--ao-danger);
+    --control-critical-primary-border-active: var(--ao-edge);
+    --control-critical-primary-border-default: var(--ao-edge);
+    --control-critical-primary-border-hover: var(--ao-edge);
+    --control-critical-primary-icon-active: var(--ao-onAccent);
+    --control-critical-primary-icon-default: var(--ao-onAccent);
+    --control-critical-primary-icon-hover: var(--ao-onAccent);
+    --control-critical-primary-text-active: var(--ao-onAccent);
+    --control-critical-primary-text-default: var(--ao-onAccent);
+    --control-critical-primary-text-hover: var(--ao-onAccent);
+    --control-critical-secondary-background-active: var(--ao-muted);
+    --control-critical-secondary-background-default: var(--ao-faceAlt);
+    --control-critical-secondary-background-hover: var(--ao-active);
+    --control-critical-secondary-border-active: var(--ao-lo);
+    --control-critical-secondary-border-default: var(--ao-lo);
+    --control-critical-secondary-border-hover: var(--ao-lo);
+    --control-critical-secondary-icon-active: var(--ao-danger);
+    --control-critical-secondary-icon-default: var(--ao-danger);
+    --control-critical-secondary-icon-hover: var(--ao-danger);
+    --control-critical-secondary-text-active: var(--ao-danger);
+    --control-critical-secondary-text-default: var(--ao-danger);
+    --control-critical-secondary-text-hover: var(--ao-danger);
+    --control-expressive-background-active: var(--ao-text);
+    --control-expressive-background-default: var(--ao-strong);
+    --control-expressive-background-hover: var(--ao-text);
+    --control-expressive-border-active: var(--ao-edge);
+    --control-expressive-border-default: var(--ao-edge);
+    --control-expressive-border-hover: var(--ao-edge);
+    --control-expressive-icon-active: var(--ao-sunken);
+    --control-expressive-icon-default: var(--ao-sunken);
+    --control-expressive-icon-hover: var(--ao-sunken);
+    --control-expressive-text-active: var(--ao-sunken);
+    --control-expressive-text-default: var(--ao-sunken);
+    --control-expressive-text-hover: var(--ao-sunken);
+    --control-icon-only-background-active: var(--ao-active-a);
+    --control-icon-only-background-hover: var(--ao-hover-a);
+    --control-icon-only-border-active: var(--ao-lo);
+    --control-icon-only-border-hover: var(--ao-lo);
+    --control-icon-only-icon-active: var(--ao-text);
+    --control-icon-only-icon-default: var(--ao-textDim);
+    --control-icon-only-icon-hover: var(--ao-text);
+    --control-overlay-primary-background-active: var(--ao-text);
+    --control-overlay-primary-background-default: var(--ao-strong);
+    --control-overlay-primary-background-hover: var(--ao-text);
+    --control-overlay-primary-border-active: var(--ao-edge);
+    --control-overlay-primary-border-default: var(--ao-edge);
+    --control-overlay-primary-border-hover: var(--ao-edge);
+    --control-overlay-primary-icon-active: var(--ao-sunken);
+    --control-overlay-primary-icon-default: var(--ao-sunken);
+    --control-overlay-primary-icon-hover: var(--ao-sunken);
+    --control-overlay-primary-text-active: var(--ao-sunken);
+    --control-overlay-primary-text-default: var(--ao-sunken);
+    --control-overlay-primary-text-hover: var(--ao-sunken);
+    --control-overlay-secondary-background-active: hsl(0, 0%, 0%, 0.4);
+    --control-overlay-secondary-background-default: hsl(0, 0%, 0%, 0.5);
+    --control-overlay-secondary-background-hover: hsl(0, 0%, 0%, 0.6);
+    --control-overlay-secondary-border-active: var(--ao-lo);
+    --control-overlay-secondary-border-default: var(--ao-lo);
+    --control-overlay-secondary-border-hover: var(--ao-lo);
+    --control-overlay-secondary-icon-active: var(--ao-text);
+    --control-overlay-secondary-icon-default: var(--ao-text);
+    --control-overlay-secondary-icon-hover: var(--ao-text);
+    --control-overlay-secondary-text-active: var(--ao-text);
+    --control-overlay-secondary-text-default: var(--ao-text);
+    --control-overlay-secondary-text-hover: var(--ao-text);
+    --control-primary-background-active: var(--ao-accentActive);
+    --control-primary-background-default: var(--ao-accent);
+    --control-primary-background-hover: var(--ao-accentHover);
+    --control-primary-border-active: var(--ao-edge);
+    --control-primary-border-default: var(--ao-edge);
+    --control-primary-border-hover: var(--ao-edge);
+    --control-primary-icon-active: var(--ao-onAccent);
+    --control-primary-icon-default: var(--ao-onAccent);
+    --control-primary-icon-hover: var(--ao-onAccent);
+    --control-primary-text-active: var(--ao-onAccent);
+    --control-primary-text-default: var(--ao-onAccent);
+    --control-primary-text-hover: var(--ao-onAccent);
+    --control-secondary-background-active: var(--ao-muted);
+    --control-secondary-background-default: var(--ao-faceAlt);
+    --control-secondary-background-hover: var(--ao-active);
+    --control-secondary-border-active: var(--ao-lo);
+    --control-secondary-border-default: var(--ao-lo);
+    --control-secondary-border-hover: var(--ao-lo);
+    --control-secondary-icon-active: var(--ao-text);
+    --control-secondary-icon-default: var(--ao-text);
+    --control-secondary-icon-hover: var(--ao-text);
+    --control-secondary-text-active: var(--ao-text);
+    --control-secondary-text-default: var(--ao-text);
+    --control-secondary-text-hover: var(--ao-text);
+    --gradient-progress-pill-background: var(--ao-muted);
+    --home-background: var(--ao-sunken);
+    --icon-default: var(--ao-textDim);
+    --icon-feedback-critical: var(--ao-danger);
+    --icon-feedback-info: var(--ao-accent2);
+    --icon-feedback-positive: var(--ao-ok);
+    --icon-feedback-warning: var(--ao-warn);
+    --icon-link: var(--ao-textDim);
+    --icon-muted: var(--ao-muted);
+    --icon-status-dnd: var(--ao-danger);
+    --icon-status-idle: var(--ao-warn);
+    --icon-status-offline: var(--ao-muted);
+    --icon-status-online: var(--ao-ok);
+    --icon-strong: var(--ao-text);
+    --icon-subtle: var(--ao-textDim);
+    --icon-voice-muted: var(--ao-danger);
+    --input-background-default: var(--ao-sunken);
+    --input-background-error-default: color-mix(in srgb, var(--ao-danger), transparent 90%);
+    --input-border-active: var(--ao-accent);
+    --input-border-default: var(--ao-lo);
+    --input-border-error-default: var(--ao-danger);
+    --input-border-hover: var(--ao-edge);
+    --input-placeholder-text-default: var(--ao-muted);
+    --input-text-default: var(--ao-text);
+    --input-text-error-default: var(--ao-text);
+    --interactive-background-active: var(--ao-active-a);
+    --interactive-background-hover: var(--ao-hover-a);
+    --interactive-background-selected: var(--ao-active-a);
+    --interactive-icon-active: var(--ao-text);
+    --interactive-icon-default: var(--ao-textDim);
+    --interactive-icon-hover: var(--ao-text);
+    --interactive-muted: var(--ao-muted);
+    --interactive-text-active: var(--ao-text);
+    --interactive-text-default: var(--ao-textDim);
+    --interactive-text-hover: var(--ao-text);
+    --mention-background: color-mix(in srgb, var(--ao-accent), transparent 90%);
+    --mention-foreground: var(--ao-accentText);
+    --message-background-hover: var(--ao-hover-a);
+    --message-highlight-background-default: var(--ao-reply);
+    --message-highlight-background-hover: var(--ao-reply);
+    --message-mentioned-background-default: var(--ao-mention);
+    --message-mentioned-background-hover: var(--ao-mention);
+    --message-reacted-background-default: color-mix(in srgb, var(--ao-accent), transparent 80%);
+    --message-reacted-text-default: var(--ao-text);
+    --modal-background: var(--ao-face);
+    --modal-footer-background: var(--ao-faceAlt);
+    --notice-background-critical: var(--ao-face);
+    --notice-background-info: var(--ao-accent2);
+    --notice-background-positive: var(--ao-ok);
+    --notice-background-warning: var(--ao-warn);
+    --notice-text-critical: var(--ao-onAccent);
+    --notice-text-info: var(--ao-onAccent);
+    --notice-text-positive: var(--ao-onAccent);
+    --notice-text-warning: var(--ao-onAccent);
+    --polls-victor-fill: color-mix(in srgb, var(--ao-ok), transparent 90%);
+    --polls-voted-fill: color-mix(in srgb, var(--ao-accent), transparent 90%);
+    --progressbar-indicator-background: var(--ao-accent);
+    --progressbar-track-background: var(--ao-faceAlt);
+    --radio-background-active: var(--ao-active);
+    --radio-background-default: var(--ao-faceAlt);
+    --radio-background-hover: var(--ao-active);
+    --radio-background-selected-default: var(--ao-accent);
+    --radio-background-selected-hover: var(--ao-accent);
+    --radio-border-active: var(--ao-edge);
+    --radio-border-default: var(--ao-edge);
+    --radio-border-hover: var(--ao-edge);
+    --radio-border-selected-default: var(--ao-edge);
+    --radio-border-selected-hover: var(--ao-edge);
+    --radio-thumb-background-active: var(--ao-onAccent);
+    --reaction-background-active: var(--ao-active-a);
+    --reaction-background-default: var(--ao-hover-a);
+    --reaction-background-hover: var(--ao-active-a);
+    --reaction-background-reacted-default: color-mix(in srgb, var(--ao-accent), transparent 80%);
+    --reaction-background-reacted-hover: color-mix(in srgb, var(--ao-accent), transparent 70%);
+    --reaction-border-active: var(--ao-edge);
+    --reaction-border-default: var(--ao-lo);
+    --reaction-border-hover: var(--ao-lo);
+    --reaction-border-reacted-default: var(--ao-accent);
+    --reaction-text-active: var(--ao-text);
+    --reaction-text-default: var(--ao-text);
+    --reaction-text-hover: var(--ao-text);
+    --reaction-text-reacted-default: var(--ao-strong);
+    --redesign-button-overlay-alpha-background: hsl(0, 0%, 0%, 0.5);
+    --redesign-button-overlay-alpha-pressed-background: hsl(0, 0%, 0%, 0.7);
+    --redesign-button-overlay-alpha-text: var(--ao-text);
+    --redesign-button-secondary-background: var(--ao-faceAlt);
+    --redesign-button-secondary-pressed-background: var(--ao-active);
+    --redesign-button-secondary-text: var(--ao-text);
+    --scrollbar-auto-thumb: var(--ao-hi);
+    --scrollbar-auto-track: var(--ao-sunken);
+    --scrollbar-thin-thumb: var(--ao-hi);
+    --scrollbar-thin-track: transparent;
+    --slider-track-background: var(--ao-faceAlt);
+    --spine-default: var(--ao-muted);
+    --status-danger: var(--ao-danger);
+    --status-online: var(--ao-ok);
+    --status-positive: var(--ao-ok);
+    --status-positive-background: var(--ao-ok);
+    --status-speaking: var(--ao-ok);
+    --status-warning: var(--ao-warn);
+    --switch-background-default: var(--ao-faceAlt);
+    --switch-background-hover: var(--ao-faceAlt);
+    --switch-background-selected-default: var(--ao-accent);
+    --switch-background-selected-hover: var(--ao-accent);
+    --switch-border-default: var(--ao-edge);
+    --switch-border-hover: var(--ao-edge);
+    --switch-border-selected-default: var(--ao-lo);
+    --switch-border-selected-hover: var(--ao-edge);
+    --switch-thumb-background-default: var(--ao-text);
+    --switch-thumb-background-selected-default: var(--ao-onAccent);
+    --text-brand: var(--ao-accentText);
+    --text-default: var(--ao-text);
+    --text-feedback-critical: var(--ao-danger);
+    --text-feedback-info: var(--ao-accentText);
+    --text-feedback-positive: var(--ao-ok);
+    --text-feedback-warning: var(--ao-warn);
+    --text-link: var(--ao-accentText);
+    --text-muted: var(--ao-muted);
+    --text-overlay-light: var(--ao-onAccent);
+    --text-status-dnd: var(--ao-danger);
+    --text-status-idle: var(--ao-warn);
+    --text-status-offline: var(--ao-muted);
+    --text-status-online: var(--ao-ok);
+    --text-strong: var(--ao-text);
+    --text-subtle: var(--ao-textDim);
+    --textbox-markdown-syntax: var(--ao-textDim);
+    --user-profile-background-hover: var(--ao-hover-a);
+    --user-profile-border: var(--ao-edge);
+    --user-profile-note-background-focus: var(--ao-sunken);
+    --user-profile-overlay-background: var(--ao-sunken);
+    --user-profile-overlay-background-hover: var(--ao-hover-a);
+    --user-profile-toolbar-background: var(--ao-face);
+    --user-profile-toolbar-border: var(--ao-edge);
+    --white: var(--ao-onAccent);
+    --white-500: var(--ao-onAccent);
+    --brand-260: var(--ao-accent);
+    --brand-360: var(--ao-accent);
+    --brand-500: var(--ao-accent);
+    --blurple-50: var(--ao-accent);
+    --red-400: var(--ao-danger);
+    --red-500: var(--ao-danger);
+    --green-360: var(--ao-ok);
+    --yellow-300: var(--ao-warn);
+    --primary-400: var(--ao-textDim);
+}
+
+/* ---- corners: the same small rounding everywhere, Discord's pills and circles included ---- */
+*, *::before, *::after {
+    border-radius: var(--ao-r) !important;
+}
+/* pixel fonts have no bold to fake (a smeared bold is worse than none) */
+body {
+    font-synthesis-weight: none;
+}
+::selection {
+    background: var(--ao-accent) !important;
+    color: var(--ao-onAccent) !important;
+}
+
+/* avatars and server icons squared off: the masks that cut them round, gone (the corners round
+   by --ao-r like everything else); the status a small rounded square with a frame */
+foreignObject[mask] {
+    mask: none !important;
+}
+rect[mask^="url(#svg-mask-status"] {
+    mask: none !important;
+    stroke: var(--ao-edge);
+    stroke-width: 2px;
+    paint-order: stroke;
+    rx: 3px;
+    ry: 3px;
+}
+/* switches and checkboxes: thumbs a little round */
+[class*="switch"] rect,
+[class*="thumb_"] rect,
+[class*="checkbox"] rect {
+    rx: 3px !important;
+    ry: 3px !important;
+}
+
+/* ---- the window ---- */
+/* the top strip: an angelOS title bar */
+.bar_c38106,
+[class^="bar_"]:has(> [class*="trailing_"]) {
+    background: linear-gradient(90deg, var(--ao-title1), var(--ao-title2)) !important;
+    box-shadow: inset 0 -2px 0 var(--ao-edge);
+}
+.bar_c38106 :is(.title_c38106, [class*="title_"]),
+[class^="bar_"]:has(> [class*="trailing_"]) [class*="title_"] {
+    color: var(--ao-titleText) !important;
+    font-family: var(--ao-font-title) !important;
+}
+.bar_c38106 :is(.trailing_c38106, [class*="trailing_"], [class*="leading_"]) :is(svg, [class*="icon"]),
+.winButton_c38106 {
+    color: var(--ao-titleText) !important;
+}
+.winButton_c38106:hover {
+    background: color-mix(in srgb, var(--ao-titleText) 20%, transparent) !important;
+}
+.winButtonClose_c38106:hover {
+    background: var(--ao-danger) !important;
+    color: var(--ao-onAccent) !important;
+}
+
+/* the server rail */
+.guilds__5e434,
+nav[class*="guilds_"] {
+    background: var(--ao-deep) !important;
+}
+/* the selected server's pill: a square accent bar */
+[class*="pill_"] span[class*="item_"] {
+    background: var(--ao-accent) !important;
+}
+/* the icons themselves sit like buttons */
+[class*="listItem_"] [class*="wrapper_"]:has(> svg foreignObject) {
+    transition: none !important;
+}
+
+/* the channel list, the member list: angelOS's face */
+.sidebarList__5e434,
+[class*="sidebarList_"],
+.container_c8ffbb,
+[class*="membersWrap_"],
+[class*="members_"]:not([class*="membersGroup"]) {
+    background: var(--ao-face) !important;
+}
+.sidebarList__5e434,
+[class*="sidebarList_"] {
+    box-shadow: inset -2px 0 0 var(--ao-edge);
+}
+.container_c8ffbb,
+[class*="membersWrap_"] {
+    box-shadow: inset 2px 0 0 var(--ao-edge);
+}
+/* the selected channel: pressed in */
+[class*="modeSelected_"] [class*="link_"],
+[class*="interactiveSelected_"],
+.item_caf372.active_caf372,
+[class*="side_"] [class*="item_"][class*="selected_"] {
+    background: var(--ao-active) !important;
+    box-shadow: inset 2px 2px 0 var(--ao-lo), inset -2px -2px 0 var(--ao-hi);
+    color: var(--ao-text) !important;
+}
+
+/* the user panel: a raised box */
+.panels__5e434,
+section[class*="panels_"] {
+    background: var(--ao-faceAlt) !important;
+    box-shadow: var(--ao-raised);
+}
+
+/* the chat: sunken, the faint pixel hearts behind it */
+.chatContent_f75fb0,
+main[class*="chatContent_"] {
+    background: var(--ao-pattern) repeat, var(--ao-sunken) !important;
+    image-rendering: pixelated;
+}
+.chat_f75fb0 > .subtitleContainer_f75fb0,
+[class*="chat_"] > [class*="subtitleContainer_"],
+section[class*="title_"][class*="container_"] {
+    background: var(--ao-faceAlt) !important;
+    box-shadow: inset 0 2px 0 var(--ao-hi), inset 0 -2px 0 var(--ao-edge);
+}
+
+/* ---- text ---- */
+/* the pixel body font is only sharp at its own size: the messages, the box they are typed in
+   and the channel names at --ao-size */
+[class*="messageContent_"],
+[class*="markup_"][class*="messageContent"],
+[class*="channelTextArea_"] [role="textbox"],
+[class*="slateTextArea_"],
+[class*="repliedTextContent_"],
+[class*="link_"] [class*="name_"],
+[class*="channel_"] [class*="name_"] {
+    font-size: var(--ao-size) !important;
+}
+[class*="messageContent_"] {
+    line-height: calc(var(--ao-size) * 1.5) !important;
+}
+h1, h2, h3,
+[class*="headerText_"],
+[class*="username_"],
+[class*="defaultColor_"][class*="heading"],
+[class*="title_"] h1 {
+    font-family: var(--ao-font-title);
+}
+code, pre, .hljs, [class*="codeContainer_"] {
+    font-family: var(--ao-font-mono) !important;
+}
+
+/* ---- boxes: the bevel ---- */
+/* buttons stand out, and go in when pressed */
+button:is([class*="lookFilled"], [class*="colorBrand"], [class*="button_"]:is([class*="hasText_"], [class*="primary_"], [class*="secondary_"], [class*="critical"], [class*="danger"])):not([class*="textButton"]):not([class*="Link"]):not([class*="icon"]):not([role="tab"]) {
+    box-shadow: var(--ao-raised) !important;
+    transition: none !important;
+}
+button:is([class*="lookFilled"], [class*="colorBrand"], [class*="button_"]:is([class*="hasText_"], [class*="primary_"], [class*="secondary_"], [class*="critical"], [class*="danger"])):not([class*="textButton"]):not([class*="Link"]):not([class*="icon"]):not([role="tab"]):active {
+    box-shadow: var(--ao-sunk) !important;
+    transform: translate(1px, 1px);
+}
+
+/* fields: sunken (the chat's box, search, every input) */
+.channelTextArea_f75fb0,
+[class*="channelTextArea_"],
+[class*="searchBar_"],
+[class*="search_"] [class*="searchBar"],
+[class*="inputWrapper_"] input,
+input:is([type="text"], [type="search"], [type="email"], [type="password"], [type="number"], :not([type])),
+textarea {
+    background-color: var(--ao-sunken) !important;
+    box-shadow: var(--ao-sunk) !important;
+    border-color: transparent !important;
+}
+[class*="channelTextArea_"] [class*="scrollableContainer_"],
+[class*="channelTextArea_"] [class*="themedBackground_"] {
+    background: transparent !important;
+}
+
+/* things that float: raised, with a hard pixel shadow */
+[role="menu"],
+[class*="menu_"][class*="flexible_"],
+[class*="tooltipPrimary_"],
+[class*="tooltip_"][class*="tooltipBlack"],
+[role="dialog"]:not([class*="layer"]):not([class*="fullscreen"]),
+[class*="autocomplete_"],
+[class*="contentWrapper__08434"],
+[class*="userPopoutOuter_"],
+[class*="outer_c0bea0"] {
+    box-shadow: var(--ao-float) !important;
+    border-color: transparent !important;
+    border-radius: var(--ao-r-lg) !important;
+}
+[role="menu"],
+[class*="tooltipPrimary_"],
+[class*="autocomplete_"] {
+    background: var(--ao-face) !important;
+}
+[class*="tooltipPrimary_"] {
+    color: var(--ao-text) !important;
+}
+/* the little arrows under tooltips: a pixel box needs none */
+[class*="tooltipPointer_"] {
+    display: none !important;
+}
+/* menu rows: the accent on hover, like angelOS's menus */
+[role="menu"] [role="menuitem"]:is(:hover, [class*="focused_"]),
+[role="menu"] [role="menuitemcheckbox"]:is(:hover, [class*="focused_"]),
+[role="menu"] [role="menuitemradio"]:is(:hover, [class*="focused_"]) {
+    background: var(--ao-accent) !important;
+    color: var(--ao-onAccent) !important;
+}
+[role="menu"] [role="menuitem"]:is(:hover, [class*="focused_"]) *,
+[role="menu"] [role="menuitemcheckbox"]:is(:hover, [class*="focused_"]) *,
+[role="menu"] [role="menuitemradio"]:is(:hover, [class*="focused_"]) * {
+    color: inherit !important;
+}
+/* a modal's head: an angelOS title bar */
+[role="dialog"] > [class*="header_"]:first-child,
+[role="dialog"] [class*="modalHeader"],
+[class*="modal_"] > [class*="header_"]:first-child {
+    background: linear-gradient(90deg, var(--ao-title1), var(--ao-title2)) !important;
+    color: var(--ao-titleText) !important;
+    box-shadow: inset 0 -2px 0 var(--ao-edge);
+}
+[role="dialog"] > [class*="header_"]:first-child :is(h1, h2, [class*="title"], [class*="heading"]),
+[class*="modal_"] > [class*="header_"]:first-child :is(h1, h2, [class*="title"], [class*="heading"]) {
+    color: var(--ao-titleText) !important;
+    font-family: var(--ao-font-title) !important;
+}
+
+/* embeds, code, reactions: boxes on the chat */
+[class*="embedFull_"] {
+    background: var(--ao-face) !important;
+    box-shadow: inset -2px -2px 0 var(--ao-lo), 0 0 0 2px var(--ao-edge);
+}
+pre code, .hljs {
+    background: var(--ao-deep) !important;
+    border: 2px solid var(--ao-edge) !important;
+}
+code.inline {
+    background: var(--ao-faceAlt) !important;
+}
+[class*="reaction_"]:not([class*="reactionInner"]) {
+    box-shadow: var(--ao-raised);
+}
+/* mentions and the unread line in the accent, square */
+[class*="mentioned_"]::before,
+[class*="replying_"]::before {
+    border-radius: 0 !important;
+}
+[class*="numberBadge_"],
+[class*="iconBadge_"] {
+    box-shadow: 0 0 0 2px var(--ao-edge);
+}
+
+/* ---- scrollbars: angelOS's bevelled thumb on the sunken track (Discord's own widths kept:
+   its hidden scrollers have none) ---- */
+* {
+    scrollbar-color: auto !important;
+}
+::-webkit-scrollbar-thumb {
+    background-color: var(--ao-hi) !important;
+    box-shadow: inset 2px 2px 0 color-mix(in srgb, var(--ao-hi) 60%, white), inset -2px -2px 0 var(--ao-lo);
+    border-radius: var(--ao-r) !important;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ao-accent) !important;
+}
+::-webkit-scrollbar-track {
+    background-color: var(--ao-sunken) !important;
+    border-radius: var(--ao-r) !important;
+}
+
+/* ---- no soft morphing: hover changes at once ---- */
+[class*="listItem_"] *,
+[class*="blobContainer_"],
+[class*="wrapper_"][data-list-item-id] {
+    transition-property: color, background-color, opacity !important;
+    transition-duration: 0s !important;
+}

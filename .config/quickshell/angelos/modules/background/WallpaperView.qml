@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Window
 import qs.config
 import qs.services
+import qs.widgets
 
 // Two stacked images blended by the pixel transition shader.
 Item {
@@ -136,16 +137,8 @@ Item {
         visible: false
     }
 
-    ShaderEffect {
+    Item {
         anchors.fill: parent
-        property var fromTex: fromSrc
-        property var toTex: toSrc
-        property real progress: root.progress
-        property real maxBlock: Config.wallpaper.maxBlock
-        property real style: Math.max(0, root.styleIndex)
-        property size resolution: Qt.size(width, height)
-        property color accent: Theme.accent
-        fragmentShader: Qt.resolvedUrl("../../shaders/pixel_transition.frag.qsb")
         // in hell the circle lays its dark over the picture (HellLook.backdrop); heaven
         // draws the wallpaper untouched
         layer.enabled: Theme.hell
@@ -167,6 +160,27 @@ Item {
             property color light: Theme.hellTextDim
             property color accent: Theme.hellAccent
             fragmentShader: Qt.resolvedUrl("../../shaders/hell_backdrop.frag.qsb")
+        }
+
+        ShaderEffect {
+            anchors.fill: parent
+            property var fromTex: fromSrc
+            property var toTex: toSrc
+            property real progress: root.progress
+            property real maxBlock: Config.wallpaper.maxBlock
+            property real style: Math.max(0, root.styleIndex)
+            property size resolution: Qt.size(width, height)
+            property color accent: Theme.accent
+            fragmentShader: Qt.resolvedUrl("../../shaders/pixel_transition.frag.qsb")
+        }
+
+        // the picture, half alive (stars, water): over it once a transition is over
+        LiveWall {
+            anchors.fill: parent
+            screenName: root.screenName
+            path: root.shown
+            picture: toSrc
+            allowed: root.progress >= 1 && !anim.running
         }
     }
 }

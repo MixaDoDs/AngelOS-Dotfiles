@@ -51,6 +51,7 @@ EXTRA = ([(CONFIG.parent / "cfg/keybinds-common.kdl", "Общие для обе�
           (keyprofile.SELECTOR, "Свои, для обеих тем (cfg/keybinds.kdl, правятся в файле)", True)] if PROFILE else []) + [
     (CONFIG.parent / "cfg/angelos-windows.kdl", "angelOS: Alt+Tab, лупа (Настройки → Окна, Клавиатура и мышь)", True),
     (CONFIG.parent / "angelos.kdl", "angelOS: сгенерировано темой", True),
+    (CONFIG.parent / "cfg/angelos-laptop.kdl", "angelOS: клавиши ноутбука и Mod+P (Настройки → Клавиатура → Клавиши ноутбука)", True),
 ]
 
 BIND = re.compile(

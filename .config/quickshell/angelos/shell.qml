@@ -129,5 +129,9 @@ ShellRoot {
         KeyProfile.want; // every theme its own niri keys, switched with the theme
         CommunityPlugins.entries; // the plugin catalog: a daily update check, the old store retired
         GoldenGate.wallTheme; // every theme its own wallpapers
+        Power.percent; // a laptop's battery: alerts, eco mode, idle on battery (services/Power)
+        Backlight.available; // the backlight keys and the dimming before idle
+        Gestures.status; // the touchpad's own gestures (scripts/gesture-watch.py)
+        Wellbeing.loaded; // screen time and the breaks the angel reminds of (Settings → Wellbeing)
     }
 }

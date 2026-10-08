@@ -860,6 +860,123 @@ const icons = {
         "###.###.###",
         "#y#.#o#.#x#",
         "###.###.###"
+    ],
+    // laptops (services/Power, Backlight, Gestures): the battery, a charger's bolt, eco's leaf,
+    // the touchpad, a fingerprint, rotation, airplane mode, the laptop, hell's coal heart
+    battery: [
+        "#########.",
+        "#wooo...#.",
+        "#oooo...##",
+        "#oooo...##",
+        "#oooo...##",
+        "#oooo...#.",
+        "#########."
+    ],
+    bolt: [
+        "....yyy",
+        "...yyy.",
+        "..yyy..",
+        ".yyyyyy",
+        "yyyyyy.",
+        "..yyy..",
+        ".yyy...",
+        "yyy...."
+    ],
+    // Wellbeing (Settings → Wellbeing, 2026-10-08)
+    clock: [
+        "..#####..",
+        ".#wwwww#.",
+        "#www#www#",
+        "#www#www#",
+        "#www##ww#",
+        "#wwwwwww#",
+        "#wwwwwww#",
+        ".#wwwww#.",
+        "..#####.."
+    ],
+    drop: [
+        "....#....",
+        "...#x#...",
+        "..#xxx#..",
+        ".#xxxxx#.",
+        "#xxwxxxx#",
+        "#xwxxxxx#",
+        "#xxxxxxx#",
+        ".#xxxxx#.",
+        "..#####.."
+    ],
+    leaf: [
+        ".....####",
+        "...##xxx#",
+        "..#xxxxx#",
+        ".#xx#xx#.",
+        ".#x#xxx#.",
+        "..#xxx#..",
+        ".#.###...",
+        "#........"
+    ],
+    touchpad: [
+        "###########",
+        "#fffffffff#",
+        "#fffffffff#",
+        "#fffffffff#",
+        "#fffffffff#",
+        "###########",
+        "#ffff#ffff#",
+        "###########"
+    ],
+    fingerprint: [
+        "..#####..",
+        ".#.....#.",
+        "#..###..#",
+        "#.#...#.#",
+        "#.#.#.#.#",
+        "#.#.#.#.#",
+        "#.#.#.#.#",
+        "..#.#.#.#",
+        "....#.#..",
+        "......#.."
+    ],
+    rotate: [
+        "..####..#",
+        ".#....#.#",
+        "#......##",
+        "#....####",
+        "#........",
+        "#.......#",
+        ".#.....#.",
+        "..#####.."
+    ],
+    plane: [
+        ".....#.....",
+        "....#o#....",
+        "....#o#....",
+        ".###ooo###.",
+        "#ooooooooo#",
+        ".###ooo###.",
+        "....#o#....",
+        "...#ooo#...",
+        "...#####..."
+    ],
+    laptop: [
+        ".#########.",
+        ".#xxxxxxx#.",
+        ".#xwxxxxx#.",
+        ".#xxxxxxx#.",
+        ".#xxxxxxx#.",
+        ".#########.",
+        "###########",
+        ".#########."
+    ],
+    coal: [
+        ".##...##.",
+        "#oy#.#oo#",
+        "#ooo#oyo#",
+        "#oyooooo#",
+        ".#oooyo#.",
+        "..#oyo#..",
+        "...#o#...",
+        "....#...."
     ]
 };
 

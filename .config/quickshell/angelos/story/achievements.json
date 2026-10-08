@@ -1024,6 +1024,51 @@
       "kinds": 5,
       "secret": true,
       "hell": true
+    },
+    {
+      "id": "hydrated",
+      "tier": 2,
+      "icon": "heart",
+      "name": {
+        "ru": "Водный баланс",
+        "en": "Hydrated"
+      },
+      "desc": {
+        "ru": "Выпить восемь стаканов воды — ангел считала",
+        "en": "Drink eight glasses of water — the angel was counting"
+      },
+      "on": "wellbeing.water",
+      "count": 8
+    },
+    {
+      "id": "far-sight",
+      "tier": 2,
+      "icon": "eye",
+      "name": {
+        "ru": "Взгляд вдаль",
+        "en": "Far sight"
+      },
+      "desc": {
+        "ru": "Десять раз дать глазам отдохнуть, когда ангел попросила",
+        "en": "Rest your eyes ten times when the angel asked"
+      },
+      "on": "wellbeing.break:eyes",
+      "count": 10
+    },
+    {
+      "id": "stretch",
+      "tier": 3,
+      "icon": "sparkle",
+      "name": {
+        "ru": "Крылья размяты",
+        "en": "Wings stretched"
+      },
+      "desc": {
+        "ru": "Пять раз встать и размяться по напоминанию",
+        "en": "Get up and stretch five times when reminded"
+      },
+      "on": "wellbeing.break:move",
+      "count": 5
     }
   ]
 }

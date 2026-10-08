@@ -20,6 +20,9 @@
 #   it follows `angelos settingsSkin …` by itself while the shell runs; sync = the one settings.json asks for
 #   angelos updates [status] | check | update — Settings → Updates from the terminal: follows the
 #   run to its end and says what happened (without a running shell the update runs right here)
+#   angelos brightness up|down|0…100 | kbdLight up|down|cycle — a laptop's backlight and keyboard light
+#   angelos laptop info | battery | eco on|off|auto | touchpad on|off|toggle | airplane | project … |
+#   lid close|open | tablet on|off | rotate … — the rest of a laptop (`angelos laptop help`)
 #   angelos sddm [status] | build | install [--palette ngo|system] [--look L] | look L — the login
 #   screen (SDDM) in one of angelOS's looks (stream heaven retro hell quiet); install asks for the
 #   admin password (pkexec), `look` after that needs none
@@ -258,6 +261,7 @@ case "$1" in
     shift
     exec qs -c angelos ipc call angelos novel "$*" ;;
   motion) exec qs -c angelos ipc call angelos motion "${2:-status}" ;;
+  laptop)  shift; exec qs -c angelos ipc call angelos laptop "$*" ;;
   updates) shift; exec python3 "$SHELL_DIR/scripts/updates-cli.py" "$@" ;;
   keys)
     case "${2:-status}" in
@@ -279,6 +283,10 @@ case "$1" in
     # revoke, toast <id> [hell|heaven], note <event> [key] [n], reset [counts])
     shift
     exec qs -c angelos ipc call angelos ach "$*" ;;
+  wellbeing|screentime)
+    # screen time and breaks: status | water | unwater | test eyes|move|water|limit | clear
+    shift
+    exec qs -c angelos ipc call angelos wellbeing "$*" ;;
   diary)
     # the Angel's diary: open [page] | close | list | validate | status | watch
     # (+ owner/dev: read-reset, preview on|off, away [min], back, trust [reset])

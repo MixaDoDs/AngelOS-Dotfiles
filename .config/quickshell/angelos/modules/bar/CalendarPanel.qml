@@ -11,6 +11,7 @@ BarPopup {
     id: root
 
     title: I18n.exe(I18n.t("календарь", "calendar"))
+    panelId: "calendar"                  // `angelos panel calendar`, a gesture (services/Gestures)
     icon: "calendar"
     contentWidth: Theme.u * 170
     contentHeight: Theme.u * 250

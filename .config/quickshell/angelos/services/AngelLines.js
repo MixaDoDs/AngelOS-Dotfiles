@@ -77,6 +77,7 @@ const tips = [
 // said once, the first time a settings page opens
 // keyed by the page of the settings tree (modules/settings/tree.json) shown
 const pageTips = {
+    "wellbeing": ["Я буду напоминать про воду и перерывы — нажимай «Попил(а)», и я посчитаю стаканы ♡", "I'll remind you of water and breaks. Press “Done” and I'll count the glasses ♡"],
     "wallpaper": ["Кликни картинку — и она на столе. Переход можно выбрать ниже, моё любимое — сердечко.", "Click a picture and it's on the desk. Pick a transition below; the heart is my favourite."],
     "widgets": ["Виджеты таскаются за заголовок. Ctrl + колёсико — размер ♡", "Drag widgets by the title bar. Ctrl + wheel changes their size ♡"],
     "taskbar": ["Попробуй стиль «остров» — панель станет маленькой и будет парить.", "Try the “island” style: the bar shrinks and floats."],
@@ -105,6 +106,7 @@ const pageTips = {
 
 // said once, the first time a settings page opens while the demon rules
 const demonPageTips = {
+    "wellbeing": ["Считаю каждую минуту, что ты тут сидишь. Для отчёта. Наверх. Или вниз.", "I count every minute you sit here. For the report. Upstairs. Or downstairs."],
     "hell": ["Моя страница теперь. Виджеты в аду, курсор в аду, гримуар — всё тут. Выключишь — обижусь.", "My page now. Widgets in hell, the cursor in hell, the grimoire — all here. Switch them off and I'll sulk."],
     "cursor": ["Внизу шесть адских курсоров. Вилы — мои любимые.", "Six hell cursors down there. The pitchfork is my favourite."],
     "widgets": ["Виджеты сгорели красиво, скажи? Новые — с огоньком.", "The widgets burned beautifully, didn't they? The new ones have some fire in them."],
@@ -485,6 +487,27 @@ const angel = {
     "night": ["Уже поздно… Может, спать? Я посторожу компьютер.", "It's late… bed, maybe? I'll guard the computer."]
 };
 
+// a laptop's battery (services/Power → Angel.tired; Settings → Battery → "notices"). Drafts
+// (2026-10-08, the laptop batch): the author's to rewrite
+const battery = {
+    "angel": {
+        "low": [["Я устаю… Нимб еле светится. Зарядку бы ♡", "I'm getting tired… my halo's barely glowing. A charger, maybe ♡"],
+                ["*зевает* Ой. Батарейка садится, и я вместе с ней.", "*yawns* Oops. The battery's running down, and me with it."]],
+        "veryLow": [["Крылышки не держат… Покорми меня ⚡", "My wings won't hold… feed me ⚡"],
+                    ["Десять процентов. Я уже сижу. Скоро прилягу.", "Ten percent. I'm sitting down already. Lying down soon."]],
+        "critical": [["Засыпаю… Сохрани всё, пока я не уснула совсем. zZz", "Falling asleep… save everything before I'm out completely. zZz"]],
+        "plugged": [["Ура, зарядка! Спасибо ♡ Я снова в силах!", "Yay, a charger! Thank you ♡ I'm back on my feet!"],
+                    ["М-м-м, электричество ♡ Крылья снова пушистые.", "Mmm, electricity ♡ My wings are fluffy again."]]
+    },
+    "demon": {
+        "low": [["Эй. Батарея. Двадцать процентов. Я не собираюсь умирать в твоём ноутбуке.", "Hey. Battery. Twenty percent. I'm not dying inside your laptop."],
+                ["Мне скучно и голодно. Зарядку. Живо.", "I'm bored and hungry. Charger. Now."]],
+        "veryLow": [["Десять процентов, смертный. Ещё немного — и я заберу тебя с собой.", "Ten percent, mortal. A little more and I take you down with me."]],
+        "critical": [["…Всё. Я сплю. Разбудишь без зарядки — прокляну.", "…That's it. I'm sleeping. Wake me without a charger and you're cursed."]],
+        "plugged": [["Хм. Сойдёт.", "Hm. That'll do."], ["Наконец-то. Ещё бы кровь подключил.", "Finally. You could've plugged in some blood too."]]
+    }
+};
+
 // on stream (services/StreamAngel): she sits on the taskbar in the streamed picture, and
 // says these to the chat; the demon's ones are hell's, said only on stream
 const stream = {
@@ -522,4 +545,41 @@ const stream = {
     "demonGrab": [["Чат, {g:он меня лапает|она меня лапает|меня лапают} в прямом эфире. Клипайте.", "Chat, {g:he's|she's|they're} grabbing me live on air. Clip it."], ["Руки, стример. На тебя смотрят.", "Hands, streamer. People are watching."],
                   ["Тащи-тащи. Ниже ада всё равно некуда.", "Drag away. There's nothing below hell anyway."]],
     "demonDrop": [["Я уже в аду, зайка. И весь твой чат — тоже. Проси вежливо, при свидетелях.", "I'm already in hell, sweetie. So is your whole chat. Ask nicely, in front of witnesses."]]
+};
+
+// Wellbeing (services/Wellbeing; Settings → Wellbeing): the breaks she reminds you of. %t = how
+// long you've sat there ("1 ч 20 мин"), %n = glasses today, %g = the day's goal. Drafts
+// (2026-10-08): the author's to rewrite
+const wellbeing = {
+    "angel": {
+        "eyes": [["Посмотри-ка в окно ♡ Секунд двадцать — на что-нибудь далёкое. Глазки скажут спасибо.", "Look out the window ♡ Twenty seconds, at something far away. Your eyes will thank you."],
+                 ["Глазкам перерыв! Найди самую дальнюю точку в комнате и посмотри на неё, пока я считаю до двадцати.", "Eye break! Find the farthest spot in the room and look at it while I count to twenty."],
+                 ["Поморгай-поморгай ♡ И посмотри вдаль — экран никуда не денется.", "Blink, blink ♡ And look far away — the screen isn't going anywhere."]],
+        "move": [["Ты сидишь уже %t. Встань, потянись, пройдись — крылышки тоже надо разминать ♡", "You've been sitting for %t. Stand up, stretch, walk around — wings need stretching too ♡"],
+                 ["Перерыв! Пять минут без экрана: плечи вниз, спина прямо, походи по комнате.", "Break time! Five minutes without the screen: shoulders down, back straight, walk around."],
+                 ["%t без перерыва… Даже ангелы иногда встают с облака. Давай, разомнись ♡", "%t without a break… even angels get off their cloud sometimes. Go on, stretch ♡"]],
+        "water": [["Водички? ♡ Стакан воды — и я буду спокойна.", "Some water? ♡ One glass and I'll stop worrying."],
+                  ["Пора попить! Сегодня уже %n из %g ♡", "Time for a drink! %n of %g glasses today ♡"],
+                  ["Нимб сохнет — значит, и ты тоже. Попей воды ♡", "My halo's drying out, so you are too. Drink some water ♡"]],
+        "limit": [["Сегодня ты за компьютером уже %t — это твой лимит. Может, на сегодня хватит? ♡", "You've been at the computer for %t today — that's your limit. Maybe that's enough for today? ♡"]],
+        "limitAgain": [["Ещё пятнадцать минут прошли… Я всё ещё тут и всё ещё волнуюсь ♡", "Another fifteen minutes… I'm still here, and still worried ♡"]],
+        "eyesDone": [["Умничка ♡", "Good job ♡"], ["Вот, так-то лучше ♡", "There, that's better ♡"]],
+        "moveDone": [["С возвращением! {g:Размялся|Размялась|Размялись}? ♡", "Welcome back! Stretched a bit? ♡"], ["{g:Отдохнул|Отдохнула|Отдохнули}? Вот и славно ♡", "Rested? Lovely ♡"]],
+        "waterDone": [["Буль-буль ♡ Это %n-й сегодня.", "Glug glug ♡ That's number %n today."], ["Спасибо! Мне правда спокойнее ♡", "Thank you! I really do feel calmer ♡"]],
+        "goal": [["%g стаканов! Ты сегодня отлично пьёшь воду ♡", "%g glasses! You're great at water today ♡"]]
+    },
+    "demon": {
+        "eyes": [["Отвернись от экрана. Двадцать секунд. Смотри в стену, как я смотрю на твои решения.", "Look away from the screen. Twenty seconds. Stare at the wall the way I stare at your choices."],
+                 ["Твои глаза мне ещё пригодятся. Смотри вдаль. Живо.", "I'll need those eyes of yours later. Look far away. Now."]],
+        "move": [["%t в одной позе. Даже грешники в котле ворочаются. Встань.", "%t in one position. Even sinners in the cauldron turn over. Get up."],
+                 ["Спина у тебя уже как у горгульи. Встань, пройдись, потом продолжишь страдать.", "Your back's turning into a gargoyle's. Get up, walk around, then go back to suffering."]],
+        "water": [["Пей воду. Мне нужна душа, а не сушёная вобла.", "Drink water. I need a soul, not dried fish."],
+                  ["%n из %g. Жалкое зрелище. Стакан воды — и я отстану. Ненадолго.", "%n of %g. Pathetic. A glass of water and I'll leave you alone. Briefly."]],
+        "limit": [["%t. Ты {g:обещал|обещала|обещали} себе меньше. Я люблю нарушенные обещания, но иди отдохни.", "%t. You promised yourself less. I love a broken promise, but go rest."]],
+        "limitAgain": [["Ещё пятнадцать минут. Я записываю.", "Fifteen more minutes. I'm taking notes."]],
+        "eyesDone": [["Хм. Послушно.", "Hm. Obedient."]],
+        "moveDone": [["{g:Вернулся|Вернулась|Вернулись}. Я почти соскучилась. Почти.", "You're back. I almost missed you. Almost."]],
+        "waterDone": [["%n. Продолжай в том же духе, смертный.", "%n. Keep it up, mortal."]],
+        "goal": [["%g стаканов. Ладно, {g:впечатлил|впечатлила|впечатлили}.", "%g glasses. Fine, I'm impressed."]]
+    }
 };

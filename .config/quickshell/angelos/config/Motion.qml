@@ -20,7 +20,11 @@ Singleton {
     id: root
 
     readonly property var levels: ["full", "calm", "off"]
-    readonly property string level: levels.includes(Config.appearance.motion) ? Config.appearance.motion : "full"
+    // the laptop's eco mode (services/Power sets it): `off` for as long as it lasts, the setting
+    // itself untouched
+    property bool eco: false
+    readonly property string chosen: levels.includes(Config.appearance.motion) ? Config.appearance.motion : "full"
+    readonly property string level: eco ? "off" : chosen
     readonly property bool calm: level !== "full"
     readonly property bool still: level === "off"
     // an animation's length: nothing while `off`

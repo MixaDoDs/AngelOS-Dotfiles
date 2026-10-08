@@ -100,7 +100,8 @@ Scope {
                 repeat: true
                 onTriggered: {
                     win.tick++;
-                    if (win.awake)
+                    // a flat battery (Angel.tired ≥ 2): the wings hang still
+                    if (win.awake && Angel.tired < 2)
                         win.swing++;
                 }
             }
@@ -123,11 +124,14 @@ Scope {
             }
             // the swap flips the sprite halfway through (Angel.becomeDemon/becomeAngel)
             readonly property bool demonArt: Angel.demon
-            readonly property bool blinking: clockOn && awake && (tick % 29 === 0 || (expressive && assistantMood === "happy" && tick % 24 < 3))
+            // asleep on a flat battery: eyes shut; tired: heavier lids, a blink more often
+            readonly property bool blinking: clockOn && (Angel.tired >= 3 || awake && (tick % (Angel.tired ? 13 : 29) === 0 || (expressive && assistantMood === "happy" && tick % 24 < 3)))
             // her own words type out; on stream the streamer's voice moves her mouth too
             // (a PNGtuber's: open on loud syllables, flapping in between)
             readonly property bool voiceOn: streamer && StreamAngel.talking && !Angel.transition
-            readonly property bool mouthOpen: (Angel.talking && typer.shown < Angel.text.length && tick % 2 === 0) || (voiceOn && (StreamAngel.level > StreamAngel.threshold * 1.5 || tick % 2 === 0))
+            readonly property bool mouthOpen: (Angel.talking && typer.shown < Angel.text.length && tick % 2 === 0) || (voiceOn && (StreamAngel.level > StreamAngel.threshold * 1.5 || tick % 2 === 0)) || yawning
+            // tired (a low battery): a long yawn now and then, more often when the wings are down
+            readonly property bool yawning: !Angel.transition && !grab.held && !Angel.talking && (Angel.tired === 1 && tick % 320 < 12 || Angel.tired === 2 && tick % 200 < 12)
             // Settings → Y2K → Looks, each of them apart: glitch (the cracked-halo angel /
             // the sleepless neon demon, SpriteRig), chibi (the first pictures), adult (the 30×40
             // pixel sprite, also when the pictures are missing) or mini (20×21); the angel's own
@@ -166,7 +170,7 @@ Scope {
                     return art.blink;
                 return Math.floor(tick / 3) % 2 ? art.down : art.up;
             }
-            readonly property int bob: Angel.transition || Motion.calm || (still && !stirring && !assistantBusy && !assistantMood) ? 0 : [0, 1, 2, 2, 1, 0, -1, -1][tick % 8]
+            readonly property int bob: Angel.transition || Motion.calm || Angel.tired >= 2 || (still && !stirring && !assistantBusy && !assistantMood) ? 0 : [0, 1, 2, 2, 1, 0, -1, -1][Angel.tired ? Math.floor(tick / 2) % 8 : tick % 8]
             // swap motion: the leaving one hops and drops through the floor, the new one
             // climbs out of the flames (demon) or comes down from the sky (angel)
             readonly property real swapY: {
@@ -708,6 +712,24 @@ Scope {
                             }
                         }
 
+                        // asleep on a flat battery (Angel.tired 3): "z Z" drift up from her head
+                        Repeater {
+                            model: Angel.tired >= 3 && !stage.moving ? 2 : 0
+                            PxText {
+                                id: zz
+                                required property int index
+                                // motion off (the eco mode too): they hang where they are
+                                readonly property real t: Motion.still ? 0.25 + index * 0.4 : ((win.tick + index * 12) % 24) / 24
+                                z: 3
+                                text: index ? "Z" : "z"
+                                kind: index ? "title" : "body"
+                                color: win.demonArt ? Theme.hellAccent : Theme.accent
+                                opacity: 1 - t
+                                x: sprite.x + sprite.width * (win.atLeft ? 0.25 : 0.62) + t * Theme.u * 6
+                                y: sprite.y + sprite.height * 0.12 - t * Theme.u * 14
+                            }
+                        }
+
                         // her pictures in parts: wings (and the demon's tail) swing,
                         // she blinks and talks (sprites/, SpriteRig)
                         SpriteRig {
@@ -723,6 +745,12 @@ Scope {
                             talk: win.mouthOpen
                             // Small whole-rig gestures keep authored sprite parts aligned.
                             rotation: win.expressive ? win.assistantBusy ? Math.sin(win.tick * 0.23) * 2 : win.assistantMood === "happy" ? Math.sin(win.tick * 0.65) * 3 : win.assistantMood === "concerned" ? -2 : 0 : 0
+                            // a flat battery (Angel.tired): she slumps — still, so in the eco mode too
+                            transform: Rotation {
+                                origin.x: sprite.width / 2
+                                origin.y: sprite.height
+                                angle: Angel.transition || grab.held || Angel.tired < 2 ? 0 : (win.atLeft ? 1 : -1) * (Angel.tired >= 3 ? 6 : 3)
+                            }
                             transformOrigin: Item.Bottom
                             flutter: grab.held || (win.expressive && win.assistantMood === "happy")
                             // past cold she cries (story/game.json → angel.fallen); motion off: no drops

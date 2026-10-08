@@ -236,6 +236,41 @@ Scope {
         }
     }
 
+    // ---- the finger (fprintd, Settings → Lock): a PAM conversation of its own beside the
+    // password's; a finger on the reader unlocks as the password does. Tried again after each
+    // round of misses or its timeout, for as long as the lock is up ----
+    readonly property bool fingerOn: Shell.locked && !unlocking && !previewing && Config.laptop.fingerprint && Laptop.fprintEnrolled > 0
+    property string fingerStatus: ""
+    onFingerOnChanged: {
+        if (fingerOn)
+            finger.start();
+        else if (finger.active)
+            finger.abort();
+    }
+    PamContext {
+        id: finger
+        configDirectory: Quickshell.shellDir + "/pam"
+        config: "angelos-fprint"
+        onMessageChanged: if (message)
+            root.fingerStatus = message
+        onCompleted: result => {
+            if (result === PamResult.Success && root.fingerOn) {
+                root.fingerStatus = "";
+                root.succeed();
+            } else {
+                root.fingerStatus = I18n.t("палец не узнан", "finger not recognised");
+                fingerAgain.restart();
+            }
+        }
+        onError: e => fingerAgain.restart()
+    }
+    Timer {
+        id: fingerAgain
+        interval: 2500
+        onTriggered: if (root.fingerOn && !finger.active)
+            finger.start()
+    }
+
     // Caps Lock from the keyboard LEDs (a lock screen has no other way to know)
     Process {
         running: root.shown && Config.lock.indicators
@@ -319,10 +354,10 @@ Scope {
         onTriggered: logind.running = root.sleepLock
     }
 
-    // idle auto-lock
+    // idle auto-lock (on battery: Settings → Battery's own, services/Power)
     IdleMonitor {
-        enabled: Config.lock.idleMinutes > 0
-        timeout: Math.max(1, Config.lock.idleMinutes) * 60
+        enabled: Power.lockMinutes > 0
+        timeout: Math.max(1, Power.lockMinutes) * 60
         respectInhibitors: true
         onIsIdleChanged: if (isIdle)
             Shell.lock()

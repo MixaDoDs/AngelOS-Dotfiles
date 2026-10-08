@@ -6,21 +6,23 @@ import qs.services
 import qs.widgets
 import "../../widgets/Place.js" as Place
 
-// Small volume / mic / layout OSD. Position comes from Settings → Звук → OSD.
+// Small volume / mic / layout / brightness / keyboard light OSD, and the laptop's switch keys. Position comes from Settings → Звук → OSD.
 PanelWindow {
     id: win
 
     property string kind: "volume"
     property bool shown: false
     readonly property string pos: Config.osd.position || "bottom-center"
-    readonly property bool compactLayout: kind === "layout"
+    readonly property bool compactLayout: kind === "layout" || kind === "flag"
+    // the meter: volume, mic, the backlight, the keyboard's light (0…1)
+    readonly property real meter: kind === "brightness" ? Backlight.level : kind === "kbd" ? (Backlight.kbdMax > 0 ? Backlight.kbd / Backlight.kbdMax : 0) : kind === "mic" ? (Audio.micMuted ? 0 : Audio.micVolume) : (Audio.muted ? 0 : Math.min(1, Audio.volume))
 
     function show(k) {
         if (!Config.osd.enabled)
             return;
         kind = k;
         shown = true;
-        hide.interval = k === "layout" ? Math.round(Config.osd.ms * 0.7) : Config.osd.ms;
+        hide.interval = k === "layout" || k === "flag" ? Math.round(Config.osd.ms * 0.7) : Config.osd.ms;
         hide.restart();
     }
 
@@ -62,6 +64,23 @@ PanelWindow {
         }
     }
     Connections {
+        target: Backlight
+        function onChanged(what) {
+            win.show(what);
+        }
+    }
+    // the laptop's keys that are a switch: touchpad, airplane mode, rotation lock (services/Laptop)
+    property string flagText: ""
+    property string flagIcon: "heart"
+    Connections {
+        target: Laptop
+        function onFlag(icon, text) {
+            win.flagIcon = icon;
+            win.flagText = text;
+            win.show("flag");
+        }
+    }
+    Connections {
         target: Niri
         function onLayoutSwitched() {
             if (Config.osd.layout)
@@ -90,20 +109,20 @@ PanelWindow {
 
             PxIcon {
                 anchors.verticalCenter: parent.verticalCenter
-                name: win.kind === "mic" ? (Audio.micMuted ? "micMute" : "mic") : win.kind === "layout" ? "keyboard" : (Audio.muted ? "speakerMute" : "speaker")
+                name: win.kind === "flag" ? win.flagIcon : win.kind === "brightness" ? "sun" : win.kind === "kbd" ? "keyboard" : win.kind === "mic" ? (Audio.micMuted ? "micMute" : "mic") : win.kind === "layout" ? "keyboard" : (Audio.muted ? "speakerMute" : "speaker")
             }
             PxHearts {
-                visible: win.kind !== "layout"
+                visible: !win.compactLayout
                 anchors.verticalCenter: parent.verticalCenter
                 count: 10
                 pixel: Math.max(1, Theme.u - 1)
-                value: win.kind === "mic" ? (Audio.micMuted ? 0 : Audio.micVolume) : (Audio.muted ? 0 : Math.min(1, Audio.volume))
+                value: win.meter
                 fill: Audio.volume > 1 && win.kind === "volume" ? Theme.danger : Theme.accent
             }
             PxText {
                 anchors.verticalCenter: parent.verticalCenter
-                text: win.kind === "layout" ? Niri.layoutShort : win.kind === "mic" ? (Audio.micMuted ? I18n.t("выкл", "off") : Math.round(Audio.micVolume * 100) + "%") : (Audio.muted ? I18n.t("тихо", "Quiet") : Math.round(Audio.volume * 100) + "%")
-                font.bold: win.kind === "layout"
+                text: win.kind === "flag" ? win.flagText : win.kind === "brightness" || win.kind === "kbd" ? Math.round(win.meter * 100) + "%" : win.kind === "layout" ? Niri.layoutShort : win.kind === "mic" ? (Audio.micMuted ? I18n.t("выкл", "off") : Math.round(Audio.micVolume * 100) + "%") : (Audio.muted ? I18n.t("тихо", "Quiet") : Math.round(Audio.volume * 100) + "%")
+                font.bold: win.compactLayout
             }
         }
     }

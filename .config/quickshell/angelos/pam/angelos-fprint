@@ -1,0 +1,3 @@
+# angelOS lock screen: a finger (fprintd), a conversation of its own beside the password's
+# (modules/lock/Lock.qml starts it while locked, when a finger is enrolled; Settings → Lock)
+auth required pam_fprintd.so max-tries=3 timeout=25

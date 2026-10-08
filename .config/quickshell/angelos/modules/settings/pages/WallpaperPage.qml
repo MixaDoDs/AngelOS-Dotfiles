@@ -323,6 +323,223 @@ PxPage {
         }
     }
 
+    // half-alive wallpapers (services/LiveWalls): what in the picture may move a little
+    PxGroup {
+        id: liveGroup
+        name: "live"
+        title: I18n.t("Живые обои", "Alive")
+        icon: "sparkle"
+        width: parent.width
+        // the picture on the screen these settings are open on
+        readonly property string path: Wallpapers.resolve(page.output, page.wsIdx)
+        readonly property var fx: LiveWalls.effective(path)
+        readonly property var over: (Config.wallpaper.liveOverrides || {})[path] || {}
+        Component.onCompleted: LiveWalls.request(path)
+        onPathChanged: LiveWalls.request(path)
+
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Если на картинке есть ночное небо, вода или огоньки, они чуть-чуть оживают: звёзды мерцают и иногда падают, вода рябит и отражает небо, окна и звёзды поблёскивают. Ненавязчиво, по пикселям картинки. Картинку оболочка разглядывает сама, один раз.", "If the picture has a night sky, water or little lights, they come a little alive: stars twinkle and now and then fall, water ripples and mirrors the sky, windows and stars glimmer. Quietly, on the picture's own pixels. The shell looks at each picture by itself, once.")
+        }
+        SettingRow {
+            label: I18n.t("Живые обои", "Alive wallpaper")
+            hint: Motion.still ? I18n.t("сейчас выключено: движение в оболочке остановлено", "off now: motion is turned off in the shell") : Theme.hell ? I18n.t("в Аду своё: оживает только в Раю", "hell has its own: comes alive in heaven only") : ""
+            PxToggle {
+                checked: Config.wallpaper.live
+                onToggled: c => Config.wallpaper.live = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("На этой картинке", "In this picture")
+            hint: liveGroup.path.replace(Config.home, "~")
+            Row {
+                spacing: Theme.u * 3
+                PxText {
+                    width: Math.min(Theme.u * 150, implicitWidth)
+                    wrapMode: Text.Wrap
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: LiveWalls.describe(liveGroup.path)
+                }
+                PxButton {
+                    compact: true
+                    icon: "refresh"
+                    enabled: LiveWalls.busy === ""
+                    text: I18n.t("ещё раз", "again")
+                    onClicked: LiveWalls.reanalyze(liveGroup.path)
+                }
+            }
+        }
+        // the same picture, alive, small
+        Item {
+            id: livePreview
+            visible: Config.wallpaper.live
+            width: Math.min(parent.width, Theme.u * 200)
+            height: Math.round(width * 9 / 16)
+            PxBox {
+                anchors.fill: parent
+                sunken: true
+                color: Theme.sunken
+            }
+            Image {
+                id: liveThumb
+                anchors.fill: parent
+                anchors.margins: Theme.u
+                source: liveGroup.path ? "file://" + Wallpapers.display(liveGroup.path) : ""
+                sourceSize: Qt.size(Math.round(width * 2), Math.round(height * 2))
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                smooth: false
+                visible: false
+            }
+            ShaderEffectSource {
+                id: liveThumbSrc
+                sourceItem: liveThumb
+                hideSource: true
+                visible: false
+            }
+            Image {
+                anchors.fill: liveThumb
+                source: liveThumb.source
+                sourceSize: liveThumb.sourceSize
+                fillMode: Image.PreserveAspectCrop
+                smooth: false
+            }
+            LiveWall {
+                anchors.fill: liveThumb
+                screenName: page.output
+                path: liveGroup.path
+                picture: liveThumbSrc
+                allowed: liveThumb.status === Image.Ready && livePreview.visible
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.live
+            label: I18n.t("Заметность", "How noticeable")
+            hint: I18n.t("насколько сильно мерцает и рябит", "how much it twinkles and ripples")
+            PxSlider {
+                width: parent.width
+                from: 10
+                to: 100
+                stepSize: 5
+                value: Config.wallpaper.liveStrength
+                suffix: " %"
+                onMoved: v => Config.wallpaper.liveStrength = v
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.live
+            label: I18n.t("Звёзды мерцают", "Stars twinkle")
+            hint: I18n.t("звёзды картинки и новые, которые появляются и гаснут", "the picture's stars and new ones that come and go")
+            PxToggle {
+                checked: Config.wallpaper.liveStars
+                onToggled: c => Config.wallpaper.liveStars = c
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.live
+            label: I18n.t("Падающие звёзды", "Falling stars")
+            hint: I18n.t("изредка, в верхней части неба", "now and then, high in the sky")
+            PxToggle {
+                checked: Config.wallpaper.liveMeteors
+                onToggled: c => Config.wallpaper.liveMeteors = c
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.live
+            label: I18n.t("Вода", "Water")
+            hint: I18n.t("рябь, блики и отражение неба", "ripples, glints and the sky's reflection")
+            PxToggle {
+                checked: Config.wallpaper.liveWater
+                onToggled: c => Config.wallpaper.liveWater = c
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.live
+            label: I18n.t("Огоньки", "Lights")
+            hint: I18n.t("окна и фонари на ночной картинке поблёскивают", "windows and lamps of a night picture glimmer")
+            PxToggle {
+                checked: Config.wallpaper.liveLights
+                onToggled: c => Config.wallpaper.liveLights = c
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.live
+            label: I18n.t("Кадров в секунду", "Frames per second")
+            hint: I18n.t("меньше — пиксельнее и легче для видеокарты", "fewer: more pixel-like and lighter on the GPU")
+            PxSegmented {
+                model: [12, 24, 60].map(v => ({
+                            "label": String(v),
+                            "value": v
+                        }))
+                currentValue: Config.wallpaper.liveFps
+                onActivated: v => Config.wallpaper.liveFps = v
+            }
+        }
+        // the finding, corrected by hand for this picture
+        SettingRow {
+            visible: Config.wallpaper.live
+            label: I18n.t("Небо на этой картинке", "Sky in this picture")
+            hint: I18n.t("«есть» — всё выше линии воды", "\"Yes\": everything above the waterline")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Само", "Auto"),
+                        "value": "auto"
+                    },
+                    {
+                        "label": I18n.t("Есть", "Yes"),
+                        "value": "on"
+                    },
+                    {
+                        "label": I18n.t("Нет", "No"),
+                        "value": "off"
+                    }
+                ]
+                currentValue: liveGroup.over.sky || "auto"
+                onActivated: v => LiveWalls.setOverride(liveGroup.path, "sky", v)
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.live
+            label: I18n.t("Вода на этой картинке", "Water in this picture")
+            hint: I18n.t("«есть» — всё ниже линии воды, с отражением", "\"Yes\": everything below the waterline, with a reflection")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Само", "Auto"),
+                        "value": "auto"
+                    },
+                    {
+                        "label": I18n.t("Есть", "Yes"),
+                        "value": "on"
+                    },
+                    {
+                        "label": I18n.t("Нет", "No"),
+                        "value": "off"
+                    }
+                ]
+                currentValue: liveGroup.over.water || "auto"
+                onActivated: v => LiveWalls.setOverride(liveGroup.path, "water", v)
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.live && !!liveGroup.fx && (liveGroup.fx.water || liveGroup.over.sky === "on")
+            label: I18n.t("Линия воды", "Waterline")
+            hint: I18n.t("где кончается небо и начинается отражение (сверху вниз)", "where the sky ends and the reflection begins (from the top)")
+            PxSlider {
+                width: parent.width
+                from: 20
+                to: 95
+                stepSize: 1
+                value: liveGroup.fx ? Math.round(liveGroup.fx.axis * 100) : 65
+                suffix: " %"
+                onMoved: v => LiveWalls.setOverride(liveGroup.path, "axis", v / 100)
+            }
+        }
+    }
+
     PxGroup {
         name: "images"
         title: I18n.t("Картинки (", "Images (") + page.filtered.length + ")"

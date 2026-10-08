@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import Quickshell.Services.UPower
 import qs.config
 import qs.services
 import qs.widgets
@@ -23,9 +22,14 @@ Row {
     Repeater {
         model: [
             {
-                "show": UPower.displayDevice && UPower.displayDevice.isLaptopBattery,
-                "icon": "power",
-                "text": UPower.displayDevice ? Math.round(UPower.displayDevice.percentage * 100) + "%" + (UPower.onBattery ? "" : " ⚡") : ""
+                "show": Power.hasBattery,
+                "icon": Power.plugged ? "bolt" : "battery",
+                "text": Power.percent + "%"
+            },
+            {
+                "show": !!root.lockScope.fingerOn,
+                "icon": "fingerprint",
+                "text": I18n.t("палец", "finger")
             },
             {
                 "show": root.missed > 0,

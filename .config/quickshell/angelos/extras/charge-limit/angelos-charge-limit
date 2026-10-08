@@ -1,0 +1,26 @@
+#!/bin/sh
+# angelOS: set the battery charge limit (Settings → Battery → Gentle charging).
+# Runs as root through pkexec (org.angelos.charge-limit: the active session, no password).
+# Takes one number, 50…100 (100 = no limit), and writes it to every laptop battery's
+# charge_control_end_threshold; a start threshold above it is lowered first (ThinkPads refuse
+# an end below the start). Nothing else: no paths, no other files.
+set -eu
+v="${1:-}"
+case "$v" in
+    ''|*[!0-9]*) echo "usage: angelos-charge-limit 50…100" >&2; exit 2 ;;
+esac
+[ "$v" -ge 50 ] && [ "$v" -le 100 ] || { echo "the limit must be 50…100" >&2; exit 2; }
+done_any=0
+for b in /sys/class/power_supply/*; do
+    [ "$(cat "$b/type" 2>/dev/null)" = Battery ] || continue
+    [ "$(cat "$b/scope" 2>/dev/null)" = Device ] && continue
+    end="$b/charge_control_end_threshold"
+    [ -w "$end" ] || continue
+    start="$b/charge_control_start_threshold"
+    if [ -w "$start" ] && [ "$(cat "$start")" -ge "$v" ]; then
+        echo $((v > 5 ? v - 5 : 0)) > "$start"
+    fi
+    echo "$v" > "$end"
+    done_any=1
+done
+[ "$done_any" = 1 ] || { echo "no battery with a charge limit" >&2; exit 1; }

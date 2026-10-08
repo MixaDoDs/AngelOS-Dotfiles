@@ -93,7 +93,7 @@ Column {
                                 "label": v,
                                 "value": v
                             }))
-                    currentValue: Motion.level
+                    currentValue: Motion.chosen
                     onActivated: v => Motion.set(v)
                 }
             }

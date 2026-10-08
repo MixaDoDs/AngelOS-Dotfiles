@@ -82,8 +82,10 @@ Singleton {
                 // the manifest's "settingsNear": the page it goes after ("display", "network"…)
                 "near": p.settingsNear || ""
             }))
+    // "needs": the hardware a page is about ("battery", "touchpad", "laptop"): a desktop doesn't
+    // see the laptop's pages (developer mode does, to look at them)
     function shown(p) {
-        return !!p && (!p.owner || Owner.enabled) && (!p.developer || Config.developer.enabled) && (!p.game || Story.enabled);
+        return !!p && (!p.owner || Owner.enabled) && (!p.developer || Config.developer.enabled) && (!p.game || Story.enabled) && (!p.needs || Laptop.has(p.needs) || Config.developer.enabled);
     }
     // every page of the tree (the hidden ones too), id -> {id, label, icon, hint, blocks, open,
     // category, owner, developer}; "open": its groups shown open (a page of sub-pages only)
@@ -116,7 +118,8 @@ Singleton {
                     "category": c.id,
                     "owner": !!p.owner,
                     "developer": !!p.developer,
-                    "game": !!p.game
+                    "game": !!p.game,
+                    "needs": p.needs || ""
                 };
         for (const p of pluginPages) {
             const after = ((tree.plugins || {}).after || {})[p.plugin] || p.near;

@@ -8,6 +8,7 @@ import qs.modules.clipboard
 import qs.modules.debug
 import qs.modules.diary
 import qs.modules.launcher
+import qs.modules.laptop
 import qs.modules.session
 import qs.modules.settings
 
@@ -50,6 +51,15 @@ Scope {
     LazyLoader {
         active: sessionKeep.alive
         SessionMenu {}
+    }
+
+    Linger {
+        id: projectKeep
+        when: Shell.projectOpen
+    }
+    LazyLoader {
+        active: projectKeep.alive
+        ProjectMenu {}
     }
 
     // a minute: back/forward history lives in the window

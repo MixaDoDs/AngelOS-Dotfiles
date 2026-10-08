@@ -20,7 +20,7 @@ Singleton {
     readonly property var defaults: ({
             "left": ["start", "workspaces", "tasks"],
             "center": ["lyrics"],
-            "right": ["media", "tray", "layout", "wired", "wifi", "bluetooth", "volume", "bell", "clock"]
+            "right": ["media", "tray", "layout", "wired", "wifi", "bluetooth", "battery", "volume", "bell", "clock"]
         })
     readonly property var meta: ({
             "start": {
@@ -73,6 +73,12 @@ Singleton {
             "bluetooth": {
                 "label": "Bluetooth",
                 "icon": "bluetooth",
+                "before": "volume"
+            },
+            // laptops: hidden where there is no battery
+            "battery": {
+                "label": I18n.t("Батарея", "Battery"),
+                "icon": "battery",
                 "before": "volume"
             },
             "clock": {

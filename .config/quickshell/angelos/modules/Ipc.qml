@@ -597,6 +597,29 @@ IpcHandler {
         const ok = n === "demo" ? Chests.demo(1) : n === "demo10" ? Chests.demo(10) : n === "ten" ? Chests.openTen() : Chests.openOne();
         return ok ? "opened" : "no chest: " + HeavenStars.stars + " ✦";
     }
+    // Wellbeing (services/Wellbeing): `angelos wellbeing` (status) | water | unwater |
+    // test eyes|move|water|limit (the reminder now) | clear (the history gone)
+    function wellbeing(cmd: string): string {
+        const [c, arg] = String(cmd || "").trim().split(/\s+/);
+        if (c === "water") {
+            Wellbeing.drink();
+            return "water " + Wellbeing.waterToday + "/" + Config.wellbeing.waterGoal;
+        }
+        if (c === "unwater") {
+            Wellbeing.undrink();
+            return "water " + Wellbeing.waterToday + "/" + Config.wellbeing.waterGoal;
+        }
+        if (c === "test") {
+            const k = ["eyes", "move", "water", "limit"].includes(arg) ? arg : "water";
+            Wellbeing.remind(k, true);
+            return "reminded: " + k;
+        }
+        if (c === "clear") {
+            Wellbeing.clear();
+            return "history cleared";
+        }
+        return Wellbeing.status();
+    }
     function settingsPage(page: string): void {
         if (Shell.setupLocked)
             return;
@@ -968,8 +991,52 @@ IpcHandler {
             Wallpapers.setForOutput(screen, path);
         return "ok";
     }
+    // half-alive wallpapers: `angelos liveWall status|on|off|analyze` (what the focused screen's
+    // picture has; analyze looks at it again)
+    function liveWall(cmd: string): string {
+        const scr = Shell.focusedScreen ? Shell.focusedScreen.name : (Shell.screens[0] ? Shell.screens[0].name : "");
+        const ws = Niri.activeWorkspace(scr);
+        const path = Wallpapers.resolve(scr, ws ? ws.idx : 1);
+        if (cmd === "on" || cmd === "off")
+            Config.wallpaper.live = cmd === "on";
+        else if (cmd === "analyze")
+            LiveWalls.reanalyze(path);
+        else if (cmd && cmd !== "status")
+            return "usage: liveWall status|on|off|analyze";
+        return (Config.wallpaper.live ? "on" : "off") + "  " + path + "\n" + LiveWalls.describe(path) + "\n" + JSON.stringify(LiveWalls.effective(path));
+    }
     function bar(style: string): void {
         Config.bar.style = style;
+    }
+    // laptops: the brightness keys (cfg/angelos-laptop.kdl): up | down | 0…100
+    function brightness(cmd: string): string {
+        if (!Backlight.available)
+            return "no backlight";
+        if (cmd === "up")
+            Backlight.up();
+        else if (cmd === "down")
+            Backlight.down();
+        else if (/^\d+$/.test(cmd))
+            Backlight.set(parseInt(cmd) / 100);
+        return Math.round(Backlight.level * 100) + "%";
+    }
+    // the keyboard's light: up | down | cycle | 0…max
+    function kbdLight(cmd: string): string {
+        if (!Backlight.kbdAvailable)
+            return "no keyboard light";
+        if (cmd === "up")
+            Backlight.setKbd(Backlight.kbd + 1);
+        else if (cmd === "down")
+            Backlight.setKbd(Backlight.kbd - 1);
+        else if (cmd === "cycle" || cmd === "")
+            Backlight.kbdCycle();
+        else if (/^\d+$/.test(cmd))
+            Backlight.setKbd(parseInt(cmd));
+        return Backlight.kbd + "/" + Backlight.kbdMax;
+    }
+    // the rest of the laptop: `angelos laptop help` (services/Laptop.ipc)
+    function laptop(line: string): string {
+        return Laptop.ipc(line);
     }
     function volumeUp(): void {
         Audio.step(0.05);

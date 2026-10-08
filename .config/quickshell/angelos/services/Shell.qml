@@ -41,6 +41,8 @@ Singleton {
     property bool launcherOpen: false
     property string launcherPrefill: ""
     property bool sessionOpen: false
+    property bool projectOpen: false         // the screens menu, Mod+P / the display key (modules/laptop/ProjectMenu)
+    signal projectNext()                      // …the key again while it is open: the next choice
     property bool bootOpen: false            // Y2K loading screen (modules/y2k/BootScreen)
     // the shell's own pid: its windows (settings, osu!mini…) share it, so
     // "End task" on them would kill angelOS itself

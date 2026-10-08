@@ -385,6 +385,113 @@ PxPage {
                 }
             }
         }
+        // Discord and Vesktop (scripts/discord-theme.py): a Vencord theme that follows on its
+        // own; Discord without Vencord only through angelOS's launcher (a debugging port)
+        SettingRow {
+            id: discordRow
+            property string said: ""
+            property bool askPort: false
+            readonly property var info: discordStatus.info
+            readonly property bool launcherOn: info.launcher === true
+            visible: info.found === true
+            label: "Discord / Vesktop"
+            hint: I18n.t("пиксельная тема angelOS для Discord и Vesktop: рай, ад и каждый круг, светлая и тёмная — на лету. С Vencord (в Vesktop он встроен) выбери её один раз: Vencord → Темы → angelOS, или закрой Discord и нажми «Сделать активной» (тема по ссылке в Vencord при этом выключится — иначе она перекрасит поверх). Без Vencord Discord тем не берёт: angelOS может запускать его сам и вставлять тему через порт отладки", "angelOS's pixel theme for Discord and Vesktop: heaven, hell and every circle, light and dark — on the fly. With Vencord (Vesktop has it built in) pick it once: Vencord → Themes → angelOS, or close Discord and press “Make it active” (a linked theme in Vencord is switched off then — it would paint over ours). Without Vencord Discord takes no themes: angelOS can start it itself and put the theme in through a debugging port")
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 2
+                PxButton {
+                    compact: true
+                    visible: discordRow.info.vencord === true
+                    accent: !discordRow.info.active
+                    icon: "sparkle"
+                    text: discordRow.info.active ? I18n.t("Активна ♡", "Active ♡") : discordRow.said || I18n.t("Сделать активной", "Make it active")
+                    onClicked: if (!discordRow.info.active)
+                        discordApply.running = true
+                }
+                PxButton {
+                    compact: true
+                    visible: !!discordRow.info.discord
+                    checked: discordRow.launcherOn
+                    icon: "play"
+                    text: discordRow.launcherOn ? I18n.t("Без Vencord: через angelOS ✓", "Without Vencord: through angelOS ✓") : I18n.t("Без Vencord: запускать через angelOS", "Without Vencord: start it through angelOS")
+                    onClicked: {
+                        if (discordRow.launcherOn) {
+                            discordLauncher.command = ["python3", Quickshell.shellDir + "/scripts/discord-theme.py", "launcher", "off"];
+                            discordLauncher.running = true;
+                        } else {
+                            discordRow.askPort = true;
+                        }
+                    }
+                }
+                PxButton {
+                    compact: true
+                    icon: "folder"
+                    text: I18n.t("Папка темы", "Theme folder")
+                    onClicked: Quickshell.execDetached(["xdg-open", String(discordRow.info.theme || "").replace(/\/[^\/]*$/, "")])
+                }
+            }
+            // the port is a door: said plainly before it is opened
+            Column {
+                visible: discordRow.askPort
+                width: parent.width
+                spacing: Theme.u * 2
+                PxText {
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    color: Theme.danger
+                    text: I18n.t("Discord из меню будет запускаться с портом отладки на localhost: пока он открыт, любая программа на этом компьютере (и любой Flatpak с доступом к сети) может управлять Discord — читать переписку, писать от твоего имени. Сайты из браузера к нему не подключатся. Если у тебя уже есть Vencord — это не нужно.", "Discord from the menu will start with a debugging port on localhost: while it is open, any program on this computer (and any Flatpak with network access) can drive Discord — read your messages, write as you. Web pages in the browser can't reach it. If you have Vencord already, you don't need this.")
+                }
+                Flow {
+                    width: parent.width
+                    spacing: Theme.u * 2
+                    PxButton {
+                        compact: true
+                        danger: true
+                        text: I18n.t("Понятно, включить", "Understood, switch it on")
+                        onClicked: {
+                            discordRow.askPort = false;
+                            discordLauncher.command = ["python3", Quickshell.shellDir + "/scripts/discord-theme.py", "launcher", "on"];
+                            discordLauncher.running = true;
+                        }
+                    }
+                    PxButton {
+                        compact: true
+                        text: I18n.t("Отмена", "Cancel")
+                        onClicked: discordRow.askPort = false
+                    }
+                }
+            }
+            Process {
+                id: discordApply
+                command: ["python3", Quickshell.shellDir + "/scripts/discord-theme.py", "apply"]
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        try {
+                            const r = JSON.parse(text);
+                            discordRow.said = (r.running || []).length && !(r.done || []).length ? I18n.t("Закрой Discord или включи в Vencord → Темы", "Close Discord, or switch it on in Vencord → Themes") : r.ok ? "" : I18n.t("Не вышло — включи в Vencord → Темы", "Didn't work — switch it on in Vencord → Themes");
+                        } catch (e) {}
+                        discordStatus.running = true;
+                    }
+                }
+            }
+            Process {
+                id: discordLauncher
+                onExited: discordStatus.running = true
+            }
+            Process {
+                id: discordStatus
+                property var info: ({})
+                running: true
+                command: ["python3", Quickshell.shellDir + "/scripts/discord-theme.py", "status"]
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        try {
+                            discordStatus.info = JSON.parse(text);
+                        } catch (e) {}
+                    }
+                }
+            }
+        }
     }
     PxGroup {
         name: "alt-tab"

@@ -269,6 +269,61 @@ PanelWindow {
             }
             onClicked: MacMenus.toggleStatus(win.screenName, "input", win.rightOf(input))
         }
+        // the battery as macOS draws it: a rounded case filled to the charge, a bolt while charging
+        StatusButton {
+            id: battery
+            kind: "battery"
+            visible: Power.hasBattery && Config.power.showBattery
+            Row {
+                spacing: GoldenGate.px(4)
+                MacText {
+                    visible: Config.power.barPercent
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Power.percent + " %"
+                    size: GoldenGate.px(12)
+                    color: win.ink
+                }
+                Item {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: GoldenGate.px(26)
+                    height: GoldenGate.px(12)
+                    Rectangle {
+                        width: parent.width - GoldenGate.px(2)
+                        height: parent.height
+                        radius: GoldenGate.px(3.5)
+                        color: "transparent"
+                        border.width: Math.max(1, GoldenGate.px(1))
+                        border.color: Qt.alpha(win.ink, 0.55)
+                        Rectangle {
+                            x: GoldenGate.px(2)
+                            y: GoldenGate.px(2)
+                            height: parent.height - GoldenGate.px(4)
+                            width: Math.max(GoldenGate.px(1.5), (parent.width - GoldenGate.px(4)) * Power.percent / 100)
+                            radius: GoldenGate.px(1.5)
+                            color: Power.discharging && Power.percent <= Config.power.lowAt ? "#ff3b30" : Power.eco ? "#ffcc00" : Power.charging ? "#34c759" : win.ink
+                        }
+                    }
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: GoldenGate.px(1.5)
+                        height: GoldenGate.px(4)
+                        radius: GoldenGate.px(1)
+                        color: Qt.alpha(win.ink, 0.55)
+                    }
+                    MacIcon {
+                        visible: Power.charging
+                        anchors.centerIn: parent
+                        anchors.horizontalCenterOffset: -GoldenGate.px(1)
+                        name: "zap"
+                        size: GoldenGate.px(11)
+                        stroke: 2.4
+                        color: win.ink
+                    }
+                }
+            }
+            onClicked: MacMenus.toggleStatus(win.screenName, "battery", win.rightOf(battery))
+        }
         StatusButton {
             id: sound
             kind: "sound"

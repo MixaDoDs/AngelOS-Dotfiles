@@ -247,6 +247,11 @@ Singleton {
                 "id": "s:sound",
                 "items": soundItems()
             };
+        case "battery":
+            return {
+                "id": "s:battery",
+                "items": batteryItems()
+            };
         case "input":
             return {
                 "id": "s:input",
@@ -370,6 +375,46 @@ Singleton {
                 }));
         }
         out.push(AppMenu.sep("w2"), settingsItem("w:set", I18n.t("Настройки Wi-Fi…", "Wi-Fi Settings…"), "network"));
+        return out;
+    }
+    function batteryItems() {
+        const out = [header("p:h", I18n.t("Батарея", "Battery") + " · " + Power.percent + " %"), {
+                "id": "p:st",
+                "label": Power.statusText,
+                "enabled": false
+            }];
+        if (Power.profilesAvailable) {
+            out.push(AppMenu.sep("p1"), header("p:ph", I18n.t("Режим питания", "Energy Mode")));
+            for (const [v, label] of [["power-saver", I18n.t("Экономия", "Low Power")], ["balanced", I18n.t("Баланс", "Automatic")], ["performance", I18n.t("Мощность", "High Power")]])
+                out.push(fn("p:" + v, label, () => Power.setProfile(v), {
+                    "toggle": "check",
+                    "checked": Power.profile === v
+                }));
+        }
+        out.push(AppMenu.sep("p2"), {
+            "id": "p:eco",
+            "label": I18n.t("Режим экономии angelOS", "angelOS Eco Mode"),
+            "type": "switch",
+            "checked": Power.eco,
+            "keepOpen": true,
+            "act": {
+                "kind": "fn",
+                "fn": () => Power.toggleEco()
+            }
+        });
+        if (Laptop.limitSupported)
+            out.push({
+                "id": "p:limit",
+                "label": I18n.t("Заряжать до 80 %", "Charge to 80%"),
+                "type": "switch",
+                "checked": Config.power.chargeLimit < 100,
+                "keepOpen": true,
+                "act": {
+                    "kind": "fn",
+                    "fn": () => Config.power.chargeLimit = Config.power.chargeLimit < 100 ? 100 : 80
+                }
+            });
+        out.push(AppMenu.sep("p3"), settingsItem("p:set", I18n.t("Настройки батареи…", "Battery Settings…"), "battery"));
         return out;
     }
     function btItems() {
