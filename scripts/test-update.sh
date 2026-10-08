@@ -57,7 +57,7 @@ H="$W/home"                     # always this path: installed files hold it (@HO
 REPO="$H/AngelOS-Dotfiles"
 ENVS=(env -i HOME="$H" PATH="$STUBS:$PATH" LANG=C USER=test)
 "${ENVS[@]}" git clone -q "$W/origin.git" "$REPO"
-if ! "${ENVS[@]}" SKIP_PACKAGES=1 INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 \
+if ! "${ENVS[@]}" SKIP_PACKAGES=1 INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 INTRO_SOUNDS=0 \
      INSTALL_SDDM=0 DESKTOP_SHELL=angelos bash "$REPO/install.sh" </dev/null >"$W/install.log" 2>&1; then
   sed 's/^/    /' "$W/install.log" >&2
   fail "first install of the fixture"

@@ -58,6 +58,7 @@
 #   WALLPAPERS_REPO=<git url>      default https://github.com/MixaDoDs/PixelStreetArt_Wallpapers
 #   INSTALL_WALLPAPERS=0|1         older switch: 0 = no packs, 1 = all packs
 #   ENABLE_SERVICES=0|1            enable the systemd user services
+#   INTRO_SOUNDS=1|0               mix the first run's intro sound now, in the background
 #   INSTALL_FLATPAK=0|1            install packages/flatpak-apps.txt
 #   INSTALL_TOOLS=1|0              small everyday tools from packages/tools.txt (fish, btop,
 #                                  ripgrep, yt-dlp, pavucontrol…; asked interactively, default 1;
@@ -123,6 +124,7 @@ SKIP_PACKAGES="${SKIP_PACKAGES:-0}"
 INSTALL_VOXTYPE="${INSTALL_VOXTYPE:-1}"
 DOWNLOAD_VOXTYPE_MODEL="${DOWNLOAD_VOXTYPE_MODEL:-1}"
 INSTALL_WALLPAPERS="${INSTALL_WALLPAPERS:-1}"
+INTRO_SOUNDS="${INTRO_SOUNDS:-1}"
 WALLPAPERS_REPO="${WALLPAPERS_REPO:-https://github.com/MixaDoDs/PixelStreetArt_Wallpapers}"
 # folder|pictures|MB|English|Russian — folders of WALLPAPERS_REPO, copied to ~/Pictures/<folder>
 WALLPAPER_LIST=(
@@ -1380,6 +1382,11 @@ install_shell() {
     # where Settings → Updates pulls from
     printf 'repo=%s\nremote=%s\n' "$ROOT" "$(git -C "$ROOT" remote get-url origin 2>/dev/null || true)" \
       > "$HOME_DIR/.config/angelos/dotfiles-source"
+    # the first run's intro: its minute of sound is mixed now (~20 s, in the background), not
+    # while the wizard waits for it (scripts/intro-sounds.py; INTRO_SOUNDS=0: never)
+    if [[ "$INTRO_SOUNDS" == 1 ]] && command -v python3 >/dev/null 2>&1 && command -v ffmpeg >/dev/null 2>&1; then
+      (setsid python3 "$shell_dir/scripts/intro-sounds.py" "$HOME_DIR/.local/share/angelos/sounds/intro" >/dev/null 2>&1 &)
+    fi
     # Fresh installs have no owner marker. Preserve an existing owner's marker
     # so updating the dotfiles does not disable their publishing controls.
     # The generated theme files are shipped with the repository and are

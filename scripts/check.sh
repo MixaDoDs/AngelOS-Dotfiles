@@ -309,7 +309,7 @@ install_case() {
   mkdir -p "$home"
   env -i HOME="$home" PATH="$WORK/stubs:$PATH" LANG=C \
       SKIP_PACKAGES=1 INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 \
-      ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 INSTALL_SDDM=0 "$@" \
+      ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 INSTALL_SDDM=0 INTRO_SOUNDS=0 "$@" \
       "$ROOT/install.sh" >"$WORK/$name.log" 2>&1 </dev/null
 }
 
@@ -745,6 +745,19 @@ check_updates_ui() {
     sed 's/^/    /' "$WORK/update-ui.log"; fail "updates: the Settings → Updates UI (tests/updates/run.sh, exit $rc)"
   fi
 }
+# the settings search against its table (tests/search/table.json): every query finds what it
+# must among its first results, fast
+check_search() {
+  local rc=0 shell="$ROOT/.config/quickshell/angelos"
+  bash "$shell/tests/search/run.sh" "$shell" >"$WORK/search.log" 2>&1 || rc=$?
+  if ((rc == 0)); then
+    pass "$(sed -n 's/^  ✓ //p' "$WORK/search.log" | tail -1)"
+  elif ((rc == 77)) && [[ "${REQUIRE_UI:-0}" != 1 ]]; then
+    skip "settings search table (quickshell is not installed)"
+  else
+    sed 's/^/    /' "$WORK/search.log"; fail "settings search: tests/search/run.sh (exit $rc)"
+  fi
+}
 # the way a user meets it: installed from older commits, their own old script updating to
 # this tree, then the new one once more (scripts/test-update-old.sh; issue #36 among them)
 check_updates_old() {
@@ -836,6 +849,7 @@ else
   timed installer-default inst_default
 fi
 job plugin-studio check_plugin_studio
+timed settings-search check_search
 job sprite-rig py_test sprite-rig sprites/test_sprite_rig.py "sprite-rig: authored frame strips"
 timed audio-tap py_test audio-tap audio/test_audio_tap.py "cava's audio tap: no hangs (stand-ins for cava and pw-record)"
 # the Golden Gate menu bar's helper: menus found by the window's pid, on a private bus (77 = no gi / dbus)

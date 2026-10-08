@@ -114,7 +114,7 @@ one() { # SHA[:alarm] LABEL
   local DISTRO=() FORCE=()
   ((alarm)) && DISTRO=(DOTFILES_OS_RELEASE="$W/os-alarm") && FORCE=(DOTFILES_FORCE_DISTRO=1)
   if ! "${ENVS[@]}" "${DISTRO[@]}" "${FORCE[@]}" SKIP_PACKAGES=1 INSTALL_VOXTYPE=0 \
-       DOWNLOAD_VOXTYPE_MODEL=0 ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 INSTALL_SDDM=0 DESKTOP_SHELL=angelos \
+       DOWNLOAD_VOXTYPE_MODEL=0 ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 INTRO_SOUNDS=0 INSTALL_SDDM=0 DESKTOP_SHELL=angelos \
        bash "$REPO/install.sh" </dev/null >"$D/install.log" 2>&1; then
     fail "$short: the old install itself"; show "$D/install.log"; return 0
   fi
