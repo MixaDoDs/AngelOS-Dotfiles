@@ -658,13 +658,13 @@ Singleton {
 
     // ---- the list: story/achievements.json ----
     readonly property string file: Quickshell.shellDir + "/story/achievements.json"
-    FileView {
+    AsyncFile {
         id: dataFile
         path: root.file
         watchChanges: true
         blockLoading: true
         printErrors: false
-        onFileChanged: reload()
+        onFileChanged: reloadSoon()
         onLoaded: {
             try {
                 root.doc = JSON.parse(text());
@@ -725,7 +725,7 @@ Singleton {
         const bad = problems(d);
         if (bad.length)
             return bad;
-        dataFile.setText(JSON.stringify(d, null, 2) + "\n");
+        dataFile.write(JSON.stringify(d, null, 2) + "\n");
         doc = JSON.parse(JSON.stringify(d));
         checkSoon.restart();
         return [];

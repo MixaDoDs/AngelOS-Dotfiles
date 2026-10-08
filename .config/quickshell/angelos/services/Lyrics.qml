@@ -246,17 +246,33 @@ Singleton {
             root.fetchNet(key)
     }
 
-    FileView {
+    // one writer for every cache file: a new path is set only once the last write is
+    // done (changing the path of a FileView that is still writing waits for the disk)
+    AsyncFile {
         id: diskWriter
         preload: false
         atomicWrites: true
         printErrors: false
+        onSaved: Qt.callLater(root._diskNext)
+        onSaveFailed: Qt.callLater(root._diskNext)
+    }
+    property var _diskQueue: []
+    function _diskNext() {
+        // the same text to the same file is no write at all: on to the next one
+        while (!diskWriter.writing && _diskQueue.length) {
+            const job = _diskQueue.shift();
+            diskWriter.path = job.path;
+            diskWriter.write(job.text);
+        }
     }
 
     function store(key, data) {
         _mem[key] = data;
-        diskWriter.path = cacheFile(key);
-        diskWriter.setText(JSON.stringify(data));
+        _diskQueue.push({
+            "path": cacheFile(key),
+            "text": JSON.stringify(data)
+        });
+        _diskNext();
     }
 
     function query(params) {

@@ -323,13 +323,13 @@ Singleton {
 
     // ---- the file ----
     readonly property string file: Quickshell.shellDir + "/story/diary.json"
-    FileView {
+    AsyncFile {
         id: view
         path: root.file
         watchChanges: true
         blockLoading: true
         printErrors: false
-        onFileChanged: reload()
+        onFileChanged: reloadSoon()
         onLoaded: {
             try {
                 root.doc = JSON.parse(text());
@@ -378,7 +378,7 @@ Singleton {
         const bad = problems(d);
         if (bad.length)
             return bad;
-        view.setText(JSON.stringify(d, null, 2) + "\n");
+        view.write(JSON.stringify(d, null, 2) + "\n");
         doc = JSON.parse(JSON.stringify(d));
         tick++;
         return [];

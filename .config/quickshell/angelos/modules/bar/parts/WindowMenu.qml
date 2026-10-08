@@ -119,6 +119,37 @@ PopupWindow {
                 icon: "maximize"
                 onTriggered: root.run(w => Niri.fullscreenWindow(w.id))
             }
+            // the column width of this window, now (#53: Settings → Windows → Window widths
+            // only sets it for windows opened later)
+            Item {
+                visible: !!root.win && !root.win.is_floating
+                width: parent.width
+                height: visible ? widths.implicitHeight + Theme.u * 3 : 0
+                implicitWidth: Theme.u * 150
+                Flow {
+                    id: widths
+                    x: Theme.u * 5
+                    y: Theme.u
+                    width: parent.width - Theme.u * 10
+                    spacing: Theme.u
+                    PxText {
+                        height: Theme.sizeBody + Theme.u * 6
+                        verticalAlignment: Text.AlignVCenter
+                        rightPadding: Theme.u * 2
+                        text: I18n.t("Ширина", "Width")
+                        dim: true
+                    }
+                    Repeater {
+                        model: WindowConfig.choices
+                        PxButton {
+                            required property var modelData
+                            compact: true
+                            text: modelData.label
+                            onClicked: root.run(w => Quickshell.execDetached(["niri", "msg", "action", "set-window-width", "--id", String(w.id), WindowConfig.niriArg(modelData.value)]))
+                        }
+                    }
+                }
+            }
             PxMenuItem {
                 text: I18n.t("Развернуть до краёв", "Maximize to edges")
                 icon: "width"

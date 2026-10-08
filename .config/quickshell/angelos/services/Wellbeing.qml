@@ -440,7 +440,7 @@ Singleton {
 
     // ---- the file ----
     readonly property string path: Config.stateDir + "/screen-time.json"
-    FileView {
+    AsyncFile {
         id: file
         path: root.path
         printErrors: false
@@ -486,7 +486,7 @@ Singleton {
             }
             out[k] = r;
         }
-        file.setText(JSON.stringify({
+        file.write(JSON.stringify({
             "version": 1,
             "days": out,
             "run": {

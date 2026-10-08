@@ -82,7 +82,7 @@ Singleton {
                             delete c[k];
                     c[root._running] = result.accent;
                     root.cache = c;
-                    store.setText(JSON.stringify(c));
+                    store.write(JSON.stringify(c));
                     root.apply(result.accent, root._switch);
                 } catch (e) {
                     if (!root.error)
@@ -101,7 +101,7 @@ Singleton {
         }
     }
 
-    FileView {
+    AsyncFile {
         id: store
         path: Config.cacheDir + "/wallpaper-colors.json"
         printErrors: false

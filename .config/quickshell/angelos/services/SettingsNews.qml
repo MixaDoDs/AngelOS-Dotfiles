@@ -21,7 +21,7 @@ Singleton {
     property var curated: ({})
 
     readonly property string seenPath: Config.stateDir + "/settings-seen.json"
-    FileView {
+    AsyncFile {
         id: seenFile
         path: root.seenPath
         printErrors: false
@@ -50,7 +50,7 @@ Singleton {
         }
     }
     function save() {
-        seenFile.setText(JSON.stringify({
+        seenFile.write(JSON.stringify({
             "version": 1,
             "ids": seen
         }));

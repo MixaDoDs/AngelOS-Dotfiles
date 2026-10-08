@@ -454,4 +454,33 @@ Singleton {
                 root.check();
         }
     }
+
+    // Quickshell uses Qt's private parts: a Quickshell built against one Qt crashes at
+    // random on another (#50, #51: Qt 6.12 arrived before the rebuilt quickshell
+    // package). Its own check says so; asked at start and every hour (Qt updates while
+    // the shell runs), told once per pair of versions.
+    property string qtMismatch: ""
+    property string _qtTold: ""
+    Process {
+        id: qtCheck
+        running: true
+        command: ["sh", "-c", "qs --private-check-compat; echo \"EXIT $?\"; [ -x /usr/bin/quickshell ] && echo SYSTEM"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const m = text.match(/built against Qt ([0-9.]+) but the system has updated to Qt ([0-9.]+)/);
+                root.qtMismatch = m && /EXIT 1/.test(text) ? m[1] + " → " + m[2] : "";
+                if (!root.qtMismatch || root.qtMismatch === root._qtTold)
+                    return;
+                root._qtTold = root.qtMismatch;
+                const fix = /SYSTEM/.test(text) ? I18n.t("Обнови систему (sudo pacman -Syu), затем angelos restart.", "Update the system (sudo pacman -Syu), then angelos restart.") : I18n.t("Поставь пакет: sudo pacman -S quickshell, затем angelos restart.", "Install the package: sudo pacman -S quickshell, then angelos restart.");
+                Quickshell.execDetached(["notify-send", "-a", "angelOS", "-u", "critical", "-i", "dialog-warning", I18n.t("Quickshell не подходит к Qt", "Quickshell doesn't match Qt"), I18n.t("Собран под Qt ", "Built against Qt ") + m[1] + I18n.t(", а в системе ", ", the system has ") + m[2] + I18n.t(" — оболочка будет падать. ", " — the shell will crash. ") + fix]);
+            }
+        }
+    }
+    Timer {
+        interval: 3600 * 1000
+        repeat: true
+        running: true
+        onTriggered: qtCheck.running = true
+    }
 }

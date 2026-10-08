@@ -132,9 +132,9 @@ Singleton {
     Timer {
         id: saveTimer
         interval: 800
-        onTriggered: store.setText(JSON.stringify(root.history.slice(0, 80)))
+        onTriggered: store.write(JSON.stringify(root.history.slice(0, 80)))
     }
-    FileView {
+    AsyncFile {
         id: store
         path: root.historyFile
         printErrors: false

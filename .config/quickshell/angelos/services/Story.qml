@@ -271,7 +271,9 @@ Singleton {
         path: root.file
         blockLoading: true
         blockWrites: true
-        atomicWrites: true
+        // a write in place, not atomic: an atomic one waits for fdatasync on the main
+        // thread, seconds on a busy disk (#52)
+        atomicWrites: false
         watchChanges: true
         printErrors: false
         onFileChanged: reload()

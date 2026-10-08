@@ -272,7 +272,7 @@ Singleton {
         onTriggered: root.writeNow()
     }
     function writeNow() {
-        store.setText(JSON.stringify({
+        store.write(JSON.stringify({
             "stars": stars,
             "earned": earned,
             "owned": owned,
@@ -283,7 +283,7 @@ Singleton {
             "gift": gift
         }));
     }
-    FileView {
+    AsyncFile {
         id: store
         path: root.file
         printErrors: false

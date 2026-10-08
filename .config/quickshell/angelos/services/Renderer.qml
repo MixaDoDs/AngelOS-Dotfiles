@@ -26,7 +26,7 @@ Singleton {
         if (!["auto", "vulkan", "opengl"].includes(m))
             return;
         mode = m;
-        store.setText(m + "\n");
+        store.write(m + "\n");
     }
     function refresh() {
         if (!status.running)
@@ -39,7 +39,7 @@ Singleton {
         builder.running = true;
     }
 
-    FileView {
+    AsyncFile {
         id: store
         path: root.file
         printErrors: false

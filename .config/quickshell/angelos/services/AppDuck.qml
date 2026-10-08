@@ -140,6 +140,8 @@ Singleton {
         id: file
         path: root.stateFile
         blockWrites: true
+        // no fdatasync on the main thread (#52)
+        atomicWrites: false
         printErrors: false
     }
     // a duck the last shell left behind (it died in the middle): the volumes back at once

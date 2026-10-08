@@ -92,7 +92,7 @@ Singleton {
                 ratesTime = body.time_last_update_unix || Date.now() / 1000;
                 fetchedAt = Date.now();
                 rateError = "";
-                cache.setText(JSON.stringify({
+                cache.write(JSON.stringify({
                     "rates": rates,
                     "time": ratesTime,
                     "fetched": fetchedAt
@@ -106,7 +106,7 @@ Singleton {
         xhr.send();
     }
 
-    FileView {
+    AsyncFile {
         id: cache
         path: root.cacheFile
         onLoaded: {

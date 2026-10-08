@@ -37,7 +37,7 @@ Singleton {
     property int claims: 0
 
     function save() {
-        store.setText(JSON.stringify({
+        store.write(JSON.stringify({
             "days": days,
             "lastDay": lastDay,
             "pity4": pity4,
@@ -64,7 +64,7 @@ Singleton {
         lastDay = today;
         save();
     }
-    FileView {
+    AsyncFile {
         id: store
         path: root.file
         printErrors: false

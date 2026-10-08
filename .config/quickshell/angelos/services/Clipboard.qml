@@ -153,9 +153,9 @@ Singleton {
     Timer {
         id: saveTimer
         interval: 1000
-        onTriggered: store.setText(JSON.stringify(root.history))
+        onTriggered: store.write(JSON.stringify(root.history))
     }
-    FileView {
+    AsyncFile {
         id: store
         path: Config.stateDir + "/clipboard.json"
         printErrors: false

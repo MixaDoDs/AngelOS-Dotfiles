@@ -187,6 +187,9 @@ Singleton {
         // an async write re-reads what it wrote into the adapter when it finishes,
         // undoing any change made meanwhile (an Undo right after a save): write in place
         blockWrites: true
+        // … but not atomically: an atomic write waits for fdatasync, here on the main
+        // thread, and on a busy disk that froze the shell until the guard restarted it (#52)
+        atomicWrites: false
         onFileChanged: reload()
         // loaded from disk (start, another instance, an edit by hand): not an undo step
         onLoaded: {

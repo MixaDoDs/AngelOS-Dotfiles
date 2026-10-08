@@ -46,8 +46,11 @@ Scope {
                 right: !win.atLeft
                 left: win.atLeft
             }
+            // an auto-hiding taskbar keeps no zone of its own: she would sit where it slides
+            // up and cover its buttons (#51), so its height stays free under her
+            readonly property bool overHiddenBar: BarLayout.style === "taskbar" && Config.bar.autoHide && !GoldenGate.on && (!Config.bar.screens || Config.bar.screens.length === 0 || Config.bar.screens.includes(screen.name))
             margins {
-                bottom: win.streamer ? 0 : Theme.u * 4
+                bottom: (win.streamer ? 0 : Theme.u * 4) + (win.overHiddenBar ? Theme.barHeight : 0)
                 right: win.atLeft ? 0 : Theme.u * 6
                 left: win.atLeft ? Theme.u * 6 : 0
             }

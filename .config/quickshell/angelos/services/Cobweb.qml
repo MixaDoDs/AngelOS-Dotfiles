@@ -675,7 +675,7 @@ Singleton {
     readonly property string session: Quickshell.env("NIRI_SOCKET") || ""
     readonly property string file: Config.stateDir + "/cobweb.json"
     property bool _loaded: false
-    FileView {
+    AsyncFile {
         id: store
         path: root.file
         blockLoading: true
@@ -726,7 +726,7 @@ Singleton {
     function save() {
         if (!_loaded || Shell.dev && Quickshell.env("ANGELOS_DEV_COBWEB") !== "1")
             return;
-        store.setText(JSON.stringify({
+        store.write(JSON.stringify({
             "version": 1,
             "session": session,
             "webs": webs

@@ -855,7 +855,7 @@ PxPage {
 
         SettingRow {
             label: I18n.t("Новые окна", "New windows")
-            hint: I18n.t("ширина колонки при открытии", "column width when a window opens")
+            hint: I18n.t("ширина колонки при открытии; уже открытое окно — ПКМ по нему на панели → Ширина", "column width when a window opens; an open one: right-click it on the taskbar → Width")
             Flow {
                 width: parent.width
                 spacing: Theme.u * 2

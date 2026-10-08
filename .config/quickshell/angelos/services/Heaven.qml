@@ -129,13 +129,13 @@ Singleton {
     // story/items.json (the author edits it on the owner's diary page, «Publish» ships it)
     readonly property string thingsFile: Quickshell.shellDir + "/story/items.json"
     property bool thingsLoaded: false
-    FileView {
+    AsyncFile {
         id: thingsView
         path: root.thingsFile
         watchChanges: true
         blockLoading: true
         printErrors: false
-        onFileChanged: reload()
+        onFileChanged: reloadSoon()
         onLoaded: {
             try {
                 root.thingsDoc = JSON.parse(text());
@@ -153,7 +153,7 @@ Singleton {
         if (!t || !(t.textures || {})[texture])
             return false;
         t.texture = texture;
-        thingsView.setText(JSON.stringify(d, null, 2) + "\n");
+        thingsView.write(JSON.stringify(d, null, 2) + "\n");
         thingsDoc = d;
         return true;
     }
