@@ -753,6 +753,27 @@ pacman_install() {
   [[ "$DESKTOP_SHELL" == angelos ]] && ! id -nG "$USER" | grep -qw input && sudo usermod -aG input "$USER" || true
 }
 
+# angelOS is tested on Quickshell 0.3.2: an older one (a stale mirror, a pinned package)
+# runs without its crash fixes, older than 0.3.0 not at all. The shell's own
+# scripts/qs-version.sh decides, the shell asks it too (Settings → System).
+QS_STATE=""
+quickshell_check() {
+  [[ "$DESKTOP_SHELL" == angelos ]] || return 0
+  local script="$ROOT/.config/quickshell/angelos/scripts/qs-version.sh" state found want
+  [[ -f "$script" ]] || return 0
+  read -r state found want < <(sh "$script" 2>/dev/null || true) || true
+  QS_STATE="$state"
+  case "$state" in
+    old) warn "$(_ "Quickshell $found is older than $want: angelOS runs, but without its crash fixes — update the quickshell package" \
+                   "Quickshell $found старее $want: angelOS запустится, но без исправлений падений — обнови пакет quickshell")" ;;
+    too-old) warn "$(_ "Quickshell $found is too old for angelOS (needs $want): update the quickshell package, then log in again" \
+                       "Quickshell $found слишком старый для angelOS (нужен $want): обнови пакет quickshell и перезайди")" ;;
+    missing) warn "$(_ 'Quickshell is not installed: angelOS needs the quickshell package' \
+                       'Quickshell не установлен: angelOS нужен пакет quickshell')" ;;
+  esac
+  return 0
+}
+
 install_noctalia() {
   [[ "$NOCTALIA" == 0 ]] && return 0
   if command -v noctalia >/dev/null 2>&1 || command -v noctalia-shell >/dev/null 2>&1 ||
@@ -1502,6 +1523,8 @@ summary() {
              'angelOS: при первом входе сами откроются мастер настройки и подсказки по интерфейсу;')"
     say "$(_ '  later: Mod+S — settings, `angelos help` — CLI' '  потом: Mod+S — настройки, `angelos help` — CLI')"
     say "$(_ '  next updates: Settings → Updates' '  следующие обновления: Настройки → Обновления')"
+    [[ -z "$QS_STATE" || "$QS_STATE" == ok ]] ||
+      warn "$(_ 'angelOS: Quickshell needs an update (see the warning above)' 'angelOS: Quickshell нужно обновить (см. предупреждение выше)')"
   fi
   say "$(_ "Files: $N_INSTALLED installed, $N_UNCHANGED unchanged, $N_KEPT kept" \
            "Файлы: $N_INSTALLED установлено, $N_UNCHANGED без изменений, $N_KEPT сохранено")"
@@ -1636,6 +1659,7 @@ choose_keyboard
 # step|English|Russian — the hearts bar counts them (on a terminal; a log stays as it was)
 STEPS=(
   "pacman_install|packages (pacman -Syu)|пакеты (pacman -Syu)"
+  "quickshell_check|Quickshell version|версия Quickshell"
   "install_noctalia|Noctalia|Noctalia"
   "install_configs|configs|конфиги"
   "install_shell|angelOS|angelOS"
