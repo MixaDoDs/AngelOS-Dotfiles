@@ -26,6 +26,11 @@
 #   APPS=helium,telegram,…         packages/apps.txt + packages/apps-flatpak.txt (Helium, Telegram,
 #                                  Spotify, Obsidian, qView, mpv, LocalSend, Discord). Asked
 #                                  interactively (all ticked); unattended default 0
+#   CACHYOS_REPOS=1|0              Arch Linux (x86_64): add the author's repositories before the
+#                                  packages — CachyOS's (for the CPU: v3/v4/znver4, above Arch's;
+#                                  the next -Syu takes CachyOS's builds) and [multilib]. Without them
+#                                  Helium, qView, LocalSend and Steam can't install
+#                                  (scripts/cachyos-repos.sh; default 1; CachyOS has them already)
 #   NO_TUI=1                       plain numbered prompts instead of the gum interface
 #   NO_ANIM=1                      no boot animation
 #   ANGELOS_GAME=1|0               angelOS is also a game played over the desktop (an angel, a demon,
@@ -144,6 +149,7 @@ ANGELOS_THEME="${ANGELOS_THEME:-pixel}"
 MAC_KEYS="${MAC_KEYS:-1}"
 FISH_DEFAULT="${FISH_DEFAULT:-1}"
 INSTALL_APPS="${INSTALL_APPS:-0}"
+CACHYOS_REPOS="${CACHYOS_REPOS:-1}"
 APPS="${APPS:-all}"
 # fish before this run: a login shell someone already has is never changed behind their back
 FISH_WAS_INSTALLED=0
@@ -205,10 +211,12 @@ confirm() {
 # Arch Linux and CachyOS only: every package comes from Arch's official repositories (CachyOS
 # uses them too), the AUR is not needed. Others — even Arch-based ones with repositories of
 # their own — are refused before anything changes. DOTFILES_OS_RELEASE: another file, for tests.
+DISTRO_ID=""
 check_distro() {
   local file="${DOTFILES_OS_RELEASE:-/etc/os-release}" id="" like="" name=""
   [[ -r "$file" ]] && { id=$(sed -n 's/^ID=//p' "$file" | tr -d '"'); like=$(sed -n 's/^ID_LIKE=//p' "$file" | tr -d '"');
                         name=$(sed -n 's/^PRETTY_NAME=//p' "$file" | tr -d '"'); }
+  DISTRO_ID="$id"
   case "$id" in arch|cachyos) return 0 ;; esac
   # configs only (SKIP_PACKAGES=1, as Settings → Updates runs it): nothing comes from the
   # distribution's repositories, so its own repositories don't matter. Updates of a system
@@ -676,11 +684,27 @@ nvim_will_be_ours() {
   [[ -f "$MANIFEST" ]] && grep -q '  \.config/nvim/init\.lua$' "$MANIFEST"
 }
 
+# The author's repositories (CACHYOS_REPOS): on Arch Linux every package and app of the
+# installer comes from pacman as on the author's CachyOS — without [cachyos] Helium, qView and
+# LocalSend were "not in your repositories", without [multilib] Steam. Before the package list:
+# available_only asks the repositories as they will be.
+cachyos_repos() {
+  local script="$ROOT/.config/quickshell/angelos/scripts/cachyos-repos.sh"
+  [[ "$CACHYOS_REPOS" == 1 && "$DISTRO_ID" == arch && "$(uname -m)" == x86_64 ]] || return 0
+  bash "$script" --check && return 0
+  say "$(_ "Adding the author's repositories: CachyOS's (for your CPU) and [multilib] — so every app installs with pacman" \
+           'Подключаю репозитории автора: CachyOS (под твой процессор) и [multilib] — чтобы все программы ставились через pacman')"
+  sudo bash "$script" ||
+    warn "$(_ "The CachyOS repositories were not added (scripts/cachyos-repos.sh): Helium, qView, LocalSend and Steam may be skipped" \
+              'Репозитории CachyOS не подключились (scripts/cachyos-repos.sh): Helium, qView, LocalSend и Steam могут не поставиться')"
+}
+
 pacman_install() {
   local list="$ROOT/packages/pacman.txt" pkg code
   command -v pacman >/dev/null 2>&1 || { warn "$(_ 'pacman not found; skipping system packages' 'pacman не найден; системные пакеты пропущены')"; return 0; }
   [[ "$SKIP_PACKAGES" == 1 ]] && { say "$(_ 'SKIP_PACKAGES=1: packages skipped' 'SKIP_PACKAGES=1: пакеты пропущены')"; return 0; }
   command -v sudo >/dev/null 2>&1 || die "$(_ 'sudo is required to install packages' 'Для установки пакетов нужен sudo')"
+  cachyos_repos
 
   mapfile -t packages < <(grep -Ev '^[[:space:]]*(#|$)' "$list")
   [[ "$NOCTALIA" == 0 ]] && mapfile -t packages < <(printf '%s\n' "${packages[@]}" | grep -Ev '^noctalia$')
@@ -1597,6 +1621,7 @@ esac
 [[ "$FISH_DEFAULT" == 0 || "$FISH_DEFAULT" == 1 ]] || die "FISH_DEFAULT must be 0 or 1"
 [[ "$MAC_KEYS" == 0 || "$MAC_KEYS" == 1 ]] || die "MAC_KEYS must be 0 or 1"
 [[ "$INSTALL_APPS" == 0 || "$INSTALL_APPS" == 1 ]] || die "INSTALL_APPS must be 0 or 1"
+[[ "$CACHYOS_REPOS" == 0 || "$CACHYOS_REPOS" == 1 ]] || die "CACHYOS_REPOS must be 0 or 1"
 # APPS given alone means "these ones, please"
 given APPS && ! given INSTALL_APPS && [[ "${APPS,,}" != none ]] && INSTALL_APPS=1
 choose_keyboard

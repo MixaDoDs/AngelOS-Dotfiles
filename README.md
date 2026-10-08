@@ -432,6 +432,7 @@ INSTALL_VOXTYPE=0 INSTALL_SDDM=1 ./install.sh
 | `INSTALL_VOXTYPE`, `DOWNLOAD_VOXTYPE_MODEL` | `1` \| `0` | voice input |
 | `INSTALL_SDDM` | `1` \| `0` | the login screen |
 | `INSTALL_TOOLS`, `INSTALL_FLATPAK` | `1` \| `0` | everyday tools, Flathub extras |
+| `CACHYOS_REPOS` | `1` \| `0` | Arch Linux: add the author's repositories first — CachyOS's (for your CPU, above Arch's) and `[multilib]`, so Helium, qView, LocalSend and Steam install with pacman |
 | `SKIP_PACKAGES` | `0` \| `1` | configs only: no pacman, no sudo |
 | `OVERWRITE_CONFIGS` | `0` \| `1` | also replace configs you changed (with a backup) |
 | `ENABLE_SERVICES`, `VALIDATE_NIRI` | `1` \| `0` | user services, `niri validate` |

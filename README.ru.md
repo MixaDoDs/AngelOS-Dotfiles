@@ -428,6 +428,7 @@ INSTALL_VOXTYPE=0 INSTALL_SDDM=1 ./install.sh
 | `INSTALL_VOXTYPE`, `DOWNLOAD_VOXTYPE_MODEL` | `1` \| `0` | голосовой ввод |
 | `INSTALL_SDDM` | `1` \| `0` | экран входа |
 | `INSTALL_TOOLS`, `INSTALL_FLATPAK` | `1` \| `0` | утилиты, дополнительные программы Flathub |
+| `CACHYOS_REPOS` | `1` \| `0` | Arch Linux: сначала подключить репозитории автора — CachyOS (под процессор, выше арчевских) и `[multilib]`, чтобы Helium, qView, LocalSend и Steam ставились через pacman |
 | `SKIP_PACKAGES` | `0` \| `1` | только конфиги: без pacman и sudo |
 | `OVERWRITE_CONFIGS` | `0` \| `1` | заменить и изменённые тобой конфиги (с бэкапом) |
 | `ENABLE_SERVICES`, `VALIDATE_NIRI` | `1` \| `0` | user-сервисы, `niri validate` |

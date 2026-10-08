@@ -9,16 +9,19 @@
                                     each app is really there and says which are not and why
                                     (exit 1 then), waits for Enter at the end
 
-Each app: its pacman package if a repository has it (CachyOS has helium-browser-bin, Arch's
-AUR does), else the AUR when paru or yay is there, else its Flathub id when flatpak is.
+Each app: its pacman package — on Arch Linux the author's repositories (CachyOS's and multilib,
+scripts/cachyos-repos.sh) go in first when pacman doesn't have it yet (Helium, qView, LocalSend,
+Steam) —, else the AUR when paru or yay is there, else its Flathub id when flatpak is.
 """
 import json
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 CATALOG = Path(__file__).resolve().parents[1] / "data/apps-catalog.json"
+REPOS = Path(__file__).resolve().parent / "cachyos-repos.sh"
 
 
 def run(cmd, **kw):
@@ -45,11 +48,11 @@ def aur_helper():
     return next((h for h in ("paru", "yay") if shutil.which(h)), "")
 
 
-def resolve(a):
-    """(installed, via)"""
+def resolve(a, repos_coming=False):
+    """(installed, via); repos_coming: the author's repositories get added before installing"""
     if pacman_installed(a.get("pacman")) or pacman_installed(a.get("aur")) or flatpak_installed(a.get("flatpak")):
         return True, ""
-    if pacman_has(a.get("pacman")):
+    if pacman_has(a.get("pacman")) or (repos_coming and a.get("pacman")):
         return False, "pacman"
     if a.get("aur") and aur_helper():
         return False, "aur"
@@ -60,18 +63,41 @@ def resolve(a):
 
 def status():
     out = {}
+    coming = arch_without_repos()
     for i, a in apps().items():
-        inst, via = resolve(a)
+        inst, via = resolve(a, coming)
         out[i] = {"installed": inst, "via": via}
     print(json.dumps(out))
+
+
+def notify(*args):
+    """a desktop notification; none without notify-send"""
+    if shutil.which("notify-send"):
+        subprocess.run(["notify-send", "-a", "angelOS", *args])
 
 
 def say(text):
     print(f"\033[1;35m»\033[0m {text}", flush=True)
 
 
+def arch_without_repos():
+    """Arch Linux (x86_64) without the author's repositories (scripts/cachyos-repos.sh)"""
+    try:
+        osr = Path("/etc/os-release").read_text()
+    except OSError:
+        return False
+    return ("\nID=arch\n" in "\n" + osr) and os.uname().machine == "x86_64" \
+        and subprocess.run(["bash", str(REPOS), "--check"]).returncode != 0
+
+
 def install(ids):
     cat = apps()
+    # an app pacman can't give yet (Helium, qView, LocalSend: CachyOS's; Steam: multilib): the
+    # author's repositories first, as the installer adds them — then pacman has it
+    if arch_without_repos() and any(i in cat and not resolve(cat[i])[0] and not pacman_has(cat[i].get("pacman"))
+                                    for i in ids):
+        say("подключаю репозитории автора (CachyOS и multilib), чтобы всё ставилось через pacman")
+        subprocess.run(["sudo", "bash", str(REPOS)])
     pac, aur, flat, skipped = [], [], [], []
     for i in ids:
         a = cat.get(i)
@@ -124,11 +150,10 @@ def install(ids):
             say(f"\033[1;31mне нашлись\033[0m ни в репозиториях, ни в AUR, ни во Flathub: {', '.join(nowhere)}"
                 " (для AUR нужен paru или yay, для Flathub — flatpak)")
         say("запустить снова: Настройки → Аккаунт → мастер")
-        subprocess.run(["notify-send", "-a", "angelOS", "-u", "critical", "-i", "dialog-warning",
-                        "Не все программы поставились", ", ".join(missing)])
+        notify("-u", "critical", "-i", "dialog-warning", "Не все программы поставились", ", ".join(missing))
     else:
         say("готово ♡ — " + ", ".join(done))
-        subprocess.run(["notify-send", "-a", "angelOS", "-i", "system-software-install", "Программы поставлены ♡", ", ".join(done)])
+        notify("-i", "system-software-install", "Программы поставлены ♡", ", ".join(done))
     rc = 1 if missing else 0
     try:
         input("\nEnter — закрыть окно ")
