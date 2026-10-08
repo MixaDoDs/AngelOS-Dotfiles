@@ -797,6 +797,7 @@ declare -A PREV_SUM=() NEW_SUM=()
 # processes per file): repo files holding a placeholder, checksums of repo and installed files
 declare -A HAS_PH=() SRC_SUM=() DST_SUM=() MADE_DIR=()
 NVIM_OURS=0
+NIRI_FOREIGN=0
 
 sed_escape() { printf '%s' "$1" | sed -e 's/[\/&|\\]/\\&/g'; }
 
@@ -883,6 +884,23 @@ remember() {
   save_manifest
 }
 
+# A niri config angelOS never wrote — the one niri makes on its first start, CachyOS's own
+# (cfg/keybinds.kdl with Noctalia's keys)… Kept as "the user's changes", it left angelOS's
+# keys, rules and theme unplugged while Settings → Shortcuts listed them. The whole of it is
+# replaced instead (each file backed up); outputs from CachyOS's cfg/display.kdl move to
+# monitor.kdl. Ours = known to the manifest, or wired like angelOS's config.kdl.
+niri_foreign_check() {
+  local cfg="$HOME_DIR/.config/niri/config.kdl" old="$HOME_DIR/.config/niri/cfg/display.kdl"
+  NIRI_FOREIGN=0
+  [[ -f "$cfg" && -z "${PREV_SUM[.config/niri/config.kdl]:-}" ]] || return 0
+  grep -Eq '^[[:space:]]*include "(angelos|noctalia)\.kdl"|^[[:space:]]*include "(\./)?cfg/(game-mode|privacy-block)\.kdl"' "$cfg" && return 0
+  NIRI_FOREIGN=1
+  if [[ -f "$old" && ! -e "$HOME_DIR/.config/niri/monitor.kdl" ]] && grep -Eq '^[[:space:]]*output[[:space:]]' "$old"; then
+    cp -- "$old" "$HOME_DIR/.config/niri/monitor.kdl"
+  fi
+}
+niri_foreign() { [[ "$NIRI_FOREIGN" == 1 && "$1" == .config/niri/* ]]; }
+
 # The shell's own code: always brought up to date (the old copy is backed up).
 is_program() {
   case "$1" in
@@ -934,7 +952,8 @@ install_file() {
   # changed since the installer wrote it (by hand, or by angelOS's settings:
   # hotkeys, animations, the default browser…): the user's version stays —
   # a theme's key profile gets the repository's new keys merged in around the user's
-  if [[ -e "$dst" && "$OVERWRITE_CONFIGS" != 1 ]] && ! is_program "$rel" && ! untouched "$rel" "$dst" "$srel"; then
+  if [[ -e "$dst" && "$OVERWRITE_CONFIGS" != 1 ]] && ! is_program "$rel" && ! niri_foreign "$rel" \
+     && ! untouched "$rel" "$dst" "$srel"; then
     merge_key_profile "$rel" "$dst" "$srel" "$new" "$src" && return 0
     mkdir -p -- "$(dirname -- "$PARKED_DIR/$rel")"
     cp -- "$new" "$PARKED_DIR/$rel"
@@ -1058,6 +1077,7 @@ install_configs() {
   say "$(_ 'Installing configuration…' 'Установка конфигурации…')"
   load_manifest
   rm -rf -- "$PARKED_DIR"
+  niri_foreign_check
   # the Neovim config goes in only where there is none yet, or where it is the one we put there
   if [[ ! -e "$HOME_DIR/.config/nvim" || -n "${PREV_SUM[.config/nvim/init.lua]:-}" ]]; then
     NVIM_OURS=1
@@ -1457,6 +1477,10 @@ summary() {
   if ((N_MERGED)); then
     say "$(_ "Shortcuts: angelOS's new keys merged into $N_MERGED key profile(s), yours kept (backup: *.bak.$STAMP)" \
              "Горячие клавиши: новые клавиши angelOS добавлены в $N_MERGED профил(я/ей), твои сохранены (бэкап: *.bak.$STAMP)")"
+  fi
+  if [[ "$NIRI_FOREIGN" == 1 ]]; then
+    say "$(_ "Niri: the config that was there was not angelOS's — replaced, so angelOS's keys work (the old one: ~/.config/niri/*.bak.$STAMP)" \
+             "Niri: прежний конфиг был не от angelOS — заменён, чтобы работали клавиши angelOS (старый: ~/.config/niri/*.bak.$STAMP)")"
   fi
   if ((N_PARKED)); then
     say "$(_ "Your changes kept in $N_PARKED config file(s); their new versions: ${PARKED_DIR/#$HOME_DIR/\~}/ (OVERWRITE_CONFIGS=1 replaces them, with a backup)" \

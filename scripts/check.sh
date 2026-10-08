@@ -612,6 +612,30 @@ inst_bad() {
   done
 }
 
+# A niri config that was there before angelOS (CachyOS's: cfg/keybinds.kdl with Noctalia's
+# keys, outputs in cfg/display.kdl) is replaced, backed up — kept, it left every angelOS key
+# unplugged. An angelOS config the user edited stays theirs.
+inst_foreignniri() {
+  local h="$WORK/foreignniri" k=.config/niri/cfg/keybinds.kdl
+  mkdir -p "$h/.config/niri/cfg"
+  printf 'include "./cfg/keybinds.kdl"\ninclude "./cfg/display.kdl"\n' >"$h/.config/niri/config.kdl"
+  printf 'binds {\n    Mod+Return { spawn "alacritty"; }\n}\n' >"$h/$k"
+  printf 'output "DP-1" {\n    scale 1\n}\n' >"$h/.config/niri/cfg/display.kdl"
+  if install_case foreignniri && grep -q 'include "keybinds-common.kdl"' "$h/$k" &&
+     grep -q 'include "angelos.kdl"' "$h/.config/niri/config.kdl" &&
+     ls "$h/$k".bak.* >/dev/null 2>&1 && grep -q 'output "DP-1"' "$h/.config/niri/monitor.kdl"; then
+    pass "installer: a niri config from before angelOS is replaced (backed up), its outputs kept"
+  else
+    fail "installer: a niri config from before angelOS is replaced (backed up), its outputs kept"; return
+  fi
+  printf '// mine\n' >>"$h/.config/niri/config.kdl"
+  if install_case foreignniri && tail -1 "$h/.config/niri/config.kdl" | grep -qx '// mine'; then
+    pass "installer: the user's edit of angelOS's niri config stays"
+  else
+    fail "installer: the user's edit of angelOS's niri config stays"
+  fi
+}
+
 inst_reset() {
   # Noctalia GUI settings from an earlier run: kept unless a reset is asked for.
   reset="$1"
@@ -834,7 +858,7 @@ timed switch py_test switch theme/test_switch.py "switch.py on an update: the us
 job author-tools check_author_tools
 job shellcheck check_shellcheck
 if [[ "${SKIP_INSTALL_TEST:-0}" != 1 ]]; then
-  for c in noctalia layouts macos mackeys0 pixel fish single tech nonoctalia voice sddm bad; do
+  for c in noctalia layouts macos mackeys0 pixel fish single tech nonoctalia voice sddm bad foreignniri; do
     job "installer-$c" "inst_$c"
   done
   job installer-reset0 inst_reset 0
