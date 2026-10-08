@@ -15,7 +15,8 @@ import qs.widgets
 //   play    — niri switches instantly underneath and the frozen frame is taken
 //             away by shaders/ws_transition.frag, revealing the live new desk.
 // The grab is done by grim, not ScreencopyView: in Quickshell 0.3.1 screencopy
-// views crash the shell (Qt Wayland screen bookkeeping) on multi-monitor setups.
+// views crash the shell (Qt Wayland screen bookkeeping) on multi-monitor setups, and
+// 0.3.2 (Qt 6.12) still segfaults when a view is made again after one went (2026-10-08).
 // Mapped only while it captures and plays (a permanent overlay would block direct scanout of
 // fullscreen games); never takes input.
 PanelWindow {

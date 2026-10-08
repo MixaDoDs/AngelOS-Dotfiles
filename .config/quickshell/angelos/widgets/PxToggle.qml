@@ -1,6 +1,7 @@
 import QtQuick
 import qs.config
 import qs.services
+import "A11y.js" as A11y
 
 // Pixel switch with a heart knob.
 Item {
@@ -11,6 +12,22 @@ Item {
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
     readonly property bool mac: settingsSkin === "goldengate"
     signal toggled(bool checked)
+
+    function flip() {
+        // the owner's binding updates `checked` (see PxSegmented): assign only if it did not
+        const next = !checked;
+        toggled(next);
+        if (checked !== next)
+            checked = next;
+        Sounds.play("toggle");
+    }
+    Accessible.role: Accessible.CheckBox
+    Accessible.name: A11y.name(text, root)
+    Accessible.checkable: true
+    Accessible.checked: checked
+    Accessible.focusable: true
+    Accessible.onPressAction: flip()
+    Accessible.onToggleAction: flip()
 
     // Long labels wrap instead of running off a narrow page (the grimoire's right
     // page): inside a box marked `fixedWidth` (SettingRow's control slot, PxGroup's
@@ -135,13 +152,6 @@ Item {
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
-        onClicked: {
-            // the owner's binding updates `checked` (see PxSegmented): assign only if it did not
-            const next = !root.checked;
-            root.toggled(next);
-            if (root.checked !== next)
-                root.checked = next;
-            Sounds.play("toggle");
-        }
+        onClicked: root.flip()
     }
 }

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import "A11y.js" as A11y
 
 // Menu row: icon + label (+ optional hint / submenu arrow). separator: true draws a line.
 Item {
@@ -18,6 +19,13 @@ Item {
     readonly property bool hovered: mouse.containsMouse
     readonly property bool lit: (mouse.containsMouse || highlighted) && enabled
     signal triggered
+
+    Accessible.role: Accessible.MenuItem
+    Accessible.name: A11y.name(text, root, icon)
+    Accessible.description: hint
+    Accessible.checked: checked
+    Accessible.onPressAction: if (enabled)
+        triggered()
 
     width: parent ? parent.width : implicitWidth
     implicitWidth: separator ? Theme.u * 20 : row.implicitWidth + hintText.implicitWidth + Theme.u * 24

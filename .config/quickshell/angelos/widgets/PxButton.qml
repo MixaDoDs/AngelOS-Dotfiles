@@ -2,6 +2,7 @@ import QtQuick
 import qs.config
 import qs.services
 import "MacIcons.js" as MacIcons
+import "A11y.js" as A11y
 
 Item {
     id: root
@@ -37,6 +38,20 @@ Item {
     signal clicked
     signal rightClicked
     signal middleClicked
+
+    // screen readers: the words, else the settings row's label, else the icon's name
+    Accessible.role: checkable ? Accessible.CheckBox : Accessible.Button
+    Accessible.name: A11y.name(text, root, icon)
+    Accessible.checkable: checkable
+    Accessible.checked: checked
+    Accessible.focusable: true
+    Accessible.onPressAction: {
+        if (!enabled)
+            return;
+        if (checkable)
+            checked = !checked;
+        clicked();
+    }
 
     // left + right padding; -1 = by `compact` (the bar's dense right side sets it)
     property real hpad: -1

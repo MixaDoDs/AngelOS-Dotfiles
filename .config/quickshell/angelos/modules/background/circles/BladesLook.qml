@@ -138,9 +138,7 @@ Item {
                 ctx.stroke();
             }
         }
-        Timer {
-            interval: 33
-            repeat: true
+        FrameAnimation {
             running: look.trail.length > 0 && look.menu.visible
             onTriggered: {
                 look.trail = look.trail.filter(p => Date.now() - p[2] < 450);

@@ -27,12 +27,10 @@ Scope {
             Sounds.play("choir");
         }
     }
-    Timer {
+    FrameAnimation {
         id: run
-        interval: 33
-        repeat: true
         onTriggered: {
-            root.t = Math.min(1, root.t + interval / 1500);
+            root.t = Math.min(1, root.t + Math.min(frameTime, 0.1) / 1.5);
             if (root.t >= 1) {
                 stop();
                 root.screenName = "";

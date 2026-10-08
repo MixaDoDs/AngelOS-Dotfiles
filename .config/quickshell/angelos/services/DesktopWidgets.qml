@@ -302,6 +302,13 @@ Singleton {
             "title": "music"
         },
         {
+            // a GIF from a file, played N times or for ever (modules/desktop/widgets/GifWidget)
+            "type": "gif",
+            "label": I18n.t("Гифка", "GIF"),
+            "icon": "image",
+            "title": "gif"
+        },
+        {
             // hell's own: offered, shown and spun only while the demon rules
             "type": "hellwheel",
             "label": I18n.t("Колесо Ада", "Wheel of Hell"),

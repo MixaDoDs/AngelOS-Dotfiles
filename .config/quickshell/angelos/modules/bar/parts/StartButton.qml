@@ -7,6 +7,9 @@ import qs.widgets
 PxButton {
     id: root
 
+    // screen readers (widgets/A11y.js): what this icon is
+    Accessible.name: I18n.t("Пуск", "Start")
+
     property bool above: true
     property bool small: false
     property string screenName: ""

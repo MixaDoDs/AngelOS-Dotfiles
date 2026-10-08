@@ -41,13 +41,12 @@ PxWindow {
         }
     }
 
-    property int elapsed: 0
-    Timer {
-        interval: 50
-        repeat: true
+    property real elapsed: 0
+    // the time bar runs down every frame
+    FrameAnimation {
         running: root.timeout > 0 && !hover.hovered
         onTriggered: {
-            root.elapsed += interval;
+            root.elapsed += Math.min(frameTime, 0.1) * 1000;
             root.remaining = Math.max(0, 1 - root.elapsed / root.timeout);
             if (root.remaining <= 0)
                 Notifs.dismissPopup(root.notification);

@@ -29,6 +29,8 @@ JsonAdapter {
         property string fontMono: ""        // "" = Pixeloid Mono
         property bool autoWallpaperColors: true // flavor "wallpaper": follow wallpaper changes
         property string paletteScreen: ""  // screen whose wallpaper feeds the palette; "" = first
+        property string paletteArea: "all" // where in the wallpaper the colour comes from: all | sky | middle | ground | custom (services/PaletteGenerator, ColorQuantizer)
+        property var paletteRect: [0.25, 0.1, 0.5, 0.3] // custom: x, y, width, height as parts of the picture
     }
 
     property JsonObject bar: JsonObject {
@@ -107,7 +109,7 @@ JsonAdapter {
         property bool liveMeteors: true
         property bool liveWater: true
         property bool liveLights: true
-        property int liveFps: 24
+        property int liveFps: 24            // 0: every frame of the screen
         property var liveOverrides: ({})   // path -> {sky, water: "on"|"off", axis: 0..1}
     }
 
@@ -266,6 +268,9 @@ JsonAdapter {
         property string colors: "accent"    // accent | mono | rainbow
         property bool clock: true
         property bool allScreens: true
+        // services/Awake: no idle screen, lock, screens off or sleep while…
+        property bool awakeStream: true     // …stream mode is on
+        property bool awakeFullscreen: true // …a window fills a whole screen (video, game)
     }
 
     property JsonObject sidebar: JsonObject {
@@ -323,6 +328,7 @@ JsonAdapter {
         property int monitorHeight: 760
         property string monitorPlace: "center" // center | corner (bottom-right, next to the tray)
         property bool nautilusDefaults: false // angelOS Nautilus extensions + prefs applied once
+        property string qsWarned: ""        // the outdated Quickshell version already warned about (services/QsVersion)
         property string primaryScreen: ""   // the main screen (widgets, the angel, the lock…); "" = the widest
         property var screenTune: ({})       // Monitor → Brightness and colour: {output: {brightness 0.3–1 (gamma), saturation −1…1 (NVIDIA vibrance)}} (services/ScreenTune)
     }

@@ -39,6 +39,7 @@ binds {
     Mod+CTRL+Shift+WheelScrollDown      { move-column-right; }
     Mod+CTRL+Shift+WheelScrollUp        { move-column-left; }
     Mod+V                               hotkey-overlay-title="angelOS: буфер обмена" { spawn-sh "qs -c angelos ipc call angelos clipboard"; }
+    Mod+Shift+C                         repeat=false hotkey-overlay-title="angelOS: пипетка (цвет с экрана)" { spawn-sh "qs -c angelos ipc call angelos pickColor"; }
     Mod+Shift+S                         repeat=false hotkey-overlay-title="Screenshot: region → Screenshots (ropes)" { spawn "@HOME@/.local/bin/niri-screenshot-region"; }
     Mod+Shift+V                         repeat=false hotkey-overlay-title="Voice: toggle dictation" { spawn "@HOME@/.local/bin/voxtype" "record" "toggle"; }
     CTRL+Shift+2                        { screenshot-screen; }

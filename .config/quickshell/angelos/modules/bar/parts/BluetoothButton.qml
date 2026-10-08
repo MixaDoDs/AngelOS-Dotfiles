@@ -13,6 +13,10 @@ import qs.modules.bar
 PxButton {
     id: root
 
+    // screen readers (widgets/A11y.js): what this icon is
+    Accessible.name: "Bluetooth"
+    Accessible.description: !Bt.enabled ? I18n.t("выключен", "off") : I18n.t("подключено устройств: ", "devices connected: ") + Bt.connectedDevices.length
+
     property bool above: true
 
     compact: true

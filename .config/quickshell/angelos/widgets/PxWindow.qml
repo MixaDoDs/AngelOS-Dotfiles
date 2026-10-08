@@ -7,6 +7,8 @@ import qs.config
 // and then one slow thing happens there (HellAmbient).
 Item {
     id: root
+    Accessible.role: Accessible.Pane
+    Accessible.name: title
 
     property bool hell: false
     // the settings skins (Config.settingsUi.skin): "" / classic, windose (a candy NGO window:

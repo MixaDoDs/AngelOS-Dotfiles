@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQml.Models
 import Quickshell
 import Quickshell.Wayland
 import qs.config
@@ -30,14 +31,86 @@ PanelWindow {
     property string query: ""
     property int current: 0
     property string kind: "all"          // all | text | image | fav
-    readonly property var results: Clipboard.history.filter(h => {
-        if (kind === "fav" ? !h.fav : kind !== "all" && (h.kind || "text") !== kind)
-            return false;
-        if (!query)
-            return true;
-        const q = query.toLowerCase();
-        return h.kind === "image" ? (I18n.t("картинка", "image") + " image " + (h.mime || "")).includes(q) : String(h.text || "").toLowerCase().includes(q);
-    })
+    // the history as rows filtered in C++ (SortFilterProxyModel): typing keeps the rows that still
+    // match, so their pictures are not decoded again on every key
+    readonly property var byKey: {
+        const m = {};
+        for (const h of Clipboard.history)
+            m[Clipboard.key(h)] = h;
+        return m;
+    }
+    readonly property int count: list.count
+    function entryAt(i) {
+        if (i < 0 || i >= shown.rowCount())
+            return null;
+        const src = shown.mapToSource(shown.index(i, 0)).row;
+        return src < 0 ? null : byKey[rows.get(src).key] || null;
+    }
+    function hay(h) {
+        return h.kind === "image" ? I18n.t("картинка", "image") + " image " + (h.mime || "") : String(h.text || "");
+    }
+    // brings `rows` to the history in place: moves, inserts and removes, never a reset
+    function sync() {
+        const want = Clipboard.history;
+        for (let i = 0; i < want.length; i++) {
+            const h = want[i];
+            const k = Clipboard.key(h);
+            let j = i;
+            while (j < rows.count && rows.get(j).key !== k)
+                j++;
+            if (j === rows.count)
+                rows.insert(i, {
+                    "key": k,
+                    "kind": h.kind || "text",
+                    "fav": !!h.fav,
+                    "hay": hay(h)
+                });
+            else {
+                if (j !== i)
+                    rows.move(j, i, 1);
+                if (rows.get(i).fav !== !!h.fav)
+                    rows.setProperty(i, "fav", !!h.fav);
+            }
+        }
+        if (rows.count > want.length)
+            rows.remove(want.length, rows.count - want.length);
+    }
+    Connections {
+        target: Clipboard
+        function onHistoryChanged() {
+            win.sync();
+        }
+    }
+    ListModel {
+        id: rows
+        // gives the model its roles before the filters look for them; sync() clears it
+        ListElement {
+            key: ""
+            kind: ""
+            fav: false
+            hay: ""
+        }
+    }
+    SortFilterProxyModel {
+        id: shown
+        model: rows
+        filters: [
+            RegExpFilter {
+                roleName: "hay"
+                regExp: new RegExp(win.query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i")
+            },
+            ValueFilter {
+                roleName: "kind"
+                value: win.kind
+                enabled: win.kind === "text" || win.kind === "image"
+            },
+            ValueFilter {
+                roleName: "fav"
+                value: true
+                enabled: win.kind === "fav"
+            }
+        ]
+    }
     function sizeLabel(h) {
         const parts = [];
         if (h.width && h.height)
@@ -54,8 +127,11 @@ PanelWindow {
     }
 
     // built when it opens (shell.qml: LazyLoader), so the first showing is the creation itself
-    Component.onCompleted: if (visible)
-        opened()
+    Component.onCompleted: {
+        sync();
+        if (visible)
+            opened();
+    }
     onVisibleChanged: if (visible)
         opened()
     function opened() {
@@ -101,14 +177,14 @@ PanelWindow {
                 win.query = text;
                 win.current = 0;
             }
-            onAccepted: if (win.results.length)
-                win.pick(win.results[win.current])
+            onAccepted: if (win.count)
+                win.pick(win.entryAt(win.current))
             onKeyPressed: e => {
                 if (e.key === Qt.Key_Escape) {
                     Shell.clipboardOpen = false;
                     e.accepted = true;
-                } else if (e.key === Qt.Key_D && (e.modifiers & Qt.ControlModifier) && win.results.length) {
-                    Clipboard.toggleFav(win.results[win.current]);
+                } else if (e.key === Qt.Key_D && (e.modifiers & Qt.ControlModifier) && win.count) {
+                    Clipboard.toggleFav(win.entryAt(win.current));
                     e.accepted = true;
                 } else if (e.key === Qt.Key_Tab || e.key === Qt.Key_Backtab) {
                     const order = ["all", "text", "image", "fav"];
@@ -117,15 +193,15 @@ PanelWindow {
                     win.current = 0;
                     e.accepted = true;
                 } else if (e.key === Qt.Key_Down) {
-                    win.current = Math.min(win.results.length - 1, win.current + 1);
+                    win.current = Math.min(win.count - 1, win.current + 1);
                     list.positionViewAtIndex(win.current, ListView.Contain);
                     e.accepted = true;
                 } else if (e.key === Qt.Key_Up) {
                     win.current = Math.max(0, win.current - 1);
                     list.positionViewAtIndex(win.current, ListView.Contain);
                     e.accepted = true;
-                } else if (e.key === Qt.Key_Delete && win.results.length) {
-                    Clipboard.remove(win.results[win.current]);
+                } else if (e.key === Qt.Key_Delete && win.count) {
+                    Clipboard.remove(win.entryAt(win.current));
                     e.accepted = true;
                 }
             }
@@ -195,7 +271,7 @@ PanelWindow {
             color: Qt.alpha(Theme.sunken, 0.75)
 
             PxText {
-                visible: win.results.length === 0
+                visible: win.count === 0
                 anchors.centerIn: parent
                 width: parent.width - Theme.u * 20
                 horizontalAlignment: Text.AlignHCenter
@@ -209,14 +285,15 @@ PanelWindow {
                 anchors.fill: parent
                 anchors.margins: Theme.u * 2
                 clip: true
-                model: win.results
+                model: shown
                 boundsBehavior: Flickable.StopAtBounds
                 delegate: Rectangle {
                     id: item
-                    required property var modelData
+                    required property string key
+                    readonly property var entry: win.byKey[key] || ({})
                     required property int index
                     readonly property bool sel: index === win.current
-                    readonly property bool isImage: item.modelData.kind === "image"
+                    readonly property bool isImage: item.entry.kind === "image"
                     width: list.width
                     height: isImage ? (sel ? Theme.u * 70 : Theme.u * 44) : txt.implicitHeight + Theme.u * 6
                     color: sel ? Theme.select : m.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.12) : "transparent"
@@ -240,10 +317,10 @@ PanelWindow {
                         clip: true
                         Image {
                             id: preview
-                            readonly property real ratio: item.modelData.width && item.modelData.height ? item.modelData.width / item.modelData.height : (implicitHeight > 0 ? implicitWidth / implicitHeight : 1.6)
+                            readonly property real ratio: item.entry.width && item.entry.height ? item.entry.width / item.entry.height : (implicitHeight > 0 ? implicitWidth / implicitHeight : 1.6)
                             anchors.fill: parent
                             anchors.margins: parent.border.width
-                            source: item.isImage ? "file://" + item.modelData.path : ""
+                            source: item.isImage ? "file://" + item.entry.path : ""
                             // never decode a full-size screenshot for a thumbnail
                             sourceSize.width: Math.ceil(list.width * 0.62)
                             sourceSize.height: Theme.u * 70
@@ -284,7 +361,7 @@ PanelWindow {
                         }
                         PxText {
                             width: parent.width
-                            text: win.sizeLabel(item.modelData)
+                            text: win.sizeLabel(item.entry)
                             kind: "tiny"
                             wrapMode: Text.Wrap
                             color: item.sel ? Theme.selectText : Theme.textDim
@@ -304,7 +381,7 @@ PanelWindow {
                         x: Theme.u * 4
                         width: parent.width - Theme.u * 8 - star.width
                         anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                        text: String(item.modelData.text || "").replace(/\s+/g, " ").slice(0, 300)
+                        text: String(item.entry.text || "").replace(/\s+/g, " ").slice(0, 300)
                         maximumLineCount: 2
                         wrapMode: Text.WrapAnywhere
                         elide: Text.ElideRight
@@ -315,7 +392,7 @@ PanelWindow {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: win.pick(item.modelData)
+                        onClicked: win.pick(item.entry)
                     }
                     // ★ keeps it: shown on favourites, and on the row under the mouse or the selection
                     Item {
@@ -325,12 +402,12 @@ PanelWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         width: Theme.u * 12
                         height: Theme.u * 12
-                        visible: item.modelData.fav || m.containsMouse || starMouse.containsMouse || item.sel
+                        visible: item.entry.fav || m.containsMouse || starMouse.containsMouse || item.sel
                         PxIcon {
                             anchors.centerIn: parent
                             name: "star"
-                            hollow: !item.modelData.fav
-                            fill3: item.modelData.fav ? Theme.accent3 : Theme.accent4
+                            hollow: !item.entry.fav
+                            fill3: item.entry.fav ? Theme.accent3 : Theme.accent4
                             ink: item.sel ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
                             scale: starMouse.containsMouse ? 1.2 : 1
                         }
@@ -340,7 +417,7 @@ PanelWindow {
                             anchors.margins: -Theme.u * 2
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Clipboard.toggleFav(item.modelData)
+                            onClicked: Clipboard.toggleFav(item.entry)
                         }
                     }
                 }

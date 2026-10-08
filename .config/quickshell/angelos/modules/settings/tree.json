@@ -142,7 +142,8 @@
             "laptop/power-idle",
             "laptop/lid",
             "lock/lock-timers",
-            "lock/idle-timer"
+            "lock/idle-timer",
+            "lock/awake"
           ],
           "links": [
             "battery",
@@ -1390,7 +1391,8 @@
               "laptop/power-idle",
               "laptop/lid",
               "lock/lock-timers",
-              "lock/idle-timer"
+              "lock/idle-timer",
+              "lock/awake"
             ],
             "links": [
               "battery"

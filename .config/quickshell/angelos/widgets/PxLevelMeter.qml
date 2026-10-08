@@ -31,18 +31,18 @@ Item {
         node: root.node
         enabled: root.active && !!root.node
     }
-    Timer {
-        // ~60 Hz while there is something to animate, idle otherwise
-        interval: 16
-        repeat: true
+    FrameAnimation {
+        // every frame while there is something to animate, idle otherwise; the falls were
+        // tuned per 16 ms (`k` keeps their speed at any refresh rate)
         running: root.active && (root.level > 0 || root.shown > 0.001 || root.hold > 0.001)
         onTriggered: {
-            root.shown = root.level > root.shown ? root.level : Math.max(root.level, root.shown - 0.035);
+            const k = Math.min(frameTime, 0.1) / 0.016;
+            root.shown = root.level > root.shown ? root.level : Math.max(root.level, root.shown - 0.035 * k);
             if (root.shown >= root.hold) {
                 root.hold = root.shown;
                 holdTimer.restart();
             } else if (!holdTimer.running) {
-                root.hold = Math.max(root.shown, root.hold - 0.02);
+                root.hold = Math.max(root.shown, root.hold - 0.02 * k);
             }
         }
     }

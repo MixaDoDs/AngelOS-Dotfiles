@@ -100,6 +100,20 @@ IpcHandler {
             "obs": StreamMode.obsUp ? (StreamMode.obsLive ? "live" : "up") : (StreamMode.obsAuth ? "password" : "down")
         });
     }
+    // stay awake (services/Awake): on | off | toggle | status — by hand; stream mode and
+    // full-screen windows switch it by themselves (Settings → Lock → Stay awake)
+    function awake(mode: string): string {
+        if (["on", "off", "toggle"].includes(mode))
+            Awake.set(mode);
+        else if (mode !== "status" && mode !== "")
+            return "on | off | toggle | status";
+        return JSON.stringify({
+            "active": Awake.active,
+            "manual": Awake.manual,
+            "reason": Awake.reason,
+            "fullscreen": Awake.fullscreenWindow ? Awake.fullscreenWindow.app_id || "" : ""
+        });
+    }
     // the angel on stream (services/StreamAngel): on | off | toggle | drop (her menu's
     // "stop being a streamer": off, and her menu offers it back) | test (show her now,
     // without a stream; again hides her) | view (Mod+Alt+A: on the bar ⇄ hidden) |
@@ -436,6 +450,10 @@ IpcHandler {
         if (Shell.setupLocked)
             return;
         Shell.clipboardOpen = !Shell.clipboardOpen;
+    }
+    // the eyedropper: a click anywhere, the colour's hex into the clipboard (services/ColorPicker)
+    function pickColor(): void {
+        ColorPicker.pick();
     }
     // toggle a desktop widget: angelos widget clock DP-1 (types: clock sysmon cava nowplaying plugin:<id>)
     function widget(type: string, screen: string): string {

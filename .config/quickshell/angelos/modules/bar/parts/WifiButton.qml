@@ -11,6 +11,10 @@ import qs.modules.bar
 PxButton {
     id: root
 
+    // screen readers (widgets/A11y.js): what this icon is
+    Accessible.name: "Wi-Fi"
+    Accessible.description: !Wifi.enabled ? I18n.t("выключен", "off") : !Wifi.connected ? I18n.t("не подключён", "not connected") : I18n.t("подключён", "connected")
+
     property bool above: true
 
     compact: true

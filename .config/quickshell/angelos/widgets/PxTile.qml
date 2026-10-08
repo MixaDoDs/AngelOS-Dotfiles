@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import "A11y.js" as A11y
 
 // Big raised button of the simple settings view: icon, name, one line of what's inside.
 Item {
@@ -10,6 +11,13 @@ Item {
     property string hint: ""
     property bool small: false
     signal clicked
+
+    Accessible.role: Accessible.Button
+    Accessible.name: A11y.name(text, root, icon)
+    Accessible.description: hint
+    Accessible.focusable: true
+    Accessible.onPressAction: if (enabled)
+        clicked()
 
     implicitWidth: small ? Theme.u * 78 : Theme.u * 92
     implicitHeight: col.implicitHeight + Theme.u * (small ? 8 : 12)

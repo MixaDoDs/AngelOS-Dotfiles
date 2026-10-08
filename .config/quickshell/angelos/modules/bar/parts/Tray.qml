@@ -8,6 +8,10 @@ import qs.modules.bar
 
 PxButton {
     id: root
+
+    // screen readers (widgets/A11y.js): what this icon is
+    Accessible.name: I18n.t("Значки в трее", "Tray icons")
+
     property bool above: true
     // Settings → Bar → Icons → Tray density: columns, cell, icon and gap in art pixels
     readonly property var densities: ({

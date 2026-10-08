@@ -36,6 +36,14 @@ PxWindow {
             "act": () => StreamMode.set("toggle")
         },
         {
+            // services/Awake: no idle screen, lock or sleep; also on by itself while streaming or full-screen
+            "id": "awake",
+            "icon": "coffee",
+            "label": Awake.active && !Awake.manual ? I18n.t("Не сплю (авто)", "Awake (auto)") : I18n.t("Не спать", "Stay awake"),
+            "on": Awake.active,
+            "act": () => Awake.set("toggle")
+        },
+        {
             "id": "theme",
             "icon": Theme.dark ? "moon" : "sun",
             "label": Theme.dark ? I18n.t("Тёмная", "Dark") : I18n.t("Светлая", "Light"),

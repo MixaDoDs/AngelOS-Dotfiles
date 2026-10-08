@@ -14,6 +14,7 @@
   "lock/lock-stream": ["ngo", "нго", "needy girl overdose", "эфир на блокировке", "стрим на локе"],
   "lock/lock-rewards": ["крутка", "гача", "награда за вход", "gacha", "daily reward"],
   "lock/lock-timers": ["автоблокировка", "блокировать", "auto lock"],
+  "lock/awake": ["не засыпать", "не спать", "кофе", "запрет сна", "без сна", "caffeine", "stay awake", "idle inhibit"],
   "lock/login-screen": ["sddm", "экран входа", "логин", "login"],
   "lock/idle-screen": ["заставка", "скринсейвер", "screensaver"],
   "lock/idle-timer": ["заставка", "простой", "screensaver", "idle"],
@@ -78,5 +79,7 @@
   "appearance/theme/Режим": ["тёмная тема", "темная тема", "светлая тема", "ночной режим", "dark mode", "light mode"],
   "monitor/output/Режим": ["частота", "частота обновления", "герцы", "разрешение", "refresh rate", "resolution", "hz"],
   "mouse/mouse/Чувствительность": ["скорость мыши", "скорость курсора", "dpi", "mouse speed"],
-  "y2k/demon-corner/Болтает сама": ["реплики", "фразы", "болтовня", "lines", "chatter"]
+  "y2k/demon-corner/Болтает сама": ["реплики", "фразы", "болтовня", "lines", "chatter"],
+  "appearance/theme/Пипетка": ["пипетка", "цвет с экрана", "взять цвет", "hex цвета", "eyedropper", "color picker", "pick colour", "pick color"],
+  "appearance/theme/Откуда брать цвет": ["область обоев", "цвет неба", "цвета области", "палитра из обоев", "wallpaper area", "colour from the sky"]
 }

@@ -120,6 +120,11 @@ Item {
                     readonly property real near: root.dock ? Math.max(0, 1 - Math.abs(root.pointerX - centreX) / (root.buttonWidth * 2.4)) : 0
                     readonly property real grow: 1 + 0.5 * near * near
                     property real hop: 0
+                    // the pointer anywhere on the button, × included: the ×'s own MouseArea takes the
+                    // hover from btn.hovered (a sibling), and hiding the × on that made it flicker
+                    HoverHandler {
+                        id: over
+                    }
                     SequentialAnimation {
                         id: hopper
                         NumberAnimation {
@@ -199,7 +204,7 @@ Item {
                     // the window's cobweb (services/Cobweb): its corner, under the ×
                     CobwebBadge {
                         ids: [btn.modelData.id]
-                        hovered: btn.hovered
+                        hovered: over.hovered
                         pixel: Math.max(1, Math.round(Theme.u / 2))
                         x: btn.width - width - (root.dock ? Theme.u * 2 : Theme.u)
                         y: root.dock ? Theme.u - btn.hop : Theme.u
@@ -207,7 +212,7 @@ Item {
                     // × on hover (Settings → Bar → Closing windows)
                     Rectangle {
                         id: closeX
-                        visible: Config.bar.taskHoverClose && btn.hovered
+                        visible: Config.bar.taskHoverClose && over.hovered
                         readonly property int s: root.labels ? Theme.u * 9 : Theme.u * 7
                         width: s
                         height: s
@@ -254,6 +259,7 @@ Item {
             visible: root.overflow && (modelData < 0 ? flick.contentX > 1 : flick.contentX < flick.contentWidth - flick.width - 1)
             compact: true
             icon: modelData < 0 ? "arrowLeft" : "arrowRight"
+            Accessible.name: modelData < 0 ? I18n.t("Окна левее", "Windows to the left") : I18n.t("Окна правее", "Windows to the right")
             iconPixel: Math.max(1, Theme.u - 1)
             width: Theme.u * 8
             height: root.height

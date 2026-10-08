@@ -12,7 +12,7 @@ import qs.widgets
 // screen and the frozen frame jolts about for a moment. When the demon comes,
 // 8-bit rocks tumble down from the top and bounce off the floor (Sounds
 // "rocks") — the rocks are hers only. Then Angel goes on (Angel.quakeDone). The frame is grabbed by grim like
-// SwitchFx does (ScreencopyView crashes Quickshell 0.3.1 on two monitors).
+// SwitchFx does (ScreencopyView crashes Quickshell 0.3.1 on two monitors, 0.3.2 when one is made again).
 // Mapped only while it shakes, never takes input. Settings → Y2K → Screen shake.
 Scope {
     id: root

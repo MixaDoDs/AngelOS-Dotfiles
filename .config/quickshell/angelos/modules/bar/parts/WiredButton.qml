@@ -11,6 +11,9 @@ import qs.modules.bar
 PxButton {
     id: root
 
+    // screen readers (widgets/A11y.js): what this icon is
+    Accessible.name: I18n.t("Проводная сеть", "Wired network")
+
     property bool above: true
     readonly property var dev: Wifi.wiredDevice
     readonly property bool linked: !!dev && dev.hasLink

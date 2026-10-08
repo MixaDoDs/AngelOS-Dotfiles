@@ -9,7 +9,8 @@ import Quickshell.Wayland
 // it: niri's frame of the screen has the lens in it too, so a glass over the very spot
 // it shows would show itself — a tunnel. It moves to the other side near an edge.
 // Its own process because ScreencopyView can take Quickshell down (Qt Wayland, two
-// monitors); then only the lens goes, the shell stays. No angelOS modules here (they
+// monitors; in 0.3.2 a view made again after one went) — one view per process lifetime,
+// and if it falls only the lens goes, the shell stays. No angelOS modules here (they
 // would read and write settings.json from a second process): all it needs comes in
 // ANGELOS_LENS, JSON — screen, x, y, zoom, size, shape, crisp, colours, control, shot.
 // Inside: the wheel zooms, Shift+wheel resizes, Esc / Q / a right click closes. The

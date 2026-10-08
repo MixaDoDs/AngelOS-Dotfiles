@@ -47,6 +47,7 @@ ShellRoot {
     Osd {}
     VoxIndicator {}
     IdleScreen {}
+    AwakeKeeper {}
     Lock {}
     PolkitDialog {}
     UpdatePrompt {}
@@ -67,6 +68,7 @@ ShellRoot {
     CobwebOverlay {}
     LensOverlay {}
     Ipc {}
+    IpcEvents {}
     // Launcher, ClipboardPanel, SessionMenu, SettingsWindow, the author's GameDebugWindow: built on demand
     LazyWindows {}
 
@@ -128,6 +130,7 @@ ShellRoot {
         WorkspaceAnim.current; // control socket for `angelos ws`
         Sounds.ready; // Y2K sound pack (generated on first use)
         StreamMode.active; // OBS watcher: stream mode while live
+        QsVersion.state; // an outdated Quickshell: one notification per version (scripts/qs-version.sh)
         Angel.demon; // the corner helper's schedule (tips, the demon's pranks)
         Achievements.loaded; // the achievements: counting starts with the shell (the game on only)
         Diary.loaded; // the Angel's diary: a page written later comes as a card (the game on only)

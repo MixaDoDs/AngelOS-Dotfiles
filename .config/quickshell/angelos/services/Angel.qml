@@ -110,6 +110,7 @@ Singleton {
     property real swap: 0                    // 0..1 through it; the character flips at 0.5
     // the desktop widgets wait for the glass to break before they burn over (DesktopWidgets)
     property bool holdWidgets: false
+    signal said(string text)                  // she spoke (modules/IpcEvents: `angelos events angelSaid`)
     signal heaven(string screenName)
     signal punched(string screenName, string sound)
     signal shattered(string screenName)
@@ -171,6 +172,7 @@ Singleton {
             msg = String(msg).replace(/\s*♡/g, "");
         text = msg;
         actions = !acts ? [] : Array.isArray(acts) ? acts : [acts];
+        said(msg);
         menuOpen = false;
         talking = true;
         quiet.interval = ms || Math.max(6000, msg.length * 80);
@@ -631,13 +633,11 @@ Singleton {
         interval: 300
         onTriggered: root.instant = false
     }
-    Timer {
+    FrameAnimation {
         id: swapTick
-        interval: 80
-        repeat: true
         onTriggered: {
             const before = root.swap;
-            root.swap = Math.min(1, root.swap + interval / 1900);
+            root.swap = Math.min(1, root.swap + Math.min(frameTime, 0.1) / 1.9);
             if (before < 0.5 && root.swap >= 0.5) {
                 if (root.transition === "toHell")
                     root.becomeDemon();
@@ -1058,10 +1058,8 @@ Singleton {
         say(line(Lines.demonWheel.spin, "wspin"), null, wheelMs, true);
         return true;
     }
-    Timer {
+    FrameAnimation {
         id: wheelClock
-        interval: 33
-        repeat: true
         onTriggered: {
             const p = Math.min(1, (Date.now() - root._wheelStart) / root.wheelMs);
             const e = 1 - Math.pow(1 - p, 3.2);

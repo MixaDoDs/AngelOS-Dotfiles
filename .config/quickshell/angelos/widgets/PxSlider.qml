@@ -1,6 +1,7 @@
 import QtQuick
 import qs.config
 import qs.services
+import "A11y.js" as A11y
 
 // Pixel slider: sunken track, pink fill, heart thumb.
 Item {
@@ -22,6 +23,21 @@ Item {
     readonly property bool dragging: mouse.pressed
     signal moved(real value)
     signal released(real value)
+
+    // one step up (1) or down (-1): the wheel, a screen reader's increase / decrease
+    function nudge(dir) {
+        const step = stepSize > 0 ? stepSize : (to - from) / 50;
+        const v = Math.max(Math.min(from, to), Math.min(Math.max(from, to), value + dir * step));
+        value = v;
+        moved(v);
+        released(v);
+    }
+    Accessible.role: Accessible.Slider
+    Accessible.name: A11y.rowLabel(root)
+    Accessible.description: (value * valueScale).toFixed(decimals) + suffix
+    Accessible.focusable: true
+    Accessible.onIncreaseAction: nudge(1)
+    Accessible.onDecreaseAction: nudge(-1)
 
     implicitWidth: Theme.u * 110
     implicitHeight: Theme.u * 12
@@ -175,12 +191,6 @@ Item {
             dragOpen = false;
             root.released(root.value);
         }
-        onWheel: w => {
-            const step = root.stepSize > 0 ? root.stepSize : (root.to - root.from) / 50;
-            const v = Math.max(Math.min(root.from, root.to), Math.min(Math.max(root.from, root.to), root.value + (w.angleDelta.y > 0 ? step : -step)));
-            root.value = v;
-            root.moved(v);
-            root.released(v);
-        }
+        onWheel: w => root.nudge(w.angleDelta.y > 0 ? 1 : -1)
     }
 }

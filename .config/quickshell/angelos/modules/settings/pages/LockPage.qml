@@ -172,6 +172,37 @@ PxPage {
         // each look below plays as a small gif when it is switched on
     }
     PxGroup {
+        // services/Awake: a Wayland idle inhibitor — niri then never counts the system idle
+        name: "awake"
+        title: I18n.t("Не засыпать", "Stay awake")
+        icon: "coffee"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Не засыпать сейчас", "Stay awake now")
+            hint: Awake.active ? I18n.t("сейчас не засыпает: ", "awake now: ") + Awake.reasonText : I18n.t("ни заставки, ни блокировки, ни сна, пока включено; после перезапуска оболочки выключено", "No idle screen, lock or sleep while on; off again after a shell restart")
+            PxToggle {
+                checked: Awake.manual
+                onToggled: c => Awake.set(c ? "on" : "off")
+            }
+        }
+        SettingRow {
+            label: I18n.t("Во время стрима", "While streaming")
+            hint: I18n.t("пока включён стрим-режим (сам по OBS или вручную)", "While stream mode is on (by OBS or by hand)")
+            PxToggle {
+                checked: Config.idle.awakeStream
+                onToggled: c => Config.idle.awakeStream = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("Когда окно на весь экран", "While a window is full-screen")
+            hint: I18n.t("видео, игра — любое окно размером с монитор на видимом столе", "A video, a game — any window as big as its monitor on a visible workspace")
+            PxToggle {
+                checked: Config.idle.awakeFullscreen
+                onToggled: c => Config.idle.awakeFullscreen = c
+            }
+        }
+    }
+    PxGroup {
         name: "lock-details"
         title: I18n.t("Детали блокировки", "Lock screen details")
         icon: "sparkle"

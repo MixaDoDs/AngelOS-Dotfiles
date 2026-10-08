@@ -1,6 +1,7 @@
 import QtQuick
 import qs.config
 import qs.services
+import "A11y.js" as A11y
 
 Item {
     id: root
@@ -8,6 +9,20 @@ Item {
     property bool checked: false
     property string text: ""
     signal toggled(bool checked)
+
+    function flip() {
+        const next = !checked;
+        toggled(next);
+        if (checked !== next)
+            checked = next;
+    }
+    Accessible.role: Accessible.CheckBox
+    Accessible.name: A11y.name(text, root)
+    Accessible.checkable: true
+    Accessible.checked: checked
+    Accessible.focusable: true
+    Accessible.onPressAction: flip()
+    Accessible.onToggleAction: flip()
     // the Golden Gate skin's System Settings: a Mac checkbox (rounded, the accent with a ✓)
     readonly property bool mac: Theme.settingsSkinFor(root.parent) === "goldengate"
 
@@ -57,11 +72,6 @@ Item {
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
-        onClicked: {
-            const next = !root.checked;
-            root.toggled(next);
-            if (root.checked !== next)
-                root.checked = next;
-        }
+        onClicked: root.flip()
     }
 }

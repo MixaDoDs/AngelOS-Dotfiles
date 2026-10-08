@@ -2,7 +2,7 @@ import QtQuick
 import qs.config
 import qs.services
 
-// ASCII art drawn on a small Canvas at 20 fps, one effect at a time:
+// ASCII art drawn on a small Canvas every frame, one effect at a time:
 // reveal → hold → dissolve → short pause → the next (random) effect.
 Item {
     id: root
@@ -80,12 +80,10 @@ Item {
     onTextChanged: restart()
     Component.onCompleted: restart()
 
-    Timer {
-        interval: 50
-        repeat: true
+    FrameAnimation {
         running: root.running
         onTriggered: {
-            const dt = interval / 1000;
+            const dt = Math.min(frameTime, 0.1);
             root.t += dt;
             root.clock += dt;
             if (root.t >= root.durations[root.phase]) {

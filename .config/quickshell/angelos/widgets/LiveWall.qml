@@ -39,11 +39,16 @@ ShaderEffect {
     visible: allowed && maskCurrent && fade > 0
 
     property real time: 0
+    // Config.wallpaper.liveFps: 12 / 24 / 60 a second, or 0 — every frame of the screen
     Timer {
         interval: Math.round(1000 / Math.max(1, Config.wallpaper.liveFps))
         repeat: true
-        running: root.visible && !Shell.hiddenScreen(root.screenName)
+        running: Config.wallpaper.liveFps > 0 && root.visible && !Shell.hiddenScreen(root.screenName)
         onTriggered: root.time += interval / 1000
+    }
+    FrameAnimation {
+        running: Config.wallpaper.liveFps <= 0 && root.visible && !Shell.hiddenScreen(root.screenName)
+        onTriggered: root.time += Math.min(frameTime, 0.1)
     }
 
     Image {

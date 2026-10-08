@@ -14,6 +14,10 @@ import qs.modules.bar
 PxButton {
     id: root
 
+    // screen readers (widgets/A11y.js): what this icon is
+    Accessible.name: I18n.t("Батарея", "Battery")
+    Accessible.description: Power.percent + "%" + (Power.charging ? I18n.t(", заряжается", ", charging") : "")
+
     property bool above: true
     readonly property bool hell: Theme.realm === "hell"
     readonly property bool low: Power.discharging && Power.percent <= Config.power.lowAt

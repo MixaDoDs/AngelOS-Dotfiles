@@ -20,6 +20,10 @@
 #   it follows `angelos settingsSkin …` by itself while the shell runs; sync = the one settings.json asks for
 #   angelos updates [status] | check | update — Settings → Updates from the terminal: follows the
 #   run to its end and says what happened (without a running shell the update runs right here)
+#   angelos events [signal] — follow angelOS (stream, awake, realm, circle, locked, angelSaid…) line by
+#   line; angelos eventsNow — the same state right now, as JSON
+#   angelos awake on|off|toggle|status — stay awake: no idle screen, lock or sleep (also by itself
+#   while streaming or with a full-screen window: Settings → Lock → Stay awake)
 #   angelos brightness up|down|0…100 | kbdLight up|down|cycle — a laptop's backlight and keyboard light
 #   angelos laptop info | battery | eco on|off|auto | touchpad on|off|toggle | airplane | project … |
 #   lid close|open | tablet on|off | rotate … — the rest of a laptop (`angelos laptop help`)
@@ -329,5 +333,17 @@ case "$1" in
       exit 0
     fi
     exec qs -c angelos ipc call angelos lens "$what" ;;
+  events)
+    # follow angelOS: one line per event (stream, awake, realm, character, circle, locked,
+    # idle, theme, dnd, angelSaid); a signal name narrows it; `angelos eventsNow` = the state now
+    shift
+    [ $# -gt 0 ] && exec qs -c angelos ipc listen events "$@"
+    # all of them: a listener per signal, each line as "<signal> <value>"
+    trap 'kill 0' INT TERM
+    for sig in stream awake realm character circle locked idle theme dnd angelSaid; do
+      qs -c angelos ipc listen events "$sig" | sed -u "s/^/$sig /" &
+    done
+    wait ;;
+  eventsNow) exec qs -c angelos ipc call events now ;;
   *)       exec qs -c angelos ipc call angelos "$@" ;;
 esac

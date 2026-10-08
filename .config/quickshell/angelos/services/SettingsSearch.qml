@@ -96,7 +96,7 @@ Singleton {
             "wallpaper": ["обои", "фон", "картинка", "заставка стола", "wallpaper", "background", "picture", "image"],
             "capture": ["скриншот", "скрин", "снимок экрана", "запись экрана", "видео", "обс", "screenshot", "recording", "capture", "video", "grim", "wf-recorder"],
             "cursor": ["курсор", "указатель", "cursor", "pointer"],
-            "widgets": ["виджет", "часы", "визуализатор", "cava", "widget", "clock", "visualizer"],
+            "widgets": ["виджет", "часы", "визуализатор", "cava", "гифка", "гиф", "анимация", "widget", "clock", "visualizer", "gif"],
             "deskmenu": ["пкм", "правая кнопка", "контекстное меню", "меню рабочего стола", "меню обоев", "кольцо", "радиальное меню", "right click", "context menu", "desktop menu", "radial menu", "pie menu"],
             "taskbar": ["панель", "таскбар", "трей", "кнопки окон", "часы", "taskbar", "panel", "tray", "clock"],
             "start": ["пуск", "меню пуск", "кнопка пуск", "meta", "win", "start", "start menu", "start button"],

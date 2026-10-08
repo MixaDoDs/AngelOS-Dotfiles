@@ -946,7 +946,7 @@ Item {
                                 elide: Text.ElideRight
                                 textFormat: Text.StyledText
                                 // the nick in its own colour, a badge before it, the text after
-                                text: (msg.badge ? "<font color=\"" + (msg.bot ? Theme.accent : Theme.accent3) + "\">" + msg.badge + "</font> " : "") + "<b><font color=\"" + msg.col + "\">" + msg.nick.replace(/&/g, "&amp;").replace(/</g, "&lt;") + (msg.sc ? " ¥" + msg.amount : "") + "</font></b>: " + (msg.bot ? "<font color=\"" + Theme.textDim + "\">" : "") + msg.text.replace(/&/g, "&amp;").replace(/</g, "&lt;") + (msg.bot ? "</font>" : "")
+                                text: (msg.badge ? "<font color=\"" + (msg.bot ? Theme.accent : Theme.accent3) + "\">" + msg.badge + "</font> " : "") + "<b><font color=\"" + msg.col + "\">" + Qt.escapeHtml(msg.nick) + (msg.sc ? " ¥" + msg.amount : "") + "</font></b>: " + (msg.bot ? "<font color=\"" + Theme.textDim + "\">" : "") + Qt.escapeHtml(msg.text) + (msg.bot ? "</font>" : "")
                             }
                         }
                     }

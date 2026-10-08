@@ -1,8 +1,9 @@
 import QtQuick
 import qs.config
 
-// Pixel hearts drifting upwards with a little sway. Stepped at 12 fps: it looks
-// pixel-y and does not keep a full-screen surface repainting at 60 fps — or gliding (`glide`).
+// Pixel hearts drifting upwards with a little sway: gliding frame by frame with the screen
+// (`glide`, the default since Qt 6.12 renders on its own thread on NVIDIA too), or stepped
+// at 12 fps (`glide: false`).
 Item {
     id: root
 
@@ -14,7 +15,7 @@ Item {
     property int interval: 83               // a step's length (ms); the speed stays the same
     // smooth instead: each heart glides on the render thread (animators), frame by frame with
     // the screen, whatever the GUI thread does (the setup wizard)
-    property bool glide: false
+    property bool glide: true
 
     Repeater {
         id: rep

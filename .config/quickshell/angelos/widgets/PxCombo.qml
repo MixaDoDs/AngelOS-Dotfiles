@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Templates as T
 import qs.config
 import qs.services
+import "A11y.js" as A11y
 
 // Dropdown. model: array of strings or {label, value, icon}.
 Item {
@@ -14,6 +15,12 @@ Item {
     // the Golden Gate skin's System Settings: a Mac pop-up button (the value and ⌃⌄), a glass menu
     readonly property bool mac: settingsSkin === "goldengate"
     signal activated(var value)
+
+    Accessible.role: Accessible.ComboBox
+    Accessible.name: A11y.rowLabel(root)
+    Accessible.description: currentLabel
+    Accessible.focusable: true
+    Accessible.onPressAction: popup.opened ? popup.close() : popup.open()
 
     readonly property var items: (model || []).map(m => typeof m === "object" ? m : {
                 label: String(m),

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import "A11y.js" as A11y
 
 // A button of the simple settings view's "Everyday" row, in the settings skin. Its size
 // comes from the grid — every button the same width and height, the label elided:
@@ -15,6 +16,12 @@ Item {
     property bool accent: false
     property int tint: 0                    // which chip colour (stream)
     signal clicked
+
+    Accessible.role: Accessible.Button
+    Accessible.name: A11y.name(text, root, icon)
+    Accessible.focusable: true
+    Accessible.onPressAction: if (enabled)
+        clicked()
 
     readonly property bool hot: mouse.containsMouse && enabled
     readonly property bool down: mouse.pressed

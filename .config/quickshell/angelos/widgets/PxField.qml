@@ -1,6 +1,7 @@
 import QtQuick
 import qs.config
 import qs.services
+import "A11y.js" as A11y
 
 Item {
     id: root
@@ -82,6 +83,7 @@ Item {
 
     TextInput {
         id: input
+        Accessible.name: A11y.name(A11y.rowLabel(root), null, root.placeholder)
         anchors.left: ico.visible ? ico.right : parent.left
         anchors.right: parent.right
         anchors.leftMargin: Theme.u * 5

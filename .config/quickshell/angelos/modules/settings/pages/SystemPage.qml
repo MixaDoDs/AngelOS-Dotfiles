@@ -146,6 +146,14 @@ PxPage {
                 }
             }
         }
+        // services/QsVersion: older than the Quickshell angelOS is tested on
+        PxText {
+            width: parent.width
+            visible: QsVersion.outdated
+            wrapMode: Text.Wrap
+            color: Theme.danger
+            text: "⚠ " + QsVersion.advice
+        }
     }
 
     Component.onCompleted: {

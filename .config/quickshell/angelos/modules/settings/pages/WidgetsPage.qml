@@ -78,6 +78,23 @@ PxPage {
         const name = v.slice(5, v.lastIndexOf(":"));
         return tap.nodes.some(n => n.name === name && n.kind === "input");
     }
+    // the GIF widget's file: the desktop's file chooser (scripts/pick-file.py)
+    property string gifFor: ""
+    function pickGif(uid) {
+        gifFor = uid;
+        gifPicker.command = ["python3", Quickshell.shellDir + "/scripts/pick-file.py", I18n.t("angelOS — гифка на рабочий стол", "angelOS — a GIF for the desktop"), I18n.t("Анимации", "Animations"), "*.gif", "*.webp", "*.png", "*.apng", "*.mng"];
+        gifPicker.running = true;
+    }
+    Process {
+        id: gifPicker
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const f = text.trim();
+                if (f && page.gifFor)
+                    DesktopWidgets.setSetting(page.gifFor, "file", f);
+            }
+        }
+    }
     Process {
         id: tapList
         running: DesktopWidgets.widgets.some(w => w.type === "cava")
@@ -241,6 +258,81 @@ PxPage {
                                 icon: "refresh"
                                 onClicked: tapList.running = true
                             }
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "gif"
+                        label: I18n.t("Файл", "File")
+                        hint: card.st.file ? card.st.file : I18n.t("GIF, анимированный WebP или PNG", "A GIF, an animated WebP or PNG")
+                        PxButton {
+                            text: I18n.t("Выбрать…", "Choose…")
+                            icon: "folder"
+                            enabled: !gifPicker.running
+                            onClicked: page.pickGif(card.modelData)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "gif"
+                        label: I18n.t("Сколько раз проиграть", "Play it")
+                        hint: (card.st.loops || 0) === 0 ? I18n.t("0 — по кругу без конца", "0 — round and round for ever") : I18n.t("потом замирает на кадре ниже", "then it rests on the frame below")
+                        PxSpin {
+                            from: 0
+                            to: 20
+                            value: card.st.loops || 0
+                            suffix: I18n.t(" раз", "×")
+                            onMoved: v => DesktopWidgets.setSetting(card.modelData, "loops", v)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "gif" && (card.st.loops || 0) > 0
+                        label: I18n.t("Замереть на", "Rest on")
+                        PxSegmented {
+                            model: [
+                                {
+                                    "label": I18n.t("Последнем кадре", "The last frame"),
+                                    "value": "last"
+                                },
+                                {
+                                    "label": I18n.t("Первом кадре", "The first frame"),
+                                    "value": "first"
+                                }
+                            ]
+                            currentValue: card.st.rest === "first" ? "first" : "last"
+                            onActivated: v => DesktopWidgets.setSetting(card.modelData, "rest", v)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "gif" && (card.st.loops || 0) > 0
+                        label: I18n.t("Снова через", "Again after")
+                        hint: (card.st.every || 0) === 0 ? I18n.t("0 — один раз и всё", "0 — once and that's it") : ""
+                        PxSpin {
+                            from: 0
+                            to: 240
+                            stepSize: 5
+                            value: card.st.every || 0
+                            suffix: I18n.t(" мин", " min")
+                            onMoved: v => DesktopWidgets.setSetting(card.modelData, "every", v)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "gif"
+                        label: I18n.t("Размер", "Size")
+                        hint: I18n.t("длинная сторона, в пикселях angelOS", "The longer side, in angelOS pixels")
+                        PxSpin {
+                            from: 24
+                            to: 400
+                            stepSize: 8
+                            value: card.st.size || 100
+                            onMoved: v => DesktopWidgets.setSetting(card.modelData, "size", v)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "gif"
+                        label: I18n.t("Чёткие пиксели", "Sharp pixels")
+                        hint: I18n.t("для пиксель-арта: без размытия, увеличение целыми разами", "For pixel art: no blur, whole-number zoom")
+                        PxToggle {
+                            checked: card.st.sharp !== false
+                            onToggled: c => DesktopWidgets.setSetting(card.modelData, "sharp", c)
                         }
                     }
                     PxButton {

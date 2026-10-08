@@ -7,6 +7,10 @@ import qs.modules.bar
 PxButton {
     id: root
 
+    // screen readers (widgets/A11y.js): what this icon is
+    Accessible.name: I18n.t("Громкость", "Volume")
+    Accessible.description: Audio.muted ? I18n.t("без звука", "muted") : Math.round(Audio.volume * 100) + "%"
+
     property bool above: true
     property bool showPercent: true
 

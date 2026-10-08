@@ -10,7 +10,8 @@ import qs.widgets
 // The Alt+Tab switcher (services/AltTab) on the screen Alt+Tab was pressed on.
 // It exists only while it is shown, so a quick Alt+Tab tap never takes the
 // keyboard from the app. Keys: Tab / arrows move, Enter or letting Alt go
-// picks, Esc cancels, Delete closes the highlighted window; the mouse picks too.
+// picks, Esc cancels, Delete closes the highlighted window; the mouse picks too, and a
+// click beside the switcher (on any screen) cancels it.
 // ⌘Tab (AltTab.mode "apps") shows the apps the Mac way (AltTabMac); letting ⌘ go picks.
 Scope {
     LazyLoader {
@@ -21,8 +22,19 @@ Scope {
             screen: Shell.screenByName(AltTab.screenName) || Shell.focusedScreen
             color: "transparent"
             exclusionMode: ExclusionMode.Ignore
-            implicitWidth: Math.min(stage.implicitWidth, (screen ? screen.width : 1920) - Theme.u * 16)
-            implicitHeight: stage.implicitHeight
+            // takes input: the whole screen — a click beside the switcher cancels it (`outside`);
+            // the settings' preview (demo) takes clicks on the switcher only
+            anchors {
+                top: true
+                bottom: true
+                left: true
+                right: true
+            }
+            mask: AltTab.demo ? stageOnly : null
+            Region {
+                id: stageOnly
+                item: stage
+            }
             WlrLayershell.namespace: "angelos-alttab"
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: AltTab.demo ? WlrKeyboardFocus.None : WlrKeyboardFocus.Exclusive
@@ -94,9 +106,17 @@ Scope {
                 radius: GoldenGate.px(26)
             }
 
+            MouseArea {
+                id: outside
+                anchors.fill: parent
+                acceptedButtons: Qt.AllButtons
+                onPressed: AltTab.cancel()
+            }
             Item {
                 id: stage
-                anchors.fill: parent
+                anchors.centerIn: parent
+                width: Math.min(implicitWidth, win.width - Theme.u * 16)
+                height: implicitHeight
                 implicitWidth: view.item ? view.item.implicitWidth : 0
                 implicitHeight: (view.item ? view.item.implicitHeight : 0) + win.skinPad
                 opacity: 0
@@ -115,6 +135,11 @@ Scope {
                         duration: Motion.ms(140)
                         easing.type: Easing.OutBack
                     }
+                }
+                // a click on the switcher between its cards is not one beside it
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.AllButtons
                 }
                 Loader {
                     id: view
@@ -170,6 +195,32 @@ Scope {
                 }
             }
 
+            RightClickGuard {}
+        }
+    }
+    // the other screens: a click there cancels it too (nothing drawn, gone with the switcher)
+    Variants {
+        model: AltTab.shown && !AltTab.demo ? Shell.screens.filter(s => s !== (Shell.screenByName(AltTab.screenName) || Shell.focusedScreen)) : []
+        PanelWindow {
+            required property var modelData
+            screen: modelData
+            anchors {
+                top: true
+                bottom: true
+                left: true
+                right: true
+            }
+            color: "transparent"
+            exclusionMode: ExclusionMode.Ignore
+            // takes input: a click anywhere here cancels the switcher
+            WlrLayershell.namespace: "angelos-alttab-outside"
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.AllButtons
+                onPressed: AltTab.cancel()
+            }
             RightClickGuard {}
         }
     }

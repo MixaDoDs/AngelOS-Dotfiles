@@ -21,9 +21,7 @@ PxBox {
     height: col.implicitHeight + Theme.u * 14
     shadow: true
 
-    Timer {
-        interval: 40
-        repeat: true
+    FrameAnimation {
         running: root.live
         onTriggered: root.timeLeft = Math.max(0, Math.min(1, (root.q.deadline - Date.now()) / root.stepMs))
     }

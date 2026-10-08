@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import "A11y.js" as A11y
 
 // Multiline editor with the same palette and selection as PxField.
 Item {
@@ -29,6 +30,7 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         TextEdit {
             id: editor
+            Accessible.name: A11y.name(A11y.rowLabel(root), null, root.placeholder)
             width: flick.width
             height: Math.max(flick.height, contentHeight)
             wrapMode: TextEdit.Wrap

@@ -144,6 +144,241 @@ PxPage {
                 onActivated: v => Config.appearance.paletteScreen = v
             }
         }
+        SettingRow {
+            id: areaRow
+            visible: Config.appearance.flavor === "wallpaper"
+            label: I18n.t("Откуда брать цвет", "Where the colour comes from")
+            hint: I18n.t("часть обоев: небо, середина, низ или своя рамка — её рисуют мышью на картинке", "A part of the wallpaper: the sky, the middle, the ground, or your own frame drawn on the picture")
+            PxCombo {
+                width: Theme.u * 100
+                model: [
+                    {
+                        "label": I18n.t("Вся картинка", "The whole picture"),
+                        "value": "all"
+                    },
+                    {
+                        "label": I18n.t("Небо (верх)", "The sky (top)"),
+                        "value": "sky"
+                    },
+                    {
+                        "label": I18n.t("Середина", "The middle"),
+                        "value": "middle"
+                    },
+                    {
+                        "label": I18n.t("Низ", "The ground (bottom)"),
+                        "value": "ground"
+                    },
+                    {
+                        "label": I18n.t("Своя область…", "My own area…"),
+                        "value": "custom"
+                    }
+                ]
+                currentValue: Config.appearance.paletteArea
+                onActivated: v => {
+                    Config.appearance.paletteArea = v;
+                    if (!PaletteGenerator.auto)
+                        PaletteGenerator.generate();
+                }
+            }
+        }
+        // the palette screen's wallpaper with the area on it (drawn with the mouse in "custom")
+        // and the area's own colours beside it, read live by ColorQuantizer: a click takes one
+        Row {
+            id: areaView
+            visible: Config.appearance.flavor === "wallpaper"
+            spacing: Theme.u * 4
+            readonly property string picture: PaletteGenerator.wallpaper ? Wallpapers.display(PaletteGenerator.wallpaper) : ""
+            readonly property var rect: PaletteGenerator.area
+            onPictureChanged: PaletteGenerator.measure(picture)
+            Component.onCompleted: PaletteGenerator.measure(picture)
+            Item {
+                id: thumbBox
+                width: Theme.u * 110
+                height: thumb.status === Image.Ready ? thumb.paintedHeight : Theme.u * 62
+                Image {
+                    id: thumb
+                    width: parent.width
+                    source: areaView.visible && areaView.picture ? "file://" + areaView.picture : ""
+                    sourceSize.width: width
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    cache: false
+                }
+                Rectangle {
+                    anchors.fill: parent
+                    visible: thumb.status !== Image.Ready
+                    color: Theme.sunken
+                }
+                // the area in a frame
+                Rectangle {
+                    id: frameRect
+                    readonly property var r: drawer.drawing ? drawer.rect : areaView.rect || [0, 0, 1, 1]
+                    x: r[0] * thumbBox.width
+                    y: r[1] * thumbBox.height
+                    width: r[2] * thumbBox.width
+                    height: r[3] * thumbBox.height
+                    color: "transparent"
+                    border.width: Math.max(1, Theme.u / 2)
+                    border.color: Theme.accent
+                    visible: thumb.status === Image.Ready && (!!areaView.rect || drawer.drawing)
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: -Math.max(1, Theme.u / 2) * 2
+                        color: "transparent"
+                        border.width: Math.max(1, Theme.u / 2)
+                        border.color: Theme.edge
+                    }
+                }
+                MouseArea {
+                    id: drawer
+                    anchors.fill: parent
+                    enabled: Config.appearance.paletteArea === "custom" && thumb.status === Image.Ready
+                    cursorShape: enabled ? Qt.CrossCursor : Qt.ArrowCursor
+                    property bool drawing: false
+                    property point from
+                    property var rect: [0, 0, 1, 1]
+                    function part(v, size) {
+                        return Math.max(0, Math.min(1, v / size));
+                    }
+                    onPressed: e => {
+                        from = Qt.point(part(e.x, width), part(e.y, height));
+                        rect = [from.x, from.y, 0, 0];
+                        drawing = true;
+                    }
+                    onPositionChanged: e => {
+                        if (!drawing)
+                            return;
+                        const x = part(e.x, width), y = part(e.y, height);
+                        rect = [Math.min(from.x, x), Math.min(from.y, y), Math.abs(x - from.x), Math.abs(y - from.y)];
+                    }
+                    onReleased: {
+                        drawing = false;
+                        if (rect[2] > 0.02 && rect[3] > 0.02)
+                            Config.appearance.paletteRect = rect.map(v => Math.round(v * 1000) / 1000);
+                        if (!PaletteGenerator.auto)
+                            PaletteGenerator.generate();
+                    }
+                }
+            }
+            Column {
+                spacing: Theme.u * 2
+                width: Math.max(Theme.u * 60, areaRow.width - thumbBox.width - Theme.u * 4)
+                PxText {
+                    text: Config.appearance.paletteArea === "custom" ? I18n.t("Нарисуй рамку на картинке. Цвета области:", "Draw a frame on the picture. The area's colours:") : I18n.t("Цвета области:", "The area's colours:")
+                    kind: "tiny"
+                    dim: true
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                }
+                ColorQuantizer {
+                    id: areaColors
+                    depth: 3
+                    rescaleSize: 96
+                    source: areaView.visible && areaView.picture && PaletteGenerator.sizes[areaView.picture] ? "file://" + areaView.picture : ""
+                    imageRect: PaletteGenerator.pixelRect(areaView.picture, areaView.rect || [0, 0, 1, 1]) || Qt.rect(0, 0, 0, 0)
+                }
+                Flow {
+                    width: parent.width
+                    spacing: Theme.u * 2
+                    Repeater {
+                        // the same colour from several buckets once
+                        model: {
+                            const out = [];
+                            for (const c of areaColors.colors)
+                                if (!out.some(o => o.toString() === c.toString()))
+                                    out.push(c);
+                            return out;
+                        }
+                        PxBox {
+                            id: sw
+                            required property color modelData
+                            width: Theme.u * 14
+                            height: Theme.u * 14
+                            color: modelData
+                            MouseArea {
+                                id: swMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onContainsMouseChanged: areaInfo.hovered = containsMouse ? sw.modelData.toString() : ""
+                                onClicked: PaletteGenerator.apply(sw.modelData.toString(), true)
+                            }
+                        }
+                    }
+                }
+                PxText {
+                    id: areaInfo
+                    property string hovered: ""
+                    width: parent.width
+                    kind: "tiny"
+                    dim: true
+                    wrapMode: Text.Wrap
+                    text: hovered ? hovered + I18n.t(" — клик: сделать акцентом", " — click: make it the accent") : ""
+                }
+            }
+        }
+        // the eyedropper (services/ColorPicker): any pixel of any screen, its hex in the clipboard
+        SettingRow {
+            label: I18n.t("Пипетка", "Eyedropper")
+            hint: I18n.t("Mod+Shift+C или кнопка: клик в любом месте экрана — hex цвета сразу в буфере обмена, Esc — отмена. Клик по образцу копирует его снова, ПКМ — делает акцентом", "Mod+Shift+C or the button: click anywhere on a screen and the colour's hex is in the clipboard, Esc cancels. A click on a swatch copies it again, a right click makes it the accent")
+            Column {
+                width: parent.width
+                spacing: Theme.u * 2
+                Row {
+                    spacing: Theme.u * 3
+                    PxButton {
+                        text: ColorPicker.busy ? I18n.t("Кликни по цвету…", "Click a colour…") : I18n.t("Взять с экрана", "Pick from the screen")
+                        icon: "drop"
+                        enabled: !ColorPicker.busy
+                        onClicked: ColorPicker.pick()
+                    }
+                    PxButton {
+                        visible: ColorPicker.recent.length > 0
+                        compact: true
+                        icon: "trash"
+                        Accessible.name: I18n.t("Забыть цвета пипетки", "Forget the picked colours")
+                        onClicked: ColorPicker.forget()
+                    }
+                }
+                Flow {
+                    width: parent.width
+                    spacing: Theme.u * 2
+                    Repeater {
+                        model: ColorPicker.recent
+                        PxBox {
+                            id: picked
+                            required property string modelData
+                            width: Theme.u * 14
+                            height: Theme.u * 14
+                            color: modelData
+                            MouseArea {
+                                id: pickedMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                cursorShape: Qt.PointingHandCursor
+                                onContainsMouseChanged: pickedInfo.hovered = containsMouse ? picked.modelData : ""
+                                onClicked: e => {
+                                    if (e.button === Qt.RightButton)
+                                        PaletteGenerator.apply(picked.modelData, true);
+                                    else
+                                        ColorPicker.copy(picked.modelData);
+                                }
+                            }
+                        }
+                    }
+                }
+                PxText {
+                    id: pickedInfo
+                    property string hovered: ""
+                    visible: ColorPicker.recent.length > 0
+                    width: parent.width
+                    kind: "tiny"
+                    dim: true
+                    text: hovered ? hovered + I18n.t(" — клик: копировать, ПКМ: акцент", " — click: copy, right click: accent") : I18n.t("последний: ", "last: ") + ColorPicker.recent[0]
+                }
+            }
+        }
         PxText {
             width: parent.width
             wrapMode: Text.Wrap

@@ -417,9 +417,7 @@ Item {
     }
 
     // ---- the frame clock ----
-    Timer {
-        interval: 33
-        repeat: true
+    FrameAnimation {
         running: view.active && view.settled && view.shown
         onTriggered: view.frame()
     }

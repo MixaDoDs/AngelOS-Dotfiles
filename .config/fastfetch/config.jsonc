@@ -17,15 +17,15 @@
   "display": {
     "separator": ": ",
     "color": {
-      "keys": "38;2;107;179;174",
-      "title": "38;2;157;204;201",
+      "keys": "38;2;113;179;158",
+      "title": "38;2;161;204;190",
       "separator": "38;2;180;181;183"
     }
   },
   "modules": [
     {
       "type": "title",
-      "format": "{#1;38;2;157;204;201}{user-name}{#} {#38;2;180;181;183}стримит с {host-name}{#}"
+      "format": "{#1;38;2;161;204;190}{user-name}{#} {#38;2;180;181;183}стримит с {host-name}{#}"
     },
     {
       "type": "custom",
@@ -98,7 +98,7 @@
     {
       "type": "command",
       "key": " ",
-      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{#1;38;2;216;211;125}♡ донатов на сетап: {total}{#}' --lang ru --total --zero"
+      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{#1;38;2;217;211;120}♡ донатов на сетап: {total}{#}' --lang ru --total --zero"
     }
   ]
 }
