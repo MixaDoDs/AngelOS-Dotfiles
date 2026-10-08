@@ -196,6 +196,14 @@ Item {
                         font.bold: btn.modelData.is_focused
                         color: root.barInk ? (btn.modelData.is_urgent ? Theme.hellAccent : Theme.hellText) : btn.modelData.is_urgent ? Theme.danger : Theme.text
                     }
+                    // the window's cobweb (services/Cobweb): its corner, under the ×
+                    CobwebBadge {
+                        ids: [btn.modelData.id]
+                        hovered: btn.hovered
+                        pixel: Math.max(1, Math.round(Theme.u / 2))
+                        x: btn.width - width - (root.dock ? Theme.u * 2 : Theme.u)
+                        y: root.dock ? Theme.u - btn.hop : Theme.u
+                    }
                     // × on hover (Settings → Bar → Closing windows)
                     Rectangle {
                         id: closeX

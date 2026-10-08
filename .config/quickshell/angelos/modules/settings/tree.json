@@ -601,10 +601,11 @@
           "ru": "Окна",
           "en": "Windows",
           "icon": "window",
-          "hintRu": "кнопки в заголовке, отступы, ширина новых окон",
-          "hintEn": "title bar buttons, gaps, new windows' width",
+          "hintRu": "кнопки в заголовке, паутина, отступы, ширина новых окон",
+          "hintEn": "title bar buttons, cobwebs, gaps, new windows' width",
           "blocks": [
             "windows/window-decorations",
+            "windows/cobweb",
             "windows/layout",
             "windows/@"
           ],
@@ -1498,6 +1499,7 @@
             ],
             "more": [
               "mac/windows",
+              "windows/cobweb",
               "windows/layout",
               "windows/window-widths",
               "windows/window-animations",

@@ -46,6 +46,9 @@ PxPage {
             "bark": [I18n.t("Цербер лает", "Cerberus barks"), I18n.t("когда Колесо Ада выпускает щенка", "When the Wheel of Hell lets the puppy out")],
             "achievement": [I18n.t("Достижение", "Achievement"), I18n.t("когда выезжает карточка «Достижение получено»", "When the “Achievement earned” card slides in")],
             "stars": [I18n.t("Звёзды ✦", "Stars ✦"), I18n.t("награды Небес: вход дня, задания, пропуск — тихий перезвон", "Heaven's rewards: the day's login, tasks, the pass — a quiet chime")],
+            "webSnap": [I18n.t("Паутина: нить рвётся", "Cobweb: a thread snaps"), I18n.t("курсор задел нить на окне", "The pointer caught a thread on a window")],
+            "webSwipe": [I18n.t("Паутина: смахнул", "Cobweb: a swipe"), I18n.t("верная стрелка, когда трясёшь окно", "A right arrow while you shake a window")],
+            "webClear": [I18n.t("Паутина: чисто", "Cobweb: all clean"), I18n.t("паутины на окне больше нет", "The window's web is gone")],
             "harp": [I18n.t("Арфа", "The harp"), I18n.t("ПКМ-меню «Арфа»: струна звенит под курсором, при открытии — глиссандо", "The Harp right-click menu: a string rings under the pointer, a glissando as it opens")]
         })
     function labelOf(id) {
@@ -335,7 +338,7 @@ PxPage {
         title: I18n.t("События системы", "System events")
         icon: "bell"
         Repeater {
-            model: ["startup", "notify", "error", "windowOpen", "windowClose", "workspace", "usbIn", "usbOut", "open", "toggle", "harp", "screenshot", "volume", "wallpaper", "lock", "unlock", "shutdown"]
+            model: ["startup", "notify", "error", "windowOpen", "windowClose", "workspace", "usbIn", "usbOut", "open", "toggle", "harp", "screenshot", "volume", "wallpaper", "lock", "unlock", "shutdown"].concat(Config.windows.cobweb ? ["webSnap", "webSwipe", "webClear"] : [])
             delegate: eventRow
         }
     }

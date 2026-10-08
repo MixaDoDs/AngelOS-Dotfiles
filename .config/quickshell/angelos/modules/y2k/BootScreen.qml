@@ -12,33 +12,71 @@ import qs.widgets
 // disc 1", a chunky progress bar and the startup chime. Once per login (a
 // marker in $XDG_RUNTIME_DIR, so crash restarts and `angelos restart` skip it),
 // on the screens picked in Settings → Y2K. A click skips it.
+// The login starts black: a cover goes up with the shell's very first windows and holds a
+// second (the desktop loads under it, the sound player starts), then the show plays in the
+// same window — the desktop is never seen before it. The marker used to be checked by a
+// process whose answer came ~0.7 s after the desktop was drawn (2026-10-08).
 Scope {
     id: root
 
-    property bool firstStart: false
     property real p: 0                       // 0..1 through the show
     readonly property int step: Math.floor(p * 36)   // stepped, like the old installers
+    // ANGELOS_DEV_BOOT=1: a dev instance does it too
+    readonly property bool allowed: !Shell.dev || Quickshell.env("ANGELOS_DEV_BOOT") === "1"
 
     function maybeStart() {
-        if (firstStart && Config.ready && Config.y2k.boot && !Shell.dev && !Motion.still)
-            Shell.bootOpen = true;
+        if (!Shell.bootCover || cover.running || !Config.ready)
+            return;
+        if (Config.y2k.boot && !Motion.still)
+            Shell.bootOpen = true;           // the same windows: no gap between the black and the show
+        Shell.bootCover = false;
     }
     function finish() {
         run.stop();
+        cover.stop();
+        Shell.bootCover = false;
         Shell.bootOpen = false;
     }
 
-    Process {
-        running: true
-        command: ["sh", "-c", 'm="${XDG_RUNTIME_DIR:-/tmp}/angelos-booted"; [ -e "$m" ] && exit 1; : > "$m"']
-        onExited: code => {
-            root.firstStart = code === 0;
-            root.maybeStart();
+    // the first start of this login, known at once (a blocking read, no process)
+    FileView {
+        id: marker
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos-booted"
+        blockLoading: true
+        blockWrites: true
+        printErrors: false
+    }
+    Component.onCompleted: {
+        if (!allowed)
+            return;
+        marker.text();                       // the read happens here: `loaded` says it is there
+        if (marker.loaded)
+            return;
+        marker.setText("1\n");
+        Shell.bootCover = true;
+        cover.start();
+    }
+    // a second of black from its first frame (or 2.5 s from the start if no frame ever comes)
+    Timer {
+        id: cover
+        interval: 2500
+        onTriggered: root.maybeStart()
+    }
+    Connections {
+        target: Shell
+        function onBootCoverShownChanged() {
+            if (Shell.bootCoverShown && Shell.bootCover) {
+                cover.interval = 1000;
+                cover.restart();
+            }
         }
     }
     Connections {
         target: Config
         function onReadyChanged() {
+            // the show is off: the black goes as soon as the settings say so
+            if (Config.ready && Shell.bootCover && (!Config.y2k.boot || Motion.still))
+                root.finish();
             root.maybeStart();
         }
     }
@@ -48,8 +86,7 @@ Scope {
             if (!Shell.bootOpen)
                 return;
             root.p = 0;
-            run.restart();
-            Sounds.play("startup");
+            run.restart();                   // its chime: Sounds.playBoot
         }
     }
     NumberAnimation {
@@ -63,8 +100,8 @@ Scope {
     }
 
     Variants {
-        // streamed screens are skipped while stream mode is on
-        model: Shell.bootOpen ? Shell.screens.filter(s => (!(Config.y2k.bootScreens || []).length || Config.y2k.bootScreens.includes(s.name)) && StreamMode.effectsOn(s.name)) : []
+        // before the settings are read every screen is covered (at login nothing streams yet)
+        model: Shell.bootOpen || Shell.bootCover ? (Config.ready ? Shell.bootScreens : Shell.screens) : []
 
         PanelWindow {
             id: win
@@ -77,15 +114,26 @@ Scope {
                 right: true
             }
             exclusionMode: ExclusionMode.Ignore
-            color: "#0c0710"
+            color: Shell.bootOpen ? "#0c0710" : "#000000"
             WlrLayershell.layer: WlrLayer.Overlay
             // takes input: the boot screen: a click skips it
             WlrLayershell.namespace: "angelos-boot"
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            // the first frame out: the desktop may come up under it
+            Connections {
+                target: Shell.bootCoverShown ? null : coverProbe.Window.window
+                function onFrameSwapped() {
+                    Shell.bootCoverShown = true;
+                }
+            }
+            Item {
+                id: coverProbe
+            }
 
             // fade out at the very end
             Item {
                 anchors.fill: parent
+                visible: Shell.bootOpen
                 opacity: root.p < 0.9 ? 1 : Math.max(0, 1 - (root.p - 0.9) * 10)
 
                 // CRT scanlines

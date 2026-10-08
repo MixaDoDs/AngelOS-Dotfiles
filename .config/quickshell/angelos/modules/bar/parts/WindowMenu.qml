@@ -173,6 +173,15 @@ PopupWindow {
                     onTriggered: root.run(w => Niri.moveWindowToMonitor(w.id, modelData))
                 }
             }
+            // the cobweb (services/Cobweb): the shake's quick-time event without shaking — or,
+            // when it is only on the button, just swept away
+            PxMenuItem {
+                text: I18n.t("Стряхнуть паутину", "Shake the web off")
+                icon: "spider"
+                visible: !!root.win && (Cobweb.rev, Cobweb.alive(root.win.id) > 0)
+                height: visible ? implicitHeight : 0
+                onTriggered: root.run(w => Cobweb.inside && Cobweb.rectOf(w.id) ? Cobweb.startQte(w.id) : Cobweb.sweep(w.id))
+            }
             PxMenuItem {
                 separator: true
             }

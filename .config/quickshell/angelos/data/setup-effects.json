@@ -1,0 +1,18 @@
+{
+  "_comment": "The setup wizard's effects (modules/settings/SetupFx.qml), drawn in pixels, moving on the render thread frame by frame with the screen; what goes in pixel steps steps a whole number of frames (~12 a second). One random effect at a time, after a random pause of gap[0]…gap[1] ms (the first one after first[0]…first[1]); which one by weight (0 = never), ms = how long it plays (sparks and pixels: their own steps): sparks (a trail across the screen), feather, peek (the angel looks in from an edge), pixels (the ground twinkles), chroma (the title splits red and blue). transitions: the step change — blocks (the question breaks into blocks of its ground and back, random), sweep (the same along the way the steps go), slide (it slides in) — by the step's id, else the list taken round by the step's number. chroma.steps: the title splits as these steps come up (the game step: when the angel peeks in). sheen: the gloss passing over cards and buttons, every sheen[0]…sheen[1] ms (and when the pointer comes over them). Nothing moves while motion is off; on a streamed screen in stream mode with «no effects» only the slide stays.",
+  "gap": [9000, 20000],
+  "first": [3500, 7000],
+  "effects": [
+    {"id": "sparks", "weight": 5},
+    {"id": "feather", "weight": 3, "ms": 7000},
+    {"id": "peek", "weight": 1, "ms": 2600},
+    {"id": "pixels", "weight": 0},
+    {"id": "chroma", "weight": 0}
+  ],
+  "transitions": {
+    "list": ["blocks", "sweep", "slide"],
+    "byStep": {"hello": "blocks", "game": "blocks", "look": "sweep", "wallpaper": "blocks", "ready": "sweep"}
+  },
+  "chroma": {"steps": ["hello", "game", "ready"]},
+  "sheen": [4500, 11000]
+}

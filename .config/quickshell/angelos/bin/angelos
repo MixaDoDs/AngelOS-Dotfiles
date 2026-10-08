@@ -23,6 +23,8 @@
 #   angelos brightness up|down|0…100 | kbdLight up|down|cycle — a laptop's backlight and keyboard light
 #   angelos laptop info | battery | eco on|off|auto | touchpad on|off|toggle | airplane | project … |
 #   lid close|open | tablet on|off | rotate … — the rest of a laptop (`angelos laptop help`)
+#   angelos cobweb [status | grow [id] [minutes] | demo | clear [id|all] | qte [id]] — the cobwebs
+#   on windows (Settings → Windows → Cobwebs)
 #   angelos sddm [status] | build | install [--palette ngo|system] [--look L] | look L — the login
 #   screen (SDDM) in one of angelOS's looks (stream heaven retro hell quiet); install asks for the
 #   admin password (pkexec), `look` after that needs none
@@ -212,6 +214,20 @@ case "$1" in
     [ "$n" = 0 ] || echo "crashes this login: $n (angelos report packs them)"
     exit 0 ;;
   log)     exec qs -c angelos log -f ;;
+  # the author's two repositories (owner/admin-sync.sh; nothing without owner/):
+  #   status        public main on GitHub, the public commit the private admin repo carries, owner/ changed
+  #   admin         bring admin to GitHub's main + this owner/ (also after an owner/-only change)
+  #   install-hook  pushes to main made by hand bring admin along (the repo's reference-transaction hook)
+  dotfiles)
+    s="$SHELL_DIR/owner/admin-sync.sh"
+    [ -f "$s" ] || { echo "owner tools are not here"; exit 1; }
+    repo="${ANGELOS_DOTFILES_REPO:-$HOME/AngelOS-Dotfiles}"
+    case "${2:-status}" in
+      status) exec bash "$s" status "$repo" ;;
+      admin) exec bash "$s" sync "$repo" ;;
+      install-hook) exec bash "$s" install-hook "$repo" ;;
+      *) echo "angelos dotfiles status|admin|install-hook"; exit 2 ;;
+    esac ;;
   report)  shift; exec python3 "$SHELL_DIR/scripts/report.py" "$@" ;;
   # the circles' demons from the author's sheets (~/Pictures/angelos-sprites/<circle>/)
   sprites) shift; [ $# -gt 0 ] || set -- skins; exec python3 "$SHELL_DIR/scripts/sprite-rig.py" "$@" ;;
@@ -262,6 +278,7 @@ case "$1" in
     exec qs -c angelos ipc call angelos novel "$*" ;;
   motion) exec qs -c angelos ipc call angelos motion "${2:-status}" ;;
   laptop)  shift; exec qs -c angelos ipc call angelos laptop "$*" ;;
+  cobweb)  shift; exec qs -c angelos ipc call angelos cobweb "$*" ;;
   updates) shift; exec python3 "$SHELL_DIR/scripts/updates-cli.py" "$@" ;;
   keys)
     case "${2:-status}" in
@@ -293,10 +310,14 @@ case "$1" in
     shift
     exec qs -c angelos ipc call angelos diary "$*" ;;
   debug)
-    # the game's debug panel (developer mode): open | close | toggle | snapshot | restore | restart | tab <id> | status;
+    # the game's debug panel, the author's only (owner/debug, after `angelos author login`):
+    # open | close | toggle | snapshot | restore | restart | tab <id> | status;
     # cycles [N] [PATTERN]: heaven ⇄ hell N times, then every app must be in heaven's colours
     shift
-    [ "${1:-}" = cycles ] && { shift; exec python3 "$SHELL_DIR/scripts/theme-cycles.py" "$@"; }
+    if [ "${1:-}" = cycles ]; then
+      [ -f "$SHELL_DIR/owner/debug/theme-cycles.py" ] || { echo "owner only" >&2; exit 1; }
+      shift; exec python3 "$SHELL_DIR/owner/debug/theme-cycles.py" "$@"
+    fi
     exec qs -c angelos ipc call angelos debug "$*" ;;
   lens)
     # the lens at the pointer (niri keys Mod+Alt+= / - / 0): the shell's socket, else qs ipc

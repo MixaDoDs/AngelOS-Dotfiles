@@ -21,7 +21,7 @@ import qs.widgets
 //                       see DesktopWidgetHost), the right-click menu and the
 //                       sparkle trail
 Variants {
-    model: Shell.screens
+    model: Shell.desktopHeld ? [] : Shell.screens
 
     Scope {
         id: scope

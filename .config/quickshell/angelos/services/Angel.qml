@@ -102,7 +102,7 @@ Singleton {
     property double awayUntil: 0
     readonly property bool away: awayUntil > 0
     readonly property bool shown: (Config.y2k.helper && Story.enabled || streamer) && !Story.limbo && now >= hiddenUntil && !away && !!screen
-    readonly property bool present: shown && !Shell.bootOpen && Config.ready
+    readonly property bool present: shown && !Shell.bootOpen && !Shell.bootCover && Config.ready
     property double lastReaction: 0
 
     // the swap animation: angel falls into hell and the demon climbs out, or back

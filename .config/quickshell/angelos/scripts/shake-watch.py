@@ -8,11 +8,13 @@ Not while a button is held: dragging a slider or a window back and forth is no l
 pointer (the overlay would take the pointer mid-drag and the drag would never end —
 Settings → Keyboard's repeat sliders did not save).
 
-  shake-watch.py [--sensitivity low|normal|high] [--dpi 1000]
+  shake-watch.py [--sensitivity low|normal|high] [--dpi 1000] [--drag]
 
 Prints "ready" when devices are open, "noperm" / "noevdev" when none can be,
 and "shake" (at most every 90 ms) while the pointer is being shaken.
-Privacy: nothing but "shake" is printed — no positions, no keys.
+--drag turns it round, for the cobwebs (services/Cobweb): only a shake with a button held
+counts — a window dragged back and forth — and it prints "dragshake" (at most every 0.5 s).
+Privacy: nothing but "shake" / "dragshake" is printed — no positions, no keys.
 Devices are opened read-only and never grabbed.
 """
 import argparse
@@ -102,7 +104,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sensitivity", default="normal", choices=list(LEVELS))
     ap.add_argument("--dpi", type=int, default=1000)
+    ap.add_argument("--drag", action="store_true")
     a = ap.parse_args()
+    word, gap = ("dragshake", 0.5) if a.drag else ("shake", 0.09)
     level = LEVELS[a.sensitivity]
     devices = {}
     said = ""
@@ -160,8 +164,9 @@ def main():
                     dev.x.dir = dev.y.dir = 0
                     dev.x.flips, dev.y.flips = [], []
                     continue
-                # a drag: the motion is not a shake (touches still tracked)
-                if kind in (EV_REL, EV_ABS) and any(d.held for d in devices.values()):
+                # a drag: the motion is not a shake (touches still tracked); with --drag only a
+                # drag is
+                if kind in (EV_REL, EV_ABS) and any(d.held for d in devices.values()) != a.drag:
                     if dev.touchpad:
                         dev.last = {ABS_X: None, ABS_Y: None}
                     continue
@@ -179,9 +184,9 @@ def main():
                     if prev is not None:
                         axis, scale = (dev.x, dev.scale_x) if code == ABS_X else (dev.y, dev.scale_y)
                         hit |= axis.move((value - prev) * scale, t)
-            if hit and t - last_shake >= 0.09:
+            if hit and t - last_shake >= gap:
                 last_shake = t
-                print("shake", flush=True)
+                print(word, flush=True)
 
 
 if __name__ == "__main__":

@@ -16,7 +16,8 @@ import qs.config
 // demon's voice, and the effects crack/choir/rocks/shatter (always synthesised;
 // rocks: the demon's 8-bit rockfall, shatter: the screen breaking when the
 // angel and the demon swap; circle: the low hit in the dark between hell's circles,
-// circleSoft its calm version; harp: the harp menu's strings, HarpLook). Quiet in stream
+// circleSoft its calm version; harp: the harp menu's strings, HarpLook; webSnap/webSwipe/webClear:
+// the cobwebs' thread snapping, a swipe of their quick-time event, the web gone). Quiet in stream
 // mode (StreamMode.quiet).
 // The Golden Gate skin has a pack of its own (macEvents, below): original Mac-like sounds in
 // data/sounds/macos (scripts/mac-sounds.py), yours of the same name in
@@ -30,7 +31,7 @@ import qs.config
 Singleton {
     id: root
 
-    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend"]
+    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear"]
     // off until switched on in System sounds (typing and such would surprise)
     readonly property var optIn: ["clickRight", "key", "windowOpen", "workspace", "lock", "unlock"]
     // the input ones: quiet over a fullscreen window (games) when asked
@@ -47,7 +48,7 @@ Singleton {
     readonly property var extra: ["voiceAngel", "voiceDemon", "key2", "key3"].concat(fallenVoice).concat(harpStrings)
     readonly property string customDir: base + "/custom"
     readonly property var cute: ["open", "toggle", "screenshot", "volume", "windowClose"]
-    readonly property var effects: ["crack", "choir", "rocks", "shatter", "voice", "bark", "circle", "circleSoft", "harp"]
+    readonly property var effects: ["crack", "choir", "rocks", "shatter", "voice", "bark", "circle", "circleSoft", "harp", "webSnap", "webSwipe", "webClear"]
     // heaven ⇄ hell's sounds: never piled up (story/game.json → pace.soundGap)
     readonly property var transitions: ["crack", "choir", "rocks", "shatter", "circle", "circleSoft"]
     // the helper's own sounds follow "Her voice" (Config.y2k.helperVolume) on top of the volume
@@ -130,7 +131,7 @@ Singleton {
         }
     }
     // scripts/y2k-sounds.py PACK_VERSION: an older pack is synthesised again
-    readonly property string packVersion: "11"
+    readonly property string packVersion: "12"
     readonly property string base: Config.home + "/.local/share/angelos/sounds"
     readonly property string dir: base + "/y2k"
     readonly property string pack: Config.y2k.soundPack === "overdose" ? "overdose" : "y2k"
@@ -222,6 +223,37 @@ Singleton {
             return;
         _play(name, false, soft);
     }
+    // ---- the boot screen's chime (BootScreen), once a show. The screen on view is the user's own
+    // choice, so quiet mode and quiet hours don't silence it (they do when it shows on no screen:
+    // all of them streamed). In Golden Gate it is the login chime: the session's own one just
+    // before counts as it, and the session's after it stays quiet (the 8 s in _play).
+    // It used to go missing now and then (2026-10-08): asked for while the shell was still
+    // starting, it waited for the pack check (start-up held its answer back ~0.7 s) and then
+    // for a needless re-synthesis of the whole pack, or the Windose pack was not checked yet
+    // and the chime was dropped for a download.
+    property double loginChimeAt: 0
+    Connections {
+        target: Shell
+        function onBootOpenChanged() {
+            if (Shell.bootOpen)
+                root.playBoot(Shell.bootScreens.length > 0);
+        }
+        // the black second before it: the player decodes the chime meanwhile (volume 0 plays
+        // nothing), so it comes with the first picture of the show
+        function onBootCoverShownChanged() {
+            if (Shell.bootCover && root.ready && !root.macOwn("startup") && root.enabled("startup") && !root.soundOf("startup"))
+                root._out(0, root._packPaths("startup"));
+        }
+    }
+    function playBoot(onScreen) {
+        if (!enabled("startup") || (!onScreen && (StreamMode.quiet || quietNow())))
+            return;
+        if (macOwn("startup") && Date.now() - loginChimeAt < 8000)
+            return;
+        _play("startup", true, 1);
+    }
+    // a sound goes out to the player (the UI test counts the boot screen's)
+    signal sounded(string name)
     function _play(name, force, soft) {
         const now = Date.now(), key = soft < 1 ? name + "-soft" : name;
         if (macOwn(name)) {
@@ -231,6 +263,7 @@ Singleton {
             if (!force && now - (lastAt["mac:" + file] || 0) < (file === "volume" ? 80 : file === "login" ? 8000 : 90))
                 return;
             lastAt["mac:" + file] = now;
+            sounded(name);
             _playMac(name, Math.max(0, Math.min(1, Config.mac.soundVolume * (soft || 1))));
             return;
         }
@@ -243,6 +276,7 @@ Singleton {
         const vol = String(Math.max(0, Math.min(1, volumeOf(name) * (soft || 1))));
         const chosen = soundOf(name);
         if (chosen.startsWith("file:")) {
+            sounded(name);
             if (!_out(vol, [chosen.slice(5)]))
                 Quickshell.execDetached(["pw-play", "--volume", vol, chosen.slice(5)]);
             return;
@@ -251,20 +285,29 @@ Singleton {
         let id = chosen && events.concat(extra).includes(chosen) ? chosen : name;
         if (id === "key" && tweak("key").vary !== false)
             id = ["key", "key2", "key3"][Math.floor(Math.random() * 3)];
+        // the pack isn't there (or not checked yet): it plays once the check or the synthesis is done
         if (!ready) {
             pending = pending.concat([name]);
-            make.running = true;
+            if (!check.running)
+                make.running = true;
             return;
         }
+        // the Windose pack not downloaded (or not checked) yet: the synthesised sound stands in
+        // (the first file of the list below that exists plays)
         const overdose = pack === "overdose" && !effects.includes(id);
-        if (overdose && !overdoseReady && !fetch.running) {
+        if (overdose && !overdoseReady && !fetch.running && !checkOverdose.running)
             fetch.running = true;
-            return;
-        }
         const first = overdose ? base + "/overdose" : dir;
-        if (_out(vol, [first + "/" + id + ".ogg", dir + "/" + id + ".ogg", dir + "/" + id + ".wav"]))
+        sounded(name);
+        if (_out(vol, _packPaths(id)))
             return;
         Quickshell.execDetached(["sh", "-c", 'f="$1/$3.ogg"; [ -f "$f" ] || f="$2/$3.ogg"; [ -f "$f" ] || f="$2/$3.wav"; exec pw-play --volume "$4" "$f"', "sh", first, dir, id, vol]);
+    }
+
+    // where a pack sound may be: the Windose file first when that pack is picked, the synthesised one
+    function _packPaths(id) {
+        const own = [dir + "/" + id + ".ogg", dir + "/" + id + ".wav"];
+        return pack === "overdose" && !effects.includes(id) ? [base + "/overdose/" + id + ".ogg"].concat(own) : own;
     }
 
     // the pack must be there before something plays it without _play() (the pips)
@@ -379,7 +422,10 @@ Singleton {
     Timer {
         id: loginDelay
         interval: 1500                       // PipeWire is up by then
-        onTriggered: root.play("login")
+        onTriggered: {
+            root.loginChimeAt = Date.now();
+            root.play("login");
+        }
     }
     // a charger plugged in (UPower; asked only while the sound can play — no battery: never changes)
     readonly property bool powerWanted: Config.ready && !Shell.dev && mac && Config.mac.sounds
@@ -394,7 +440,19 @@ Singleton {
     // the shutter plays here (its notification brings it): a marker in $XDG_RUNTIME_DIR/angelos
     readonly property bool shutterHere: Config.ready && !Shell.dev && mac && macEnabled("screenshot")
     onShutterHereChanged: markShutter()
-    Component.onCompleted: markShutter()
+    Component.onCompleted: {
+        markShutter();
+        // a complete pack: its version is written last (scripts/y2k-sounds.py), so what is asked
+        // for at once (the boot screen) plays without waiting for the file check
+        if (String(packStamp.text()).trim() === packVersion)
+            ready = true;
+    }
+    FileView {
+        id: packStamp
+        path: root.dir + "/.version"
+        blockLoading: true
+        printErrors: false
+    }
     function markShutter() {
         shutterMark.running = false;
         shutterMark.command = ["sh", "-c", 'd="${XDG_RUNTIME_DIR:-/tmp}/angelos"; mkdir -p "$d"; if [ "$1" = 1 ]; then : > "$d/shutter"; else rm -f "$d/shutter"; fi', "sh", shutterHere ? "1" : "0"];
@@ -468,10 +526,14 @@ Singleton {
         running: true
         command: ["sh", "-c", 'd="$1"; [ "$(cat "$d/.version" 2>/dev/null)" = "$2" ] || exit 1; shift 2; for n in "$@"; do [ -f "$d/$n.ogg" ] || [ -f "$d/$n.wav" ] || exit 1; done', "sh", root.dir, root.packVersion].concat(root.events).concat(root.extra)
         onExited: code => {
-            if (code === 0)
+            if (code === 0) {
                 root.ready = true;
-            else if (Config.y2k.sounds && !make.running)
-                make.running = true;        // missing or older (louder) pack: made again right away
+                root.playPending();
+            } else {
+                root.ready = false;
+                if ((Config.y2k.sounds || root.pending.length) && !make.running)
+                    make.running = true;    // missing or older (louder) pack: made again right away
+            }
         }
     }
     Process {
@@ -481,11 +543,15 @@ Singleton {
             if (code !== 0)
                 return;
             root.ready = true;
-            const p = root.pending;
-            root.pending = [];
-            for (const n of p.slice(-1))
-                root._play(n, true);
+            root.playPending();
         }
+    }
+    // what was asked for while the pack wasn't there: the last of it
+    function playPending() {
+        const p = pending;
+        pending = [];
+        for (const n of p.slice(-1))
+            _play(n, true);
     }
 
     // the Windose pack: present already, or downloaded when picked

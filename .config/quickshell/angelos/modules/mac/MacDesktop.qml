@@ -9,7 +9,7 @@ import qs.widgets
 // menu bar, the overlay its menus open in, the About panel for apps without one, the Dock,
 // Control Center and Notification Center. The usual bar steps aside meanwhile (Bar.qml).
 Variants {
-    model: GoldenGate.on ? Shell.screens : []
+    model: GoldenGate.on && !Shell.desktopHeld ? Shell.screens : []
 
     Scope {
         id: scope

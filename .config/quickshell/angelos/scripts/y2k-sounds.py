@@ -6,7 +6,8 @@
                                demon crack choir rocks shatter voice, the input and
                                system ones clickRight key (+ key2 key3, typing
                                variety) windowOpen workspace lock unlock usbIn
-                               usbOut bark harp as .ogg
+                               usbOut bark harp, the cobwebs' webSnap webSwipe
+                               webClear as .ogg
                                (.wav without ffmpeg) and the pips voiceAngel
                                voiceDemon, voiceFallen1…5 and the harp's strings
                                harp1…16 as .wav, prints JSON
@@ -99,10 +100,11 @@ LOUDNESS = {"bark": -24.0, "voiceAngel": -25.0, "voiceDemon": -26.0, "voice": -2
             "choir": -23.0, "crack": -25.0, "rocks": -23.0, "shatter": -23.0,
             "key": -27.0, "key2": -27.0, "key3": -27.0, "clickRight": -22.0, "workspace": -24.0,
             "circle": -21.0, "circleSoft": -27.0, "achievement": -23.0, "stars": -31.0,
-            "chestOpen": -27.0, "chestTick": -32.0, "chestPrize": -26.0, "chestLegend": -24.0}
+            "chestOpen": -27.0, "chestTick": -32.0, "chestPrize": -26.0, "chestLegend": -24.0,
+            "webSnap": -27.0, "webSwipe": -28.0, "webClear": -25.0}
 # peaks, dBFS: the harp's strings ring together (a glissando stacks them)
 PEAKS = {"harp%d" % (i + 1): -10.0 for i in range(16)}
-PACK_VERSION = "11"
+PACK_VERSION = "12"
 
 
 def startup():
@@ -667,6 +669,50 @@ def voice():
     return buf
 
 
+# the cobwebs (services/Cobweb): a thread snapping under the pointer, a swipe of the shake's
+# quick-time event, the web gone
+def web_snap():
+    """a thin taut thread giving way: a very high pluck that bends down, a dry tick before it"""
+    sec = 0.22
+    buf = np.zeros(int(sec * RATE))
+    t = t_axis(0.004)
+    place(buf, np.sin(2 * np.pi * 5200 * t) * np.exp(-t * 900) * 0.7, 0.0)
+    t = t_axis(0.2)
+    f = 2600 * np.exp(-t * 7) + 900
+    ph = np.cumsum(f) / RATE
+    place(buf, (np.sin(2 * np.pi * ph) + 0.3 * np.sin(4 * np.pi * ph)) * np.exp(-t * 26) * 0.6, 0.003)
+    return buf
+
+
+def web_swipe():
+    """a quick brush of air: noise swept up through a lowpass, a little silk tick at the end"""
+    sec = 0.24
+    n = int(sec * RATE)
+    t = t_axis(sec)
+    x = noise(sec, seed=31)
+    y = np.empty_like(x)
+    acc = 0.0
+    for i, v in enumerate(x):
+        a = np.exp(-2 * np.pi * (600 + 5200 * t[i] / sec) / RATE)
+        acc = (1 - a) * v + a * acc
+        y[i] = acc
+    buf = y * np.sin(np.pi * np.minimum(1, t / sec)) ** 2
+    tt = t_axis(0.05)
+    place(buf, np.sin(2 * np.pi * 3600 * tt) * np.exp(-tt * 140) * 0.25, 0.17)
+    return buf[:n]
+
+
+def web_clear():
+    """the web is gone: a long whoosh away and a small bright rising sparkle"""
+    sec = 1.0
+    buf = np.zeros(int(sec * RATE))
+    place(buf, web_swipe() * 0.8, 0.0)
+    place(buf, web_swipe()[::-1] * 0.35, 0.12)
+    for i, n in enumerate((88, 91, 96, 100)):
+        place(buf, bell(note(n), 0.4, index=0.4, decay=10) * (0.3 + i * 0.05), 0.22 + i * 0.06)
+    return echo(buf, 0.1, 0.22, 2)
+
+
 SOUNDS = {"startup": startup, "notify": notify, "error": error, "click": click, "shutdown": shutdown, "angel": angel,
           "wallpaper": wallpaper, "open": open_, "toggle": toggle, "screenshot": screenshot, "volume": volume,
           "windowClose": window_close, "demon": demon, "crack": crack, "choir": choir, "rocks": rocks,
@@ -679,7 +725,8 @@ SOUNDS = {"startup": startup, "notify": notify, "error": error, "click": click, 
           "usbIn": usb_in, "usbOut": usb_out, "bark": bark, "circle": circle,
           "circleSoft": lambda: circle(True), "harp": harp,
           "achievement": achievement, "stars": stars, "chestOpen": chest_open, "chestTick": chest_tick,
-          "chestPrize": chest_prize, "chestLegend": chest_legend}
+          "chestPrize": chest_prize, "chestLegend": chest_legend,
+          "webSnap": web_snap, "webSwipe": web_swipe, "webClear": web_clear}
 SOUNDS.update({"harp%d" % (i + 1): (lambda i=i: harp_string(i)) for i in range(16)})
 # played by QtMultimedia's SoundEffect, which only takes .wav
 WAV_ONLY = {"voiceAngel", "voiceDemon", "voiceFallen1", "voiceFallen2", "voiceFallen3", "voiceFallen4", "voiceFallen5"} | {"harp%d" % (i + 1) for i in range(16)}

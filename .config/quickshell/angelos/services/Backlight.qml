@@ -116,7 +116,7 @@ Singleton {
         property int raw: -1
         property int kbd: -1
     }
-    IdleMonitor {
+    IdleWatch {
         enabled: Power.idleWatch && Config.power.dim && (root.available || root.kbdAvailable && Config.laptop.kbdAuto) && Power.firstIdleMinutes < 0x7fffffff
         timeout: Math.max(15, Power.firstIdleMinutes * 60 - 30)
         respectInhibitors: true

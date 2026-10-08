@@ -1,0 +1,23 @@
+{
+  "number": 2,
+  "codename": "Archangel",
+  "date": "2026-10-08",
+  "walls": [
+    {
+      "name": "Dead",
+      "day": "dead.png",
+      "night": "dead-night.png"
+    },
+    {
+      "name": "Life",
+      "day": "life.png",
+      "night": "life-night.png"
+    },
+    {
+      "name": "Numb",
+      "day": "numb.png",
+      "night": "numb-night.png"
+    }
+  ],
+  "art": "made for angelOS by its author, MIT like the rest of the repository"
+}

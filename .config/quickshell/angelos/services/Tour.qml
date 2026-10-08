@@ -10,25 +10,36 @@ Singleton {
 
     property bool running: false
     property int step: 0
-    property var _items: ({})       // key -> {item, window}
+    property string screen: ""       // where it runs (Shell.mainScreenFor)
+    property var _items: ({})       // key -> [{item, window}, …]: one per bar that has it
     property int revision: 0
 
     function register(key, item, window) {
         const m = _items;
-        m[key] = {
-            "item": item,
-            "window": window
-        };
+        m[key] = (m[key] || []).filter(e => e.item !== item).concat([{
+                "item": item,
+                "window": window
+            }]);
         revision++;
     }
     function unregister(key, item) {
-        if (_items[key] && _items[key].item === item) {
+        const list = _items[key];
+        if (!list || !list.some(e => e.item === item))
+            return;
+        const rest = list.filter(e => e.item !== item);
+        if (rest.length)
+            _items[key] = rest;
+        else
             delete _items[key];
-            revision++;
-        }
+        revision++;
     }
+    function screenOf(e) {
+        return e && e.window && e.window.screen ? e.window.screen.name : "";
+    }
+    // the element on the tour's screen (several bars have the same one), else the first there is
     function target(key) {
-        return _items[key] || null;
+        const list = _items[key] || [];
+        return list.find(e => screenOf(e) === screen) || list[0] || null;
     }
 
     readonly property var steps: [
@@ -78,14 +89,19 @@ Singleton {
             "text": I18n.t("Mod+S — настройки. Подсказки можно пройти снова: Настройки → Аккаунт.", "Mod+S opens settings. Replay these tips from Settings → Account.")
         }
     ]
-    // only steps whose element exists (bar layout is configurable)
+    // only steps whose element exists (bar layout is configurable): on the tour's screen when
+    // its bar has any, else anywhere
     readonly property var active: {
         revision;
-        return steps.filter(s => s.key === "desktop" || s.key === "end" || !!_items[s.key]);
+        const here = Object.keys(_items).some(k => _items[k].some(e => screenOf(e) === screen));
+        return steps.filter(s => s.key === "desktop" || s.key === "end" || !!_items[s.key] && (!here || _items[s.key].some(e => screenOf(e) === screen)));
     }
     readonly property var current: active[Math.min(step, active.length - 1)] || null
 
-    function start() {
+    // `where`: the screen asked for (the wizard's); otherwise the main one (Shell.mainScreenFor)
+    function start(where) {
+        const s = Shell.mainScreenFor(where || "");
+        screen = s ? s.name : "";
         step = 0;
         running = true;
     }

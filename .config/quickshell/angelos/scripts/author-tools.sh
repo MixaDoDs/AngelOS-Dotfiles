@@ -5,7 +5,9 @@
 # private, `gh api` gets a 404 for anyone else, so nothing here can be edited into access.
 # angelOS keeps no token: gh keeps its own login (`gh auth login`, its usual permissions).
 #
-#   author-tools.sh status    one line: "here|absent access|no-access|no-login|no-gh <login>"
+#   author-tools.sh status    one line: "here|partial|absent access|no-access|no-login|no-gh <login>"
+#                             (partial: owner/ is there but not all of it — the game's debug
+#                             panel owner/debug/ came later; `fetch` adds what is missing)
 #   author-tools.sh fetch     download owner/ into the shell (only files not there yet;
 #                             --force: a copy of the old folder first, then all of it)
 #   author-tools.sh login     gh auth login (in this terminal), then fetch
@@ -32,7 +34,10 @@ access() {
 
 status() {
   here=absent
-  [ -f "$OWNER/novel-editor/nov-editor.py" ] && here=here
+  if [ -f "$OWNER/novel-editor/nov-editor.py" ]; then
+    here=here
+    [ -f "$OWNER/debug/GameDebugCore.qml" ] || here=partial
+  fi
   echo "$here $(access)"
 }
 

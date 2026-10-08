@@ -23,7 +23,7 @@
   "y2k/stream-angel-voice": ["микрофон", "рот", "голос", "чувствительность", "mic", "voice"],
   "y2k/stream-angel-obs": ["obs", "окно для obs", "mod+alt+a", "спрятать ангела"],
   "y2k/demon-corner": ["ангел в углу", "помощница", "помощник", "демоница", "размер ангела", "angel", "helper", "demon"],
-  "y2k/looks": ["внешность", "скин ангела", "чиби", "глитч", "looks", "chibi"],
+  "y2k/looks": ["внешность", "скин ангела", "чиби", "глитч", "looks", "chibi", "облик", "облик ангела", "как выглядит", "look"],
   "y2k/hell": ["ад", "круги ада", "hell", "circles"],
   "y2k/novel": ["новелла", "история", "сюжет", "novel", "story"],
   "y2k/glitter": ["блёстки", "блестки", "шлейф", "искры", "glitter", "sparkles", "trail"],
@@ -42,6 +42,7 @@
   "bar/angelos-logo": ["логотип", "надпись angelos", "logo"],
   "windows/window-decorations": ["заголовок окна", "кнопки окна", "свернуть", "развернуть", "крестик", "title bar", "minimize", "maximize"],
   "windows/layout": ["отступы", "gaps", "колонки", "фокус за мышью", "focus follows mouse"],
+  "windows/cobweb": ["паутина", "паутинка", "паук", "паучок", "кокон", "пыль", "cobweb", "spider", "web", "cocoon", "dust"],
   "windows/alt-tab": ["alt+tab", "альт таб", "переключение окон"],
   "windows/window-animations": ["анимация открытия", "анимация закрытия", "window animation"],
   "workspaces/names": ["имена столов", "названия воркспейсов", "desk names"],
@@ -73,5 +74,9 @@
   "account/recovery": ["бэкап", "резервная копия", "github", "восстановление", "backup"],
   "wellbeing/screen-time": ["экранное время", "время за компьютером", "сколько я сижу", "сколько времени за пк", "статистика использования", "цифровое благополучие", "screen time", "usage", "digital wellbeing", "time at the computer"],
   "wellbeing/breaks": ["перерыв", "перерывы", "напоминание", "напоминалка", "попить воды", "вода", "пить", "глаза", "отдых для глаз", "размяться", "встать", "20-20-20", "break", "breaks", "reminder", "water", "drink", "eyes", "stretch"],
-  "wellbeing/limit": ["лимит", "ограничение времени", "дневной лимит", "слишком долго", "time limit", "daily limit"]
+  "wellbeing/limit": ["лимит", "ограничение времени", "дневной лимит", "слишком долго", "time limit", "daily limit"],
+  "appearance/theme/Режим": ["тёмная тема", "темная тема", "светлая тема", "ночной режим", "dark mode", "light mode"],
+  "monitor/output/Режим": ["частота", "частота обновления", "герцы", "разрешение", "refresh rate", "resolution", "hz"],
+  "mouse/mouse/Чувствительность": ["скорость мыши", "скорость курсора", "dpi", "mouse speed"],
+  "y2k/demon-corner/Болтает сама": ["реплики", "фразы", "болтовня", "lines", "chatter"]
 }

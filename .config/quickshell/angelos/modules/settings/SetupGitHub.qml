@@ -52,7 +52,7 @@ Scope {
         fetcher.running = true;
     }
 
-    // "here|absent access|no-access|no-login|no-gh <login>"
+    // "here|partial|absent access|no-access|no-login|no-gh <login>" (partial: fetch adds the rest)
     Process {
         id: status
         command: ["sh", root.script, "status"]

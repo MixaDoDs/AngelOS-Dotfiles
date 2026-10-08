@@ -24,9 +24,9 @@ import qs.modules.sidebar
 import qs.modules.y2k
 import qs.modules.alttab
 import qs.modules.cursor
+import qs.modules.cobweb
 import qs.modules.lens
 import qs.modules.novel
-import qs.modules.debug
 import qs.modules.diary
 import qs.modules.mac
 import qs.widgets
@@ -64,9 +64,10 @@ ShellRoot {
     BootScreen {}
     AltTabHost {}
     ShakeCursor {}
+    CobwebOverlay {}
     LensOverlay {}
     Ipc {}
-    // Launcher, ClipboardPanel, SessionMenu, SettingsWindow, GameDebugWindow: built on demand
+    // Launcher, ClipboardPanel, SessionMenu, SettingsWindow, the author's GameDebugWindow: built on demand
     LazyWindows {}
 
     // Keep dynamically loaded settings pages visible to Quickshell's static
@@ -105,6 +106,15 @@ ShellRoot {
         id: fastfetchPreviewTypeAnchor
         FastfetchPreview {}
     }
+    // the setup wizard's gloss and effects (its questions are loaded from a file)
+    Component {
+        id: setupGlossTypeAnchor
+        SetupGloss {}
+    }
+    Component {
+        id: setupFxTypeAnchor
+        SetupFx {}
+    }
 
     Component.onCompleted: {
         ThemeExport.signature; // wake the template exporter
@@ -133,5 +143,6 @@ ShellRoot {
         Backlight.available; // the backlight keys and the dimming before idle
         Gestures.status; // the touchpad's own gestures (scripts/gesture-watch.py)
         Wellbeing.loaded; // screen time and the breaks the angel reminds of (Settings → Wellbeing)
+        Cobweb.enabled; // cobwebs on windows nobody moved for a while (Settings → Windows → Cobwebs)
     }
 }

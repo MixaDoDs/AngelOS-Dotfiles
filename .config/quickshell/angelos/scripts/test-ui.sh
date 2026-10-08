@@ -157,6 +157,8 @@ for s in b c d a; do
 done
 start suite lock
 start suite theme
+start suite search
+start suite tour
 start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1
 wait
 
@@ -172,7 +174,7 @@ for sh in "${SHARDS[@]}"; do
   rm -rf "${T:?}/$n"
   start driver "$n" "$from" "$until"
 done
-for s in scale lock theme sddm; do
+for s in scale lock theme search tour sddm; do
   [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" == 0 ]] && continue
   retried+=("$s")
   if [[ "$s" == sddm ]]; then start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1; else start suite "$s"; fi
@@ -220,6 +222,11 @@ result scale "scale matrix: px 2 ×2, px 1, px 4, px 3 ×1.5, px 4 ×2 — no te
 # (tests/sddm) under a stand-in SDDM — both offscreen here
 result lock "lock screen: NGO and heaven looks, typing, mistakes, unlock styles, the stream's audience by day" "lock screen" 20
 result sddm "SDDM theme: builds, loads, types, fails and logs in" "SDDM theme" 20
+# the settings search (tests/search/table.json): a hundred everyday queries find what they must
+# among the first results (concepts, other endings, debug words, the author's panel only for him)
+result search "settings search: the query table finds what it must, fast" "settings search" 30
+# the tips after the wizard (tests/tour): three screens, the main one every time, never the streamed one
+result tour "tips after the wizard: on the main screen ×10, its own Start circled, never the streamed screen" "tips placement" 20
 
 if ((fail)); then echo "» UI SELF-TEST FAILED"; exit 1; fi
 echo "» UI self-test passed ♡"

@@ -722,6 +722,14 @@ PanelWindow {
                     return Quickshell.iconPath(n, true) || Quickshell.iconPath(n.toLowerCase(), true) || "";
                 }
             }
+            // its windows' cobweb (services/Cobweb), in the icon's corner
+            CobwebBadge {
+                ids: cell.item.kind === "app" ? (cell.item.windows || []).map(w => w.id) : []
+                hovered: cell.hovered
+                pixel: Math.max(1, Math.round(art.width / 36))
+                x: art.width - width
+                y: 0
+            }
         }
         // running: a small dot under it
         Rectangle {

@@ -227,10 +227,11 @@ Scope {
     }
     function finish() {
         Config.setup.complete = true;
-        const tour = tipsAfter;
+        // the tips start where the questions were answered, once the wizard's screens are gone
+        tipsOn = tipsAfter ? (host ? host.name : "") || "-" : "";
         installApps();
         close();
-        if (tour)
+        if (tipsOn)
             tipsTimer.start();
     }
     // `angelos setup skip`: done for now; Settings → Account has it again
@@ -239,10 +240,25 @@ Scope {
         close();
     }
 
+    // not a fixed wait: the wizard's windows (Shell.setupCovers) are gone first, then one more
+    // turn of the event loop; 3 s at the most
+    property string tipsOn: ""
     Timer {
         id: tipsTimer
-        interval: 700
-        onTriggered: Tour.start()
+        interval: 50
+        repeat: true
+        property int waited: 0
+        onRunningChanged: if (running)
+            waited = 0
+        onTriggered: {
+            waited += interval;
+            if (Shell.setupCovers > 0 && waited < 3000)
+                return;
+            stop();
+            const where = root.tipsOn === "-" ? "" : root.tipsOn;
+            root.tipsOn = "";
+            Qt.callLater(() => Tour.start(where));
+        }
     }
     Connections {
         target: Shell
@@ -281,7 +297,7 @@ Scope {
     // screen gone (dev runs sit next to a live session: never by themselves)
     Timer {
         interval: 1200
-        running: Config.ready && !Config.setup.complete && !root.offered && !Shell.dev && root.marker !== 0 && !Shell.bootOpen
+        running: Config.ready && !Config.setup.complete && !root.offered && !Shell.dev && root.marker !== 0 && !Shell.bootOpen && !Shell.bootCover
         onTriggered: {
             root.offered = true;
             if (root.marker === 1) {

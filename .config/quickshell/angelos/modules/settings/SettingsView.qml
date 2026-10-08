@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import QtQml.Models
 import qs.config
 import qs.services
 import qs.widgets
@@ -61,11 +62,11 @@ Item {
             dress: dressId,
             viewStatus: viewLoader.status,
             atHome: atHome,
-            source: String(page.source),
-            status: atHome ? Loader.Ready : page.status,
+            source: String(shownPage.source),
+            status: atHome ? Loader.Ready : shownPage.status,
             sidebarVisible: !!viewItem && viewItem.sidebarVisible === true,
-            settingsSkin: page.item && page.item.settingsSkin !== undefined ? page.item.settingsSkin : atHome ? skin : "",
-            plugin: page.item && page.item.loadedPlugin !== undefined ? page.item.loadedPlugin : "",
+            settingsSkin: shownPage.item && shownPage.item.settingsSkin !== undefined ? shownPage.item.settingsSkin : atHome ? skin : "",
+            plugin: shownPage.item && shownPage.item.loadedPlugin !== undefined ? shownPage.item.loadedPlugin : "",
             query: query,
             results: results.length,
             navActive: navActive
@@ -93,7 +94,7 @@ Item {
         return true;
     }
     readonly property Item frame: mac ? macFrame : pxFrame
-    readonly property var pageItem: atHome ? null : page.item
+    readonly property var pageItem: atHome ? null : shownPage.item
     // while the demon rules (Y2K → Angel or demon → Settings in hell): a grimoire (GrimoireBook)
     // or a circle's own dress (HellLook.settingsPick)
     readonly property string dressId: Angel.demon ? HellLook.settingsPick : ""
@@ -410,6 +411,7 @@ Item {
     Connections {
         target: win.settingsNav
         function onSettingsOpenChanged() {
+            idleHome.running = !win.settingsNav.settingsOpen && win.main && Shell.settingsWarm;
             if (!win.settingsNav.settingsOpen) {
                 win.backStack = [];
                 win.forwardStack = [];
@@ -418,6 +420,19 @@ Item {
                 searchInput.text = "";
             } else
                 win.opened();
+        }
+    }
+    // the window kept hidden lets a heavy page go after a minute and holds Home instead (what
+    // opening without a page shows anyway), then the engine gives back what the page held
+    Timer {
+        id: idleHome
+        interval: 60000
+        onTriggered: {
+            if (win.settingsNav.settingsOpen || win.settingsNav.settingsPage === "main")
+                return;
+            win.settingsNav.settingsPage = "main";
+            win.settingsNav.settingsSub = "";
+            Qt.callLater(gc);
         }
     }
     function opened() {
@@ -615,7 +630,7 @@ Item {
     function showTarget() {
         const r = pendingTarget;
         pendingTarget = null;
-        const pg = page.item;
+        const pg = shownPage.item;
         if (!r || !pg || !pg.flick)
             return;
         const groupHint = {
@@ -897,6 +912,59 @@ Item {
         }
     }
 
+    // ---- the pages kept built: Home and the three opened most (Config.settingsUi.usage). Each is made
+    // the first time it is shown and after that only hidden and shown again — going back to one is
+    // instant (any other page is built anew each time: ~50–600 ms). A hidden one stops its
+    // previews (they run while visible). Only the main window keeps them.
+    readonly property string keptKey: main ? ["tree:main"].concat(frequent(3).map(p => "tree:" + p.id)).sort().join(",") : ""
+    readonly property var keptWants: keptKey ? keptKey.split(",") : []
+    property var keptLoaders: ({})
+    // the loader of the page on view: a kept one, or the one for every other page
+    readonly property var shownPage: keptLoaders[page.want] || page
+    Instantiator {
+        model: win.keptWants
+        delegate: Loader {
+            id: kept
+            required property string modelData
+            required property int index
+            readonly property bool current: page.want === modelData
+            property bool seen: current
+            // the window built ahead builds them too, one a second and a half (no CPU spike)
+            Timer {
+                running: Shell.settingsWarm && !kept.seen
+                interval: 1500 * (kept.index + 1)
+                onTriggered: kept.seen = true
+            }
+            onCurrentChanged: if (current) {
+                seen = true;
+                if (status === Loader.Ready && win.pendingTarget)
+                    targetTimer.restart();
+            }
+            parent: page.parent
+            anchors.fill: parent
+            layer.enabled: win.spread
+            layer.effect: inkFx
+            visible: current && !win.atHome
+            active: seen && (win.hostWindow ? win.hostWindow.visible || Shell.settingsWarm : true)
+            onLoaded: if (current && win.pendingTarget)
+                targetTimer.restart()
+            Component.onCompleted: setSource(Qt.resolvedUrl("ComposedPage.qml"), {
+                "pageKey": modelData.slice(5)
+            })
+        }
+        onObjectAdded: (i, o) => {
+            const m = Object.assign({}, win.keptLoaders);
+            m[o.modelData] = o;
+            win.keptLoaders = m;
+        }
+        onObjectRemoved: (i, o) => {
+            const m = Object.assign({}, win.keptLoaders);
+            if (m[o.modelData] === o)
+                delete m[o.modelData];
+            win.keptLoaders = m;
+        }
+    }
+
     // ---- what every view shares: one search field, one results list, one page ----
     readonly property int searchFieldHeight: searchInput.implicitHeight
     readonly property bool searchFocused: searchInput.input.activeFocus
@@ -1044,10 +1112,11 @@ Item {
                                     font.bold: res.modelData.kind === "page"
                                     color: res.picked ? Theme.selectText : Theme.text
                                 }
+                                // where it is; found through a concept («рулетка») says so first
                                 PxText {
                                     visible: text !== ""
                                     width: parent.width
-                                    text: res.modelData.crumb || res.modelData.hint
+                                    text: (res.modelData.related ? "≈ " + res.modelData.related + (res.modelData.crumb || res.modelData.hint ? "  ·  " : "") : "") + (res.modelData.crumb || res.modelData.hint)
                                     kind: "tiny"
                                     elide: Text.ElideRight
                                     color: res.picked ? Theme.selectText : Theme.textDim
@@ -1087,7 +1156,9 @@ Item {
         layer.enabled: win.spread
         layer.effect: inkFx
         visible: !win.atHome
-        active: win.hostWindow ? win.hostWindow.visible : true
+        // a kept page (above) is shown by its own loader; the main window built ahead
+        // (Shell.settingsWarm) keeps its page while hidden
+        active: !win.keptWants.includes(want) && (win.hostWindow ? win.hostWindow.visible || (win.main && Shell.settingsWarm) : true)
         onLoaded: if (win.pendingTarget)
             targetTimer.restart()
         // the page to show: a page of the tree is put together (ComposedPage) — the same file

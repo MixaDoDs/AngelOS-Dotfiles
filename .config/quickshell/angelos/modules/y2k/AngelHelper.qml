@@ -30,7 +30,7 @@ Scope {
     LazyLoader {
         // hidden from you by Mod+Alt+A while OBS runs (StreamAngel.hidden): only her window
         // for OBS draws her (StreamerCast)
-        active: Angel.shown && !Shell.bootOpen && !!Angel.screen && !StreamAngel.hidden
+        active: Angel.shown && !Shell.bootOpen && !Shell.bootCover && !!Angel.screen && !StreamAngel.hidden
 
         PanelWindow {
             id: win

@@ -62,6 +62,8 @@ import "../../widgets/IconSets.js" as IconSets
 //             hidden and shown with the same config (B4: the lock, sleep, a fullscreen game)
 //   rmb       a right-click menu opens where the button went down (B2); a right click into
 //             the window's corner pixel does not crash Qt
+//   boot      opening the boot screen tries its chime once (asked again while open, none
+//             more; once more for the next show); quiet hours keep it only when it shows on no screen
 //   setup     the first-run wizard holds the desktop (Start, the launcher, the clipboard, the
 //             session menu, Settings, Alt+Tab wait; the screens count as unseen) and
 //             `angelos setup skip` lets it go; opened again it holds the desktop too, every
@@ -462,6 +464,16 @@ Scope {
     readonly property string shots: Quickshell.env("ANGELOS_TEST_SHOTS") || ""
     property bool undoDone: false
     property int cavaFirst: 0
+    // boot: the tries at the boot screen's chime
+    property int bootTries: 0
+    property var bootKeep: ({})
+    Connections {
+        target: Sounds
+        function onSounded(name) {
+            if (name === "startup")
+                root.bootTries++;
+        }
+    }
     property int paceRuns: 0
     property bool paceSlow: false
     property int undoSteps: 0
@@ -1926,29 +1938,43 @@ Scope {
             return;
         }
         if (phase === "debug") {
-            // the game's debug panel (GameDebug): each tab builds from the data, its writes
-            // land in the save, its overrides (a circle's look, a kind of breakage) take
-            const bad = [];
-            for (const t of ["DebugStateTab", "DebugAngelTab", "DebugDemonsTab", "DebugScenesTab", "DebugFxTab", "DebugLooksTab", "DebugSoundsTab", "DebugSystemTab"]) {
-                const c = Qt.createComponent(Qt.resolvedUrl("../../modules/debug/" + t + ".qml"));
-                const o = c.status === Component.Ready ? c.createObject(win.contentItem, {
-                    "width": 800
-                }) : null;
-                if (!o || !o.children.length)
-                    bad.push(t + (c.status === Component.Error ? ": " + c.errorString() : ""));
-                if (o)
-                    o.destroy();
+            // the game's debug panel is the author's only: its code is in owner/debug, which a
+            // public tree (CI) does not have — then every way in stays shut, developer mode or not
+            if (!GameDebug.hasCore) {
+                const said = GameDebug.command("open");
+                const dbgTitles = ["Панель отладки игры", "The game's debug panel", "Игра: инструменты разработчика", "The game: developer tools"];
+                const found = SettingsSearch.search("отладка игры", 20).concat(SettingsSearch.search("debug panel", 20)).filter(x => dbgTitles.includes(x.title));
+                report("debug-shut", !GameDebug.allowed && !GameDebug.shown && !GameDebug.core && said === "owner only" && GameDebug.windowUrl === "" && !found.length, "no owner/debug: allowed " + GameDebug.allowed + ", the IPC says «" + said + "», the search finds " + found.length);
+            } else {
+                // each tab builds from the data, its writes land in the save, its overrides (a
+                // circle's look, a kind of breakage) take
+                const bad = [];
+                for (const t of ["DebugStateTab", "DebugAngelTab", "DebugDemonsTab", "DebugScenesTab", "DebugFxTab", "DebugLooksTab", "DebugSoundsTab", "DebugSystemTab"]) {
+                    const c = Qt.createComponent("file://" + GameDebug.dir + "/" + t + ".qml");
+                    const o = c.status === Component.Ready ? c.createObject(win.contentItem, {
+                        "width": 800
+                    }) : null;
+                    if (!o || !o.children.length)
+                        bad.push(t + (c.status === Component.Error ? ": " + c.errorString() : ""));
+                    if (o)
+                        o.destroy();
+                }
+                const core = GameDebug.core;
+                let wrote = false, looked = false, punched = false;
+                if (core) {
+                    core.setSin("wrath", 7);
+                    core.setClose("lust", 9);
+                    wrote = Story.vars.wrath === 7 && Story.closePoints("lust") === 9 && Story.closeStepOf(Story.closePoints("lust")) === 2;
+                    core.lookCircle("treachery");
+                    looked = HellLook.circle === "treachery" && core.lookOverridden;
+                    core.lookAsStory();
+                    core.punch("frost");
+                    punched = Cracks.on && Cracks.kind === "frost" && Cracks.forceKind === "";
+                    Cracks.on = false;
+                }
+                const said = GameDebug.command("status");
+                report("debug-panel", GameDebug.allowed && bad.length === 0 && wrote && looked && HellLook.circle === "base" && punched && said.startsWith("{"), (bad.length ? "tabs failed: " + bad.join("; ") : "8 tabs build") + ", writes " + wrote + ", a circle's look " + looked + ", frost on demand " + punched + ", the IPC " + said.slice(0, 20));
             }
-            GameDebug.setSin("wrath", 7);
-            GameDebug.setClose("lust", 9);
-            const wrote = Story.vars.wrath === 7 && Story.closePoints("lust") === 9 && Story.closeStepOf(Story.closePoints("lust")) === 2;
-            GameDebug.lookCircle("treachery");
-            const looked = HellLook.circle === "treachery" && GameDebug.lookOverridden;
-            GameDebug.lookAsStory();
-            GameDebug.punch("frost");
-            const punched = Cracks.on && Cracks.kind === "frost" && Cracks.forceKind === "";
-            Cracks.on = false;
-            report("debug-panel", GameDebug.allowed && bad.length === 0 && wrote && looked && HellLook.circle === "base" && punched, (bad.length ? "tabs failed: " + bad.join("; ") : "8 tabs build") + ", writes " + wrote + ", a circle's look " + looked + ", frost on demand " + punched);
             Story.reset();
             // C1: into hell through the portal, with the show and the circle's splash
             paceRuns = CircleFx.runs;
@@ -2335,6 +2361,47 @@ Scope {
         }
         if (phase === "rmb-alive") {
             report("rmb-corner", true, "still alive (focus item: " + bare.activeFocusItem + ")");
+            phase = "boot";
+            return;
+        }
+        // the boot screen's chime went missing now and then (2026-10-08): one show, one try
+        if (phase === "boot") {
+            bootKeep = {
+                "sounds": Config.y2k.sounds,
+                "quietHours": Config.y2k.quietHours,
+                "quietFrom": Config.y2k.quietFrom,
+                "quietTo": Config.y2k.quietTo,
+                "ready": Sounds.ready
+            };
+            Config.y2k.sounds = true;
+            Config.y2k.quietHours = false;
+            Sounds.ready = true;            // no pack in the test home: nothing to synthesise for it
+            bootTries = 0;
+            // (no BootScreen here, offscreen has no layer shell: the show is closed by hand)
+            Shell.bootOpen = true;
+            Shell.bootOpen = true;          // asked again while open: the same show
+            const shown = bootTries;
+            Shell.bootOpen = false;
+            Shell.bootOpen = true;          // the next show
+            const again = bootTries - shown;
+            Shell.bootOpen = false;
+            // quiet hours now: the screen on view still chimes, one on no screen doesn't
+            const h = new Date().getHours();
+            Config.y2k.quietHours = true;
+            Config.y2k.quietFrom = h;
+            Config.y2k.quietTo = (h + 1) % 24;
+            bootTries = 0;
+            Sounds.playBoot(true);
+            const onScreen = bootTries;
+            Sounds.playBoot(false);
+            const nowhere = bootTries - onScreen;
+            report("boot-chime", shown === 1 && again === 1 && onScreen === 1 && nowhere === 0,
+                   "one show → " + shown + " tries, the next → " + again + "; quiet hours: on a screen " + onScreen + ", on none " + nowhere);
+            Config.y2k.sounds = bootKeep.sounds;
+            Config.y2k.quietHours = bootKeep.quietHours;
+            Config.y2k.quietFrom = bootKeep.quietFrom;
+            Config.y2k.quietTo = bootKeep.quietTo;
+            Sounds.ready = bootKeep.ready;
             phase = "setup";
             return;
         }

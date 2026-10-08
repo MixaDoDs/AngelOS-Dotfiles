@@ -172,11 +172,26 @@ PxPage {
             visible: !Shell.setupOpen
             label: I18n.t("Мастер первого запуска", "The setup wizard")
             hint: I18n.t("пройти ещё раз на весь экран: язык, игра, раскладки, тема, движение", "Go through it again, full screen: language, the game, layouts, theme, motion")
-            PxButton {
-                compact: true
-                text: I18n.t("Открыть", "Open")
-                icon: "sparkle"
-                onClicked: Shell.setupOpen = true
+            Row {
+                spacing: Theme.u * 2
+                PxButton {
+                    compact: true
+                    text: I18n.t("Открыть", "Open")
+                    icon: "sparkle"
+                    onClicked: Shell.setupOpen = true
+                }
+                // debug mode (the game's debug panel or developer mode): with the first run's
+                // minute before it — the installer, the waking up, the sound
+                PxButton {
+                    visible: GameDebug.allowed || Config.developer.enabled
+                    compact: true
+                    text: I18n.t("С интро", "With the intro")
+                    icon: "play"
+                    onClicked: {
+                        Shell.setupIntroOnce = true;
+                        Shell.setupOpen = true;
+                    }
+                }
             }
         }
         SettingRow {

@@ -13,8 +13,8 @@ PanelWindow {
 
     readonly property var step: Tour.current
     readonly property var tgt: step ? Tour.target(step.key) : null
-    // the focused screen, or the one the element lives on
-    screen: tgt && tgt.window && tgt.window.screen ? tgt.window.screen : Shell.focusedScreen
+    // the tour's screen (Tour.start: the main one); its elements are the ones on it
+    screen: Shell.screenByName(Tour.screen) || Shell.mainScreenFor("") || Shell.focusedScreen
     visible: Tour.running && !!step
     anchors {
         top: true

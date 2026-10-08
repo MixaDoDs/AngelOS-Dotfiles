@@ -493,6 +493,93 @@ PxPage {
             }
         }
     }
+    // cobwebs (services/Cobweb): a window left where it is gathers a spider
+    PxGroup {
+        name: "cobweb"
+        width: parent.width
+        title: I18n.t("Паутина", "Cobwebs")
+        icon: "spider"
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Окно, которое давно не двигали, обживает паучок: сначала углы, потом края, а потом заматывает всё окно в кокон. Часы настоящие, сон тоже считается. Задел нить курсором — она может порваться или паучок сбежит. Перетащил окно — стряхнул немного. Потряси окно — и смахни паутину стрелками.", "A window nobody has moved for a while gets a spider: the corners first, then the edges, then it winds the whole window up in a cocoon. The clock is the real one, sleep counts too. Catch a thread with the pointer and it may snap, or the spider runs off. Drag the window and a little shakes off. Shake the window and swipe the web away with the arrows.")
+        }
+        SettingRow {
+            label: I18n.t("Паутина на окнах", "Cobwebs on windows")
+            PxToggle {
+                checked: Config.windows.cobweb
+                onToggled: c => Config.windows.cobweb = c
+            }
+        }
+        SettingRow {
+            visible: Config.windows.cobweb
+            label: I18n.t("Поверх самого окна", "Over the window itself")
+            hint: I18n.t("курсор ловится только на нитях, между ними клики идут в программу; в играх и во весь экран паутины нет", "The pointer is caught only on the threads, clicks between them go to the app; none in games or fullscreen")
+            PxToggle {
+                checked: Config.windows.cobwebInside
+                onToggled: c => Config.windows.cobwebInside = c
+            }
+        }
+        SettingRow {
+            visible: Config.windows.cobweb
+            label: I18n.t("На кнопке окна", "On the window's button")
+            hint: I18n.t("маленькая паутинка и паучок на панели и в Dock", "A small web and a spider in the bar and the Dock")
+            PxToggle {
+                checked: Config.windows.cobwebBar
+                onToggled: c => Config.windows.cobwebBar = c
+            }
+        }
+        SettingRow {
+            visible: Config.windows.cobweb
+            label: I18n.t("Как быстро растёт", "How fast it grows")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("10 мин → 1 ч", "10 min → 1 h"),
+                        "value": "fast"
+                    },
+                    {
+                        "label": I18n.t("30 мин → 4 ч", "30 min → 4 h"),
+                        "value": "normal"
+                    },
+                    {
+                        "label": I18n.t("2 ч → сутки", "2 h → a day"),
+                        "value": "slow"
+                    }
+                ]
+                currentValue: Config.windows.cobwebSpeed
+                onActivated: v => Config.windows.cobwebSpeed = v
+            }
+        }
+        Row {
+            visible: Config.windows.cobweb
+            spacing: Theme.u * 3
+            PxButton {
+                compact: true
+                icon: "play"
+                text: I18n.t("Показать сейчас", "Show me now")
+                enabled: Cobweb.enabled
+                onClicked: Cobweb.demo()
+            }
+            PxButton {
+                compact: true
+                icon: "close"
+                text: I18n.t("Смахнуть всю", "Sweep it all")
+                enabled: Cobweb.enabled
+                onClicked: Cobweb.clearAll()
+            }
+            PxText {
+                anchors.verticalCenter: parent.verticalCenter
+                width: Theme.u * 200
+                wrapMode: Text.Wrap
+                kind: "tiny"
+                color: Cobweb.shakeStatus === "noperm" ? Theme.danger : Theme.textDim
+                text: Cobweb.shakeStatus === "noperm" ? I18n.t("нет доступа к мыши (группа input): тряску окна не видно — смахнуть паутину можно из меню кнопки окна (ПКМ)", "No access to the mouse (the input group): shaking a window can't be seen — sweep the web from the window button's menu (right click)") : Cobweb.webCount > 0 ? I18n.t("паутина на окнах: ", "webs on windows: ") + Cobweb.webCount : ""
+            }
+        }
+    }
+
     PxGroup {
         name: "alt-tab"
         width: parent.width

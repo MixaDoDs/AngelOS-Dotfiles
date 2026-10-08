@@ -539,12 +539,13 @@ PxPage {
         }
     }
 
-    // ---- developer mode: see and steer the story — the game's debug panel (GameDebug) ----
+    // ---- the author's only: see and steer the story — the game's debug panel (GameDebug,
+    // owner/debug after the GitHub login); developer mode does not open it ----
     PxGroup {
         name: "game-developer-tools"
         title: I18n.t("Игра: инструменты разработчика", "The game: developer tools")
         advanced: true
-        shown: Config.developer.enabled
+        shown: GameDebug.allowed
         icon: "chip"
         width: parent.width
         SettingRow {

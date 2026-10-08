@@ -5,7 +5,6 @@ import qs.services
 import qs.widgets
 import qs.modules.chest
 import qs.modules.clipboard
-import qs.modules.debug
 import qs.modules.diary
 import qs.modules.launcher
 import qs.modules.laptop
@@ -68,8 +67,27 @@ Scope {
         when: Shell.settingsOpen
         ms: 60000
     }
+    // …and once the shell has settled it is built ahead and kept, hidden — its frame, the
+    // navigation, Home, the search with its index, the look in use — so it opens at once
+    // (the pages one goes on to come and go: SettingsView). Not during the boot screen, the
+    // first-run wizard or a stream (the build is a second of CPU); asked again until it fits.
+    Timer {
+        id: settingsWarm
+        interval: 8000
+        running: !Shell.settingsWarm && Quickshell.env("ANGELOS_SETTINGS_WARM") !== "0"   // 0: never (to compare)
+        repeat: true
+        onTriggered: {
+            if (Shell.bootOpen || Shell.bootCover || Shell.setupOpen || StreamMode.active)
+                return;
+            if (!Shell.settingsOpen) {
+                Shell.settingsPage = "main";     // what opening without a page shows
+                Shell.settingsSub = "";
+            }
+            Shell.settingsWarm = true;
+        }
+    }
     LazyLoader {
-        active: settingsKeep.alive
+        active: settingsKeep.alive || Shell.settingsWarm
         SettingsWindow {}
     }
     // the other Settings windows (Shell.newSettingsWindow): each goes as soon as it is closed
@@ -89,9 +107,11 @@ Scope {
         }
     }
 
+    // the game's debug panel: the author's only, its window comes with owner/debug
+    // (services/GameDebug; no source, nothing looked for, in a public install)
     LazyLoader {
+        source: GameDebug.windowUrl
         active: GameDebug.shown
-        GameDebugWindow {}
     }
 
     // the Angel's diary (services/Diary): its closing swing plays inside the window

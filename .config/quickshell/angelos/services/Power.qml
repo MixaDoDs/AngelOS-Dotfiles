@@ -253,14 +253,14 @@ Singleton {
     readonly property int firstIdleMinutes: Math.min(...[lockMinutes, screenOffMinutes, sleepMinutes].filter(m => m > 0).concat([0x7fffffff]))
     readonly property bool idleWatch: Config.ready && !Shell.dev || Quickshell.env("ANGELOS_LAPTOP_STAND") === "1"
 
-    IdleMonitor {
+    IdleWatch {
         enabled: root.idleWatch && root.screenOffMinutes > 0
         timeout: Math.max(1, root.screenOffMinutes) * 60
         respectInhibitors: true
         onIsIdleChanged: if (isIdle)
             Niri.powerOffMonitors()
     }
-    IdleMonitor {
+    IdleWatch {
         enabled: root.idleWatch && root.sleepMinutes > 0
         timeout: Math.max(1, root.sleepMinutes) * 60
         respectInhibitors: true

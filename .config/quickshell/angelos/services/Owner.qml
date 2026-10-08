@@ -32,11 +32,14 @@ Singleton {
     readonly property bool enabled: hasDir && hasMarker && verified
     // look again for owner/ and the marker, then ask GitHub (the setup wizard, after it
     // fetched the author's tools)
+    // (services/GameDebug looks for owner/debug again on it)
+    signal refreshed
     function refresh() {
         dirProbe.running = false;
         dirProbe.running = true;
         marker.reload();
         recheck();
+        refreshed();
     }
     // ask GitHub again (the Dotfiles page has a button; also every 6 hours)
     function recheck() {
@@ -63,6 +66,30 @@ Singleton {
         running: root.hasDir && root.hasMarker
         repeat: true
         onTriggered: root.recheck()
+    }
+    // the author's tools again (scripts/author-tools.sh fetch: only the files not there yet,
+    // e.g. owner/debug that came after owner/): the Dotfiles page's button, and once by
+    // itself when owner/debug is missing (services/GameDebug); nothing for anyone else
+    readonly property bool fetching: fetcher.running
+    property string fetchNote: ""
+    function fetchTools() {
+        if (fetcher.running)
+            return;
+        fetchNote = "";
+        fetcher.running = true;
+    }
+    Process {
+        id: fetcher
+        command: ["sh", Quickshell.shellDir + "/scripts/author-tools.sh", "fetch"]
+        stdout: StdioCollector {
+            onStreamFinished: if (text.trim())
+                root.fetchNote = text.trim().split("\n").pop()
+        }
+        stderr: StdioCollector {
+            onStreamFinished: if (text.trim())
+                root.fetchNote = text.trim().split("\n").pop()
+        }
+        onExited: root.refresh()
     }
     // background jobs live here so an update keeps running when the settings page closes
     readonly property var jobs: jobsLoader.item

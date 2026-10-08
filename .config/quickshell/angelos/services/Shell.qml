@@ -12,6 +12,7 @@ Singleton {
     property var settingsView: null
     property var barViews: ({})
     property bool setupOpen: false
+    property int setupCovers: 0              // the wizard's screen covers still there (modules/settings/SetupWizard)
     signal setupStepRequested(int step)
     signal setupSkipRequested()       // `angelos setup skip`: out of the wizard at once
     // The setup wizard (modules/settings/SetupWizard) covers every screen and the desktop
@@ -19,6 +20,8 @@ Singleton {
     // nothing. The first run lets go only when it is done (or `angelos setup skip`); opened
     // again from Settings (or `angelos setup`) it has "Close", and Settings come back after.
     property bool setupFirstRun: false
+    // the next opening plays the first run's intro too (Settings → Account, in debug mode)
+    property bool setupIntroOnce: false
     readonly property bool setupLocked: setupOpen
     property bool settingsAfterSetup: false
     onSetupLockedChanged: if (setupLocked) {
@@ -44,6 +47,13 @@ Singleton {
     property bool projectOpen: false         // the screens menu, Mod+P / the display key (modules/laptop/ProjectMenu)
     signal projectNext()                      // …the key again while it is open: the next choice
     property bool bootOpen: false            // Y2K loading screen (modules/y2k/BootScreen)
+    property bool settingsWarm: false        // the main Settings window is built and kept, hidden (modules/LazyWindows)
+    property bool bootCover: false           // …the black second before it, at login
+    property bool bootCoverShown: false      // …its first frame is out
+    // the wallpaper, bar and Dock wait for the cover's first frame, so they are never seen before it
+    readonly property bool desktopHeld: bootCover && !bootCoverShown
+    // where it shows: the screens picked (all when none), streamed ones skipped while stream mode is on
+    readonly property var bootScreens: screens.filter(s => (!(Config.y2k.bootScreens || []).length || Config.y2k.bootScreens.includes(s.name)) && StreamMode.effectsOn(s.name))
     // the shell's own pid: its windows (settings, osu!mini…) share it, so
     // "End task" on them would kill angelOS itself
     property int pid: 0
@@ -182,6 +192,16 @@ Singleton {
 
     function screenByName(name) {
         return screens.find(s => s.name === name) || null;
+    }
+    // The screen for something shown once in front of the user, not asked for there (the tips
+    // after the wizard): the one given (where the wizard was answered), else the main screen when
+    // its bar has Start, a screen whose bar has Start, niri's focus, the first one. A streamed
+    // screen never while stream mode is on (null when every screen is). niri's focus alone was
+    // wrong: after the full-screen wizard closed it could be on any output, and screens[0] is no
+    // main screen either (2026-10-08).
+    function mainScreenFor(name) {
+        const order = [screenByName(name || ""), startButtons[primaryName] ? primaryScreen : null].concat(Object.keys(startButtons).sort().map(screenByName), [focusedScreen], screens);
+        return order.find(s => !!s && !StreamMode.onStream(s.name)) || null;
     }
     // a window covers the whole screen on its active workspace (a game, a video)
     function fullscreenOn(name) {

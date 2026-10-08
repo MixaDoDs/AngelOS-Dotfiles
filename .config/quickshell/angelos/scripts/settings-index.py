@@ -12,8 +12,16 @@ titles, SettingRow labels and hints, and the texts inside a row or group
 (options, buttons) as extra words. New settings become searchable by themselves.
 A group or row shown only in developer mode (`shown:`/`visible: Config.developer.enabled`)
 is marked "developer": true, its rows too — the search leaves them out while the mode is off.
+One shown only to the author (`shown: GameDebug.allowed`, the game's debug panel from
+owner/debug) is marked "owner": true — the search leaves it out for everyone else.
+
+The result is kept in $XDG_CACHE_HOME/angelos/settings-index.json with the size and time of
+every page file (and of this script): Settings opening asks again each time, and while no page
+changed the answer comes from there instead of reading ~50 QML files anew.
 """
+import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -25,6 +33,7 @@ SETS = re.compile(r'onToggled:\s*(\w+)\s*=>\s*Config\.(\w+\.\w+)\s*=\s*\1\s*;?\s
 PROP = re.compile(r'^\s*"?(heading|subtitle|title|label|hint|text|placeholder)"?\s*:\s*(.*)$')
 OPEN = re.compile(r"^\s*([A-Z][\w.]*)\s*\{")
 DEV = re.compile(r"^\s*(shown|visible)\s*:\s*Config\.developer\.enabled\s*$")
+OWNER = re.compile(r"^\s*(shown|visible)\s*:\s*GameDebug\.allowed\s*$")
 NAME = re.compile(r'^\s*name\s*:\s*"([^"]+)"')
 
 
@@ -63,13 +72,16 @@ def index_page(path):
                 grp = next((e for c, _, e in reversed(stack) if c == "PxGroup" and e), None)
                 entry = {"page": pid, "kind": "row", "ru": "", "en": "", "name": grp["name"] if grp else "", "hint": {"ru": "", "en": ""}, "words": {"ru": [], "en": []},
                          "group": {"ru": grp["ru"], "en": grp["en"]} if grp else {"ru": "", "en": ""}}
-                if grp and grp.get("developer"):
-                    entry["developer"] = True
+                for gate in ("developer", "owner"):
+                    if grp and grp.get(gate):
+                        entry[gate] = True
             if entry is not None:
                 out.append(entry)
             stack.append((comp, depth, entry))
         if DEV.match(code) and stack and stack[-1][2] is not None and stack[-1][0] in ("PxGroup", "SettingRow"):
             stack[-1][2]["developer"] = True
+        if OWNER.match(code) and stack and stack[-1][2] is not None and stack[-1][0] in ("PxGroup", "SettingRow"):
+            stack[-1][2]["owner"] = True
         # a row that is one plain switch (checked: Config.a.b, set back the same way): the
         # search shows the switch right in its results
         row = next((e for c, _, e in reversed(stack) if c == "SettingRow" and e), None)
@@ -129,19 +141,38 @@ def index_page(path):
     return [e for e in out if e["ru"] or e["kind"] == "page"]
 
 
+def signature(files):
+    h = hashlib.sha1()
+    for f in [Path(__file__).resolve()] + files:
+        try:
+            st = f.stat()
+            h.update(("%s %d %d\n" % (f, st.st_mtime_ns, st.st_size)).encode())
+        except OSError:
+            h.update(("%s -\n" % f).encode())
+    return h.hexdigest()
+
+
 def main():
     here = Path(__file__).resolve().parent.parent
     dirs = [Path(a) for a in sys.argv[1:]] or [here / "modules/settings/pages"]
-    entries = []
+    files = []
     for d in dirs:
-        files = [d] if d.is_file() else sorted(d.glob("*Page.qml"))
-        for f in files:
-            if f.name == "PluginSettingsPage.qml":
-                continue
-            try:
-                entries += index_page(f)
-            except OSError:
-                pass
+        files += [d] if d.is_file() else sorted(f for f in d.glob("*Page.qml") if f.name != "PluginSettingsPage.qml")
+    cache = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "angelos" / "settings-index.json"
+    sig = signature(files)
+    try:
+        kept = json.loads(cache.read_text())
+        if kept.get("sig") == sig:
+            print(kept["text"])
+            return
+    except (OSError, ValueError, KeyError, AttributeError):
+        pass
+    entries = []
+    for f in files:
+        try:
+            entries += index_page(f)
+        except OSError:
+            pass
     for e in entries:  # keep the extra words short and unique
         for lang in ("ru", "en"):
             seen, words = set(), []
@@ -151,7 +182,15 @@ def main():
                     seen.add(w)
                     words.append(w)
             e["words"][lang] = words[:40]
-    print(json.dumps(entries, ensure_ascii=False))
+    text = json.dumps(entries, ensure_ascii=False)
+    print(text)
+    try:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        tmp = cache.with_suffix(".tmp%d" % os.getpid())
+        tmp.write_text(json.dumps({"sig": sig, "text": text}, ensure_ascii=False))
+        os.replace(tmp, cache)
+    except OSError:
+        pass
 
 
 if __name__ == "__main__":

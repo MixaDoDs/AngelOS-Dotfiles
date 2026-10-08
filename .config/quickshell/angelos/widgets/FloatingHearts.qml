@@ -2,7 +2,7 @@ import QtQuick
 import qs.config
 
 // Pixel hearts drifting upwards with a little sway. Stepped at 12 fps: it looks
-// pixel-y and does not keep a full-screen surface repainting at 60 fps.
+// pixel-y and does not keep a full-screen surface repainting at 60 fps — or gliding (`glide`).
 Item {
     id: root
 
@@ -11,6 +11,10 @@ Item {
     property real speed: 1
     property real minOpacity: 0.12
     property real maxOpacity: 0.4
+    property int interval: 83               // a step's length (ms); the speed stays the same
+    // smooth instead: each heart glides on the render thread (animators), frame by frame with
+    // the screen, whatever the GUI thread does (the setup wizard)
+    property bool glide: false
 
     Repeater {
         id: rep
@@ -21,6 +25,42 @@ Item {
             property real vy: 0.5 + Math.random()
             property real phase: Math.random() * 6.28
             property real baseX: Math.random() * root.width
+            readonly property real pxPerSec: vy * Theme.u * 18 * root.speed
+            readonly property bool gliding: root.glide && root.running && root.width > 0
+            onGlidingChanged: gliding ? lap(Math.random() * root.height) : (rise.stop(), sway.stop())
+            function lap(fromY) {
+                rise.from = fromY;
+                rise.to = -height;
+                rise.duration = Math.max(1, (fromY + height) / pxPerSec * 1000);
+                rise.restart();
+                sway.restart();
+            }
+            YAnimator {
+                id: rise
+                target: h
+                onFinished: if (h.gliding) {
+                    h.baseX = Math.random() * root.width;
+                    h.lap(root.height + Theme.u * 6);
+                }
+            }
+            SequentialAnimation {
+                id: sway
+                loops: Animation.Infinite
+                XAnimator {
+                    target: h
+                    from: h.baseX - Theme.u * 4
+                    to: h.baseX + Theme.u * 4
+                    duration: 2100
+                    easing.type: Easing.InOutSine
+                }
+                XAnimator {
+                    target: h
+                    from: h.baseX + Theme.u * 4
+                    to: h.baseX - Theme.u * 4
+                    duration: 2100
+                    easing.type: Easing.InOutSine
+                }
+            }
             name: index % 4 === 0 ? "sparkle" : index % 3 === 0 ? "heartSmall" : "heart"
             pixel: Math.max(1, Theme.u * (1 + index % 3))
             hollow: index % 2 === 0
@@ -31,21 +71,27 @@ Item {
         }
     }
     Timer {
-        interval: 83
+        interval: root.interval
         repeat: true
-        running: root.running && root.width > 0
-        onTriggered: {
-            for (let i = 0; i < rep.count; i++) {
-                const h = rep.itemAt(i);
-                if (!h)
-                    continue;
-                h.y -= h.vy * Theme.u * 1.5 * root.speed;
-                h.phase += 0.15;
-                h.x = Math.round(h.baseX + Math.sin(h.phase) * Theme.u * 4);
-                if (h.y < -h.height) {
-                    h.y = root.height + Theme.u * 6;
-                    h.baseX = Math.random() * root.width;
-                }
+        running: root.running && !root.glide && root.width > 0
+        onTriggered: root.step()
+    }
+    // one step (a clock outside may drive it instead: the setup wizard's, so its pulse and the
+    // hearts repaint together)
+    function step() {
+        if (glide)
+            return;
+        const k = interval / 83;
+        for (let i = 0; i < rep.count; i++) {
+            const h = rep.itemAt(i);
+            if (!h)
+                continue;
+            h.y -= h.vy * Theme.u * 1.5 * speed * k;
+            h.phase += 0.15 * k;
+            h.x = Math.round(h.baseX + Math.sin(h.phase) * Theme.u * 4);
+            if (h.y < -h.height) {
+                h.y = height + Theme.u * 6;
+                h.baseX = Math.random() * width;
             }
         }
     }

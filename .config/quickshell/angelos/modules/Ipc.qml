@@ -276,68 +276,10 @@ IpcHandler {
         }
         return "open [page] | close | list | validate | watch | read-reset | preview on|off | away [min] | back | trust [reset]";
     }
-    // the game's debug panel (services/GameDebug), developer mode or the dev stand only:
-    // `angelos debug open | close | toggle | snapshot | restore | restart | tab <id> | status`,
-    // and what its buttons do: hell [circle] | heaven (at once) | circle <id> (in hell, at once) |
-    // skin <circle|-|> | look <circle|base|>; theme = how the export to the apps stands
-    // (scripts/theme-cycles.py waits for "settled" before it compares the files)
+    // the game's debug panel: the author's only (services/GameDebug → owner/debug/GameDebugCore,
+    // which knows the commands); anyone else gets "owner only"
     function debug(line: string): string {
-        if (!GameDebug.allowed)
-            return "developer mode only (Settings → System → For developers)";
-        const a = String(line || "").trim().split(/\s+/);
-        switch (a[0]) {
-        case "":
-        case "toggle":
-            return GameDebug.toggle();
-        case "open":
-            GameDebug.open = true;
-            return "open";
-        case "close":
-            GameDebug.open = false;
-            return "closed";
-        case "tab":
-            GameDebug.tab = a[1] || "state";
-            GameDebug.open = true;
-            return "ok";
-        case "snapshot":
-            return GameDebug.snapshot();
-        case "restore":
-            return GameDebug.restore();
-        case "restart":
-            return GameDebug.restart();
-        case "hell":
-            return GameDebug.toHellNow(a[1] || "");
-        case "heaven":
-            return GameDebug.toHeavenNow();
-        case "circle":
-            return Story.order.includes(a[1]) ? GameDebug.circleNow(a[1]) : "circles: " + Story.order.join(" ");
-        case "theme":
-            return JSON.stringify({
-                "settled": ThemeExport.settled,
-                "realm": Theme.realm,
-                "demon": Angel.demon,
-                "transition": Angel.transition || (DesktopWidgets.burning ? "burn" : ""),
-                "accent": Theme.hex(Theme.accent),
-                "palette": Qt.md5(ThemeExport.paletteText),       // = palette.json's once settled
-                "cursor": Cursors.active,                          // heaven's follows the angel's mood
-                "cursorBusy": Cursors.busy
-            });
-        case "skin":
-            GameDebug.skin = a[1] || "";
-            return "skin: " + (GameDebug.skin || "the circle's");
-        case "look":
-            return a[1] ? GameDebug.lookCircle(a[1]) : GameDebug.lookAsStory();
-        case "status":
-            return JSON.stringify({
-                "open": GameDebug.shown,
-                "tab": GameDebug.tab,
-                "snapshot": GameDebug.snapInfo,
-                "skin": GameDebug.skin,
-                "look": HellLook.circle,
-                "log": GameDebug.log
-            });
-        }
-        return "open | close | toggle | snapshot | restore | restart | tab <id> | hell [circle] | heaven | circle <id> | skin <circle|-|> | look <circle|base|> | theme | status";
+        return GameDebug.command(line);
     }
     // the corner helper: `angelos helper "tip | joke | hint | ask <text> | plea | talk | gift | stay | status"`
     // (owner: angel — the demon leaves at once; dev or owner: prank, ascend, fx,
@@ -859,6 +801,7 @@ IpcHandler {
                         "title": r.title,
                         "where": r.crumb,
                         "page": r.page,
+                        "related": r.related,
                         "score": Math.round(r.score * 100) / 100
                     }))
         });
@@ -925,6 +868,10 @@ IpcHandler {
         if (Shell.setupLocked)
             return;
         Shell.lock();
+    }
+    // the boot screen now, like Settings → Y2K → "Show it now"
+    function bootScreen(): void {
+        Shell.bootOpen = true;
     }
     // show the lock screen without locking (Esc or any password closes it)
     function lockPreview(): void {
@@ -1038,6 +985,10 @@ IpcHandler {
     function laptop(line: string): string {
         return Laptop.ipc(line);
     }
+    // the cobwebs on windows: `angelos cobweb help` (services/Cobweb.ipc)
+    function cobweb(line: string): string {
+        return Cobweb.ipc(line);
+    }
     function volumeUp(): void {
         Audio.step(0.05);
     }
@@ -1075,6 +1026,8 @@ IpcHandler {
                 "state": Owner.jobs.state,
                 "checking": Owner.jobs.checking,
                 "ci": [Owner.jobs.ciStatus, Owner.jobs.ciConclusion, Owner.jobs.ciSha, Owner.jobs.ciUrl].join(" ").trim(),
+                // the private admin repo against the public one (owner/admin-sync.sh status)
+                "admin": Owner.jobs.adminStatus || {},
                 "log": Owner.jobs.log.slice(-40)
             });
         Shell.openSettings("dotfiles");
@@ -1084,6 +1037,8 @@ IpcHandler {
             Owner.jobs.publish(false);
         else if (action === "check")
             Owner.jobs.publish(true);
+        else if (action === "admin")
+            Owner.jobs.publishAdmin();
         return "ok";
     }
     // Settings → Updates: check | update | prompt (the restart question an update ends with) | later |

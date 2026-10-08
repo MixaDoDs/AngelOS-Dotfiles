@@ -139,6 +139,11 @@ JsonAdapter {
     // Fullscreen, Move to desk / monitor, Close, End task.
     property JsonObject windows: JsonObject {
         property bool floatButtons: false   // experimental: floating + maximize buttons in the window menu
+        // cobwebs (services/Cobweb): a window nobody moved for a while gets a spider and its web
+        property bool cobweb: true
+        property bool cobwebInside: true    // the web over the window itself (off: only the bar's buttons)
+        property bool cobwebBar: true       // a small web and spider on the window's button in the bar / Dock
+        property string cobwebSpeed: "normal" // fast (10 min → 1 h) | normal (30 min → 4 h) | slow (2 h → a day)
     }
 
     property JsonObject alttab: JsonObject {

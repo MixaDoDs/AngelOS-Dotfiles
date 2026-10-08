@@ -11,12 +11,19 @@ import "../y2k/AngelSpriteMini.js" as AngelMini
 // The setup wizard's questions (SetupWizard.qml covers the screens with them). One question
 // a screen, like a Windows 11 / macOS first run: the step's picture beside it, a big title,
 // a line under it, the answer as big cards — or the group from Settings itself, found
-// through the settings tree — and "Back" / "Continue" right under it. Changing steps fades
-// and slides a little; nothing moves while motion is off. Enter continues.
+// through the settings tree — and "Back" / "Continue" right under it. Changing steps breaks the
+// question into pixel blocks and back, or jumps it in a few pixels (SetupFx); nothing moves while
+// motion is off. Pixel gloss: a light rim on the cards, a stepped shine over a card or a button
+// now and then, and now and then one random effect (SetupFx, its table data/setup-effects.json).
+// Everything steps on SetupFx's clock; nothing glides. Enter continues.
 Item {
     id: root
 
     property var wizard: null
+    property string screenName: ""          // the screen it is on (SetupWizard): a quiet streamed one has no effects
+    // held back while the first run's intro plays over it (SetupWizard: SetupIntro): no keys, no effects
+    property bool held: false
+    readonly property bool fxLive: !Motion.still && StreamMode.effectsOn(screenName) && !held
     readonly property var step: wizard ? wizard.cur : null
     readonly property int index: wizard ? wizard.step : 0
     readonly property int count: wizard ? wizard.steps.length : 1
@@ -26,60 +33,48 @@ Item {
     // the answer on screen (tests look into it)
     readonly property alias answer: body
 
-    // the step on screen: it follows `step` once the old one has faded out
+    // the step on screen: it follows `step` under the transition's blocks (at once while motion
+    // is off). After the change has settled: `wizard.step` and `cur` both moved by then
     property var shown: null
     property int dir: 1
     property int shownIndex: 0
+    readonly property bool turning: fx.turning
     readonly property string stepId: step ? step.id : ""
-    onStepIdChanged: {
-        if (!step)
+    onStepIdChanged: turnSoon.restart()
+    // (a timer, not Qt.callLater: it goes with the questions when they are unloaded)
+    Timer {
+        id: turnSoon
+        interval: 0
+        onTriggered: root.turn()
+    }
+    function turn() {
+        if (!step || step === shown)
             return;
         if (!shown) {
-            shown = step;
-            shownIndex = index;
+            land();
             return;
         }
-        dir = index >= shownIndex ? 1 : -1;
-        swap.restart();
+        dir = wizard.step >= shownIndex ? 1 : -1;
+        if (!fx.transition(step.id, wizard.step, dir))
+            land();
     }
-    SequentialAnimation {
-        id: swap
-        NumberAnimation {
-            target: root
-            property: "fade"
-            to: 0
-            duration: Motion.ms(140)
-            easing.type: Easing.InQuad
+    // `quiet`: under a transition (its moment comes once it is over: fx.over)
+    function land(quiet) {
+        if (!step)
+            return;
+        shown = step;
+        shownIndex = wizard ? wizard.step : 0;
+        touched = false;
+        waited = false;
+        lookedLong.restart();
+        scroll.contentY = 0;
+        if (fx.trStyle === "slide" && fx.moving) {
+            slideIn.from = Theme.u * 5 + dir * Theme.u * 12;
+            slideIn.restart();
         }
-        ScriptAction {
-            script: {
-                root.shown = root.step;
-                root.shownIndex = root.index;
-                root.touched = false;
-                root.waited = false;
-                lookedLong.restart();
-                slide.x = root.dir * Theme.u * 12;
-                scroll.contentY = 0;
-            }
-        }
-        ParallelAnimation {
-            NumberAnimation {
-                target: root
-                property: "fade"
-                to: 1
-                duration: Motion.ms(300)
-                easing.type: Easing.OutCubic
-            }
-            NumberAnimation {
-                target: slide
-                property: "x"
-                to: 0
-                duration: Motion.ms(340)
-                easing.type: Easing.OutCubic
-            }
-        }
+        if (!quiet)
+            fx.landed(shown.id);
     }
-    property real fade: 1
 
     // "look here": a pulsing outline round what to do now — the answer until something is
     // picked (or it has been looked at a while: the default is fine too), then Continue
@@ -125,12 +120,6 @@ Item {
             // past the screen: past that the question scrolls
             readonly property real needs: (root.wide ? 0 : art.height + Theme.u * 8) + page.implicitHeight + Theme.u * 12 + footer.height
             height: Math.min(parent.height - Theme.u * 16, Math.max(root.wide ? Theme.u * 320 : 0, needs))
-            Behavior on height {
-                NumberAnimation {
-                    duration: Motion.ms(200)
-                    easing.type: Easing.OutCubic
-                }
-            }
 
             // ---- the picture ----
             PxBox {
@@ -140,9 +129,14 @@ Item {
                 color: Theme.mix(Theme.face, Theme.accent, Theme.dark ? 0.08 : 0.12)
                 sunken: true
                 clip: true
+                // the shine passing now and then
+                SetupGloss {
+                    z: 3
+                    anchors.fill: parent
+                    host: fx
+                }
                 Loader {
                     anchors.centerIn: parent
-                    opacity: root.fade
                     readonly property real room: Math.min(art.width, art.height * 1.6)
                     sourceComponent: !root.shown ? null : ({
                             "hello": artHello,
@@ -180,9 +174,13 @@ Item {
                         // centred while it fits, from the top once it scrolls
                         y: Math.max(0, (scroll.height - implicitHeight) / 2)
                         implicitHeight: col.implicitHeight
-                        opacity: root.fade
-                        transform: Translate {
-                            id: slide
+                        // the slide step change: in from the side the steps go (render thread)
+                        XAnimator {
+                            id: slideIn
+                            target: page
+                            to: Theme.u * 5
+                            duration: 340
+                            easing.type: Easing.OutCubic
                         }
 
                         Attention {
@@ -191,7 +189,7 @@ Item {
                             width: body.width
                             height: body.height
                             z: 5
-                            shown: root.attention === "answer" && body.height > 0 && root.fade > 0.99
+                            shown: root.attention === "answer" && body.height > 0 && !root.turning
                             tag: I18n.t("сюда ♡", "here ♡")
                         }
                         Column {
@@ -204,12 +202,102 @@ Item {
                                 dim: true
                                 text: I18n.t("Шаг ", "Step ") + (root.shownIndex + 1) + I18n.t(" из ", " of ") + root.count
                             }
-                            PxText {
+                            // the title: split red and blue for a blink — the copies a whole pixel or
+                            // two aside, under it, unseen (opacity 0: not drawn) but while it splits:
+                            // 2 px for two pixel steps, 1 px for one, gone (calm: 1 px for two).
+                            // On the render thread, each step a whole number of frames (SetupFx)
+                            Item {
                                 width: parent.width
-                                wrapMode: Text.Wrap
-                                kind: "big"
-                                color: Theme.dark ? Theme.accent : Theme.edge
-                                text: root.shown ? root.shown.title : ""
+                                height: title.implicitHeight
+                                PxText {
+                                    id: red
+                                    width: parent.width
+                                    wrapMode: Text.Wrap
+                                    kind: "big"
+                                    color: "#ff4fa0"
+                                    opacity: 0
+                                    text: title.text
+                                }
+                                PxText {
+                                    id: blue
+                                    width: parent.width
+                                    wrapMode: Text.Wrap
+                                    kind: "big"
+                                    color: "#4fe0ff"
+                                    opacity: 0
+                                    text: title.text
+                                }
+                                SequentialAnimation {
+                                    id: split
+                                    readonly property int far: Motion.calm ? 1 : 2
+                                    onRunningChanged: fx.chroma = running
+                                    ParallelAnimation {
+                                        XAnimator {
+                                            target: red
+                                            to: -split.far
+                                            duration: 1
+                                        }
+                                        XAnimator {
+                                            target: blue
+                                            to: split.far
+                                            duration: 1
+                                        }
+                                        OpacityAnimator {
+                                            target: red
+                                            to: 0.7
+                                            duration: 1
+                                        }
+                                        OpacityAnimator {
+                                            target: blue
+                                            to: 0.7
+                                            duration: 1
+                                        }
+                                    }
+                                    PauseAnimation {
+                                        duration: fx.stepMs * 2
+                                    }
+                                    ParallelAnimation {
+                                        XAnimator {
+                                            target: red
+                                            to: -1
+                                            duration: 1
+                                        }
+                                        XAnimator {
+                                            target: blue
+                                            to: 1
+                                            duration: 1
+                                        }
+                                    }
+                                    PauseAnimation {
+                                        duration: Motion.calm ? 0 : fx.stepMs
+                                    }
+                                    ParallelAnimation {
+                                        OpacityAnimator {
+                                            target: red
+                                            to: 0
+                                            duration: 1
+                                        }
+                                        OpacityAnimator {
+                                            target: blue
+                                            to: 0
+                                            duration: 1
+                                        }
+                                    }
+                                }
+                                Connections {
+                                    target: fx
+                                    function onGlitched() {
+                                        split.restart();
+                                    }
+                                }
+                                PxText {
+                                    id: title
+                                    width: parent.width
+                                    wrapMode: Text.Wrap
+                                    kind: "big"
+                                    color: Theme.dark ? Theme.accent : Theme.edge
+                                    text: root.shown ? root.shown.title : ""
+                                }
                             }
                             PxText {
                                 width: parent.width
@@ -262,14 +350,9 @@ Item {
                             Rectangle {
                                 required property int index
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: index === root.index ? Theme.u * 8 : Theme.u * 3
+                                width: index === root.shownIndex ? Theme.u * 8 : Theme.u * 3
                                 height: Theme.u * 3
-                                color: index === root.index ? Theme.accent : index < root.index ? Theme.mix(Theme.accent, Theme.face, 0.5) : Theme.mix(Theme.textDim, Theme.face, 0.4)
-                                Behavior on width {
-                                    NumberAnimation {
-                                        duration: Motion.ms(200)
-                                    }
-                                }
+                                color: index === root.shownIndex ? Theme.accent : index < root.shownIndex ? Theme.mix(Theme.accent, Theme.face, 0.5) : Theme.mix(Theme.textDim, Theme.face, 0.4)
                             }
                         }
                     }
@@ -278,7 +361,7 @@ Item {
                         y: buttons.y + nextButton.y
                         width: nextButton.width
                         height: nextButton.height
-                        shown: root.attention === "next" && root.fade > 0.99
+                        shown: root.attention === "next" && !root.turning
                         tag: I18n.t("дальше ♡", "next ♡")
                     }
                     Row {
@@ -287,7 +370,7 @@ Item {
                         spacing: Theme.u * 4
                         PxButton {
                             id: backButton
-                            visible: root.index > 0
+                            visible: root.shownIndex > 0
                             kind: "title"
                             icon: "arrowLeft"
                             text: I18n.t("Назад", "Back")
@@ -295,23 +378,42 @@ Item {
                         }
                         PxButton {
                             id: nextButton
+                            SetupGloss {
+                                anchors.fill: parent
+                                hovered: nextButton.hovered
+                                host: fx
+                            }
                             kind: "title"
                             accent: true
-                            text: root.index >= root.count - 1 ? I18n.t("Начать работу", "Start using angelOS") : root.shown && root.shown.id === "github" && root.gh && !root.gh.settled ? I18n.t("Пропустить", "Skip") : I18n.t("Продолжить", "Continue")
+                            text: root.shownIndex >= root.count - 1 ? I18n.t("Начать работу", "Start using angelOS") : root.shown && root.shown.id === "github" && root.gh && !root.gh.settled ? I18n.t("Пропустить", "Skip") : I18n.t("Продолжить", "Continue")
                             onClicked: root.wizard.next()
                         }
                     }
                 }
             }
         }
+        // the random effects and the step changes, over everything (no input)
+        SetupFx {
+            id: fx
+            anchors.fill: parent
+            z: 50
+            area: block
+            screen: root.screenName
+            live: root.fxLive
+            onSwap: root.land(true)
+            onOver: if (root.shown)
+                fx.landed(root.shown.id)
+        }
     }
     Shortcut {
         sequences: ["Return", "Enter"]
+        enabled: !root.held
         onActivated: if (root.wizard)
             root.wizard.next()
     }
     Shortcut {
         sequence: "Alt+Left"
+        enabled: !root.held
         onActivated: if (root.wizard)
             root.wizard.back()
     }
@@ -486,28 +588,41 @@ Item {
         }
     }
 
-    // the pulsing outline: pixel steps out and back, a little tag on its corner; still
-    // (and steady) while motion is off
+    // the pulsing outline: breathing, a little tag on its corner; steady while motion is off
     component Attention: Item {
         id: att
         property bool shown: false
         property string tag: ""
-        property real grow: 0
-        readonly property int pad: Theme.u * (2 + Math.round(grow * 2))
-        visible: opacity > 0
-        opacity: shown ? 1 : 0
-        Behavior on opacity {
-            NumberAnimation {
-                duration: Motion.ms(160)
-            }
-        }
+        readonly property int pad: Theme.u * 2
+        visible: shown
         Rectangle {
+            id: ring
             anchors.fill: parent
             anchors.margins: -att.pad
             color: "transparent"
             border.width: Theme.u
             border.color: Theme.accent
-            opacity: 1 - att.grow * 0.55
+            // breathing, on the render thread (steady while motion is off)
+            SequentialAnimation {
+                running: att.visible && !Motion.still
+                loops: Animation.Infinite
+                onRunningChanged: if (!running)
+                    ring.opacity = 1
+                OpacityAnimator {
+                    target: ring
+                    from: 1
+                    to: 0.45
+                    duration: 650
+                    easing.type: Easing.InOutSine
+                }
+                OpacityAnimator {
+                    target: ring
+                    from: 0.45
+                    to: 1
+                    duration: 650
+                    easing.type: Easing.InOutSine
+                }
+            }
         }
         Rectangle {
             visible: att.tag !== ""
@@ -523,20 +638,6 @@ Item {
                 font.bold: true
                 color: Theme.dark ? Theme.desk : "#ffffff"
                 text: att.tag
-            }
-        }
-        SequentialAnimation on grow {
-            running: att.visible && !Motion.still
-            loops: Animation.Infinite
-            NumberAnimation {
-                to: 1
-                duration: 650
-                easing.type: Easing.InOutSine
-            }
-            NumberAnimation {
-                to: 0
-                duration: 650
-                easing.type: Easing.InOutSine
             }
         }
     }
@@ -558,6 +659,21 @@ Item {
             anchors.fill: parent
             color: choice.checked ? Theme.mix(Theme.face, Theme.accent, 0.25) : hover.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.1) : Theme.face
             sunken: choice.checked
+        }
+        // a thin light rim along its top (still), the shine passing now and then and on hover
+        Rectangle {
+            visible: !choice.checked
+            x: Theme.u * 2
+            y: Theme.u * 2
+            width: parent.width - Theme.u * 4
+            height: 1
+            color: Qt.alpha("#ffffff", Theme.dark ? 0.16 : 0.6)
+        }
+        SetupGloss {
+            anchors.fill: parent
+            z: 2
+            hovered: hover.containsMouse
+            host: fx
         }
         Item {
             id: pic

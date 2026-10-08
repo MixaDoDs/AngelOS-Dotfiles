@@ -355,7 +355,7 @@ Scope {
     }
 
     // idle auto-lock (on battery: Settings → Battery's own, services/Power)
-    IdleMonitor {
+    IdleWatch {
         enabled: Power.lockMinutes > 0
         timeout: Math.max(1, Power.lockMinutes) * 60
         respectInhibitors: true

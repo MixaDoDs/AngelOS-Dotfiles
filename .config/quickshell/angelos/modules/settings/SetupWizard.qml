@@ -25,6 +25,10 @@ Scope {
     SetupFlow {
         id: flow
     }
+    // the first run's intro: its sounds and its clock (the screens draw it)
+    SetupIntro {
+        id: introCtl
+    }
 
     // ---- every screen covered, the questions on one of them ----
     Variants {
@@ -35,6 +39,8 @@ Scope {
 
             required property var modelData
             readonly property bool hosting: modelData === flow.host
+            Component.onCompleted: Shell.setupCovers++
+            Component.onDestruction: Shell.setupCovers--
 
             screen: modelData
             anchors {
@@ -80,91 +86,121 @@ Scope {
                 onTriggered: inhibitor.rearming = false
             }
 
-            // a calm ground: the theme's desk fading into its accent, a few hearts drifting up
-            Rectangle {
+            // what the screen shows (the first run's intro draws it through its waking up: SetupWake)
+            Item {
+                id: scene
                 anchors.fill: parent
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0
-                        color: Theme.desk
-                    }
-                    GradientStop {
-                        position: 1
-                        color: Theme.mix(Theme.desk, Theme.accent, Theme.dark ? 0.14 : 0.1)
-                    }
-                }
-            }
-            FloatingHearts {
-                anchors.fill: parent
-                count: 12
-                maxOpacity: 0.22
-                running: !Motion.still
-            }
 
-            // the questions (their own file: when it fails, the screens are let go)
-            Loader {
-                id: questions
-                anchors.fill: parent
-                active: cover.hosting
-                source: "SetupAssistant.qml"
-                onLoaded: {
-                    item.wizard = flow;
-                    flow.assistant = item;
+                // a calm ground: the theme's desk fading into its accent, a few hearts drifting up
+                Rectangle {
+                    anchors.fill: parent
+                    gradient: Gradient {
+                        GradientStop {
+                            position: 0
+                            color: Theme.desk
+                        }
+                        GradientStop {
+                            position: 1
+                            color: Theme.mix(Theme.desk, Theme.accent, Theme.dark ? 0.14 : 0.1)
+                        }
+                    }
                 }
-                onStatusChanged: if (status === Loader.Error) {
-                    console.warn("setup wizard: the questions did not load — the desktop is let go");
-                    flow.close();
+                FloatingHearts {
+                    id: hearts
+                    anchors.fill: parent
+                    count: 12
+                    maxOpacity: 0.22
+                    // gliding, frame by frame with the screen (render thread)
+                    glide: true
+                    running: !Motion.still
                 }
-            }
 
-            // another screen: where the questions are, and a way to bring them here
-            Column {
-                visible: !cover.hosting
-                anchors.centerIn: parent
-                width: Math.min(parent.width - Theme.u * 24, Theme.u * 200)
-                spacing: Theme.u * 8
-                AngelLogo {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    pixel: Theme.u * 2
-                    fontSize: Theme.sizeHuge
+                // the questions (their own file: when it fails, the screens are let go)
+                Loader {
+                    id: questions
+                    anchors.fill: parent
+                    active: cover.hosting
+                    source: "SetupAssistant.qml"
+                    onLoaded: {
+                        item.held = Qt.binding(() => introCtl.active);
+                        item.wizard = flow;
+                        item.screenName = cover.modelData.name;
+                        flow.assistant = item;
+                    }
+                    onStatusChanged: if (status === Loader.Error) {
+                        console.warn("setup wizard: the questions did not load — the desktop is let go");
+                        flow.close();
+                    }
+                }
+
+                // another screen: where the questions are, and a way to bring them here
+                Column {
+                    visible: !cover.hosting
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width - Theme.u * 24, Theme.u * 200)
+                    spacing: Theme.u * 8
+                    AngelLogo {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        pixel: Theme.u * 2
+                        fontSize: Theme.sizeHuge
+                    }
+                    PxText {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.Wrap
+                        kind: "title"
+                        text: I18n.t("Настройка идёт на экране ", "Setting up on screen ") + (flow.host ? flow.host.name : "")
+                    }
+                    PxButton {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        icon: "monitor"
+                        text: I18n.t("Продолжить на этом экране", "Continue on this screen")
+                        onClicked: flow.hostName = cover.modelData.name
+                    }
+                }
+
+                // opened again (from Settings, `angelos setup`): "Close" and Esc, on every screen.
+                // The first run has none — only `angelos setup skip` from a text console
+                PxButton {
+                    visible: !Shell.setupFirstRun
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: Theme.u * 8
+                    compact: true
+                    flat: true
+                    icon: "close"
+                    text: I18n.t("Закрыть", "Close")
+                    onClicked: flow.close()
                 }
                 PxText {
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
-                    kind: "title"
-                    text: I18n.t("Настройка идёт на экране ", "Setting up on screen ") + (flow.host ? flow.host.name : "")
+                    visible: Shell.setupFirstRun
+                    anchors.left: parent.left
+                    anchors.bottom: parent.bottom
+                    anchors.margins: Theme.u * 6
+                    kind: "tiny"
+                    dim: true
+                    opacity: 0.7
+                    text: I18n.t("Мастер не отвечает? Ctrl+Alt+F3, войди и набери: angelos setup skip", "Wizard stuck? Ctrl+Alt+F3, log in and type: angelos setup skip")
                 }
-                PxButton {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    icon: "monitor"
-                    text: I18n.t("Продолжить на этом экране", "Continue on this screen")
-                    onClicked: flow.hostName = cover.modelData.name
+
+                // the first run's minute before the questions (SetupIntro), over all of it
+                SetupIntroScreen {
+                    anchors.fill: parent
+                    intro: introCtl
+                    hosting: cover.hosting
                 }
+            }
+            SetupWake {
+                anchors.fill: parent
+                intro: introCtl
+                source: scene
             }
 
-            // opened again (from Settings, `angelos setup`): "Close" and Esc, on every screen.
-            // The first run has none — only `angelos setup skip` from a text console
-            PxButton {
-                visible: !Shell.setupFirstRun
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.margins: Theme.u * 8
-                compact: true
-                flat: true
-                icon: "close"
-                text: I18n.t("Закрыть", "Close")
-                onClicked: flow.close()
-            }
-            PxText {
-                visible: Shell.setupFirstRun
-                anchors.left: parent.left
-                anchors.bottom: parent.bottom
-                anchors.margins: Theme.u * 6
-                kind: "tiny"
-                dim: true
-                opacity: 0.7
-                text: I18n.t("Мастер не отвечает? Ctrl+Alt+F3, войди и набери: angelos setup skip", "Wizard stuck? Ctrl+Alt+F3, log in and type: angelos setup skip")
+            // the intro's way out: space five times
+            Shortcut {
+                sequence: "Space"
+                enabled: cover.hosting && introCtl.phase === "run"
+                onActivated: introCtl.press()
             }
             Shortcut {
                 sequence: "Escape"

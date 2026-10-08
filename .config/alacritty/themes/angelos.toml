@@ -1,35 +1,35 @@
 # angelOS wallpaper / dark
 [colors.primary]
-background = '#141722'
+background = '#181622'
 foreground = '#fafafa'
 
 [colors.cursor]
-text = '#141722'
-cursor = '#6871b3'
+text = '#181622'
+cursor = '#9567b3'
 
 [colors.vi_mode_cursor]
-text = '#141722'
-cursor = '#9ba1cc'
+text = '#181622'
+cursor = '#b89acc'
 
 [colors.selection]
-text = '#141722'
-background = '#6871b3'
+text = '#181622'
+background = '#9567b3'
 
 [colors.search.matches]
-foreground = '#141722'
-background = '#9ba1cc'
+foreground = '#181622'
+background = '#b89acc'
 
 [colors.search.focused_match]
-foreground = '#141722'
-background = '#6871b3'
+foreground = '#181622'
+background = '#9567b3'
 
 [colors.normal]
-black   = '#141722'
+black   = '#181622'
 red     = '#e36b78'
 green   = '#8eaf73'
 yellow  = '#d8b56b'
-blue    = '#9ba1cc'
-magenta = '#6871b3'
+blue    = '#b89acc'
+magenta = '#9567b3'
 cyan    = '#72b7b0'
 white   = '#fafafa'
 
@@ -38,7 +38,7 @@ black   = '#b4b5b7'
 red     = '#f58b98'
 green   = '#aacf93'
 yellow  = '#efd18b'
-blue    = '#9ba1cc'
-magenta = '#6871b3'
+blue    = '#b89acc'
+magenta = '#9567b3'
 cyan    = '#92d7d0'
 white   = '#fafafa'
