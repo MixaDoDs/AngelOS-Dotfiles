@@ -23,6 +23,7 @@ Scope {
         Story.player.character = on ? "demon" : "angel";
     }
     property string heaven: ""                    // heaven's palette, as first rendered
+    property string hellText: ""                  // hell's palette before a wallpaper accent comes
 
     // the plan: [what, argument] — "do" runs a function, "sleep" ms, "settle" waits for the
     // export to settle and reads palette.json, "check" a function given the file's md5
@@ -74,15 +75,19 @@ Scope {
         ["do", () => Config.appearance.customAccent = "#1f5f99"],
         ["settle"],
         ["check", md5 => root.report("heaven-again", md5 === Qt.md5(root.heaven), "file " + md5.slice(0, 8))],
-        // hell's wallpaper accent lands a beat after the circle: the borders follow it
+        // hell wears its own accent: a wallpaper accent landing a beat later changes nothing
         ["do", () => {
                 root.setDemon(true);
                 Theme.realm = "hell";
             }],
         ["settle"],
-        ["do", () => Config.appearance.customAccentHell = "#336699"],
+        ["do", () => {
+                root.hellText = ThemeExport.paletteText;
+                Config.appearance.customAccentHell = "#336699";
+                PaletteGenerator.apply("#336699", false);
+            }],
         ["settle"],
-        ["check", md5 => root.report("late-hell-accent", md5 === Qt.md5(ThemeExport.paletteText) && JSON.parse(ThemeExport.paletteText).accent !== JSON.parse(root.heaven).accent && ThemeExport.paletteText.indexOf("\"realm\": \"hell\"") >= 0, "accent " + JSON.parse(ThemeExport.paletteText).accent)],
+        ["check", md5 => root.report("hell-keeps-its-own", md5 === Qt.md5(ThemeExport.paletteText) && ThemeExport.paletteText === root.hellText && JSON.parse(ThemeExport.paletteText).accent !== JSON.parse(root.heaven).accent && ThemeExport.paletteText.indexOf("\"realm\": \"hell\"") >= 0, "accent " + JSON.parse(ThemeExport.paletteText).accent)],
         ["do", () => {
                 root.setDemon(false);
                 Theme.realm = "heaven";

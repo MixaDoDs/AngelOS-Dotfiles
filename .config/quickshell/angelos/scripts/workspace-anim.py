@@ -30,8 +30,14 @@ PRESETS = {
     "soft": (380, 'curve "cubic-bezier" 0.22 1 0.36 1'),
     # slow start, a dash, a tidy stop
     "dash": (460, 'curve "cubic-bezier" 0.8 0 0.12 1'),
+    # very quick, a sharp stop
+    "snap": (170, 'curve "ease-out-expo"'),
     "instant": None,
 }
+# niri's spring: a touch of overshoot. Speed X scales the stiffness by X² (the period by 1/X);
+# its length is only an estimate (for the desktop widgets' pictures, Settings)
+SPRING = (0.62, 620, 520)  # damping ratio, stiffness, ~ms
+SPRING_RE = re.compile(r"spring damping-ratio=([0-9.]+) stiffness=(\d+) epsilon=[0-9.]+")
 CONFIG = Path.home() / ".config/niri/config.kdl"
 ANIMATIONS = CONFIG.parent / "cfg/animation.kdl"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -59,6 +65,9 @@ def clamp_speed(speed):
 
 
 def body_of(preset, speed=1.0):
+    if preset == "spring":
+        damping, stiffness, _ = SPRING
+        return f"spring damping-ratio={damping} stiffness={round(stiffness * clamp_speed(speed) ** 2)} epsilon=0.0001"
     if PRESETS[preset] is None:
         return "off"
     ms, curve = PRESETS[preset]
@@ -73,6 +82,10 @@ def current(text):
     body = normalize(match.group(2))
     if body == "off":
         return "instant", 1.0, 0
+    m = SPRING_RE.fullmatch(body)
+    if m and float(m.group(1)) == SPRING[0] and int(m.group(2)) > 0:
+        speed = round((int(m.group(2)) / SPRING[1]) ** 0.5, 3)
+        return "spring", speed, round(SPRING[2] / speed)
     for name, value in PRESETS.items():
         if value is None:
             continue
@@ -151,7 +164,7 @@ def atomic_write(path, content):
 
 
 def save(preset, route_mode, speed=1.0):
-    if preset not in PRESETS:
+    if preset not in PRESETS and preset != "spring":
         raise ValueError("unknown preset: " + preset)
     BACKUPS.mkdir(parents=True, exist_ok=True)
     with (BACKUPS / ".anim.lock").open("w") as lock:

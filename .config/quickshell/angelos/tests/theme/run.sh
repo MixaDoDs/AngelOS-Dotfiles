@@ -2,7 +2,7 @@
 # The theme export to the apps, offscreen (scripts/test-ui.sh runs it, so does CI):
 # services/ThemeExport.qml against a slow stand-in renderer — the realm turning after the
 # angel is back (a return "as in the game"), quick toggles while a render runs, a change
-# during a render, hell's wallpaper accent landing late. Whatever happens, the last state
+# during a render, a wallpaper accent landing in hell (it must change nothing). Whatever happens, the last state
 # must be the one on disk. The real renderer never runs here (it reloads kitty).
 #
 #   tests/theme/run.sh [angelOS dir]     exit 0 = all good, 77 = no quickshell

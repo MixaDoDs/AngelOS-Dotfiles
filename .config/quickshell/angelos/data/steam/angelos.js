@@ -136,5 +136,17 @@ new MutationObserver(() => setTimeout(sweep, 50)).observe(document.head || ROOT,
     childList: true,
     subtree: true
 });
+// a stylesheet that is still loading has no rules yet: it is swept once it loads — a
+// notification toast lives five seconds, the 4 s sweep came too late for it
+document.addEventListener("load", e => {
+    if (e.target && e.target.tagName === "LINK")
+        sweep();
+}, true);
+let early = 0;
+const fast = setInterval(() => {
+    sweep();
+    if (++early >= 20)
+        clearInterval(fast);
+}, 150);
 setInterval(sweep, 4000);
 setInterval(palette, 3000);

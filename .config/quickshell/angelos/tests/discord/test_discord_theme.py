@@ -115,7 +115,8 @@ class Build(Base):
         self.assertIn("written by angelOS", text)
         self.assertIn("--ao-accent: #6871b3;", text)
         self.assertIn("border-radius: var(--ao-r) !important", text)
-        self.assertIn("--ao-size: 13px;", text)
+        self.assertIn('--ao-font-body: "gg sans"', text)
+        self.assertNotIn("--ao-size", text)
         for d in (vesk, flat):
             self.assertEqual((d / "themes/angelOS.theme.css").read_text(), text)
         # no Vencord folder made for a client that isn't there

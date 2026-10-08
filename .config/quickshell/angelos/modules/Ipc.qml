@@ -1112,7 +1112,7 @@ IpcHandler {
     function reload(): void {
         Quickshell.reload(true);
     }
-    // soft | dash | dissolve | heart | ender | instant
+    // an id of WorkspaceAnim.styles: soft | dash | spring | snap | zoom | card | wipe | fade | dissolve | realm | glitch | crt | instant
     function switchFx(style: string): string {
         if (!WorkspaceAnim.styles.some(x => x.id === style))
             return "styles: " + WorkspaceAnim.styles.map(x => x.id).join(", ");

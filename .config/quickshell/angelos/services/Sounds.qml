@@ -16,7 +16,11 @@ import qs.config
 // demon's voice, and the effects crack/choir/rocks/shatter (always synthesised;
 // rocks: the demon's 8-bit rockfall, shatter: the screen breaking when the
 // angel and the demon swap; circle: the low hit in the dark between hell's circles,
-// circleSoft its calm version; harp: the harp menu's strings, HarpLook; webSnap/webSwipe/webClear:
+// circleSoft its calm version; circleSin: the sin of the circle coming up, one of its two sounds by
+// chance over the blow — coins in Greed, a punch in Wrath, a snicker in Fraud (CC0 recordings
+// put on a stage with reverb and a path across the stereo field by scripts/hell-sounds.py,
+// shipped in data/sounds/hell, not synthesised); harp: the harp menu's strings, HarpLook;
+// webSnap/webSwipe/webClear:
 // the cobwebs' thread snapping, a swipe of their quick-time event, the web gone). Quiet in stream
 // mode (StreamMode.quiet).
 // The Golden Gate skin has a pack of its own (macEvents, below): original Mac-like sounds in
@@ -31,7 +35,7 @@ import qs.config
 Singleton {
     id: root
 
-    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear"]
+    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "circleSin", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear"]
     // off until switched on in System sounds (typing and such would surprise)
     readonly property var optIn: ["clickRight", "key", "windowOpen", "workspace", "lock", "unlock"]
     // the input ones: quiet over a fullscreen window (games) when asked
@@ -48,9 +52,11 @@ Singleton {
     readonly property var extra: ["voiceAngel", "voiceDemon", "key2", "key3"].concat(fallenVoice).concat(harpStrings)
     readonly property string customDir: base + "/custom"
     readonly property var cute: ["open", "toggle", "screenshot", "volume", "windowClose"]
-    readonly property var effects: ["crack", "choir", "rocks", "shatter", "voice", "bark", "circle", "circleSoft", "harp", "webSnap", "webSwipe", "webClear"]
+    readonly property var effects: ["crack", "choir", "rocks", "shatter", "voice", "bark", "circle", "circleSoft", "circleSin", "harp", "webSnap", "webSwipe", "webClear"]
     // heaven ⇄ hell's sounds: never piled up (story/game.json → pace.soundGap)
-    readonly property var transitions: ["crack", "choir", "rocks", "shatter", "circle", "circleSoft"]
+    readonly property var transitions: ["crack", "choir", "rocks", "shatter", "circle", "circleSoft", "circleSin"]
+    // ones shipped with the shell rather than synthesised into the pack (the pack check skips them)
+    readonly property var shipped: ["circleSin"]
     // the helper's own sounds follow "Her voice" (Config.y2k.helperVolume) on top of the volume
     readonly property var helperSounds: ["angel", "demon", "crack", "choir", "rocks", "shatter", "voice", "voiceAngel", "voiceDemon", "bark"].concat(fallenVoice)
     function volumeOf(name) {
@@ -210,6 +216,8 @@ Singleton {
     }
     // play even when switched off (the settings page "listen" buttons)
     function preview(name) {
+        if (name === "circleSin")
+            sinCircle = HellLook.circle;
         _play(name, true, 1);
     }
     function play(name) {
@@ -223,6 +231,38 @@ Singleton {
             return;
         _play(name, false, soft);
     }
+    // ---- hell's circles: the sin of the one coming up (CircleFx, at the blow). Two each in
+    // data/sounds/hell/<circle>-1|2.ogg; one by chance, never the same twice running.
+    readonly property string hellDir: Quickshell.shellDir + "/data/sounds/hell"
+    property string sinCircle: ""
+    property string _lastSin: ""
+    function playSin(circle, soft) {
+        sinCircle = circle || "";
+        playSoft("circleSin", soft);
+    }
+    // decoded ahead and the stream opened (volume 0 plays nothing): CircleFx asks a second before
+    // the blow, so the sounds come exactly on it
+    function warm(name) {
+        if (!ready || macOwn(name) || !enabled(name) || StreamMode.quiet || quietNow())
+            return;
+        const chosen = soundOf(name);
+        _out(0, chosen.startsWith("file:") ? [chosen.slice(5)] : _packPaths(chosen && events.concat(extra).includes(chosen) ? chosen : name));
+    }
+    function warmSin(circle) {
+        if (!enabled("circleSin") || StreamMode.quiet || quietNow() || soundOf("circleSin"))
+            return warm("circleSin");
+        if (circle && circle !== "base")
+            for (const i of [1, 2])
+                _out(0, [hellDir + "/" + circle + "-" + i + ".ogg"]);
+    }
+    function _sinPaths() {
+        const ids = sinCircle && sinCircle !== "base" ? [sinCircle] : ["greed", "wrath", "fraud", "treachery"];
+        const all = ids.reduce((a, c) => a.concat([c + "-1", c + "-2"]), []).filter(f => f !== _lastSin);
+        const pick = all[Math.floor(Math.random() * all.length)];
+        _lastSin = pick;
+        return [hellDir + "/" + pick + ".ogg"];
+    }
+
     // ---- the boot screen's chime (BootScreen), once a show. The screen on view is the user's own
     // choice, so quiet mode and quiet hours don't silence it (they do when it shows on no screen:
     // all of them streamed). In Golden Gate it is the login chime: the session's own one just
@@ -285,6 +325,13 @@ Singleton {
         let id = chosen && events.concat(extra).includes(chosen) ? chosen : name;
         if (id === "key" && tweak("key").vary !== false)
             id = ["key", "key2", "key3"][Math.floor(Math.random() * 3)];
+        if (id === "circleSin") {
+            sounded(name);
+            const f = _sinPaths();
+            if (!_out(vol, f))
+                Quickshell.execDetached(["pw-play", "--volume", vol, f[0]]);
+            return;
+        }
         // the pack isn't there (or not checked yet): it plays once the check or the synthesis is done
         if (!ready) {
             pending = pending.concat([name]);
@@ -524,7 +571,7 @@ Singleton {
     Process {
         id: check
         running: true
-        command: ["sh", "-c", 'd="$1"; [ "$(cat "$d/.version" 2>/dev/null)" = "$2" ] || exit 1; shift 2; for n in "$@"; do [ -f "$d/$n.ogg" ] || [ -f "$d/$n.wav" ] || exit 1; done', "sh", root.dir, root.packVersion].concat(root.events).concat(root.extra)
+        command: ["sh", "-c", 'd="$1"; [ "$(cat "$d/.version" 2>/dev/null)" = "$2" ] || exit 1; shift 2; for n in "$@"; do [ -f "$d/$n.ogg" ] || [ -f "$d/$n.wav" ] || exit 1; done', "sh", root.dir, root.packVersion].concat(root.events.filter(e => !root.shipped.includes(e))).concat(root.extra)
         onExited: code => {
             if (code === 0) {
                 root.ready = true;

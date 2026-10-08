@@ -189,6 +189,8 @@ case "$1" in
     kill -TERM "$2" 2>/dev/null ;;
   # ExecStopPost: helpers left behind by a hard kill (their parent is gone)
   reap)
+    # programs left turned down by hell's circles (services/AppDuck) get their volume back
+    python3 "$SHELL_DIR/scripts/duck-restore.py" 2>/dev/null
     cg="/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup)"
     [ "${cg##*/}" = "$UNIT" ] || exit 0
     for p in $(cat "$cg/cgroup.procs" 2>/dev/null); do

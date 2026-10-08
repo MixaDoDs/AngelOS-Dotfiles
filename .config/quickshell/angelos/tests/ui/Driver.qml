@@ -2058,12 +2058,13 @@ Scope {
             const nextCircle = Wallpapers.resolve("S", 1) === hellPic;
             const accent0 = Config.appearance.customAccent;
             PaletteGenerator.apply("#123456", false);
-            const accents = Config.appearance.customAccent === accent0 && Config.appearance.customAccentHell === "#123456";
+            const hellAccent = Theme.accent.toString();
+            const accents = Config.appearance.customAccent === accent0 && Theme.accent.toString() === hellAccent;
             Angel.hellLook(false);
             Story.player.character = "angel";
             const back = Wallpapers.resolve("S", 1) === heaven && !Story.player.hellWall;
             report("walls-apart", inHell && picked && nextCircle && back, "in hell " + inHell + ", a pick changes hell only " + picked + ", the next circle puts its own " + nextCircle + ", heaven's back " + back);
-            report("walls-accent", accents, "hell's accent from its picture kept apart from heaven's " + accents);
+            report("walls-accent", accents, "hell's picture recolours neither heaven nor hell (the circle's own colours) " + accents);
             // an older save: hell sat in Config.wallpaper, heaven's in angelSaved
             Story.player.character = "demon";
             Story.player.angelSaved = {

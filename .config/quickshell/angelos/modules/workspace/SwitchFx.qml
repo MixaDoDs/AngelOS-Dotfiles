@@ -9,13 +9,14 @@ import qs.services
 import qs.widgets
 
 // Workspace transition over one screen (styles with `fx` in WorkspaceAnim):
-//   capture — `grim` grabs the old workspace into a private file
-//   hold    — that frame is shown whole for a couple of frames
+//   capture — `grim` grabs the old workspace into a private file; the (still empty,
+//             transparent) window maps meanwhile, so the frame shows the moment it loads
+//   hold    — that frame is shown whole for a frame
 //   play    — niri switches instantly underneath and the frozen frame is taken
 //             away by shaders/ws_transition.frag, revealing the live new desk.
 // The grab is done by grim, not ScreencopyView: in Quickshell 0.3.1 screencopy
 // views crash the shell (Qt Wayland screen bookkeeping) on multi-monitor setups.
-// Mapped only while it plays (a permanent overlay would block direct scanout of
+// Mapped only while it captures and plays (a permanent overlay would block direct scanout of
 // fullscreen games); never takes input.
 PanelWindow {
     id: win
@@ -25,13 +26,15 @@ PanelWindow {
     readonly property string shotPath: WorkspaceAnim.runtimeDir + "/switch-" + screenName.replace(/[^A-Za-z0-9_-]/g, "_") + ".ppm"
     property string phase: "idle"          // idle | capture | hold | play
     property string target: ""
+    property int dir: 1                    // 1 the switch goes down, -1 up (the shader's `dir`)
     property real progress: 0
     property int serial: 0                 // cache-buster for the frame file
 
-    function start(t) {
+    function start(t, d) {
         if (phase === "capture" || phase === "hold") {
             // still freezing: the newest key press wins
             target = t;
+            dir = d;
             return;
         }
         if (phase === "play") {
@@ -40,6 +43,7 @@ PanelWindow {
             return;
         }
         target = t;
+        dir = d;
         progress = 0;
         phase = "capture";
         grab.running = true;
@@ -69,13 +73,13 @@ PanelWindow {
 
     Connections {
         target: WorkspaceAnim
-        function onCaptureRequested(screen, t) {
+        function onCaptureRequested(screen, t, d) {
             if (screen === win.screenName)
-                win.start(t);
+                win.start(t, d);
         }
     }
 
-    visible: phase === "hold" || phase === "play"
+    visible: phase !== "idle"
     anchors {
         top: true
         bottom: true
@@ -108,10 +112,11 @@ PanelWindow {
             win.finish();
         }
     }
-    // the frozen frame has to reach the screen before niri switches under it
+    // the frozen frame has to reach the screen before niri switches under it (the
+    // window is already mapped: one frame and a bit)
     Timer {
         id: hold
-        interval: 40
+        interval: 22
         onTriggered: {
             WorkspaceAnim.niriAct(win.target);
             win.phase = "play";
@@ -151,12 +156,12 @@ PanelWindow {
         property variant source: frame
         property real progress: win.progress
         property real mode: win.style.fx === undefined ? 0 : win.style.fx
-        property real shape: WorkspaceAnim.shape
         property real cell: Theme.u * 8
         property real seed: 0.37
         property size resolution: Qt.size(width, height)
         property color accent: Theme.accent
-        property color purple: "#b429f9"
+        property real dir: win.dir
+        property real realm: Theme.hell ? 1 : 0
         fragmentShader: Qt.resolvedUrl("../../shaders/ws_transition.frag.qsb")
     }
 

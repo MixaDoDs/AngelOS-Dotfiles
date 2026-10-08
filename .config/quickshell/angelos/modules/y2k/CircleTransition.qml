@@ -8,7 +8,7 @@ import qs.services
 import qs.widgets
 
 // The way between hell's circles, drawn (services/CircleFx runs it): on every screen that
-// may show it, the dark comes down in an ordered dither over everything on the Top layer
+// may show it, the dark (faintly the coming circle's colour) comes down in an ordered dither over everything on the Top layer
 // (the bar too), the circle's number in hell's blackletter comes up out of it with its
 // name and one line about it, and the dark lifts. Never takes input; Overlay-layer things
 // (Start, the power menu, notifications, polkit, the OSD) and the lock stay above it.
@@ -48,7 +48,12 @@ Scope {
                         property real progress: CircleFx.veil
                         property real cell: Theme.u * 2
                         property size size: Qt.size(width, height)
-                        property color tint: "#030303"
+                        // not a plain black: the coming circle's accent, a seventh of it, glows
+                        // in the middle of its own dark and sinks to near black at the corners
+                        readonly property var circlePalette: win.look.palette || ({})
+                        readonly property color ground: (win.look.backdrop || {}).tint || circlePalette.body || "#030303"
+                        property color tint: circlePalette.accent ? Theme.mix(Qt.color(ground), Qt.color(circlePalette.accent), 0.14) : "#0b0606"
+                        property color edge: Theme.mix(Qt.color(ground), Qt.color("#000000"), 0.5)
                         fragmentShader: Qt.resolvedUrl("../../shaders/circle_veil.frag.qsb")
                     }
 

@@ -10,7 +10,7 @@ JsonAdapter {
         property string customAccent: "#c77dff"
         property string motion: "full"      // how much moves: full | calm (no flashes, shaking, sudden loud sounds) | off (no animations: the shell, niri, hell) — config/Motion
         property string iconStyle: "angelos" // the shell's icons: angelos (our own) | pixelarticons | hackernoon — widgets/IconSets.js (D3)
-        property string customAccentHell: ""  // hell's accent from its wallpaper ("From wallpaper"); heaven's stays customAccent
+        property string customAccentHell: ""  // unused since 2026-10-08: hell wears its circle's accent, not its wallpaper's
         property string language: "ru"
         property string mode: "dark"        // light | dark | auto
         property int lightFrom: 8           // auto: light theme from this hour
@@ -117,9 +117,9 @@ JsonAdapter {
         property bool indicator: false      // heart strip on the right edge
         property int popupMs: 650
         property bool phrases: true
-        property string switchFx: "soft"    // soft | slide | bounce | teleport | pixel | heart | glitch | instant
+        property string switchFx: "soft"    // services/WorkspaceAnim.styles: soft | dash | spring | snap | zoom | card | wipe | fade | dissolve | realm | glitch | crt | instant
         property string heartAnim: "smart"  // hearts/icons indicator: smart | collide | ender | hop | worm | pixel | beat | sparkle | drop | glitch | slide | off
-        property string sprite: "heart"     // the desk sprite on the bar/strip/popup and the "Heart" transition's shape: heart | star | cd
+        property string sprite: "heart"     // the desk sprite on the bar/strip/popup: heart | star | cd
         property real heartSpeed: 1.0       // × speed of the indicator animation (2 = twice as fast)
         property real switchSpeed: 1.0      // × speed of the switch animation: niri's slide (cfg/animation.kdl) and angelOS's captured ones
         property var names: ({})            // "DP-1:1" -> "работа"
@@ -414,6 +414,7 @@ JsonAdapter {
         property real helperVolume: 0.6     // the angel's / demon's voice, pips and effects, on top of soundVolume
         property var soundOff: ["click"]    // events kept quiet: startup notify error click shutdown angel
         property var soundTweaks: ({})      // System sounds: {event: {on, vol (0–1.5), sound ("" | other event | "file:/path"), vary}}
+        property bool circleDuck: true      // programs slide to 0 while hell's circles change, then back to their faders (services/AppDuck)
         property var clickButtons: ["left", "right"] // which mouse buttons make the click sound (left right middle)
         property bool clickRelease: false   // a softer tick when the button comes up
         property bool quietFullscreen: true // no click / typing sounds over a fullscreen window (games)

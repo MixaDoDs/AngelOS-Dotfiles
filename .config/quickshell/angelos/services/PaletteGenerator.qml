@@ -19,7 +19,8 @@ Singleton {
     readonly property string screenName: Config.appearance.paletteScreen || (Shell.primaryScreen ? Shell.primaryScreen.name : "")
     readonly property var workspace: Niri.activeWorkspace(screenName)
     readonly property string wallpaper: Wallpapers.resolve(screenName, workspace ? workspace.idx : 1)
-    readonly property bool auto: Config.ready && Config.appearance.flavor === "wallpaper" && Config.appearance.autoWallpaperColors
+    // never in hell: there the colours are the circle's (Theme.generated), whatever the picture
+    readonly property bool auto: Config.ready && Config.appearance.flavor === "wallpaper" && Config.appearance.autoWallpaperColors && !Wallpapers.hellOn
 
     onWallpaperChanged: if (auto)
         autoTimer.restart()
@@ -59,11 +60,10 @@ Singleton {
         process.running = true;
     }
     property bool _switch: false
-    // heaven's accent and hell's are kept apart (C2): hell's picture never recolours heaven
+    // heaven's accent only: hell's picture recolours nothing (hell wears its circle's colours)
     function apply(accent, switchFlavor) {
-        const key = Wallpapers.hellOn ? "customAccentHell" : "customAccent";
-        if (Config.appearance[key] !== accent)
-            Config.appearance[key] = accent;
+        if (!Wallpapers.hellOn && Config.appearance.customAccent !== accent)
+            Config.appearance.customAccent = accent;
         if (switchFlavor)
             Config.appearance.flavor = "wallpaper";
     }

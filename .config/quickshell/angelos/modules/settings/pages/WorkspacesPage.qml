@@ -80,12 +80,12 @@ PxPage {
             }
         ]
 
-        // the desk sprite: the heart or a Y2K one (bar, strip, popup, the "Heart" transition)
+        // the desk sprite: the heart or a Y2K one (bar, strip, popup)
         SettingRow {
             label: I18n.t("Значок стола", "Desk sprite")
             hint: ({
-                    "star": I18n.t("звезда-блёстка ✦: у активного стола мерцает; переход «Сердечко» станет звездой", "A sparkle star ✦: twinkles on the active desk; the Heart transition becomes a star"),
-                    "cd": I18n.t("радужный CD: у активного стола прокручивается; переход «Сердечко» станет диском", "A rainbow CD: spins on the active desk; the Heart transition becomes a disc")
+                    "star": I18n.t("звезда-блёстка ✦: у активного стола мерцает", "A sparkle star ✦: twinkles on the active desk"),
+                    "cd": I18n.t("радужный CD: у активного стола прокручивается", "A rainbow CD: spins on the active desk")
                 })[Config.workspaces.sprite] || I18n.t("пиксельное сердечко, как было", "The pixel heart, as before")
             Row {
                 spacing: Theme.u * 3
@@ -383,7 +383,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("«Мягкий» и «Рывок» — анимация самого niri по кривой Безье (cfg/animation.kdl, с бэкапом и проверкой), попробуй Mod+1…9. «Пиксели», «Сердечко» и «Телепорт» — angelOS снимает экран, niri переключает мгновенно, а старый стол уходит эффектом: для них клавиши Mod+1…9, Mod+колесо и Mod+O идут через angelOS (если оболочка не запущена — напрямую в niri). Переключения мышью в обзоре остаются мгновенными. В полноэкранных играх game-mode всё равно выключает анимации.", "Soft and Dash are niri's own animation on a bezier curve (cfg/animation.kdl, backed up and validated) — try Mod+1…9. Pixels, Heart and Teleport: angelOS grabs the screen, niri switches instantly and the old desk leaves with an effect; for them Mod+1…9, Mod+wheel and Mod+O go through angelOS (straight to niri if the shell is not running). Switching with the mouse in the overview stays instant. Game mode still turns animations off for fullscreen games.")
+            text: I18n.t("«Мягкий», «Рывок», «Пружина» и «Щелчок» — анимация самого niri (cfg/animation.kdl, с бэкапом и проверкой): оба стола живые, задержки нет. Остальные — angelOS снимает экран, niri переключает мгновенно, а старый стол уходит эффектом в сторону переключения (вверх или вниз); для них клавиши Mod+1…9, Mod+колесо и Mod+O идут через angelOS (если оболочка не запущена — напрямую в niri). Переключения мышью в обзоре остаются мгновенными. В полноэкранных играх game-mode всё равно выключает анимации.", "Soft, Dash, Spring and Snap are niri's own animation (cfg/animation.kdl, backed up and validated): both desks stay live, no delay. For the rest angelOS grabs the screen, niri switches instantly and the old desk leaves with an effect that follows the switch (up or down); for them Mod+1…9, Mod+wheel and Mod+O go through angelOS (straight to niri if the shell is not running). Switching with the mouse in the overview stays instant. Game mode still turns animations off for fullscreen games.")
         }
     }
 

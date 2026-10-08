@@ -230,20 +230,15 @@ def font_stack(name, *fallback):
 def variables(pal, s):
     hell = s["hell"]
     title = pal.get("fontTitle") or "Pixeloid Sans"
-    body = pal.get("fontBody") or "CozetteVector"
-    mono = pal.get("fontMono") or "Pixeloid Mono"
-    try:
-        size = max(8, min(64, int(pal.get("sizeBody") or 13)))
-    except (TypeError, ValueError):
-        size = 13
     if hell:
-        # hell's own: the gothic Jacquard for headings, Departure Mono for the text
+        # hell's own gothic Jacquard for the headings
         title_stack = font_stack("Jacquard 12 Hell", "Pixeloid Sans", title)
-        body_stack = font_stack("Departure Mono", body)
-        size = max(size, 11)
     else:
         title_stack = font_stack(title, "Pixeloid Sans")
-        body_stack = font_stack(body, "CozetteVector")
+    # what is read and typed stays a plain sans at Discord's own size: pixel fonts are too
+    # small and tiring there (the user's call, 2026-10-08) — only the headings are pixel
+    body_stack = font_stack("gg sans", "Inter", "Noto Sans")
+    mono_stack = '"gg mono", "JetBrains Mono", "DejaVu Sans Mono", monospace'
     shadow = hexa(s["shadow"])
     names = ["deep", "desk", "face", "faceAlt", "sunken", "hover", "active", "hi", "lo", "edge",
              "text", "textDim", "muted", "strong", "accent", "accent2", "accentText", "accentHover",
@@ -253,8 +248,7 @@ def variables(pal, s):
         "    --ao-shadow: color-mix(in srgb, %s %d%%, transparent);" % (shadow, 55 if s["dark"] else 35),
         "    --ao-font-title: %s;" % title_stack,
         "    --ao-font-body: %s;" % body_stack,
-        "    --ao-font-mono: %smonospace;" % font_stack(mono, "Pixeloid Mono", "Departure Mono")[:-len("sans-serif")],
-        "    --ao-size: %dpx;" % size,
+        "    --ao-font-mono: %s;" % mono_stack,
         "    --ao-pattern: %s;" % pattern(s),
         "    --ao-realm: %s;" % ("hell" if hell else "heaven"),
         "    --ao-scheme: %s;" % ("dark" if s["dark"] else "light"),

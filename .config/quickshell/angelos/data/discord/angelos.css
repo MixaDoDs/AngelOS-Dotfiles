@@ -1,5 +1,5 @@
 /* angelOS for Discord and Vesktop (scripts/discord-theme.py): the static half of the theme.
-   The --ao-* colours, the fonts, --ao-size and the chat's --ao-pattern are written above it
+   The --ao-* colours, the fonts and the chat's --ao-pattern are written above it
    for every palette (heaven or hell, light or dark); everything here only uses them.
    Discord's own variables are listed after midnight-discord's colors.css (MIT, refact0r) —
    the 2025–26 "visual refresh" names; its placeholder colours left out. */
@@ -395,7 +395,7 @@
     border-radius: var(--ao-r) !important;
 }
 /* pixel fonts have no bold to fake (a smeared bold is worse than none) */
-body {
+:is(h1, h2, h3, [class*="headerText_"], [class*="title_"]) {
     font-synthesis-weight: none;
 }
 ::selection {
@@ -509,23 +509,9 @@ section[class*="title_"][class*="container_"] {
 }
 
 /* ---- text ---- */
-/* the pixel body font is only sharp at its own size: the messages, the box they are typed in
-   and the channel names at --ao-size */
-[class*="messageContent_"],
-[class*="markup_"][class*="messageContent"],
-[class*="channelTextArea_"] [role="textbox"],
-[class*="slateTextArea_"],
-[class*="repliedTextContent_"],
-[class*="link_"] [class*="name_"],
-[class*="channel_"] [class*="name_"] {
-    font-size: var(--ao-size) !important;
-}
-[class*="messageContent_"] {
-    line-height: calc(var(--ao-size) * 1.5) !important;
-}
+/* the text read and typed is a plain sans at Discord's own size; the pixel font only on headings */
 h1, h2, h3,
 [class*="headerText_"],
-[class*="username_"],
 [class*="defaultColor_"][class*="heading"],
 [class*="title_"] h1 {
     font-family: var(--ao-font-title);

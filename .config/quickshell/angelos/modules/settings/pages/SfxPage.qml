@@ -44,6 +44,7 @@ PxPage {
             "rocks": [I18n.t("Тряска и камни", "Quake and rocks"), ""],
             "shatter": [I18n.t("Экран ломается", "The screen breaks"), ""],
             "bark": [I18n.t("Цербер лает", "Cerberus barks"), I18n.t("когда Колесо Ада выпускает щенка", "When the Wheel of Hell lets the puppy out")],
+            "circleSin": [I18n.t("Грехи кругов", "The circles' sins"), I18n.t("переход в круг: монеты в Жадности, удар в Гневе, смешок в Обмане — у каждого круга два своих", "Going down a circle: coins in Greed, a punch in Wrath, a snicker in Fraud — two of its own for each circle")],
             "achievement": [I18n.t("Достижение", "Achievement"), I18n.t("когда выезжает карточка «Достижение получено»", "When the “Achievement earned” card slides in")],
             "stars": [I18n.t("Звёзды ✦", "Stars ✦"), I18n.t("награды Небес: вход дня, задания, пропуск — тихий перезвон", "Heaven's rewards: the day's login, tasks, the pass — a quiet chime")],
             "webSnap": [I18n.t("Паутина: нить рвётся", "Cobweb: a thread snaps"), I18n.t("курсор задел нить на окне", "The pointer caught a thread on a window")],
@@ -64,7 +65,7 @@ PxPage {
                 "value": ""
             }];
         // the demon's own sounds stay hers: not offered in heaven
-        const hellish = ["demon", "crack", "rocks", "shatter", "bark"];
+        const hellish = ["demon", "crack", "rocks", "shatter", "bark", "circleSin"];
         const others = Sounds.events.filter(e => e !== id && e !== "voice" && labels[e] && (Angel.hellShown || !hellish.includes(e))).map(e => ({
                     "label": "♪ " + labelOf(e),
                     "value": e
@@ -367,8 +368,17 @@ PxPage {
         }
         Repeater {
             // the demon's own sounds (her lines, the glass, the rocks) only while she rules
-            model: (Angel.hellShown ? ["angel", "demon", "voice", "choir", "crack", "rocks", "shatter", "bark"] : ["angel", "voice", "choir"]).concat(Story.enabled ? ["achievement", "stars"] : [])
+            model: (Angel.hellShown ? ["angel", "demon", "voice", "choir", "crack", "rocks", "shatter", "bark"].concat(Story.enabled ? ["circleSin"] : []) : ["angel", "voice", "choir"]).concat(Story.enabled ? ["achievement", "stars"] : [])
             delegate: eventRow
+        }
+        SettingRow {
+            visible: Angel.hellShown && Story.enabled
+            label: I18n.t("Приложения тише между кругами", "Programs quiet between circles")
+            hint: I18n.t("пока идёт переход, звук всех программ из микшера уходит в 0 и потом медленно возвращается к их уровню", "While a circle changes, every program in the mixer goes to 0, then slowly back to its own level")
+            PxToggle {
+                checked: Config.y2k.circleDuck
+                onToggled: c => Config.y2k.circleDuck = c
+            }
         }
     }
 

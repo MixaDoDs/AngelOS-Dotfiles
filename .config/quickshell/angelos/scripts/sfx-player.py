@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """angelOS sounds through one long-lived audio stream (Sounds.qml starts it).
 
-  stdin, one sound per line:  VOLUME<TAB>PATH[<TAB>PATH…]   (the first PATH that exists plays)
+  stdin, one sound per line:  VOLUME<TAB>PATH[<TAB>PATH…]   (the first PATH that exists plays;
+                              VOLUME 0 only decodes it ahead and opens the stream)
 
 Why not one pw-play per sound: every click then makes a new stream and drops it a moment
 later. Discord, sharing the screen with sound, opens a capture of its own for each new stream
@@ -34,6 +35,8 @@ CACHE_MAX = 96             # decoded files kept
 PIPE_SIZE = 8192           # bytes in the pipe to pacat (~21 ms): its latency on top of pacat's
 F_SETPIPE_SZ = 1031
 WAIT = 2.5                 # s a sound may wait for the sound server
+
+WARM = np.zeros((BLOCK * 20, CHANNELS), dtype=np.float32)   # 200 ms of silence
 
 lock = threading.Condition()
 voices = []                # [samples (n, 2) float32, position, volume, wait-until (monotonic)]
@@ -74,8 +77,12 @@ def reader():
             continue
         path = next((p for p in parts[1:] if p and os.path.isfile(p)), None)
         samples = decode(path) if path else None
-        if samples is None or vol == 0:
+        if samples is None:
             continue
+        if vol == 0:
+            # a warm-up (VOLUME 0): decoded now and kept, and the stream opened with a moment of
+            # silence, so the real sound a second later starts on the dot
+            samples = WARM
         with lock:
             voices.append([samples, 0, vol, time.monotonic() + WAIT])
             lock.notify()

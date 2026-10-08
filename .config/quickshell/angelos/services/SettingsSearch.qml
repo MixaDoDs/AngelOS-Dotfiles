@@ -110,7 +110,7 @@ Singleton {
             "alttab": ["альт таб", "переключение окон", "alt tab", "window switcher"],
             "animations": ["анимации", "анимация окон", "открытие окон", "animations", "window animation"],
             "sound": ["звук", "громкость", "микрофон", "аудио", "колонки", "наушники", "osd", "sound", "audio", "volume", "microphone", "speakers", "headphones"],
-            "sfx": ["звуки", "звуки системы", "клик", "клики", "щелчок", "клавиши", "набор", "печать", "звук уведомления", "тихие часы", "sounds", "system sounds", "click", "clicks", "typing", "notification sound", "quiet hours"],
+            "sfx": ["звуки", "звуки системы", "клик", "клики", "щелчок", "клавиши", "набор", "печать", "звук уведомления", "тихие часы", "sounds", "system sounds", "click", "clicks", "typing", "notification sound", "quiet hours", "грехи", "круги ада", "переход круга", "sins", "hell circles", "приглушить", "микшер", "duck"],
             "network": ["сеть", "интернет", "вайфай", "кабель", "wifi", "network", "internet", "ethernet"],
             "bluetooth": ["блютуз", "беспроводные", "наушники", "bluetooth", "wireless"],
             "gamepad": ["геймпад", "джойстик", "контроллер", "gamepad", "controller", "joystick"],
