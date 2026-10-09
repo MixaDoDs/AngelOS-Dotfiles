@@ -127,11 +127,11 @@ def backup(*paths):
 
 
 def template(name):
-    return (TEMPLATES / name).read_text().replace("@HOME@", str(HOME))
+    return (TEMPLATES / name).read_text().replace("/home/mixad", str(HOME))
 
 
 def _norm(b):
-    return (b["key"].lower(), b["action"].replace("@HOME@", str(HOME)), json.dumps(b["props"], sort_keys=True))
+    return (b["key"].lower(), b["action"].replace("/home/mixad", str(HOME)), json.dumps(b["props"], sort_keys=True))
 
 
 def _script(name, module):
