@@ -4,6 +4,7 @@
 #   angelos settingsView win11|sidebar|controlpanel|properties|tiles | settingsSkin classic|windose|stream
 #   angelos theme light|dark|auto|toggle | wallpaper <path|random> | bar taskbar|top|island
 #   angelos startMenu | sidebar | idle | lockPreview | fontPreset arcade|soft|block|angelos
+#   angelos browser — the default browser (Mod+B; Settings → Default apps), an installed one when it isn't
 #   angelos ws <n|up|down|prev> | alttab next|prev|cancel|apps|appsback|appwin|appwinback | lens in|out|close|toggle | start | restart | stop | run | status | log | report | sprites | switch angelos|noctalia
 #   angelOS is also a game played over your desktop (an angel, a demon, a story that follows
 #   your choices). Out of it at once, any time: `angelos game off` or Mod+Ctrl+Shift+Escape;
@@ -240,6 +241,7 @@ case "$1" in
   switch)  shift; exec python3 "$SHELL_DIR/scripts/switch.py" "$@" ;;
   sddm)    shift; [ $# -gt 0 ] || set -- status; exec python3 "$SHELL_DIR/scripts/sddm-theme.py" "$@" ;;
   settings) exec qs -c angelos ipc call angelos settings "${2:-}" ;;
+  browser) exec python3 "$SHELL_DIR/scripts/default-apps.py" open-browser ;;
   setup)
     [ $# -eq 1 ] && exec qs -c angelos ipc call angelos setup
     shift

@@ -74,9 +74,21 @@ def apps():
     return {a["id"]: a for a in catalog()["apps"]}
 
 
+def on_cachyos():
+    try:
+        return "\nID=cachyos\n" in "\n" + Path("/etc/os-release").read_text()
+    except OSError:
+        return False
+
+
 def pkgs(a, key):
     v = a.get(key) or []
-    return [v] if isinstance(v, str) else list(v)
+    v = [v] if isinstance(v, str) else list(v)
+    # some of CachyOS's packages are built against its zlib-ng: on Arch they'd replace zlib (the
+    # whole list failed on "Remove zlib? [y/N]"), so Arch's own packages stand in for them
+    if key == "pacman" and a.get("onArch") and not on_cachyos():
+        v = [x for n in v for x in (a["onArch"].get(n) or [n])]
+    return v
 
 
 def pacman_installed(names):
@@ -381,6 +393,58 @@ def ensure_paru():
     return aur_helper()
 
 
+def aur_missing(names):
+    """the names the AUR doesn't have (its RPC; offline: none, the helper finds out itself)"""
+    import urllib.parse
+    import urllib.request
+    try:
+        q = "&".join("arg[]=" + urllib.parse.quote(n) for n in names)
+        with urllib.request.urlopen("https://aur.archlinux.org/rpc/v5/info?" + q, timeout=15) as r:
+            have = {x["Name"] for x in json.load(r).get("results", [])}
+        return [n for n in names if n not in have]
+    except (OSError, ValueError):
+        return []
+
+
+def vulkan_drivers():
+    """Steam needs a vulkan-driver and a lib32-vulkan-driver. pacman asks which, and Enter takes
+    the first of 32: mesa-git with CachyOS's v3 repositories on top (a dev build that conflicts
+    with mesa — the "N" to removing mesa cancelled every app of the list), nvidia-utils on an AMD
+    card without them. So the ones for this machine's GPUs go in by name: nothing to ask."""
+    if run(["pacman", "-T", "vulkan-driver", "lib32-vulkan-driver"]).returncode == 0:
+        return []
+    out = []
+    for dev in sorted(Path("/sys/class/drm").glob("card[0-9]*/device")):
+        try:
+            vendor = (dev / "vendor").read_text().strip()
+        except OSError:
+            continue
+        if vendor == "0x1002":
+            pair = ("vulkan-radeon", "lib32-vulkan-radeon")
+        elif vendor == "0x8086":
+            pair = ("vulkan-intel", "lib32-vulkan-intel")
+        elif vendor == "0x10de":
+            # the proprietary driver brings its own; nouveau gets mesa's
+            pair = ("nvidia-utils", "lib32-nvidia-utils") if Path("/sys/module/nvidia").exists() \
+                else ("vulkan-nouveau", "lib32-vulkan-nouveau")
+        else:   # a virtual machine's or something unknown: mesa's software one always works
+            pair = ("vulkan-swrast", "lib32-vulkan-swrast")
+        out += [x for x in pair if x not in out]
+    return out or ["vulkan-swrast", "lib32-vulkan-swrast"]
+
+
+def batch(first, retry, names):
+    """One transaction, and when it fails, one by one: a single name the source doesn't have
+    (an AUR package that was renamed or removed) or one conflict used to cancel the whole list —
+    freshgram missing from the AUR took Proton-GE, spicetify, lrc_tty and Throne down with it."""
+    if subprocess.run(first + names).returncode == 0:
+        return True
+    if len(names) == 1:
+        return False
+    say(t("одним разом не вышло — ставлю по одной", "not in one go: one at a time"))
+    return all([subprocess.run(retry + [n]).returncode == 0 for n in names])
+
+
 def install(ids, wait=True):
     cat = apps()
     remember(ids)
@@ -418,16 +482,26 @@ def install(ids, wait=True):
     if pac or aur or flat:
         say(t("angelOS ставит программы, которые ты выбрал ♡", "angelOS is installing the apps you picked ♡"))
     failed = set()
+    if "steam" in pac:
+        pac = [d for d in vulkan_drivers() if not pacman_installed([d])] + pac
     if pac:
         say(t("из репозиториев: ", "from the repositories: ") + " ".join(pac))
-        if subprocess.run(["sudo", "pacman", "-Syu", "--needed", *pac]).returncode:
+        if not batch(["sudo", "pacman", "-Syu", "--needed"], ["sudo", "pacman", "-S", "--needed", "--noconfirm"], pac):
             failed.add("pacman")
     if aur:
         helper = ensure_paru()
         if helper:
-            say(t(f"из AUR ({helper}): ", f"from the AUR ({helper}): ") + " ".join(aur))
-            if subprocess.run([helper, "-S", "--needed", "--noconfirm", *aur]).returncode:
-                failed.add(helper)
+            # names the AUR doesn't have (any more) are "not found", not a failure of the rest
+            gone = aur_missing(aur)
+            for i in ids:
+                a = cat.get(i)
+                if a and set(pkgs(a, "aur")) & set(gone) and resolve(a)[1] == "aur":
+                    skipped.append(t(a["ru"], a["en"]))
+            aur = [n for n in aur if n not in gone]
+            if aur:
+                say(t(f"из AUR ({helper}): ", f"from the AUR ({helper}): ") + " ".join(aur))
+                if not batch([helper, "-S", "--needed", "--noconfirm"], [helper, "-S", "--needed", "--noconfirm"], aur):
+                    failed.add(helper)
         else:
             failed.add("paru")
     if flat:
@@ -436,7 +510,8 @@ def install(ids, wait=True):
         say(t("из Flathub: ", "from Flathub: ") + " ".join(flat))
         subprocess.run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
                         "https://dl.flathub.org/repo/flathub.flatpakrepo"])
-        if subprocess.run(["flatpak", "install", "--user", "-y", "--noninteractive", "flathub", *flat]).returncode:
+        fp = ["flatpak", "install", "--user", "-y", "--noninteractive", "flathub"]
+        if not batch(fp, fp, flat):
             failed.add("flatpak")
     if "spotify" in ids:
         spicetify()

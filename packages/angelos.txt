@@ -44,3 +44,11 @@ xsettingsd
 hyprpolkitagent
 flatpak
 xdg-user-dirs
+# the GTK theme angelOS's palette and window buttons are built on (scripts/gtk-live.py,
+# templates gtk-scheme): without it GTK 3 apps stayed plain Adwaita and gtk-theme named a
+# theme that wasn't there
+adw-gtk-theme
+# the setup wizard's GitHub step and `angelos author`/recovery sign in through gh (the step
+# hid itself without it); qrencode draws the device code's QR on that step
+github-cli
+qrencode

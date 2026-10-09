@@ -193,10 +193,11 @@ check_files() {
     .local/bin/niri-ocr .local/bin/voxtype-indicator \
     .config/systemd/user/niri-game-mode.service .config/systemd/user/voxtype.service \
     .config/systemd/user/voxtype-indicator.service \
-    packages/pacman.txt packages/sddm.txt sddm/zz-pixelstreetart.conf \
-    sddm/themes/pixel-cyberpunk/metadata.desktop sddm/themes/pixel-cyberpunk/Main.qml \
-    sddm/themes/pixel-cyberpunk/BackgroundVideo.qml sddm/themes/pixel-cyberpunk/theme.conf \
-    sddm/themes/pixel-cyberpunk/bg.mp4 sddm/themes/pixel-cyberpunk/LICENSE \
+    packages/pacman.txt packages/sddm.txt \
+    .config/quickshell/angelos/scripts/sddm-theme.py \
+    .config/quickshell/angelos/extras/sddm/angelos/metadata.desktop \
+    .config/quickshell/angelos/extras/sddm/angelos/Main.qml \
+    .config/quickshell/angelos/data/fonts/Jacquard12Hell-Regular.ttf \
     LICENSE THIRD-PARTY.md LICENSES/OFL-1.1.txt .config/quickshell/angelos/docs/ICON-CREDITS.md; do
     check_file "$file"
   done
@@ -235,23 +236,22 @@ check_files() {
     fi
   done < <(sed -n 's|^type = "\([^":]*/[^":]*\):.*"$|\1|p' "$noctalia_cfg" | sort -u)
 
-  theme_dir="$ROOT/sddm/themes/pixel-cyberpunk"
-  current="$(sed -n 's/^Current=//p' "$ROOT/sddm/zz-pixelstreetart.conf")"
+  theme_dir="$ROOT/.config/quickshell/angelos/extras/sddm/angelos"
+  current=angelos
   main_script="$(sed -n 's/^MainScript=//p' "$theme_dir/metadata.desktop")"
-  if [[ "$current" == pixel-cyberpunk && -n "$main_script" && -f "$theme_dir/$main_script" ]]; then
-    pass "SDDM: drop-in selects the bundled theme, its MainScript exists"
+  if [[ "$current" == angelos && -n "$main_script" && -f "$theme_dir/$main_script" ]]; then
+    pass "SDDM: angelOS theme MainScript exists"
   else
-    fail "SDDM: drop-in theme ($current) / MainScript ($main_script) mismatch"
+    fail "SDDM: angelOS theme MainScript ($main_script) missing"
   fi
-  if compgen -G "$theme_dir/font/*.ttf" >/dev/null; then
-    pass "SDDM: theme font is bundled"
+  if [[ -f "$ROOT/.config/quickshell/angelos/data/fonts/Jacquard12Hell-Regular.ttf" ]]; then
+    pass "SDDM: theme font source is bundled"
   else
     fail "SDDM: theme font is missing"
   fi
   # Every QML module the theme imports must come from a package in sddm.txt.
   declare -A qml_pkg=([QtQuick]=qt6-declarative [QtQuick.Window]=qt6-declarative
-                      [Qt.labs.folderlistmodel]=qt6-declarative [Qt5Compat.GraphicalEffects]=qt6-5compat
-                      [QtMultimedia]=qt6-multimedia [SddmComponents]=sddm)
+                      [SddmComponents]=sddm)
   while read -r module; do
     pkg="${qml_pkg[$module]:-}"
     if [[ -n "$pkg" ]] && grep -qx "$pkg" "$ROOT/packages/sddm.txt"; then
@@ -591,26 +591,67 @@ inst_voice() {
 inst_sddm() {
   # SDDM: theme and drop-in land in a fake system root; a theme pinned in
   # /etc/sddm.conf (read last by SDDM) gets commented out with a backup.
-  sysroot="$WORK/sysroot"
-  mkdir -p "$sysroot/etc"
+  local sysroot="$WORK/sysroot"
+  mkdir -p "$sysroot/etc/sddm.conf.d" "$sysroot/usr/share/sddm/themes/pixel-cyberpunk"
   printf '[Autologin]\nUser=\n\n[Theme]\nCurrent=breeze\n\n[Users]\nCurrent=keep-me\n' >"$sysroot/etc/sddm.conf"
+  printf '[Theme]\nCurrent=pixel-cyberpunk\n' >"$sysroot/etc/sddm.conf.d/zz-pixelstreetart.conf"
+  # an earlier run's backup: SDDM reads every file there, so it sorted last and won
+  printf '[Theme]\nCurrent=pixel-cyberpunk\n' >"$sysroot/etc/sddm.conf.d/zz-pixelstreetart.conf.bak.20261009-153911"
+  printf 'old theme\n' >"$sysroot/usr/share/sddm/themes/pixel-cyberpunk/Main.qml"
   if install_case sddm INSTALL_SDDM=1 SYSROOT="$sysroot"; then
-    if diff -rq "$ROOT/sddm/themes/pixel-cyberpunk" "$sysroot/usr/share/sddm/themes/pixel-cyberpunk" >/dev/null &&
-       cmp -s "$ROOT/sddm/zz-pixelstreetart.conf" "$sysroot/etc/sddm.conf.d/zz-pixelstreetart.conf"; then
-      pass "installer: SDDM theme and drop-in installed"
+    if [[ -f "$sysroot/usr/share/sddm/themes/angelos/Main.qml" ]] &&
+       grep -qx 'Current=angelos' "$sysroot/etc/sddm.conf.d/zz-angelos.conf" &&
+       ! grep -q '^Current=' "$sysroot/etc/sddm.conf.d/zz-pixelstreetart.conf" &&
+       compgen -G "$sysroot/usr/share/sddm/themes/.pixel-cyberpunk.bak.*" >/dev/null; then
+      pass "installer: angelOS replaces the old SDDM theme and drop-in (backup kept)"
     else
-      fail "installer: SDDM theme and drop-in installed"
+      fail "installer: angelOS replaces the old SDDM theme and drop-in (backup kept)"
     fi
-    if grep -q '^# Current=breeze' "$sysroot/etc/sddm.conf" && grep -q '^Current=keep-me' "$sysroot/etc/sddm.conf" &&
-       compgen -G "$sysroot/etc/sddm.conf.bak.*" >/dev/null; then
+    if grep -Eq '^# .*Current=breeze' "$sysroot/etc/sddm.conf" && grep -q '^Current=keep-me' "$sysroot/etc/sddm.conf" &&
+       compgen -G "$sysroot/etc/angelos-sddm-backups/sddm.conf.*" >/dev/null; then
       pass "installer: theme pinned in /etc/sddm.conf is unpinned (other sections untouched, backup kept)"
     else
       fail "installer: theme pinned in /etc/sddm.conf is unpinned"
     fi
-    if [[ -z "$(find "$sysroot/usr/share/sddm/themes/pixel-cyberpunk" \! -perm -o=r)" ]]; then
+    # SDDM reads every file of sddm.conf.d, *.bak.* too: no line there may name another theme
+    if ! grep -rhE '^[[:space:]]*Current[[:space:]]*=' "$sysroot/etc/sddm.conf.d" | grep -vqx 'Current=angelos' &&
+       [[ -f "$sysroot/etc/angelos-sddm-backups/zz-pixelstreetart.conf.bak.20261009-153911" ]]; then
+      pass "installer: no file in sddm.conf.d names another theme (old backups moved out)"
+    else
+      fail "installer: no file in sddm.conf.d names another theme (old backups moved out)"
+      grep -rn 'Current' "$sysroot/etc/sddm.conf.d" | sed 's/^/    /'
+    fi
+    if [[ -z "$(find "$sysroot/usr/share/sddm/themes/angelos" \! -perm -o=r)" ]]; then
       pass "installer: SDDM theme is readable by the sddm user"
     else
       fail "installer: SDDM theme is readable by the sddm user"
+    fi
+    mkdir -p "$sysroot/usr/share/sddm/themes/angelos/walls"
+    printf 'look=heaven\n' >"$sysroot/usr/share/sddm/themes/angelos/walls/theme.conf.user"
+    printf 'personal wallpaper\n' >"$sysroot/usr/share/sddm/themes/angelos/walls/wide.jpg"
+    if install_case sddm INSTALL_SDDM=1 SYSROOT="$sysroot" &&
+       grep -qx 'look=heaven' "$sysroot/usr/share/sddm/themes/angelos/walls/theme.conf.user" &&
+       grep -qx 'personal wallpaper' "$sysroot/usr/share/sddm/themes/angelos/walls/wide.jpg"; then
+      pass "installer: reinstall keeps the user's SDDM look and wallpaper"
+    else
+      fail "installer: reinstall keeps the user's SDDM look and wallpaper"
+    fi
+    local py="$ROOT/.config/quickshell/angelos/scripts/sddm-theme.py"
+    local new="$WORK/sddm-new-look"
+    if python3 "$py" build --out "$new" --look hell >/dev/null; then
+      printf 'new wallpaper\n' >"$new/walls/wide.jpg"
+      local root_script
+      root_script="$(python3 -c 'import importlib.util as u, sys; s=u.spec_from_file_location("theme",sys.argv[1]); m=u.module_from_spec(s); s.loader.exec_module(m); print(m.ROOT_SCRIPT)' "$py")"
+      if sh -c "$root_script" sh "$new" "$sysroot/usr/share/sddm/themes/angelos" \
+         "$sysroot/etc/sddm.conf.d/zz-angelos.conf" "$(id -u)" "$sysroot" replace >/dev/null &&
+         grep -qx 'look=hell' "$sysroot/usr/share/sddm/themes/angelos/walls/theme.conf.user" &&
+         grep -qx 'new wallpaper' "$sysroot/usr/share/sddm/themes/angelos/walls/wide.jpg"; then
+        pass "SDDM: Settings reinstall applies a newly chosen look and wallpaper"
+      else
+        fail "SDDM: Settings reinstall applies a newly chosen look and wallpaper"
+      fi
+    else
+      fail "SDDM: new look build"
     fi
   else
     fail "installer: SDDM"; sed 's/^/    /' "$WORK/sddm.log"
@@ -865,6 +906,7 @@ else
   timed installer-default inst_default
 fi
 job plugin-studio check_plugin_studio
+job sddm-stamp py_test sddm-stamp sddm/test_source_stamp.py "SDDM: every build input triggers a refresh"
 timed settings-search check_search
 job sprite-rig py_test sprite-rig sprites/test_sprite_rig.py "sprite-rig: authored frame strips"
 timed audio-tap py_test audio-tap audio/test_audio_tap.py "cava's audio tap: no hangs (stand-ins for cava and pw-record)"

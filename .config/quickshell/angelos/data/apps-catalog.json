@@ -1,5 +1,5 @@
 {
-  "_comment": "The apps angelOS installs: install.sh's picker and the setup wizard's «Who are you?» and «Apps» steps (scripts/apps-install.py). Groups: all of a default group is ticked; «Как у автора» = what the author has. pacman/aur: a package or a list (the first one says whether it is installed); extra: packages that come along (pacman's, else the AUR's — spicetify with Spotify); the distribution's package first, else the AUR (paru, from CachyOS's repositories), else Flathub (per user); prefer: flatpak = Flathub first, as the author has it. An update installs apps added later to a group the user took (never removes).",
+  "_comment": "The apps angelOS installs: install.sh's picker and the setup wizard's «Who are you?» and «Apps» steps (scripts/apps-install.py). Groups: all of a default group is ticked; «Как у автора» = what the author has. pacman/aur: a package or a list (the first one says whether it is installed); onArch: pacman names that only work on CachyOS (built against its zlib-ng: on Arch they would swap zlib), with Arch's packages instead; extra: packages that come along (pacman's, else the AUR's — spicetify with Spotify); the distribution's package first, else the AUR (paru, from CachyOS's repositories), else Flathub (per user); prefer: flatpak = Flathub first, as the author has it. An update installs apps added later to a group the user took (never removes).",
   "browsers": [
     "helium",
     "firefox"
@@ -42,7 +42,6 @@
       "default": true,
       "apps": [
         "telegram",
-        "freshgram",
         "discord"
       ]
     },
@@ -76,7 +75,6 @@
       "default": true,
       "apps": [
         "blender",
-        "omaraw",
         "qview"
       ]
     },
@@ -142,6 +140,14 @@
         "cachyos-gaming-meta",
         "cachyos-gaming-applications"
       ],
+      "onArch": {
+        "cachyos-gaming-applications": [
+          "gamescope",
+          "mangohud",
+          "lib32-mangohud",
+          "lutris"
+        ]
+      },
       "flatpak": "com.valvesoftware.Steam"
     },
     {
@@ -254,15 +260,6 @@
       "flatpak": "org.telegram.desktop"
     },
     {
-      "id": "freshgram",
-      "ru": "Freshgram",
-      "en": "Freshgram",
-      "hintRu": "Telegram с фишками AyuGram",
-      "hintEn": "Telegram with AyuGram's features",
-      "icon": "chat",
-      "aur": "freshgram"
-    },
-    {
       "id": "discord",
       "ru": "Discord",
       "en": "Discord",
@@ -325,15 +322,6 @@
       "pacman": "blender",
       "flatpak": "org.blender.Blender",
       "prefer": "flatpak"
-    },
-    {
-      "id": "omaraw",
-      "ru": "omaraw",
-      "en": "omaraw",
-      "hintRu": "каталог и проявка фото",
-      "hintEn": "catalog and develop photos",
-      "icon": "image",
-      "aur": "omaraw"
     },
     {
       "id": "qview",

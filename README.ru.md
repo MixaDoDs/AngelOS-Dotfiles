@@ -436,7 +436,7 @@ INSTALL_VOXTYPE=0 INSTALL_SDDM=1 ./install.sh
 | `INSTALL_VOXTYPE`, `DOWNLOAD_VOXTYPE_MODEL` | `1` \| `0` | голосовой ввод |
 | `INSTALL_SDDM` | `1` \| `0` | экран входа |
 | `INSTALL_TOOLS`, `INSTALL_FLATPAK` | `1` \| `0` | утилиты, дополнительные программы Flathub |
-| `CACHYOS_REPOS` | `1` \| `0` | Arch Linux: сначала подключить репозитории автора — CachyOS (под процессор, выше арчевских) и `[multilib]`, чтобы Helium, qView, LocalSend и Steam ставились через pacman |
+| `CACHYOS_REPOS` | `1` \| `0` | Arch Linux: сначала подключить репозитории автора — `[cachyos]` последним, ниже арчевских (система остаётся Arch, из него берётся только то, чего в Arch нет), и `[multilib]`, чтобы Helium, qView, LocalSend, prompt fish и Steam ставились через pacman |
 | `SKIP_PACKAGES` | `0` \| `1` | только конфиги: без pacman и sudo |
 | `OVERWRITE_CONFIGS` | `0` \| `1` | заменить и изменённые тобой конфиги (с бэкапом) |
 | `ENABLE_SERVICES`, `VALIDATE_NIRI` | `1` \| `0` | user-сервисы, `niri validate` |
@@ -466,23 +466,19 @@ niri и `niri validate`, иначе страница предложит **Вер
 
 ## ✧ Экран входа (SDDM)
 
-Установщик ставит [SDDM](https://github.com/sddm/sddm) с **pixel-cyberpunk** — анимированной пиксельной темой из
-[Qylock](https://github.com/Darkkal44/qylock) от Darkkal44: зацикленное видео на фоне, пиксельный шрифт, часы, выбор
-пользователя и сеанса.
-
-![Экран входа SDDM с темой pixel-cyberpunk](docs/screenshots/sddm-login.png)
-
-`INSTALL_SDDM=1` ставит `sddm` и ровно те модули Qt, что импортирует тема, копирует тему, выбирает её в
-`/etc/sddm.conf.d/zz-pixelstreetart.conf` (`Current=` в `/etc/sddm.conf` комментируется с бэкапом), включает
-`sddm.service` (спросив, если включён другой менеджер входа) и загрузку в `graphical.target`. Посмотреть:
-`sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/pixel-cyberpunk`.
+Установщик ставит [SDDM](https://github.com/sddm/sddm) с собственным экраном входа angelOS, который повторяет
+оформление рабочего стола и обои. `INSTALL_SDDM=1` ставит `sddm` и QtQuick, собирает тему и выбирает её в
+`/etc/sddm.conf.d/zz-angelos.conf` (старые настройки выбора темы отключаются с бэкапом), включает
+`sddm.service` (спросив, если включён другой менеджер входа) и загрузку в `graphical.target`.
+Старая тема pixel-cyberpunk, если она была установлена, переносится в скрытую резервную копию. Посмотреть:
+`sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/angelos`.
 
 | Симптом | Что делать |
 | --- | --- |
 | Загружается в текстовую консоль | `sudo systemctl enable --force sddm && sudo systemctl set-default graphical.target` |
 | `display-manager.service already exists` | выключить другой (`gdm`, `lightdm`, `ly@tty2`, `greetd`), потом включить SDDM |
-| Обычный SDDM вместо пиксельной темы | `grep -r Current= /etc/sddm.conf /etc/sddm.conf.d/`; поставить `qt6-5compat` |
-| Чёрный фон | `sudo pacman -S qt6-multimedia qt6-multimedia-ffmpeg` |
+| Обычный SDDM вместо темы angelOS | `grep -r Current= /etc/sddm.conf /etc/sddm.conf.d/`; поставить `qt6-declarative` |
+| Нет обоев | выбрать обои в angelOS и проверить `/usr/share/sddm/themes/angelos/walls/` |
 
 ## ✧ Клавиатура, мышь и мониторы
 
@@ -508,7 +504,7 @@ packages/                    pacman.txt, angelos.txt, sddm.txt, tools.txt, fish.
 installer/tui.sh             лицо установщика: меню gum, пиксельные рамки, сердечки, чат стрима
 install.sh                   установщик: спрашивает всё, делает бэкапы, только Arch Linux / CachyOS
 scripts/check.sh             проверка репозитория со сквозными тестами установщика
-sddm/                        тема SDDM pixel-cyberpunk и её drop-in
+sddm/                        старые файлы pixel-cyberpunk (по умолчанию больше не ставятся)
 docs/                        скриншоты и GIF этого README
 ```
 
@@ -524,7 +520,7 @@ docs/                        скриншоты и GIF этого README
 
 Дотфайлы и angelOS — под **лицензией MIT**, см. [`LICENSE`](LICENSE), © 2026 MixaDoDs.
 
-Чужие части — под своими лицензиями, список в [`THIRD-PARTY.md`](THIRD-PARTY.md): тема SDDM из
+Чужие части — под своими лицензиями, список в [`THIRD-PARTY.md`](THIRD-PARTY.md): сохранённые файлы прежней темы SDDM из
 [Qylock](https://github.com/Darkkal44/qylock) (GPL v3, без изменений), шрифты (SIL OFL 1.1 —
 [`LICENSES/OFL-1.1.txt`](LICENSES/OFL-1.1.txt); Cozette: MIT), значки `pixora` и пиксельные значки HackerNoon
 (CC BY 4.0), pixelarticons (MIT), Lucide (ISC) и плагин Claude Companion — порт

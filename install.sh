@@ -31,9 +31,9 @@
 #                                  (scripts/apps-install.py, which remembers the pick: Settings →
 #                                  Updates later brings what the author adds to those groups)
 #   CACHYOS_REPOS=1|0              Arch Linux (x86_64): add the author's repositories before the
-#                                  packages — CachyOS's (for the CPU: v3/v4/znver4, above Arch's;
-#                                  the next -Syu takes CachyOS's builds) and [multilib]. Without them
-#                                  Helium, qView, LocalSend and Steam can't install
+#                                  packages — [cachyos], LAST (Arch's own packages win, the system
+#                                  stays Arch) and [multilib]. Without them Helium, qView, LocalSend,
+#                                  the fish prompt and Steam can't install
 #                                  (scripts/cachyos-repos.sh; default 1; CachyOS has them already)
 #   NO_TUI=1                       plain numbered prompts instead of the gum interface
 #   NO_ANIM=1                      no boot animation
@@ -49,7 +49,7 @@
 #                                  (or a raw XKB option such as grp:shifts_toggle)
 #   KB_VARIANT=,phonetic           optional XKB variants, one per layout, comma separated
 #   VOXTYPE_LANGUAGE=ru            dictation language (default: derived from KB_LAYOUTS)
-#   INSTALL_SDDM=1|0               SDDM login screen with the pixel-cyberpunk theme
+#   INSTALL_SDDM=1|0               SDDM login screen with the angelOS theme
 #                                  (default 1, or 0 together with SKIP_PACKAGES=1)
 #   SKIP_PACKAGES=0|1              skip `pacman -Syu`
 #   INSTALL_VOXTYPE=0|1            voice input binary (checksum-verified download)
@@ -168,6 +168,18 @@ INTERACTIVE=0
 
 # ANGELOS_LANG: angelOS's own language, passed by Settings → Updates
 case "${ANGELOS_LANG:-${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}}" in ru*) UI=ru ;; *) UI=en ;; esac
+# a fresh Arch Linux is en_US (or C) for most Russian speakers too: on a terminal the installer
+# asks first, in both languages, unless ANGELOS_LANG says it. The pick goes on to angelOS
+# (the setup wizard starts in it) and to the helpers (apps-install.py, cachyos-repos.sh).
+LANG_ASKED=""
+if [[ -z "${ANGELOS_LANG:-}" && -t 0 && -t 1 ]]; then
+  printf '\n  1) Русский\n  2) English\n\n'
+  read -r -p "  Язык / Language [$([[ "$UI" == ru ]] && echo 1 || echo 2)]: " _lang || true
+  case "${_lang,,}" in 1|ru*|р*) UI=ru ;; 2|en*|e*) UI=en ;; esac
+  LANG_ASKED=1
+  unset _lang
+fi
+export ANGELOS_LANG="$UI"
 _() { if [[ "$UI" == ru ]]; then printf '%s' "$2"; else printf '%s' "$1"; fi; }
 
 # colours only on a terminal: Settings → Updates shows this output in its log
@@ -182,7 +194,7 @@ else
   say()  { printf '%s[dotfiles]%s %s\n' "$C_SAY" "$C_OFF" "$*"; }
 fi
 warn() { printf '%s[dotfiles] WARNING:%s %s\n' "$C_WARN" "$C_OFF2" "$*" >&2; }
-die()  { printf '%s[dotfiles] ERROR:%s %s\n' "$C_ERR" "$C_OFF2" "$*" >&2; exit 1; }
+die()  { DIED=1; printf '%s[dotfiles] ERROR:%s %s\n' "$C_ERR" "$C_OFF2" "$*" >&2; exit 1; }
 hr()   { printf '%s%s%s\n' "$C_DIM" '♡ ─────────────────────────────────────────────────────── ♡' "$C_OFF"; }
 
 # the interface (gum menus, hearts, the "stream chat"); plain prompts without a terminal
@@ -482,10 +494,19 @@ ask_profile() {
   if [[ "$MODE" == 1 || "$MODE" == full ]] && ! given INSTALL_WALLPAPERS && ! given WALLPAPER_PACKS; then
     choose_wallpapers
   fi
-  if ! given FISH_DEFAULT && ((FISH_WAS_INSTALLED == 0)) && [[ "$SKIP_PACKAGES" != 1 ]]; then
-    ui_confirm "$(_ 'fish is not installed. Install it with the pure prompt, fastfetch, eza and fzf, and make it your login shell?' \
-                    'fish не установлен. Поставить его (prompt pure, fastfetch, eza, fzf) и сделать оболочкой входа?')" y \
-      && FISH_DEFAULT=1 || FISH_DEFAULT=0
+  # asked whenever the login shell isn't fish: a fish that came with the system (or a package)
+  # while bash stayed the login shell was skipped without a word, and the terminal looked bare
+  if ! given FISH_DEFAULT && [[ "$(getent passwd "$(id -un)" | cut -d: -f7)" != */fish ]] &&
+     { ((FISH_WAS_INSTALLED)) || [[ "$SKIP_PACKAGES" != 1 ]]; }; then
+    if ((FISH_WAS_INSTALLED)); then
+      ui_confirm "$(_ 'Make fish your login shell, with the pure prompt, fastfetch, eza and fzf (as on the screenshots)?' \
+                      'Сделать fish оболочкой входа, с prompt pure, fastfetch, eza и fzf (как на скриншотах)?')" y \
+        && FISH_DEFAULT=1 || FISH_DEFAULT=0
+    else
+      ui_confirm "$(_ 'fish is not installed. Install it with the pure prompt, fastfetch, eza and fzf, and make it your login shell?' \
+                      'fish не установлен. Поставить его (prompt pure, fastfetch, eza, fzf) и сделать оболочкой входа?')" y \
+        && FISH_DEFAULT=1 || FISH_DEFAULT=0
+    fi
     # shellcheck disable=SC2034  # read through given()
     GIVEN_FISH_DEFAULT=1
   fi
@@ -498,8 +519,8 @@ ask_profile() {
       && { INSTALL_VOXTYPE=1; DOWNLOAD_VOXTYPE_MODEL=1; } || { INSTALL_VOXTYPE=0; DOWNLOAD_VOXTYPE_MODEL=0; }
   fi
   if ! given INSTALL_SDDM; then
-    ui_confirm "$(_ 'Install the SDDM login screen with the pixel-cyberpunk theme?' \
-                    'Поставить экран входа SDDM с темой pixel-cyberpunk?')" "$( ((INSTALL_SDDM)) && echo y || echo n)" \
+    ui_confirm "$(_ 'Install the SDDM login screen with the angelOS theme?' \
+                    'Поставить экран входа SDDM с темой angelOS?')" "$( ((INSTALL_SDDM)) && echo y || echo n)" \
       && INSTALL_SDDM=1 || INSTALL_SDDM=0
   fi
   if ! given INSTALL_TOOLS && [[ "$SKIP_PACKAGES" != 1 && -s "$ROOT/packages/tools.txt" ]]; then
@@ -724,13 +745,14 @@ cachyos_repos() {
   local script="$ROOT/.config/quickshell/angelos/scripts/cachyos-repos.sh"
   [[ "$CACHYOS_REPOS" == 1 && "$DISTRO_ID" == arch && "$(uname -m)" == x86_64 ]] || return 0
   bash "$script" --check && return 0
-  say "$(_ "Adding the author's repositories: CachyOS's (for your CPU) and [multilib] — so every app installs with pacman" \
-           'Подключаю репозитории автора: CachyOS (под твой процессор) и [multilib] — чтобы все программы ставились через pacman')"
-  sudo bash "$script" ||
+  say "$(_ "Adding the author's repositories: [cachyos] (below Arch's: only what Arch lacks) and [multilib] — so every app installs with pacman" \
+           'Подключаю репозитории автора: [cachyos] (ниже арчевых: только то, чего нет в Arch) и [multilib] — чтобы все программы ставились через pacman')"
+  sudo ANGELOS_LANG="$UI" bash "$script" ||
     warn "$(_ "The CachyOS repositories were not added (scripts/cachyos-repos.sh): Helium, qView, LocalSend and Steam may be skipped" \
               'Репозитории CachyOS не подключились (scripts/cachyos-repos.sh): Helium, qView, LocalSend и Steam могут не поставиться')"
 }
 
+PKG_FAILED=()
 pacman_install() {
   local list="$ROOT/packages/pacman.txt" pkg code
   command -v pacman >/dev/null 2>&1 || { warn "$(_ 'pacman not found; skipping system packages' 'pacman не найден; системные пакеты пропущены')"; return 0; }
@@ -773,7 +795,25 @@ pacman_install() {
   # package database a plain -S fails with 404s halfway through.
   say "$(_ 'Updating the system and installing packages (pacman -Syu)…' \
            'Обновление системы и установка пакетов (pacman -Syu)…')"
-  sudo pacman -Syu --needed "${packages[@]}"
+  # without a terminal nobody answers pacman: its question read EOF, the transaction aborted and
+  # set -e ended the whole installer without a word (no configs, no fish, no login screen)
+  local noconfirm=()
+  ((INTERACTIVE)) || noconfirm=(--noconfirm)
+  if ! sudo pacman -Syu --needed "${noconfirm[@]}" "${packages[@]}"; then
+    # one name the repositories don't have, a conflict answered "N", a mirror hiccup: pacman
+    # drops the whole list. The system is upgraded already (or not: -Syu again below), so the
+    # packages go one by one — what can be installed is, the rest is named in the summary.
+    warn "$(_ 'pacman did not install the list in one go: one by one now (what fails is listed at the end)' \
+              'pacman не поставил список одним разом: ставлю по одному (что не встанет — покажу в конце)')"
+    sudo pacman -Syu --noconfirm || true
+    for pkg in "${packages[@]}"; do
+      pacman -Q -- "$pkg" >/dev/null 2>&1 && continue
+      sudo pacman -S --needed --noconfirm -- "$pkg" >/dev/null 2>&1 || PKG_FAILED+=("$pkg")
+    done
+    ((${#PKG_FAILED[@]})) &&
+      warn "$(_ "Not installed: ${PKG_FAILED[*]}  →  sudo pacman -S ${PKG_FAILED[*]}  (it says why)" \
+                "Не поставились: ${PKG_FAILED[*]}  →  sudo pacman -S ${PKG_FAILED[*]}  (он скажет почему)")"
+  fi
   # angelOS Meta tap reads the keyboards via evdev (issue #6); the group applies after re-login
   [[ "$DESKTOP_SHELL" == angelos ]] && ! id -nG "$USER" | grep -qw input && sudo usermod -aG input "$USER" || true
 }
@@ -1360,6 +1400,11 @@ install_assets() {
     cp -au -- "$ROOT/Pictures/." "$HOME_DIR/Pictures/"
   fi
   install_wallpaper_packs
+  # the folders Nautilus's sidebar names (gtk-3.0/bookmarks): a missing one showed as a warning sign
+  local dir
+  while IFS= read -r dir; do
+    [[ -n "$dir" && "$dir" != */.* ]] && mkdir -p -- "$HOME_DIR/$dir"
+  done < <(sed -n "s|^file://$HOME_DIR/\([^ ]*\).*|\1|p" "$HOME_DIR/.config/gtk-3.0/bookmarks" 2>/dev/null)
   command -v fc-cache >/dev/null 2>&1 && { fc-cache -f "$HOME_DIR/.local/share/fonts" >/dev/null 2>&1 || true; }
   command -v xdg-user-dirs-update >/dev/null 2>&1 && { xdg-user-dirs-update || true; }
   return 0
@@ -1391,8 +1436,7 @@ install_noctalia_defaults() {
 
 # ── SDDM login screen ────────────────────────────────────────────────────────
 
-SDDM_THEME=pixel-cyberpunk
-SDDM_CONF=zz-pixelstreetart.conf
+SDDM_THEME=angelos
 SDDM_STATUS=skipped
 # Test hook for scripts/check.sh: put the system files under this directory
 # instead of /, without sudo and without touching systemd.
@@ -1402,29 +1446,13 @@ as_root() {
   if [[ -n "$SYSROOT" || "$EUID" -eq 0 ]]; then "$@"; else sudo "$@"; fi
 }
 
-# The theme fails to load without Qt5Compat, and shows no video without the
-# multimedia backend. Only reachable with SKIP_PACKAGES=1 or a broken install.
+# The theme uses QtQuick. Only reachable with SKIP_PACKAGES=1 or a broken install.
 sddm_check_modules() {
   local qml=/usr/lib/qt6/qml missing=()
-  [[ -d "$qml/Qt5Compat/GraphicalEffects" ]] || missing+=(qt6-5compat)
-  [[ -d "$qml/QtMultimedia" ]] || missing+=(qt6-multimedia)
-  compgen -G '/usr/lib/qt6/plugins/multimedia/*ffmpeg*' >/dev/null || missing+=(qt6-multimedia-ffmpeg)
+  [[ -d "$qml/QtQuick" ]] || missing+=(qt6-declarative)
   ((${#missing[@]})) || return 0
   warn "$(_ "The SDDM theme needs: ${missing[*]}  →  sudo pacman -S ${missing[*]}" \
            "Теме SDDM не хватает: ${missing[*]}  →  sudo pacman -S ${missing[*]}")"
-}
-
-# /etc/sddm.conf is read after /etc/sddm.conf.d/, so a Current= there would
-# silently win over our drop-in. Comment it out, keeping a backup.
-sddm_unpin_main_conf() {
-  local main="$SYSROOT/etc/sddm.conf"
-  [[ -f "$main" ]] || return 0
-  awk '/^[[:space:]]*\[/{s=$0} s ~ /^[[:space:]]*\[Theme\]/ && /^[[:space:]]*Current[[:space:]]*=/{f=1} END{exit !f}' "$main" ||
-    return 0
-  as_root cp -p -- "$main" "$main.bak.$STAMP"
-  as_root sed -i '/^[[:space:]]*\[Theme\]/,/^[[:space:]]*\[/ s/^\([[:space:]]*Current[[:space:]]*=\)/# \1/' "$main"
-  say "$(_ "Commented out the theme set in /etc/sddm.conf (backup: sddm.conf.bak.$STAMP)" \
-           "Закомментирована тема в /etc/sddm.conf (бэкап: sddm.conf.bak.$STAMP)")"
 }
 
 # Make SDDM the display manager that starts at boot.
@@ -1473,43 +1501,57 @@ sddm_enable() {
 
 install_sddm() {
   [[ "$INSTALL_SDDM" == 1 ]] || { say "$(_ 'SDDM skipped' 'SDDM пропущен')"; return 0; }
-  local src="$ROOT/sddm/themes/$SDDM_THEME" themes="$SYSROOT/usr/share/sddm/themes"
-  local confd="$SYSROOT/etc/sddm.conf.d"
-  local dst="$themes/$SDDM_THEME"
+  local py="$ROOT/.config/quickshell/angelos/scripts/sddm-theme.py"
+  local src="$ROOT/.config/quickshell/angelos/extras/sddm/angelos"
+  local themes="$SYSROOT/usr/share/sddm/themes"
+  local dst="$themes/angelos"
 
   if [[ -z "$SYSROOT" ]] && ! command -v sddm >/dev/null 2>&1; then
     warn "$(_ 'SDDM is not installed (SKIP_PACKAGES=1?); login screen not configured' \
              'SDDM не установлен (SKIP_PACKAGES=1?); экран входа не настроен')"
     return 0
   fi
-  if ! as_root true; then
-    warn "$(_ 'No root access; SDDM login screen not configured' 'Нет прав root; экран входа SDDM не настроен')"
+  if [[ ! -f "$src/Main.qml" ]]; then
+    warn "$(_ 'No angelOS login screen in the repository; not configured' \
+             'Экрана входа angelOS нет в репозитории; не настроен')"
     return 0
   fi
-  say "$(_ "Installing the SDDM theme $SDDM_THEME…" "Установка темы SDDM $SDDM_THEME…")"
+  say "$(_ 'Installing the angelOS login screen…' 'Установка экрана входа angelOS…')"
 
-  if ! diff -rq -- "$src" "$dst" >/dev/null 2>&1; then
-    as_root mkdir -p -- "$themes"
-    if [[ -e "$dst" ]]; then
-      # Hidden, so SDDM does not list the backup as a second theme.
-      as_root mv -- "$dst" "$themes/.$SDDM_THEME.bak.$STAMP"
-      say "backup: $themes/.$SDDM_THEME.bak.$STAMP"
-    fi
-    as_root cp -r --no-preserve=mode,ownership -- "$src" "$dst"
-    # The greeter runs as the sddm user and must be able to read everything.
-    as_root chmod -R u=rwX,go=rX -- "$dst"
+  # What is already installed and current is left as the user has it (look, colours, walls);
+  # a different theme they picked, or nothing yet, gets the author's screen.
+  local look="" pal="" args=()
+  if [[ -f "$dst/Main.qml" && -r "$dst/theme.conf.user" ]]; then
+    while IFS='=' read -r k v; do
+      case "$k" in look) look="$v";; palette) pal="$v";; esac
+    done <"$dst/theme.conf.user"
+  fi
+  [[ -n "$look" ]] && args+=(--look "$look")
+  [[ -n "$pal" ]] && args+=(--palette "$pal")
+
+  local built
+  built="$(mktemp -d)" || return 1
+  TMP_DIRS+=("$built")
+  if ! python3 "$py" build "${args[@]}" --out "$built/angelos" >/dev/null 2>&1; then
+    warn "$(_ 'The angelOS login screen did not build (scripts/sddm-theme.py build); not configured' \
+             'Экран входа angelOS не собрался (scripts/sddm-theme.py build); не настроен')"
+    return 0
   fi
 
-  as_root mkdir -p -- "$confd"
-  # the angelOS login screen in place (follow_system, Settings → Lock screen): it stays SDDM's
-  # theme — this drop-in sorts after its zz-angelos.conf and would put the old one back
-  if [[ -f "$themes/angelos/Main.qml" && -f "$confd/zz-angelos.conf" ]]; then
-    say "$(_ 'The angelOS login screen is in place: it stays the theme' 'Экран входа angelOS уже стоит — он и остаётся темой')"
-    SDDM_THEME=angelos   # what the summary names (and its preview command)
-  elif ! cmp -s -- "$ROOT/sddm/$SDDM_CONF" "$confd/$SDDM_CONF"; then
-    as_root install -m 0644 -- "$ROOT/sddm/$SDDM_CONF" "$confd/$SDDM_CONF"
+  # One root call: the theme folder, our drop-in, and the other Current= lines that could win
+  # over it (SDDM reads the drop-ins in alphabetical order; /etc/sddm.conf after them).
+  local root_script
+  root_script="$(python3 -c 'import importlib.util as u, sys; s = u.spec_from_file_location("t", sys.argv[1]); m = u.module_from_spec(s); s.loader.exec_module(m); print(m.ROOT_SCRIPT)' "$py")"
+  if ! as_root sh -c '
+    # root script variables
+    set -eu
+    sh -c "$1" sh "$2" "$3" "$4" "$5" "$6" </dev/null' sh "$root_script" "$built/angelos" \
+      "$themes/angelos" "$SYSROOT/etc/sddm.conf.d/zz-angelos.conf" "$(id -u)" "$SYSROOT"; then
+    warn "$(_ 'The angelOS login screen could not be installed (see above)' \
+             'Экран входа angelOS не поставился (см. выше)')"
+    return 0
   fi
-  sddm_unpin_main_conf
+  rm -rf -- "$built"
   SDDM_STATUS=enabled
 
   [[ -z "$SYSROOT" ]] || return 0
@@ -1522,9 +1564,10 @@ install_sddm() {
 #   - the base packages the author added since (packages/*.txt), fish among them
 #   - fish as the login shell instead of bash/sh (installs from before fish came with angelOS);
 #     asked once: a user who goes back to bash later stays on bash
-#   - the angelOS login screen (extras/sddm/angelos, as the author has it) instead of the
-#     installer's old pixel-cyberpunk; again when the author changes it, with the user's own
-#     look and colours (Settings → Lock screen). Another theme the user picked stays
+#   - the angelOS login screen (extras/sddm/angelos, as the author has it) instead of an older
+#     theme the user's install had (pixel-cyberpunk, which angelOS no longer ships); again when
+#     the author changes it, with the user's own look and colours (Settings → Lock screen).
+#     Another theme the user picked stays
 # Only for the real home of this user (never a test's or a chroot's) and never on the author's
 # own machine. FOLLOW_SYSTEM=0 skips it.
 FOLLOW_SYSTEM="${FOLLOW_SYSTEM:-1}"
@@ -1533,7 +1576,7 @@ follow_system() {
   [[ "$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)" == "$HOME_DIR" ]] || return 0
   command -v pacman >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 || return 0
   local sddm_py="$ROOT/.config/quickshell/angelos/scripts/sddm-theme.py" sddm_src="$ROOT/.config/quickshell/angelos/extras/sddm/angelos"
-  local pkgs=() fish="" theme="" built="" root_sddm="" stamp="$STATE_DIR/sddm-theme.sha256" hash cur look="" pal=""
+  local pkgs=() fish="" theme="" applied="" built="" root_sddm="" stamp="$STATE_DIR/sddm-theme.sha256" hash cur look="" pal=""
   local -a lists=(pacman.txt angelos.txt tools.txt fish.txt)
   command -v sddm >/dev/null 2>&1 && lists+=(sddm.txt)
   # base packages missing here that the repositories have
@@ -1552,7 +1595,7 @@ PY
   esac
   # the login screen: the installer's old theme (or none) → the author's; the author's changed → again
   if command -v sddm >/dev/null 2>&1 && [[ -f "$sddm_src/Main.qml" ]]; then
-    hash="$(cd "$sddm_src" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)"
+    hash="$(python3 "$sddm_py" fingerprint)"
     cur="$(python3 "$sddm_py" status 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print("|".join((d.get("current",""), d.get("look",""), d.get("palette",""))))' 2>/dev/null || true)"
     IFS='|' read -r cur look pal <<<"$cur"   # an empty look must not shift the palette into its place
     if [[ -z "$cur" || "$cur" == pixel-cyberpunk || ( "$cur" == angelos && "$(cat "$stamp" 2>/dev/null)" != "$hash" ) ]]; then
@@ -1600,6 +1643,7 @@ PY
       sh -c "$sddm" sh "$src" /usr/share/sddm/themes/angelos /etc/sddm.conf.d/zz-angelos.conf "$uid" >/dev/null || rc=1
     fi
     exit $rc' sh "${pkgs[*]}" "$(id -un)" "$fish" "${theme:+$built/angelos}" "$root_sddm" "$(id -u)" </dev/null; then
+    applied=1
     say "$(_ "the system is as the author has it ♡" "система как у автора ♡")${fish:+ $(_ "(fish from the next login)" "(fish — со следующего входа)")}"
   else
     warn "$(_ "the system part did not finish (no password, or see above) — the next update tries again" "системная часть не закончилась (нет пароля или см. выше) — следующее обновление попробует снова")"
@@ -1617,7 +1661,8 @@ st["fishAsked"] = True
 json.dump(st, open(p, "w"), indent=1)
 PY
   fi
-  if [[ -n "$theme" ]] && [[ "$(python3 "$sddm_py" status 2>/dev/null)" == *'"current": "angelos"'* ]]; then
+  if [[ -n "$theme" && -n "$applied" ]] &&
+     [[ "$(python3 "$sddm_py" status 2>/dev/null)" == *'"current": "angelos"'* ]]; then
     mkdir -p -- "$STATE_DIR" && printf '%s\n' "$hash" >"$stamp"
   fi
   return 0
@@ -1650,12 +1695,13 @@ apply_setup_answers() {
   fi
   local theme=""
   given ANGELOS_THEME && theme="$ANGELOS_THEME"
-  [[ -n "$game" || -n "${KB_ASKED:-}" || -n "$theme" ]] || return 0
+  [[ -n "$game" || -n "${KB_ASKED:-}" || -n "$theme" || -n "$LANG_ASKED" ]] || return 0
   local f="$HOME_DIR/.config/angelos/settings.json"
   mkdir -p -- "${f%/*}"
-  python3 - "$f" "$game" "${KB_ASKED:-}" "$theme" "$MAC_KEYS" <<'PY' || warn "$(_ 'Could not write the answers into settings.json' 'Не удалось записать ответы в settings.json')"
+  python3 - "$f" "$game" "${KB_ASKED:-}" "$theme" "$MAC_KEYS" "${LANG_ASKED:+$UI}" <<'PY' || warn "$(_ 'Could not write the answers into settings.json' 'Не удалось записать ответы в settings.json')"
 import json, os, sys, tempfile
 path, game, kb, theme, mac_keys = sys.argv[1], sys.argv[2], sys.argv[3] == "1", sys.argv[4], sys.argv[5] == "1"
+lang = sys.argv[6]
 d = {}
 if os.path.exists(path):
     with open(path) as f:
@@ -1674,6 +1720,9 @@ if theme:
     ui["skinChosen"] = True
     if theme == "macos":
         d.setdefault("mac", {})["keys"] = mac_keys
+# the language picked in the installer, until the wizard is done (later it is Settings → Account)
+if lang in ("ru", "en") and not d.get("setup", {}).get("complete"):
+    d.setdefault("appearance", {})["language"] = lang
 if json.dumps(d, sort_keys=True) == before:
     sys.exit(0)
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".settings-")
@@ -1841,6 +1890,9 @@ summary() {
     say "$(_ "Your changes kept in $N_PARKED config file(s); their new versions: ${PARKED_DIR/#$HOME_DIR/\~}/ (OVERWRITE_CONFIGS=1 replaces them, with a backup)" \
              "Твои изменения сохранены в $N_PARKED файл(ах) конфигов; их новые версии: ${PARKED_DIR/#$HOME_DIR/\~}/ (OVERWRITE_CONFIGS=1 заменит их, с бэкапом)")"
   fi
+  ((${#PKG_FAILED[@]} == 0)) ||
+    warn "$(_ "Packages that did not install: ${PKG_FAILED[*]}  →  sudo pacman -S ${PKG_FAILED[*]}" \
+              "Не поставились пакеты: ${PKG_FAILED[*]}  →  sudo pacman -S ${PKG_FAILED[*]}")"
   say "$(_ 'Keyboard' 'Клавиатура'): ${KB_LAYOUTS}${KB_OPTIONS:+  ($KB_OPTIONS)}"
   say "$(_ '  change later in' '  изменить позже в') ~/.config/niri/cfg/input.kdl"
   say "$(_ 'Monitors: run nwg-displays, or edit ~/.config/niri/monitor.kdl' \
@@ -1975,11 +2027,16 @@ STEPS=(
   "enable_services|user services|user-сервисы"
   "validate|niri validate|niri validate"
 )
+# set -e ended the installer mid-way without a word when a step's command failed: now it says
+# which step (die() has said why already: its line stays the last one), and that running it again goes on from there (every step skips what is done)
+trap 'rc=$?; ((rc)) && [[ -n "${CUR_STEP:-}" && -z "${DIED:-}" ]] && printf "%s[dotfiles] ERROR:%s %s\\n" "$C_ERR" "$C_OFF2" "$(_ "the step «$CUR_STEP» failed (exit $rc, see above); ./install.sh again goes on from where it stopped" "шаг «$CUR_STEP» упал (код $rc, см. выше); повторный ./install.sh продолжит с этого места")" >&2; cleanup' EXIT
 for i in "${!STEPS[@]}"; do
   IFS='|' read -r step en ru <<<"${STEPS[i]}"
   ui_progress "$i" "${#STEPS[@]}" "$(_ "$en" "$ru")"
+  CUR_STEP="$(_ "$en" "$ru")"
   "$step"
 done
+CUR_STEP=""
 ui_progress "${#STEPS[@]}" "${#STEPS[@]}" "$(_ 'stream complete ♡' 'стрим завершён ♡')"
 offer_author_tools
 summary

@@ -440,7 +440,7 @@ INSTALL_VOXTYPE=0 INSTALL_SDDM=1 ./install.sh
 | `INSTALL_VOXTYPE`, `DOWNLOAD_VOXTYPE_MODEL` | `1` \| `0` | voice input |
 | `INSTALL_SDDM` | `1` \| `0` | the login screen |
 | `INSTALL_TOOLS`, `INSTALL_FLATPAK` | `1` \| `0` | everyday tools, Flathub extras |
-| `CACHYOS_REPOS` | `1` \| `0` | Arch Linux: add the author's repositories first — CachyOS's (for your CPU, above Arch's) and `[multilib]`, so Helium, qView, LocalSend and Steam install with pacman |
+| `CACHYOS_REPOS` | `1` \| `0` | Arch Linux: add the author's repositories first — `[cachyos]` last, below Arch's (the system stays Arch; only what Arch lacks comes from it) and `[multilib]`, so Helium, qView, LocalSend, the fish prompt and Steam install with pacman |
 | `SKIP_PACKAGES` | `0` \| `1` | configs only: no pacman, no sudo |
 | `OVERWRITE_CONFIGS` | `0` \| `1` | also replace configs you changed (with a backup) |
 | `ENABLE_SERVICES`, `VALIDATE_NIRI` | `1` \| `0` | user services, `niri validate` |
@@ -470,23 +470,19 @@ asks whether to restart the shell now or later (windows stay open). From a termi
 
 ## ✧ Login screen (SDDM)
 
-The installer sets up [SDDM](https://github.com/sddm/sddm) with **pixel-cyberpunk**, an animated pixel-art theme from
-[Qylock](https://github.com/Darkkal44/qylock) by Darkkal44: a looping video background, a pixel font, clock, user and
-session switchers.
-
-![SDDM login screen with the pixel-cyberpunk theme](docs/screenshots/sddm-login.png)
-
-`INSTALL_SDDM=1` installs `sddm` and exactly the Qt modules the theme imports, copies the theme, selects it in
-`/etc/sddm.conf.d/zz-pixelstreetart.conf` (a `Current=` in `/etc/sddm.conf` is commented out with a backup), enables
-`sddm.service` (asking first when another login manager is on) and boots into `graphical.target`. Preview it:
-`sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/pixel-cyberpunk`.
+The installer sets up [SDDM](https://github.com/sddm/sddm) with angelOS's own login screen, matching its desktop
+look and wallpaper. `INSTALL_SDDM=1` installs `sddm` and the QtQuick module, builds the theme, selects it in
+`/etc/sddm.conf.d/zz-angelos.conf` (overriding older theme selections with backups), enables `sddm.service`
+(asking first when another login manager is on) and boots into `graphical.target`. A previous pixel-cyberpunk
+installation is moved to a hidden backup. Preview the new theme with
+`sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/angelos`.
 
 | Symptom | Fix |
 | --- | --- |
 | Boots to a text console | `sudo systemctl enable --force sddm && sudo systemctl set-default graphical.target` |
 | `display-manager.service already exists` | disable the other one (`gdm`, `lightdm`, `ly@tty2`, `greetd`), then enable SDDM |
-| Plain SDDM instead of the pixel theme | `grep -r Current= /etc/sddm.conf /etc/sddm.conf.d/`; install `qt6-5compat` |
-| Black background | `sudo pacman -S qt6-multimedia qt6-multimedia-ffmpeg` |
+| Plain SDDM instead of the angelOS theme | `grep -r Current= /etc/sddm.conf /etc/sddm.conf.d/`; install `qt6-declarative` |
+| Missing wallpaper | Set a wallpaper in angelOS and check `/usr/share/sddm/themes/angelos/walls/` |
 
 ## ✧ Keyboard, mouse and monitors
 
@@ -512,7 +508,7 @@ packages/                    pacman.txt, angelos.txt, sddm.txt, tools.txt, fish.
 installer/tui.sh             the installer's face: gum menus, pixel frames, hearts, the stream chat
 install.sh                   the installer: asks everything, backs up, Arch Linux / CachyOS only
 scripts/check.sh             repository check, with end-to-end installer tests
-sddm/                        the pixel-cyberpunk SDDM theme and its drop-in
+sddm/                        legacy pixel-cyberpunk assets (no longer installed by default)
 docs/                        screenshots and the GIFs of this README
 ```
 
