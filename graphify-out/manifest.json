@@ -96,10 +96,10 @@
     "semantic_hash": "333679654182705c581f08dbeb168146"
   },
   ".config/quickshell/angelos/data/apps-catalog.json": {
-    "mtime": 1791406319.2963257,
-    "seen": 1791515133.7203822,
-    "ast_hash": "d95a9893c0ab456f6d3765d5c28cbce4",
-    "semantic_hash": "d95a9893c0ab456f6d3765d5c28cbce4"
+    "mtime": 1791562169.0885005,
+    "seen": 1791562553.9812047,
+    "ast_hash": "b0e2858c591dd17c0d42b557afca70c1",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/data/fastfetch/angel.json": {
     "mtime": 1791406319.297554,
@@ -540,10 +540,10 @@
     "semantic_hash": "5ba396e532f8956769d74e66216eac31"
   },
   ".config/quickshell/angelos/scripts/apps-install.py": {
-    "mtime": 1791468918.6496391,
-    "seen": 1791515133.720468,
-    "ast_hash": "bf940e07fa88cdbb5d8d326005a3ae4a",
-    "semantic_hash": "bf940e07fa88cdbb5d8d326005a3ae4a"
+    "mtime": 1791562169.0890388,
+    "seen": 1791562553.9812858,
+    "ast_hash": "5d43d2728b572264517e136ac7bf137c",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/audio-tap.py": {
     "mtime": 1790963085.145775,
@@ -576,10 +576,10 @@
     "semantic_hash": "83ca4708aba662254c9c83a887bbc371"
   },
   ".config/quickshell/angelos/scripts/cachyos-repos.sh": {
-    "mtime": 1791468918.6496391,
-    "seen": 1791515133.7204747,
-    "ast_hash": "5f4864dfcb5e2e5cf89a0a674fe0115a",
-    "semantic_hash": "5f4864dfcb5e2e5cf89a0a674fe0115a"
+    "mtime": 1791559934.6211286,
+    "seen": 1791562553.9812927,
+    "ast_hash": "a9f0950c4bfa000cd561676d8514ab64",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/capture_skins.py": {
     "mtime": 1791411565.1152074,
@@ -642,10 +642,10 @@
     "semantic_hash": "c1ce1463b6399c29042309f38af7c5cb"
   },
   ".config/quickshell/angelos/scripts/dotfiles-update.sh": {
-    "mtime": 1791104822.0141337,
-    "seen": 1791515133.7204866,
-    "ast_hash": "86c18426a727c7cb7644ee7b5bf53732",
-    "semantic_hash": "86c18426a727c7cb7644ee7b5bf53732"
+    "mtime": 1791515488.4665213,
+    "seen": 1791517554.8856928,
+    "ast_hash": "50ab75060f52d0845b0313c0837a3631",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/duck-restore.py": {
     "mtime": 1791485179.165455,
@@ -714,10 +714,10 @@
     "semantic_hash": "29967f29dc08ae48c1e5fb37ec46920d"
   },
   ".config/quickshell/angelos/scripts/gtk-live.py": {
-    "mtime": 1791218643.3519602,
-    "seen": 1791515133.7204988,
-    "ast_hash": "7ed2b947df9427305248af1a09f9c3a6",
-    "semantic_hash": "7ed2b947df9427305248af1a09f9c3a6"
+    "mtime": 1791562443.6320171,
+    "seen": 1791562553.9813154,
+    "ast_hash": "36db44967f4ee9b5c514988a0ec5c2c4",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/hell-sounds.py": {
     "mtime": 1791485179.1668081,
@@ -750,10 +750,10 @@
     "semantic_hash": "32cf5cdedfe86e0202431dda5d95039f"
   },
   ".config/quickshell/angelos/scripts/keyprofile.py": {
-    "mtime": 1791291301.8905706,
-    "seen": 1791515133.7205048,
-    "ast_hash": "927d9a5719a46513f2a2e25b48422fb9",
-    "semantic_hash": "927d9a5719a46513f2a2e25b48422fb9"
+    "mtime": 1791516285.4792943,
+    "seen": 1791517554.885711,
+    "ast_hash": "be8656ec30996b1514ddd9b92b6bd7b1",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/laptop-config.py": {
     "mtime": 1791420877.7484145,
@@ -810,10 +810,10 @@
     "semantic_hash": "b36efa08a7dd8629a4f53dd72fd77d1c"
   },
   ".config/quickshell/angelos/scripts/niri_outputs.py": {
-    "mtime": 1791290862.586668,
-    "seen": 1791515133.720515,
-    "ast_hash": "94ec1aba337321465ac6ffd050615ac9",
-    "semantic_hash": "94ec1aba337321465ac6ffd050615ac9"
+    "mtime": 1791560009.1599414,
+    "seen": 1791562553.9813304,
+    "ast_hash": "0c5cadcf30c5d9eca3a552b78b9ad301",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/numlock.py": {
     "mtime": 1790806325.0996826,
@@ -894,22 +894,22 @@
     "semantic_hash": "1c4b64b837cd2f37dcbffddb4b5c9037"
   },
   ".config/quickshell/angelos/scripts/render-templates.py": {
-    "mtime": 1791218643.3519602,
-    "seen": 1791515133.7205303,
-    "ast_hash": "74239462de032002dfa4ca760ebd6848",
-    "semantic_hash": "74239462de032002dfa4ca760ebd6848"
+    "mtime": 1791560114.2777596,
+    "seen": 1791562553.9813437,
+    "ast_hash": "80df67f3bf251e6d689350006afd89cc",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/report.py": {
-    "mtime": 1791200107.0686843,
-    "seen": 1791515133.7205315,
-    "ast_hash": "ee396713c92085e5d8fef7a0e5375105",
-    "semantic_hash": "ee396713c92085e5d8fef7a0e5375105"
+    "mtime": 1791560045.895442,
+    "seen": 1791562553.9813447,
+    "ast_hash": "fa495d6f2d0fedb28cb4f0ac7d24b4c5",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/sddm-theme.py": {
-    "mtime": 1791406319.3064566,
-    "seen": 1791515133.7205324,
-    "ast_hash": "35fd5792fbc2280651cc46831491a09d",
-    "semantic_hash": "35fd5792fbc2280651cc46831491a09d"
+    "mtime": 1791561122.567618,
+    "seen": 1791562553.9813457,
+    "ast_hash": "ec93f1748c4cce2a8e336ec86f467277",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/session-env.py": {
     "mtime": 1791290862.586793,
@@ -924,10 +924,10 @@
     "semantic_hash": "f56b3d1cb2235ce6fe85147020e14ac7"
   },
   ".config/quickshell/angelos/scripts/settings-inventory.py": {
-    "mtime": 1791318235.8256662,
-    "seen": 1791515133.7205355,
-    "ast_hash": "648b4ae1ac0f010c349013064ee2f6b4",
-    "semantic_hash": "648b4ae1ac0f010c349013064ee2f6b4"
+    "mtime": 1791516285.4802945,
+    "seen": 1791517554.8857381,
+    "ast_hash": "6e41fad65a8fb2ae04253c9245ef6c05",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/settings-map.py": {
     "mtime": 1791119753.1869571,
@@ -1014,10 +1014,10 @@
     "semantic_hash": "afef7b9d782abb572d37b323ebe87c87"
   },
   ".config/quickshell/angelos/scripts/update-txn.py": {
-    "mtime": 1791290862.5882375,
-    "seen": 1791515133.7205503,
-    "ast_hash": "88422e679323444d62c4d92212ea559a",
-    "semantic_hash": "88422e679323444d62c4d92212ea559a"
+    "mtime": 1791515488.4668033,
+    "seen": 1791517554.8857546,
+    "ast_hash": "196a1edfc1746872ebaf49ad908a21be",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/scripts/updates-cli.py": {
     "mtime": 1791104822.0149436,
@@ -1632,10 +1632,10 @@
     "semantic_hash": "63e748275473b41d5ea5e6d85b5f6919"
   },
   ".config/quickshell/angelos/tests/updates/run.sh": {
-    "mtime": 1791104822.015944,
-    "seen": 1791515133.720655,
-    "ast_hash": "5ad9779644632970543d7cdeb7f2beb1",
-    "semantic_hash": "5ad9779644632970543d7cdeb7f2beb1"
+    "mtime": 1791515488.4675488,
+    "seen": 1791517554.885851,
+    "ast_hash": "c4ef4c0ab8ea7c27f5f90f195ac23351",
+    "semantic_hash": ""
   },
   ".config/quickshell/angelos/widgets/A11y.js": {
     "mtime": 1791495920.959017,
@@ -1782,10 +1782,10 @@
     "semantic_hash": "e0e4c9b3be724ebf95b1b0b94a3010ec"
   },
   "install.sh": {
-    "mtime": 1791493192.5216033,
-    "seen": 1791515133.7206814,
-    "ast_hash": "873074de00f6b3c5aa18afd97af31689",
-    "semantic_hash": "873074de00f6b3c5aa18afd97af31689"
+    "mtime": 1791562454.9154766,
+    "seen": 1791562553.9815154,
+    "ast_hash": "b9ffd341026a823e7b4622d312159667",
+    "semantic_hash": ""
   },
   "installer/tui.sh": {
     "mtime": 1791290862.6337938,
@@ -1800,10 +1800,10 @@
     "semantic_hash": "d4ff0699edeb64f611443ba223ddad01"
   },
   "scripts/check.sh": {
-    "mtime": 1791468918.663788,
-    "seen": 1791515133.7206848,
-    "ast_hash": "c49adb2c4a559af14494204088f16927",
-    "semantic_hash": "c49adb2c4a559af14494204088f16927"
+    "mtime": 1791561131.4159112,
+    "seen": 1791562553.9815183,
+    "ast_hash": "78893daef5c0a6460086b6d1eeb9e048",
+    "semantic_hash": ""
   },
   "scripts/ci-local.sh": {
     "mtime": 1791410009.6228144,
@@ -1854,16 +1854,16 @@
     "semantic_hash": "3eaf8edcc6443664a284fe8d6013721a"
   },
   "scripts/test-update-old.sh": {
-    "mtime": 1791468918.6639109,
-    "seen": 1791515133.7206943,
-    "ast_hash": "146838da72ce2957f560088fc0d1f952",
-    "semantic_hash": "146838da72ce2957f560088fc0d1f952"
+    "mtime": 1791516285.4850852,
+    "seen": 1791517554.885904,
+    "ast_hash": "feb2ae84cbcbd6b1db8a25187d7a3b82",
+    "semantic_hash": ""
   },
   "scripts/test-update.sh": {
-    "mtime": 1791468918.663989,
-    "seen": 1791515133.7206957,
-    "ast_hash": "eb18582c7d5b1bdef27b08d8be416d78",
-    "semantic_hash": "eb18582c7d5b1bdef27b08d8be416d78"
+    "mtime": 1791516285.48517,
+    "seen": 1791517554.8859053,
+    "ast_hash": "948032add5535c97f1a934361b6c898a",
+    "semantic_hash": ""
   },
   ".config/fastfetch/logo.txt": {
     "mtime": 1791318235.8156662,
@@ -2040,40 +2040,28 @@
     "semantic_hash": "4adee19f915e511642d84e55143f4c07"
   },
   "README.md": {
-    "mtime": 1791468918.6496391,
-    "seen": 1791515133.7207153,
-    "ast_hash": "e5208c6aaa41737ba34fb6624c8eb92c",
-    "semantic_hash": "e5208c6aaa41737ba34fb6624c8eb92c"
+    "mtime": 1791560224.8033671,
+    "seen": 1791562553.9815738,
+    "ast_hash": "d697dfbf55ceba480ecf2a6cb24c4aaf",
+    "semantic_hash": ""
   },
   "README.ru.md": {
-    "mtime": 1791468918.6496391,
-    "seen": 1791515133.720716,
-    "ast_hash": "dadc0451999c600ee8f1bc507cb72862",
-    "semantic_hash": "dadc0451999c600ee8f1bc507cb72862"
+    "mtime": 1791560224.8015997,
+    "seen": 1791562553.981575,
+    "ast_hash": "995a170c640829fe123737ec195e6602",
+    "semantic_hash": ""
   },
   "THIRD-PARTY.md": {
-    "mtime": 1791290862.5924866,
-    "seen": 1791515133.720717,
-    "ast_hash": "89e01353d7ea10648f8c6fdc54adaaf5",
-    "semantic_hash": "89e01353d7ea10648f8c6fdc54adaaf5"
+    "mtime": 1791516285.483883,
+    "seen": 1791517554.885949,
+    "ast_hash": "066b5656be249d84f0ae0eb04c553175",
+    "semantic_hash": ""
   },
   "packages/angelos.txt": {
-    "mtime": 1791290862.6337938,
-    "seen": 1791515133.720718,
-    "ast_hash": "f7eb1386bc812a3f52de0c3ae789ef5a",
-    "semantic_hash": "f7eb1386bc812a3f52de0c3ae789ef5a"
-  },
-  "packages/apps-flatpak.txt": {
-    "mtime": 1791290862.6337938,
-    "seen": 1791515133.7207189,
-    "ast_hash": "8ca4cfe997de40a58b3976b117b28a7f",
-    "semantic_hash": "8ca4cfe997de40a58b3976b117b28a7f"
-  },
-  "packages/apps.txt": {
-    "mtime": 1791290862.6337938,
-    "seen": 1791515133.7207198,
-    "ast_hash": "fea7de0c027dc4c05515d5e4405496f8",
-    "semantic_hash": "fea7de0c027dc4c05515d5e4405496f8"
+    "mtime": 1791562350.8274813,
+    "seen": 1791562553.9815767,
+    "ast_hash": "68ecf4d91a1cdc91a60bcc898ec3f9a8",
+    "semantic_hash": ""
   },
   "packages/aur.txt": {
     "mtime": 1790324963.986193,
@@ -2086,18 +2074,6 @@
     "seen": 1791515133.7207217,
     "ast_hash": "78d10fe154db58209cd023de0c714afd",
     "semantic_hash": "78d10fe154db58209cd023de0c714afd"
-  },
-  "packages/flatpak-apps.txt": {
-    "mtime": 1790319961.0463626,
-    "seen": 1791515133.7207224,
-    "ast_hash": "d020f1351733c05c08d0184a190f4f8c",
-    "semantic_hash": "d020f1351733c05c08d0184a190f4f8c"
-  },
-  "packages/flatpak.txt": {
-    "mtime": 1790319961.0463626,
-    "seen": 1791515133.7207236,
-    "ast_hash": "d020f1351733c05c08d0184a190f4f8c",
-    "semantic_hash": "d020f1351733c05c08d0184a190f4f8c"
   },
   "packages/nvim.txt": {
     "mtime": 1791290862.6337938,
@@ -2112,22 +2088,22 @@
     "semantic_hash": "cdf42f872763f9e963b309e822e824ad"
   },
   "packages/pacman.txt": {
-    "mtime": 1791290862.6337938,
-    "seen": 1791515133.7207267,
-    "ast_hash": "8f9544806a04bedd9b721f665cbfbe68",
-    "semantic_hash": "8f9544806a04bedd9b721f665cbfbe68"
+    "mtime": 1791516285.484545,
+    "seen": 1791517554.8859546,
+    "ast_hash": "ea410c196cdec12e7ea8e03064f7ab97",
+    "semantic_hash": ""
   },
   "packages/sddm.txt": {
-    "mtime": 1790624486.6594806,
-    "seen": 1791515133.7207274,
-    "ast_hash": "7d4530f14c92859ae40eaa347ce714ff",
-    "semantic_hash": "7d4530f14c92859ae40eaa347ce714ff"
+    "mtime": 1791551821.4710448,
+    "seen": 1791552347.44761,
+    "ast_hash": "42e7326660995cfcdd8eefc1d36e375e",
+    "semantic_hash": ""
   },
   "packages/tools.txt": {
-    "mtime": 1791012744.0190427,
-    "seen": 1791515133.7207286,
-    "ast_hash": "4dc88d290f8f2ab1aa4d175a83bd5da2",
-    "semantic_hash": "4dc88d290f8f2ab1aa4d175a83bd5da2"
+    "mtime": 1791516285.484545,
+    "seen": 1791517554.8859563,
+    "ast_hash": "4569ffb2ff3029226f1423ef7bc97b76",
+    "semantic_hash": ""
   },
   "scripts/demo/SHOTLIST.md": {
     "mtime": 1791290862.6352131,
@@ -6622,5 +6598,341 @@
     "seen": 1791515133.7215488,
     "ast_hash": "8a317bc44a97096f04fa70f421ea6a7a",
     "semantic_hash": "8a317bc44a97096f04fa70f421ea6a7a"
+  },
+  ".config/quickshell/angelos/scripts/spicetify-apply.sh": {
+    "mtime": 1791515488.4667091,
+    "seen": 1791517554.885745,
+    "ast_hash": "f5b31bd2906b1f53a3c39e498ca06768",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Extensions/vantagraph-custom-debug.js": {
+    "mtime": 1791516285.4802945,
+    "seen": 1791517554.8858585,
+    "ast_hash": "a70ab4376f8b4c916b9b8b7a1d24e1f8",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Extensions/vantagraph-custom-loopyloop.js": {
+    "mtime": 1791516285.481478,
+    "seen": 1791517554.8858593,
+    "ast_hash": "a3028910e86804be17c03e39db285073",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Extensions/vantagraph-custom-lyric-miniplayer.js": {
+    "mtime": 1791516285.4820018,
+    "seen": 1791517554.8858604,
+    "ast_hash": "75d7628c7d5bda7bb576a3f00a6e7d39",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Extensions/vantagraph-custom-settings.js": {
+    "mtime": 1791516285.4824271,
+    "seen": 1791517554.8858614,
+    "ast_hash": "1afd0bf8976c1bea12132c8d3cb5535d",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Extensions/vantagraph-custom-taskbarplayer.js": {
+    "mtime": 1791516285.482856,
+    "seen": 1791517554.8858619,
+    "ast_hash": "8a6230fbdfe0223c3479c4caff47f35c",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Extensions/vantagraph-custom-volume-plus.js": {
+    "mtime": 1791516285.483178,
+    "seen": 1791517554.8858635,
+    "ast_hash": "2bfeb768812b2f98b67eadc5165195b4",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/Extensions/vantagraph-custom-debug.js": {
+    "mtime": 1791515488.4679334,
+    "seen": 1791517554.8858643,
+    "ast_hash": "a70ab4376f8b4c916b9b8b7a1d24e1f8",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/Extensions/vantagraph-custom-loopyloop.js": {
+    "mtime": 1791515488.467999,
+    "seen": 1791517554.885865,
+    "ast_hash": "a3028910e86804be17c03e39db285073",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/Extensions/vantagraph-custom-lyric-miniplayer.js": {
+    "mtime": 1791515488.4681394,
+    "seen": 1791517554.8858654,
+    "ast_hash": "75d7628c7d5bda7bb576a3f00a6e7d39",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/Extensions/vantagraph-custom-settings.js": {
+    "mtime": 1791515488.4682307,
+    "seen": 1791517554.8858662,
+    "ast_hash": "1afd0bf8976c1bea12132c8d3cb5535d",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/Extensions/vantagraph-custom-taskbarplayer.js": {
+    "mtime": 1791515488.4683287,
+    "seen": 1791517554.885867,
+    "ast_hash": "8a6230fbdfe0223c3479c4caff47f35c",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/Extensions/vantagraph-custom-volume-plus.js": {
+    "mtime": 1791515488.468498,
+    "seen": 1791517554.8858678,
+    "ast_hash": "2bfeb768812b2f98b67eadc5165195b4",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/manifest.json": {
+    "mtime": 1791515488.470429,
+    "seen": 1791517554.8858683,
+    "ast_hash": "1c85f30ad28dd232a5fe3c86ac3a7503",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/utils/debug-tools/css-debug.js": {
+    "mtime": 1791515488.4711027,
+    "seen": 1791517554.8858695,
+    "ast_hash": "23931bff9bc6f27eda447c85c8b6c0a5",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/utils/debug-tools/layout-debug.js": {
+    "mtime": 1791515488.4712644,
+    "seen": 1791517554.88587,
+    "ast_hash": "5e4bbba0e85552a98dc339d52a9386c5",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/utils/debug-tools/playerbar-debug.js": {
+    "mtime": 1791515488.4712644,
+    "seen": 1791517554.8858712,
+    "ast_hash": "5100ca98ed26dc8d9257f258d0d5656b",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/utils/debug-tools/snippet-debug.js": {
+    "mtime": 1791515488.4714057,
+    "seen": 1791517554.885872,
+    "ast_hash": "f558c2b9994c47ab7a17774b88e9590a",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/utils/screenshots/capture.js": {
+    "mtime": 1791515488.4714057,
+    "seen": 1791517554.8858726,
+    "ast_hash": "ea87709e6e25e6b217aa1cc4c505b18a",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/utils/screenshots/cdp.js": {
+    "mtime": 1791515488.4715214,
+    "seen": 1791517554.8858733,
+    "ast_hash": "62b2a95d3541f1c71fc3f9490766942b",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/utils/screenshots/compose.py": {
+    "mtime": 1791515488.4715827,
+    "seen": 1791517554.885874,
+    "ast_hash": "08eaad6fa7f862eedd975565e9e559d1",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/tests/integration/colors-smoke.js": {
+    "mtime": 1791515488.471714,
+    "seen": 1791517554.8858747,
+    "ast_hash": "eaa22ea2084e1193b001d1f2bfa3a0f0",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/theme.js": {
+    "mtime": 1791515488.4720585,
+    "seen": 1791517554.8858755,
+    "ast_hash": "89f898cce5b91eafe8e254507b9b14e8",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/CHANGELOG.md": {
+    "mtime": 1791515488.4677417,
+    "seen": 1791517554.885929,
+    "ast_hash": "d5bf1008f591a426988062ab01505e6c",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/CODE_OF_CONDUCT.md": {
+    "mtime": 1791515488.4678361,
+    "seen": 1791517554.8859303,
+    "ast_hash": "3b408e2590916c35105affffb906ac07",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/CONTRIBUTING.md": {
+    "mtime": 1791515488.4678361,
+    "seen": 1791517554.885931,
+    "ast_hash": "964bbeb33859bc7d572b577155517870",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/README.md": {
+    "mtime": 1791515488.4686522,
+    "seen": 1791517554.8859322,
+    "ast_hash": "d2c034089ac83d1aaa07d40d8ddfbfb5",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/SECURITY.md": {
+    "mtime": 1791515488.4687495,
+    "seen": 1791517554.8859332,
+    "ast_hash": "8049e62f678198396de33149bfb85685",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/COLORS.md": {
+    "mtime": 1791515488.4695685,
+    "seen": 1791517554.8859339,
+    "ast_hash": "74a64b59ff5efbc8f2d9a1a6afb77dbf",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/EXTENSIONS.md": {
+    "mtime": 1791515488.4696903,
+    "seen": 1791517554.8859346,
+    "ast_hash": "351e7f3ac49eb9f5d8696596f54b205f",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/INSTALL.md": {
+    "mtime": 1791515488.4698124,
+    "seen": 1791517554.8859355,
+    "ast_hash": "1b6e288a9820b62c1a3434eaaccee6d9",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/SETTINGS.md": {
+    "mtime": 1791515488.4698837,
+    "seen": 1791517554.885936,
+    "ast_hash": "07a852e34c46b6566c87acc050096c2f",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/guides/TUTORIAL.md": {
+    "mtime": 1791515488.4700627,
+    "seen": 1791517554.885937,
+    "ast_hash": "83582941606ef1faa82dbc2b827b20b1",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/guides/terminalcodes.txt": {
+    "mtime": 1791515488.4700627,
+    "seen": 1791517554.885938,
+    "ast_hash": "d2b1cddd1c895f791e534b204e496f43",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/locales/README_ES.md": {
+    "mtime": 1791515488.4702497,
+    "seen": 1791517554.8859386,
+    "ast_hash": "2ed75246d08d0065df46b8555c93ee9c",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/locales/README_RU.md": {
+    "mtime": 1791515488.4702497,
+    "seen": 1791517554.88594,
+    "ast_hash": "a30c41c40b93b2a37f73608af26eeeb6",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/locales/README_TR.md": {
+    "mtime": 1791515488.470429,
+    "seen": 1791517554.8859408,
+    "ast_hash": "f3727588bf4b33b480989d13d4ab62aa",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/docs/locales/README_ZH.md": {
+    "mtime": 1791515488.470429,
+    "seen": 1791517554.8859415,
+    "ast_hash": "a9fe020e793c2f4dceda1c5534a01531",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-changelog-dark.svg": {
+    "mtime": 1791515488.4687495,
+    "seen": 1791517554.8860416,
+    "ast_hash": "1df94e4cb87a045f0beb9281131d8f09",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-changelog.svg": {
+    "mtime": 1791515488.4688451,
+    "seen": 1791517554.8860424,
+    "ast_hash": "4baa19fca39ab8bcf054f2b417bfb2cf",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-download.svg": {
+    "mtime": 1791515488.4688888,
+    "seen": 1791517554.886043,
+    "ast_hash": "add728c165338931f7b56aa2919766f0",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-quick-start-dark.svg": {
+    "mtime": 1791515488.4688888,
+    "seen": 1791517554.886048,
+    "ast_hash": "bec834bc4eb5e8d2ca39c09af640435f",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-quick-start.svg": {
+    "mtime": 1791515488.468944,
+    "seen": 1791517554.886049,
+    "ast_hash": "4775418fbad9bd4bc229e5bb8c303f0b",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-report-bug-dark.svg": {
+    "mtime": 1791515488.468944,
+    "seen": 1791517554.88605,
+    "ast_hash": "906f3bd130cccb9b991429ce47319ace",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-report-bug.svg": {
+    "mtime": 1791515488.468944,
+    "seen": 1791517554.8860512,
+    "ast_hash": "2ee51d1e4821d809f51b8f46348129e2",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-star-dark.svg": {
+    "mtime": 1791515488.469073,
+    "seen": 1791517554.886052,
+    "ast_hash": "47c3d4f764cc09ea1badacb7ce37dd6a",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-star.svg": {
+    "mtime": 1791515488.469073,
+    "seen": 1791517554.8860533,
+    "ast_hash": "a7435e85b2d2ce7dc49c1960ac64a1b1",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-tutorial-dark.svg": {
+    "mtime": 1791515488.469073,
+    "seen": 1791517554.8860538,
+    "ast_hash": "69107f828d623c50fbc572c0ab0241cc",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/btn-tutorial.svg": {
+    "mtime": 1791515488.4692528,
+    "seen": 1791517554.886055,
+    "ast_hash": "fb9fb5d0ed1b1c26b11d46fa7f0a95a8",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/divider.svg": {
+    "mtime": 1791515488.4692528,
+    "seen": 1791517554.8860557,
+    "ast_hash": "9c3a01b86c406c12c701cd13785d49f9",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/logo-dark.svg": {
+    "mtime": 1791515488.4694102,
+    "seen": 1791517554.8860564,
+    "ast_hash": "57f96512c7f3291ce8b61a481b7cf573",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/assets/logo.svg": {
+    "mtime": 1791515488.4694102,
+    "seen": 1791517554.8860571,
+    "ast_hash": "62a636e80efe3791984619333d13f6c6",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/assets/icons/bottombar-percentage.svg": {
+    "mtime": 1791515488.4706988,
+    "seen": 1791517554.8860583,
+    "ast_hash": "2d6aa055b7975e4cac42135e32809fc6",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/assets/icons/vantagraph-miniplayer.svg": {
+    "mtime": 1791515488.4707565,
+    "seen": 1791517554.886059,
+    "ast_hash": "11e45250866b442d806b6995ee97cb26",
+    "semantic_hash": ""
+  },
+  ".config/spicetify/Themes/vantagraph-custom/src/assets/icons/vantagraph-theme.svg": {
+    "mtime": 1791515488.4707565,
+    "seen": 1791517554.8860598,
+    "ast_hash": "5147ba673e755f0bdf604e5e2dfc866c",
+    "semantic_hash": ""
+  },
+  ".config/quickshell/angelos/tests/sddm/test_source_stamp.py": {
+    "mtime": 1791552233.7943842,
+    "seen": 1791552347.4474764,
+    "ast_hash": "fddab3e2298e41f60ca518c218ba0e3a",
+    "semantic_hash": ""
   }
 }
