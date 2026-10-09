@@ -5,8 +5,8 @@
 #   dotfiles-update.sh --check REPO           fetch; print BRANCH/UPSTREAM/BEHIND/AHEAD/DIRTY/REMOTE and IN <commit> lines
 #                                             ("ERR fetch <git's reason>" when the repository can't be reached)
 #   dotfiles-update.sh --clone DEST [URL]     first-time download of the official repository
-#   dotfiles-update.sh REPO                   fetch, snapshot, fast-forward, run the installer non-interactively,
-#                                             wire niri, `niri validate`
+#   dotfiles-update.sh REPO                   fetch, update the system (pacman -Syu), snapshot, fast-forward,
+#                                             run the installer non-interactively, wire niri, `niri validate`
 #   dotfiles-update.sh --restore DIR [--dry-run]   undo the update that took snapshot DIR (scripts/update-txn.py)
 #   dotfiles-update.sh --last                 the last attempt: LAST <status> <stage> <dir> <old> <new>
 #
@@ -17,11 +17,19 @@
 # local-changes (3, the clone has uncommitted edits), untrusted (4, origin is not
 # where the system came from), local-commits (7, commits of its own: a fast-forward
 # is impossible or there is nothing to take), pull (6, no network, no upstream),
-# snapshot (5). After it (BACKUP given, --restore undoes it): pull (6), install
+# system (8, pacman -Syu did not finish or the password was not given), quickshell
+# (9, the new version needs a newer Quickshell than the repositories gave), snapshot (5). After it (BACKUP given, --restore undoes it): pull (6), install
 # (10, with the installer's own error line; its whole output is in <dir>/install.log),
 # niri-integration (11), niri-validate / niri-missing (12, niri is not installed, so
 # the config cannot be checked), anything unexpected (13).
 # "CHANGED <files> <shell 0|1>" (from update-txn.py finish) says what the attempt changed.
+# "SYSTEM <packages> <qt 0|1>": the system update went through, <packages> upgraded,
+# qt 1 = Quickshell or Qt among them (the running shell is the old one: restart it).
+#
+# The system goes first, before anything of angelOS changes: a new shell on an old
+# Quickshell/Qt, or a Qt that moved without its rebuilt Quickshell (#50, #51), would
+# leave the user without a desktop. It asks for the admin password (pkexec: the
+# shell's own polkit dialog; sudo in a terminal). SYSTEM_UPGRADE=0 skips it.
 #
 # Nothing is updated without a click. Before the installer runs, every file it
 # may write is copied into ~/.local/state/angelos/backups/<stamp>-update and
@@ -42,6 +50,9 @@ STATE="${XDG_STATE_HOME:-$HOME/.local/state}/angelos"
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}"
 TXN="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/update-txn.py"
 NIRI_BIN="${NIRI_BIN:-niri}"   # tests point it elsewhere
+SYSTEM_UPGRADE="${SYSTEM_UPGRADE:-1}"
+PACMAN_DB="${PACMAN_DB:-/var/lib/pacman}"
+# UPDATE_UID: the tests run as a user even in CI's root container (the pkexec path)
 
 # before the snapshot: nothing was changed
 fail_early() { say "$2"; echo "FAILED $1 $2"; exit "${3:-1}"; }
@@ -88,6 +99,70 @@ find_repo() {
     is_repo "$r" && { printf '%s\n' "$r"; return 0; }
   done
   return 1
+}
+
+# the packages a shell runs on; changed ones mean the running shell is the old build
+qt_packages() { pacman -Q quickshell quickshell-git qt6-base qt6-declarative qt6-wayland 2>/dev/null || true; }
+
+# pacman -Syu as root, before the snapshot: packages can't be put back by --restore,
+# so a failure here stops the update with angelOS untouched
+system_upgrade() {
+  [[ "$SYSTEM_UPGRADE" == 1 ]] || { say "$(_ "SYSTEM_UPGRADE=0: the system is not updated" "SYSTEM_UPGRADE=0: система не обновляется")"; return 0; }
+  command -v pacman >/dev/null || { say "$(_ "pacman not found: only angelOS is updated" "pacman не найден: обновляется только angelOS")"; return 0; }
+  local root=() log code why n before after qt=0
+  if [[ -e "$PACMAN_DB/db.lck" ]]; then
+    fail_early system "$(_ "another package manager is running ($PACMAN_DB/db.lck) — wait for it to finish and press Update again. Nothing changed" \
+                           "сейчас работает другой менеджер пакетов ($PACMAN_DB/db.lck) — дождись, пока он закончит, и нажми «Обновить» ещё раз. Ничего не менялось")" 8
+  fi
+  if ((${UPDATE_UID:-$EUID} == 0)); then
+    root=()
+  elif command -v pkexec >/dev/null; then
+    # pkexec refuses to run when $SHELL is not in /etc/shells (a wrapper in ~/.local/bin)
+    root=(env SHELL=/bin/sh pkexec)
+  elif [[ -t 0 ]] && command -v sudo >/dev/null; then
+    root=(sudo)
+  else
+    fail_early system "$(_ "neither pkexec (polkit) nor sudo in a terminal: the system can't be updated, so angelOS was not either. Run sudo pacman -Syu, then update again" \
+                           "нет ни pkexec (polkit), ни sudo в терминале: систему не обновить, поэтому и angelOS не обновлялся. Выполни sudo pacman -Syu и обнови снова")" 8
+  fi
+  say "$(_ "updating the system first (pacman -Syu) — it asks for the admin password" "сначала обновляю систему (pacman -Syu) — попросит пароль администратора")"
+  before="$(qt_packages)"
+  log="$(mktemp)"
+  code=0
+  "${root[@]}" pacman -Syu --noconfirm --color never </dev/null 2>&1 | tee "$log" || code="${PIPESTATUS[0]}"
+  if ((code != 0)); then
+    why="$(sed -n 's/^error: //p' "$log" | tail -n 1)"
+    rm -f "$log"
+    # pkexec: 126 = the password dialog was closed, 127 = not authorized / no polkit agent
+    if [[ "${root[*]}" == *pkexec* ]] && ((code == 126 || code == 127)); then
+      fail_early system "$(_ "the admin password was not given, so the system and angelOS stay as they are. Press Update again and enter the password" \
+                             "пароль администратора не введён — система и angelOS остались как были. Нажми «Обновить» ещё раз и введи пароль")" 8
+    fi
+    fail_early system "$(_ "the system update (pacman -Syu) stopped${why:+: $why}. angelOS was not updated: its new version may need the new packages. Update the system in a terminal (sudo pacman -Syu), then press Update again" \
+                           "обновление системы (pacman -Syu) остановилось${why:+: $why}. angelOS не обновлялся: новой версии могут быть нужны новые пакеты. Обнови систему в терминале (sudo pacman -Syu) и нажми «Обновить» ещё раз")" 8
+  fi
+  n="$(sed -n 's/^Packages (\([0-9]*\)).*/\1/p' "$log" | tail -n 1)"
+  rm -f "$log"
+  after="$(qt_packages)"
+  [[ "$before" == "$after" ]] || qt=1
+  say "$(_ "the system is up to date (packages upgraded: ${n:-0})" "система обновлена (обновлено пакетов: ${n:-0})")"
+  ((qt == 0)) || say "$(_ "Quickshell/Qt changed: the shell needs a restart" "Quickshell/Qt обновились: оболочку нужно перезапустить")"
+  echo "SYSTEM ${n:-0} $qt"
+}
+
+# the new version's own word on the Quickshell it needs (its scripts/qs-version.sh)
+quickshell_fits() {
+  local script state found want
+  script="$(git show "$1:.config/quickshell/angelos/scripts/qs-version.sh" 2>/dev/null)" || return 0
+  read -r state found want < <(printf '%s\n' "$script" | sh -s 2>/dev/null || true) || true
+  case "$state" in
+    too-old)
+      fail_early quickshell "$(_ "the new angelOS needs Quickshell $want, the system has $found even after its update — angelOS was not updated, so the desktop keeps working. Update the quickshell package when the repositories have it, then update again" \
+                                 "новому angelOS нужен Quickshell $want, а в системе даже после обновления $found — angelOS не обновлялся, рабочий стол продолжает работать. Обнови пакет quickshell, когда он появится в репозиториях, и обнови снова")" 9 ;;
+    old) say "$(_ "Quickshell $found is older than $want: angelOS runs, without its crash fixes" "Quickshell $found старее $want: angelOS работает, но без исправлений падений")" ;;
+    missing) say "$(_ "the quickshell package was not found on PATH: its version is not checked" "пакет quickshell не найден в PATH: его версия не проверяется")" ;;
+  esac
+  return 0
 }
 
 case "${1:-}" in
@@ -193,6 +268,10 @@ elif ((ahead > 0)); then
   fail_early local-commits "$(_ "the branch went its own way: $ahead commit(s) of its own and $behind new in $up, so it can't be fast-forwarded. Nothing changed. Put your commits on top of the new ones (git -C \"$REPO\" pull --rebase), then update again" \
                                 "ветка разошлась с $up: $ahead своих коммит(а/ов) и $behind новых — перемотать нельзя. Ничего не менялось. Перенеси свои коммиты поверх новых (git -C \"$REPO\" pull --rebase), потом обнови снова")" 7
 fi
+
+# the system before angelOS (see the top): nothing of angelOS has changed yet
+system_upgrade
+quickshell_fits "$new"
 
 # the snapshot, before anything is changed: every file the installer may write,
 # copied and read back (scripts/update-txn.py); no snapshot, no update

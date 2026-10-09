@@ -109,7 +109,7 @@ one() { # SHA[:alarm] LABEL
   "${G[@]}" clone -q "$D/origin.git" "$REPO"
   "${G[@]}" -C "$REPO" reset -q --hard "$sha"
 
-  local ENVS=(env -i HOME="$H" PATH="$STUBS:$PATH" LANG=C USER=test GSETTINGS_BACKEND=memory)
+  local ENVS=(env -i HOME="$H" PATH="$STUBS:$PATH" LANG=C USER=test GSETTINGS_BACKEND=memory SYSTEM_UPGRADE=0)
   # Arch Linux ARM: installed past the distribution check, then updated without the switch
   local DISTRO=() FORCE=()
   ((alarm)) && DISTRO=(DOTFILES_OS_RELEASE="$W/os-alarm") && FORCE=(DOTFILES_FORCE_DISTRO=1)

@@ -2,7 +2,8 @@
 # Settings → Updates end to end, offline and away from your session: a throw-away
 # $HOME installed from this working tree, a local "origin" that publishes the next
 # version, and stand-ins for niri (`niri validate` fails on a NIRI-INVALID line),
-# qs, notify-send, pkill and systemctl. No network, no real settings touched.
+# pacman -Syu and pkexec (the system update), qs, notify-send, pkill and systemctl.
+# No network, no real settings or packages touched.
 #
 #   scripts/test-update.sh             the update script and its restore
 #   UPDATE_UI=0 scripts/test-update.sh skip the Settings → Updates UI part
@@ -37,6 +38,30 @@ if grep -rqs 'NIRI-INVALID' "$(dirname "$cfg")"; then
 fi
 exit 0
 SH
+# the system update: `pacman -Syu` answers from $HOME/stub-pacman (fail = a conflict), its
+# Quickshell/Qt versions (`pacman -Q`) from $HOME/stub-qt (stub-qt-after replaces them on -Syu);
+# every other pacman call is the real one, as before
+REAL_PACMAN="$(command -v pacman || echo /nonexistent/pacman)"
+cat >"$STUBS/pacman" <<SH
+#!/bin/sh
+case "\$1" in
+  -Syu)
+    echo "pacman \$*" >>"\$HOME/stub-calls"
+    [ "\$(cat "\$HOME/stub-pacman" 2>/dev/null)" = fail ] && { echo "error: failed to commit transaction (conflicting files)"; exit 1; }
+    [ -f "\$HOME/stub-qt-after" ] && mv "\$HOME/stub-qt-after" "\$HOME/stub-qt"
+    echo "Packages (3) a-1-1 b-2-1 c-3-1"
+    exit 0 ;;
+  -Q) [ -f "\$HOME/stub-qt" ] && { cat "\$HOME/stub-qt"; exit 0; }; exit 1 ;;
+esac
+exec $REAL_PACMAN "\$@"
+SH
+# pkexec: \$HOME/stub-pkexec holds the exit code of a closed password dialog (126), else it runs the command
+cat >"$STUBS/pkexec" <<'SH'
+#!/bin/sh
+echo "pkexec $*" >>"$HOME/stub-calls"
+[ -f "$HOME/stub-pkexec" ] && exit "$(cat "$HOME/stub-pkexec")"
+exec "$@"
+SH
 for c in qs quickshell notify-send pkill systemctl setsid fc-cache xdg-user-dirs-update; do
   printf '#!/bin/sh\necho "%s $*" >>"$HOME/stub-calls"\nexit 0\n' "$c" >"$STUBS/$c"
 done
@@ -55,7 +80,7 @@ V1="$(git -C "$SRC" rev-parse HEAD)"
 
 H="$W/home"                     # always this path: installed files hold it (@HOME@)
 REPO="$H/AngelOS-Dotfiles"
-ENVS=(env -i HOME="$H" PATH="$STUBS:$PATH" LANG=C USER=test)
+ENVS=(env -i HOME="$H" PATH="$STUBS:$PATH" LANG=C USER=test UPDATE_UID=1000)
 "${ENVS[@]}" git clone -q "$W/origin.git" "$REPO"
 if ! "${ENVS[@]}" SKIP_PACKAGES=1 INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 INTRO_SOUNDS=0 \
      INSTALL_SDDM=0 DESKTOP_SHELL=angelos bash "$REPO/install.sh" </dev/null >"$W/install.log" 2>&1; then
@@ -161,6 +186,9 @@ update
 if ((RC == 0)); then pass "success: exit 0"; else fail "success: exit $RC"; show "$W/$CASE.out"; fi
 check "success: UPDATED is the last line, with old/new commits" \
   test "$(tail -n 1 "$W/$CASE.out")" = "UPDATED $V1 $V2 1"
+check "success: the system was updated first, through pkexec, before the snapshot" \
+  bash -c "grep -q '^pkexec env\|^pkexec pacman -Syu --noconfirm' '$H/stub-calls' && grep -q '^SYSTEM 3 0\$' '$W/$CASE.out' &&
+           [[ \$(grep -n '^SYSTEM ' '$W/$CASE.out' | cut -d: -f1) -lt \$(grep -n '^BACKUP ' '$W/$CASE.out' | cut -d: -f1) ]]"
 check "success: no FAILED line" bash -c "! grep -q '^FAILED ' '$W/$CASE.out'"
 check "success: repository fast-forwarded" head_is "$V2"
 check "success: shell code updated, new file installed" \
@@ -348,6 +376,62 @@ update
 refused "no network" 6 pull
 check "no network: git's own reason is in the message" bash -c "tail -n 1 '$W/$CASE.out' | grep -qiE 'repository|does not|not found|exist'"
 mv "$W/origin.away" "$W/origin.git"
+
+# ── 7b. the system update stops the update before angelOS changes ────────────
+new_case system-fails
+v2_edits
+publish v2
+echo fail >"$H/stub-pacman"
+fingerprint >"$W/before"
+update
+refused "pacman -Syu fails" 8 system
+check "pacman -Syu fails: pacman's own error in the message, the repository on v1" \
+  bash -c "tail -n 1 '$W/$CASE.out' | grep -q 'conflicting files' && [[ \$(git -C '$REPO' rev-parse HEAD) == $V1 ]]"
+
+new_case password-closed
+v2_edits
+publish v2
+echo 126 >"$H/stub-pkexec"
+fingerprint >"$W/before"
+update
+refused "password dialog closed" 8 system
+check "password dialog closed: pacman never ran" bash -c "! grep -q '^pacman -Syu' '$H/stub-calls'"
+
+new_case pacman-busy
+v2_edits
+publish v2
+mkdir -p "$W/pacdb" && touch "$W/pacdb/db.lck"
+fingerprint >"$W/before"
+update PACMAN_DB="$W/pacdb"
+refused "another pacman running" 8 system
+check "another pacman running: pkexec never asked" bash -c "! grep -q '^pkexec' '$H/stub-calls' 2>/dev/null"
+
+new_case quickshell-too-old
+v2_edits
+mkdir -p "$W/qsold"
+printf '#!/bin/sh\necho "quickshell 0.2.1"\n' >"$W/qsold/quickshell"
+chmod +x "$W/qsold/quickshell"
+publish v2
+fingerprint >"$W/before"
+update PATH="$W/qsold:$STUBS:$PATH"
+refused "Quickshell too old for the new version" 9 quickshell
+check "Quickshell too old: says which one is needed" bash -c "tail -n 1 '$W/$CASE.out' | grep -q '0.3.2'"
+
+new_case qt-moved
+v2_edits
+publish v2
+printf 'qt6-base 6.11.0-1\nquickshell 0.3.2-1\n' >"$H/stub-qt"
+printf 'qt6-base 6.12.0-1\nquickshell 0.3.2-2\n' >"$H/stub-qt-after"
+update
+check "Qt moved with the system: exit 0, SYSTEM says so (the shell is asked to restart)" \
+  bash -c "[[ $RC == 0 ]] && grep -q '^SYSTEM 3 1\$' '$W/$CASE.out' && tail -n 1 '$W/$CASE.out' | grep -q '^UPDATED '"
+
+new_case no-system
+v2_edits
+publish v2
+update SYSTEM_UPGRADE=0
+check "SYSTEM_UPGRADE=0: angelOS updates, pacman never runs" \
+  bash -c "[[ $RC == 0 ]] && ! grep -q '^SYSTEM ' '$W/$CASE.out' && ! grep -q 'pacman -Syu' '$H/stub-calls' 2>/dev/null"
 
 # ── 8. failures after the snapshot say why, and are undone ───────────────────
 new_case install-dies
