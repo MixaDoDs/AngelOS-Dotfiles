@@ -24,8 +24,12 @@ Item {
     readonly property bool hug: style === "capsules"
     property bool compact: false
     property bool inline: false
+    // a taskbar on the left or the right edge (BarLayout.vertical, like Windows 10): one column —
+    // Start, the workspaces and the windows from the top, the rest (the centre's widgets
+    // without the lyrics, then the right side's) at the bottom
+    property bool vertical: false
     property int itemHeight: Theme.u * 15
-    readonly property bool above: style === "taskbar" || style === "dock" || style === "windose"
+    readonly property bool above: (style === "taskbar" && BarLayout.edge === "bottom") || style === "dock" || style === "windose"
     // the sections, for the capsules behind them (CapsuleWindow)
     readonly property alias leftBox: left
     readonly property alias centerBox: center
@@ -38,6 +42,14 @@ Item {
         for (const c of sec.children) {
             if (c.wid === undefined || !c.visible || c.width <= 0)
                 continue;
+            if (vertical) {         // upright: the run from top to bottom
+                const h = c.wid === "tasks" && c.item && c.item.naturalHeight !== undefined ? Math.min(c.height, c.item.naturalHeight) : c.height;
+                if (h <= 0)
+                    continue;
+                a = Math.min(a, c.y);
+                b = Math.max(b, c.y + h);
+                continue;
+            }
             const w = c.wid === "tasks" && c.item && c.item.naturalWidth !== undefined ? Math.min(c.width, c.item.naturalWidth) : c.width;
             if (w <= 0)
                 continue;
@@ -54,13 +66,22 @@ Item {
         const pad = Theme.u * 2;
         const h = itemHeight + Theme.u * 2;
         const y = Math.round((height - h) / 2);
-        const secs = inline ? [[inlineRow.children[0], inlineRow], [inlineRow.children[1], inlineRow], [inlineRow.children[2], inlineRow]] : [[left, full], [center, full], [right, full]];
+        const secs = inline ? [[inlineRow.children[0], inlineRow], [inlineRow.children[1], inlineRow], [inlineRow.children[2], inlineRow]] : vertical ? [[vTop, column], [vBottom, column]] : [[left, full], [center, full], [right, full]];
         for (const [sec, holder] of secs) {
             if (!sec || !sec.visible)
                 continue;
             const r = usedRange(sec);
             if (!r)
                 continue;
+            if (vertical) {
+                out.push({
+                    "x": Theme.u,
+                    "y": holder.y + sec.y + r[0] - pad,
+                    "w": width - Theme.u * 2,
+                    "h": r[1] - r[0] + pad * 2
+                });
+                continue;
+            }
             const x0 = holder.x + sec.x + r[0] - pad;
             out.push({
                 "x": x0,
@@ -79,6 +100,24 @@ Item {
     Component.onDestruction: {
         if (Shell.barViews[screenName] === root)
             delete Shell.barViews[screenName];
+    }
+    // upright: the widgets shown, in this item's coordinates (the self-test's check of the column)
+    function columnItems() {
+        const out = [];
+        for (const sec of [vTop, vBottom])
+            for (const c of sec.children) {
+                if (c.wid === undefined || !c.visible || c.width <= 0 || c.height <= 0)
+                    continue;
+                const p = c.mapToItem(root, 0, 0);
+                out.push({
+                    "wid": c.wid,
+                    "x": p.x,
+                    "y": p.y,
+                    "w": c.width,
+                    "h": c.height
+                });
+            }
+        return out;
     }
     function diagnostics() {
         return {
@@ -154,11 +193,51 @@ Item {
         }
     }
 
+    // ---- upright (a taskbar on the left or the right edge) ----
+    Item {
+        id: column
+        anchors.fill: parent
+        visible: root.vertical && !root.inline
+        // sunken Win98 notification area behind the bottom run, as across
+        PxBox {
+            visible: vBottom.implicitHeight > 0 && !root.hellInk
+            x: Theme.u
+            y: vBottom.y - Theme.u * 3
+            width: parent.width - Theme.u * 2
+            height: vBottom.height + Theme.u * 5
+            sunken: true
+            outline: false
+            color: Qt.alpha(Theme.sunken, 0.35)
+        }
+        BarSection {
+            id: vTop
+            anchors.top: parent.top
+            anchors.topMargin: Theme.u * 2
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: vBottom.top
+            anchors.bottomMargin: root.gap + Theme.u * 3
+            ids: root.vertical && !root.inline ? root.layout.left : []
+            bar: root
+            fillTasks: true
+        }
+        BarSection {
+            id: vBottom
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Theme.u * 2
+            anchors.left: parent.left
+            anchors.right: parent.right
+            ids: root.vertical && !root.inline ? root.layout.center.filter(id => id !== "lyrics").concat(root.layout.right) : []
+            bar: root
+            density: Config.bar.rightDensity || "normal"
+        }
+    }
+
     // ---- full width (taskbar / top) ----
     Item {
         id: full
         anchors.fill: parent
-        visible: !root.inline
+        visible: !root.inline && !root.vertical
 
         readonly property bool tasksLeft: root.layout.left.includes("tasks")
         readonly property real mid: width / 2
@@ -183,7 +262,7 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: Theme.u * 2
             anchors.verticalCenter: parent.verticalCenter
-            ids: root.inline ? [] : root.layout.right
+            ids: root.inline || root.vertical ? [] : root.layout.right
             bar: root
             lyricsMax: Theme.u * 150
             density: Config.bar.rightDensity || "normal"
@@ -193,7 +272,7 @@ Item {
             id: center
             anchors.verticalCenter: parent.verticalCenter
             x: parent.centered && !root.hug ? Theme.u * 2 : Math.round(Math.max(leftNeed, Math.min(parent.mid - width / 2, right.x - root.gap - width)))
-            ids: root.inline ? [] : root.layout.center
+            ids: root.inline || root.vertical ? [] : root.layout.center
             bar: root
             // widest centred run that still leaves room for the left side (+ a few task buttons) and the right side
             readonly property real leftNeed: Theme.u * 2 + left.implicitWidth + (parent.tasksLeft && !root.hug ? (root.compact ? Theme.u * 4 : Theme.u * 44) : 0) + root.gap + (root.hug ? Theme.u * 10 : 0)
@@ -210,7 +289,7 @@ Item {
             readonly property real centeredX: Math.round(Math.max(Theme.u * 2, Math.min((parent.width - width) / 2, right.x - root.gap - width)))
             x: parent.centered && !root.hug ? centeredX : Theme.u * 2
             width: parent.centered || root.hug ? Math.min(implicitWidth, room) : Math.max(implicitWidth, (center.implicitWidth > 0 && center.visible ? center.x : right.x - Theme.u * 6) - root.gap - x)
-            ids: root.inline ? [] : root.layout.left
+            ids: root.inline || root.vertical ? [] : root.layout.left
             bar: root
             fillTasks: !parent.centered && !root.hug
             centered: parent.centered || root.hug

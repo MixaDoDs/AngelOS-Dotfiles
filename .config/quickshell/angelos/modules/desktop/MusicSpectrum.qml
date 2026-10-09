@@ -7,14 +7,15 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// Pixel spectrum from cava (raw ASCII output). Sound comes through
+// The music widget's spectrum (MusicWidget: alone at S, under the player at L), from cava (raw
+// ASCII output). Sound comes through
 // scripts/audio-tap.py: pw-record of an output's monitor, a whole multichannel
 // interface or one channel pair → FIFO → cava. cava's own `source = <sink>`
 // silently fell back to the default *input*, i.e. the microphone.
 // In hell (Theme.realm) the bars are dried blood; a loud one's top block is the one accent.
 // cava and the tap stop while nobody can see the desk (locked, fullscreen game),
-// and run only in a copy that is shown: the widget's face (DesktopWidgetHost) —
-// its hidden input copy would share the FIFO and the config. A watchdog restarts a
+// and run only in the widget's face (`face`, DesktopWidgetHost) — its input copy (shown over
+// the player's buttons) would share the FIFO and the config. A watchdog restarts a
 // cava that stopped printing frames (B4).
 // macOS look (DesktopWidgets.macLook): round-capped capsules in the theme's two accents.
 Item {
@@ -22,9 +23,13 @@ Item {
 
     property string screenName
     property var widget
+    property bool face: true                 // the input copy draws nothing and runs nothing
+    property bool mac: DesktopWidgets.macLook
+    property int rows: 14                    // the pixel bars' height, in blocks
+    property real fitWidth: 0                // > 0: the bars stretch to this width
     readonly property bool passive: true     // nothing to click: no input copy needed
     readonly property bool paused: Shell.hiddenScreen(screenName)
-    readonly property bool live: visible && !paused
+    readonly property bool live: visible && face && !paused
     onLiveChanged: {
         if (!live) {
             restart.stop();
@@ -42,11 +47,13 @@ Item {
     readonly property string conf: Quickshell.env("HOME") + "/.cache/angelos/cava-" + (widget ? widget.uid : "x") + ".conf"
     readonly property string fifo: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos-cava-" + (widget ? widget.uid : "x") + ".fifo"
 
-    readonly property bool mac: DesktopWidgets.macLook
     readonly property int macBar: DesktopWidgets.mpx(bars > 40 ? 4 : 5)
     readonly property int macGap: DesktopWidgets.mpx(3)
-    implicitWidth: mac ? bars * (macBar + macGap) - macGap : Theme.u * 6 * bars / 2 + Theme.u * 4
-    implicitHeight: mac ? DesktopWidgets.mpx(88) : Theme.u * 44
+    readonly property int block: Theme.u * 2
+    readonly property int blockGap: Math.max(1, Theme.u / 2)
+    readonly property int barW: fitWidth > 0 ? Math.max(Theme.u, Math.floor((fitWidth - Theme.u * (bars - 1)) / bars)) : Theme.u * 2
+    implicitWidth: mac ? bars * (macBar + macGap) - macGap : fitWidth > 0 ? fitWidth : Theme.u * 6 * bars / 2 + Theme.u * 4
+    implicitHeight: mac ? DesktopWidgets.mpx(88) : rows * (block + blockGap) + Theme.u * 9
 
     FileView {
         id: confFile
@@ -185,14 +192,22 @@ Item {
                 id: bar
                 required property int index
                 readonly property real v: root.levels[index] || 0
-                width: Theme.u * 2
+                width: root.barW
                 height: root.height
+                // in silence a dim floor, so the widget never stands empty
+                Rectangle {
+                    visible: stack.count === 0
+                    anchors.bottom: parent.bottom
+                    width: bar.width
+                    height: root.block
+                    color: Theme.hell ? Qt.alpha(Theme.hellBlood, 0.35) : Qt.alpha(Theme.accent2, 0.25)
+                }
                 // stacked pixel blocks, pink at the bottom fading to cyan at the top
                 Column {
                     id: stack
-                    readonly property int count: Math.round(bar.v * 14)
+                    readonly property int count: Math.round(bar.v * root.rows)
                     anchors.bottom: parent.bottom
-                    spacing: Math.max(1, Theme.u / 2)
+                    spacing: root.blockGap
                     Repeater {
                         model: stack.count
                         Rectangle {
@@ -200,8 +215,8 @@ Item {
                             // the Column stacks downwards: the first block is the top one
                             readonly property int level: stack.count - 1 - index
                             width: bar.width
-                            height: Theme.u * 2
-                            color: !Theme.hell ? Theme.mix(Theme.accent2, Theme.accent, (index + 1) / 14) : index === 0 && stack.count > 9 ? Theme.hellAccent : Theme.hellBlood
+                            height: root.block
+                            color: !Theme.hell ? Theme.mix(Theme.accent2, Theme.accent, (index + 1) / root.rows) : index === 0 && stack.count > root.rows * 0.65 ? Theme.hellAccent : Theme.hellBlood
                         }
                     }
                 }

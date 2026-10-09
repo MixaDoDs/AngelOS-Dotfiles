@@ -18,6 +18,10 @@ Item {
     property bool iconsOnly: false         // compact / island bars, or titles switched off
     property bool above: true              // the window menu opens above a bottom bar
     property bool dock: false              // the dock's icons (BarItem: style "dock")
+    // a taskbar on the left or the right edge (BarItem): a column of icons, as wide as the bar,
+    // scrolling up and down once there are more than fit
+    property bool vertical: false
+    readonly property int cellH: Math.min(width, Theme.u * 18)
     // the hell bar (BarItem): flat buttons with the one plate rule, the focused window's the
     // active plate, app icons in the circle's ramp
     property bool barInk: false
@@ -32,12 +36,14 @@ Item {
     readonly property int labelMin: Theme.u * Math.max(28, Config.bar.taskMinWidth)
     readonly property int maxW: Theme.u * Math.max(28, Config.bar.taskMinWidth, Config.bar.taskMaxWidth)
     readonly property real share: count ? (width - (count - 1) * spacing) / count : 0
-    readonly property bool labels: !iconsOnly && share >= labelMin
-    readonly property int buttonWidth: labels ? Math.min(maxW, Math.floor(share)) : iconWidth
+    readonly property bool labels: !iconsOnly && !vertical && share >= labelMin
+    readonly property int buttonWidth: vertical ? width : labels ? Math.min(maxW, Math.floor(share)) : iconWidth
     readonly property real rowWidth: count * buttonWidth + Math.max(0, count - 1) * spacing
-    readonly property bool overflow: rowWidth > width + 0.5
+    readonly property real colHeight: count * cellH + Math.max(0, count - 1) * spacing
+    readonly property bool overflow: vertical ? colHeight > height + 0.5 : rowWidth > width + 0.5
     // as wide as the buttons want to be (Settings → Bar → "Windows" width: compact)
     readonly property real naturalWidth: count * (iconsOnly ? iconWidth : maxW) + Math.max(0, count - 1) * spacing
+    readonly property real naturalHeight: colHeight
 
     clip: !dock || overflow
     HoverHandler {
@@ -46,6 +52,8 @@ Item {
     }
 
     function scrollBy(dx) {
+        if (vertical)
+            return;
         const max = Math.max(0, flick.contentWidth - flick.width);
         glide.stop();
         glide.to = Math.max(0, Math.min(max, flick.contentX + dx));
@@ -53,7 +61,7 @@ Item {
     }
     // keep the focused window's button in view when the row scrolls
     function reveal() {
-        if (!overflow)
+        if (!overflow || vertical)
             return;
         const i = list.findIndex(w => w.is_focused);
         if (i < 0)
@@ -72,8 +80,10 @@ Item {
         running: true
         onTriggered: root.ready = true
     }
-    onOverflowChanged: if (!overflow)
-        flick.contentX = 0
+    onOverflowChanged: if (!overflow) {
+        flick.contentX = 0;
+        flick.contentY = 0;
+    }
 
     NumberAnimation {
         id: glide
@@ -92,16 +102,17 @@ Item {
     Flickable {
         id: flick
         anchors.fill: parent
-        contentWidth: root.rowWidth
-        contentHeight: height
+        contentWidth: root.vertical ? width : root.rowWidth
+        contentHeight: root.vertical ? root.colHeight : height
         interactive: root.overflow
-        flickableDirection: Flickable.HorizontalFlick
+        flickableDirection: root.vertical ? Flickable.VerticalFlick : Flickable.HorizontalFlick
         boundsBehavior: Flickable.StopAtBounds
         pixelAligned: true
 
-        Row {
+        // a row; upright, a column (Grid of one column)
+        Grid {
             id: row
-            height: flick.height
+            columns: root.vertical ? 1 : Math.max(1, root.count)
             spacing: root.spacing
 
             Repeater {
@@ -111,7 +122,7 @@ Item {
                     required property var modelData
                     required property int index
                     width: root.buttonWidth
-                    height: row.height
+                    height: root.vertical ? root.cellH : flick.height
                     flat: root.dock
                     barInk: root.barInk
                     checked: modelData.is_focused && !root.dock
@@ -243,7 +254,7 @@ Item {
 
     // wheel scrolls the row sideways once it overflows
     WheelHandler {
-        enabled: root.overflow
+        enabled: root.overflow && !root.vertical
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         onWheel: e => {
             const d = e.pixelDelta.x !== 0 ? -e.pixelDelta.x : e.pixelDelta.y !== 0 ? -e.pixelDelta.y : -(e.angleDelta.y || e.angleDelta.x) / 120 * (root.buttonWidth + root.spacing);
@@ -256,7 +267,7 @@ Item {
         model: [-1, 1]
         PxButton {
             required property int modelData
-            visible: root.overflow && (modelData < 0 ? flick.contentX > 1 : flick.contentX < flick.contentWidth - flick.width - 1)
+            visible: root.overflow && !root.vertical && (modelData < 0 ? flick.contentX > 1 : flick.contentX < flick.contentWidth - flick.width - 1)
             compact: true
             icon: modelData < 0 ? "arrowLeft" : "arrowRight"
             Accessible.name: modelData < 0 ? I18n.t("Окна левее", "Windows to the left") : I18n.t("Окна правее", "Windows to the right")

@@ -36,6 +36,7 @@ JsonAdapter {
     property JsonObject bar: JsonObject {
         property string style: "taskbar"    // taskbar | top | island | dock | capsules | windose (BarLayout.styles)
         property bool autoHide: false       // taskbar: slides away below the screen edge, back on the pointer at the edge
+        property string edge: "bottom"      // taskbar: the screen edge it sits on, like Windows 10 — bottom | top | left | right (BarLayout.edge)
         property int autoHideMs: 700        // how long it waits after the pointer leaves
         property var screens: []            // empty = every screen
         property bool compactOnVertical: true
@@ -101,6 +102,9 @@ JsonAdapter {
         property string themeOf: ""
         // the newest release whose wallpapers were offered (services/Wallpapers: releases)
         property int releaseSeen: 0
+        // one wallpaper in several files (day / night, 21:9, 32:9, 9:16 …, scripts/wall-meta.py):
+        // every screen shows the file that fits the theme and its shape (services/Wallpapers: pick)
+        property bool variants: true
         // half-alive wallpapers (services/LiveWalls): stars twinkle and fall in a night sky,
         // water ripples and mirrors them, the picture's lights twinkle
         property bool live: true
@@ -182,6 +186,7 @@ JsonAdapter {
         property string from: ""            // the wizard's "where do you come from": windows | mac | linux | new | ""
         property string persona: ""         // the wizard's "who are you": streamer | worker | regular | creative | ""
         property var apps: []               // the apps ticked in the wizard (data/apps-catalog.json ids), browsers included
+        property int introSeen: 0           // the first run's intro last seen (SetupIntro.version): a newer one plays once after the update
     }
 
     property JsonObject notifications: JsonObject {
@@ -200,9 +205,13 @@ JsonAdapter {
     }
 
     property JsonObject desktop: JsonObject {
-        property var widgets: []            // [{uid, type, screen, x, y, settings}]; x/y < 0 = from the right/bottom
+        property var widgets: []            // [{uid, type, screen, x, y, size, frame, scale, settings}]; x/y < 0 = from the right/bottom; size s | m | l; frame "" (= widgetFrame) | window | plate | none
         property bool initialized: false
+        property string widgetFrame: "window" // the pixel widgets' frame: window (a little .exe window) | plate (a plain plate, its name on hover) | none (straight on the wallpaper)
+        property string weatherCity: ""     // the clock's weather: "" = where the IP says (ip-api.com), else a city name (Open-Meteo's geocoding)
+        property string widgetSet: ""       // the wizard's widget set: empty | minimum | center ("" = never asked)
         property bool snap: true
+        property int gridStep: 8            // the widgets' grid cell, in angelOS pixels: 4 | 8 | 16 | 32 (used while `snap` is on)
         property string titleSuffix: "exe"  // every angelOS window, widget and caption ends in .exe | .sh | .bin (I18n.exe)
         property string widgetStyle: "auto" // desktop widgets: auto (macOS cards with the Golden Gate skin, pixel windows otherwise) | pixel | mac (DesktopWidgets.macStyle)
         // the right-click menu on the wallpaper (services/DeskMenu, Settings → Right-click menu)
@@ -572,6 +581,7 @@ JsonAdapter {
         property string skin: "classic"     // classic angelOS | Windose desktop | stream studio
         property bool skinChosen: false     // the look was picked (the wizard, or the banner on the settings home)
         property var usage: ({})            // page id -> visits; "Everyday" on the home page follows it
+        property var searchHistory: []      // what was searched and opened, newest first: [{q, title, page, icon}] (SettingsView: a click into the empty search shows it)
     }
 
     // the Golden Gate skin (settingsUi.skin "goldengate"; services/GoldenGate, modules/mac): the
@@ -608,6 +618,7 @@ JsonAdapter {
 
     property JsonObject developer: JsonObject {
         property bool enabled: false
+        property bool showLaptop: false      // developer mode: the laptop's settings on a desktop too, to show them (services/Laptop.has)
         property string provider: "claude-cli" // claude-cli | codex-cli (browser login) | openai | anthropic (API key)
         property string openaiModel: "gpt-5.4"
         property string anthropicModel: "claude-opus-5-5"

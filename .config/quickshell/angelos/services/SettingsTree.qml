@@ -83,9 +83,9 @@ Singleton {
                 "near": p.settingsNear || ""
             }))
     // "needs": the hardware a page is about ("battery", "touchpad", "laptop"): a desktop doesn't
-    // see the laptop's pages (developer mode does, to look at them)
+    // see the laptop's pages, in developer mode neither (the laptop stand fakes one to look)
     function shown(p) {
-        return !!p && (!p.owner || Owner.enabled) && (!p.developer || Config.developer.enabled) && (!p.game || Story.enabled) && (!p.needs || Laptop.has(p.needs) || Config.developer.enabled);
+        return !!p && (!p.owner || Owner.enabled) && (!p.developer || Config.developer.enabled) && (!p.game || Story.enabled) && (!p.needs || Laptop.has(p.needs));
     }
     // every page of the tree (the hidden ones too), id -> {id, label, icon, hint, blocks, open,
     // category, owner, developer}; "open": its groups shown open (a page of sub-pages only)

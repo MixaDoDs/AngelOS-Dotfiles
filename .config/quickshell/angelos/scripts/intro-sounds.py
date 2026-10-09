@@ -9,8 +9,10 @@ intro.ogg   the minute before the setup wizard, exactly LENGTH seconds, cut off 
             data/sounds/intro (CC0, SOURCES.md): an endless Shepard tone rising all the way, a dark
             atmosphere, a horror violin from the middle, a heartbeat ever faster, a fire catching and
             crackling nearer, women screaming far, far away and a crowd in agony behind them, booms
-            with the screen's shakes, a big burning tree falling with «Я тут», a piano shock as the
-            ophanim is glimpsed in the corners, a riser, a sting and a boom as it rises for good, the long riser peaking right at the cut with a sub under it.
+            with the screen's shakes, a big burning tree falling with «Я тут», a whisper played
+            backwards into each of the four frames the ophanim flashes in (from where it flashes), a
+            riser, a choir swelling backwards into a choir and a bell and a boom as it rises for good,
+            the long riser peaking right at the cut with a sub under it.
             Synthesised: a noise riser, a sub-bass drone, the ears ringing after the fall, a breath in.
 plink.ogg   the 8-bit plink as it all stops
             (the wizard's tune is data/sounds/intro/music.ogg as it is: a seamless loop)
@@ -30,16 +32,18 @@ from pathlib import Path
 
 import numpy as np
 
-VERSION = "4"
+VERSION = "5"
 RATE = 48000
 LENGTH = 60.0
 HELLO = 15.0
 HERE = 25.0
 FIRE = 18.0
-CORNERS = 35.0
 OPHANIM = 50.0
+# the ophanim flashing in for a frame (SetupIntroScreen), half out of sight at an edge:
+# (time, x, y) — x, y 0…1 across the screen, one of them 0 or 1 (that edge)
+GLIMPSES = [(22.0, 0.0, 0.3), (33.0, 1.0, 0.75), (41.0, 0.35, 0.0), (47.0, 1.0, 0.2)]
 # the shakes: (time, strength 0…1); the tree's fall and the ophanim are the big ones
-SHAKES = [(8.0, 0.25), (17.5, 0.35), (HERE, 0.9), (CORNERS, 0.4), (39.0, 0.5), (44.0, 0.55), (47.0, 0.6),
+SHAKES = [(8.0, 0.25), (17.5, 0.35), (HERE, 0.9), (35.0, 0.4), (39.0, 0.5), (44.0, 0.55), (47.0, 0.6),
           (OPHANIM, 0.85), (53.0, 0.65), (55.0, 0.7), (56.5, 0.75), (57.5, 0.8), (58.5, 0.9), (59.2, 1.0)]
 # eyelids closing for a moment early on (waking up)
 BLINKS = [1.6, 4.4, 7.4]
@@ -280,6 +284,50 @@ def ringing():
     return pan(x * 0.05, 0)
 
 
+def whisper(i, p):
+    """a breath of whispering played backwards: it swells and stops dead on the frame, close by,
+    from `p` (pan), a short room after it."""
+    x = sample("whisper" if i % 2 == 0 else "whisper-2").mean(axis=1)
+    c = np.concatenate([[0], np.cumsum(np.abs(x))])
+    env = c[n_of(0.9):] - c[: -n_of(0.9)]
+    loud = np.flatnonzero(env > env.max() * 0.6)
+    a = int(loud[rng.integers(len(loud))])
+    piece = x[a:a + n_of(0.9)][::-1].copy()
+    piece *= np.linspace(0, 1, len(piece)) ** 2.5
+    piece[-n_of(0.004):] *= np.linspace(1, 0, n_of(0.004))
+    piece = fft_filter(piece, highpass(180))
+    dry = pan(piece / (np.abs(piece).max() + 1e-9), p)
+    wet = convolve(dry, reverb_ir(1.4, 0.35, 5000))
+    out = wet * 0.35
+    out[: len(dry)] += dry
+    return out, len(dry) / RATE
+
+
+def pitched(x, semitones):
+    """slower and lower (or faster and higher), like a tape."""
+    r = 2 ** (semitones / 12)
+    src = np.arange(0, len(x) - 1, r)
+    return np.stack([np.interp(src, np.arange(len(x)), x[:, c]) for c in range(x.shape[1])], axis=1)
+
+
+def choir():
+    """the ophanim's choir: the chord swelling backwards into it, then the choir itself a tone
+    low, a little burnt, in a big hall. Laid with its turn on the start."""
+    body = sample("choir") * 0.8
+    swell = sample("choir-swell")[: len(body)]
+    body[: len(swell)] += swell * 0.6
+    fwd = pitched(body, -2)
+    fwd = np.tanh(2.2 * fwd) / math.tanh(2.2)
+    back = fwd[::-1] * (np.linspace(0, 1, len(fwd)) ** 2)[:, None]
+    hall = reverb_ir(4.5, 1.6, 3800)
+    wet = convolve(fwd, hall)
+    out = np.zeros((len(back) + len(wet), 2))
+    out[: len(back)] += back
+    out[len(back): len(back) + len(fwd)] += fwd
+    out[len(back):] += wet * 0.5
+    return out / (np.abs(out).max() + 1e-9), len(back) / RATE
+
+
 BOOMS = ["boom-1", "boom-2", "boom-4", "boom-3"]
 
 
@@ -311,13 +359,17 @@ def intro():
     land(mix, "boom-2", HERE, 0.5, by=onset)
     add(mix, HERE + 0.1, faded(sample("fire-roar")[: n_of(3.0)], 0.2, 2.0) * 0.45)
     add(mix, HERE + 0.4, ringing())
-    # the ophanim glimpsed in the corners: the piano's shock
-    land(mix, "piano-shock", CORNERS, 0.5, by=onset)
-    # the ophanim rising for good: a riser into it, the sting, the piano's shock, a boom
-    riser(mix, "rise-mid", OPHANIM, 0.45)
-    land(mix, "sting", OPHANIM, 1.1, by=onset)
-    land(mix, "piano-shock", OPHANIM, 0.8, by=onset)
-    land(mix, "boom-4", OPHANIM, 0.6, by=onset)
+    # the ophanim's frames: a whisper backwards into each, from its side
+    for i, (at, x, _y) in enumerate(GLIMPSES):
+        w, turn = whisper(i, (x * 2 - 1) * 0.85)
+        add(mix, at - turn, w * (0.6 + 0.4 * at / LENGTH))
+    # the ophanim rising for good: a riser into it, the choir swelling backwards into the choir,
+    # the bell, a boom
+    riser(mix, "rise-mid", OPHANIM, 0.4)
+    c, turn = choir()
+    add(mix, OPHANIM - turn, c * 0.9)
+    land(mix, "bell", OPHANIM, 0.75, by=onset)
+    land(mix, "boom-4", OPHANIM, 0.55, by=onset)
     # the end: the long riser peaks right at the cut, the sub under it, a breath in
     riser(mix, "rise-final", LENGTH, 0.8)
     sub = sample("sub")
@@ -377,7 +429,8 @@ def main():
         (out / ".version").write_text(VERSION)
     files = {name: str(own_file(out, name) or have[name]) for name, _ in names}
     files["doki"] = str(own_file(out, "doki") or SRC / "music.ogg")
-    timeline = {"length": LENGTH, "hello": HELLO, "here": HERE, "corners": CORNERS, "ophanim": OPHANIM, "shakes": SHAKES,
+    timeline = {"length": LENGTH, "hello": HELLO, "here": HERE, "ophanim": OPHANIM, "shakes": SHAKES,
+                "glimpses": [{"t": t, "x": x, "y": y} for t, x, y in GLIMPSES],
                 "blinks": BLINKS, "screams": [s[0] for s in SCREAMS], "files": files}
     (out / "timeline.json").write_text(json.dumps(timeline))
     print(json.dumps({"dir": str(out), "files": files}))

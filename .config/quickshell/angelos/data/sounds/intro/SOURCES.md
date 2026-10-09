@@ -25,7 +25,10 @@ by `scripts/intro-sounds.py`.
 | boom-3.ogg | Cinematic impact | deleted_user_3277771 | https://freesound.org/people/deleted_user_3277771/sounds/177242/ |
 | boom-4.ogg | Big impact | AudioPapkin | https://freesound.org/people/AudioPapkin/sounds/430977/ |
 | sub.ogg | Sub bass, 4 seconds | uzerx | https://freesound.org/people/uzerx/sounds/59540/ |
-| sting.ogg | Horror sting (the first 9 s) | shelbyshark | https://freesound.org/people/shelbyshark/sounds/513332/ |
-| piano-shock.ogg | Piano shock impact | DianneLaChauveSouris | https://freesound.org/people/DianneLaChauveSouris/sounds/460042/ |
+| whisper.ogg | Ghostly whispers | dimbark1 | https://freesound.org/people/dimbark1/sounds/316797/ |
+| whisper-2.ogg | Four voices whispering | geoneo0 | https://freesound.org/people/geoneo0/sounds/143902/ |
+| choir.ogg | Short choir | Breviceps | https://freesound.org/people/Breviceps/sounds/444491/ |
+| choir-swell.ogg | Angel reveal (the silence before it trimmed) | MarknKris1996 | https://freesound.org/people/MarknKris1996/sounds/608892/ |
+| bell.ogg | Toll bell | daytripper | https://freesound.org/people/daytripper/sounds/73678/ |
 | plink.ogg | 8-bit coin | timgormly | https://freesound.org/people/timgormly/sounds/162805/ |
 | music.ogg | Happy clappy loop (seamless) | OwlishMedia | https://opengameart.org/content/happy-clappy-loop |

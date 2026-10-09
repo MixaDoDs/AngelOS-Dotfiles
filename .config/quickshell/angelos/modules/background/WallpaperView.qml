@@ -47,7 +47,9 @@ Item {
 
     function go(path) {
         styleIndex = Qt.binding(() => Wallpapers.transitionIndex(Config.wallpaper.transition));
-        const animate = configChanged && styleIndex >= 0 && Niri.ready && shown !== "" && !Motion.still;
+        // another file of the same wallpaper (day ⇄ night, the screen turned): a change too
+        const variant = Wallpapers.settled && Wallpapers.sameSet(shown, path);
+        const animate = (configChanged || variant) && styleIndex >= 0 && Niri.ready && shown !== "" && !Motion.still;
         configChanged = false;
         anim.stop();
         if (!animate) {

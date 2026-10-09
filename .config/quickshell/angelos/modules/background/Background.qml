@@ -50,6 +50,11 @@ Variants {
             Item {
                 id: faceArea
                 anchors.fill: parent
+                // edit mode: the grid under the widgets, the dragged one's landing place over them
+                DesktopGrid {
+                    anchors.fill: parent
+                    screenName: scope.modelData.name
+                }
                 Repeater {
                     model: DesktopWidgets.uidsFor(scope.modelData.name)
                     DesktopWidgetHost {
@@ -60,6 +65,11 @@ Variants {
                         area: faceArea
                         backdrop: wallpaper
                     }
+                }
+                DesktopGrid {
+                    anchors.fill: parent
+                    screenName: scope.modelData.name
+                    ghost: true
                 }
             }
 
@@ -141,7 +151,7 @@ Variants {
                         uid: modelData
                         screenName: win.modelData.name
                         area: deskArea
-                        onContextMenu: (x, y) => menu.openAt(x, y)
+                        onContextMenu: (x, y) => menu.openWidget(modelData, x, y)
                     }
                 }
             }
@@ -164,6 +174,26 @@ Variants {
                 listMenu: menu
             }
 
+            RightClickGuard {}
+        }
+
+        // edit mode's bar (the grid's cell, align all, done): over the windows, on the screen
+        // edit mode was asked on only — the desktop under the windows would hide it
+        PanelWindow {
+            screen: scope.modelData
+            visible: DesktopWidgets.editMode && DesktopWidgets.editScreen === scope.modelData.name
+            anchors.top: true
+            margins.top: Theme.u * 40
+            exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.layer: WlrLayer.Top
+            WlrLayershell.namespace: "angelos-editbar"
+            color: "transparent"
+            implicitWidth: editBar.width + Theme.u * 3
+            implicitHeight: editBar.height + Theme.u * 3
+            EditBar {
+                id: editBar
+                screenName: scope.modelData.name
+            }
             RightClickGuard {}
         }
     }

@@ -4,7 +4,8 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// Cover, track and controls of the current MPRIS player.
+// The music widget's player (MusicWidget: M alone, L over the spectrum): cover, track and
+// controls of the current MPRIS player.
 // In hell (Theme.realm) the cover is the label of a burning record: a pixel disc
 // that turns while the music plays, flames licking up from under it.
 // macOS look (DesktopWidgets.macLook): the cover with round corners, the track, a thin
@@ -19,7 +20,7 @@ Item {
     readonly property bool playing: !!p && p.isPlaying
     readonly property bool live: visible && !Shell.hiddenScreen(screenName)
 
-    readonly property bool mac: DesktopWidgets.macLook
+    property bool mac: DesktopWidgets.macLook
     implicitWidth: mac ? DesktopWidgets.mpx(320) : Theme.u * 150
     implicitHeight: mac ? DesktopWidgets.mpx(104) : Theme.u * 44
 

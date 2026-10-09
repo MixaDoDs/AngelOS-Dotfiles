@@ -32,7 +32,16 @@ PopupWindow {
     // aside. Clicks while that is pending only move the target, so a fast double
     // right-click shows the menu once, where it was asked for last.
     property bool reopening: false
+    // a desktop widget's own menu (openWidget): its uid; "" = the desktop's
+    property string widgetUid: ""
+    function openWidget(uid, x, y) {
+        widgetUid = uid;
+        widgetList = widgetItems(uid);
+        show(x, y);
+    }
     function openAt(x, y) {
+        widgetUid = "";
+        widgetList = [];
         Achievements.note("deskmenu.open", DeskMenu.style);
         if (ringStyle) {
             if (visible)
@@ -40,6 +49,9 @@ PopupWindow {
             radial.openAt(x, y);
             return;
         }
+        show(x, y);
+    }
+    function show(x, y) {
         px = x;
         py = y;
         sub.visible = false;
@@ -83,6 +95,122 @@ PopupWindow {
         fn();
     }
 
+    // ---- a widget's menu: its size, its frame, what it has of its own, settings, remove ----
+    function widgetItems(uid) {
+        const w = DesktopWidgets.byUid(uid);
+        const info = w ? DesktopWidgets.typeInfo(w.type) : null;
+        if (!info)
+            return [];
+        const cur = () => DesktopWidgets.byUid(uid) || {};
+        const st = () => cur().settings || {};
+        const out = [];
+        const sizes = DesktopWidgets.sizesOf(info);
+        if (sizes.length && !DesktopWidgets.macLook)
+            out.push({
+                "label": I18n.t("Размер", "Size"),
+                "icon": "maximize",
+                "flyout": sizes.map(z => ({
+                            "label": ({
+                                    "s": I18n.t("Маленький · S", "Small · S"),
+                                    "m": I18n.t("Средний · M", "Medium · M"),
+                                    "l": I18n.t("Большой · L", "Large · L")
+                                })[z],
+                            "checkable": true,
+                            "checked": () => DesktopWidgets.sizeOf(cur()) === z,
+                            "keepOpen": true,
+                            "run": () => DesktopWidgets.setSize(uid, z)
+                        }))
+            });
+        if (!DesktopWidgets.macLook)
+            out.push({
+                "label": I18n.t("Рамка", "Frame"),
+                "icon": "window",
+                "flyout": ["", "window", "plate", "none"].map(f => ({
+                            "label": DesktopWidgets.frameLabel(f) + (f ? "" : " (" + DesktopWidgets.frameLabel(DesktopWidgets.frameDefault).toLowerCase() + ")"),
+                            "checkable": true,
+                            "checked": () => (DesktopWidgets.frameKinds.includes(cur().frame) ? cur().frame : "") === f,
+                            "keepOpen": true,
+                            "run": () => DesktopWidgets.setFrame(uid, f)
+                        }))
+            });
+        const toggle = (key, label, icon, dflt) => ({
+                "label": label,
+                "icon": icon,
+                "checkable": true,
+                "checked": () => st()[key] === undefined ? dflt : !!st()[key],
+                "keepOpen": true,
+                "run": () => DesktopWidgets.setSetting(uid, key, !(st()[key] === undefined ? dflt : !!st()[key]))
+            });
+        if (w.type === "clock") {
+            out.push(toggle("seconds", I18n.t("Секунды", "Seconds"), "clock", false));
+            out.push(toggle("weather", I18n.t("Погода", "Weather"), "sun", true));
+        } else if (w.type === "picture") {
+            out.push({
+                "label": I18n.t("Выбрать картинку…", "Choose a picture…"),
+                "icon": "image",
+                "run": () => {
+                    DesktopWidgets.setSetting(uid, "mode", "file");
+                    DesktopWidgets.pick(uid, "file", false);
+                }
+            });
+            out.push({
+                "label": I18n.t("Слайд-шоу из папки…", "Slideshow from a folder…"),
+                "icon": "folder",
+                "run": () => {
+                    DesktopWidgets.setSetting(uid, "mode", "folder");
+                    DesktopWidgets.pick(uid, "folder", true);
+                }
+            });
+            if (st().mode === "folder" && st().folder)
+                out.push({
+                    "label": I18n.t("Следующая", "Next"),
+                    "icon": "next",
+                    "keepOpen": true,
+                    "run": () => DesktopWidgets.request(uid, "next")
+                });
+        } else if (w.type === "note") {
+            out.push({
+                "label": I18n.t("Редактировать", "Edit"),
+                "icon": "note",
+                "run": () => DesktopWidgets.request(uid, "edit")
+            });
+            out.push({
+                "label": I18n.t("Цвет", "Colour"),
+                "icon": "palette",
+                "flyout": [0, 1, 2, 3].map(i => ({
+                            "label": [I18n.t("Розовый", "Pink"), I18n.t("Голубой", "Cyan"), I18n.t("Жёлтый", "Yellow"), I18n.t("Четвёртый акцент", "Fourth accent")][i],
+                            "checkable": true,
+                            "checked": () => (st().tint || 0) === i,
+                            "keepOpen": true,
+                            "run": () => DesktopWidgets.setSetting(uid, "tint", i)
+                        }))
+            });
+        }
+        out.push({
+            "separator": true
+        });
+        out.push({
+            "label": I18n.t("Настройки виджетов…", "Widget settings…"),
+            "icon": "gear",
+            "run": () => Shell.openSettings("widgets")
+        });
+        out.push({
+            "label": I18n.t("Режим правки", "Edit mode"),
+            "icon": "layers",
+            "checkable": true,
+            "checked": () => DesktopWidgets.editMode,
+            "run": () => DesktopWidgets.toggleEdit(root.screenName)
+        });
+        out.push({
+            "label": I18n.t("Убрать с рабочего стола", "Remove from the desktop"),
+            "icon": "trash",
+            "run": () => DesktopWidgets.remove(uid)
+        });
+        return out;
+    }
+    // built once as it opens: rebuilt on every change, it would take the open flyout's anchor away
+    property var widgetList: []
+
     // ---- flyout contents ----
     // `checked` is a function: the open flyout keeps a copy of its list, and the
     // tick has to follow the setting while it is open (issue #5)
@@ -102,7 +230,7 @@ PopupWindow {
                 "icon": "gear",
                 "checkable": true,
                 "checked": () => DesktopWidgets.editMode,
-                "run": () => DesktopWidgets.editMode = !DesktopWidgets.editMode
+                "run": () => DesktopWidgets.toggleEdit(root.screenName)
             },
             {
                 "label": I18n.t("Прилипать к сетке", "Snap to grid"),
@@ -179,7 +307,7 @@ PopupWindow {
         {
             "label": I18n.t("Обновить список", "Rescan pictures"),
             "icon": "refresh",
-            "hint": Wallpapers.list.length ? String(Wallpapers.list.length) : "",
+            "hint": Wallpapers.heads.length ? String(Wallpapers.heads.length) : "",
             "run": () => {
                 Wallpapers.scan();
                 Plugins.reload();
@@ -329,7 +457,7 @@ PopupWindow {
 
             // Y2K gloss: a little title in the chrome
             PxText {
-                visible: root.skin === "y2k"
+                visible: root.skin === "y2k" && !root.widgetUid
                 anchors.horizontalCenter: parent.horizontalCenter
                 topPadding: Theme.u * 4
                 kind: "tiny"
@@ -342,7 +470,7 @@ PopupWindow {
             // quick actions (Windows 11 puts cut/copy/paste here; we put the everyday stuff), signed
             Row {
                 id: quick
-                visible: DeskMenu.quick.length > 0
+                visible: DeskMenu.quick.length > 0 && !root.widgetUid
                 anchors.horizontalCenter: parent.horizontalCenter
                 topPadding: Theme.u * 2
                 bottomPadding: Theme.u * 2
@@ -410,14 +538,63 @@ PopupWindow {
                 }
             }
             PxMenuItem {
-                visible: DeskMenu.quick.length > 0 && DeskMenu.items.length > 0
+                visible: DeskMenu.quick.length > 0 && DeskMenu.items.length > 0 && !root.widgetUid
                 height: visible ? implicitHeight : 0
                 separator: true
                 skin: root.skin
             }
 
+            // ---- a widget's menu: its name, then its entries ----
+            PxText {
+                visible: !!root.widgetUid
+                x: Theme.u * 4
+                topPadding: Theme.u * 2
+                bottomPadding: Theme.u
+                width: col.width - Theme.u * 8
+                elide: Text.ElideRight
+                kind: "tiny"
+                dim: true
+                text: {
+                    const w = DesktopWidgets.byUid(root.widgetUid);
+                    const info = w ? DesktopWidgets.typeInfo(w.type) : null;
+                    return info ? DesktopWidgets.titleOf(info) + " · " + info.label : "";
+                }
+            }
             Repeater {
-                model: DeskMenu.items
+                model: root.widgetList
+                PxMenuItem {
+                    id: wItem
+                    required property var modelData
+                    readonly property bool fly: !!modelData.flyout
+                    separator: !!modelData.separator
+                    skin: root.skin
+                    text: modelData.label || ""
+                    icon: Config.desktop.menuIcons !== false ? (modelData.icon || "") : ""
+                    submenu: fly
+                    checkable: !!modelData.checkable
+                    checked: modelData.checked ? modelData.checked() : false
+                    onHoveredChanged: {
+                        if (!hovered)
+                            return;
+                        if (fly)
+                            root.hoverSub(wItem, modelData.flyout);
+                        else
+                            sub.visible = false;
+                    }
+                    onTriggered: {
+                        if (fly) {
+                            sub.openFor(wItem, modelData.flyout);
+                        } else if (modelData.keepOpen) {
+                            modelData.run();
+                        } else {
+                            const fn = modelData.run;
+                            root.run(fn);
+                        }
+                    }
+                }
+            }
+            Repeater {
+                model: root.widgetUid ? [] : DeskMenu.items
                 PxMenuItem {
                     id: entryItem
                     required property string modelData
@@ -450,7 +627,7 @@ PopupWindow {
             }
             Repeater {
                 // QML menu components from plugins can't live in a flyout list; they stay inline
-                model: Plugins.menuComponents
+                model: root.widgetUid ? [] : Plugins.menuComponents
                 Loader {
                     required property var modelData
                     width: col.width

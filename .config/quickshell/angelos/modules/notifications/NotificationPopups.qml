@@ -35,6 +35,8 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.namespace: "angelos-notifications"
     WlrLayershell.layer: WlrLayer.Overlay
+    // the keyboard only while a reply is being typed in a card (Enter sends it, Esc gives it back)
+    WlrLayershell.keyboardFocus: Notifs.replyTo ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     // Golden Gate: niri blurs under each banner's rounded glass (no more than 8 stand at once)
     BackgroundEffect.blurRegion: mac ? (GoldenGate.blurOn ? macBlur : null) : Config.appearance.blur ? blurRegion : null

@@ -19,6 +19,8 @@ import qs.widgets
 // is broken: `angelos setup skip` from a text console, and when the questions themselves
 // fail to load, the screens are let go at once. Opened again from Settings or `angelos
 // setup` it is the same full screen, with "Close" and Esc.
+// The first run's intro also plays alone (Shell.introOpen: once after an update, `angelos intro`):
+// the same covers over a still of the desktop, no questions.
 Scope {
     id: root
 
@@ -94,6 +96,7 @@ Scope {
                 // a calm ground: the theme's desk fading into its accent, a few hearts drifting up
                 Rectangle {
                     anchors.fill: parent
+                    visible: !still.shown
                     gradient: Gradient {
                         GradientStop {
                             position: 0
@@ -112,14 +115,34 @@ Scope {
                     maxOpacity: 0.22
                     // gliding, frame by frame with the screen (render thread)
                     glide: true
-                    running: !Motion.still
+                    running: !Motion.still && !still.shown
+                    visible: !still.shown
+                }
+                // the intro alone: the desktop as it was (grim, just before), woken up at the cut
+                Image {
+                    id: still
+                    readonly property bool shown: introCtl.alone && status === Image.Ready
+                    anchors.fill: parent
+                    visible: shown
+                    source: introCtl.alone ? introCtl.shotUrl(cover.modelData.name) : ""
+                    cache: false
+                    asynchronous: true
+                    smooth: false
+                }
+
+                // the intro alone: dimmed behind its question, and on into the minute
+                Rectangle {
+                    anchors.fill: parent
+                    color: "#000000"
+                    opacity: introCtl.alone ? introCtl.askDim * (introCtl.phase === "reveal" ? 1 - introCtl.reveal : introCtl.askIn) : 0
+                    visible: opacity > 0
                 }
 
                 // the questions (their own file: when it fails, the screens are let go)
                 Loader {
                     id: questions
                     anchors.fill: parent
-                    active: cover.hosting
+                    active: cover.hosting && Shell.setupOpen
                     source: "SetupAssistant.qml"
                     onLoaded: {
                         item.held = Qt.binding(() => introCtl.active);
@@ -135,7 +158,7 @@ Scope {
 
                 // another screen: where the questions are, and a way to bring them here
                 Column {
-                    visible: !cover.hosting
+                    visible: !cover.hosting && Shell.setupOpen
                     anchors.centerIn: parent
                     width: Math.min(parent.width - Theme.u * 24, Theme.u * 200)
                     spacing: Theme.u * 8
@@ -162,7 +185,7 @@ Scope {
                 // opened again (from Settings, `angelos setup`): "Close" and Esc, on every screen.
                 // The first run has none — only `angelos setup skip` from a text console
                 PxButton {
-                    visible: !Shell.setupFirstRun
+                    visible: Shell.setupOpen && !Shell.setupFirstRun
                     anchors.top: parent.top
                     anchors.right: parent.right
                     anchors.margins: Theme.u * 8
@@ -188,12 +211,93 @@ Scope {
                     anchors.fill: parent
                     intro: introCtl
                     hosting: cover.hosting
+                    here: cover.modelData
+                    host: flow.host
                 }
             }
             SetupWake {
                 anchors.fill: parent
                 intro: introCtl
                 source: scene
+            }
+
+            // the intro alone asks first: «Обновление скачано — продолжить?». Either answer goes on;
+            // «Нет» says «Да» for ten frames first
+            PxBox {
+                id: ask
+                visible: cover.hosting && introCtl.asking
+                opacity: introCtl.askIn
+                anchors.centerIn: parent
+                width: Math.min(parent.width - Theme.u * 24, Theme.u * 170)
+                height: askBody.implicitHeight + askBar.height + Theme.u * 16
+                color: Theme.face
+                shadow: true
+                Rectangle {
+                    id: askBar
+                    x: ask.inset
+                    y: ask.inset
+                    width: ask.width - ask.inset * 2
+                    height: askBarText.implicitHeight + Theme.u * 4
+                    color: Theme.accent
+                    PxText {
+                        id: askBarText
+                        x: Theme.u * 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.bold: true
+                        color: Theme.dark ? Theme.desk : "#ffffff"
+                        text: I18n.t("angelOS — обновление", "angelOS — update")
+                    }
+                }
+                Column {
+                    id: askBody
+                    x: Theme.u * 8
+                    y: askBar.y + askBar.height + Theme.u * 6
+                    width: ask.width - Theme.u * 16
+                    spacing: Theme.u * 6
+                    PxText {
+                        kind: "title"
+                        text: I18n.t("Обновление скачано", "The update is downloaded")
+                    }
+                    PxText {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: I18n.t("Вы хотите продолжить?", "Do you want to continue?")
+                    }
+                    Row {
+                        anchors.right: parent.right
+                        spacing: Theme.u * 4
+                        PxButton {
+                            accent: true
+                            text: I18n.t("Да", "Yes")
+                            onClicked: introCtl.answer()
+                        }
+                        PxButton {
+                            id: no
+                            property bool lying: false
+                            text: lying ? I18n.t("Да", "Yes") : I18n.t("Нет", "No")
+                            onClicked: if (!lying) {
+                                lying = true;
+                                frames.n = 0;
+                                frames.start();
+                            }
+                            // ten frames of this screen, then «Нет» again — and on all the same
+                            FrameAnimation {
+                                id: frames
+                                property int n: 0
+                                onTriggered: if (++n >= 10) {
+                                    stop();
+                                    no.lying = false;
+                                    introCtl.answer();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Shortcut {
+                sequences: ["Return", "Enter"]
+                enabled: cover.hosting && introCtl.asking
+                onActivated: introCtl.answer()
             }
 
             // the intro's way out: space five times
@@ -204,10 +308,24 @@ Scope {
             }
             Shortcut {
                 sequence: "Escape"
-                enabled: cover.hosting && !Shell.setupFirstRun
+                enabled: cover.hosting && Shell.setupOpen && !Shell.setupFirstRun
                 onActivated: flow.close()
             }
+            Shortcut {
+                sequence: "Escape"
+                enabled: cover.hosting && introCtl.alone
+                onActivated: introCtl.skip()
+            }
             RightClickGuard {}
+            // no pointer at all while the intro plays (alone: until the desktop is back)
+            MouseArea {
+                anchors.fill: parent
+                visible: introCtl.active
+                hoverEnabled: true
+                acceptedButtons: Qt.AllButtons
+                cursorShape: Qt.BlankCursor
+                onWheel: wheel => wheel.accepted = true
+            }
         }
     }
 }

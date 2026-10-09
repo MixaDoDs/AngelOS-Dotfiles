@@ -64,9 +64,11 @@ Scope {
         {
             "id": "screens",
             "icon": "monitor",
-            "title": I18n.t("Какой экран главный?", "Which screen is the main one?"),
-            "text": I18n.t("На нём будут виджеты, ангел и заставка, на него niri ставит фокус при входе.", "It gets the widgets, the angel and the screensaver; niri focuses it at login."),
-            "when": Shell.screens.length > 1
+            // which one is the main (with more than one) and how each stands: turned on its side,
+            // upside down (SetupAssistant: screens)
+            "title": Shell.screens.length > 1 ? I18n.t("Экраны: какой главный и как стоят?", "Screens: which is the main one, and how do they stand?") : I18n.t("Как стоит монитор?", "How does the monitor stand?"),
+            "text": Shell.screens.length > 1 ? I18n.t("На главном будут виджеты, ангел и заставка, на него niri ставит фокус при входе. Монитор стоит вертикально или вверх ногами — поверни картинку.", "The main one gets the widgets, the angel and the screensaver; niri focuses it at login. A monitor upright or upside down: turn its picture.") : I18n.t("Если монитор стоит вертикально или вверх ногами — поверни картинку. Обои подстроятся сами.", "If the monitor stands upright or upside down, turn the picture. The wallpaper follows."),
+            "when": Shell.screens.length > 0
         },
         {
             "id": "keyboard",
@@ -99,6 +101,12 @@ Scope {
             "title": I18n.t("Обои", "Wallpaper"),
             "text": I18n.t("Что будет на рабочем столе. Первые — обои этого релиза angelOS, днём и ночью под твою тему.", "What goes on your desktop. The first ones are this angelOS release's wallpapers, day or night to match your theme."),
             "when": Wallpapers.images.length > 0
+        },
+        {
+            "id": "widgets",
+            "icon": "layers",
+            "title": I18n.t("Что поставить на рабочий стол?", "What goes on the desktop?"),
+            "text": I18n.t("Виджеты живут прямо на обоях. Потом их можно двигать, менять размер и рамку — ПКМ по виджету.", "Widgets live right on the wallpaper. Later you can move them and change their size and frame: right-click a widget.")
         },
         {
             "id": "fastfetch",
@@ -267,6 +275,7 @@ Scope {
         }
         function onSetupSkipRequested() {
             root.marker = 1;
+            Shell.introOpen = false;
             if (Shell.setupOpen || !Config.setup.complete)
                 root.later();
         }
@@ -276,11 +285,19 @@ Scope {
                 touchpadProbe.running = true;
                 appProbe.running = true;
             }
-            if (Shell.setupOpen && root.hostName === "")
-                root.hostName = Shell.focusedScreen ? Shell.focusedScreen.name : "";
-            else if (!Shell.setupOpen)
-                root.hostName = "";
+            root.pickHost();
         }
+        function onIntroOpenChanged() {
+            root.pickHost();
+        }
+    }
+
+    // the questions (and the update's intro) on the screen in use when they open
+    function pickHost() {
+        if (Shell.setupLocked && hostName === "")
+            hostName = Shell.focusedScreen ? Shell.focusedScreen.name : "";
+        else if (!Shell.setupLocked)
+            hostName = "";
     }
 
     // ~/.config/angelos/setup-skipped, left by `angelos setup skip` (scripts/setup-cli.py):

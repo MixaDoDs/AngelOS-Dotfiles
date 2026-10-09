@@ -22,7 +22,11 @@ Singleton {
     property bool setupFirstRun: false
     // the next opening plays the first run's intro too (Settings → Account, in debug mode)
     property bool setupIntroOnce: false
-    readonly property bool setupLocked: setupOpen
+    // the first run's intro alone, over the desktop: once for everyone after an update brings a
+    // new one (SetupIntro.version), or `angelos intro`; holds the desktop like the wizard
+    property bool introOpen: false
+    signal introRequested()
+    readonly property bool setupLocked: setupOpen || introOpen
     property bool settingsAfterSetup: false
     onSetupLockedChanged: if (setupLocked) {
         settingsAfterSetup = settingsOpen && !setupFirstRun;

@@ -23,7 +23,7 @@ Item {
     Timer {
         interval: 100
         repeat: true
-        running: root.timeout > 0 && !hover.hovered
+        running: root.timeout > 0 && !hover.hovered && !root.replying
         onTriggered: {
             root.elapsed += interval;
             if (root.elapsed >= root.timeout)
@@ -32,6 +32,32 @@ Item {
     }
     HoverHandler {
         id: hover
+    }
+
+    readonly property bool replying: Notifs.same(Notifs.replyTo, notification)
+    // as in NotificationCard: "Reply" (Telegram's inline reply), the app's own buttons, "Open"
+    readonly property var buttons: {
+        if (!notification)
+            return [];
+        const own = notification.actions.filter(a => a.identifier !== "default" && a.identifier !== "inline-reply").map(a => ({
+                    "text": a.text || a.identifier,
+                    "run": () => {
+                        a.invoke();
+                        Notifs.dismissPopup(notification);
+                    }
+                }));
+        const reply = notification.hasInlineReply ? [{
+                "text": I18n.t("Ответить", "Reply"),
+                "run": () => {
+                    Notifs.replyTo = notification;
+                    Qt.callLater(() => replyField.focusField());
+                }
+            }] : [];
+        const open = Notifs.canOpen(notification) ? [{
+                "text": I18n.t("Открыть", "Open"),
+                "run": () => Notifs.open(notification)
+            }] : [];
+        return reply.concat(own, open);
     }
 
     readonly property Item glassItem: card         // NotificationPopups blurs under it
@@ -58,10 +84,8 @@ Item {
                     Notifs.close(root.notification);
                     return;
                 }
-                const def = root.notification.actions.find(a => a.identifier === "default");
-                if (def)
-                    def.invoke();
-                Notifs.dismissPopup(root.notification);
+                if (!root.replying)
+                    Notifs.open(root.notification);
             }
         }
         Image {
@@ -124,9 +148,9 @@ Item {
                 width: parent.width
                 spacing: GoldenGate.px(6)
                 topPadding: GoldenGate.px(6)
-                visible: !!root.notification && root.notification.actions.some(a => a.identifier !== "default")
+                visible: !root.replying && root.buttons.length > 0
                 Repeater {
-                    model: root.notification ? root.notification.actions.filter(a => a.identifier !== "default") : []
+                    model: root.buttons
                     Rectangle {
                         id: act
                         required property var modelData
@@ -142,10 +166,27 @@ Item {
                         }
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: {
-                                act.modelData.invoke();
-                                Notifs.dismissPopup(root.notification);
-                            }
+                            onClicked: act.modelData.run()
+                        }
+                    }
+                }
+            }
+            // the reply, typed right here: Enter sends it, Esc puts the field away
+            Item {
+                visible: root.replying
+                width: parent.width
+                height: replyField.height + GoldenGate.px(6)
+                PxField {
+                    id: replyField
+                    y: GoldenGate.px(6)
+                    width: parent.width
+                    placeholder: Notifs.replyHint(root.notification) || I18n.t("Ответ… (Enter — отправить)", "Reply… (Enter sends)")
+                    keepFocus: true
+                    onAccepted: Notifs.reply(root.notification, text)
+                    onKeyPressed: e => {
+                        if (e.key === Qt.Key_Escape) {
+                            Notifs.replyTo = null;
+                            e.accepted = true;
                         }
                     }
                 }

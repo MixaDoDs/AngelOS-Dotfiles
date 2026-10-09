@@ -12,6 +12,8 @@ import qs.config
 // circle's painting (services/Angel puts it up), or what the player picked in this circle,
 // gone with the next circle. Every setter here writes to the realm that is shown, and in hell
 // only hell's pictures are offered.
+// One wallpaper may come in several files (day / night, 21:9, 32:9, 9:16 …): a pick stores any
+// of them, and every screen shows the one that fits the theme and its shape (pick).
 Singleton {
     id: root
 
@@ -54,11 +56,152 @@ Singleton {
         return output + ":" + idx;
     }
 
-    function resolve(output, idx) {
+    // what was picked for the screen's workspace (any file of the wallpaper) …
+    function raw(output, idx) {
         const w = shown;
         const p = (w.workspaces || {})[key(output, idx)] || (w.outputs || {})[output] || w.fallback || (shown === Config.wallpaper ? (releaseWall() || images[0]) : "") || "";
         return Config.expand(p);
     }
+    // … and the file of it the screen shows
+    function resolve(output, idx) {
+        return pick(raw(output, idx), output);
+    }
+
+    // ---- one wallpaper in several files (scripts/wall-meta.py) ----
+    // ozero.png, ozero-night.png, ozero-21x9.png, ozero-9x16.png … (or Ozero/day.png, Ozero/night.png)
+    // are one wallpaper: the settings and the wizard show it once, the shape is read from the files
+    property var meta: ({})                  // path -> {w, h, time: day | night | "", key, name}
+    readonly property bool variantsOn: Config.wallpaper.variants !== false
+    readonly property var heavenSets: _group(images, meta)
+    readonly property var hellSets: _group(hellImages, meta)
+    // the wallpapers to offer: one entry per wallpaper (every file when variants are off)
+    readonly property var heads: variantsOn ? (hellOn ? hellSets : heavenSets).heads : list
+    function _group(paths, m) {
+        const byKey = {}, heads = [], members = {};
+        for (const p of paths) {
+            const k = (m[p] || {}).key || p;
+            if (!byKey[k]) {
+                byKey[k] = [];
+                heads.push(p);
+            }
+            byKey[k].push(p);
+        }
+        for (const k in byKey)
+            if (byKey[k].length > 1)
+                for (const p of byKey[k])
+                    members[p] = byKey[k];
+        return {
+            "heads": heads,
+            "members": members
+        };
+    }
+    function members(path) {
+        return variantsOn ? heavenSets.members[path] || hellSets.members[path] || [path] : [path];
+    }
+    function sameSet(a, b) {
+        return a === b || (!!a && !!b && members(a).includes(b));
+    }
+    function nameOf(path) {
+        const i = meta[path];
+        return members(path).length > 1 && i && i.name ? i.name : path.slice(path.lastIndexOf("/") + 1).replace(/\.[a-z0-9]+$/i, "");
+    }
+    // the screen as it stands now (turned on its side it is tall): its width / height
+    function aspectOf(output) {
+        const s = Quickshell.screens.find(x => x.name === output);
+        return s && s.width > 0 && s.height > 0 ? s.width / s.height : 16 / 9;
+    }
+    function ratioLabel(w, h) {
+        if (!w || !h)
+            return "";
+        const r = w / h;
+        const known = [[16, 9], [16, 10], [21, 9], [32, 9], [48, 9], [4, 3], [5, 4], [3, 2], [1, 1], [9, 16], [10, 16], [9, 21], [3, 4]];
+        const k = known.find(x => Math.abs(x[0] / x[1] / r - 1) < 0.04);
+        return k ? k[0] + ":" + k[1] : r >= 1 ? r.toFixed(2) + ":1" : "1:" + (1 / r).toFixed(2);
+    }
+    // what a wallpaper has: [{time, ratio}] of its files, for the little marks under a picture
+    function variantTags(path) {
+        const all = members(path);
+        if (all.length < 2)
+            return [];
+        const times = new Set(), ratios = [];
+        for (const p of all) {
+            const i = meta[p] || {};
+            if (i.time)
+                times.add(i.time);
+            const r = ratioLabel(i.w, i.h);
+            if (r && !ratios.includes(r))
+                ratios.push(r);
+        }
+        // a file with no time mark is the day one when a night one is there
+        if (times.has("night") && all.some(p => !(meta[p] || {}).time))
+            times.add("day");
+        const out = [];
+        if (times.has("day"))
+            out.push("☼");
+        if (times.has("night"))
+            out.push("☾");
+        return out.concat(ratios.length > 1 ? ratios : []);
+    }
+    // the file of a wallpaper for a screen of this shape in this theme: the shape counts most
+    // (a tall screen takes the tall day picture over a wide night one), then day or night
+    function pickFor(path, aspect, dark) {
+        const all = members(path);
+        if (all.length < 2)
+            return path;
+        let best = path, bestScore = 1e9;
+        for (const p of all) {
+            const i = meta[p] || {};
+            const shape = i.w > 0 && i.h > 0 ? Math.abs(Math.log(i.w / i.h / aspect)) : 0.5;
+            const time = !i.time ? 0.1 : (i.time === "night") === dark ? 0 : 0.5;
+            if (shape + time < bestScore - 1e-6) {
+                best = p;
+                bestScore = shape + time;
+            }
+        }
+        return best;
+    }
+    function pick(path, output) {
+        return path ? pickFor(path, aspectOf(output), Theme.dark) : path;
+    }
+    Process {
+        id: metaReader
+        property var paths: []
+        command: ["python3", Quickshell.shellDir + "/scripts/wall-meta.py", "--cache", Config.cacheDir + "/wall-meta.json"]
+        stdinEnabled: true
+        onStarted: {
+            write(paths.join("\n") + "\n");
+            stdinEnabled = false;
+        }
+        onExited: stdinEnabled = true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.meta = JSON.parse(text);
+                } catch (e) {}
+                settle.start();
+            }
+        }
+    }
+    Timer {
+        id: metaTimer
+        interval: 200
+        onTriggered: {
+            if (metaReader.running)
+                return restart();
+            metaReader.paths = root.images.concat(root.hellImages);
+            metaReader.running = true;
+        }
+    }
+    // the first read only puts the right files up; from then on a swap of files of one
+    // wallpaper (day ⇄ night, the screen turned) plays the transition (WallpaperView)
+    property bool settled: false
+    Timer {
+        id: settle
+        interval: 1500
+        onTriggered: root.settled = true
+    }
+    onImagesChanged: metaTimer.restart()
+    onHellImagesChanged: metaTimer.restart()
 
     // ---- the wallpapers of angelOS's big releases ----
     // every big release brings its own (drawn by the author): Pictures/AngelOS/NN-name/ with a
@@ -177,7 +320,7 @@ Singleton {
         Config.wallpaper.workspaces = ({});
     }
     function random(output) {
-        const images = list;
+        const images = heads;
         if (images.length === 0)
             return;
         const p = images[Math.floor(Math.random() * images.length)];
@@ -196,21 +339,21 @@ Singleton {
             setForOutput(output, path);
     }
     function next(output, idx, step) {
-        const images = list;
+        const images = heads;
         if (images.length === 0)
             return;
-        const cur = resolve(output, idx);
-        const i = images.indexOf(cur);
+        const cur = raw(output, idx);
+        const i = images.findIndex(p => sameSet(p, cur));
         const n = images.length;
         _setLike(output, idx, images[((i < 0 ? -1 : i) + (step || 1) + n) % n]);
     }
     function shuffle(output, idx) {
-        const images = list;
+        const images = heads;
         if (images.length === 0)
             return;
-        const cur = resolve(output, idx);
+        const cur = raw(output, idx);
         let p = cur;
-        for (let k = 0; k < 8 && p === cur; k++)
+        for (let k = 0; k < 8 && sameSet(p, cur); k++)
             p = images[Math.floor(Math.random() * images.length)];
         _setLike(output, idx, p);
     }
@@ -256,15 +399,18 @@ Singleton {
 
     // the login screen (SDDM, extras/sddm) shows these wallpapers too: the landscape
     // screen's on landscape screens, the portrait one's on portrait ones; `angelos sddm
-    // walls` puts them into the installed theme (its walls/ is ours, no password)
+    // walls` puts them into the installed theme (its walls/ is ours, no password); a wallpaper
+    // with a tall file gives it to portrait screens even when no screen here stands tall
     function loginWalls() {
         const scr = Quickshell.screens;
         const wide = scr.find(s => s.name === Shell.primaryName && s.width >= s.height) || scr.find(s => s.width >= s.height);
         const tall = scr.find(s => s.height > s.width);
-        const w = wide ? resolve(wide.name, 1) : "", t = tall ? resolve(tall.name, 1) : "";
+        const w = wide ? resolve(wide.name, 1) : tall ? pickFor(raw(tall.name, 1), 16 / 9, Theme.dark) : "";
+        const t = tall ? resolve(tall.name, 1) : wide ? pickFor(raw(wide.name, 1), 9 / 16, Theme.dark) : "";
         return [w || t, t || w];
     }
-    onStateKeyChanged: loginSync.restart()
+    readonly property string loginKey: loginWalls().join("\n")
+    onLoginKeyChanged: loginSync.restart()
     Timer {
         id: loginSync
         interval: 5000

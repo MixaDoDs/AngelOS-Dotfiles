@@ -143,7 +143,7 @@ Item {
 
         Flickable {
             id: list
-            visible: root.view.query.trim() === ""
+            visible: !root.view.searching
             anchors.fill: parent
             anchors.topMargin: searchSlot.y + searchSlot.height + GoldenGate.px(10)
             contentHeight: col.implicitHeight + GoldenGate.px(12)

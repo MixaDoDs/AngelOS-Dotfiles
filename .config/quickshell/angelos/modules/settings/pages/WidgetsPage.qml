@@ -11,7 +11,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Виджеты", "Widgets")
-    subtitle: DesktopWidgets.macLook ? I18n.t("Карточки на рабочем столе. Двойной клик по карточке — режим правки: в нём карточку таскают за любое место, «−» убирает её. Ещё их можно добавить через ПКМ → Вид.", "Cards on the desktop. Double-click a card for edit mode: there you drag it anywhere, “−” removes it. You can also add them via right-click → View.") : I18n.t("Окошки на рабочем столе. Таскаются за заголовок; двойной клик по заголовку — режим правки с крестиками. Ещё их можно добавить через ПКМ → Вид.", "Little windows on the desktop. Drag them by the title; double-click the title for edit mode. You can also add them via right-click → View.")
+    subtitle: DesktopWidgets.macLook ? I18n.t("Карточки на рабочем столе. Двойной клик по карточке — режим правки: в нём карточку таскают за любое место, «−» убирает её. Ещё их можно добавить через ПКМ → Вид.", "Cards on the desktop. Double-click a card for edit mode: there you drag it anywhere, “−” removes it. You can also add them via right-click → View.") : I18n.t("Виджеты на рабочем столе. ПКМ по виджету — его размер S/M/L, рамка и настройки; таскаются за заголовок (без заголовка — за любое место), двойной клик — режим правки. Добавить — здесь или ПКМ по столу → Вид.", "Widgets on the desktop. Right-click one for its size S/M/L, frame and options; drag them by the title (without one, anywhere), double-click for edit mode. Add them here or via right-click on the desktop → View.")
 
     property string newType: DesktopWidgets.types.length ? DesktopWidgets.types[0].type : ""
     property string newScreen: Shell.primaryName || (Quickshell.screens[0] ? Quickshell.screens[0].name : "")
@@ -20,7 +20,7 @@ PxPage {
                 "value": s.name
             }))
 
-    // what the cava widget can listen to: outputs, whole multichannel interfaces,
+    // what the music widget's spectrum can listen to: outputs, whole multichannel interfaces,
     // their labelled channel pairs, and (marked) inputs — scripts/audio-tap.py list
     property var tap: ({
             "auto": "",
@@ -78,26 +78,9 @@ PxPage {
         const name = v.slice(5, v.lastIndexOf(":"));
         return tap.nodes.some(n => n.name === name && n.kind === "input");
     }
-    // the GIF widget's file: the desktop's file chooser (scripts/pick-file.py)
-    property string gifFor: ""
-    function pickGif(uid) {
-        gifFor = uid;
-        gifPicker.command = ["python3", Quickshell.shellDir + "/scripts/pick-file.py", I18n.t("angelOS — гифка на рабочий стол", "angelOS — a GIF for the desktop"), I18n.t("Анимации", "Animations"), "*.gif", "*.webp", "*.png", "*.apng", "*.mng"];
-        gifPicker.running = true;
-    }
-    Process {
-        id: gifPicker
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const f = text.trim();
-                if (f && page.gifFor)
-                    DesktopWidgets.setSetting(page.gifFor, "file", f);
-            }
-        }
-    }
     Process {
         id: tapList
-        running: DesktopWidgets.widgets.some(w => w.type === "cava")
+        running: DesktopWidgets.widgets.some(w => w.type === "music" && DesktopWidgets.sizeOf(w) !== "m")
         command: ["python3", Quickshell.shellDir + "/scripts/audio-tap.py", "list"]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -206,7 +189,40 @@ PxPage {
                     }
 
                     SettingRow {
-                        label: I18n.t("Размер", "Size")
+                        visible: !!card.info && DesktopWidgets.sizesOf(card.info).length > 0 && !DesktopWidgets.macLook
+                        label: I18n.t("Раскладка", "Layout")
+                        hint: ({
+                                "clock": I18n.t("S — время, M — с датой, L — крупно и погода словами", "S time, M with the date, L big, the weather in words"),
+                                "sysmon": I18n.t("S — четыре числа, M — шкалы, L — шкалы, минута истории и самые занятые программы", "S four numbers, M meters, L meters, a minute of history and the busiest programs"),
+                                "music": I18n.t("S — спектр, M — плеер, L — плеер и спектр", "S the spectrum, M the player, L both"),
+                                "picture": I18n.t("длинная сторона: 64 / 100 / 160", "The longer side: 64 / 100 / 160"),
+                                "note": I18n.t("ширина и сколько строк видно", "Its width and how many lines show"),
+                                "disks": I18n.t("S — системный диск, M — все диски, L — диски и папки", "S the system disk, M every disk, L disks and folders")
+                            })[card.w ? card.w.type : ""] || ""
+                        PxSegmented {
+                            model: DesktopWidgets.sizesOf(card.info).map(z => ({
+                                        "label": z.toUpperCase(),
+                                        "value": z
+                                    }))
+                            currentValue: DesktopWidgets.sizeOf(card.w)
+                            onActivated: v => DesktopWidgets.setSize(card.modelData, v)
+                        }
+                    }
+                    SettingRow {
+                        visible: !DesktopWidgets.macLook
+                        label: I18n.t("Рамка", "Frame")
+                        PxCombo {
+                            width: Theme.u * 90
+                            model: ["", "window", "plate", "none"].map(f => ({
+                                        "label": DesktopWidgets.frameLabel(f),
+                                        "value": f
+                                    }))
+                            currentValue: card.w && DesktopWidgets.frameKinds.includes(card.w.frame) ? card.w.frame : ""
+                            onActivated: v => DesktopWidgets.setFrame(card.modelData, v)
+                        }
+                    }
+                    SettingRow {
+                        label: I18n.t("Масштаб", "Zoom")
                         hint: I18n.t("70–130 %; ещё — колёсико над виджетом в режиме правки или с Ctrl", "70–130 %; also the wheel over the widget in edit mode or with Ctrl")
                         PxSlider {
                             width: parent.width
@@ -229,7 +245,16 @@ PxPage {
                         }
                     }
                     SettingRow {
-                        visible: !!card.w && card.w.type === "cava"
+                        visible: !!card.w && card.w.type === "clock"
+                        label: I18n.t("Погода", "Weather")
+                        hint: Weather.ok ? Weather.deg(Weather.now.temp) + " · " + Weather.words(Weather.now.code) + " · " + Weather.place.name : Weather.error ? I18n.t("не получилось: ", "failed: ") + Weather.error : I18n.t("Open-Meteo; город — в «Поведении» ниже", "Open-Meteo; the city is under Behavior below")
+                        PxToggle {
+                            checked: card.st.weather !== false
+                            onToggled: c => DesktopWidgets.setSetting(card.modelData, "weather", c)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "music" && DesktopWidgets.sizeOf(card.w) !== "m"
                         label: I18n.t("Столбиков", "Bars")
                         PxSpin {
                             from: 8
@@ -240,7 +265,7 @@ PxPage {
                         }
                     }
                     SettingRow {
-                        visible: !!card.w && card.w.type === "cava"
+                        visible: !!card.w && card.w.type === "music" && DesktopWidgets.sizeOf(card.w) !== "m"
                         label: I18n.t("Что слушать", "Listen to")
                         hint: page.tapIsInput(card.st.source) ? I18n.t("⚠ это вход: визуализатор будет рисовать микрофон", "⚠ this is an input: the visualizer will draw your microphone") : I18n.t("выход, всё устройство или пара каналов (только чтение, маршрутизация не меняется)", "an output, a whole interface or one channel pair (read-only, routing is untouched)")
                         Row {
@@ -260,19 +285,86 @@ PxPage {
                             }
                         }
                     }
+                    // ---- the picture ----
                     SettingRow {
-                        visible: !!card.w && card.w.type === "gif"
-                        label: I18n.t("Файл", "File")
-                        hint: card.st.file ? card.st.file : I18n.t("GIF, анимированный WebP или PNG", "A GIF, an animated WebP or PNG")
-                        PxButton {
-                            text: I18n.t("Выбрать…", "Choose…")
-                            icon: "folder"
-                            enabled: !gifPicker.running
-                            onClicked: page.pickGif(card.modelData)
+                        visible: !!card.w && card.w.type === "picture"
+                        label: I18n.t("Что показывать", "Show")
+                        PxSegmented {
+                            model: [
+                                {
+                                    "label": I18n.t("Файл", "A file"),
+                                    "value": "file"
+                                },
+                                {
+                                    "label": I18n.t("Папку", "A folder"),
+                                    "value": "folder"
+                                }
+                            ]
+                            currentValue: card.st.mode === "folder" ? "folder" : "file"
+                            onActivated: v => DesktopWidgets.setSetting(card.modelData, "mode", v)
                         }
                     }
                     SettingRow {
-                        visible: !!card.w && card.w.type === "gif"
+                        visible: !!card.w && card.w.type === "picture" && card.st.mode !== "folder"
+                        label: I18n.t("Файл", "File")
+                        hint: card.st.file ? card.st.file : I18n.t("GIF, WebP, PNG, JPG или видео (без звука)", "A GIF, WebP, PNG, JPG or a video (without its sound)")
+                        PxButton {
+                            text: I18n.t("Выбрать…", "Choose…")
+                            icon: "image"
+                            enabled: DesktopWidgets.picking === ""
+                            onClicked: DesktopWidgets.pick(card.modelData, "file", false)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "picture" && card.st.mode === "folder"
+                        label: I18n.t("Папка", "Folder")
+                        hint: card.st.folder ? card.st.folder : I18n.t("картинки из неё по очереди", "Its pictures, one after another")
+                        PxButton {
+                            text: I18n.t("Выбрать…", "Choose…")
+                            icon: "folder"
+                            enabled: DesktopWidgets.picking === ""
+                            onClicked: DesktopWidgets.pick(card.modelData, "folder", true)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "picture" && card.st.mode === "folder"
+                        label: I18n.t("Менять каждые", "Change every")
+                        PxSpin {
+                            from: 1
+                            to: 240
+                            value: card.st.interval || 5
+                            suffix: I18n.t(" мин", " min")
+                            onMoved: v => DesktopWidgets.setSetting(card.modelData, "interval", v)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "picture" && card.st.mode === "folder"
+                        label: I18n.t("Вперемешку", "Shuffle")
+                        PxToggle {
+                            checked: card.st.shuffle !== false
+                            onToggled: c => DesktopWidgets.setSetting(card.modelData, "shuffle", c)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "picture"
+                        label: I18n.t("Паспарту", "Mat")
+                        PxSegmented {
+                            model: [
+                                {
+                                    "label": I18n.t("Нет", "None"),
+                                    "value": "none"
+                                },
+                                {
+                                    "label": I18n.t("Полароид", "Polaroid"),
+                                    "value": "polaroid"
+                                }
+                            ]
+                            currentValue: card.st.mat === "polaroid" ? "polaroid" : "none"
+                            onActivated: v => DesktopWidgets.setSetting(card.modelData, "mat", v)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "picture" && card.st.mode !== "folder"
                         label: I18n.t("Сколько раз проиграть", "Play it")
                         hint: (card.st.loops || 0) === 0 ? I18n.t("0 — по кругу без конца", "0 — round and round for ever") : I18n.t("потом замирает на кадре ниже", "then it rests on the frame below")
                         PxSpin {
@@ -284,7 +376,7 @@ PxPage {
                         }
                     }
                     SettingRow {
-                        visible: !!card.w && card.w.type === "gif" && (card.st.loops || 0) > 0
+                        visible: !!card.w && card.w.type === "picture" && card.st.mode !== "folder" && (card.st.loops || 0) > 0
                         label: I18n.t("Замереть на", "Rest on")
                         PxSegmented {
                             model: [
@@ -302,7 +394,7 @@ PxPage {
                         }
                     }
                     SettingRow {
-                        visible: !!card.w && card.w.type === "gif" && (card.st.loops || 0) > 0
+                        visible: !!card.w && card.w.type === "picture" && card.st.mode !== "folder" && (card.st.loops || 0) > 0
                         label: I18n.t("Снова через", "Again after")
                         hint: (card.st.every || 0) === 0 ? I18n.t("0 — один раз и всё", "0 — once and that's it") : ""
                         PxSpin {
@@ -315,24 +407,43 @@ PxPage {
                         }
                     }
                     SettingRow {
-                        visible: !!card.w && card.w.type === "gif"
-                        label: I18n.t("Размер", "Size")
-                        hint: I18n.t("длинная сторона, в пикселях angelOS", "The longer side, in angelOS pixels")
-                        PxSpin {
-                            from: 24
-                            to: 400
-                            stepSize: 8
-                            value: card.st.size || 100
-                            onMoved: v => DesktopWidgets.setSetting(card.modelData, "size", v)
-                        }
-                    }
-                    SettingRow {
-                        visible: !!card.w && card.w.type === "gif"
+                        visible: !!card.w && card.w.type === "picture" && card.st.mode !== "folder"
                         label: I18n.t("Чёткие пиксели", "Sharp pixels")
                         hint: I18n.t("для пиксель-арта: без размытия, увеличение целыми разами", "For pixel art: no blur, whole-number zoom")
                         PxToggle {
                             checked: card.st.sharp !== false
                             onToggled: c => DesktopWidgets.setSetting(card.modelData, "sharp", c)
+                        }
+                    }
+                    // ---- the note ----
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "note"
+                        label: I18n.t("Цвет", "Colour")
+                        PxSegmented {
+                            model: [0, 1, 2, 3].map(i => ({
+                                        "label": [I18n.t("Розовый", "Pink"), I18n.t("Голубой", "Cyan"), I18n.t("Жёлтый", "Yellow"), I18n.t("Четвёртый", "Fourth")][i],
+                                        "value": i
+                                    }))
+                            currentValue: card.st.tint || 0
+                            onActivated: v => DesktopWidgets.setSetting(card.modelData, "tint", v)
+                        }
+                    }
+                    SettingRow {
+                        visible: !!card.w && card.w.type === "note"
+                        label: I18n.t("Текст", "Text")
+                        hint: "~/.config/angelos/notes/" + card.modelData.replace(/[^\w-]/g, "_") + ".md"
+                        Row {
+                            spacing: Theme.u * 2
+                            PxButton {
+                                text: I18n.t("Редактировать", "Edit")
+                                icon: "note"
+                                onClicked: DesktopWidgets.request(card.modelData, "edit")
+                            }
+                            PxButton {
+                                text: I18n.t("Открыть файл", "Open the file")
+                                icon: "document"
+                                onClicked: Shell.openPath(Config.dir + "/notes/" + card.modelData.replace(/[^\w-]/g, "_") + ".md")
+                            }
                         }
                     }
                     PxButton {
@@ -375,6 +486,30 @@ PxPage {
             }
         }
         SettingRow {
+            visible: !DesktopWidgets.macLook
+            label: I18n.t("Рамка", "Frame")
+            hint: I18n.t("для всех пиксельных виджетов; у любого можно поставить свою (ПКМ → Рамка)", "For every pixel widget; any of them can have its own (right-click → Frame)")
+            PxSegmented {
+                model: ["window", "plate", "none"].map(f => ({
+                            "label": DesktopWidgets.frameLabel(f),
+                            "value": f
+                        }))
+                currentValue: DesktopWidgets.frameDefault
+                onActivated: v => Config.desktop.widgetFrame = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Город для погоды", "Weather city")
+            hint: Weather.place ? I18n.t("сейчас: ", "now: ") + Weather.place.name + (Weather.place.from === "ip" ? I18n.t(" (по IP)", " (by IP)") : "") : I18n.t("пусто — по IP (ip-api.com); погода — Open-Meteo, раз в 30 минут", "Empty: by IP (ip-api.com); the weather from Open-Meteo, every 30 minutes")
+            PxField {
+                width: Theme.u * 100
+                placeholder: I18n.t("по IP", "by IP")
+                text: Config.desktop.weatherCity
+                // Weather waits for the typing to stop before it asks
+                onEdited: Config.desktop.weatherCity = text.trim()
+            }
+        }
+        SettingRow {
             label: I18n.t("Режим правки", "Edit mode")
             hint: DesktopWidgets.macLook ? I18n.t("«−» на карточках, их можно таскать за любое место, видны скрытые", "“−” on the cards, drag them anywhere, hidden ones shown") : I18n.t("крестики на виджетах и видны скрытые", "close buttons on widgets, hidden ones shown")
             PxToggle {
@@ -383,10 +518,12 @@ PxPage {
             }
         }
         SettingRow {
-            label: I18n.t("Прилипать к сетке", "Snap to grid")
-            PxToggle {
-                checked: Config.desktop.snap
-                onToggled: c => Config.desktop.snap = c
+            label: I18n.t("Сетка", "Grid")
+            hint: I18n.t("к чему прилипают виджеты; в режиме правки сетка видна на обоях, сверху — панель с этим же выбором и «Выровнять всё»", "What the widgets snap to; in edit mode the grid shows on the wallpaper, with a bar on top for the same choice and “Align all”")
+            PxSegmented {
+                model: DesktopWidgets.gridLevels
+                currentValue: DesktopWidgets.gridLevel
+                onActivated: v => DesktopWidgets.setGrid(v)
             }
         }
         Row {

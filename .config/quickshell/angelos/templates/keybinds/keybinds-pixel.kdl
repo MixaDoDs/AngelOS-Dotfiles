@@ -8,7 +8,7 @@ binds {
 
     // ─── Applications ───
     Mod+T                          hotkey-overlay-title="Open Terminal: kitty" { spawn "kitty"; }
-    Mod+B                               hotkey-overlay-title="Open Browser: default" { spawn-sh "xdg-open about:blank"; }
+    Mod+B                               hotkey-overlay-title="Open Browser: Helium" { spawn "helium-browser" "--profile-directory=Default"; }
 
     // --- Noctalia ---
     Mod+Space                    hotkey-overlay-title="angelOS: программы" { spawn-sh "qs -c angelos ipc call angelos launcher"; }

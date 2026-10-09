@@ -334,7 +334,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Скин читают инструменты ~/.local/bin/niri-screenshot-region и niri-record-overlay из dotfiles. Снимки — в ~/Pictures/Screenshots, записи — в ~/Videos.", "The skin is used by ~/.local/bin/niri-screenshot-region and niri-record-overlay from the dotfiles. Shots go to ~/Pictures/Screenshots, recordings to ~/Videos.")
+            text: I18n.t("Скин читают инструменты ~/.local/bin/niri-screenshot-region и niri-record-overlay из dotfiles. Снимки — в ~/Pictures/Screenshots/приложение/месяц, записи — в ~/Videos.", "The skin is used by ~/.local/bin/niri-screenshot-region and niri-record-overlay from the dotfiles. Shots go to ~/Pictures/Screenshots/app/month, recordings to ~/Videos.")
         }
     }
 }

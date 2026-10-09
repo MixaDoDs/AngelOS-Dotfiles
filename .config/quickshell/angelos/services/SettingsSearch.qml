@@ -96,7 +96,7 @@ Singleton {
             "wallpaper": ["обои", "фон", "картинка", "заставка стола", "wallpaper", "background", "picture", "image"],
             "capture": ["скриншот", "скрин", "снимок экрана", "запись экрана", "видео", "обс", "screenshot", "recording", "capture", "video", "grim", "wf-recorder"],
             "cursor": ["курсор", "указатель", "cursor", "pointer"],
-            "widgets": ["виджет", "часы", "визуализатор", "cava", "гифка", "гиф", "анимация", "widget", "clock", "visualizer", "gif"],
+            "widgets": ["виджет", "часы", "визуализатор", "cava", "гифка", "гиф", "анимация", "погода", "музыка", "заметка", "стикер", "диски", "слайд-шоу", "картинка", "рамка", "widget", "clock", "visualizer", "gif", "weather", "music", "note", "sticker", "disks", "slideshow", "picture", "frame"],
             "deskmenu": ["пкм", "правая кнопка", "контекстное меню", "меню рабочего стола", "меню обоев", "кольцо", "радиальное меню", "right click", "context menu", "desktop menu", "radial menu", "pie menu"],
             "taskbar": ["панель", "таскбар", "трей", "кнопки окон", "часы", "taskbar", "panel", "tray", "clock"],
             "start": ["пуск", "меню пуск", "кнопка пуск", "meta", "win", "start", "start menu", "start button"],
@@ -365,7 +365,7 @@ Singleton {
         for (const raw of entries) {
             // developer mode's own groups and rows only while it is on; the author's (the
             // game's debug panel, owner/debug) only for the author
-            if (raw.developer && !developer || raw.owner && !author)
+            if (raw.developer && !developer || raw.owner && !author || raw.needs && !Laptop.has(raw.needs))
                 continue;
             const e = heaven && raw.kind !== "page" ? _inHeaven(raw) : raw;
             if (!e)

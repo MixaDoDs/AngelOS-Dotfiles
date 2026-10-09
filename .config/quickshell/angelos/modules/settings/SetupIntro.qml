@@ -26,13 +26,30 @@ import qs.services
 // words, SetupWake the waking up over each screen.
 // Only on the first run (or opened from Settings → Account «with the intro» in debug mode:
 // Shell.setupIntroOnce; or ANGELOS_SETUP_INTRO=1; =0 never); not while motion is off.
+// And once for everyone already set up when an update brings a newer one (`version` above
+// Config.setup.introSeen), after the shell starts again: alone (Shell.introOpen), over a still of
+// their own desktop (grim, before the covers come) — at the cut the waking up fades off it, no
+// wizard, the tune for a few seconds, their music back. Not over a fullscreen window, a stream,
+// the lock or a dev run; `angelos intro` plays it any time. No pointer while it plays.
+// Alone, it asks first: the desktop blurs and dims behind «Обновление скачано — продолжить?»
+// (phase "ask", the pointer still there); «Да» — and «Нет», which says «Да» for ten frames —
+// go on into the minute through that same blur and dark.
 Scope {
     id: root
 
+    // the intro's own version: raise it when it changes enough to show everyone again
+    readonly property int version: 2
     readonly property string env: Quickshell.env("ANGELOS_SETUP_INTRO") || ""
-    readonly property bool wanted: env !== "0" && !Motion.still && (Shell.setupFirstRun || Shell.setupIntroOnce || env === "1")
-    // "" → bake (the sounds being made) → run (the minute) → reveal (the cut, fading off) → done
+    readonly property bool wanted: env !== "0" && !Motion.still && (Shell.setupFirstRun || Shell.setupIntroOnce || Shell.introOpen || env === "1")
+    readonly property bool alone: Shell.introOpen && !Shell.setupOpen
+    // "" → (alone: ask, the question) → bake (the sounds being made) → run (the minute) →
+    // reveal (the cut, fading off) → done
     property string phase: ""
+    readonly property bool asking: phase === "ask"
+    // the question's blur and dark: in over 0.6 s, kept into the minute (SetupWake, SetupWizard)
+    property real askIn: 0
+    readonly property real askBlur: 6
+    readonly property real askDim: 0.45
     readonly property bool active: phase === "bake" || phase === "run" || phase === "reveal"
     readonly property bool holding: phase === "bake" || phase === "run"
     property real t: 0                       // s into the minute
@@ -41,6 +58,17 @@ Scope {
     readonly property real length: timeline.length || 60
     property int presses: 0
     readonly property int pressesToSkip: 5
+    // the installer's bar (SetupIntroScreen; the eye on the other screens follows its edge):
+    // quick at first, stuck at two thirds while the tree falls, crawling to 99 % and staying there
+    readonly property real progress: {
+        if (phase !== "run")
+            return 0;
+        const p = [[0, 0], [12, 0.41], [22, 0.63], [31, 0.66], [46, 0.9], [55, 0.99], [60, 0.99]];
+        for (let i = 1; i < p.length; i++)
+            if (t <= p[i][0])
+                return p[i - 1][1] + (p[i][1] - p[i - 1][1]) * (t - p[i - 1][0]) / (p[i][0] - p[i - 1][0]);
+        return 0.99;
+    }
 
     signal shook(real strength)
 
@@ -62,11 +90,46 @@ Scope {
     }
     Component.onCompleted: if (Shell.setupLocked)
         begin()
+    // read straight from Shell, not through `wanted`/`alone`: this runs inside setupLocked's
+    // change, before those bindings have caught up with introOpen (on 2026-10-09 the stale
+    // `wanted` left the covers up over a still of the desktop, no way out)
     function begin() {
-        const want = wanted;
+        const lone = Shell.introOpen && !Shell.setupOpen;
+        const want = env !== "0" && !Motion.still && (Shell.setupFirstRun || Shell.setupIntroOnce || lone || env === "1");
         Shell.setupIntroOnce = false;
-        if (!want || phase !== "")
+        if (Shell.setupFirstRun || lone)
+            Config.setup.introSeen = version;
+        if (!want || phase !== "") {
+            if (lone && phase === "")
+                Shell.introOpen = false;
             return;
+        }
+        if (lone) {
+            askIn = 0;
+            phase = "ask";
+            askFade.restart();
+            return;
+        }
+        go();
+    }
+    // the answer (any): into the minute; its watchdog only from here — the question waits
+    function answer() {
+        if (phase !== "ask")
+            return;
+        askFade.stop();
+        askIn = 1;
+        watchdog.restart();
+        go();
+    }
+    NumberAnimation {
+        id: askFade
+        target: root
+        property: "askIn"
+        to: 1
+        duration: 600
+        easing.type: Easing.OutCubic
+    }
+    function go() {
         phase = "bake";
         t = 0;
         reveal = 0;
@@ -79,12 +142,100 @@ Scope {
     function end() {
         bake.running = false;
         bakeTimeout.stop();
+        watchdog.stop();
+        askFade.stop();
+        askIn = 0;
         clock.stop();
         revealing.stop();
         intro.stop();
         phase = "";
         if (music.playbackState === MediaPlayer.PlayingState)
             fadeOut.restart();
+        if (wasAlone) {
+            wasAlone = false;
+            unduck();
+            removeShots.running = true;
+        }
+    }
+    // alone, it gives the desktop back when it is over (or could not start)
+    onPhaseChanged: {
+        if (phase === "run")
+            nextShake = 0;
+        if (phase === "done" && Shell.introOpen && !Shell.setupOpen)
+            Shell.introOpen = false;
+    }
+    // …and whatever happens, never holds it much longer than the minute (nor when it never starts)
+    Timer {
+        id: watchdog
+        interval: (root.length + 20) * 1000
+        onTriggered: if (Shell.introOpen && !Shell.setupOpen) {
+            console.warn("setup intro: still holding the desktop after", interval / 1000, "s — let go");
+            Shell.introOpen = false;
+        }
+    }
+    Timer {
+        interval: 3000
+        running: Shell.introOpen && !Shell.setupOpen && root.phase === ""
+        onTriggered: {
+            console.warn("setup intro: the covers are up but the intro never started — let go");
+            Shell.introOpen = false;
+        }
+    }
+    // alone, Esc is a way out at once too (space five times still works)
+    function skip() {
+        if (phase === "run")
+            cut();
+    }
+
+    // ---- once after an update, or `angelos intro`: a still of each screen, then the minute ----
+    property bool wasAlone: false
+    readonly property string shotDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos"
+    function shotUrl(name) {
+        return "file://" + shotDir + "/intro-" + name.replace(/[^A-Za-z0-9_-]/g, "_") + ".ppm";
+    }
+    readonly property bool calmDesk: Config.ready && !Shell.setupLocked && !Shell.locked && !Shell.bootOpen && !Shell.bootCover && !StreamMode.active && !Shell.screens.some(s => Shell.fullscreenOn(s.name))
+    // ten seconds after the shell is up (all of it loaded and drawn: at 4 s one screen once showed
+    // the intro as a still), when nothing is in the way
+    Timer {
+        interval: 10000
+        running: root.calmDesk && Config.setup.complete && (Config.setup.introSeen || 0) < root.version && root.env !== "0" && !Motion.still && !Shell.dev && Quickshell.env("ANGELOS_TEST") !== "1"
+        onTriggered: {
+            Config.setup.introSeen = root.version;
+            root.play();
+        }
+    }
+    Connections {
+        target: Shell
+        function onIntroRequested() {
+            root.play();
+        }
+    }
+    // the sounds made first (unseen, while they still work), then the stills, then the covers
+    function play() {
+        if (Shell.setupLocked || prebake.running || grab.running || phase !== "")
+            return;
+        prebake.running = true;
+    }
+    Process {
+        id: prebake
+        command: bake.command
+        onExited: if (!Shell.setupLocked)
+            grab.running = true
+    }
+    // uncompressed (no cursor): ~20 ms a screen; none (grim missing) and the desk's own colours show
+    Process {
+        id: grab
+        command: ["sh", "-c", 'mkdir -p "$1" && chmod 700 "$1"; d=$1; shift; for o in "$@"; do grim -o "$o" -t ppm "$d/intro-$(printf %s "$o" | tr -c "A-Za-z0-9_-" _).ppm"; done; true', "sh", root.shotDir].concat(Shell.screens.map(s => s.name))
+        onExited: {
+            if (Shell.setupLocked)
+                return;
+            root.wasAlone = true;
+            Shell.introOpen = true;
+        }
+    }
+    Process {
+        id: removeShots
+        command: ["sh", "-c", 'rm -f "$1"/intro-*.ppm', "sh", root.shotDir]
     }
 
     // ---- the sounds: made once, then only looked up ----
@@ -180,8 +331,6 @@ Scope {
             nextShake++;
         }
     }
-    onPhaseChanged: if (phase === "run")
-        nextShake = 0
 
     // ---- skipping: space five times ----
     function press() {
@@ -293,5 +442,16 @@ Scope {
                 if (d.volume >= 0 && d.player.canControl)
                     d.player.volume = d.volume;
         }
+    }
+    // alone, the desktop is theirs again: what was playing plays on
+    function unduck() {
+        duckStep.stop();
+        for (const d of ducked) {
+            if (d.volume >= 0 && d.player.canControl)
+                d.player.volume = d.volume;
+            if (d.player.canPlay)
+                d.player.play();
+        }
+        ducked = [];
     }
 }

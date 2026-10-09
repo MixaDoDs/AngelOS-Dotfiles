@@ -13,17 +13,36 @@ Item {
 
     property var intro: null
     property bool hosting: false
+    property var here: null              // this screen and the one with the installer (the eye)
+    property var host: null
     readonly property real t: intro ? intro.t : 0
     readonly property bool running: !!intro && intro.phase === "run"
     visible: !!intro && intro.holding
+    // alone (after an update): it came with the update — the desktop darkens into it over two
+    // seconds, the window is the update's, and something in it is not from the update
+    readonly property bool update: !!intro && intro.alone
+    opacity: update ? (running ? Math.min(1, t / 2) : 0) : 1
 
     Rectangle {
         anchors.fill: parent
         color: "#07060c"
     }
+    // the dark with something in it: sigils and shut eyes (opening one by one towards the end),
+    // ash and sparks rising from the fire (shaders/setup_backdrop.frag)
+    ShaderEffect {
+        anchors.fill: parent
+        property size itemSize: Qt.size(width, height)
+        property real px: Math.max(2, Math.floor(Math.min(width, height) / 270))
+        property real time: root.t
+        property real k: Math.min(1, root.t / (root.intro ? root.intro.length : 60))
+        property real opened: 0.7 * Math.max(0, Math.min(1, (root.t - 35) / 23))
+        fragmentShader: Qt.resolvedUrl("../../shaders/setup_backdrop.frag.qsb")
+    }
 
     // what it says it is doing, from when
-    readonly property var status: [[0, I18n.t("Подготовка…", "Preparing…")], [4, I18n.t("Копирую файлы: heaven.dat", "Copying files: heaven.dat")], [9, I18n.t("Распаковываю крылья…", "Unpacking the wings…")], [13, I18n.t("Ищу пользователя…", "Looking for the user…")], [17, I18n.t("Пользователь найден.", "User found.")], [21, I18n.t("Проверяю сердцебиение…", "Checking the heartbeat…")], [26, I18n.t("ОШИБКА: что-то горит", "ERROR: something is burning")], [30, I18n.t("Не выключай компьютер.", "Do not turn off your computer.")], [37, I18n.t("Ты меня слышишь?", "Can you hear me?")], [43, I18n.t("Осталось немного.", "Almost there.")], [49, I18n.t("Осталось совсем немного.", "Almost, almost there.")], [54, I18n.t("Просыпайся.", "Wake up.")], [57, I18n.t("ПРОСЫПАЙСЯ.", "WAKE UP.")]]
+    readonly property var status: update ? updateStatus : setupStatus
+    readonly property var updateStatus: [[0, I18n.t("Устанавливаю обновление…", "Installing the update…")], [4, I18n.t("Файлов в обновлении: 1", "Files in the update: 1")], [7, I18n.t("Копирую: heaven.dat", "Copying: heaven.dat")], [11, I18n.t("Файлов в обновлении: 2", "Files in the update: 2")], [14, I18n.t("Этот файл не из обновления.", "This file is not from the update.")], [17, I18n.t("Пользователь найден.", "User found.")], [21, I18n.t("Проверяю сердцебиение…", "Checking the heartbeat…")], [26, I18n.t("ОШИБКА: что-то горит", "ERROR: something is burning")], [30, I18n.t("Не выключай компьютер.", "Do not turn off your computer.")], [37, I18n.t("Ты меня слышишь?", "Can you hear me?")], [43, I18n.t("Осталось немного.", "Almost there.")], [49, I18n.t("Осталось совсем немного.", "Almost, almost there.")], [54, I18n.t("Просыпайся.", "Wake up.")], [57, I18n.t("ПРОСЫПАЙСЯ.", "WAKE UP.")]]
+    readonly property var setupStatus: [[0, I18n.t("Подготовка…", "Preparing…")], [4, I18n.t("Копирую файлы: heaven.dat", "Copying files: heaven.dat")], [9, I18n.t("Распаковываю крылья…", "Unpacking the wings…")], [13, I18n.t("Ищу пользователя…", "Looking for the user…")], [17, I18n.t("Пользователь найден.", "User found.")], [21, I18n.t("Проверяю сердцебиение…", "Checking the heartbeat…")], [26, I18n.t("ОШИБКА: что-то горит", "ERROR: something is burning")], [30, I18n.t("Не выключай компьютер.", "Do not turn off your computer.")], [37, I18n.t("Ты меня слышишь?", "Can you hear me?")], [43, I18n.t("Осталось немного.", "Almost there.")], [49, I18n.t("Осталось совсем немного.", "Almost, almost there.")], [54, I18n.t("Просыпайся.", "Wake up.")], [57, I18n.t("ПРОСЫПАЙСЯ.", "WAKE UP.")]]
     readonly property string now: {
         if (!running)
             return status[0][1];
@@ -33,40 +52,62 @@ Item {
                 s = e[1];
         return s;
     }
-    // quick at first, stuck at two thirds while the tree falls, crawling to 99 % and staying there
-    readonly property real progress: {
-        if (!running)
-            return 0;
-        const p = [[0, 0], [12, 0.41], [22, 0.63], [31, 0.66], [46, 0.9], [55, 0.99], [60, 0.99]];
-        for (let i = 1; i < p.length; i++)
-            if (t <= p[i][0])
-                return p[i - 1][1] + (p[i][1] - p[i - 1][1]) * (t - p[i - 1][0]) / (p[i][0] - p[i - 1][0]);
-        return 0.99;
-    }
+    readonly property real progress: intro ? intro.progress : 0
     function typed(text, at) {
         return text.slice(0, Math.max(0, Math.min(text.length, Math.floor((t - at) * 7))));
     }
 
-    // the ophanim, glimpsed first: in one corner of the screen after another, half out of sight,
-    // a blink each (from `corners`, 35 s)
+    // the other screens: an eye watching the installer, then you (SetupEye)
+    SetupEye {
+        anchors.fill: parent
+        visible: !root.hosting && root.running
+        intro: root.intro
+        here: root.here
+        host: root.host
+    }
+
+    // the ophanim, glimpsed first: four flashes of one film frame (1/25 s) over the minute, each
+    // at another edge, half out of sight, see-through (timeline `glimpses`; a whisper into each)
+    property int glimpseNext: 0
+    property var glimpseNow: null
+    onRunningChanged: {
+        glimpseNext = 0;
+        glimpseNow = null;
+    }
+    onTChanged: {
+        const list = intro ? intro.timeline.glimpses || [] : [];
+        if (!running || glimpseNext >= list.length || t < list[glimpseNext].t)
+            return;
+        while (glimpseNext < list.length && t >= list[glimpseNext].t)
+            glimpseNext++;
+        glimpseNow = list[glimpseNext - 1];
+        glimpseOff.restart();
+    }
+    Timer {
+        id: glimpseOff
+        interval: 40
+        onTriggered: root.glimpseNow = null
+    }
     SpriteRig {
         id: glimpse
-        readonly property real from: root.intro ? root.intro.timeline.corners || 35 : 35
-        readonly property int corner: Math.floor((root.t - from) / 0.7)
-        readonly property bool shown: root.hosting && root.running && root.t >= from && corner < 4 && (root.t - from) % 0.7 < 0.45
+        readonly property var g: root.glimpseNow || ({
+                "x": 0,
+                "y": 0
+            })
         who: "angel"
         angelVariant: "ophanim"
         px: Math.max(2, Math.floor(root.width * 0.3 / 179))
         width: implicitWidth
         height: implicitHeight
-        visible: shown
-        // top left, bottom right, top right, bottom left
-        x: [0, 1, 1, 0][Math.max(0, Math.min(3, corner))] ? root.width - width * 0.55 : -width * 0.45
-        y: [0, 1, 0, 1][Math.max(0, Math.min(3, corner))] ? root.height - height * 0.55 : -height * 0.45
+        visible: root.hosting && root.running && !!root.glimpseNow
+        opacity: 0.8
+        // at the edge, 55 % of it in sight
+        x: g.x * (root.width - width * 0.1) - width * 0.45
+        y: g.y * (root.height - height * 0.1) - height * 0.45
         tick: wings.n
     }
 
-    // the ophanim for good: up from below near the end (a flash and a sting come with it:
+    // the ophanim for good: up from below near the end (a flash, a choir and a bell come with it:
     // SetupWake, the sound), its golden eye watching to the end
     SpriteRig {
         id: ophanim
@@ -101,7 +142,7 @@ Item {
             property int n: 0
             interval: 110
             repeat: true
-            running: ophanim.up || glimpse.shown
+            running: ophanim.up
             onTriggered: n++
         }
     }
@@ -126,7 +167,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 font.bold: true
                 color: Theme.dark ? Theme.desk : "#ffffff"
-                text: I18n.t("angelOS — установка", "angelOS — setup")
+                text: root.update ? I18n.t("angelOS — обновление", "angelOS — update") : I18n.t("angelOS — установка", "angelOS — setup")
             }
         }
         Column {
@@ -137,12 +178,12 @@ Item {
             spacing: Theme.u * 4
             PxText {
                 kind: "title"
-                text: I18n.t("Установка angelOS", "Installing angelOS")
+                text: root.update ? I18n.t("Обновление angelOS", "Updating angelOS") : I18n.t("Установка angelOS", "Installing angelOS")
             }
             PxText {
                 width: parent.width
                 elide: Text.ElideRight
-                readonly property bool alarm: root.running && (root.t >= 26 && root.t < 30 || root.t >= 57)
+                readonly property bool alarm: root.running && (root.t >= 26 && root.t < 30 || root.t >= 57 || root.update && root.t >= 14 && root.t < 17)
                 dim: !alarm
                 color: alarm ? Theme.danger : Theme.textDim
                 text: root.now
@@ -206,7 +247,7 @@ Item {
             kind: "tiny"
             opacity: 0.25
             color: "#8a8498"
-            text: I18n.t("Нажми пробел 5 раз, чтобы пропустить", "Press space 5 times to skip")
+            text: root.intro && root.intro.alone ? I18n.t("Esc или пробел 5 раз — пропустить", "Esc or space 5 times to skip") : I18n.t("Нажми пробел 5 раз, чтобы пропустить", "Press space 5 times to skip")
         }
         Row {
             anchors.horizontalCenter: parent.horizontalCenter

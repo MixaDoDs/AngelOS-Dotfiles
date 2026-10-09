@@ -192,6 +192,14 @@ PxPage {
                         Shell.setupOpen = true;
                     }
                 }
+                // …or alone, as everyone sees it once after an update brings a new one
+                PxButton {
+                    visible: GameDebug.allowed || Config.developer.enabled
+                    compact: true
+                    text: I18n.t("Интро как после обновления", "The intro as after an update")
+                    icon: "play"
+                    onClicked: Shell.introRequested()
+                }
             }
         }
         SettingRow {

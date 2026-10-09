@@ -378,6 +378,7 @@
           ],
           "more": [
             "wallpaper/destination",
+            "wallpaper/variants",
             "wallpaper/transition"
           ],
           "links": [
@@ -1596,6 +1597,7 @@
             "more": [
               "wallpaper/releases",
               "wallpaper/destination",
+              "wallpaper/variants",
               "wallpaper/transition"
             ]
           },

@@ -243,6 +243,26 @@ Scope {
                 }
             }
         }
+        // the taskbar upright (Config.bar.edge left/right): its content in a column as wide as the bar
+        Loader {
+            id: vbarStage
+            active: false
+            sourceComponent: Item {
+                property alias content: vbar
+                width: Theme.u * 36
+                height: Theme.u * 300
+                BarContent {
+                    id: vbar
+                    anchors.fill: parent
+                    screenName: "TEST-1"
+                    barWindow: null
+                    style: "taskbar"
+                    vertical: true
+                    compact: true
+                    itemHeight: Theme.fit(15)
+                }
+            }
+        }
         // switch labels on a page as narrow as the grimoire's right one
         Loader {
             id: wrapStage
@@ -300,14 +320,17 @@ Scope {
                 }
             }
         }
-        // the desktop widgets' content in heaven and in hell (Theme.realm), and a hell frame
-        // (hidden: cava must not start its audio tap here)
+        // the desktop widgets' content in heaven and in hell (Theme.realm), each of its layouts
+        // S / M / L, and a hell frame (hidden: cava must not start its audio tap here)
         Loader {
             id: hellStage
             property string kind: ""
+            property string size: ""
             visible: false
             active: kind !== "" && kind !== "frame"
             source: active ? Quickshell.shellDir + "/modules/desktop/widgets/" + kind + "Widget.qml" : ""
+            onLoaded: if (size && item.size !== undefined)
+                item.size = size
         }
         // the cava widget for real, over test-ui.sh's stand-in cava (it prints frames like
         // the real one): hidden and shown again it must come back (B4)
@@ -316,7 +339,7 @@ Scope {
             active: false
             width: 200
             height: 100
-            source: Quickshell.shellDir + "/modules/desktop/widgets/CavaWidget.qml"
+            source: Quickshell.shellDir + "/modules/desktop/MusicSpectrum.qml"
             onLoaded: {
                 item.screenName = "selftest";
                 item.widget = {
@@ -619,12 +642,21 @@ Scope {
             const r = view.results[0];
             report(name + ":search", !!r && !!view.viewItem && !!view.viewItem.resultsSlot, view.results.length + " results");
             viewNote = r ? r.page : "";
+            view.typed = true;          // as if typed by hand: an opened result is remembered
             view.openResult(r);
             next();
         } else if (viewStep === 4) {
             if ((!ready || d.page !== viewNote) && waiting)
                 return;
             report(name + ":open-result", ready && d.page === viewNote && d.query === "", "page " + d.page);
+            const hist = Config.settingsUi.searchHistory || [];
+            // the search opened on purpose (Ctrl+F, the button) shows it at once; the window's own focus does not
+            view.focusSearch();
+            const quiet = !view.historyAsked;
+            view.focusSearch(true);
+            const asked = view.historyAsked;
+            view.historyAsked = false;
+            report(name + ":history", hist.length > 0 && hist[0].q === "обои" && hist[0].page === viewNote && hist.filter(x => x.q === "обои").length === 1 && !view.typed && quiet && asked, "first " + (hist[0] ? hist[0].q + " → " + hist[0].page : "none") + ", " + hist.length + " kept; window focus quiet " + quiet + ", Ctrl+F asks " + asked);
             // the keyboard: from the home (or the account) the view's own keys move on
             Shell.settingsPage = "home";
             next();
@@ -1220,6 +1252,32 @@ Scope {
                 Config.workspaces.sprite = sp;
             report("bar-widgets", ok, ok ? "wifi, bluetooth, wired, tray, workspaces" : "status " + barStage.status);
             barStage.active = false;
+            console.log("TEST-PAGE bar-vertical");
+            viewNote = JSON.stringify([Config.bar.style, Config.bar.edge]);
+            Config.bar.style = "taskbar";
+            Config.bar.edge = "left";
+            vbarStage.active = true;
+            phase = "vbar";
+            started = Date.now();
+            return;
+        }
+        if (phase === "vbar") {
+            if ((vbarStage.status !== Loader.Ready || Date.now() - started < 300) && Date.now() - started < 20000)
+                return;
+            const c = vbarStage.item ? vbarStage.item.content : null;
+            const items = c ? c.columnItems().sort((a, b) => a.y - b.y) : [];
+            const W = vbarStage.item ? vbarStage.item.width : 0;
+            const inside = items.every(i => i.x >= -0.5 && i.x + i.w <= W + 0.5);
+            const apart = items.every((i, k) => k === 0 || i.y >= items[k - 1].y + items[k - 1].h - 0.5);
+            const wids = items.map(i => i.wid);
+            const sides = BarLayout.vertical && BarLayout.side === "left" && !BarLayout.bottom;
+            Config.bar.edge = "top";
+            const top = BarLayout.edge === "top" && !BarLayout.vertical && !BarLayout.bottom;
+            const [st, ed] = JSON.parse(viewNote);
+            Config.bar.style = st;
+            Config.bar.edge = ed;
+            report("bar-vertical", items.length >= 3 && wids.includes("start") && wids.includes("clock") && !wids.includes("lyrics") && inside && apart && sides && top, wids.join(" ↓ ") + "; inside the bar " + inside + ", one under another " + apart + ", left: menus sideways " + sides + ", top " + top);
+            vbarStage.active = false;
             console.log("TEST-PAGE toggle-wrap");
             wrapStage.active = true;
             phase = "wrap";
@@ -1262,9 +1320,10 @@ Scope {
                 report("start-styles", startSeen.every(x => x.indexOf("FAIL") < 0), startSeen.join(", "));
                 console.log("TEST-PAGE hell-widgets");
                 hellSteps = [];
-                for (const k of ["Clock", "Sysmon", "Cava", "NowPlaying", "Hellwheel", "frame"])
+                for (const k of ["Clock", "Sysmon", "Music", "Picture", "Note", "Disks", "Hellwheel", "frame"])
                     for (const r of ["heaven", "hell"])
-                        hellSteps.push([k, r]);
+                        for (const z of (k === "Hellwheel" || k === "frame" ? [""] : ["s", "m", "l"]))
+                            hellSteps.push([k, r, z]);
                 hellSeen = [];
                 phase = "heaven-menus";
                 return;
@@ -1468,13 +1527,14 @@ Scope {
             const st = hellSteps[hellSeen.length];
             if (!hellLoaded) {
                 Theme.realm = st[1];
+                hellStage.size = st[2];
                 hellStage.kind = st[0];
                 hellLoaded = true;
                 return;
             }
             const stage = st[0] === "frame" ? frameStage : hellStage;
             const it = stage.item;
-            hellSeen.push(st[0] + "/" + st[1] + (stage.status === Loader.Ready && it && (it.implicitWidth > 0 || it.width > 0) ? "" : " FAIL"));
+            hellSeen.push(st[0] + "/" + st[1] + (st[2] ? "/" + st[2] : "") + (stage.status === Loader.Ready && it && (it.implicitWidth > 0 || it.width > 0) ? "" : " FAIL"));
             hellStage.kind = "";
             hellLoaded = false;
             if (hellSeen.length < hellSteps.length)
@@ -2086,6 +2146,40 @@ Scope {
             Config.y2k.hellPicture = keep[3];
             Config.appearance.customAccent = keep[4];
             Config.appearance.customAccentHell = "";
+            // one wallpaper in several files: a screen takes the file for the theme and for how it stands
+            {
+                const d = "/tmp/selftest-v/", imgs0 = Wallpapers.images, meta0 = Wallpapers.meta;
+                const m = {};
+                for (const [n, w, h, t, k] of [["lake.png", 1920, 1080, "", "lake"], ["lake-night.png", 1920, 1080, "night", "lake"], ["lake-21x9.png", 2560, 1080, "", "lake"], ["lake-9x16.png", 1080, 1920, "", "lake"], ["other.png", 1920, 1080, "", "other"]])
+                    m[d + n] = {
+                        "w": w,
+                        "h": h,
+                        "time": t,
+                        "key": d + k,
+                        "name": k
+                    };
+                Wallpapers.meta = m;
+                Wallpapers.images = Object.keys(m);
+                const one = Wallpapers.heads.length === 2 && Wallpapers.sameSet(d + "lake-9x16.png", d + "lake.png") && !Wallpapers.sameSet(d + "other.png", d + "lake.png");
+                const day = Wallpapers.pickFor(d + "lake-night.png", 16 / 9, false) === d + "lake.png";
+                const night = Wallpapers.pickFor(d + "lake.png", 16 / 9, true) === d + "lake-night.png";
+                const wide = Wallpapers.pickFor(d + "lake.png", 21 / 9, true) === d + "lake-21x9.png";
+                const tall = Wallpapers.pickFor(d + "lake-night.png", 9 / 16, true) === d + "lake-9x16.png";
+                const lone = Wallpapers.pickFor(d + "other.png", 9 / 16, true) === d + "other.png";
+                const tags = Wallpapers.variantTags(d + "lake.png").join(" ") === "☼ ☾ 16:9 21:9 9:16";
+                Config.wallpaper.variants = false;
+                const off = Wallpapers.heads.length === 5 && Wallpapers.pickFor(d + "lake.png", 21 / 9, true) === d + "lake.png";
+                Config.wallpaper.variants = true;
+                Wallpapers.images = imgs0;
+                Wallpapers.meta = meta0;
+                report("walls-variants", one && day && night && wide && tall && lone && tags && off, "one card " + one + ", day " + day + ", night " + night + ", 21:9 " + wide + ", a tall screen takes the tall file " + tall + ", a lone picture stays " + lone + ", marks " + tags + ", off: every file " + off);
+            }
+            // a turned monitor: the turn and the mirror apart, and back together
+            {
+                const t = Outputs.transformOf;
+                const ok = t("90", false) === "90" && t("0", true) === "flipped" && t("270", true) === "flipped-270" && t("0", false) === "normal" && Outputs.turnOf("flipped-180") === "180" && Outputs.turnOf("normal") === "0" && Outputs.mirroredOf("flipped-90") && !Outputs.mirroredOf("90");
+                report("monitor-turns", ok, "turn + mirror ⇄ niri's transform " + ok);
+            }
             Story.reset();
             phase = "motion";
             return;

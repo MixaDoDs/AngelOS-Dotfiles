@@ -27,6 +27,10 @@ IpcHandler {
     function setup(): void {
         Shell.setupOpen = true;
     }
+    // the first run's intro alone, as everyone sees it once after an update brings a new one
+    function intro(): void {
+        Shell.introRequested();
+    }
     // open the wizard on a given step (0 = welcome)
     function setupStep(step: int): void {
         Shell.setupOpen = true;
@@ -455,7 +459,7 @@ IpcHandler {
     function pickColor(): void {
         ColorPicker.pick();
     }
-    // toggle a desktop widget: angelos widget clock DP-1 (types: clock sysmon cava nowplaying plugin:<id>)
+    // toggle a desktop widget: angelos widget clock DP-1 (types: clock sysmon music picture note disks plugin:<id>)
     function widget(type: string, screen: string): string {
         if (!DesktopWidgets.typeInfo(type))
             return "unknown widget: " + type + " (" + DesktopWidgets.types.map(t => t.type).join(", ") + ")";
@@ -1149,6 +1153,26 @@ IpcHandler {
         const ws = Niri.activeWorkspace(output || Niri.focusedOutput);
         if (ws)
             Niri.workspaceActivated(ws, false);
+    }
+    // the newest card's reply, for tests (ANGELOS_DEV only): `angelos notifReply open` puts its
+    // field up, `angelos notifReply close` takes it down, anything else is sent as typed there
+    function notifReply(text: string): string {
+        if (!Shell.dev)
+            return "dev only";
+        const n = Notifs.popups[Notifs.popups.length - 1];
+        if (!n || (!n.hasInlineReply && text !== "window"))
+            return "no card to reply to";
+        if (text === "open")
+            Notifs.replyTo = n;
+        else if (text === "close")
+            Notifs.replyTo = null;
+        else if (text === "window") {
+            const w = Notifs.appWindow(n);
+            return w ? w.app_id + " · " + w.title : "no window";
+        }
+        else
+            Notifs.reply(n, text);
+        return "ok";
     }
     function testNotify(): void {
         if (!Shell.dev) {

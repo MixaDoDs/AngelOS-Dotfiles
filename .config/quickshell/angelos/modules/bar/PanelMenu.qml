@@ -45,8 +45,10 @@ PopupWindow {
     anchor.item: anchorItem
     anchor.rect.width: 1
     anchor.rect.height: 1
+    // a taskbar on the left or the right (BarLayout.side): the menu grows away from that edge
+    property string side: BarLayout.side
     anchor.edges: above ? Edges.Top | Edges.Left : Edges.Bottom | Edges.Left
-    anchor.gravity: above ? Edges.Top | Edges.Right : Edges.Bottom | Edges.Right
+    anchor.gravity: side === "left" ? Edges.Bottom | Edges.Right : side === "right" ? Edges.Bottom | Edges.Left : above ? Edges.Top | Edges.Right : Edges.Bottom | Edges.Right
     anchor.adjustment: PopupAdjustment.Flip | PopupAdjustment.Slide
     grabFocus: true
     visible: false

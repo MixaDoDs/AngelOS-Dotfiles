@@ -18,11 +18,12 @@ PxPage {
     readonly property int perPage: 24
     readonly property var folders: {
         const set = {};
-        for (const p of Wallpapers.list)
+        for (const p of Wallpapers.heads)
             set[p.slice(0, p.lastIndexOf("/"))] = true;
         return Object.keys(set).sort();
     }
-    readonly property var filtered: folder ? Wallpapers.list.filter(p => p.slice(0, p.lastIndexOf("/")) === folder) : Wallpapers.list
+    // one card per wallpaper: its day / night / 21:9 / 9:16 files are one (Wallpapers.heads)
+    readonly property var filtered: folder ? Wallpapers.heads.filter(p => p.slice(0, p.lastIndexOf("/")) === folder) : Wallpapers.heads
     readonly property int pages: Math.max(1, Math.ceil(filtered.length / perPage))
     onFolderChanged: pageNo = 0
     // heaven ⇄ hell: another set of pictures, start from the top
@@ -161,6 +162,21 @@ PxPage {
         }
     }
 
+    PxGroup {
+        name: "variants"
+        title: I18n.t("Варианты обоев", "Wallpaper variants")
+        icon: "layers"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Подбирать под тему и экран", "Fit the theme and the screen")
+            hint: I18n.t("Одни обои в нескольких файлах — это одна карточка: днём ставится дневной, ночью ночной, на широкий монитор 21:9 или 32:9, на повёрнутый вертикально — 9:16. Форма берётся из самой картинки, а в имени достаточно пометить день/ночь: «озеро.png», «озеро-ночь.png», «озеро-21x9.png», «озеро 9 на 16.png» или папка «Озеро/» с «day.png», «night.png». Выключено — каждый файл сам по себе.", "One wallpaper in several files is one card: the day file by day, the night one at night, 21:9 or 32:9 on a wide monitor, 9:16 on one turned on its side. The shape is read from the picture; the name only marks day or night: lake.png, lake-night.png, lake-21x9.png, lake-9x16.png, or a Lake/ folder with day.png and night.png. Off: every file on its own.")
+            PxToggle {
+                checked: Config.wallpaper.variants !== false
+                onToggled: c => Config.wallpaper.variants = c
+            }
+        }
+    }
+
     // every big release of angelOS brings wallpapers drawn for it (services/Wallpapers: releases)
     PxGroup {
         name: "releases"
@@ -173,7 +189,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("С каждым крупным релизом приходят свои обои, нарисованные для angelOS: днём и ночью. Клик — поставить.", "Every big release comes with wallpapers drawn for angelOS, a day and a night one. Click to apply.")
+            text: Wallpapers.variantsOn ? I18n.t("С каждым крупным релизом приходят свои обои, нарисованные для angelOS: днём и ночью — сами сменятся вместе с темой. Клик — поставить.", "Every big release comes with wallpapers drawn for angelOS, a day and a night one: they follow the theme. Click to apply.") : I18n.t("С каждым крупным релизом приходят свои обои, нарисованные для angelOS: днём и ночью. Клик — поставить.", "Every big release comes with wallpapers drawn for angelOS, a day and a night one. Click to apply.")
         }
         Repeater {
             model: Wallpapers.releases
@@ -199,11 +215,12 @@ PxPage {
                             Row {
                                 spacing: Theme.u * 2
                                 Repeater {
-                                    model: [wallCol.modelData.day, wallCol.modelData.night].filter(f => !!f)
+                                    // day and night are one wallpaper when variants follow the theme
+                                    model: Wallpapers.variantsOn ? [wallCol.modelData.day || wallCol.modelData.night] : [wallCol.modelData.day, wallCol.modelData.night].filter(f => !!f)
                                     Item {
                                         id: rt
                                         required property string modelData
-                                        readonly property bool active: (page.target === "all" ? Wallpapers.resolve(Quickshell.screens[0].name, 1) : page.target === "output" ? Wallpapers.resolve(page.output, -1) : Wallpapers.resolve(page.output, page.wsIdx)) === modelData
+                                        readonly property bool active: Wallpapers.sameSet(page.target === "all" ? Wallpapers.raw(Quickshell.screens[0].name, 1) : page.target === "output" ? Wallpapers.raw(page.output, -1) : Wallpapers.raw(page.output, page.wsIdx), modelData)
                                         width: Theme.u * 56
                                         height: Theme.u * 32
                                         PxBox {
@@ -213,7 +230,7 @@ PxPage {
                                             edgeColor: rt.active ? Theme.accent : Theme.edge
                                             Image {
                                                 anchors.fill: parent
-                                                source: "file://" + rt.modelData
+                                                source: "file://" + Wallpapers.pick(rt.modelData, page.output)
                                                 sourceSize: Qt.size(480, 270)
                                                 fillMode: Image.PreserveAspectCrop
                                                 asynchronous: true
@@ -592,8 +609,11 @@ PxPage {
                 Item {
                     id: thumb
                     required property string modelData
-                    readonly property string currentHere: page.target === "all" ? Wallpapers.resolve(Quickshell.screens[0].name, 1) : page.target === "output" ? Wallpapers.resolve(page.output, -1) : Wallpapers.resolve(page.output, page.wsIdx)
-                    readonly property bool active: currentHere === modelData
+                    readonly property string currentHere: page.target === "all" ? Wallpapers.raw(Quickshell.screens[0].name, 1) : page.target === "output" ? Wallpapers.raw(page.output, -1) : Wallpapers.raw(page.output, page.wsIdx)
+                    readonly property bool active: Wallpapers.sameSet(currentHere, modelData)
+                    // the file this screen would show: the theme's, the screen's shape
+                    readonly property string shownFile: Wallpapers.pick(modelData, page.output)
+                    readonly property var tags: Wallpapers.variantTags(modelData)
                     width: grid.cell
                     height: Math.round(grid.cell * 9 / 16)
 
@@ -604,7 +624,7 @@ PxPage {
                         edgeColor: thumb.active ? Theme.accent : Theme.edge
                         Image {
                             anchors.fill: parent
-                            source: "file://" + Wallpapers.display(thumb.modelData)
+                            source: "file://" + Wallpapers.display(thumb.shownFile)
                             // in the grimoire (or a dress): an engraving the right way round, not a negative
                             layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
                             layer.effect: GrimoirePhoto {}
@@ -614,7 +634,23 @@ PxPage {
                             cache: true
                             smooth: true
                             onStatusChanged: if (status === Image.Error)
-                                Wallpapers.fit(thumb.modelData)
+                                Wallpapers.fit(thumb.shownFile)
+                        }
+                    }
+                    // what the wallpaper has: ☼ ☾ 16:9 21:9 9:16
+                    PxBox {
+                        visible: thumb.tags.length > 0
+                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                        anchors.margins: Theme.u * 2
+                        width: tagText.implicitWidth + Theme.u * 4
+                        height: tagText.implicitHeight + Theme.u * 2
+                        color: Qt.alpha(Theme.face, 0.85)
+                        PxText {
+                            id: tagText
+                            anchors.centerIn: parent
+                            kind: "tiny"
+                            text: thumb.tags.join(" ")
                         }
                     }
                     Rectangle {

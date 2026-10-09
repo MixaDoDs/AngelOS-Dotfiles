@@ -28,6 +28,63 @@ Singleton {
     }
     function dismissPopup(n) {
         popups = popups.filter(p => !same(p, n));
+        if (same(replyTo, n))
+            replyTo = null;
+    }
+    // the notification whose card has its reply field open (one at a time)
+    property var replyTo: null
+    // a reply typed into the card goes back to the app (Telegram's inline reply)
+    function reply(n, text) {
+        text = String(text || "").trim();
+        if (!text || !n || !n.hasInlineReply)
+            return;
+        n.sendInlineReply(text);
+        close(n);
+    }
+    // The app's own window for a notification, from niri's app_id against the sender's name and
+    // desktop entry (freshGram → io.github.snowyfluffy.freshgram, com.discordapp.Discord →
+    // discord). Discord sends no name at all; its sender is in the summary and its window title
+    // names the open chat, which is the last clue.
+    function appWindow(n) {
+        if (!n)
+            return null;
+        const names = [];
+        for (const s of [n.appName, n.desktopEntry, (n.hints || {})["desktop-entry"]]) {
+            const low = String(s || "").toLowerCase().replace(/\.desktop$/, "");
+            if (!low)
+                continue;
+            names.push(low, low.split(".").pop());
+        }
+        const wins = Niri.windows.filter(w => w.app_id && w.app_id !== "org.quickshell");
+        const own = wins.find(w => {
+            const id = w.app_id.toLowerCase();
+            return names.some(s => id === s || id.split(".").pop() === s);
+        });
+        if (own)
+            return own;
+        const who = String(n.summary || "").trim();
+        return names.length === 0 && who.length >= 3 ? wins.find(w => String(w.title || "").includes(who)) || null : null;
+    }
+    // the field's hint: the app's own (KDE's "x-kde-reply-placeholder-text", Telegram sends it);
+    // the reply action's label ("Reply") says nothing a field doesn't
+    function replyHint(n) {
+        return n ? String((n.hints || {})["x-kde-reply-placeholder-text"] || "") : "";
+    }
+    function canOpen(n) {
+        return !!n && (n.actions.some(a => a.identifier === "default") || !!appWindow(n));
+    }
+    // "Open": the app's default action (Telegram opens the chat) and its window in front — niri
+    // gives focus to a window only on a token the app gets from us, so we bring it ourselves
+    function open(n) {
+        if (!n)
+            return;
+        const w = appWindow(n);
+        const def = n.actions.find(a => a.identifier === "default");
+        if (def)
+            def.invoke();
+        if (w)
+            Niri.focusWindow(w.id);
+        dismissPopup(n);
     }
     function close(n) {
         dismissPopup(n);
@@ -92,6 +149,7 @@ Singleton {
         bodyHyperlinksSupported: true
         imageSupported: true
         persistenceSupported: true
+        inlineReplySupported: true
         onNotification: n => {
             n.tracked = true;
             const entry = {

@@ -30,9 +30,32 @@ Singleton {
     property string limitStatus: ""        // "", "nohelper", "error …" — the last attempt
     signal flag(string icon, string text)  // a switch key's result for the OSD (touchpad, airplane…)
 
-    // the settings tree's "needs" (services/SettingsTree.shown)
+    // the hardware a page or a group is about: the settings tree's "needs" (SettingsTree.shown),
+    // a group's `visible: Laptop.has("…")` (the search leaves it out too, scripts/settings-index.py).
+    // A desktop sees none of it, unless developer mode asks to show them (System → Development →
+    // "Show the laptop's settings", 2026-10-09). Only the settings ask this: what really runs on
+    // a laptop goes by isLaptop, hasLid… themselves.
+    readonly property bool preview: Config.developer.enabled && Config.developer.showLaptop
     function has(what) {
-        return what === "battery" ? Power.hasBattery || batteries.length > 0 : what === "touchpad" ? hasTouchpad : what === "laptop" ? isLaptop : true;
+        if (preview)
+            return true;
+        switch (what) {
+        case "battery":
+            return Power.hasBattery || batteries.length > 0;
+        case "touchpad":
+            return hasTouchpad;
+        case "laptop":
+            return isLaptop;
+        case "lid":
+            return hasLid;
+        case "backlight":
+            return Backlight.available || Backlight.kbdAvailable;
+        case "tablet":
+            return convertible;
+        case "fingerprint":       // a reader (a USB one on a desktop too), or a laptop's fprintd
+            return fprintReader || (isLaptop && !!info.fprintTool);
+        }
+        return true;
     }
 
     readonly property var env: {

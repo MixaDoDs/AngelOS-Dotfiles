@@ -64,6 +64,16 @@ PxPage {
             }
         }
         SettingRow {
+            label: I18n.t("Экраны (как Win+P)", "Screens (like Win+P)")
+            hint: I18n.t("только этот, повторить, расширить, только второй — Mod+P", "This one only, duplicate, extend, the second only: Mod+P")
+            PxButton {
+                compact: true
+                icon: "monitor"
+                text: I18n.t("Открыть", "Open")
+                onClicked: Shell.projectOpen = true
+            }
+        }
+        SettingRow {
             visible: page.widgetsElsewhere > 0
             label: I18n.t("Виджеты на других экранах: ", "Widgets on other screens: ") + page.widgetsElsewhere
             hint: I18n.t("перенести их все на главный (позиции сохранятся, лишнее прижмётся к краю)", "Move them all to the main screen (positions kept, anything off the edge snaps back)")
@@ -228,7 +238,7 @@ PxPage {
                             }
                             PxText {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: Math.round(mon.dd.x) + ", " + Math.round(mon.dd.y)
+                                text: Math.round(mon.dd.x) + ", " + Math.round(mon.dd.y) + (mon.dd.transform !== "normal" ? "  ↻ " + Outputs.turnOf(mon.dd.transform) + "°" + (Outputs.mirroredOf(mon.dd.transform) ? I18n.t(" зерк.", " mirr.") : "") : "")
                                 kind: "tiny"
                                 dim: true
                             }
@@ -324,13 +334,34 @@ PxPage {
                 onMoved: v => Outputs.set(page.selected, "scale", v)
             }
         }
+        // how it stands: applied at once, back in 15 s unless kept (the banner below)
         SettingRow {
-            label: I18n.t("Поворот", "Rotation")
-            PxCombo {
-                width: Theme.u * 100
-                model: Outputs.transforms
-                currentValue: page.d ? page.d.transform : "normal"
-                onActivated: v => Outputs.set(page.selected, "transform", v)
+            label: I18n.t("Ориентация", "Orientation")
+            hint: I18n.t("Монитор стоит вертикально или перевёрнут — поверни картинку. Меняется сразу; если не нажать «Оставить», через 15 секунд вернётся как было. Обои с вариантами сами возьмут вертикальный (9:16).", "The monitor stands upright or upside down: turn the picture. It changes at once and comes back in 15 seconds unless you keep it. Wallpapers with variants take their upright (9:16) file.")
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 2
+                Repeater {
+                    model: Outputs.turns
+                    PxButton {
+                        required property var modelData
+                        compact: true
+                        icon: modelData.value === "0" ? "monitor" : "rotate"
+                        text: modelData.label
+                        checked: page.d ? Outputs.turnOf(page.d.transform) === modelData.value : false
+                        enabled: !Outputs.busy && !!page.d && !page.d.off
+                        onClicked: Outputs.turn(page.selected, Outputs.transformOf(modelData.value, Outputs.mirroredOf(page.d.transform)))
+                    }
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Зеркально", "Mirrored")
+            hint: I18n.t("отразить слева направо — для проектора на просвет или телесуфлёра", "flip left to right: for a rear projector or a teleprompter")
+            PxToggle {
+                enabled: !Outputs.busy && !!page.d && !page.d.off
+                checked: page.d ? Outputs.mirroredOf(page.d.transform) : false
+                onToggled: c => Outputs.turn(page.selected, Outputs.transformOf(Outputs.turnOf(page.d.transform), c))
             }
         }
         SettingRow {
@@ -356,6 +387,42 @@ PxPage {
                 enabled: page.o ? !!page.o.vrr_supported : false
                 checked: page.d ? page.d.vrr : false
                 onToggled: c => Outputs.set(page.selected, "vrr", c)
+            }
+        }
+    }
+
+    // a turned / re-moded screen comes back by itself unless kept
+    PxBox {
+        visible: Outputs.undo !== null
+        width: parent.width
+        height: keepRow.implicitHeight + Theme.u * 8
+        color: Theme.mix(Theme.face, Theme.accent, 0.25)
+        Row {
+            id: keepRow
+            x: Theme.u * 4
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width - Theme.u * 8
+            spacing: Theme.u * 3
+            PxText {
+                width: parent.width - keepBtn.width - backBtn.width - parent.spacing * 2
+                anchors.verticalCenter: parent.verticalCenter
+                wrapMode: Text.Wrap
+                text: I18n.t("Оставить так? Через ", "Keep this? Going back in ") + Outputs.confirmLeft + I18n.t(" с вернётся как было.", " s.")
+            }
+            PxButton {
+                id: keepBtn
+                accent: true
+                icon: "check"
+                text: I18n.t("Оставить", "Keep")
+                anchors.verticalCenter: parent.verticalCenter
+                onClicked: Outputs.keep()
+            }
+            PxButton {
+                id: backBtn
+                icon: "arrowLeft"
+                text: I18n.t("Вернуть", "Revert")
+                anchors.verticalCenter: parent.verticalCenter
+                onClicked: Outputs.revert()
             }
         }
     }

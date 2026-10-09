@@ -159,7 +159,7 @@ def split_zone(total, a, b):
 
 
 def window_rects(parents):
-    """The windows on the screens, topmost first: [(x, y, w, h, title)] in global logical
+    """The windows on the screens, topmost first: [(x, y, w, h, app_id)] in global logical
     coordinates (grim's), each cut to its output. `parents` = output name -> (w, h) of the
     area the bars leave (niri's parent area, measured by a layer-shell probe).
 
@@ -186,12 +186,12 @@ def window_rects(parents):
         wx, wy = px + struts["left"], py + struts["top"]
         ww, wh = pw - struts["left"] - struts["right"], ph - struts["top"] - struts["bottom"]
         mine = [w for w in windows if w.get("workspace_id") == ws["id"] and (w.get("layout") or {}).get("window_size")]
-        placed = []  # (z order key, x, y, w, h, title) in output coordinates
+        placed = []  # (z order key, x, y, w, h, app_id) in output coordinates
 
         def add(w, tx, ty, key):
             lay = w["layout"]
             dx, dy = lay.get("window_offset_in_tile") or (0, 0)
-            placed.append((key, tx + dx, ty + dy, lay["window_size"][0], lay["window_size"][1], w.get("title") or w.get("app_id") or ""))
+            placed.append((key, tx + dx, ty + dy, lay["window_size"][0], lay["window_size"][1], w.get("app_id") or ""))
 
         # floating ones over the tiled, the last focused on top (niri raises a window on focus)
         for w in mine:
@@ -240,12 +240,12 @@ def window_rects(parents):
                     y += th + gaps
 
         placed.sort(key=lambda p: (p[0][0], ts_key(p[0][1])), reverse=True)
-        for _key, x, y, w, h, title in placed:
+        for _key, x, y, w, h, app in placed:
             # only what is on this output
             x0, y0 = max(round(x), 0), max(round(y), 0)
             x1, y1 = min(round(x + w), ow), min(round(y + h), oh)
             if x1 - x0 >= MIN_SIZE and y1 - y0 >= MIN_SIZE:
-                found.append((ox + x0, oy + y0, x1 - x0, y1 - y0, title))
+                found.append((ox + x0, oy + y0, x1 - x0, y1 - y0, app))
     return found
 
 
@@ -254,6 +254,21 @@ def ts_key(ts):
     if not isinstance(ts, dict):
         return 0
     return ts.get("secs", 0) * 1_000_000_000 + ts.get("nanos", 0)
+
+
+def shot_dir(sel, rects):
+    """<shots>/<App>/<MM.YYYY> by screenshot-sort: a clicked window's app, else the focused one."""
+    app = next((a for x, y, w, h, a in rects if (x, y, w, h) == tuple(sel)), None)
+    sorter = os.path.expanduser("~/.local/bin/screenshot-sort")
+    try:
+        out = subprocess.run([sorter, "dir"] + (["--app", app] if app is not None else []),
+                             capture_output=True, text=True, timeout=3).stdout.strip()
+        if out and os.path.isdir(out):
+            return out
+    except Exception:
+        pass
+    os.makedirs(OUTDIR, exist_ok=True)
+    return OUTDIR
 
 
 @dataclass
@@ -655,7 +670,7 @@ class ScreenshotApp:
 
     def target_at(self, gx, gy):
         """What a click at (gx, gy) takes: the topmost window there, else the whole screen."""
-        for x, y, w, h, _title in self.rects:
+        for x, y, w, h, _app in self.rects:
             if x <= gx < x + w and y <= gy < y + h:
                 return x, y, w, h
         for win in self.windows:
@@ -793,9 +808,9 @@ class ScreenshotApp:
             return False
         self._done = True
         x, y, w, h = sel
-        os.makedirs(OUTDIR, exist_ok=True)
+        outdir = shot_dir(sel, self.rects)
         stamp = time.strftime("%Y-%m-%d %H-%M-%S")
-        path = os.path.join(OUTDIR, f"Screenshot from {stamp}." + ("jpg" if SHOT_JPG else "png"))
+        path = os.path.join(outdir, f"Screenshot from {stamp}." + ("jpg" if SHOT_JPG else "png"))
         geom = f"{x},{y} {w}x{h}"
         try:
             grim = ["grim", "-g", geom] + (["-c"] if CAPTURE.get("shotCursor") else []) + (["-t", "jpeg", "-q", "92"] if SHOT_JPG else [])

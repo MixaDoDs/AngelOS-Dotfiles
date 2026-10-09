@@ -63,10 +63,38 @@ PxPage {
                 }
             }
         }
+        // like Windows 10: the taskbar on any edge; on the left or the right it stands upright
+        SettingRow {
+            visible: Config.bar.style === "taskbar"
+            label: I18n.t("Положение на экране", "Position on screen")
+            hint: BarLayout.vertical ? I18n.t("сбоку панель стоит столбиком: «Пуск», воркспейсы и окна сверху, трей и часы снизу; меню открываются вбок, лирика сбоку не помещается", "On a side the bar stands upright: Start, workspaces and windows at the top, the tray and the clock at the bottom; menus open sideways, the lyrics don't fit there") : I18n.t("у какого края экрана панель, как в Windows 10", "Which screen edge the bar sits on, like Windows 10")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Снизу", "Bottom"),
+                        "value": "bottom"
+                    },
+                    {
+                        "label": I18n.t("Сверху", "Top"),
+                        "value": "top"
+                    },
+                    {
+                        "label": I18n.t("Слева", "Left"),
+                        "value": "left"
+                    },
+                    {
+                        "label": I18n.t("Справа", "Right"),
+                        "value": "right"
+                    }
+                ]
+                currentValue: Config.bar.edge || "bottom"
+                onActivated: v => Config.bar.edge = v
+            }
+        }
         SettingRow {
             visible: Config.bar.style === "taskbar"
             label: I18n.t("Автоскрытие", "Auto-hide")
-            hint: I18n.t("панель уезжает вниз и оставляет тонкую линию; подведи мышь к нижнему краю — вернётся. Окна получают весь экран", "The bar slides down leaving a thin line; move the pointer to the bottom edge to bring it back. Windows get the whole screen")
+            hint: I18n.t("панель уезжает за край экрана и оставляет тонкую линию; подведи мышь к этому краю — вернётся. Окна получают весь экран", "The bar slides off its screen edge leaving a thin line; move the pointer to that edge to bring it back. Windows get the whole screen")
             PxToggle {
                 checked: Config.bar.autoHide
                 onToggled: c => Config.bar.autoHide = c

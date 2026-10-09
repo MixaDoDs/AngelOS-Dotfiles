@@ -5,9 +5,10 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// Win98 taskbar at the bottom. Auto-hide (Bar → Auto-hide): the bar slides down
-// leaving a thin line at the screen edge, windows get the whole screen; the
-// pointer at the bottom edge, Start or a bar menu bring it back.
+// Win98 taskbar, on the edge picked in Settings → Bar (Config.bar.edge, like Windows 10): the
+// bottom, the top, or upright on the left or the right (BarContent.vertical). Auto-hide (Bar →
+// Auto-hide): the bar slides off its edge leaving a thin line there, windows get the whole
+// screen; the pointer at that edge, Start or a bar menu bring it back.
 // In hell (BarLayout.hell): the circle's ground with calm plates under the widgets and a
 // thin rim along the top (HellBarFrame) — nothing above the bar, nothing over its buttons.
 PanelWindow {
@@ -15,6 +16,8 @@ PanelWindow {
 
     required property var modelData
     readonly property bool compact: Config.bar.compactOnVertical && modelData.width < 1300
+    readonly property string edge: BarLayout.edge
+    readonly property bool vertical: BarLayout.vertical
 
     readonly property bool autoHide: Config.bar.autoHide
     // what keeps it up: the pointer on it, Start or one of its menus open on this screen
@@ -52,25 +55,33 @@ PanelWindow {
 
     readonly property bool hell: BarLayout.hell
     readonly property int barHeight: Theme.barHeight
-    readonly property int headroom: 0
+    // how deep the bar is from its edge: its height across, its width upright (room for the
+    // icons, the clock and the tray's arrow)
+    readonly property int thick: vertical ? Theme.u * 36 : barHeight
+    // how far it has slid off its edge, towards the outside
+    readonly property real slide: Math.round(tucked * (thick - peek))
 
     screen: modelData
     anchors {
-        bottom: true
-        left: true
-        right: true
+        top: win.edge !== "bottom"
+        bottom: win.edge !== "top"
+        left: win.edge !== "right"
+        right: win.edge !== "left"
     }
-    implicitHeight: barHeight + headroom
+    implicitHeight: vertical ? 0 : thick
+    implicitWidth: vertical ? thick : 0
     exclusionMode: Shell.dev || autoHide ? ExclusionMode.Ignore : ExclusionMode.Normal
-    exclusiveZone: barHeight
+    exclusiveZone: thick
     mask: Region {
         item: hot
     }
+    // what takes the pointer: the bar where it is now, at least the line left at the edge
     Item {
         id: hot
-        width: parent.width
-        y: Math.min(box.y, win.height - win.peek)
-        height: win.height - y
+        x: win.edge === "right" ? Math.min(box.x, win.width - win.peek) : 0
+        y: win.edge === "bottom" ? Math.min(box.y, win.height - win.peek) : 0
+        width: win.edge === "left" ? Math.max(win.peek, box.x + box.width) : win.width - x
+        height: win.edge === "top" ? Math.max(win.peek, box.y + box.height) : win.height - y
     }
     color: "transparent"
     WlrLayershell.namespace: "angelos-bar"
@@ -92,26 +103,28 @@ PanelWindow {
     HoverHandler {
         id: hover
         onPointChanged: if (hovered)
-            Pointer.report("bar", win.modelData.name, point.position.x, win.modelData.height - win.height + point.position.y)
+            Pointer.report("bar", win.modelData.name, (win.edge === "right" ? win.modelData.width - win.width : 0) + point.position.x, (win.edge === "bottom" ? win.modelData.height - win.height : 0) + point.position.y)
         onHoveredChanged: if (!hovered)
             Pointer.left("bar", win.modelData.name)
     }
 
     PxBox {
         id: box
-        width: parent.width
-        height: win.barHeight
-        y: win.headroom + Math.round(win.tucked * (win.barHeight - win.peek))
+        width: win.vertical ? win.thick : parent.width
+        height: win.vertical ? parent.height : win.thick
+        x: win.edge === "left" ? -win.slide : win.edge === "right" ? win.slide : 0
+        y: win.edge === "bottom" ? win.slide : win.edge === "top" ? -win.slide : 0
         color: win.hell ? "transparent" : Theme.panel
         hell: win.hell
         outline: false
 
         Rectangle {
-            // top highlight line like the original taskbar
+            // the highlight line like the original taskbar, on the side facing the desktop
             visible: !win.hell
-            width: parent.width
-            height: Theme.u
-            y: -box.inset
+            width: win.vertical ? Theme.u : parent.width
+            height: win.vertical ? parent.height : Theme.u
+            x: win.edge === "left" ? box.width - box.inset - Theme.u : -box.inset
+            y: win.edge === "top" ? box.height - box.inset - Theme.u : -box.inset
             color: Theme.hi
         }
         // hell: the ground, the plates under the widgets, the rim on top
@@ -122,18 +135,19 @@ PanelWindow {
             width: box.width
             height: box.height
             content: taskbarContent
-            rim: "top"
+            rim: win.edge === "top" ? "bottom" : win.edge === "bottom" ? "top" : "all"
         }
 
         BarContent {
             id: taskbarContent
             anchors.fill: parent
-            anchors.leftMargin: Theme.u
-            anchors.rightMargin: Theme.u
+            anchors.leftMargin: win.vertical ? 0 : Theme.u
+            anchors.rightMargin: win.vertical ? 0 : Theme.u
             screenName: win.modelData.name
             barWindow: win
             style: "taskbar"
-            compact: win.compact
+            vertical: win.vertical
+            compact: win.compact || win.vertical
             itemHeight: Theme.fit(15)
         }
     }

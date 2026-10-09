@@ -325,6 +325,7 @@ Item {
                                         "who": who,
                                         "apps": apps,
                                         "fastfetch": fastfetch,
+                                        "widgets": widgetsStep,
                                         "motion": motion,
                                         "ready": ready
                                     })[root.shown.id] || (root.shown.blocks ? blocks : null)
@@ -1174,44 +1175,123 @@ Item {
         }
     }
 
-    // the main screen (Outputs.setPrimary, as in Settings → Display): each screen drawn to scale
+    // the main screen (Outputs.setPrimary, as in Settings → Display): each screen drawn to scale;
+    // under them how each stands (Outputs.turn: at once, back in 15 s unless kept — kept is saved)
     Component {
         id: screens
-        Choices {
-            id: screensRow
-            n: Math.max(1, Shell.screens.length)
-            readonly property real tallest: Math.max(...Shell.screens.map(s => s.height / Math.max(1, s.width)))
-            Repeater {
-                model: Shell.screens
-                Choice {
-                    id: screenCard
-                    required property var modelData
-                    width: screensRow.cardWidth
-                    label: modelData.name
-                    hint: modelData.width + " × " + modelData.height + (modelData.model && modelData.model !== "Unknown" ? " · " + modelData.model : "")
-                    checked: Shell.primaryName === modelData.name
-                    onPicked: {
-                        Outputs.setPrimary(modelData.name);
-                        // the first run's fresh desk goes along (later on, a desk set by hand stays)
-                        if (Shell.setupFirstRun)
-                            DesktopWidgets.moveAllTo(modelData.name);
-                    }
-                    Item {
-                        readonly property real box: Math.min(parent.width, Theme.u * 70)
-                        width: parent.width
-                        height: box * screensRow.tallest
-                        PxBox {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.bottom: parent.bottom
-                            width: parent.box * Math.min(1, 1 / Math.max(1, screenCard.modelData.height / screenCard.modelData.width / screensRow.tallest))
-                            height: width * screenCard.modelData.height / Math.max(1, screenCard.modelData.width)
-                            color: screenCard.checked ? Theme.mix(Theme.face, Theme.accent, 0.45) : Theme.sunken
-                            PxIcon {
-                                anchors.centerIn: parent
-                                name: screenCard.checked ? "star" : "monitor"
-                                pixel: Theme.u * 2
+        Column {
+            spacing: Theme.u * 4
+            Choices {
+                id: screensRow
+                visible: Shell.screens.length > 1
+                width: parent.width
+                n: Math.max(1, Shell.screens.length)
+                readonly property real tallest: Math.max(...Shell.screens.map(s => s.height / Math.max(1, s.width)))
+                Repeater {
+                    model: Shell.screens
+                    Choice {
+                        id: screenCard
+                        required property var modelData
+                        width: screensRow.cardWidth
+                        label: modelData.name
+                        hint: modelData.width + " × " + modelData.height + (modelData.model && modelData.model !== "Unknown" ? " · " + modelData.model : "")
+                        checked: Shell.primaryName === modelData.name
+                        onPicked: {
+                            Outputs.setPrimary(modelData.name);
+                            // the first run's fresh desk goes along (later on, a desk set by hand stays)
+                            if (Shell.setupFirstRun)
+                                DesktopWidgets.moveAllTo(modelData.name);
+                        }
+                        Item {
+                            readonly property real box: Math.min(parent.width, Theme.u * 70)
+                            width: parent.width
+                            height: box * screensRow.tallest
+                            PxBox {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottom: parent.bottom
+                                width: parent.box * Math.min(1, 1 / Math.max(1, screenCard.modelData.height / screenCard.modelData.width / screensRow.tallest))
+                                height: width * screenCard.modelData.height / Math.max(1, screenCard.modelData.width)
+                                color: screenCard.checked ? Theme.mix(Theme.face, Theme.accent, 0.45) : Theme.sunken
+                                PxIcon {
+                                    anchors.centerIn: parent
+                                    name: screenCard.checked ? "star" : "monitor"
+                                    pixel: Theme.u * 2
+                                }
                             }
                         }
+                    }
+                }
+            }
+            // how each screen stands
+            Repeater {
+                model: Shell.screens
+                Column {
+                    id: turnCol
+                    required property var modelData
+                    readonly property var d: Outputs.draft[modelData.name] || null
+                    width: parent.width
+                    spacing: Theme.u * 2
+                    PxText {
+                        visible: Shell.screens.length > 1
+                        text: turnCol.modelData.name + (turnCol.modelData.model && turnCol.modelData.model !== "Unknown" ? " · " + turnCol.modelData.model : "")
+                        kind: "tiny"
+                        dim: true
+                    }
+                    Flow {
+                        width: parent.width
+                        spacing: Theme.u * 2
+                        Repeater {
+                            model: Outputs.turns
+                            PxButton {
+                                required property var modelData
+                                icon: modelData.value === "0" ? "monitor" : "rotate"
+                                text: modelData.label
+                                checked: turnCol.d ? Outputs.turnOf(turnCol.d.transform) === modelData.value : modelData.value === "0"
+                                enabled: !Outputs.busy && !!turnCol.d
+                                onClicked: {
+                                    root.touched = true;
+                                    Outputs.turn(turnCol.modelData.name, Outputs.transformOf(modelData.value, Outputs.mirroredOf(turnCol.d.transform)));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // turned: keep it (and remember it past a reboot) or it comes back by itself
+            PxBox {
+                visible: Outputs.undo !== null
+                width: parent.width
+                height: setupKeep.implicitHeight + Theme.u * 8
+                color: Theme.mix(Theme.face, Theme.accent, 0.25)
+                Row {
+                    id: setupKeep
+                    x: Theme.u * 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - Theme.u * 8
+                    spacing: Theme.u * 3
+                    PxText {
+                        width: parent.width - setupKeepBtn.width - setupBackBtn.width - parent.spacing * 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        wrapMode: Text.Wrap
+                        text: I18n.t("Оставить так? Через ", "Keep this? Going back in ") + Outputs.confirmLeft + I18n.t(" с вернётся как было.", " s.")
+                    }
+                    PxButton {
+                        id: setupKeepBtn
+                        accent: true
+                        icon: "check"
+                        text: I18n.t("Оставить", "Keep")
+                        anchors.verticalCenter: parent.verticalCenter
+                        onClicked: {
+                            Outputs.keep();
+                            Outputs.save();
+                        }
+                    }
+                    PxButton {
+                        id: setupBackBtn
+                        icon: "arrowLeft"
+                        text: I18n.t("Вернуть", "Revert")
+                        anchors.verticalCenter: parent.verticalCenter
+                        onClicked: Outputs.revert()
                     }
                 }
             }
@@ -1293,8 +1373,12 @@ Item {
             }
         }
     }
-    // ---- the wallpaper step: this release's (day or night by the theme), then a few of ~/Pictures ----
-    readonly property string wallNow: Wallpapers.resolve(Shell.primaryName || (Quickshell.screens[0] ? Quickshell.screens[0].name : ""), 1)
+    // ---- the wallpaper step: this release's, then a few of ~/Pictures ----
+    // one card per wallpaper: its day / night / 21:9 / 9:16 files are one (Wallpapers.heads), and
+    // every screen gets the file for the theme and for how it stands (Wallpapers.pick)
+    readonly property string wallScreen: Shell.primaryName || (Quickshell.screens[0] ? Quickshell.screens[0].name : "")
+    readonly property string wallNow: Wallpapers.resolve(wallScreen, 1)
+    readonly property string wallPicked: Wallpapers.raw(wallScreen, 1)
     readonly property var wallChoices: {
         const out = [];
         const r = Wallpapers.latestRelease;
@@ -1306,12 +1390,12 @@ Item {
                 "hint": I18n.t("обои ", "") + Wallpapers.releaseLabel(r) + I18n.t("", " wallpaper")
             });
         }
-        const taken = new Set(out.map(o => o.path));
-        const rest = Wallpapers.images.filter(p => !taken.has(p) && !(r && p.startsWith(r.dir + "/")));
+        const taken = out.map(o => o.path);
+        const rest = Wallpapers.heads.filter(p => !taken.some(t => Wallpapers.sameSet(t, p)) && !(r && p.startsWith(r.dir + "/")));
         for (const p of rest.slice(0, Math.max(3, 9 - out.length)))
             out.push({
                 "path": p,
-                "label": p.slice(p.lastIndexOf("/") + 1).replace(/\.[a-z0-9]+$/i, ""),
+                "label": Wallpapers.nameOf(p),
                 "hint": p.slice(0, p.lastIndexOf("/")).replace(Config.home, "~")
             });
         return out;
@@ -1332,20 +1416,69 @@ Item {
                         id: wallCard
                         required property var modelData
                         width: wallGrid.cardWidth
+                        readonly property string file: Wallpapers.pick(modelData.path, root.wallScreen)
+                        readonly property var tags: Wallpapers.variantTags(modelData.path)
                         label: modelData.label
-                        hint: modelData.hint
-                        checked: root.wallNow === modelData.path
+                        hint: tags.length ? tags.join(" ") + "  ·  " + modelData.hint : modelData.hint
+                        checked: Wallpapers.sameSet(root.wallPicked, modelData.path)
                         onPicked: Wallpapers.setEverywhere(modelData.path)
                         Image {
                             width: parent.width
                             height: Math.round(width * 9 / 16)
-                            source: "file://" + Wallpapers.display(wallCard.modelData.path)
+                            source: "file://" + Wallpapers.display(wallCard.file)
                             sourceSize: Qt.size(480, 270)
                             fillMode: Image.PreserveAspectCrop
                             smooth: false
                             asynchronous: true
                             onStatusChanged: if (status === Image.Error)
-                                Wallpapers.fit(wallCard.modelData.path)
+                                Wallpapers.fit(wallCard.file)
+                        }
+                    }
+                }
+            }
+            // the picked wallpaper on every screen as it stands (wide, tall, turned): the file each gets
+            Column {
+                visible: Quickshell.screens.length > 1 || Wallpapers.members(root.wallPicked).length > 1
+                width: parent.width
+                spacing: Theme.u * 2
+                PxText {
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    kind: "tiny"
+                    text: I18n.t("Как лягут на твои экраны — у обоев с вариантами каждый экран берёт свой: по теме (день или ночь) и по тому, как он стоит (широкий, вертикальный):", "On your screens: a wallpaper with variants gives each screen its own, by the theme (day or night) and by how the screen stands (wide, upright):")
+                }
+                Row {
+                    id: screensRow
+                    spacing: Theme.u * 4
+                    readonly property real boxH: Theme.u * 34
+                    Repeater {
+                        model: Quickshell.screens
+                        Column {
+                            id: scrCol
+                            required property var modelData
+                            readonly property real aspect: Wallpapers.aspectOf(modelData.name)
+                            readonly property string file: Wallpapers.resolve(modelData.name, 1)
+                            readonly property var info: Wallpapers.meta[file] || {}
+                            spacing: Theme.u
+                            PxBox {
+                                width: Math.round(screensRow.boxH * Math.min(scrCol.aspect, 3.6))
+                                height: screensRow.boxH
+                                sunken: true
+                                color: Theme.sunken
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: parent.bevel
+                                    source: scrCol.file ? "file://" + Wallpapers.display(scrCol.file) : ""
+                                    sourceSize: Qt.size(320, 320)
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                }
+                            }
+                            PxText {
+                                kind: "tiny"
+                                dim: true
+                                text: scrCol.modelData.name + "  " + (scrCol.aspect >= 1 ? "▭" : "▯") + "  " + [scrCol.info.time === "night" ? "☾" : scrCol.info.time ? "☼" : "", Wallpapers.ratioLabel(scrCol.info.w, scrCol.info.h)].filter(x => x).join(" ")
+                            }
                         }
                     }
                 }
@@ -1355,7 +1488,83 @@ Item {
                 wrapMode: Text.Wrap
                 kind: "tiny"
                 dim: true
-                text: I18n.t("Все картинки, свои папки, отдельные обои на каждый монитор и стол — Настройки → Обои.", "All the pictures, your own folders, a wallpaper per monitor and desk: Settings → Wallpaper.")
+                text: I18n.t("Все картинки, свои папки, отдельные обои на каждый монитор и стол — Настройки → Обои. Повернуть монитор — Настройки → Экран.", "All the pictures, your own folders, a wallpaper per monitor and desk: Settings → Wallpaper. Turning a monitor: Settings → Display.")
+            }
+        }
+    }
+    // ---- the widgets: three sets (DesktopWidgets.sets), each on a little desktop ----
+    // the size of each widget in the picture, in angelOS pixels (about what it takes on screen)
+    readonly property var widgetBoxes: ({
+            "clock": {
+                "m": [130, 42],
+                "l": [160, 80]
+            },
+            "sysmon": {
+                "l": [150, 150]
+            },
+            "music": {
+                "m": [150, 50],
+                "l": [150, 82]
+            },
+            "disks": {
+                "m": [124, 70]
+            }
+        })
+    Component {
+        id: widgetsStep
+        Choices {
+            n: 3
+            Repeater {
+                model: [["empty", I18n.t("Пусто", "Empty"), I18n.t("только обои — виджеты добавишь сам", "just the wallpaper; add widgets yourself")], ["minimum", I18n.t("Минимум", "Minimum"), I18n.t("часы и музыка", "a clock and music")], ["center", I18n.t("Командный центр", "Command centre"), I18n.t("часы, система, музыка и диски — всё на виду", "clock, system, music and disks, all in sight")]]
+                Choice {
+                    id: setCard
+                    required property var modelData
+                    width: parent.cardWidth
+                    label: modelData[1]
+                    hint: modelData[2]
+                    checked: Config.desktop.widgetSet === modelData[0]
+                    onPicked: DesktopWidgets.applySet(modelData[0])
+                    // the main screen in small, its widgets as plates with their icons
+                    Rectangle {
+                        id: mini
+                        readonly property var scr: Shell.primaryScreen || Quickshell.screens[0] || null
+                        readonly property real k: scr ? width / Math.max(1, scr.width) * Theme.u : 0.1
+                        width: parent.width
+                        height: Math.round(width * 9 / 16)
+                        color: Theme.desk
+                        border.width: Math.max(1, Theme.u / 2)
+                        border.color: Theme.edge
+                        clip: true
+                        Image {
+                            anchors.fill: parent
+                            anchors.margins: parent.border.width
+                            source: root.wallNow ? "file://" + Wallpapers.display(root.wallNow) : ""
+                            sourceSize: Qt.size(320, 180)
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            opacity: 0.85
+                        }
+                        Repeater {
+                            model: DesktopWidgets.sets[setCard.modelData[0]] || []
+                            PxBox {
+                                id: wbox
+                                required property var modelData
+                                readonly property var dims: (root.widgetBoxes[modelData[0]] || {})[modelData[1]] || [120, 60]
+                                width: Math.max(Theme.u * 4, Math.round(dims[0] * mini.k))
+                                height: Math.max(Theme.u * 3, Math.round(dims[1] * mini.k))
+                                x: modelData[2] < 0 ? mini.width + modelData[2] * mini.k - width : modelData[2] * mini.k
+                                y: modelData[3] < 0 ? mini.height + modelData[3] * mini.k - height : modelData[3] * mini.k
+                                flat: true
+                                color: Qt.alpha(Theme.panel, 0.92)
+                                PxIcon {
+                                    anchors.centerIn: parent
+                                    name: (DesktopWidgets.typeInfo(wbox.modelData[0]) || {}).icon || "heart"
+                                    pixel: Math.max(1, Math.round(Theme.u / 2))
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

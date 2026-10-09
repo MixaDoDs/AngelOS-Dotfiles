@@ -567,7 +567,7 @@ Singleton {
                         "keys": ["ctrl", "z"]
                     }), item("s:find", I18n.t("Найти", "Find"), {
                         "kind": "fn",
-                        "fn": () => root.settingsFront.focusSearch()
+                        "fn": () => root.settingsFront.focusSearch(true)
                     }, {
                         "keys": ["ctrl", "f"]
                     })])

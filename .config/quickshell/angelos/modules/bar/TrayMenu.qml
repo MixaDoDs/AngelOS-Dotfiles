@@ -78,13 +78,15 @@ PopupWindow {
         return w && w.screen ? w.screen.height * 0.8 : Theme.u * 300;
     }
 
+    // a taskbar on the left or the right (BarLayout.side): beside it, as BarPopup
+    property string side: BarLayout.side
     anchor.item: anchorItem
-    anchor.rect.x: 0
-    anchor.rect.y: above ? -Theme.u * 2 : anchorItem.height + Theme.u * 2
-    anchor.rect.width: anchorItem.width
-    anchor.rect.height: 1
-    anchor.edges: above ? Edges.Top : Edges.Bottom
-    anchor.gravity: above ? Edges.Top : Edges.Bottom
+    anchor.rect.x: side === "left" ? anchorItem.width + Theme.u * 2 : side === "right" ? -Theme.u * 2 : 0
+    anchor.rect.y: side ? 0 : above ? -Theme.u * 2 : anchorItem.height + Theme.u * 2
+    anchor.rect.width: side ? 1 : anchorItem.width
+    anchor.rect.height: side ? anchorItem.height : 1
+    anchor.edges: side === "left" ? Edges.Top | Edges.Right : side === "right" ? Edges.Top | Edges.Left : above ? Edges.Top : Edges.Bottom
+    anchor.gravity: side === "left" ? Edges.Bottom | Edges.Right : side === "right" ? Edges.Bottom | Edges.Left : above ? Edges.Top : Edges.Bottom
     anchor.adjustment: PopupAdjustment.Slide | PopupAdjustment.Flip
     grabFocus: true
     color: "transparent"

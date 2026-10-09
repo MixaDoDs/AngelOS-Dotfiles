@@ -1,0 +1,45 @@
+{
+  "number": 3,
+  "codename": "Principality",
+  "date": "2026-10-09",
+  "walls": [
+    {
+      "name": "",
+      "day": "wall-1.png",
+      "night": "wall-1-night.png",
+      "variants": [
+        {
+          "file": "wall-1-night-9x16.png",
+          "time": "night",
+          "shape": "9:16"
+        },
+        {
+          "file": "wall-1-day-9x16.png",
+          "time": "day",
+          "shape": "9:16"
+        },
+        {
+          "file": "wall-1-night-21x9.png",
+          "time": "night",
+          "shape": "21:9"
+        },
+        {
+          "file": "wall-1-day-21x9.png",
+          "time": "day",
+          "shape": "21:9"
+        },
+        {
+          "file": "wall-1-day-6150x1350.png",
+          "time": "day",
+          "shape": "6150:1350"
+        },
+        {
+          "file": "wall-1-night-6150x1350.png",
+          "time": "night",
+          "shape": "6150:1350"
+        }
+      ]
+    }
+  ],
+  "art": "made for angelOS by its author, MIT like the rest of the repository"
+}

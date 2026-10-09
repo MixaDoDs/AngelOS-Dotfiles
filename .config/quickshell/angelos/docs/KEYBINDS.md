@@ -71,7 +71,7 @@
 | Бинд | Действие | Подпись |
 |---|---|---|
 | `Mod+T` | `kitty` | Open Terminal: kitty |
-| `Mod+B` | `xdg-open about:blank` | Open Browser: default |
+| `Mod+B` | `helium-browser --profile-directory=Default` | Open Browser: Helium |
 | `Mod+Space` | `angelos launcher` | angelOS: программы |
 | `Mod+ALT+L` | `angelos lock` | angelOS: блокировка |
 | `Mod+Q` | `close-window` |  |

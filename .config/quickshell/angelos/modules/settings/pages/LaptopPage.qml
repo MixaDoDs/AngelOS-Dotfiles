@@ -36,14 +36,14 @@ PxPage {
             onMoved: v => Config.power[mins.acKey] = v
         }
         PxText {
-            visible: Power.hasBattery || Laptop.isLaptop
+            visible: Laptop.has("battery")
             anchors.verticalCenter: parent.verticalCenter
             text: I18n.t("от батареи", "battery")
             kind: "tiny"
             dim: true
         }
         PxSpin {
-            visible: Power.hasBattery || Laptop.isLaptop
+            visible: Laptop.has("battery")
             from: 0
             to: 240
             stepSize: 1
@@ -62,7 +62,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("0 = никогда. От батареи обычно короче: экран — самое прожорливое в ноутбуке. Видео и игры на весь экран не дают этим таймерам сработать.", "0 = never. On battery usually shorter: the screen is what eats the most. Fullscreen video and games hold these timers off.")
+            text: Laptop.has("battery") ? I18n.t("0 = никогда. От батареи обычно короче: экран — самое прожорливое в ноутбуке. Видео и игры на весь экран не дают этим таймерам сработать.", "0 = never. On battery usually shorter: the screen is what eats the most. Fullscreen video and games hold these timers off.") : I18n.t("0 = никогда. Видео и игры на весь экран не дают этим таймерам сработать.", "0 = never. Fullscreen video and games hold these timers off.")
         }
         SettingRow {
             label: I18n.t("Гасить экран", "Turn the screen off")
@@ -72,7 +72,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Power.hasBattery || Laptop.isLaptop
+            visible: Laptop.has("battery")
             label: I18n.t("Блокировать", "Lock")
             hint: I18n.t("от сети — в «Когда блокировать» ниже", "On mains: When to lock, below")
             Minutes {
@@ -121,7 +121,7 @@ PxPage {
     }
     PxGroup {
         name: "lid"
-        visible: Laptop.hasLid || Config.developer.enabled
+        visible: Laptop.has("lid")
         title: I18n.t("Крышка", "The lid")
         icon: "laptop"
         width: parent.width
@@ -150,7 +150,7 @@ PxPage {
     // ---- the backlight and the keyboard's light (Settings → System → Display) ----
     PxGroup {
         name: "backlight"
-        visible: Backlight.available || Backlight.kbdAvailable || Config.developer.enabled
+        visible: Laptop.has("backlight")
         title: I18n.t("Подсветка экрана", "Screen backlight")
         icon: "sun"
         width: parent.width
@@ -211,6 +211,7 @@ PxPage {
     // ---- the laptop's own keys (Settings → Devices → Keyboard) ----
     PxGroup {
         name: "laptop-keys"
+        visible: Laptop.has("laptop")
         title: I18n.t("Клавиши ноутбука", "Laptop keys")
         icon: "keyboard"
         width: parent.width
@@ -238,20 +239,12 @@ PxPage {
             color: Theme.danger
             text: Laptop.keysLog
         }
-        SettingRow {
-            label: I18n.t("Экраны (как Win+P)", "Screens (like Win+P)")
-            PxButton {
-                icon: "monitor"
-                text: I18n.t("Открыть", "Open")
-                onClicked: Shell.projectOpen = true
-            }
-        }
     }
 
     // ---- a convertible (Settings → System → Display) ----
     PxGroup {
         name: "tablet"
-        visible: Laptop.convertible || Config.developer.enabled
+        visible: Laptop.has("tablet")
         title: I18n.t("Планшет", "Tablet mode")
         icon: "rotate"
         width: parent.width
@@ -283,7 +276,7 @@ PxPage {
     // ---- the finger at the lock (Settings → Personal → Lock screen) ----
     PxGroup {
         name: "fingerprint"
-        visible: Laptop.info.fprintTool || Config.developer.enabled
+        visible: Laptop.has("fingerprint")
         title: I18n.t("Вход по отпечатку", "Fingerprint unlock")
         icon: "fingerprint"
         width: parent.width

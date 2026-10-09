@@ -111,12 +111,17 @@ Variants {
                 return Qt.rect(Theme.u * 2, height - Theme.u * 2, Theme.u * 40, 0);
             const w = b.window, it = b.item;
             const p = it.mapToItem(w.contentItem, 0, 0);
-            const bottom = w.anchors && w.anchors.bottom && !w.anchors.top;
+            const a = w.anchors || {};
+            const bottom = a.bottom && !a.top;
             const wy = bottom ? height - w.height - (w.margins ? w.margins.bottom : 0) : (w.margins ? w.margins.top : 0);
-            const wx = w.anchors && w.anchors.left && w.anchors.right ? 0 : (width - w.width) / 2;
+            // across the screen, on its left edge, on its right edge, or centred (the dock, an island)
+            const wx = a.left && a.right ? 0 : a.left ? (w.margins ? w.margins.left : 0) : a.right ? width - w.width - (w.margins ? w.margins.right : 0) : (width - w.width) / 2;
             return Qt.rect(wx + p.x, wy + p.y, it.width, it.height);
         }
         readonly property bool above: button.y > height / 2
+        // a taskbar on the left or the right edge (BarLayout.side): Start opens beside it, from
+        // the button's top down, as Windows 10 does
+        readonly property string side: BarLayout.side
 
         // "close on a click outside" off: only the menu takes the pointer, the rest of the
         // screen keeps working under it (Esc or Start close it)
@@ -177,7 +182,7 @@ Variants {
             // the room the look has on this screen, before its own zoom: a look taller than that
             // (big fonts, a big art pixel, a small or 2× screen) fits itself in (`room` of the
             // looks: fewer rows, a scrolling list) instead of running off the screen
-            readonly property real room: (win.full ? win.height : win.spot ? win.height * 0.75 : win.above ? win.button.y - Theme.u * 4 : win.height - win.button.y - win.button.height - Theme.u * 4) / Math.max(0.25, win.full ? 1 : win.prefs.zoom || 1)
+            readonly property real room: (win.full ? win.height : win.spot ? win.height * 0.75 : win.side ? win.height - Theme.u * 8 : win.above ? win.button.y - Theme.u * 4 : win.height - win.button.y - win.button.height - Theme.u * 4) / Math.max(0.25, win.full ? 1 : win.prefs.zoom || 1)
             Binding {
                 target: body.item
                 property: "room"
@@ -186,22 +191,23 @@ Variants {
             }
             // Settings → Bar → Start: auto keeps classic at the button and win11 centred;
             // left / center / right pin either of them there. Fullscreen fills.
-            readonly property real restY: win.above ? win.button.y - height - Theme.u * 2 : win.button.y + win.button.height + Theme.u * 2
+            readonly property real restY: win.side ? Math.max(Theme.u * 4, Math.min(win.height - height - Theme.u * 4, win.button.y)) : win.above ? win.button.y - height - Theme.u * 2 : win.button.y + win.button.height + Theme.u * 2
             readonly property string align: win.spot ? "center" : Config.bar.startAlign && Config.bar.startAlign !== "auto" ? Config.bar.startAlign : win.style === "win11" ? "center" : "button"
             readonly property real edge: Theme.u * 4
-            x: win.full ? 0 : align === "center" ? Math.round((win.width - width) / 2) : align === "left" ? edge : align === "right" ? win.width - width - edge : Math.max(Theme.u * 2, Math.min(win.width - width - Theme.u * 2, win.button.x))
+            readonly property real sideX: win.side === "left" ? win.button.x + win.button.width + Theme.u * 4 : win.button.x - width - Theme.u * 4
+            x: win.full ? 0 : win.side && !win.spot && (align === "button" || align === "center") ? sideX : align === "center" ? Math.round((win.width - width) / 2) : align === "left" ? edge : align === "right" ? win.width - width - edge : Math.max(Theme.u * 2, Math.min(win.width - width - Theme.u * 2, win.button.x))
             // win11 (and anything over a centred taskbar) slides up like Windows 11;
             // Fine-tune → Animation can make any of them fade, slide or zoom instead
             readonly property string kind: win.prefs.animKind || "auto"
             readonly property bool slides: kind === "slide" || (kind === "auto" && (win.style === "win11" || Config.bar.taskbarAlign === "center"))
             readonly property bool zooms: kind === "zoom" || (kind === "auto" && (win.style === "classic" || win.style === "windose" || win.style === "hell") && !slides)
             // Spotlight: a fifth down the screen, dropping in a little
-            y: win.full ? 0 : win.spot ? Math.round(win.height * 0.2) - (kind === "auto" || kind === "slide" ? (1 - win.reveal) * Theme.u * 10 : 0) : restY + (slides ? (win.above ? 1 : -1) * (1 - win.reveal) * Theme.u * 24 : 0)
+            y: win.full ? 0 : win.spot ? Math.round(win.height * 0.2) - (kind === "auto" || kind === "slide" ? (1 - win.reveal) * Theme.u * 10 : 0) : restY + (slides && !win.side ? (win.above ? 1 : -1) * (1 - win.reveal) * Theme.u * 24 : 0)
             opacity: win.full ? 1 : win.reveal
             // classic and Windose pop out of their corner, win11 slides, Spotlight swells;
             // the look's own size (Fine-tune → Scale) on top
             scale: (win.full ? 1 : win.prefs.zoom) * (win.spot && kind === "auto" ? 0.96 + 0.04 * win.reveal : zooms ? (kind === "zoom" ? 0.85 + 0.15 * win.reveal : 0.9 + 0.1 * win.reveal) : 1)
-            transformOrigin: align === "right" ? (win.above ? Item.BottomRight : Item.TopRight) : align === "center" ? (win.above ? Item.Bottom : Item.Top) : (win.above ? Item.BottomLeft : Item.TopLeft)
+            transformOrigin: win.side === "left" ? Item.TopLeft : win.side === "right" ? Item.TopRight : align === "right" ? (win.above ? Item.BottomRight : Item.TopRight) : align === "center" ? (win.above ? Item.Bottom : Item.Top) : (win.above ? Item.BottomLeft : Item.TopLeft)
             sourceComponent: ({
                     "fullscreen": fullComp,
                     "xmb": xmbComp,

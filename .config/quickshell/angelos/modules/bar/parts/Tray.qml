@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.SystemTray
 import qs.config
+import qs.services
 import qs.widgets
 import qs.modules.bar
 
@@ -13,6 +14,8 @@ PxButton {
     Accessible.name: I18n.t("Значки в трее", "Tray icons")
 
     property bool above: true
+    // a taskbar on the left or the right edge (BarItem): the popup opens sideways, the arrow too
+    property bool vertical: false
     // Settings → Bar → Icons → Tray density: columns, cell, icon and gap in art pixels
     readonly property var densities: ({
             "compact": [6, 13, 9, 2],
@@ -29,7 +32,7 @@ PxButton {
     readonly property real gridHeight: Math.max(0, rows * (cellSize + cellGap) - cellGap)
     compact: true
     flat: true
-    icon: popup.visible ? "arrowDown" : "arrowUp"
+    icon: vertical ? ((BarLayout.side === "left") !== popup.visible ? "arrowRight" : "arrowLeft") : popup.visible === root.above ? "arrowDown" : "arrowUp"
     checked: popup.visible
     onClicked: popup.toggle()
 

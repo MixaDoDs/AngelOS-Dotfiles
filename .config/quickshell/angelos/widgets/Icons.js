@@ -999,6 +999,90 @@ const icons = {
         "..#oyo#..",
         "...#o#...",
         "....#...."
+    ],
+    // the weather in the desktop clock's corner (services/Weather)
+    cloud: [
+        "....###....",
+        "..##www#...",
+        ".#wwwwww##.",
+        ".#wwwwwwww#",
+        "#wwwwwwwww#",
+        "#wwwwwwwff#",
+        ".#########."
+    ],
+    cloudSun: [
+        "y..y.......",
+        ".yyy.......",
+        "yyyy###....",
+        ".y##www#...",
+        ".#wwwwww##.",
+        ".#wwwwwwww#",
+        "#wwwwwwwww#",
+        "#wwwwwwwff#",
+        ".#########."
+    ],
+    rain: [
+        "....###....",
+        "..##www#...",
+        ".#wwwwww##.",
+        "#wwwwwwwww#",
+        "#wwwwwwwff#",
+        ".#########.",
+        "..x..x..x..",
+        ".x..x..x..."
+    ],
+    snow: [
+        "....###....",
+        "..##www#...",
+        ".#wwwwww##.",
+        "#wwwwwwwww#",
+        "#wwwwwwwff#",
+        ".#########.",
+        ".x...x...x.",
+        "xxx.xxx.xxx",
+        ".x...x...x."
+    ],
+    storm: [
+        "....###....",
+        "..##www#...",
+        ".#wwwwww##.",
+        "#wwwwwwwww#",
+        "#wwwwwwwff#",
+        ".####yy###.",
+        "....yy.....",
+        "...yyyy....",
+        ".....y.....",
+        "....y......"
+    ],
+    fog: [
+        ".#########.",
+        "...........",
+        "#########..",
+        "...........",
+        "..#########",
+        "...........",
+        ".#########."
+    ],
+    // the disks widget
+    hdd: [
+        "###########",
+        "#wwwwwwwww#",
+        "#fffffffff#",
+        "#fffffffff#",
+        "###########",
+        "#ffffffxfo#",
+        "###########"
+    ],
+    // the note widget: a sticker with its corner folded
+    note: [
+        "#########",
+        "#yyyyyyy#",
+        "#y#####y#",
+        "#yyyyyyy#",
+        "#y###yyy#",
+        "#yyyyy###",
+        "#yyyy#y#.",
+        "######..."
     ]
 };
 

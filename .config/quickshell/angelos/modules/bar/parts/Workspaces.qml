@@ -16,6 +16,9 @@ Item {
     // the hell bar (BarItem): the active desk is the accent (a state), a desk with windows the
     // sprite tone, an empty one only its outline; app icons in the circle's ramp
     property bool barInk: false
+    // a taskbar on the left or the right edge (BarItem): the hearts in a column, no name badge
+    // beside them (it would run off the bar)
+    property bool vertical: false
 
     // the badge only takes room while it is shown: the slot opens, then closes again
     readonly property real badgeWidth: Math.min(Theme.u * 64, badgeMetrics.advanceWidth("✧ " + flashText) + Theme.u * 10)
@@ -37,8 +40,9 @@ Item {
         font: badgeText.font
     }
 
-    Row {
+    Grid {
         id: row
+        columns: root.vertical ? 1 : Math.max(1, root.list.length)
         spacing: Theme.u * 2
 
         // model = the count, not the list: niri rebuilds the list on every switch and
@@ -194,7 +198,7 @@ Item {
             if (ws.output !== root.screenName)
                 return;
             anim.play(root.previousIndex, root.list.findIndex(w => w.id === ws.id));
-            if (Config.workspaces.popupMode !== "bar")
+            if (Config.workspaces.popupMode !== "bar" || root.vertical)
                 return;
             const names = Config.workspaces.names || {};
             root.flashText = names[ws.output + ":" + ws.idx] || ws.name || String(ws.idx);

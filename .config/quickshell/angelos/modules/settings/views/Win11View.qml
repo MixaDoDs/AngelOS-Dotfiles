@@ -32,8 +32,8 @@ Item {
 
     Connections {
         target: root.view
-        function onQueryChanged() {
-            if (root.view.query.trim() !== "")
+        function onSearchingChanged() {
+            if (root.view.searching)
                 root.searchOpen = true;
         }
         function onSearchFocusedChanged() {
@@ -180,14 +180,14 @@ Item {
             icon: "search"
             onClicked: {
                 root.searchOpen = true;
-                Qt.callLater(root.view.focusSearch);
+                Qt.callLater(() => root.view.focusSearch(true));
             }
         }
 
         // the categories, or what the search finds
         PxScroll {
             id: cats
-            visible: root.view.query.trim() === ""
+            visible: !root.view.searching
             anchors.fill: parent
             anchors.topMargin: searchSlot.y + searchSlot.height + Theme.u * 4
             contentHeight: catCol.implicitHeight

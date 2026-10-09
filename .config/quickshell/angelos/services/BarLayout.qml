@@ -13,7 +13,13 @@ Singleton {
     // popups and menus open upwards)
     readonly property var styles: ["taskbar", "top", "island", "dock", "capsules", "windose"]
     readonly property string style: styles.includes(Config.bar.style) ? Config.bar.style : "taskbar"
-    readonly property bool bottom: style === "taskbar" || style === "dock" || style === "windose"
+    // the taskbar sits on any edge, like Windows 10 (Config.bar.edge); on the left or the right
+    // it stands upright (BarContent.vertical) and its menus open sideways (`side`)
+    readonly property var edges: ["bottom", "top", "left", "right"]
+    readonly property string edge: style === "taskbar" && edges.includes(Config.bar.edge) ? Config.bar.edge : style === "top" || style === "island" || style === "capsules" ? "top" : "bottom"
+    readonly property bool vertical: edge === "left" || edge === "right"
+    readonly property string side: vertical ? edge : ""
+    readonly property bool bottom: edge === "bottom"
     // while the demon rules the looks have hell versions of their own (Y2K → Bar in hell):
     // the content re-inked (shaders/hell_ink.frag), the frame each style's own — not the dock
     readonly property bool hell: Config.ready && Angel.demon && Config.y2k.hellBar

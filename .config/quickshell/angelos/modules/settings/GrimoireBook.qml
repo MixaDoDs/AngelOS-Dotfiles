@@ -329,7 +329,7 @@ Item {
         }
         Flickable {
             id: toc
-            visible: book.spread && book.view.query.trim() === ""
+            visible: book.spread && !book.view.searching
             x: searchSlot.x
             y: searchSlot.y + Theme.scriptPx(Theme.sizeBody) + Theme.u * 16
             width: searchSlot.width

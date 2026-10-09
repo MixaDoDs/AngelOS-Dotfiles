@@ -532,6 +532,36 @@ Item {
     property string query: ""
     property int sel: 0
     property var results: []
+    // ---- what was searched before: a click into the empty field shows it (not the focus the
+    // window gives the field when it opens); a query typed by hand and opened is remembered
+    readonly property var history: Config.settingsUi.searchHistory || []
+    property bool historyAsked: false
+    property bool typed: false              // the query was typed (not put there by a script)
+    property int hsel: -1
+    readonly property bool showHistory: historyAsked && searchFocused && query.trim() === "" && history.length > 0
+    // the results' place is taken: by what the query finds, or by the history
+    readonly property bool searching: query.trim() !== "" || showHistory
+    onShowHistoryChanged: hsel = -1
+    onSearchFocusedChanged: if (!searchFocused)
+        historyAsked = false
+    function remember(q, r) {
+        const h = history.filter(x => x.q.toLowerCase() !== q.toLowerCase());
+        Config.settingsUi.searchHistory = [{
+                "q": q,
+                "title": r.title || "",
+                "page": r.page || "",
+                "icon": r.icon || ""
+            }].concat(h).slice(0, 12);
+    }
+    function forget(q) {
+        Config.settingsUi.searchHistory = history.filter(x => x.q !== q);
+    }
+    function useHistory(item) {
+        if (!item)
+            return;
+        setQuery(item.q);
+        typed = true;
+    }
     onQueryChanged: {
         if (!query.trim())
             results = [];
@@ -576,9 +606,14 @@ Item {
         searchInput.text = t;
         query = t;
         sel = 0;
+        typed = false;
         searchInput.focusField();
     }
-    function focusSearch() {
+    // asked = opened on purpose (Ctrl+F, the search button, «Найти»): the history shows at once;
+    // the focus the window gives the field when it opens leaves the page in sight
+    function focusSearch(asked) {
+        if (asked === true)
+            historyAsked = true;
         if (win.settingsNav.settingsOpen)
             searchInput.focusField();
     }
@@ -593,6 +628,10 @@ Item {
     function openResult(r) {
         if (!r)
             return;
+        if (typed && query.trim())
+            remember(query.trim(), r);
+        typed = false;
+        historyAsked = false;
         pendingTarget = r.kind === "page" ? null : r;
         query = "";
         searchInput.text = "";
@@ -741,7 +780,7 @@ Item {
     }
     Shortcut {
         sequences: ["Ctrl+F", "Ctrl+K"]
-        onActivated: win.focusSearch()
+        onActivated: win.focusSearch(true)
     }
     // one more window, on the same page (Ctrl+W closes this one)
     Shortcut {
@@ -986,26 +1025,50 @@ Item {
             onEdited: {
                 win.query = text;
                 win.sel = 0;
+                win.typed = true;
             }
-            onAccepted: win.openResult(win.results[Math.min(win.sel, win.results.length - 1)])
+            onAccepted: {
+                if (win.showHistory && win.hsel >= 0)
+                    win.useHistory(win.history[win.hsel]);
+                else
+                    win.openResult(win.results[Math.min(win.sel, win.results.length - 1)]);
+            }
             onKeyPressed: e => {
                 if (e.key === Qt.Key_Tab || (e.key === Qt.Key_Right && searchInput.input.cursorPosition === searchInput.text.length)) {
                     if (win.acceptGhost())
                         e.accepted = true;
                 } else if (e.key === Qt.Key_Down) {
-                    // results first; with nothing typed ↓ walks the view's navigation
-                    if (win.query.trim() === "")
+                    // results first; the history when it is open; with nothing typed ↓ walks the view's navigation
+                    if (win.showHistory)
+                        win.hsel = Math.min(win.history.length - 1, win.hsel + 1);
+                    else if (win.query.trim() === "")
                         win.focusNav();
                     else
                         win.sel = Math.min(win.results.length - 1, win.sel + 1);
                     e.accepted = true;
                 } else if (e.key === Qt.Key_Up) {
-                    win.sel = Math.max(0, win.sel - 1);
+                    if (win.showHistory)
+                        win.hsel = Math.max(-1, win.hsel - 1);
+                    else
+                        win.sel = Math.max(0, win.sel - 1);
                     e.accepted = true;
                 } else if (e.key === Qt.Key_Escape && searchInput.text !== "") {
                     searchInput.text = "";
                     win.query = "";
                     e.accepted = true;
+                } else if (e.key === Qt.Key_Escape && win.showHistory) {
+                    win.historyAsked = false;
+                    e.accepted = true;
+                }
+            }
+            // a click into the field (the press goes on to it): the history may show
+            MouseArea {
+                anchors.fill: parent
+                z: 10
+                cursorShape: Qt.IBeamCursor
+                onPressed: m => {
+                    win.historyAsked = true;
+                    m.accepted = false;
                 }
             }
             // the rest of the suggested word, dimmed after the caret: "Bl" → "ur"
@@ -1038,7 +1101,7 @@ Item {
         id: resultsArea
         parent: win.spread ? book.resultsSlot : win.viewItem && win.viewItem.resultsSlot ? win.viewItem.resultsSlot : offstage
         anchors.fill: parent
-        visible: win.query.trim() !== ""
+        visible: win.searching
         z: 5
         layer.enabled: win.spread
         layer.effect: inkFx
@@ -1055,8 +1118,86 @@ Item {
                 id: resultCol
                 width: parent.width
                 spacing: Theme.u
+                // what was searched before (a click into the empty field)
+                Item {
+                    visible: win.showHistory
+                    width: parent.width
+                    height: histHead.implicitHeight + Theme.u * 2
+                    PxText {
+                        id: histHead
+                        x: Theme.u * 3
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: I18n.t("Недавно искал", "Recent searches")
+                        kind: "tiny"
+                        dim: true
+                    }
+                    PxButton {
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.u * 3
+                        anchors.verticalCenter: parent.verticalCenter
+                        compact: true
+                        flat: true
+                        text: I18n.t("Очистить", "Clear")
+                        onClicked: Config.settingsUi.searchHistory = []
+                    }
+                }
+                Repeater {
+                    model: win.showHistory ? win.history : []
+                    Rectangle {
+                        id: hist
+                        required property var modelData
+                        required property int index
+                        readonly property bool picked: win.hsel === index
+                        width: resultCol.width
+                        height: histRow.implicitHeight + Theme.u * 4
+                        color: picked ? Theme.select : hm.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.15) : "transparent"
+                        MouseArea {
+                            id: hm
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: win.useHistory(hist.modelData)
+                        }
+                        Row {
+                            id: histRow
+                            x: Theme.u * 3
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.u * 3
+                            PxIcon {
+                                name: "clock"
+                                anchors.verticalCenter: parent.verticalCenter
+                                ink: hist.picked ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
+                            }
+                            Column {
+                                width: hist.width - Theme.u * 20 - histX.width
+                                PxText {
+                                    width: parent.width
+                                    text: hist.modelData.q
+                                    elide: Text.ElideRight
+                                    color: hist.picked ? Theme.selectText : Theme.text
+                                }
+                                PxText {
+                                    visible: text !== ""
+                                    width: parent.width
+                                    text: hist.modelData.title ? "→ " + hist.modelData.title : ""
+                                    kind: "tiny"
+                                    elide: Text.ElideRight
+                                    color: hist.picked ? Theme.selectText : Theme.textDim
+                                }
+                            }
+                            PxButton {
+                                id: histX
+                                anchors.verticalCenter: parent.verticalCenter
+                                compact: true
+                                flat: true
+                                text: "✕"
+                                onClicked: win.forget(hist.modelData.q)
+                            }
+                        }
+                    }
+                }
                 PxText {
-                    visible: win.results.length === 0
+                    visible: win.results.length === 0 && win.query.trim() !== ""
                     width: parent.width
                     wrapMode: Text.Wrap
                     text: SettingsSearch.loaded ? I18n.t("Ничего не нашлось. Попробуй другое слово — «экран», «прозрачность», «хоткеи»… или спроси ангела.", "Nothing found. Try another word — “display”, “transparency”, “hotkeys”… or ask the angel.") : "…"
@@ -1065,7 +1206,7 @@ Item {
                 }
                 // nothing found: ask her (she knows the settings and more), and the miss is noted
                 PxButton {
-                    visible: win.results.length === 0 && SettingsSearch.loaded && Angel.shown
+                    visible: win.results.length === 0 && win.query.trim() !== "" && SettingsSearch.loaded && Angel.shown
                     x: Theme.u * 3
                     compact: true
                     icon: "chat"

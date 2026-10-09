@@ -18,9 +18,12 @@ import qs.widgets
 //          dragged or in edit mode — and steps aside while workspaces slide.
 //          Widgets with nothing to click (clock, sysmon, cava, the companions'
 //          orbs) keep their input copy empty: one set of timers and processes.
-// Dragged by the title bar, double click on the title toggles edit mode, Ctrl +
-// wheel (or the wheel in edit mode) resizes it, a right click on a bare spot
-// opens the desktop menu.
+// The frame (Settings → Widgets, or the widget's own in its right-click menu): a little
+// .exe window (PxWindow, dragged by the title bar), a plate or none (WidgetPlate, dragged
+// by any bare spot, its name on a tab while the pointer is on it). A double click on the
+// handle toggles edit mode, Ctrl + wheel (or the wheel in edit mode) zooms it, a right
+// click on a bare spot opens the widget's menu (size S/M/L, frame, its options, remove —
+// DesktopMenu.openWidget). Built-in widgets get their layout as `size` ("s" | "m" | "l").
 // macOS look (DesktopWidgets.macLook, Settings → Widgets → Style): a Golden Gate card
 // (MacWidgetCard) with no title bar — in edit mode the whole card is the handle, a double
 // click on a bare spot of it toggles edit mode, its face blurs the wallpaper (`backdrop`).
@@ -48,11 +51,18 @@ Item {
     readonly property var info: widget ? DesktopWidgets.typeInfo(widget.type) : null
     readonly property bool wants: !content.item || content.item.wantVisible === undefined || content.item.wantVisible
     readonly property bool dragging: DesktopWidgets.drag.uid === uid
-    // the frame on show: the pixel window or the macOS card
-    readonly property Item frame: mac ? macFrame : pxFrame
-    // what drags it: the pixel window's title bar, or the macOS card (in edit mode)
-    readonly property MouseArea grip: mac ? macFrame.dragArea : pxFrame.titleMouse
-    readonly property Item gripBar: mac ? macFrame : pxFrame.titleBar
+    // window | plate | none (DesktopWidgets.frameOf); the macOS card has its own
+    readonly property string frameKind: DesktopWidgets.frameOf(widget)
+    readonly property bool windowed: !mac && frameKind === "window"
+    // the frame on show: the pixel window, the plate (or none) or the macOS card
+    readonly property Item frame: mac ? macFrame : windowed ? pxFrame : plate
+    // what drags it: the pixel window's title bar, the plate, or the macOS card (in edit mode)
+    readonly property MouseArea grip: mac ? macFrame.dragArea : windowed ? pxFrame.titleMouse : plate.dragArea
+    readonly property Item gripBar: mac ? macFrame : windowed ? pxFrame.titleBar : plate
+    // S / M / L for the built-in widgets ("" for plugins)
+    readonly property string size: DesktopWidgets.sizeOf(widget)
+    // the plate's name tab: the pointer on it (its input copy says so), edit mode, a drag
+    readonly property bool nameShown: DesktopWidgets.hoverUid === uid || DesktopWidgets.editMode || dragging
     // ---- heaven / hell ----
     readonly property bool selfHell: !info || !info.plugin || (info.plugin.realms || []).includes("hell")
     readonly property bool fxOn: StreamMode.effectsOn(screenName)
@@ -129,9 +139,15 @@ Item {
     HoverHandler {
         id: hover
         enabled: !host.face
+        onHoveredChanged: {
+            if (hovered)
+                DesktopWidgets.hoverUid = host.uid;
+            else if (DesktopWidgets.hoverUid === host.uid)
+                DesktopWidgets.hoverUid = "";
+        }
     }
 
-    // under the widget: right click on a bare spot → the desktop menu; the wheel
+    // under the widget: right click on a bare spot → the widget's menu; the wheel
     // resizes in edit mode or with Ctrl
     ContextClick {
         anchors.fill: parent
@@ -181,7 +197,10 @@ Item {
             DesktopWidgets.drag = {
                 "uid": host.uid,
                 "x": host.x,
-                "y": host.y
+                "y": host.y,
+                "w": host.width,
+                "h": host.height,
+                "screen": host.screenName
             };
         }
         function onPositionChanged(m) {
@@ -191,7 +210,10 @@ Item {
             DesktopWidgets.drag = {
                 "uid": host.uid,
                 "x": host.clampX(host.dragOrigin.x + p.x - host.dragStart.x),
-                "y": host.clampY(host.dragOrigin.y + p.y - host.dragStart.y)
+                "y": host.clampY(host.dragOrigin.y + p.y - host.dragStart.y),
+                "w": host.width,
+                "h": host.height,
+                "screen": host.screenName
             };
         }
         function onReleased() {
@@ -202,13 +224,18 @@ Item {
             host.endDrag();
         }
         function onDoubleClicked() {
-            DesktopWidgets.editMode = !DesktopWidgets.editMode;
+            DesktopWidgets.toggleEdit(host.screenName);
         }
     }
     Binding {
         target: pxFrame.titleMouse
         property: "cursorShape"
         value: host.dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+    }
+    Binding {
+        target: plate.dragArea
+        property: "cursorShape"
+        value: host.dragging ? Qt.ClosedHandCursor : DesktopWidgets.editMode ? Qt.OpenHandCursor : Qt.ArrowCursor
     }
     Binding {
         target: macFrame.dragArea
@@ -232,6 +259,14 @@ Item {
     function checkInput() {
         const it = content.item;
         interactive = !!it && (it.passive === undefined ? scanInput(it, 0) : !it.passive);
+    }
+    // a layout with buttons or without them (music S ⇄ M, the disks' folders at L)
+    Connections {
+        target: content.item
+        ignoreUnknownSignals: true
+        function onPassiveChanged() {
+            host.checkInput();
+        }
     }
 
     // ---- scripted input for `angelos widgetClick/widgetProbe` (tests) ----
@@ -345,16 +380,17 @@ Item {
 
         PxWindow {
             id: pxFrame
-            visible: !host.mac
+            visible: host.windowed
             x: canvas.pad
             y: canvas.pad
             hell: Theme.hell
-            flamesLive: !host.mac && (host.face ? !Shell.hiddenScreen(host.screenName) : host.shown)
+            flamesLive: host.windowed && (host.face ? !Shell.hiddenScreen(host.screenName) : host.shown)
             trim: !host.overFace
             scale: host.zoom
             transformOrigin: Item.TopLeft
-            width: Math.max(Theme.u * 70, content.implicitWidth + (inset + bodyPadding) * 2)
-            height: titleHeight + content.implicitHeight + bodyPadding * 2 + inset * 2 + Theme.u * 2
+            // with the grid on: whole cells (DesktopWidgets.fit), the content in the middle
+            width: DesktopWidgets.fit(Math.max(Theme.u * 70, content.implicitWidth + (inset + bodyPadding) * 2), host.zoom)
+            height: DesktopWidgets.fit(titleHeight + content.implicitHeight + bodyPadding * 2 + inset * 2 + Theme.u * 2, host.zoom)
             readonly property int inset: Theme.u * 2
             title: DesktopWidgets.titleOf(host.info)
             icon: host.info ? host.info.icon : "heart"
@@ -368,10 +404,13 @@ Item {
 
             Loader {
                 id: content
-                // the pixel window's body, or the card's
-                parent: host.mac ? macFrame.bodyItem : pxFrame.bodyItem
+                // the pixel window's body, the plate's, or the card's
+                parent: host.mac ? macFrame.bodyItem : host.windowed ? pxFrame.bodyItem : plate.bodyItem
                 width: implicitWidth
                 height: implicitHeight
+                // in the middle of a frame the grid made bigger
+                x: parent ? Math.max(0, Math.floor((parent.width - width) / 2)) : 0
+                y: parent ? Math.max(0, Math.floor((parent.height - height) / 2)) : 0
                 // the input copy of a widget with nothing to click runs nothing: the face shows it
                 visible: host.face || host.interactive
                 onLoaded: host.checkInput()
@@ -394,12 +433,36 @@ Item {
                         setSource(src, props);
                     } else {
                         const name = host.info.type.charAt(0).toUpperCase() + host.info.type.slice(1);
-                        setSource(Qt.resolvedUrl("widgets/" + ({
-                                "Nowplaying": "NowPlaying"
-                            }[name] || name) + "Widget.qml"), props);
+                        // the built-in ones take their layout and frame too
+                        if (host.info.sizes) {
+                            props.size = Qt.binding(() => host.size);
+                            props.frameKind = Qt.binding(() => host.mac ? "mac" : host.frameKind);
+                            props.face = host.face;
+                        }
+                        setSource(Qt.resolvedUrl("widgets/" + name + "Widget.qml"), props);
                     }
                 }
             }
+        }
+
+        WidgetPlate {
+            id: plate
+            visible: !host.mac && !host.windowed
+            x: canvas.pad
+            y: canvas.pad
+            scale: host.zoom
+            transformOrigin: Item.TopLeft
+            width: DesktopWidgets.fit(content.implicitWidth + padding * 2, host.zoom)
+            height: DesktopWidgets.fit(content.implicitHeight + padding * 2, host.zoom)
+            bare: host.frameKind === "none"
+            hell: Theme.hell
+            fill: !host.overFace
+            shadow: Config.appearance.shadows && !host.overFace
+            showName: host.nameShown
+            closable: DesktopWidgets.editMode
+            title: DesktopWidgets.titleOf(host.info)
+            icon: host.info ? host.info.icon : "heart"
+            onCloseClicked: DesktopWidgets.remove(host.uid)
         }
 
         MacWidgetCard {
@@ -409,8 +472,8 @@ Item {
             y: canvas.pad
             scale: host.zoom
             transformOrigin: Item.TopLeft
-            width: content.implicitWidth + padding * 2
-            height: content.implicitHeight + padding * 2
+            width: DesktopWidgets.fit(content.implicitWidth + padding * 2, host.zoom)
+            height: DesktopWidgets.fit(content.implicitHeight + padding * 2, host.zoom)
             editing: DesktopWidgets.editMode && !host.face
             closable: DesktopWidgets.editMode
             glassBody: !host.overFace

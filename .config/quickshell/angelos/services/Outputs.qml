@@ -51,6 +51,7 @@ Singleton {
     readonly property string monitorFile: Config.home + "/.config/niri/monitor.kdl"
     property var outputs: ({})        // name -> niri output json
     property var draft: ({})          // name -> {mode, scale, transform, x, y, vrr, off}
+    property var live: ({})           // the same as niri runs it now (the last query)
     property string log: ""
     property bool busy: applier.running || saver.running
 
@@ -88,6 +89,45 @@ Singleton {
             "value": "flipped-270"
         }
     ]
+
+    // how the monitor stands: the turn without the mirror, and the mirror on its own
+    readonly property var turns: [
+        {
+            "label": I18n.t("Как обычно", "Normal"),
+            "hint": I18n.t("горизонтально", "landscape"),
+            "value": "0"
+        },
+        {
+            "label": I18n.t("На боку ↻", "On its side ↻"),
+            "hint": I18n.t("90°, вертикально", "90°, portrait"),
+            "value": "90"
+        },
+        {
+            "label": I18n.t("Вверх ногами", "Upside down"),
+            "hint": "180°",
+            "value": "180"
+        },
+        {
+            "label": I18n.t("На боку ↺", "On its side ↺"),
+            "hint": I18n.t("270°, вертикально", "270°, portrait"),
+            "value": "270"
+        }
+    ]
+    function turnOf(t) {
+        const m = String(t || "normal").match(/(\d+)$/);
+        return m ? m[1] : "0";
+    }
+    function mirroredOf(t) {
+        return String(t || "").startsWith("flipped");
+    }
+    function transformOf(turn, mirrored) {
+        return turn === "0" ? (mirrored ? "flipped" : "normal") : (mirrored ? "flipped-" : "") + turn;
+    }
+    // turn (or mirror) a monitor right away; it comes back unless kept (keep) within 15 s
+    function turn(name, transform) {
+        set(name, "transform", transform);
+        apply();
+    }
 
     function transformFromJson(t) {
         return ({
@@ -140,6 +180,7 @@ Singleton {
                         };
                     }
                     root.draft = d;
+                    root.live = JSON.parse(JSON.stringify(d));
                 } catch (e) {
                     root.log = I18n.t("не удалось прочитать niri outputs: ", "Could not read niri outputs: ") + e;
                 }
@@ -154,8 +195,48 @@ Singleton {
         draft = d;
     }
 
-    // live apply (not persisted)
+    // live apply (not persisted). A turned, switched off or re-moded screen may be unreadable:
+    // it comes back as it was in 15 s unless kept (keep) — the Windows way
+    property var undo: null           // the layout before such a change, until kept or put back
+    property int confirmLeft: 0
+    property bool reverting: false
     function apply() {
+        const risky = Object.keys(draft).some(n => {
+            const a = draft[n], b = live[n];
+            return b && (a.transform !== b.transform || a.mode !== b.mode || a.scale !== b.scale || a.off !== b.off);
+        });
+        if (risky && !undo)
+            undo = JSON.parse(JSON.stringify(live));
+        _run();
+        if (undo) {
+            confirmLeft = 15;
+            confirmTimer.restart();
+        }
+    }
+    function keep() {
+        undo = null;
+        confirmLeft = 0;
+        confirmTimer.stop();
+    }
+    function revert() {
+        if (!undo)
+            return;
+        draft = undo;
+        keep();
+        reverting = true;
+        _run();
+    }
+    Timer {
+        id: confirmTimer
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            root.confirmLeft--;
+            if (root.confirmLeft <= 0)
+                root.revert();
+        }
+    }
+    function _run() {
         const cmds = [];
         for (const name in draft) {
             const d = draft[name];
@@ -179,7 +260,10 @@ Singleton {
     Process {
         id: applier
         stderr: StdioCollector {
-            onStreamFinished: root.log = text ? text : I18n.t("применено ♡ (до перезапуска niri — сохрани, чтобы запомнить)", "Applied ♡ Save to config to keep changes after restarting niri.")
+            onStreamFinished: {
+                root.log = text ? text : root.reverting ? I18n.t("вернула как было ♡", "Put back as it was ♡") : I18n.t("применено ♡ (до перезапуска niri — сохрани, чтобы запомнить)", "Applied ♡ Save to config to keep changes after restarting niri.");
+                root.reverting = false;
+            }
         }
         onExited: refreshTimer.restart()
     }

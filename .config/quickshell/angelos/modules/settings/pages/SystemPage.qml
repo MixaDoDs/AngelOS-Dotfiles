@@ -539,6 +539,15 @@ PxPage {
                 onToggled: c => Config.developer.enabled = c
             }
         }
+        SettingRow {
+            visible: Config.developer.enabled
+            label: I18n.t("Показывать настройки ноутбука", "Show the laptop's settings")
+            hint: Laptop.isLaptop ? I18n.t("это ноутбук — они и так видны", "This is a laptop: they show anyway") : I18n.t("на ПК их нет: батарея, тачпад, крышка, подсветка, клавиши ноутбука, планшет. Включи, чтобы показать их (как выглядят на ноутбуке); работать без железа они не будут", "A desktop has none: battery, touchpad, lid, backlight, laptop keys, tablet. Turn on to show them (as on a laptop); without the hardware they do nothing")
+            PxToggle {
+                checked: Config.developer.showLaptop
+                onToggled: c => Config.developer.showLaptop = c
+            }
+        }
         PxButton {
             visible: Config.developer.enabled
             text: I18n.t("Открыть мастер плагинов", "Open Plugin Studio")

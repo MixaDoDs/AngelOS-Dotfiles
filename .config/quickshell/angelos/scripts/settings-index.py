@@ -14,6 +14,8 @@ A group or row shown only in developer mode (`shown:`/`visible: Config.developer
 is marked "developer": true, its rows too — the search leaves them out while the mode is off.
 One shown only to the author (`shown: GameDebug.allowed`, the game's debug panel from
 owner/debug) is marked "owner": true — the search leaves it out for everyone else.
+One about hardware (`visible: Laptop.has("lid")`) is marked "needs": "lid", its rows too —
+the search leaves it out on a machine without it (a desktop: no lid, no laptop keys).
 
 The result is kept in $XDG_CACHE_HOME/angelos/settings-index.json with the size and time of
 every page file (and of this script): Settings opening asks again each time, and while no page
@@ -34,6 +36,7 @@ PROP = re.compile(r'^\s*"?(heading|subtitle|title|label|hint|text|placeholder)"?
 OPEN = re.compile(r"^\s*([A-Z][\w.]*)\s*\{")
 DEV = re.compile(r"^\s*(shown|visible)\s*:\s*Config\.developer\.enabled\s*$")
 OWNER = re.compile(r"^\s*(shown|visible)\s*:\s*GameDebug\.allowed\s*$")
+NEEDS = re.compile(r'^\s*(shown|visible)\s*:\s*Laptop\.has\("(\w+)"\)\s*$')
 NAME = re.compile(r'^\s*name\s*:\s*"([^"]+)"')
 
 
@@ -72,9 +75,9 @@ def index_page(path):
                 grp = next((e for c, _, e in reversed(stack) if c == "PxGroup" and e), None)
                 entry = {"page": pid, "kind": "row", "ru": "", "en": "", "name": grp["name"] if grp else "", "hint": {"ru": "", "en": ""}, "words": {"ru": [], "en": []},
                          "group": {"ru": grp["ru"], "en": grp["en"]} if grp else {"ru": "", "en": ""}}
-                for gate in ("developer", "owner"):
+                for gate in ("developer", "owner", "needs"):
                     if grp and grp.get(gate):
-                        entry[gate] = True
+                        entry[gate] = grp[gate]
             if entry is not None:
                 out.append(entry)
             stack.append((comp, depth, entry))
@@ -82,6 +85,9 @@ def index_page(path):
             stack[-1][2]["developer"] = True
         if OWNER.match(code) and stack and stack[-1][2] is not None and stack[-1][0] in ("PxGroup", "SettingRow"):
             stack[-1][2]["owner"] = True
+        nd = NEEDS.match(code)
+        if nd and stack and stack[-1][2] is not None and stack[-1][0] in ("PxGroup", "SettingRow"):
+            stack[-1][2]["needs"] = nd.group(2)
         # a row that is one plain switch (checked: Config.a.b, set back the same way): the
         # search shows the switch right in its results
         row = next((e for c, _, e in reversed(stack) if c == "SettingRow" and e), None)

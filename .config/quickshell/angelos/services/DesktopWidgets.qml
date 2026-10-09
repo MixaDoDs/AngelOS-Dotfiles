@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 
 // Widgets on the wallpaper: which, where, with what settings. Dragged by their title bar.
@@ -9,6 +10,18 @@ Singleton {
     id: root
 
     property bool editMode: false
+    // the screen edit mode was asked on: its bar (EditBarWindow) shows there, over the windows
+    property string editScreen: ""
+    property string _editFrom: ""
+    function toggleEdit(screen) {
+        _editFrom = screen || "";
+        editMode = !editMode;
+    }
+    onEditModeChanged: {
+        if (editMode)
+            editScreen = _editFrom || Pointer.screen || (Shell.focusedScreen ? Shell.focusedScreen.name : "") || Shell.primaryName;
+        _editFrom = "";
+    }
 
     // ---- the look: angelOS's pixel windows or macOS Golden Gate cards ----
     // Config.desktop.widgetStyle: "auto" follows the skin (Golden Gate → cards), "pixel", "mac".
@@ -185,7 +198,11 @@ Singleton {
     readonly property int burnMs: 1500
     property bool _realmSet: false
     onHellWantedChanged: Qt.callLater(settleRealm)
-    Component.onCompleted: Qt.callLater(settleRealm)
+    Component.onCompleted: {
+        Qt.callLater(settleRealm);
+        if (Config.ready)
+            Qt.callLater(migrate);
+    }
     Connections {
         target: Config
         function onReadyChanged() {
@@ -276,37 +293,52 @@ Singleton {
         hosts = m;
     }
 
+    // `sizes`: the layouts it has (S/M/L in the right-click menu; L shows more). The pixel and
+    // hell looks follow them; the macOS cards keep one layout (DesktopWidgets.macLook)
     readonly property var builtin: [
         {
             "type": "clock",
             "label": I18n.t("Часы", "Clock"),
             "icon": "calendar",
-            "title": "clock"
+            "title": "clock",
+            "sizes": ["s", "m", "l"]
         },
         {
             "type": "sysmon",
             "label": I18n.t("Системный монитор", "System monitor"),
             "icon": "chip",
-            "title": "sysmon"
+            "title": "sysmon",
+            "sizes": ["s", "m", "l"]
         },
         {
-            "type": "cava",
-            "label": I18n.t("Визуализатор cava", "cava visualizer"),
+            // the cava spectrum and the player in one: S the spectrum, M the player, L both
+            "type": "music",
+            "label": I18n.t("Музыка", "Music"),
             "icon": "music",
-            "title": "cava"
+            "title": "music",
+            "sizes": ["s", "m", "l"]
         },
         {
-            "type": "nowplaying",
-            "label": I18n.t("Сейчас играет", "Now playing"),
-            "icon": "play",
-            "title": "music"
-        },
-        {
-            // a GIF from a file, played N times or for ever (modules/desktop/widgets/GifWidget)
-            "type": "gif",
-            "label": I18n.t("Гифка", "GIF"),
+            // a GIF, a picture, a silent video or a folder's slideshow (modules/desktop/widgets/PictureWidget)
+            "type": "picture",
+            "label": I18n.t("Картинка", "Picture"),
             "icon": "image",
-            "title": "gif"
+            "title": "picture",
+            "sizes": ["s", "m", "l"]
+        },
+        {
+            "type": "note",
+            "label": I18n.t("Заметка", "Note"),
+            "icon": "note",
+            "title": "note",
+            "sizes": ["s", "m", "l"]
+        },
+        {
+            "type": "disks",
+            "label": I18n.t("Диски и папки", "Disks & folders"),
+            "icon": "hdd",
+            "title": "disks",
+            "sizes": ["s", "m", "l"]
         },
         {
             // hell's own: offered, shown and spun only while the demon rules
@@ -317,6 +349,45 @@ Singleton {
             "hell": true
         }
     ]
+    // the types that became others (2026-10-09): cava → music S, nowplaying → music M, gif → picture
+    readonly property var renamed: ({
+            "cava": {
+                "type": "music",
+                "size": "s"
+            },
+            "nowplaying": {
+                "type": "music",
+                "size": "m"
+            },
+            "gif": {
+                "type": "picture"
+            }
+        })
+    function migrate() {
+        const list = Config.desktop.widgets || [];
+        if (!list.some(w => renamed[w.type]))
+            return;
+        _save(list.map(w => {
+            const r = renamed[w.type];
+            if (!r)
+                return w;
+            const out = Object.assign({}, w, {
+                "type": r.type
+            });
+            if (r.size && !w.size)
+                out.size = r.size;
+            return out;
+        }));
+    }
+    // the list arrives a moment after Config says it's ready (and may come back from a file
+    // edited by hand): look again whenever it changes
+    Connections {
+        target: Config.desktop
+        function onWidgetsChanged() {
+            if (Config.ready)
+                Qt.callLater(root.migrate);
+        }
+    }
     readonly property var pluginTypes: Plugins.desktopWidgets.map(p => ({
                 "type": "plugin:" + p.id,
                 "label": p.name,
@@ -349,6 +420,90 @@ Singleton {
                 }) : w));
     }
 
+    // ---- S / M / L: the layout (the type's `sizes`; plugins have none) ----
+    function sizesOf(info) {
+        return info && info.sizes ? info.sizes : [];
+    }
+    function sizeOf(w) {
+        const sizes = sizesOf(w ? typeInfo(w.type) : null);
+        return !sizes.length ? "" : sizes.includes(w.size) ? w.size : sizes.includes("m") ? "m" : sizes[0];
+    }
+    function setSize(uid, size) {
+        _patch(uid, {
+            "size": size
+        });
+    }
+    // ---- the frame: a little .exe window, a plain plate or none; each widget may differ ----
+    readonly property var frameKinds: ["window", "plate", "none"]
+    readonly property string frameDefault: frameKinds.includes(Config.desktop.widgetFrame) ? Config.desktop.widgetFrame : "window"
+    function frameOf(w) {
+        return w && frameKinds.includes(w.frame) ? w.frame : frameDefault;
+    }
+    function setFrame(uid, frame) {
+        _patch(uid, {
+            "frame": frameKinds.includes(frame) ? frame : ""
+        });
+    }
+    function frameLabel(f) {
+        return ({
+                "window": I18n.t("Окошко ", "Window ") + I18n.exe(""),
+                "plate": I18n.t("Плашка", "Plate"),
+                "none": I18n.t("Без рамки", "No frame")
+            })[f] || I18n.t("Как у всех", "Like the others");
+    }
+    // the widget under the pointer (its input copy says so): the plate shows its name then
+    property string hoverUid: ""
+    // the clocks that show the weather keep it coming (services/Weather)
+    readonly property bool weatherWanted: widgets.some(w => w.type === "clock" && !(w.settings && w.settings.weather === false))
+    Binding {
+        target: Weather
+        property: "wanted"
+        value: root.weatherWanted
+    }
+    // ---- choosing a file or a folder for a widget (the picture; the desktop's file chooser,
+    // scripts/pick-file.py), from Settings → Widgets or the widget's right-click menu ----
+    property string picking: ""              // uid:key while the chooser is open
+    function pick(uid, key, folder) {
+        if (picker.running)
+            return;
+        picking = uid + ":" + key;
+        picker.command = folder ? ["python3", Quickshell.shellDir + "/scripts/pick-file.py", "--dir", I18n.t("angelOS — папка для слайд-шоу", "angelOS — a folder for the slideshow")] : ["python3", Quickshell.shellDir + "/scripts/pick-file.py", I18n.t("angelOS — картинка на рабочий стол", "angelOS — a picture for the desktop"), I18n.t("Картинки и видео", "Pictures and videos"), "*.gif", "*.webp", "*.png", "*.apng", "*.mng", "*.jpg", "*.jpeg", "*.bmp", "*.svg", "*.avif", "*.mp4", "*.webm", "*.mkv", "*.mov"];
+        picker.running = true;
+    }
+    Process {
+        id: picker
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const f = text.trim();
+                const at = root.picking.lastIndexOf(":");
+                if (f && at > 0)
+                    root.setSetting(root.picking.slice(0, at), root.picking.slice(at + 1), f);
+                root.picking = "";
+            }
+        }
+        onExited: code => {
+            if (code !== 0)
+                root.picking = "";
+        }
+    }
+    // the notes' text (NoteWidget): one place for both copies of a note, so the face shows what
+    // the input copy just ticked or wrote without waiting for the file
+    property var notes: ({})
+    function setNote(uid, text) {
+        if (notes[uid] === text)
+            return;
+        const m = Object.assign({}, notes);
+        m[uid] = text;
+        notes = m;
+    }
+    // the widget's own requests from its menu (a note opens its editor, a slideshow steps on):
+    // the widget listens for its uid
+    signal request(string uid, string what)
+
+    function _patch(uid, patch) {
+        _save((Config.desktop.widgets || []).map(w => w.uid === uid ? Object.assign({}, w, patch) : w));
+    }
+
     function typeInfo(t) {
         return types.find(x => x.type === t) || null;
     }
@@ -369,8 +524,17 @@ Singleton {
     // free place next to one of them (below, above, beside), inside the screen. The saved place
     // stays as it is, so the old sizes bring the old layout back. No free place at all (more
     // widgets than screen): it stays where it was put.
+    // With the grid on, every place it gives is on the grid's lines: the wish itself, the edges of
+    // the screen and the places next to the others (a widget is a whole number of cells less the
+    // gutter, fit(), so the one next to a neighbour starts on a line again).
     function settledPlace(uid, screen, x, y, w, h, aw, ah) {
-        const gap = Theme.u * 2;
+        const gap = gutter;
+        const grid = snapOn;
+        const g = gridPx;
+        const onX = v => grid ? Math.max(0, Math.min(Math.floor((aw - w) / g) * g, Math.round(v / g) * g)) : v;
+        const onY = v => grid ? Math.max(0, Math.min(Math.floor((ah - h) / g) * g, Math.round(v / g) * g)) : v;
+        x = onX(x);
+        y = onY(y);
         const before = [];
         for (const o of widgets) {
             if (o.uid === uid)
@@ -384,12 +548,19 @@ Singleton {
         const free = (px, py) => !before.some(r => px < r[0] + r[2] + gap && px + w + gap > r[0] && py < r[1] + r[3] + gap && py + h + gap > r[1]);
         if (free(x, y))
             return Qt.point(x, y);
-        const cx = v => Math.max(0, Math.min(aw - w, v)), cy = v => Math.max(0, Math.min(ah - h, v));
-        // the edges of the others (and of the screen) are where a free place can start
-        const xs = [x, 0, aw - w], ys = [y, 0, ah - h];
+        const cx = v => grid ? Math.max(0, Math.min(Math.floor((aw - w) / g) * g, v)) : Math.max(0, Math.min(aw - w, v));
+        const cy = v => grid ? Math.max(0, Math.min(Math.floor((ah - h) / g) * g, v)) : Math.max(0, Math.min(ah - h, v));
+        // the edges of the others (and of the screen) are where a free place can start; on the grid
+        // the lines on both sides of each
+        let xs = [x, 0, aw - w], ys = [y, 0, ah - h];
         for (const r of before) {
             xs.push(r[0], r[0] + r[2] + gap, r[0] - gap - w);
             ys.push(r[1], r[1] + r[3] + gap, r[1] - gap - h);
+        }
+        if (grid) {
+            const lines = list => list.flatMap(v => [Math.floor(v / g) * g, Math.ceil(v / g) * g]);
+            xs = lines(xs);
+            ys = lines(ys);
         }
         let best = null, bestD = Infinity;
         for (const px0 of xs)
@@ -420,19 +591,49 @@ Singleton {
     function _save(list) {
         Config.desktop.widgets = list;
     }
-    function add(type, screen, x, y) {
+    function add(type, screen, x, y, size) {
         Achievements.note("widget.add", type);
         screen = screen || Shell.primaryName;
         const n = widgets.filter(w => w.screen === screen).length;
-        _save((Config.desktop.widgets || []).concat([{
-                    "uid": type.replace(/[^\w-]/g, "_") + "-" + Date.now().toString(36),
-                    "type": type,
-                    "screen": screen,
-                    // new widgets fill a loose grid instead of piling up
-                    "x": x !== undefined ? x : Theme.u * (20 + (n % 3) * 170),
-                    "y": y !== undefined ? y : Theme.u * (20 + Math.floor(n / 3) * 95),
-                    "settings": ({})
-                }]));
+        const w = {
+            "uid": type.replace(/[^\w-]/g, "_") + "-" + Date.now().toString(36) + n,
+            "type": type,
+            "screen": screen,
+            // new widgets fill a loose grid instead of piling up
+            "x": x !== undefined ? x : Theme.u * (20 + (n % 3) * 170),
+            "y": y !== undefined ? y : Theme.u * (20 + Math.floor(n / 3) * 95),
+            "settings": ({})
+        };
+        if (size)
+            w.size = size;
+        _save((Config.desktop.widgets || []).concat([w]));
+    }
+
+    // ---- the wizard's sets (SetupAssistant, step "widgets") ----
+    // [type, size, x, y] in angelOS pixels; negative = from the right / the bottom. Picking a set
+    // takes away the built-in widgets of the one before on that screen (plugins stay)
+    readonly property var sets: ({
+            "empty": [],
+            "minimum": [["clock", "m", 20, 20], ["music", "m", 20, -20]],
+            "center": [["clock", "l", 20, 20], ["sysmon", "l", 20, 120], ["music", "l", -20, 20], ["disks", "m", -20, 110]]
+        })
+    function applySet(name, screen) {
+        const set = sets[name];
+        if (!set)
+            return;
+        screen = screen || Shell.primaryName || (Quickshell.screens[0] || {}).name || "";
+        const kept = (Config.desktop.widgets || []).filter(w => w.screen !== screen || !builtin.some(b => b.type === w.type));
+        const t = Date.now().toString(36);
+        _save(kept.concat(set.map((e, i) => ({
+                        "uid": e[0] + "-" + t + i,
+                        "type": e[0],
+                        "screen": screen,
+                        "size": e[1],
+                        "x": e[2] * Theme.u,
+                        "y": e[3] * Theme.u,
+                        "settings": ({})
+                    }))));
+        Config.desktop.widgetSet = name;
     }
     function remove(uid) {
         _save((Config.desktop.widgets || []).filter(w => w.uid !== uid));
@@ -445,11 +646,75 @@ Singleton {
             add(type, screen);
     }
     function move(uid, x, y) {
-        const g = Config.desktop.snap ? Theme.u * 4 : 1;
         _save((Config.desktop.widgets || []).map(w => w.uid === uid ? Object.assign({}, w, {
-                    "x": Math.round(x / g) * g,
-                    "y": Math.round(y / g) * g
+                    "x": snap(x),
+                    "y": snap(y)
                 }) : w));
+    }
+
+    // ---- the grid (edit mode draws it: DesktopGrid; the bar on top picks its cell: EditBar) ----
+    readonly property var gridSteps: [4, 8, 16, 32]
+    readonly property int gridStep: gridSteps.includes(Config.desktop.gridStep) ? Config.desktop.gridStep : 8
+    readonly property bool snapOn: Config.ready && Config.desktop.snap !== false
+    readonly property int gridPx: Theme.u * gridStep
+    // between two widgets side by side (settledPlace keeps them this far apart)
+    readonly property int gutter: Theme.u * 2
+    // a widget's size on the grid: a whole number of cells less the gutter, so the next one starts
+    // on a line (`zoom`: the host draws it scaled; the size is given unscaled)
+    function fit(v, zoom) {
+        if (!snapOn || !(v > 0))
+            return v;
+        const z = zoom || 1;
+        return (Math.ceil((v * z + gutter) / gridPx) * gridPx - gutter) / z;
+    }
+    function snap(v) {
+        return snapOn ? Math.round(v / gridPx) * gridPx : Math.round(v);
+    }
+    // 0 = off, else the cell in angelOS pixels
+    readonly property var gridLevels: [
+        {
+            "value": 0,
+            "label": I18n.t("Выкл", "Off")
+        },
+        {
+            "value": 4,
+            "label": I18n.t("Мелкая", "Fine")
+        },
+        {
+            "value": 8,
+            "label": I18n.t("Средняя", "Medium")
+        },
+        {
+            "value": 16,
+            "label": I18n.t("Крупная", "Coarse")
+        },
+        {
+            "value": 32,
+            "label": I18n.t("Огромная", "Huge")
+        }
+    ]
+    readonly property int gridLevel: snapOn ? gridStep : 0
+    function setGrid(v) {
+        if (!v) {
+            Config.desktop.snap = false;
+            return;
+        }
+        Config.desktop.gridStep = v;
+        Config.desktop.snap = true;
+    }
+    // every widget of a screen onto the grid (where it is now on screen, not where it was saved)
+    function alignAll(screen) {
+        const g = snapOn ? gridPx : Theme.u * 8;
+        const at = v => Math.round(v / g) * g;
+        _save((Config.desktop.widgets || []).map(w => {
+            const f = faces[w.uid];
+            if (screenOf(w) !== screen || !f)
+                return w;
+            return Object.assign({}, w, {
+                "x": at(f.x),
+                "y": at(f.y)
+            });
+        }));
     }
     function setScreen(uid, screen) {
         _save((Config.desktop.widgets || []).map(w => w.uid === uid ? Object.assign({}, w, {

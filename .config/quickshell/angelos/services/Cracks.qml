@@ -116,8 +116,8 @@ Singleton {
     function place() {
         const scr = Shell.screenByName(screenName);
         const bar = Theme.u * 24;
-        insetTop = BarLayout.bottom ? 0 : bar;
-        insetBottom = BarLayout.bottom ? bar : 0;
+        insetTop = BarLayout.edge === "top" ? bar : 0;
+        insetBottom = BarLayout.edge === "bottom" ? bar : 0;
         if (!scr) {
             corner = "tl";
             return;
@@ -125,7 +125,13 @@ Singleton {
         const W = scr.width, H = scr.height;
         const side = sideOn(scr);
         const busy = [];
-        busy.push(BarLayout.bottom ? [0, H - bar, W, bar] : [0, 0, W, bar]);
+        // the bar's strip, on whichever edge it stands (Config.bar.edge)
+        busy.push(({
+                "bottom": [0, H - bar, W, bar],
+                "top": [0, 0, W, bar],
+                "left": [0, 0, bar, H],
+                "right": [W - bar, 0, bar, H]
+            })[BarLayout.edge]);
         if (Angel.screenName === screenName)
             busy.push([W - Theme.u * 176, H - Theme.u * 160, Theme.u * 176, Theme.u * 160]);
         const faces = DesktopWidgets.faces;

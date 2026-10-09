@@ -5,6 +5,7 @@ import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.desktop
 import qs.modules.desktop.widgets
 
 // Sidebar contents: quick toggles, media + sound, system stats, AI limits.
@@ -176,7 +177,7 @@ PxWindow {
                 visible: Sidebar.has("media") && !!Lyrics.player && Lyrics.title !== ""
                 width: parent.width
                 spacing: Theme.u * 2
-                NowPlayingWidget {
+                MusicPlayer {
                     width: parent.width
                     height: implicitHeight
                 }

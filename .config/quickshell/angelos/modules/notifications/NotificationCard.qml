@@ -44,7 +44,7 @@ PxWindow {
     property real elapsed: 0
     // the time bar runs down every frame
     FrameAnimation {
-        running: root.timeout > 0 && !hover.hovered
+        running: root.timeout > 0 && !hover.hovered && !root.replying
         onTriggered: {
             root.elapsed += Math.min(frameTime, 0.1) * 1000;
             root.remaining = Math.max(0, 1 - root.elapsed / root.timeout);
@@ -56,6 +56,13 @@ PxWindow {
     HoverHandler {
         id: hover
     }
+
+    readonly property bool replying: Notifs.same(Notifs.replyTo, notification)
+    // the app's own buttons (Telegram's "Mark as read"); "default" is a click on the card and
+    // "Open" here, the reply is "Reply"
+    readonly property var buttons: notification ? notification.actions.filter(a => a.identifier !== "default" && a.identifier !== "inline-reply") : []
+    readonly property bool canReply: !!notification && notification.hasInlineReply
+    readonly property bool canOpen: Notifs.canOpen(notification)
 
     Column {
         id: body
@@ -124,9 +131,18 @@ PxWindow {
         Flow {
             width: parent.width
             spacing: Theme.u * 3
-            visible: root.notification && root.notification.actions.length > 0
+            visible: !root.replying && (root.canReply || root.canOpen || root.buttons.length > 0)
+            PxButton {
+                visible: root.canReply
+                compact: true
+                text: I18n.t("Ответить", "Reply")
+                onClicked: {
+                    Notifs.replyTo = root.notification;
+                    Qt.callLater(() => replyField.focusField());
+                }
+            }
             Repeater {
-                model: root.notification ? root.notification.actions : []
+                model: root.buttons
                 PxButton {
                     required property var modelData
                     compact: true
@@ -136,6 +152,41 @@ PxWindow {
                         Notifs.dismissPopup(root.notification);
                     }
                 }
+            }
+            PxButton {
+                visible: root.canOpen
+                compact: true
+                text: I18n.t("Открыть", "Open")
+                onClicked: Notifs.open(root.notification)
+            }
+        }
+
+        // the reply, typed right here: Enter sends it, Esc puts the field away
+        Row {
+            visible: root.replying
+            width: parent.width
+            spacing: Theme.u * 3
+            PxField {
+                id: replyField
+                width: parent.width - send.width - Theme.u * 3
+                anchors.verticalCenter: parent.verticalCenter
+                placeholder: Notifs.replyHint(root.notification) || I18n.t("Ответ… (Enter — отправить)", "Reply… (Enter sends)")
+                keepFocus: true
+                onAccepted: Notifs.reply(root.notification, text)
+                onKeyPressed: e => {
+                    if (e.key === Qt.Key_Escape) {
+                        Notifs.replyTo = null;
+                        e.accepted = true;
+                    }
+                }
+            }
+            PxButton {
+                id: send
+                compact: true
+                anchors.verticalCenter: parent.verticalCenter
+                text: I18n.t("Отправить", "Send")
+                enabled: replyField.text.trim() !== ""
+                onClicked: Notifs.reply(root.notification, replyField.text)
             }
         }
 
@@ -164,10 +215,9 @@ PxWindow {
                 Notifs.close(root.notification);
                 return;
             }
-            const def = root.notification.actions.find(a => a.identifier === "default");
-            if (def)
-                def.invoke();
-            Notifs.dismissPopup(root.notification);
+            if (root.replying)
+                return;
+            Notifs.open(root.notification);
         }
     }
 }

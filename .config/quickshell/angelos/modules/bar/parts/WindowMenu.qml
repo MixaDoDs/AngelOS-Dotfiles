@@ -29,9 +29,11 @@ PopupWindow {
     function openFor(item, w) {
         win = w;
         const p = item.mapToItem(anchorItem, 0, 0);
-        anchor.rect.x = p.x;
-        anchor.rect.y = above ? p.y : p.y + item.height;
-        anchor.rect.width = item.width;
+        // a taskbar on the left or the right: beside the button, from its top down
+        anchor.rect.x = side === "left" ? p.x + item.width + Theme.u * 2 : side === "right" ? p.x - Theme.u * 2 : p.x;
+        anchor.rect.y = side ? p.y : above ? p.y : p.y + item.height;
+        anchor.rect.width = side ? 1 : item.width;
+        anchor.rect.height = side ? item.height : 1;
         if (!visible && !reopening) {
             visible = true;
             return;
@@ -56,10 +58,10 @@ PopupWindow {
             fn(w);
     }
 
+    property string side: BarLayout.side
     anchor.item: anchorItem
-    anchor.rect.height: 1
-    anchor.edges: above ? Edges.Top | Edges.Left : Edges.Bottom | Edges.Left
-    anchor.gravity: above ? Edges.Top | Edges.Right : Edges.Bottom | Edges.Right
+    anchor.edges: side === "left" ? Edges.Top | Edges.Right : side === "right" ? Edges.Top | Edges.Left : above ? Edges.Top | Edges.Left : Edges.Bottom | Edges.Left
+    anchor.gravity: side === "left" ? Edges.Bottom | Edges.Right : side === "right" ? Edges.Bottom | Edges.Left : above ? Edges.Top | Edges.Right : Edges.Bottom | Edges.Right
     anchor.adjustment: PopupAdjustment.Flip | PopupAdjustment.Slide
     grabFocus: !Shell.demo
     visible: false

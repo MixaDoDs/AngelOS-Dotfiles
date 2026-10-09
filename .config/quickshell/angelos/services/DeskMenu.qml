@@ -264,7 +264,7 @@ Singleton {
         case "note":
             return DesktopActions.newText();
         case "editWidgets":
-            return DesktopWidgets.editMode = !DesktopWidgets.editMode;
+            return DesktopWidgets.toggleEdit(screen);
         }
     }
     // the user's own entries: {id, label, icon, kind: app|command|path|url, target}

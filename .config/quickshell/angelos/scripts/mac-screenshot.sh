@@ -4,7 +4,8 @@
 #   mac-screenshot.sh region   ⇧⌘4  a part of it: the dotfiles' selector (niri-screenshot-region)
 #   mac-screenshot.sh window         the focused window (niri: just the window, nothing over it)
 #   mac-screenshot.sh record         a part of the screen as a video (niri-record-region)
-# Pictures go where the selector puts them (~/Pictures/Screenshots, "Screenshot from <date>.png"),
+# Pictures go where the selector puts them (~/Pictures/Screenshots/<App>/<MM.YYYY> by screenshot-sort,
+# "Screenshot from <date>.png"; niri's own shots are moved there by `screenshot-sort watch`),
 # onto the clipboard too, with a notification; niri's own screenshot UI when a tool is missing.
 dir="$HOME/Pictures/Screenshots"
 tools="$HOME/.local/bin"
@@ -22,6 +23,8 @@ pling() {
 case "${1:-screen}" in
   screen)
     command -v grim >/dev/null 2>&1 || exec niri msg action screenshot-screen
+    sorted="$("$tools/screenshot-sort" dir 2>/dev/null)"
+    [ -d "$sorted" ] && dir="$sorted"
     mkdir -p "$dir"
     file="$dir/Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png"
     out="$(niri msg -j focused-output 2>/dev/null | python3 -c 'import json, sys
