@@ -410,7 +410,9 @@ merge the same way, key by key. Files angelOS generates (theme colours, fastfetc
 versions parked in `~/.local/state/angelos/kept-updates/`. Lines of your own can also go in `~/.config/fish/user.fish`
 and `~/.config/niri/cfg/user.kdl` — read last, never touched. angelOS's own settings are always yours. After an
 update angelOS offers the apps the author added to the groups you took (and fish, if you are still on bash) — it
-never installs or removes anything by itself. On the first login angelOS opens its setup wizard — without the
+never installs or removes apps by itself. The system part follows too, with one admin password and only when
+something is missing: the base packages the author added, fish instead of bash (once), and the angelOS login screen
+instead of the old pixel-cyberpunk one (a theme you picked yourself stays). On the first login angelOS opens its setup wizard — without the
 questions the installer already asked.
 
 ### Unattended
