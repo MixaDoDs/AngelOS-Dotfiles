@@ -54,7 +54,7 @@ PopupWindow {
     function show(x, y) {
         px = x;
         py = y;
-        sub.visible = false;
+        sub.hide();
         anchor.rect.x = x;
         anchor.rect.y = y;
         if (!visible && !reopening) {
@@ -75,7 +75,7 @@ PopupWindow {
     }
     function close() {
         reopening = false;
-        sub.visible = false;
+        sub.hide();
         visible = false;
         if (radial && radial.visible)
             radial.close();
@@ -375,8 +375,10 @@ PopupWindow {
             if (PopupManager.active && PopupManager.active !== root)
                 PopupManager.close(PopupManager.active);
             PopupManager.active = root;
-        } else if (PopupManager.active === root) {
-            PopupManager.active = null;
+        } else {
+            sub.hide();
+            if (PopupManager.active === root)
+                PopupManager.active = null;
         }
     }
     visible: false
@@ -525,7 +527,7 @@ PopupWindow {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onEntered: sub.visible = false
+                            onEntered: sub.hide()
                             onClicked: {
                                 const e = qa.e;
                                 if (e && e.flyout)
@@ -579,7 +581,7 @@ PopupWindow {
                         if (fly)
                             root.hoverSub(wItem, modelData.flyout);
                         else
-                            sub.visible = false;
+                            sub.hide();
                     }
                     onTriggered: {
                         if (fly) {
@@ -615,7 +617,7 @@ PopupWindow {
                         if (fly)
                             root.hoverSub(entryItem, root.listFor(modelData));
                         else
-                            sub.visible = false;
+                            sub.hide();
                     }
                     onTriggered: {
                         if (fly)

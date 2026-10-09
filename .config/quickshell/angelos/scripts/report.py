@@ -83,20 +83,6 @@ def versions():
             lines.append("Qt: " + run([q, "--qt-version"]))
             break
     lines.append("niri: " + run(["niri", "--version"]))
-    # "it feels like 60 fps": the mode niri runs against the fastest one at that size
-    try:
-        for name, o in sorted(json.loads(run(["niri", "msg", "--json", "outputs"]) or "{}").items()):
-            if o.get("current_mode") is None:
-                lines.append(f"output {name}: off")
-                continue
-            cur = o["modes"][o["current_mode"]]
-            top = max((m for m in o["modes"] if (m["width"], m["height"]) == (cur["width"], cur["height"])),
-                      key=lambda m: m["refresh_rate"])
-            lines.append(f"output {name}: {cur['width']}x{cur['height']}@{cur['refresh_rate'] / 1000:.2f}"
-                         f" (max {top['refresh_rate'] / 1000:.2f}), scale {(o.get('logical') or {}).get('scale')},"
-                         f" vrr {'on' if o.get('vrr_enabled') else 'off'}")
-    except (ValueError, KeyError, TypeError):
-        pass
     lines.append("kernel: " + run(["uname", "-r"]))
     try:
         osr = dict(l.split("=", 1) for l in Path("/etc/os-release").read_text().splitlines() if "=" in l)

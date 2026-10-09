@@ -71,6 +71,7 @@ Item {
     // 70–130 %: the frame is drawn scaled, the host takes the scaled size
     readonly property real zoom: DesktopWidgets.scaleOf(widget)
     signal contextMenu(real x, real y)
+    signal interactionStarted()
 
     function clampX(v) {
         return Math.max(0, Math.min(area.width - width, v));
@@ -127,8 +128,12 @@ Item {
     // where it was put (negative: from the right or the bottom), then clear of the widgets
     // before it (DesktopWidgets.settledPlace: sizes grow with the art pixel and the fonts)
     readonly property point place: widget ? DesktopWidgets.settledPlace(uid, screenName, clampX(widget.x < 0 ? area.width + widget.x - width : widget.x), clampY(widget.y < 0 ? area.height + widget.y - height : widget.y), width, height, area.width, area.height) : Qt.point(0, 0)
-    x: dragging ? DesktopWidgets.drag.x : place.x
-    y: dragging ? DesktopWidgets.drag.y : place.y
+    // Show the exact landing place during a drag; otherwise the release jumps from the
+    // pointer's free position to the grid line (or away from a neighbouring widget).
+    readonly property point dragPlace: dragging ? DesktopWidgets.settledPlace(uid, screenName,
+        DesktopWidgets.drag.x, DesktopWidgets.drag.y, width, height, area.width, area.height) : Qt.point(0, 0)
+    x: dragging ? dragPlace.x : place.x
+    y: dragging ? dragPlace.y : place.y
 
     Component.onCompleted: {
         face ? DesktopWidgets.registerFace(uid, host) : DesktopWidgets.registerHost(uid, host);
@@ -177,7 +182,7 @@ Item {
         if (d.uid !== uid)
             return;
         if (Math.abs(d.x - dragOrigin.x) + Math.abs(d.y - dragOrigin.y) > 1)
-            DesktopWidgets.move(uid, d.x, d.y);
+            DesktopWidgets.move(uid, dragPlace.x, dragPlace.y);
         // the saved position is already in place, stop following the pointer
         Qt.callLater(() => DesktopWidgets.drag = {
                 "uid": "",
@@ -192,6 +197,7 @@ Item {
             // a card moves only in edit mode (outside it the press is the content's)
             if (host.mac && !DesktopWidgets.editMode)
                 return;
+            host.interactionStarted();
             host.dragStart = host.grip.mapToItem(host.area, m.x, m.y);
             host.dragOrigin = Qt.point(host.x, host.y);
             DesktopWidgets.drag = {

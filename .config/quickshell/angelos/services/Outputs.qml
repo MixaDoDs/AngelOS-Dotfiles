@@ -48,61 +48,6 @@ Singleton {
         primary.running = true;
     }
 
-    // niri runs a monitor nobody picked a mode for at its preferred mode — 60 Hz on most 144 Hz
-    // screens. At every start (and when a monitor is plugged in) those get their fastest refresh
-    // rate at the same size, live and saved (scripts/niri_outputs.py best); a mode the user chose
-    // in Settings → Monitor or wrote in monitor.kdl is never touched.
-    function autoRefresh() {
-        if (Shell.dev || bestRate.running)
-            return;
-        bestRate.running = true;
-    }
-    Timer {
-        running: Config.ready && !Shell.dev
-        interval: 6000
-        onTriggered: root.autoRefresh()
-    }
-    Connections {
-        target: Quickshell
-        function onScreensChanged() {
-            if (!Shell.dev)
-                hotplugRate.restart();
-        }
-    }
-    Timer {
-        id: hotplugRate
-        interval: 4000
-        onTriggered: root.autoRefresh()
-    }
-    Process {
-        id: bestRate
-        command: ["python3", Quickshell.shellDir + "/scripts/niri_outputs.py", "best"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                let r;
-                try {
-                    r = JSON.parse(text);
-                } catch (e) {
-                    return;
-                }
-                if (r.error) {
-                    console.warn("niri_outputs.py best: " + r.error);
-                    return;
-                }
-                const names = Object.keys(r.changed || {});
-                if (!names.length)
-                    return;
-                const lines = names.map(n => n + ": " + r.changed[n].from + " → " + Math.round(parseFloat(r.changed[n].mode.split("@")[1])) + I18n.t(" Гц", " Hz"));
-                Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "video-display", I18n.t("Монитор на полной частоте", "The monitor at its full refresh rate"), lines.join("\n") + I18n.t("\nniri включал его на 60 Гц по умолчанию. Сменить: Настройки → Экран", "\nniri started it at 60 Hz by default. Change it: Settings → Monitor")]);
-                Qt.callLater(root.refresh);
-            }
-        }
-        stderr: StdioCollector {
-            onStreamFinished: if (text.trim())
-                console.warn("niri_outputs.py best: " + text.trim())
-        }
-    }
-
     readonly property string monitorFile: Config.home + "/.config/niri/monitor.kdl"
     property var outputs: ({})        // name -> niri output json
     property var draft: ({})          // name -> {mode, scale, transform, x, y, vrr, off}

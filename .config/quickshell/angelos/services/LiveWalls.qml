@@ -10,7 +10,7 @@ import qs.config
 // found once per picture by scripts/live-wall.py (a mask + a few facts, cached in
 // ~/.cache/angelos/live-wall) and drawn by widgets/LiveWall. A night sky gets
 // twinkling and falling stars, water ripples and shimmers (and mirrors the sky's stars when
-// it shows the scene upside down), the picture's own lights twinkle.
+// it shows the scene upside down), a waterfall streams down, the picture's own lights twinkle.
 // Per picture the finding can be corrected: Config.wallpaper.liveOverrides[path] =
 // {sky: "auto"|"on"|"off", water: "auto"|"on"|"off", axis: 0..1 (the waterline)}.
 // `angelos liveWall status|on|off|analyze`
@@ -132,6 +132,8 @@ Singleton {
             parts.push(e.night >= 0.3 ? I18n.t("ночное небо", "a night sky") : I18n.t("небо (днём звёзд нет)", "a sky (no stars by day)"));
         if (e.water)
             parts.push(e.mirror ? I18n.t("вода с отражением", "water with a reflection") : I18n.t("вода", "water"));
+        if (e.water && i.water && i.water.falls > 0)
+            parts.push(I18n.t("водопад", "a waterfall"));
         if (e.lights)
             parts.push(I18n.t("огоньков: ", "lights: ") + e.lights);
         if (e.glints)

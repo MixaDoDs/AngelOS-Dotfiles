@@ -4,16 +4,25 @@
     live-wall.py <picture> [--cache DIR] [--force] [--debug OUT.png]
 
 Prints one line of JSON and leaves in the cache a mask the shader reads (shaders/live_wall.frag),
-made once per picture (path + size + mtime):
+made once per picture (path + size + mtime, and its hints' mtime): the picture as a scene, one
+layer per art pixel
 
-    R  sky        where new stars may twinkle and a star may fall
-    G  water      what ripples, and mirrors the sky above the waterline
-    B  points     small bright points already in the picture: off the water lights (stars, lit
-                  windows) that twinkle, on it glints that shimmer
+    R  the layer, ×32: 1 sky (stars come out, a star falls), 2 a cloud, 3 a thing in the sky (a
+       ring, a moon: a glint runs over it), 4 still water (a lake, a sea), 5 falling water,
+       6 land (rocks, a shore: clouds' shadows pass over it); 0 nothing (indoors, a photo)
+    G  within the layer: the water's depth from its line 0…1, a fall's way down from its top,
+       the place round a ring 0…1
+    B  small bright points already in the picture: in the sky lights (stars, lit windows)
+       that twinkle, on the water glints that shimmer
+
+Hints the author ships next to a picture (<name>.scene.json) say what a look cannot be sure of:
+    {"rings": [[cx, cy, rx, ry, t], …]}   a ring in the sky: centre and radii in the picture's
+                                          0…1, t its half-thickness over the radius
 
 The JSON: {mask, size: [w, h] of the picture, grid: [cell w, cell h, offset x, offset y] of one
 art pixel in the picture's pixels (cell 1 = a photo), pixelArt, sky: {found, night, area},
-water: {found, axis, mirror, area}, lights, glints}. axis is the waterline (0 top … 1 bottom);
+water: {found, axis, mirror, area, falls}, lights, glints, scene: {outdoor, rims, objects}}.
+rims are where a pebble may break off (land over a fall or the dark), picture 0…1. axis is the waterline (0 top … 1 bottom);
 mirror = the water shows the scene upside down, so the sky's stars are drawn there too.
 
 Only numpy and Pillow, no model. What it looks for:
@@ -26,7 +35,11 @@ Only numpy and Pillow, no model. What it looks for:
     stops it too. In a photo, a gentle colour step is sky and a textured edge is not.
   - water: the waterline is the row the picture is most mirror-like about, with waves (dashes)
     under it and none above (an emblem or a glow is symmetric too, without a lake); without a
-    mirror, a band of dashes reaching the bottom that is no lighter than the sky
+    mirror, a band of dashes reaching the bottom that is no lighter than the sky; or a sea: a
+    straight horizon across the whole width with water under it (water is of the sky's cool
+    hues, green and blue over red), grown down to where the land or a fall starts
+  - falls: water under the sea whose texture runs down (streaks: steps across, none along),
+    fed by it from above; what is under a fall in the same column and wet falls too
 """
 import argparse
 import hashlib
@@ -39,7 +52,7 @@ import numpy as np
 from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = None
-VERSION = 5
+VERSION = 7
 MAX_W = 960          # the mask is never wider than this
 
 
@@ -251,6 +264,112 @@ def flood_top(passx, passy):
         m = n
 
 
+def flood(seed, passx, passy):
+    """Everything reachable from seed through the passable steps."""
+    m = seed.copy()
+    while True:
+        n = m.copy()
+        n[1:] |= m[:-1] & passy
+        n[:-1] |= m[1:] & passy
+        n[:, 1:] |= m[:, :-1] & passx
+        n[:, :-1] |= m[:, 1:] & passx
+        if np.array_equal(n, m):
+            return m
+        m = n
+
+
+def horizon(S):
+    """A sea's horizon: the row the colour steps at across (nearly) the whole width,
+    (row, share of the columns)."""
+    h = S.shape[0]
+    best, best_y = 0.0, None
+    for y in range(max(2, int(h * 0.15)), min(h - 2, int(h * 0.8))):
+        share = float((np.abs(S[y + 1] - S[y - 2]).max(1) > 0.06).mean())
+        if share > best:
+            best, best_y = share, y
+    return best_y, best
+
+
+def sea_and_falls(A, S, L, unit):
+    """A sea under a straight horizon and the falls it feeds: (horizon row, sea, falls) or None."""
+    h, w = L.shape
+    hy, share = horizon(S)
+    if hy is None or share < 0.6:
+        return None
+    r, g, b = S[..., 0], S[..., 1], S[..., 2]
+    wet = (g - r > 0.045) & (b - r > 0.03)
+    wet[:hy + 1] = False
+    # the water starts at the horizon or a little under it (under a glow, a far shore)
+    n = max(3, int(h * 0.04))
+    for y in range(hy + 1, min(h - n, hy + 2 + max(4, int(h * 0.05)))):
+        if wet[y:y + n].mean() >= 0.5:
+            break
+    else:
+        return None
+    band = slice(y, y + n)
+    # a sea mirrors the sky: no lighter than it (moonlit ground is), and it has waves —
+    # steps down more than across (smooth dark hills have none)
+    near_sky = L[max(0, hy - max(3, int(h * 0.15))):hy]
+    if np.median(L[band]) > max(np.median(L[:hy]), np.median(near_sky)) + 0.12:
+        return None
+    # texture running down (a fall's streaks) or across (waves)
+    ex = np.zeros_like(L)
+    ey = np.zeros_like(L)
+    ex[:, :-1] = np.abs(np.diff(L, axis=1))
+    ey[:-1] = np.abs(np.diff(L, axis=0))
+    wb = wet[band]
+    if not wb.any() or ey[band][wb].mean() < 0.003 or ey[band][wb].mean() < 1.2 * ex[band][wb].mean():
+        return None
+    down = box(ey - ex, max(2, int(round(3 * unit)))) < -0.005
+    # a fall goes on in its column for as long as it is wet (a smooth sheet, a lit streak)
+    fall = wet & down
+    fall[: hy + max(2, int(h * 0.02))] = False
+    for y in range(hy + 1, h):
+        fall[y] |= fall[y - 1] & wet[y]
+    still = wet & ~fall
+    seed = np.zeros((h, w), dtype=bool)
+    seed[band] = still[band]
+    sea = flood(seed, still[:, 1:] & still[:, :-1], still[1:] & still[:-1])
+    # no threads of it down a crack in the rocks
+    sea &= dilate(erode(sea, 1), 1)
+    sea = flood(seed & sea, sea[:, 1:] & sea[:, :-1], sea[1:] & sea[:-1])
+    # what the sea surrounds is sea (a glint's path, a boat, a reflection)
+    for ys, xs in components(~sea):
+        if ys.min() > hy and ys.max() < h - 1 and xs.min() > 0 and xs.max() < w - 1 and len(ys) < 0.03 * h * w:
+            sea[ys, xs] = True
+    if sea.mean() < 0.04:
+        return None
+    # a fall starts under the sea's edge: the edge row of every column, taken over its
+    # neighbours (a mirrored mountain or a ring's leg is a thin streak down the water: it
+    # left a narrow gap in the sea, not a lower edge); what streams above it is sea
+    rows = np.arange(h)[:, None]
+    last = np.where(sea.any(0), h - 1 - np.argmax(sea[::-1], 0), hy)
+    k = max(6, int(w * 0.045))
+    pad = np.pad(last, k, mode="edge")
+    edge = np.array([np.median(pad[i:i + 2 * k + 1]) for i in range(w)])
+    over = fall & (rows <= edge[None, :])
+    sea |= over
+    fall &= ~over
+    # a fall is fed by the sea: it starts at the sea's edge or not far under it (behind a
+    # rock), and it is tall
+    falls = np.zeros((h, w), dtype=bool)
+    near = dilate(sea, max(2, int(round(3 * unit))))
+    for ys, xs in components(fall & ~sea):
+        if len(ys) < 0.002 * h * w or ys.max() - ys.min() < 0.08 * h:
+            continue
+        if not (near[ys, xs].any() or ys.min() <= hy + 0.25 * h):
+            continue
+        # it falls out of the sea, not into it (a blue doorway in a house in the water)
+        under = np.zeros((h, w), dtype=bool)
+        under[ys, xs] = True
+        under = np.cumsum(under, 0) > 0
+        if (sea & under).sum() > 0.3 * len(ys):
+            continue
+        if True:
+            falls[ys, xs] = True
+    return hy, sea, falls
+
+
 def mirror_axis(L, unit):
     """The row the picture is most mirror-like about: (row, score)."""
     h, w = L.shape
@@ -273,7 +392,38 @@ def mirror_axis(L, unit):
     return best_a, best
 
 
+L_SKY, L_CLOUD, L_THING, L_WATER, L_FALL, L_LAND = 1, 2, 3, 4, 5, 6
+
+
+def hints_of(path):
+    """The author's hints next to the picture: <name>.scene.json (and its mtime) or ({}, 0)."""
+    f = Path(path).with_name(Path(path).stem + ".scene.json")
+    try:
+        return json.loads(f.read_text()), int(f.stat().st_mtime)
+    except (OSError, ValueError):
+        return {}, 0
+
+
+def rings(hints, h, w):
+    """The hinted rings on the mask: (mask, place round them 0…1)."""
+    on = np.zeros((h, w), dtype=bool)
+    where = np.zeros((h, w), dtype=np.float32)
+    ys, xs = np.mgrid[0:h, 0:w]
+    u, v = (xs + 0.5) / w, (ys + 0.5) / h
+    for r in hints.get("rings", []):
+        try:
+            cx, cy, rx, ry, t = (float(x) for x in r[:5])
+        except (TypeError, ValueError):
+            continue
+        dx, dy = (u - cx) / max(rx, 1e-3), (v - cy) / max(ry, 1e-3)
+        m = np.abs(np.sqrt(dx * dx + dy * dy) - 1) <= t
+        on |= m
+        where[m] = ((np.arctan2(dy, dx) / (2 * np.pi)) % 1.0)[m]
+    return on, where
+
+
 def analyze(path, debug=None):
+    hints, _ = hints_of(path)
     im, size, fmt = load(path)
     a = np.asarray(im)
     k, ox, oy = pixel_grid(a)
@@ -320,6 +470,13 @@ def analyze(path, debug=None):
         if (below >= 5 and below >= 3 * above + 2) or (k == 1 and score >= 0.9 and ratio < 0.95):
             water[axis:] = True
             mirror = True
+    falls = np.zeros((h, w), dtype=bool)
+    horizon_row = None
+    if not water.any():
+        found = sea_and_falls(A, box(filled, 1), lum(filled), unit)
+        if found:
+            horizon_row, water, falls = found
+            axis = horizon_row + 1
     if not water.any() and len(dashes) >= 10:
         tops = np.array(sorted(int(b[0].min()) for b in dashes))
         top = int(tops[len(tops) // 10])
@@ -334,6 +491,7 @@ def analyze(path, debug=None):
     if water_area < 0.04:
         water[:] = False
         water_area, mirror = 0.0, False
+        falls[:] = False
 
     # ---- sky ----
     # steps over a finer average in pixel art: a bright outline stays a step
@@ -355,6 +513,8 @@ def analyze(path, debug=None):
     sky = flood_top(passx, passy)
     if water.any():
         sky[axis:] = False
+    if horizon_row is not None:
+        sky[horizon_row:] = False
     # holes the size of a star are sky; bigger ones are things in the sky (a halo, a moon)
     for ys, xs in components(~sky):
         if len(ys) <= 30 * unit * unit and ys.min() > 0 and ys.max() < h - 1 and xs.min() > 0 and xs.max() < w - 1:
@@ -385,7 +545,8 @@ def analyze(path, debug=None):
             d = np.abs(C[y, xs_] - np.median(C[y, xs_], 0)).max(1)
             sky[y, xs_[d > 0.18]] = False
             dev.append(d[d <= 0.18].mean() if (d <= 0.18).any() else 0)
-        coherent = float(np.mean(dev)) < 0.06 and sky.sum() > 0.6 * grown
+        # under a horizon the sky cannot have grown over a room: clouds may vary it more
+        coherent = float(np.mean(dev)) < (0.06 if horizon_row is None else 0.09) and sky.sum() > 0.6 * grown
         # thin leaks (between houses, along a ceiling) go; what is left must reach the top
         r = max(2, int(round(2 * unit)))
         opened = dilate(erode(sky, r), r) & sky
@@ -409,6 +570,12 @@ def analyze(path, debug=None):
         bot_c = C[rows_[-band:]][sky[rows_[-band:]]].mean(0)
         if np.abs(top_c - bot_c).max() < 0.03 and len(stars) < 8:
             night = 0.0
+    # in a night sky new stars come out on its dark only: what is clearly lighter than that
+    # (a cloud, a glow, a moon's halo) hides them, and a falling star passes behind it
+    if sky.any() and night >= 0.5:
+        dark = Lc <= float(np.percentile(Lc[sky], 35)) + 0.06
+        sky &= erode(dark, 1) | ~dilate(~dark, 1)
+        sky_area = float(sky.mean())
     sky_found = sky_area > 0.1 and coherent
     if not sky_found:
         sky[:] = False
@@ -418,11 +585,16 @@ def analyze(path, debug=None):
     lights = np.zeros((h, w), dtype=np.float32)
     glints = np.zeros((h, w), dtype=np.float32)
     n_l = n_g = 0
+    near_sky = erode(sky, 1)
     for ys, xs, bw, bh, gr in blobs:
         v = np.clip((L[ys, xs] - 0.2) / 0.6, 0.35, 1.0)
+        if falls[ys[0], xs[0]]:
+            continue
         if water[ys[0], xs[0]]:
             glints[ys, xs] = v
             n_g += 1
+        elif horizon_row is not None and not near_sky[ys[0], xs[0]]:
+            continue                        # by a sea: a speck on the rocks is no light
         elif gr <= 0.4:                     # a point on a light ground is no star
             lights[ys, xs] = v
             n_l += 1
@@ -434,8 +606,48 @@ def analyze(path, debug=None):
     if n_g < 4:
         glints[:] = 0
         n_g = 0
+    # ---- the scene ----
+    # outdoors (a sky, a horizon) everything else is land; above a horizon, what is not sky is
+    # a cloud (or a hinted ring)
+    outdoor = bool(sky_found) or horizon_row is not None
+    layer = np.zeros((h, w), dtype=np.uint8)
+    param = np.zeros((h, w), dtype=np.float32)
+    if outdoor:
+        layer[:] = L_LAND
+        if horizon_row is not None:
+            layer[:horizon_row] = L_CLOUD
+    layer[sky] = L_SKY
+    layer[water] = L_WATER
+    rows = np.arange(h)[:, None]
+    if water.any():
+        span = max(1, int(np.nonzero(water.any(1))[0].max()) - axis + 1)
+        param = np.where(water, np.clip((rows - axis) / span, 0, 1), param)
+    layer[falls] = L_FALL
+    if falls.any():
+        top = np.where(falls.any(0), np.argmax(falls, 0), h)
+        param = np.where(falls, np.clip((rows - top[None, :]) / (0.3 * h), 0, 1), param)
+    ring, round_ = rings(hints, h, w)
+    # a ring is the stone of it: not the sky through it, nor a bright cloud in front
+    ring &= ~sky & ~water & ~falls
+    layer[ring] = L_THING
+    param = np.where(ring, round_, param)
+    lights[ring] = 0
+    # where a pebble may break off: land with a fall or the dark under it
+    rims = []
+    if outdoor and horizon_row is not None:
+        land = layer == L_LAND
+        dark = L < 0.08
+        under = np.zeros((h, w), dtype=bool)
+        under[:-2] = (falls[1:-1] | dark[1:-1]) & (falls[2:] | dark[2:])
+        rim = land & under & ~dark
+        rim[: horizon_row + 2] = False
+        ys_, xs_ = np.nonzero(rim)
+        if len(xs_):
+            order = np.argsort(xs_)
+            for i in np.linspace(0, len(order) - 1, min(24, len(order))).astype(int):
+                rims.append([round((xs_[order[i]] + 0.5) / w, 4), round((ys_[order[i]] + 0.5) / h, 4)])
     # no alpha: Qt premultiplies it, and a zero would wipe the other three
-    rgb = np.stack([sky.astype(np.float32), water.astype(np.float32), np.maximum(lights, glints)], -1)
+    rgb = np.stack([layer.astype(np.float32) * 32 / 255, param, np.maximum(lights, glints)], -1)
     mask = Image.fromarray((np.clip(rgb, 0, 1) * 255).astype(np.uint8), "RGB")
     info = {
         "version": VERSION,
@@ -445,9 +657,10 @@ def analyze(path, debug=None):
         "pixelArt": k > 1,
         "sky": {"found": bool(sky_found), "night": round(night, 3), "area": round(sky_area, 3)},
         "water": {"found": bool(water.any()), "axis": round(axis / h, 4) if water.any() else None,
-                  "mirror": bool(mirror), "area": round(water_area, 3)},
+                  "mirror": bool(mirror), "area": round(water_area, 3), "falls": round(float(falls.mean()), 3)},
         "lights": n_l,
         "glints": n_g,
+        "scene": {"outdoor": outdoor, "rims": rims, "objects": int(len(hints.get("rings", [])))},
     }
     if debug:
         dim = A * 0.35 * 255
@@ -460,10 +673,14 @@ def analyze(path, debug=None):
         pl[lights > 0] = [255, 255, 120]
         pl[glints > 0] = [120, 255, 255]
         wt = tint(water, [40, 220, 190])
+        wt[falls] = dim[falls] * 0.4 + np.array([220, 80, 220]) * 0.6
         if water.any():
             wt[axis] = [255, 60, 60]
         st = tint(sky, [90, 110, 255])
         st[solid] = st[solid] * 0.5 + np.array([200, 60, 60]) * 0.5
+        st[ring] = st[ring] * 0.3 + np.array([255, 220, 80]) * 0.7
+        for u_, v_ in rims:
+            st[min(h - 1, int(v_ * h)), min(w - 1, int(u_ * w))] = [255, 255, 255]
         grid_ = np.concatenate([np.concatenate([A * 255, st], 1), np.concatenate([wt, pl], 1)], 0)
         Image.fromarray(np.clip(grid_, 0, 255).astype(np.uint8)).save(debug)
     return mask, info
@@ -482,7 +699,8 @@ def main():
     except OSError as e:
         print(json.dumps({"error": str(e), "source": str(p)}))
         return 1
-    key = hashlib.md5(f"{p.resolve()}|{st.st_size}|{int(st.st_mtime)}|{VERSION}".encode()).hexdigest()
+    _, hinted = hints_of(p)
+    key = hashlib.md5(f"{p.resolve()}|{st.st_size}|{int(st.st_mtime)}|{hinted}|{VERSION}".encode()).hexdigest()
     cache = Path(args.cache)
     cache.mkdir(parents=True, exist_ok=True)
     jf, mf = cache / (key + ".json"), cache / (key + ".png")

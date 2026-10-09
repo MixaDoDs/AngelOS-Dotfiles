@@ -155,16 +155,14 @@ Item {
     }
     Process {
         id: gpuProc
-        // NVIDIA through nvidia-smi, AMD through amdgpu's sysfs; Intel's load stays "—"
-        command: ["sh", Quickshell.shellDir + "/scripts/gpu-stats.sh"]
+        command: ["sh", "-c", "nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null | head -1"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const v = text.split(",").map(s => parseFloat(s));
                 if (v.length >= 4 && !isNaN(v[0])) {
                     root.gpu = v[0] / 100;
                     root.gpuTemp = v[1];
-                    if (v[3] > 0)
-                        root.vramText = (v[2] / 1024).toFixed(1) + " / " + (v[3] / 1024).toFixed(0) + " " + I18n.t("ГБ", "GB");
+                    root.vramText = (v[2] / 1024).toFixed(1) + " / " + (v[3] / 1024).toFixed(0) + " " + I18n.t("ГБ", "GB");
                 }
             }
         }

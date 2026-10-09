@@ -379,6 +379,7 @@
           "more": [
             "wallpaper/destination",
             "wallpaper/variants",
+            "wallpaper/release-mark",
             "wallpaper/transition"
           ],
           "links": [

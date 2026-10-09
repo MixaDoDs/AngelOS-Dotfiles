@@ -1,7 +1,7 @@
 #version 440
 // Half-alive wallpaper (widgets/LiveWall): the picture as it is, and what in it may
-// move a little, from the mask scripts/live-wall.py made of it (r sky, g water, b the picture's
-// own bright points: lights off the water, glints on it). Everything sits on the art's pixel grid (`grid`: one art
+// move a little, from the mask scripts/live-wall.py made of it (r sky, g water: 1 still, ½ falling,
+// b the picture's own bright points: lights off the water, glints on it). Everything sits on the art's pixel grid (`grid`: one art
 // pixel and its offset, in the picture's pixels) and is scaled by `strength` (0 = the picture).
 //   - the picture's stars and lit windows twinkle; now and then one blinks
 //   - a few new stars come and go in the night sky, only on its dark parts
@@ -9,6 +9,9 @@
 //   - the water ripples in whole art pixels (more towards the bottom), its glints shimmer,
 //     and with a mirror (the water shows the scene upside down) it shows the new stars and the
 //     falling ones too, a little dimmer, wavering with the ripples
+//   - by day the shadows of clouds drift over it, in a few steps of shade
+//   - a fall streams down: light streaks run down each column of art pixels, a pixel at a time,
+//     and where it pours over an edge the foam flickers
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 
@@ -70,6 +73,16 @@ float waterAt(vec2 iu) {
         return step(axis, iu.y);
     return texture(mask, iu).g;
 }
+// still water (a lake, a sea) is 1 in the mask, falling water ½
+float stillAt(vec2 iu) {
+    return step(0.75, waterAt(iu));
+}
+float fallAt(vec2 iu) {
+    if (waterMode > 0.5 || iu.y < 0.0 || iu.y > 1.0)
+        return 0.0;
+    float g = texture(mask, iu).g;
+    return step(0.25, g) * step(g, 0.75);
+}
 float skyAt(vec2 iu) {
     if (skyMode > 1.5 || iu.y < 0.0 || iu.y > 1.0 || iu.x < 0.0 || iu.x > 1.0)
         return 0.0;
@@ -104,6 +117,27 @@ vec3 newStars(vec2 iu) {
     float tw = 0.8 + 0.2 * sin(time * (2.0 + 3.0 * h.x) + h.y * 6.283);
     vec3 tint = mix(vec3(0.82, 0.88, 1.0), vec3(1.0, 0.95, 0.85), hash(s + 9.0));
     return tint * shape * vis * tw * (0.35 + 0.4 * hash(s + 2.0));
+}
+
+// a smooth noise of art-pixel cells, 0 … 1
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+// a fall: in every column of art pixels light streaks of their own length run down, a whole
+// pixel at a time, at the column's own speed; the head of a streak is the brightest
+float fallStreak(vec2 c) {
+    float hx = hash(vec2(c.x, 3.7) + seed);
+    float speed = 7.0 + 7.0 * hx;                       // art pixels a second
+    float len = 2.0 + floor(5.0 * hash(vec2(c.x, 9.1)));
+    float per = len + 3.0 + floor(10.0 * hash(vec2(c.x, 1.3)));
+    float ph = mod(c.y - floor(time * speed) + floor(hash(vec2(c.x, 5.5)) * per), per);
+    if (ph >= len)
+        return 0.0;
+    return ph > len - 1.5 ? 1.0 : 0.55 * (1.0 - ph / len) + 0.25;
 }
 
 // a falling star: one chance every 11 s, a short streak down and away, in the upper sky
@@ -151,15 +185,18 @@ void main() {
     vec2 c = cellOf(iu);
     vec2 at = iu;                      // where the picture is read (moved by the ripples)
     float gate = smoothstep(0.3, 0.7, night);
-    float wet = water > 0.5 ? waterAt(iu) : 0.0;
-    float depth = clamp((iu.y - axis) / max(1e-3, 1.0 - axis), 0.0, 1.0);
+    float wet = water > 0.5 ? stillAt(iu) : 0.0;
+    float falling = water > 0.5 && wet < 0.5 ? fallAt(cellUv(c)) : 0.0;
+    // how far into the water: a lake to the bottom of the picture, a sea under a horizon (that
+    // ends at a shore or a fall) over its first quarter of the picture
+    float depth = clamp((iu.y - axis) / max(1e-3, mirror > 0.5 ? 1.0 - axis : min(1.0 - axis, 0.25)), 0.0, 1.0);
 
     if (wet > 0.5) {
         float wave = sin(c.y * 0.7 - time * 1.6 + sin(c.y * 0.13 + time * 0.4) * 2.0);
         float amp = (0.3 + 1.4 * depth) * strength;
         float sh = pixelArt > 0.5 ? floor(wave * amp + 0.5) : wave * amp;
         vec2 moved = iu + vec2(sh * grid.x / imgSize.x, 0.0);
-        if (waterAt(moved) > 0.5)
+        if (stillAt(moved) > 0.5)
             at = moved;
     }
     vec4 col = texture(source, toItem(at));
@@ -172,8 +209,30 @@ void main() {
         float off = step(0.93, hash(b + floor(time * 0.7 + hash(b + 5.0))));
         col.rgb *= 1.0 + m.b * strength * (0.55 * pulse - 0.3 - 0.45 * off);
     }
+    // by day the shadows of clouds drift over still water, in three steps of shade
+    if (wet > 0.5 && night < 0.5) {
+        vec2 cc = cellOf(at);
+        float n = noise(cc * vec2(0.035, 0.07) + vec2(time * 0.18, time * 0.03) + seed);
+        float shade = floor(smoothstep(0.45, 0.8, n) * 3.0) / 3.0;
+        col.rgb *= 1.0 - shade * 0.14 * strength * (1.0 - night * 2.0);
+    }
+    // a fall streams down; the streaks light what is lit (the abyss stays dark), and where the
+    // water pours over an edge the foam flickers
+    if (falling > 0.5) {
+        float l = lum(col.rgb);
+        float s = fallStreak(c);
+        col.rgb *= 1.0 + strength * (0.55 * s - 0.08) * smoothstep(0.03, 0.25, l);
+        col.rgb += strength * vec3(0.55, 0.75, 0.9) * s * 0.10 * smoothstep(0.08, 0.4, l);
+        float top = 0.0;
+        for (int k = 1; k <= 3; k++)
+            top = max(top, (1.0 - fallAt(cellUv(c - vec2(0.0, float(k))))) * (1.0 - 0.3 * float(k - 1)));
+        if (top > 0.0) {
+            float fl = step(0.55, hash(c + floor(time * 9.0 + hash(c) * 3.0)));
+            col.rgb = mix(col.rgb, vec3(0.9, 0.96, 1.0), strength * top * fl * 0.55);
+        }
+    }
     // the picture's own lights twinkle; once in a while one blinks
-    if (lights > 0.5 && wet < 0.5 && m.b > 0.0) {
+    if (lights > 0.5 && wet < 0.5 && falling < 0.5 && m.b > 0.0) {
         vec2 b = floor(c / 4.0);
         float f = sin(time * (0.7 + 1.6 * hash(b + 1.0)) + hash(b) * 6.283);
         float blink = step(0.975, hash(b + floor(time * 0.5 + hash(b + 2.0))));

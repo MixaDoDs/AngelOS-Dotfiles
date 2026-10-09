@@ -11,8 +11,8 @@ import qs.modules.y2k
 import qs.widgets
 
 // Two background-layer surfaces per screen:
-//   angelos-wallpaper — the picture, the desktop widgets' faces and the demon's broken
-//                       glass (ScreenCracks); niri keeps it
+//   angelos-wallpaper — the picture, the desktop widgets' faces, the release's name
+//                       (ReleaseMark) and the demon's broken glass (ScreenCracks); niri keeps it
 //                       in the backdrop (layer-rule place-within-backdrop): it
 //                       does not slide with workspaces and shows once in the
 //                       overview, but gets no input
@@ -71,6 +71,13 @@ Variants {
                     screenName: scope.modelData.name
                     ghost: true
                 }
+            }
+
+            // «angelOS 3 · Principality», small, in a corner no widget covers
+            ReleaseMark {
+                anchors.fill: parent
+                obstacles: faceArea
+                screenName: scope.modelData.name
             }
 
             // her glass, where her fist landed: pinned like the wallpaper
@@ -151,6 +158,7 @@ Variants {
                         uid: modelData
                         screenName: win.modelData.name
                         area: deskArea
+                        onInteractionStarted: menu.close()
                         onContextMenu: (x, y) => menu.openWidget(modelData, x, y)
                     }
                 }

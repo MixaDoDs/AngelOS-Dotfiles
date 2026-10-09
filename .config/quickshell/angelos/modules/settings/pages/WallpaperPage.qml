@@ -340,6 +340,50 @@ PxPage {
         }
     }
 
+    // the release's name on the desktop (widgets/ReleaseMark)
+    PxGroup {
+        name: "release-mark"
+        visible: !!Updates.release
+        title: I18n.t("Надпись релиза", "Release name")
+        icon: "sparkle"
+        width: parent.width
+
+        SettingRow {
+            label: I18n.t("Показывать на рабочем столе", "Show on the desktop")
+            hint: Updates.release ? "angelOS " + Updates.release.number + (Updates.release.codename ? " · " + Updates.release.codename : "") + I18n.t(" — мелко и прозрачно, в свободном углу", ": small and see-through, in a free corner") : ""
+            PxToggle {
+                checked: Config.wallpaper.releaseMark
+                onToggled: c => Config.wallpaper.releaseMark = c
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.releaseMark
+            label: I18n.t("Где", "Where")
+            hint: I18n.t("«Само» — угол, который не заняли виджеты", "Auto: a corner no widget covers")
+            PxSegmented {
+                model: [["auto", "Само", "Auto"], ["top-left", "↖", "↖"], ["top-right", "↗", "↗"], ["bottom-left", "↙", "↙"], ["bottom-right", "↘", "↘"]].map(c => ({
+                            "label": I18n.t(c[1], c[2]),
+                            "value": c[0]
+                        }))
+                currentValue: Config.wallpaper.releaseMarkCorner
+                onActivated: v => Config.wallpaper.releaseMarkCorner = v
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.releaseMark
+            label: I18n.t("Прозрачность", "Opacity")
+            PxSlider {
+                width: parent.width
+                from: 10
+                to: 80
+                stepSize: 5
+                value: Config.wallpaper.releaseMarkOpacity
+                suffix: " %"
+                onMoved: v => Config.wallpaper.releaseMarkOpacity = v
+            }
+        }
+    }
+
     // half-alive wallpapers (services/LiveWalls): what in the picture may move a little
     PxGroup {
         id: liveGroup
@@ -358,7 +402,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Если на картинке есть ночное небо, вода или огоньки, они чуть-чуть оживают: звёзды мерцают и иногда падают, вода рябит и отражает небо, окна и звёзды поблёскивают. Ненавязчиво, по пикселям картинки. Картинку оболочка разглядывает сама, один раз.", "If the picture has a night sky, water or little lights, they come a little alive: stars twinkle and now and then fall, water ripples and mirrors the sky, windows and stars glimmer. Quietly, on the picture's own pixels. The shell looks at each picture by itself, once.")
+            text: I18n.t("Если на картинке есть ночное небо, вода или огоньки, они чуть-чуть оживают: звёзды мерцают и иногда падают, вода рябит и отражает небо, водопады текут, окна и звёзды поблёскивают. Ненавязчиво, по пикселям картинки. Картинку оболочка разглядывает сама, один раз.", "If the picture has a night sky, water or little lights, they come a little alive: stars twinkle and now and then fall, water ripples and mirrors the sky, waterfalls stream, windows and stars glimmer. Quietly, on the picture's own pixels. The shell looks at each picture by itself, once.")
         }
         SettingRow {
             label: I18n.t("Живые обои", "Alive wallpaper")
@@ -466,7 +510,7 @@ PxPage {
         SettingRow {
             visible: Config.wallpaper.live
             label: I18n.t("Вода", "Water")
-            hint: I18n.t("рябь, блики и отражение неба", "ripples, glints and the sky's reflection")
+            hint: I18n.t("рябь, блики, отражение неба, тени облаков; водопады текут", "ripples, glints, the sky's reflection, clouds' shadows; waterfalls stream")
             PxToggle {
                 checked: Config.wallpaper.liveWater
                 onToggled: c => Config.wallpaper.liveWater = c

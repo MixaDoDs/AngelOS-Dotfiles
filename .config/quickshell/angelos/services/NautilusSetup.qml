@@ -58,13 +58,10 @@ Singleton {
         running: Config.ready && !Config.system.nautilusDefaults && !Shell.dev
         interval: 8000
         onTriggered: {
-            root._firstApply = true;
+            Config.system.nautilusDefaults = true;
             root.apply();
         }
     }
-    // marked done only when it went through: a first start that failed (no Nautilus or gsettings
-    // yet, a D-Bus hiccup) used to mark it anyway, and the defaults never came
-    property bool _firstApply: false
 
     Process {
         id: reader
@@ -87,9 +84,6 @@ Singleton {
             onStreamFinished: {
                 try {
                     const r = JSON.parse(text);
-                    if (root._firstApply && !r.error && !(r.errors || []).length)
-                        Config.system.nautilusDefaults = true;
-                    root._firstApply = false;
                     if (r.status)
                         root.status = r.status;
                     if (r.restart)

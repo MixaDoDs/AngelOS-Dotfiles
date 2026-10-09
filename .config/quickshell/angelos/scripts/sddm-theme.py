@@ -234,22 +234,6 @@ def read_conf(path: Path):
     return out
 
 
-def source_fingerprint(here: Path = HERE, fonts: Path = FONTS):
-    """All local inputs copied or interpreted while building the SDDM theme."""
-    inputs = [here / "shaders" / "sddm_wall.frag.qsb",
-              here / "data" / "fonts" / "Jacquard12Hell-Regular.ttf",
-              here / "scripts" / "sddm-theme.py"]
-    inputs.extend((here / "extras" / "sddm" / "angelos").rglob("*"))
-    inputs.extend((here / "modules" / "y2k" / "sprites" / "angel").rglob("*"))
-    inputs.extend(fonts / name for name in ("PixeloidSans.ttf", "PixeloidSans-Bold.ttf", "CozetteVector.ttf"))
-    digest = hashlib.sha256()
-    for path in sorted((p for p in inputs if p.is_file()), key=str):
-        label = path.relative_to(here) if path.is_relative_to(here) else Path("user-fonts") / path.name
-        digest.update(str(label).encode())
-        digest.update(hashlib.sha256(path.read_bytes()).digest())
-    return digest.hexdigest()
-
-
 def current_theme():
     cur = ""
     files = sorted(Path("/etc/sddm.conf.d").glob("*.conf")) if Path("/etc/sddm.conf.d").is_dir() else []
@@ -270,100 +254,62 @@ def current_theme():
 
 ROOT_SCRIPT = r'''
 set -eu
-src="$1"; target="$2"; confd="$3"; owner="$4"; prefix="${5:-}"; mode="${6:-preserve}"
-# $5 is empty on a real machine and a fake system root in the tests (scripts/check.sh)
-case "$prefix" in ''|/*) ;; *) echo "bad system root" >&2; exit 2;; esac
-case "$mode" in preserve|replace) ;; *) echo "bad install mode" >&2; exit 2;; esac
+src="$1"; target="$2"; confd="$3"; owner="$4"
 case "$owner" in ''|*[!0-9]*) echo "bad owner" >&2; exit 2;; esac
 [ -f "$src/Main.qml" ] || { echo "no theme in $src" >&2; exit 2; }
-case "$target" in "$prefix"/usr/share/sddm/themes/angelos) ;; *) echo "bad target" >&2; exit 2;; esac
-case "$confd" in "$prefix"/etc/sddm.conf.d/*.conf) ;; *) echo "bad confd" >&2; exit 2;; esac
+case "$target" in /usr/share/sddm/themes/angelos) ;; *) echo "bad target" >&2; exit 2;; esac
 stamp=$(date +%Y%m%d-%H%M%S)
-mkdir -p "$(dirname "$target")"
 rm -rf "$target.new"
 cp -r "$src" "$target.new"
 chmod -R a+rX "$target.new"
-[ -n "$prefix" ] || chown -R 0:0 "$target.new"
+chown -R 0:0 "$target.new"
 # walls/ only: the wallpapers follow the desktop without a password (`sddm-theme.py walls`)
 mkdir -p "$target.new/walls"
-if [ -d "$target/walls" ]; then
-  if [ "$mode" = preserve ]; then
-    cp -a "$target/walls/." "$target.new/walls/"
-  else
-    # Settings requested a new look/wallpaper: use its newly built files,
-    # but keep any old wall for which the build had no replacement.
-    for old_wall in "$target/walls/"*; do
-      [ -e "$old_wall" ] || [ -L "$old_wall" ] || continue
-      new_wall="$target.new/walls/$(basename "$old_wall")"
-      [ -e "$new_wall" ] || cp -a "$old_wall" "$new_wall"
-    done
-  fi
-fi
-[ -n "$prefix" ] || chown -R "$owner" "$target.new/walls"
+chown -R "$owner" "$target.new/walls"
 # SDDM reads theme.conf.user over theme.conf: the user's copy in walls/
 ln -sfn walls/theme.conf.user "$target.new/theme.conf.user"
-[ ! -d "$target" ] || mv "$target" "$(dirname "$target")/.angelos.bak.$stamp-$$"
+[ -d "$target" ] && mv "$target" "$target.old-$stamp"
 mv "$target.new" "$target"
+rm -rf "$target".old-*
 mkdir -p "$(dirname "$confd")"
-printf '[Theme]\nCurrent=angelos\nCursorTheme=capitaine-cursors\n' > "$confd"
-# SDDM reads EVERY file of sddm.conf.d in alphabetical order, not only *.conf, and the last
-# Current= wins. So backups never go in there: the old zz-pixelstreetart.conf.bak.<stamp> next to
-# it sorted last and put pixel-cyberpunk back on every boot. Backups: /etc/angelos-sddm-backups.
-bakdir="$prefix/etc/angelos-sddm-backups"
-mkdir -p "$bakdir"
-for f in "$(dirname "$confd")"/*; do
+printf '[Theme]\nCurrent=angelos\n' > "$confd"
+# SDDM reads the drop-ins in alphabetical order and the last Current= wins: another one that
+# names a theme (the installer's zz-pixelstreetart.conf sorts after zz-angelos.conf) is
+# commented out, with a backup next to it (*.bak.* is not a .conf: SDDM skips it)
+for f in "$(dirname "$confd")"/*.conf; do
   [ -f "$f" ] && [ "$f" != "$confd" ] || continue
-  sed -n '/^[[:space:]]*\[Theme[[:space:]]*\]/,/^[[:space:]]*\[/p' "$f" | grep -Eq '^[[:space:]]*Current[[:space:]]*=' || continue
-  # a backup (earlier runs left *.bak.<stamp> here) goes out; another drop-in that names a theme
-  # (the installer's old zz-pixelstreetart.conf sorts after zz-angelos.conf) is commented out
-  case "$f" in *.conf) ;; *) mv "$f" "$bakdir/"; echo "moved out of sddm.conf.d: $(basename "$f")"; continue ;; esac
-  cp -p "$f" "$bakdir/$(basename "$f").$stamp"
-  sed -i -E '/^[[:space:]]*\[Theme[[:space:]]*\]/,/^[[:space:]]*\[/ s/^([[:space:]]*Current[[:space:]]*=)/# (angelOS: zz-angelos.conf sets the theme) \1/' "$f"
+  grep -Eq '^[[:space:]]*Current[[:space:]]*=' "$f" || continue
+  cp -p "$f" "$f.bak.$stamp"
+  sed -i -E 's/^([[:space:]]*Current[[:space:]]*=)/# (angelOS: zz-angelos.conf sets the theme) \1/' "$f"
 done
-main="$prefix/etc/sddm.conf"
-if [ -f "$main" ] && sed -n '/^[[:space:]]*\[Theme[[:space:]]*\]/,/^[[:space:]]*\[/p' "$main" | grep -Eq '^[[:space:]]*Current[[:space:]]*='; then
-  cp "$main" "$bakdir/sddm.conf.$stamp"
-  sed -i -E '/^[[:space:]]*\[Theme[[:space:]]*\]/,/^[[:space:]]*\[/ s/^([[:space:]]*Current[[:space:]]*=)/# (angelOS: zz-angelos.conf sets the theme) \1/' "$main"
-fi
-# The theme that came with the installer before angelOS's own: nothing else points at it now.
-old="$prefix/usr/share/sddm/themes/pixel-cyberpunk"
-if [ -d "$old" ]; then
-  backup="$(dirname "$old")/.pixel-cyberpunk.bak.$stamp-$$"
-  mv "$old" "$backup"
-  echo "removed: the old pixel-cyberpunk theme (backup: $backup)"
+if [ -f /etc/sddm.conf ] && grep -Eq '^[[:space:]]*Current=' /etc/sddm.conf; then
+  cp /etc/sddm.conf "/etc/sddm.conf.bak.$stamp"
+  sed -i -E 's/^([[:space:]]*Current=)/# (angelOS: zz-angelos.conf sets the theme) \1/' /etc/sddm.conf
 fi
 echo installed
 '''
 
 
-def install(out: Path, prefix: str = "", replace: bool = False):
+def install(out: Path):
     if not shutil.which("pkexec"):
         sys.exit("pkexec is missing: run as root  sh -c '…'  or install polkit")
     # pkexec refuses to run when $SHELL is not in /etc/shells (a wrapper in ~/.local/bin)
     env = {**os.environ, "SHELL": "/bin/sh"}
-    if prefix and not Path(prefix).is_absolute():
-        sys.exit("--prefix must be an absolute path")
-    target, confd = f"{prefix}/usr/share/sddm/themes/angelos", f"{prefix}/etc/sddm.conf.d/zz-angelos.conf"
-    r = subprocess.run(["pkexec", "sh", "-c", ROOT_SCRIPT, "sh", str(out), target, confd,
-                        str(os.getuid()), prefix, "replace" if replace else "preserve"], env=env)
+    r = subprocess.run(["pkexec", "sh", "-c", ROOT_SCRIPT, "sh", str(out), str(TARGET), str(CONF_D), str(os.getuid())], env=env)
     if r.returncode != 0:
         sys.exit(r.returncode)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["build", "install", "status", "walls", "look", "fingerprint"])
+    ap.add_argument("cmd", choices=["build", "install", "status", "walls", "look"])
     ap.add_argument("look_name", nargs="?", choices=LOOKS)
     ap.add_argument("--wallpaper")
     ap.add_argument("--tall", help="the picture for portrait screens (default: --wallpaper)")
     ap.add_argument("--palette", choices=["system", "ngo"], default=None)
     ap.add_argument("--look", choices=LOOKS, default=None)
     ap.add_argument("--out", default=str(CACHE / "sddm" / "angelos"))
-    ap.add_argument("--prefix", default="", help="a fake system root (tests); empty on a real machine")
     a = ap.parse_args()
-    if a.cmd == "fingerprint":
-        print(source_fingerprint())
-        return
     if a.cmd == "status":
         walls = TARGET / "walls"
         installed = {**read_conf(TARGET / "theme.conf"), **read_conf(walls / "theme.conf.user")}
@@ -399,7 +345,7 @@ def main():
     look = a.look or now.get("look") or "stream"
     info = build(Path(a.out), a.wallpaper, palette if palette in ("ngo", "system") else "ngo", a.tall, look if look in LOOKS else "stream")
     if a.cmd == "install":
-        install(Path(a.out), a.prefix, any(v is not None for v in (a.look, a.palette, a.wallpaper, a.tall)))
+        install(Path(a.out))
         info["installed"] = True
     print(json.dumps(info))
 

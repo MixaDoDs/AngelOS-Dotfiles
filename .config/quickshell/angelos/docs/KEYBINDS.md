@@ -71,7 +71,7 @@
 | Бинд | Действие | Подпись |
 |---|---|---|
 | `Mod+T` | `kitty` | Open Terminal: kitty |
-| `Mod+B` | `angelos browser` | Open Browser |
+| `Mod+B` | `helium-browser --profile-directory=Default` | Open Browser: Helium |
 | `Mod+Space` | `angelos launcher` | angelOS: программы |
 | `Mod+ALT+L` | `angelos lock` | angelOS: блокировка |
 | `Mod+Q` | `close-window` |  |
@@ -144,7 +144,7 @@
 | Бинд | Действие | Подпись |
 |---|---|---|
 | `Mod+T` | `~/.local/bin/kitty` | Open Terminal: kitty |
-| `Mod+B` | `angelos browser` | Open Browser |
+| `Mod+B` | `helium-browser` | Open Browser: Helium |
 | `Mod+Alt+Space` | `angelos launcher` | angelOS: программы (лаунчер; ⌘Пробел — Spotlight) |
 | `Mod+Alt+Left` | `focus-column-left` | Фокус: колонка слева |
 | `Mod+Alt+H` | `focus-column-left` | Фокус: колонка слева |

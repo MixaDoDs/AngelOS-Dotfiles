@@ -15,14 +15,26 @@ PopupWindow {
     required property var parentMenu
     property Item anchorItem: null
     property var items: []
+    property bool switching: false
     signal done
 
+    function hide() {
+        switching = true;
+        visible = false;
+        switching = false;
+    }
     function openFor(item, list) {
+        switching = true;
         anchorItem = item;
         items = list;
         visible = false;
         visible = true;
+        switching = false;
     }
+    // Qt dismisses only the topmost popup on an outside click. Without closing its
+    // parent, that first click merely removes the flyout and a second is needed.
+    onVisibleChanged: if (!visible && !switching && parentMenu.visible)
+        parentMenu.close()
 
     anchor.window: parentMenu
     anchor.item: anchorItem

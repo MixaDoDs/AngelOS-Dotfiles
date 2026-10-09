@@ -2,30 +2,20 @@
 """The author's apps (data/apps-catalog.json): what is there, installing the picked ones, and
 bringing in what the author adds later.
 
-  apps-install.py status            JSON {id: {"installed": bool, "via": "pacman|aur|flatpak|github|"}}
+  apps-install.py status            JSON {id: {"installed": bool, "via": "pacman|aur|flatpak|"}}
   apps-install.py groups            JSON {"groups": [{id, ru, en, default, apps: [{id, ru, en, hintRu,
                                     hintEn, installed}]}]} for a picker (install.sh)
   apps-install.py tsv               the same for bash, fast (no "installed"): G<TAB>id<TAB>default(1|0)<TAB>en
                                     <TAB>ru<TAB>app,ids… and A<TAB>id<TAB>en<TAB>ru<TAB>hintEn<TAB>hintRu lines
-  apps-install.py install [--no-wait] [--browser ID] ID…
+  apps-install.py install [--no-wait] ID…
                                     in a terminal (the wizard opens one when it ends; install.sh runs
                                     it itself): the distribution's packages with sudo pacman -Syu (a
                                     plain -S on an old package list fails halfway with 404s), the
                                     AUR's with paru (from CachyOS's repositories when missing),
                                     Flathub's per user; then checks each app is really there and
                                     says which are not and why (exit 1 then); waits for Enter at
-                                    the end unless --no-wait. Remembers the pick (see below).
-                                    --browser: the wizard's «Which browser?» — made the default (Mod+B,
-                                    links) once it is there; auto: the first ticked one (install.sh)
-  apps-install.py pick [--browser ID] ID…
-                                    remember the pick without installing anything (the browser that
-                                    is there already becomes the default right away)
-  apps-install.py browsers          JSON {"current": id, "list": [{id, ru, en, hintRu, hintEn, icon, installed,
-                                    via}]} for the wizard's «Which browser?»: the catalog's browsers, then
-                                    the ones installed some other way (id desktop:<file.desktop>);
-                                    current: the default browser now, as one of those ids ("" = none)
-  apps-install.py browser ID        make ID the default browser: a catalog id, or desktop:<file.desktop>
-                                    for one installed some other way
+                                    the end unless --no-wait. Remembers the pick (see below)
+  apps-install.py pick ID…          remember the pick without installing anything
   apps-install.py pending [--repo DIR]
                                     JSON {"apps": [id…], "suggest": [id…], "packages": [name…], "fish": bool}: what the author added
                                     since this system last looked — apps in the groups the user took,
@@ -44,9 +34,7 @@ bringing in what the author adds later.
 Each app: its pacman package(s) — on Arch Linux the author's repositories (CachyOS's and
 multilib, scripts/cachyos-repos.sh) go in first when pacman doesn't have it yet —, its AUR
 package(s) when pacman has none, its Flathub id when neither. "prefer": "flatpak" puts Flathub
-first (the author has Discord, OBS, Blender and EasyEffects from there). "github": a package the
-app's authors publish in their own GitHub release (Freshgram): the latest release's .pacman file,
-checked against its SHA256SUMS, installed with pacman -U.
+first (the author has Discord, OBS, Blender and EasyEffects from there).
 
 The pick lives in ~/.local/state/angelos/apps.json: {"apps": [ids picked], "known": [catalog ids
 seen], "knownBase": [base packages seen]}. A group counts as taken when one of its apps was
@@ -57,18 +45,13 @@ pick is the catalog's apps that are installed.
 import json
 import os
 import pwd
-import hashlib
-import importlib.util
 import shutil
 import subprocess
 import sys
-import tempfile
-import urllib.request
 from pathlib import Path
 
 CATALOG = Path(__file__).resolve().parents[1] / "data/apps-catalog.json"
 REPOS = Path(__file__).resolve().parent / "cachyos-repos.sh"
-DEFAULT_APPS = Path(__file__).resolve().parent / "default-apps.py"
 STATE = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "angelos/apps.json"
 # the base package lists of the dotfiles repository an update brings in (install.sh's full profile)
 BASE_LISTS = ("pacman.txt", "angelos.txt", "tools.txt", "fish.txt")
@@ -91,21 +74,9 @@ def apps():
     return {a["id"]: a for a in catalog()["apps"]}
 
 
-def on_cachyos():
-    try:
-        return "\nID=cachyos\n" in "\n" + Path("/etc/os-release").read_text()
-    except OSError:
-        return False
-
-
 def pkgs(a, key):
     v = a.get(key) or []
-    v = [v] if isinstance(v, str) else list(v)
-    # some of CachyOS's packages are built against its zlib-ng: on Arch they'd replace zlib (the
-    # whole list failed on "Remove zlib? [y/N]"), so Arch's own packages stand in for them
-    if key == "pacman" and a.get("onArch") and not on_cachyos():
-        v = [x for n in v for x in (a["onArch"].get(n) or [n])]
-    return v
+    return [v] if isinstance(v, str) else list(v)
 
 
 def pacman_installed(names):
@@ -132,9 +103,7 @@ def can_aur(repos_coming=False):
 
 def installed(a):
     pac, aur = pkgs(a, "pacman"), pkgs(a, "aur")
-    gh = [(a.get("github") or {}).get("package")] if a.get("github") else []
-    main = (pacman_installed(pac[:1]) or pacman_installed(aur[:1]) or pacman_installed(gh)
-            or flatpak_installed(a.get("flatpak")))
+    main = pacman_installed(pac[:1]) or pacman_installed(aur[:1]) or flatpak_installed(a.get("flatpak"))
     return main and all(pacman_installed([p]) for p in pkgs(a, "extra"))
 
 
@@ -152,8 +121,6 @@ def resolve(a, repos_coming=False):
         return False, "aur"
     if has_flat:
         return False, "flatpak"
-    if a.get("github") and shutil.which("pacman"):
-        return False, "github"
     return False, ""
 
 
@@ -414,160 +381,7 @@ def ensure_paru():
     return aur_helper()
 
 
-def aur_missing(names):
-    """the names the AUR doesn't have (its RPC; offline: none, the helper finds out itself)"""
-    import urllib.parse
-    import urllib.request
-    try:
-        q = "&".join("arg[]=" + urllib.parse.quote(n) for n in names)
-        with urllib.request.urlopen("https://aur.archlinux.org/rpc/v5/info?" + q, timeout=15) as r:
-            have = {x["Name"] for x in json.load(r).get("results", [])}
-        return [n for n in names if n not in have]
-    except (OSError, ValueError):
-        return []
-
-
-def vulkan_drivers():
-    """Steam needs a vulkan-driver and a lib32-vulkan-driver. pacman asks which, and Enter takes
-    the first of 32: mesa-git with CachyOS's v3 repositories on top (a dev build that conflicts
-    with mesa — the "N" to removing mesa cancelled every app of the list), nvidia-utils on an AMD
-    card without them. So the ones for this machine's GPUs go in by name: nothing to ask."""
-    if run(["pacman", "-T", "vulkan-driver", "lib32-vulkan-driver"]).returncode == 0:
-        return []
-    out = []
-    for dev in sorted(Path("/sys/class/drm").glob("card[0-9]*/device")):
-        try:
-            vendor = (dev / "vendor").read_text().strip()
-        except OSError:
-            continue
-        if vendor == "0x1002":
-            pair = ("vulkan-radeon", "lib32-vulkan-radeon")
-        elif vendor == "0x8086":
-            pair = ("vulkan-intel", "lib32-vulkan-intel")
-        elif vendor == "0x10de":
-            # the proprietary driver brings its own; nouveau gets mesa's
-            pair = ("nvidia-utils", "lib32-nvidia-utils") if Path("/sys/module/nvidia").exists() \
-                else ("vulkan-nouveau", "lib32-vulkan-nouveau")
-        else:   # a virtual machine's or something unknown: mesa's software one always works
-            pair = ("vulkan-swrast", "lib32-vulkan-swrast")
-        out += [x for x in pair if x not in out]
-    return out or ["vulkan-swrast", "lib32-vulkan-swrast"]
-
-
-def github_install(a):
-    """the latest release's package, its checksum checked, through pacman -U (pacman pulls the
-    dependencies from the repositories)"""
-    g = a["github"]
-    base = f"https://github.com/{g['repo']}/releases/latest/download/"
-    say(t(f"с GitHub ({g['repo']}): ", f"from GitHub ({g['repo']}): ") + g["asset"])
-    with tempfile.TemporaryDirectory(prefix="angelos-app-") as tmp:
-        dest = Path(tmp) / g["asset"]
-        try:
-            with urllib.request.urlopen(base + g["sums"], timeout=30) as r:
-                sums = r.read().decode()
-            if shutil.which("curl"):  # ~130 MB: with curl's progress bar
-                if subprocess.run(["curl", "-fL", "--retry", "2", "--progress-bar", "-o", str(dest),
-                                   base + g["asset"]]).returncode != 0:
-                    raise OSError(g["asset"])
-            else:
-                with urllib.request.urlopen(base + g["asset"], timeout=60) as r, open(dest, "wb") as f:
-                    shutil.copyfileobj(r, f, 1 << 20)
-        except OSError as e:
-            say(t(f"не скачалось: {e}", f"download failed: {e}"))
-            return False
-        want = next((ln.split()[0] for ln in sums.splitlines()
-                     if len(ln.split()) == 2 and ln.split()[1].lstrip("*") == g["asset"]), "")
-        got = hashlib.sha256(dest.read_bytes()).hexdigest()
-        if not want or want.lower() != got:
-            say(t("контрольная сумма не сошлась — не ставлю", "the checksum doesn't match: not installing"))
-            return False
-        return subprocess.run(["sudo", "pacman", "-U", "--needed", "--noconfirm", str(dest)]).returncode == 0
-
-
-def desktop_of(a):
-    """the .desktop id an installed app opens with (its package's file, or its Flathub id)"""
-    names = pkgs(a, "pacman") + pkgs(a, "aur") + ([a["github"]["package"]] if a.get("github") else [])
-    for name in names:
-        if not pacman_installed([name]):
-            continue
-        files = [Path(f) for f in run(["pacman", "-Qlq", name]).stdout.split()
-                 if f.startswith("/usr/share/applications/") and f.endswith(".desktop")]
-        # a browser can bring more than one (Vivaldi's own and a private one): the web browser's
-        files.sort(key=lambda f: "WebBrowser" not in f.read_text(errors="ignore"))
-        if files:
-            return files[0].name
-    if a.get("flatpak") and flatpak_installed(a["flatpak"]):
-        return a["flatpak"] + ".desktop"
-    return ""
-
-
-def default_apps():
-    spec = importlib.util.spec_from_file_location("default_apps", DEFAULT_APPS)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
-def browsers():
-    cat = catalog()
-    by = {a["id"]: a for a in cat["apps"]}
-    coming = arch_without_repos()
-    out, ids_of = [], {}
-    for i in cat.get("browsers", []):
-        a = by.get(i)
-        if not a:
-            continue
-        inst, via = resolve(a, coming)
-        if inst:
-            ids_of[desktop_of(a)] = i
-        out.append({k: a.get(k, "") for k in ("id", "ru", "en", "hintRu", "hintEn", "icon")}
-                   | {"installed": inst, "via": via})
-    da = default_apps()
-    entries = da.entries("ru" if RU else "en")
-    for did, e in sorted(entries.items(), key=lambda x: x[1]["name"].lower()):
-        # a real browser (WebBrowser): apps that only take http links (ChatGPT, Steam) are not
-        if e["hidden"] or "WebBrowser" not in e["cats"] or did in ids_of:
-            continue
-        ids_of[did] = "desktop:" + did
-        out.append({"id": "desktop:" + did, "ru": e["name"], "en": e["name"], "hintRu": "уже стоит",
-                    "hintEn": "installed", "icon": "search", "installed": True, "via": ""})
-    cur = da.configured("x-scheme-handler/https") or da.query("x-scheme-handler/https")
-    print(json.dumps({"current": ids_of.get(cur, ""), "list": out}, ensure_ascii=False))
-
-
-def set_browser(bid):
-    """the wizard's browser becomes the default one (Mod+B, links, xdg-settings) once it is there"""
-    if not bid:
-        return True
-    st = load_state()
-    st["browser"] = bid
-    save_state(st)
-    a = apps().get(bid)
-    did = bid[len("desktop:"):] if bid.startswith("desktop:") else desktop_of(a) if a else ""
-    if not did:
-        say(t("браузер не поставился — по умолчанию остаётся прежний",
-              "the browser didn't install: the default stays as it was"))
-        return False
-    ok = subprocess.run([sys.executable, str(DEFAULT_APPS), "set", "browser", did],
-                        stdout=subprocess.DEVNULL).returncode == 0
-    if ok:
-        say(t(f"браузер по умолчанию: {did}", f"default browser: {did}"))
-    return ok
-
-
-def batch(first, retry, names):
-    """One transaction, and when it fails, one by one: a single name the source doesn't have
-    (an AUR package that was renamed or removed) or one conflict used to cancel the whole list —
-    freshgram missing from the AUR took Proton-GE, spicetify, lrc_tty and Throne down with it."""
-    if subprocess.run(first + names).returncode == 0:
-        return True
-    if len(names) == 1:
-        return False
-    say(t("одним разом не вышло — ставлю по одной", "not in one go: one at a time"))
-    return all([subprocess.run(retry + [n]).returncode == 0 for n in names])
-
-
-def install(ids, wait=True, browser=""):
+def install(ids, wait=True):
     cat = apps()
     remember(ids)
     # an app pacman can't give yet (Helium, qView, LocalSend: CachyOS's; Steam: multilib): the
@@ -577,7 +391,7 @@ def install(ids, wait=True, browser=""):
         say(t("подключаю репозитории автора (CachyOS и multilib), чтобы всё ставилось через pacman",
               "adding the author's repositories (CachyOS's and multilib), so everything installs with pacman"))
         subprocess.run(["sudo", "bash", str(REPOS)])
-    pac, aur, flat, gh, skipped, have = [], [], [], [], [], []
+    pac, aur, flat, skipped, have = [], [], [], [], []
     for i in ids:
         a = cat.get(i)
         if not a:
@@ -592,8 +406,6 @@ def install(ids, wait=True, browser=""):
             aur += pkgs(a, "aur")
         elif via == "flatpak":
             flat.append(a["flatpak"])
-        elif via == "github":
-            gh.append(a)
         else:
             skipped.append(t(a["ru"], a["en"]))
             continue
@@ -603,29 +415,19 @@ def install(ids, wait=True, browser=""):
                 (pac if pacman_has(p) else aur).append(p)
     if have:
         say(t("уже стоят: ", "installed already: ") + ", ".join(have))
-    if pac or aur or flat or gh:
+    if pac or aur or flat:
         say(t("angelOS ставит программы, которые ты выбрал ♡", "angelOS is installing the apps you picked ♡"))
     failed = set()
-    if "steam" in pac:
-        pac = [d for d in vulkan_drivers() if not pacman_installed([d])] + pac
     if pac:
         say(t("из репозиториев: ", "from the repositories: ") + " ".join(pac))
-        if not batch(["sudo", "pacman", "-Syu", "--needed"], ["sudo", "pacman", "-S", "--needed", "--noconfirm"], pac):
+        if subprocess.run(["sudo", "pacman", "-Syu", "--needed", *pac]).returncode:
             failed.add("pacman")
     if aur:
         helper = ensure_paru()
         if helper:
-            # names the AUR doesn't have (any more) are "not found", not a failure of the rest
-            gone = aur_missing(aur)
-            for i in ids:
-                a = cat.get(i)
-                if a and set(pkgs(a, "aur")) & set(gone) and resolve(a)[1] == "aur":
-                    skipped.append(t(a["ru"], a["en"]))
-            aur = [n for n in aur if n not in gone]
-            if aur:
-                say(t(f"из AUR ({helper}): ", f"from the AUR ({helper}): ") + " ".join(aur))
-                if not batch([helper, "-S", "--needed", "--noconfirm"], [helper, "-S", "--needed", "--noconfirm"], aur):
-                    failed.add(helper)
+            say(t(f"из AUR ({helper}): ", f"from the AUR ({helper}): ") + " ".join(aur))
+            if subprocess.run([helper, "-S", "--needed", "--noconfirm", *aur]).returncode:
+                failed.add(helper)
         else:
             failed.add("paru")
     if flat:
@@ -634,18 +436,10 @@ def install(ids, wait=True, browser=""):
         say(t("из Flathub: ", "from Flathub: ") + " ".join(flat))
         subprocess.run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
                         "https://dl.flathub.org/repo/flathub.flatpakrepo"])
-        fp = ["flatpak", "install", "--user", "-y", "--noninteractive", "flathub"]
-        if not batch(fp, fp, flat):
+        if subprocess.run(["flatpak", "install", "--user", "-y", "--noninteractive", "flathub", *flat]).returncode:
             failed.add("flatpak")
-    for a in gh:
-        if not github_install(a):
-            failed.add("GitHub")
     if "spotify" in ids:
         spicetify()
-    # install.sh's picker has no «Which browser?»: the first ticked one, in the catalog's order
-    if browser == "auto":
-        browser = next((b for b in catalog().get("browsers", []) if b in ids), "")
-    set_browser(browser)
     # what is there now, not what the package managers said: a picked app that is missing
     # must not be reported as installed (its shortcut would lead nowhere)
     done, missing = [], []
@@ -697,11 +491,6 @@ if __name__ == "__main__":
     rest = sys.argv[2:]
     wait = "--no-wait" not in rest
     rest = [a for a in rest if a != "--no-wait"]
-    browser = ""
-    if "--browser" in rest:
-        i = rest.index("--browser")
-        browser = rest[i + 1] if i + 1 < len(rest) else ""
-        rest = rest[:i] + rest[i + 2:]
     if cmd == "status":
         status()
     elif cmd == "groups":
@@ -709,15 +498,9 @@ if __name__ == "__main__":
     elif cmd == "tsv":
         tsv()
     elif cmd == "install":
-        sys.exit(install(rest, wait, browser))
+        sys.exit(install(rest, wait))
     elif cmd == "pick":
         remember(rest)
-        if browser:
-            set_browser(browser)
-    elif cmd == "browsers":
-        browsers()
-    elif cmd == "browser" and len(rest) == 1:
-        sys.exit(0 if set_browser(rest[0]) else 1)
     elif cmd == "pending":
         print(json.dumps(pending(repo_arg(rest))))
     elif cmd == "sync":

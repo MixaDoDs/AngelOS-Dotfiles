@@ -125,7 +125,6 @@ ShellRoot {
         MetaTap.status; // Meta tap → Start menu
         Idle.active; // idle-minutes watcher
         NautilusSetup.status; // first run: Nautilus defaults + mediafix
-        Outputs.monitorFile; // monitors nobody picked a mode for: their full refresh rate, not niri's 60 Hz
         PluginStudio.loaded; // make the worker available to dynamically loaded pages
         Updates.state; // daily update check (Settings → Updates)
         AppsSync.count; // the author's new apps after an update: told once, installed only when asked

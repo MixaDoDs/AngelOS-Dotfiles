@@ -10,9 +10,6 @@ if monitor.kdl is included, before anything else that names the same monitor,
 and its mode is the exact one niri lists (143.981, not 144).
 
   niri_outputs.py status          -> JSON: per connected output, the block niri uses at login
-  niri_outputs.py best [--dry]     -> JSON {"ok", "changed": {connector: {mode, from, …}}}: monitors
-      nobody picked a mode for (niri's preferred one, usually 60 Hz) get their fastest refresh rate
-      at the same size, live and saved (angelOS runs it once per monitor, Outputs.qml)
   niri_outputs.py save '<draft>'  -> JSON {"ok": true, "backup", "notes"} | {"error": …}
       draft: {"outputs": {connector: {mode, scale, transform, x, y, vrr, off}}, "primary": connector | ""}
 
@@ -542,56 +539,15 @@ def save(draft_json):
     return {"ok": True, "backup": str(backup), "notes": notes}
 
 
-TRANSFORMS = {"Normal": "normal", "90": "90", "180": "180", "270": "270", "_90": "90", "_180": "180",
-              "_270": "270", "Flipped": "flipped", "Flipped90": "flipped-90", "Flipped180": "flipped-180",
-              "Flipped270": "flipped-270"}
-
-
-def best(dry=False):
-    """Monitors that run niri's preferred mode because nobody picked one (no block, or a block
-    without a mode): the fastest refresh rate at the same size, live and saved to monitor.kdl.
-    The preferred mode of most high-refresh monitors is 60 Hz, so a 144 Hz screen ran at 60 until
-    its owner found Settings → Monitor. A mode the user wrote is never touched."""
-    outs = outputs()
-    draft = {}
-    for row in status()["outputs"]:
-        conn, out = row["output"], outs.get(row["output"])
-        if not out or out.get("current_mode") is None or row["mode"]:
-            continue
-        if row["block"] and row["issue"] is None:   # a block with `off`
-            continue
-        cur = out["modes"][out["current_mode"]]
-        same = [m for m in out["modes"] if (m["width"], m["height"]) == (cur["width"], cur["height"])]
-        top = max(same, key=lambda m: m["refresh_rate"])
-        if top["refresh_rate"] - cur["refresh_rate"] < 1000:
-            continue
-        lg = out.get("logical") or {}
-        draft[conn] = {"mode": f"{top['width']}x{top['height']}@{top['refresh_rate'] / 1000:.3f}",
-                       "scale": lg.get("scale", 1), "transform": TRANSFORMS.get(lg.get("transform"), "normal"),
-                       "x": lg.get("x", 0), "y": lg.get("y", 0), "vrr": bool(out.get("vrr_enabled")),
-                       "from": f"{cur['refresh_rate'] / 1000:.0f}"}
-    if not draft or dry:
-        return {"ok": True, "changed": draft}
-    for conn, d in draft.items():
-        if not os.environ.get("ANGELOS_NIRI_OUTPUTS"):     # tests: a fake niri, never the real screens
-            subprocess.run(["niri", "msg", "output", conn, "mode", d["mode"]], capture_output=True, timeout=10)
-    res = save(json.dumps({"outputs": {c: {k: v for k, v in d.items() if k != "from"} for c, d in draft.items()},
-                           "primary": ""}))
-    res["changed"] = draft
-    return res
-
-
 def main():
     args = sys.argv[1:]
     try:
         if not args or args[0] == "status":
             print(json.dumps(status(), ensure_ascii=False))
-        elif args[0] == "best":
-            print(json.dumps(best("--dry" in args), ensure_ascii=False))
         elif args[0] == "save" and len(args) == 2:
             print(json.dumps(save(args[1]), ensure_ascii=False))
         else:
-            raise Fail("usage: niri_outputs.py status | best [--dry] | save '<draft json>'")
+            raise Fail("usage: niri_outputs.py status | save '<draft json>'")
     except (Fail, OSError) as e:
         print(json.dumps({"error": str(e)}, ensure_ascii=False))
         return 1
