@@ -12,7 +12,7 @@ Singleton {
     property real saturation: 1
     property string log: ""
     property bool supported: false
-    readonly property bool busy: writer.running || reader.running
+    readonly property bool busy: !!(writer.running || reader.running)   // undefined while the Processes are being made
     function refresh() {
         if (!busy)
             reader.running = true;

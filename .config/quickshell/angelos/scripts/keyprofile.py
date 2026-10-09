@@ -126,12 +126,17 @@ def backup(*paths):
     return folder
 
 
+# the repository's placeholder for the home folder, spelled in two parts: install.sh fills in every
+# literal one it finds, this file's own included (that once left the author's home path here)
+HOME_PH = "@" + "HOME@"
+
+
 def template(name):
-    return (TEMPLATES / name).read_text().replace("/home/mixad", str(HOME))
+    return (TEMPLATES / name).read_text().replace(HOME_PH, str(HOME))
 
 
 def _norm(b):
-    return (b["key"].lower(), b["action"].replace("/home/mixad", str(HOME)), json.dumps(b["props"], sort_keys=True))
+    return (b["key"].lower(), b["action"].replace(HOME_PH, str(HOME)), json.dumps(b["props"], sort_keys=True))
 
 
 def _script(name, module):

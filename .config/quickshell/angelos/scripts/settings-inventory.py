@@ -95,6 +95,33 @@ def component_writes(name):
     return set()
 
 
+_services = {}
+
+
+def service_writes(service, fn):
+    """the config keys a service's function writes (DesktopWidgets.setGrid → desktop.snap…): a
+    group that calls it changes them, as if it wrote them itself"""
+    key = (service, fn)
+    if key in _services:
+        return _services[key]
+    _services[key] = set()
+    f = Path(__file__).resolve().parents[1] / "services" / (service + ".qml")
+    try:
+        text = strip_comments(f.read_text())
+    except OSError:
+        return set()
+    m = re.search(r'\bfunction\s+' + re.escape(fn) + r'\s*\([^)]*\)\s*\{', text)
+    if not m:
+        return set()
+    depth, i = 0, m.end() - 1
+    for j in range(i, len(text)):
+        depth += {"{": 1, "}": -1}.get(text[j], 0)
+        if depth == 0:
+            break
+    _services[key] = {f"{a}.{b}" for a, b in WRITE.findall(text[i:j + 1])}
+    return _services[key]
+
+
 def own_props(block):
     """the block's own lines, children blocks cut out (title:/name:/advanced: of this group)"""
     i = block.index("{")
@@ -126,6 +153,8 @@ def describe(pid, text, title_hint=None):
     for t in set(TYPE.findall(text)):
         if t not in ("PxGroup", "SettingRow", "PxPage", "Column", "Row", "Item", "Repeater", "Flow"):
             writes |= component_writes(t)
+    for svc, fn in set(SAVERS.findall(text)):
+        writes |= service_writes(svc, fn)
     reads = {f"{a}.{b}" for a, b in READ.findall(text)} - writes
     cond = re.search(r'^\s*(?:shown|visible)\s*:\s*(.+)$', props, re.M)
     return {

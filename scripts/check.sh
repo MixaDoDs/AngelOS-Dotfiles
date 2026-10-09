@@ -808,7 +808,8 @@ check_hygiene() {
   fi
 
   if search '/home/mixad|/home/[A-Za-z0-9_.-]+/\.config/gh/hosts\.yml|Cookies|Login Data|Bitwarden/data\.json|keyrings|voxtype/models' \
-       -g '!scripts/check.sh' -g '!README.md' -g '!.gitignore' -g '!install.sh' >"$WORK/sensitive" 2>/dev/null; then
+       -g '!scripts/check.sh' -g '!README.md' -g '!.gitignore' -g '!install.sh' \
+       -g '!graphify-out/**' -g '!.claude/**' >"$WORK/sensitive" 2>/dev/null; then   # the author's dev tools, never installed
     cat "$WORK/sensitive"
     fail "personal path or secret-like data detected"
   else
