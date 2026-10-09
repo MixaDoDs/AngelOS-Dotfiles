@@ -1501,7 +1501,12 @@ install_sddm() {
   fi
 
   as_root mkdir -p -- "$confd"
-  if ! cmp -s -- "$ROOT/sddm/$SDDM_CONF" "$confd/$SDDM_CONF"; then
+  # the angelOS login screen in place (follow_system, Settings → Lock screen): it stays SDDM's
+  # theme — this drop-in sorts after its zz-angelos.conf and would put the old one back
+  if [[ -f "$themes/angelos/Main.qml" && -f "$confd/zz-angelos.conf" ]]; then
+    say "$(_ 'The angelOS login screen is in place: it stays the theme' 'Экран входа angelOS уже стоит — он и остаётся темой')"
+    SDDM_THEME=angelos   # what the summary names (and its preview command)
+  elif ! cmp -s -- "$ROOT/sddm/$SDDM_CONF" "$confd/$SDDM_CONF"; then
     as_root install -m 0644 -- "$ROOT/sddm/$SDDM_CONF" "$confd/$SDDM_CONF"
   fi
   sddm_unpin_main_conf

@@ -12,8 +12,8 @@
   sddm-theme.py install [same options]
       builds it, then asks for the admin password (pkexec) to copy it to
       /usr/share/sddm/themes/angelos and make it SDDM's theme
-      (/etc/sddm.conf.d/zz-angelos.conf; a Current= in /etc/sddm.conf, which would win,
-      is commented out with a backup next to it). The theme's walls/ folder is left to
+      (/etc/sddm.conf.d/zz-angelos.conf; a Current= in /etc/sddm.conf or in another
+      drop-in, which could win, is commented out with a backup next to it). The theme's walls/ folder is left to
       the user, so the wallpapers and the look can follow the desktop without a password
       (theme.conf.user, which SDDM reads over theme.conf, is a link to walls/theme.conf.user):
   sddm-theme.py walls [--wallpaper FILE] [--tall FILE]
@@ -273,6 +273,15 @@ mv "$target.new" "$target"
 rm -rf "$target".old-*
 mkdir -p "$(dirname "$confd")"
 printf '[Theme]\nCurrent=angelos\n' > "$confd"
+# SDDM reads the drop-ins in alphabetical order and the last Current= wins: another one that
+# names a theme (the installer's zz-pixelstreetart.conf sorts after zz-angelos.conf) is
+# commented out, with a backup next to it (*.bak.* is not a .conf: SDDM skips it)
+for f in "$(dirname "$confd")"/*.conf; do
+  [ -f "$f" ] && [ "$f" != "$confd" ] || continue
+  grep -Eq '^[[:space:]]*Current[[:space:]]*=' "$f" || continue
+  cp -p "$f" "$f.bak.$stamp"
+  sed -i -E 's/^([[:space:]]*Current[[:space:]]*=)/# (angelOS: zz-angelos.conf sets the theme) \1/' "$f"
+done
 if [ -f /etc/sddm.conf ] && grep -Eq '^[[:space:]]*Current=' /etc/sddm.conf; then
   cp /etc/sddm.conf "/etc/sddm.conf.bak.$stamp"
   sed -i -E 's/^([[:space:]]*Current=)/# (angelOS: zz-angelos.conf sets the theme) \1/' /etc/sddm.conf
