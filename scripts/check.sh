@@ -921,6 +921,7 @@ timed mac-icons py_test macicons goldengate/test_mac_icons.py "Golden Gate Dock 
 timed browsers py_test browsers browsers/test_browser_theme.py "browser themes: profile edits, undo, gentle restart (stand-in browsers)"
 # the way out of the first-run wizard: `angelos setup skip` works with no shell answering
 timed setup py_test setup setup/test_cli.py "setup wizard: \`angelos setup skip\` gets out, with or without a running shell"
+timed setup-browser py_test setup-browser setup/test_browser.py "setup wizard: the picked browser becomes the default (not a link-only app), Freshgram from its GitHub release only with a matching checksum"
 # the settings tree: every group on one page, no setting lost since the rebuild, every direct link
 timed settings-tree py_test tree settings/test_tree.py "settings tree: every group once, no setting lost, every direct link leads somewhere"
 timed qt-look py_test qt qt/test_qt_theme.py "Qt look: Telegram's own fields left to it, running apps told (throw-away HOME)"

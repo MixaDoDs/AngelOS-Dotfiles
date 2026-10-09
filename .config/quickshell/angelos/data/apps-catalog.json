@@ -1,8 +1,14 @@
 {
-  "_comment": "The apps angelOS installs: install.sh's picker and the setup wizard's «Who are you?» and «Apps» steps (scripts/apps-install.py). Groups: all of a default group is ticked; «Как у автора» = what the author has. pacman/aur: a package or a list (the first one says whether it is installed); onArch: pacman names that only work on CachyOS (built against its zlib-ng: on Arch they would swap zlib), with Arch's packages instead; extra: packages that come along (pacman's, else the AUR's — spicetify with Spotify); the distribution's package first, else the AUR (paru, from CachyOS's repositories), else Flathub (per user); prefer: flatpak = Flathub first, as the author has it. An update installs apps added later to a group the user took (never removes).",
+  "_comment": "The apps angelOS installs: install.sh's picker and the setup wizard's «Who are you?» and «Apps» steps (scripts/apps-install.py). Groups: all of a default group is ticked; «Как у автора» = what the author has. pacman/aur: a package or a list (the first one says whether it is installed); onArch: pacman names that only work on CachyOS (built against its zlib-ng: on Arch they would swap zlib), with Arch's packages instead; extra: packages that come along (pacman's, else the AUR's — spicetify with Spotify); the distribution's package first, else the AUR (paru, from CachyOS's repositories), else Flathub (per user); prefer: flatpak = Flathub first, as the author has it; github: a package from the app's own GitHub release ({repo, asset: the .pacman file, sums: its SHA256SUMS, package: the name pacman knows}), checked and installed with pacman -U. browsers: the wizard's «Which browser?» step — the one picked opens on Mod+B and links; the «browsers» group holds only what «Как у автора» installs. An update installs apps added later to a group the user took (never removes).",
   "browsers": [
     "helium",
-    "firefox"
+    "firefox",
+    "chromium",
+    "brave",
+    "zen",
+    "librewolf",
+    "vivaldi",
+    "chrome"
   ],
   "groups": [
     {
@@ -42,6 +48,7 @@
       "default": true,
       "apps": [
         "telegram",
+        "freshgram",
         "discord"
       ]
     },
@@ -260,6 +267,20 @@
       "flatpak": "org.telegram.desktop"
     },
     {
+      "id": "freshgram",
+      "ru": "Freshgram",
+      "en": "Freshgram",
+      "hintRu": "Telegram с фишками AyuGram",
+      "hintEn": "Telegram with AyuGram's features",
+      "icon": "chat",
+      "github": {
+        "repo": "Snowy-Fluffy/freshGram",
+        "asset": "freshGram.pacman",
+        "sums": "SHA256SUMS",
+        "package": "freshgram"
+      }
+    },
+    {
       "id": "discord",
       "ru": "Discord",
       "en": "Discord",
@@ -274,8 +295,8 @@
       "id": "helium",
       "ru": "Helium",
       "en": "Helium",
-      "hintRu": "браузер на Chromium без лишнего, тот, что в Dock",
-      "hintEn": "a lean Chromium browser, the one in the Dock",
+      "hintRu": "браузер на Chromium без лишнего, как у автора",
+      "hintEn": "a lean Chromium browser, the author's",
       "icon": "search",
       "pacman": "helium-browser-bin",
       "aur": "helium-browser-bin"
@@ -289,6 +310,67 @@
       "icon": "search",
       "pacman": "firefox",
       "flatpak": "org.mozilla.firefox"
+    },
+    {
+      "id": "chromium",
+      "ru": "Chromium",
+      "en": "Chromium",
+      "hintRu": "открытый Chrome без Google",
+      "hintEn": "the open Chrome without Google",
+      "icon": "search",
+      "pacman": "chromium",
+      "flatpak": "org.chromium.Chromium"
+    },
+    {
+      "id": "brave",
+      "ru": "Brave",
+      "en": "Brave",
+      "hintRu": "Chromium с блокировкой рекламы",
+      "hintEn": "Chromium with an ad blocker",
+      "icon": "search",
+      "pacman": "brave-bin",
+      "aur": "brave-bin",
+      "flatpak": "com.brave.Browser"
+    },
+    {
+      "id": "zen",
+      "ru": "Zen",
+      "en": "Zen",
+      "hintRu": "Firefox с вкладками сбоку",
+      "hintEn": "Firefox with tabs on the side",
+      "icon": "search",
+      "pacman": "zen-browser-bin",
+      "aur": "zen-browser-bin",
+      "flatpak": "app.zen_browser.zen"
+    },
+    {
+      "id": "librewolf",
+      "ru": "LibreWolf",
+      "en": "LibreWolf",
+      "hintRu": "Firefox без слежки",
+      "hintEn": "Firefox without the tracking",
+      "icon": "search",
+      "flatpak": "io.gitlab.librewolf-community"
+    },
+    {
+      "id": "vivaldi",
+      "ru": "Vivaldi",
+      "en": "Vivaldi",
+      "hintRu": "браузер с кучей настроек",
+      "hintEn": "a browser with lots of settings",
+      "icon": "search",
+      "pacman": "vivaldi",
+      "flatpak": "com.vivaldi.Vivaldi"
+    },
+    {
+      "id": "chrome",
+      "ru": "Google Chrome",
+      "en": "Google Chrome",
+      "hintRu": "браузер Google",
+      "hintEn": "Google's browser",
+      "icon": "search",
+      "aur": "google-chrome",
+      "flatpak": "com.google.Chrome"
     },
     {
       "id": "spotify",

@@ -135,16 +135,34 @@ def desktop_file(did):
     return None
 
 
+def configured(mime):
+    """the first default mimeapps.list names for mime, installed or not (xdg-mime query swaps a
+    missing one for whatever else takes the type: a ChatGPT app for links)"""
+    for d in [os.environ.get("XDG_CONFIG_HOME") or str(HOME / ".config")] + \
+             os.environ.get("XDG_CONFIG_DIRS", "/etc/xdg").split(":"):
+        cp = configparser.ConfigParser(interpolation=None, strict=False, delimiters=("=",))
+        cp.optionxform = str
+        try:
+            cp.read(Path(d) / "mimeapps.list", encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            continue
+        if cp.has_option("Default Applications", mime):
+            return next((x for x in cp.get("Default Applications", mime).split(";") if x.strip()), "").strip()
+    return ""
+
+
 def ensure_browser():
     apps = entries("en")
-    cur = query(CATEGORIES["browser"]["mimes"][0])
+    cur = configured(CATEGORIES["browser"]["mimes"][1]) or query(CATEGORIES["browser"]["mimes"][0])
     if cur in apps and not apps[cur]["hidden"]:
         return cur
-    cands = [a["id"] for a in apps.values() if not a["hidden"] and is_browser(a)]
+    # real browsers first: apps that only take http links (ChatGPT, Steam) are a last resort
+    shown = [a for a in apps.values() if not a["hidden"]]
+    cands = [a["id"] for a in shown if "WebBrowser" in a["cats"]] or [a["id"] for a in shown if is_browser(a)]
     if not cands:
         return ""
     pick = next((b for b in BROWSERS if b in cands), sorted(cands)[0])
-    set_default("browser", pick)
+    set_default("browser", pick, quiet=True)
     return pick
 
 
@@ -176,7 +194,7 @@ def backup():
     return dst
 
 
-def set_default(key, did):
+def set_default(key, did, quiet=False):
     if key not in CATEGORIES:
         raise SystemExit("unknown category")
     apps = entries("en")
@@ -191,7 +209,8 @@ def set_default(key, did):
         subprocess.run(["xdg-mime", "default", did] + CATEGORIES[key]["mimes"], check=True)
         if key == "browser":
             subprocess.run(["xdg-settings", "set", "default-web-browser", did], stderr=subprocess.DEVNULL)
-    print(f"ok · {did} · backup {b}")
+    if not quiet:
+        print(f"ok · {did} · backup {b}")
 
 
 if __name__ == "__main__":

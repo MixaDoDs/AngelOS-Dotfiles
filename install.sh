@@ -1816,7 +1816,8 @@ install_apps() {
     return 0
   fi
   need_python || { warn "$(_ 'python3 is missing: the apps are skipped' 'нет python3: программы пропущены')"; return 0; }
-  ANGELOS_LANG="$UI" python3 "$APPS_PY" install --no-wait "${ids[@]}" ||
+  # the first ticked browser becomes the default one (Mod+B, links)
+  ANGELOS_LANG="$UI" python3 "$APPS_PY" install --no-wait --browser auto "${ids[@]}" ||
     warn "$(_ 'Not every app installed (see above); again: Settings → Updates → the apps' \
               'Не все программы поставились (смотри выше); ещё раз: Настройки → Обновления → программы')"
   return 0
