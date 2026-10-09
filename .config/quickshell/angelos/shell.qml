@@ -127,6 +127,7 @@ ShellRoot {
         NautilusSetup.status; // first run: Nautilus defaults + mediafix
         PluginStudio.loaded; // make the worker available to dynamically loaded pages
         Updates.state; // daily update check (Settings → Updates)
+        AppsSync.count; // the author's new apps after an update: told once, installed only when asked
         WorkspaceAnim.current; // control socket for `angelos ws`
         Sounds.ready; // Y2K sound pack (generated on first use)
         StreamMode.active; // OBS watcher: stream mode while live

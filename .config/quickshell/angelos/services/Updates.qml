@@ -5,8 +5,9 @@ import Quickshell
 import Quickshell.Io
 import qs.config
 
-// Settings → Updates: pull the dotfiles repository this system was installed
-// from and run its installer (scripts/dotfiles-update.sh). Checks once a day
+// Settings → Updates: update the system (pacman -Syu, the admin password through
+// the shell's polkit dialog), then pull the dotfiles repository this system was
+// installed from and run its installer (scripts/dotfiles-update.sh). Checks once a day
 // when allowed; never installs by itself. An update counts as installed only
 // when the script exits 0 after its "UPDATED" line; anything else is a failure
 // with the stage, the text and the snapshot to go back to (restore()).
@@ -56,6 +57,8 @@ Singleton {
         onLoadFailed: root.release = null
     }
     property int landed: 0                        // commits the last update brought
+    property int systemPackages: -1               // packages the system update of this run upgraded (-1: none ran)
+    property bool _systemQt: false                // "SYSTEM <n> 1": Quickshell/Qt changed under the running shell
     // after a restore the prompt says "the previous version is back"
     property bool restored: false
 
@@ -78,6 +81,8 @@ Singleton {
             "local-commits": I18n.t("в репозитории свои коммиты", "the repository has commits of its own"),
             "snapshot": I18n.t("не удалось сделать резервную копию — ничего не менялось", "the snapshot could not be taken — nothing was changed"),
             "pull": I18n.t("git не смог подтянуть новую версию", "git could not fetch the new version"),
+            "system": I18n.t("система не обновилась — angelOS не трогали", "the system was not updated — angelOS was left as it is"),
+            "quickshell": I18n.t("новой версии нужен Quickshell новее — angelOS не трогали", "the new version needs a newer Quickshell — angelOS was left as it is"),
             "install": I18n.t("установщик завершился с ошибкой", "the installer failed"),
             "niri-integration": I18n.t("не удалось подключить angelOS к niri", "angelOS could not be wired into niri"),
             "niri-validate": I18n.t("конфиг niri не прошёл проверку", "the niri config failed validation"),
@@ -96,6 +101,8 @@ Singleton {
             "local-commits": I18n.t("Ничего не менялось. Это рабочий клон со своими коммитами: перенеси их поверх новых (git pull --rebase) или ставь свою версию её установщиком (./install.sh).", "Nothing changed. This is a working clone with commits of its own: put them on top of the new ones (git pull --rebase), or install your version with its installer (./install.sh)."),
             "snapshot": I18n.t("Ничего не менялось. Освободи место на диске и проверь права на ~/.local/state/angelos, потом попробуй снова.", "Nothing changed. Free some disk space and check that ~/.local/state/angelos is writable, then try again."),
             "pull": I18n.t("Проверь подключение к интернету и попробуй ещё раз. Если снимок уже сделан — можно вернуть как было.", "Check the internet connection and try again. If a snapshot was taken, you can restore it."),
+            "system": I18n.t("Ничего из angelOS не менялось. Причина — в сообщении: введи пароль, дождись другого менеджера пакетов или обнови систему в терминале (sudo pacman -Syu), потом «Обновить» снова.", "Nothing of angelOS changed. The reason is in the message: give the password, wait for the other package manager, or update the system in a terminal (sudo pacman -Syu), then Update again."),
+            "quickshell": I18n.t("Ничего из angelOS не менялось, рабочий стол работает как прежде. Обнови пакет quickshell, когда в репозиториях появится нужная версия, и обнови снова.", "Nothing of angelOS changed, the desktop keeps working as it was. Update the quickshell package once the repositories have the needed version, then update again."),
             "install": I18n.t("Верни как было кнопкой ниже: система вернётся к версии до попытки. Причина — в сообщении, весь вывод установщика — в install.log в папке снимка; если повторяется, приложи его к issue (angelos report).", "Restore with the button below: the system goes back to the version before the attempt. The reason is in the message, the installer's whole output is install.log in the snapshot folder; if it happens again, attach it to an issue (angelos report)."),
             "niri-integration": I18n.t("Верни как было кнопкой ниже, затем приложи журнал к issue (angelos report).", "Restore with the button below, then attach the log to an issue (angelos report)."),
             "niri-validate": I18n.t("Новый конфиг niri не прошёл проверку — со следующим входом niri бы его не принял. Верни как было кнопкой ниже.", "niri refuses the new config — the next login would fail with it. Restore with the button below."),
@@ -164,6 +171,8 @@ Singleton {
         conflicts = [];
         _snapshot = false;
         _shellChanged = false;
+        _systemQt = false;
+        systemPackages = -1;
         _lastSay = "";
         log = [];
         addLog("» " + repo);
@@ -328,6 +337,13 @@ Singleton {
                     root._snapshot = true;
                 } else if (p[0] === "CHANGED")
                     root._shellChanged = p[2] === "1";
+                else if (p[0] === "SYSTEM") {
+                    root.systemPackages = parseInt(p[1]) || 0;
+                    // the packages are in whatever happens to angelOS after this
+                    root._systemQt = p[2] === "1";
+                    if (root._systemQt)
+                        root.needsRestart = true;
+                }
                 else if (p[0] === "»")
                     root._lastSay = root.clean(rest(1));
                 else if (p[0] === "FAILED") {
@@ -413,10 +429,13 @@ Singleton {
                 root.failedStage = "";
                 root.restored = false;
                 // new commits, or the same commit installed again after a failed attempt
+                // (a Quickshell/Qt from the system update set needsRestart already)
                 if (pending.changed || root._shellChanged || root._afterFailure) {
                     root.landed = pending.commits;
                     root.needsRestart = true;
                 }
+                // the apps the author added since: told (installed only when asked)
+                AppsSync.check();
                 // the installer ships default binds / cursor: put the user's choices back
                 WorkspaceAnim.reapply();
                 if (Cursors.hellOn)

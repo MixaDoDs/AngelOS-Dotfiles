@@ -1596,39 +1596,85 @@ Item {
             }
         }
     }
-    // ---- the apps: the browser, then the rest (ticked by the template) ----
+    // ---- the apps: the catalog's groups (ticked by the template); a group opens to its apps ----
     Component {
         id: apps
         Column {
-            spacing: Theme.u * 4
+            id: appsCol
+            spacing: Theme.u * 3
             readonly property var cat: root.wizard ? root.wizard.catalog : ({
                     "apps": [],
-                    "browsers": []
+                    "groups": []
                 })
-            readonly property var status: root.wizard ? root.wizard.appStatus : ({})
-            readonly property var chosen: Config.setup.apps || []
-            PxText {
-                kind: "title"
-                text: I18n.t("Браузер", "Browser")
+            readonly property var byId: {
+                const m = {};
+                for (const a of cat.apps || [])
+                    m[a.id] = a;
+                return m;
             }
-            Flow {
-                width: parent.width
-                spacing: Theme.u * 3
-                Repeater {
-                    model: parent.parent.cat.apps.filter(a => parent.parent.cat.browsers.includes(a.id))
-                    AppChip {}
-                }
-            }
-            PxText {
-                kind: "title"
-                text: I18n.t("Программы", "Apps")
-            }
-            Flow {
-                width: parent.width
-                spacing: Theme.u * 3
-                Repeater {
-                    model: parent.parent.cat.apps.filter(a => !parent.parent.cat.browsers.includes(a.id))
-                    AppChip {}
+            property var open: ({})
+            Repeater {
+                model: appsCol.cat.groups || []
+                Column {
+                    id: grp
+                    required property var modelData
+                    width: appsCol.width
+                    spacing: Theme.u * 2
+                    readonly property var ids: modelData.apps.filter(i => !!appsCol.byId[i])
+                    readonly property int on: ids.filter(i => (Config.setup.apps || []).includes(i)).length
+                    readonly property bool expanded: !!appsCol.open[modelData.id]
+                    Item {
+                        width: parent.width
+                        height: Math.max(grpTick.implicitHeight, grpOpen.implicitHeight) + Theme.u * 2
+                        PxCheck {
+                            id: grpTick
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: I18n.t(grp.modelData.ru, grp.modelData.en) + "   " + grp.on + "/" + grp.ids.length
+                            // ticked = the whole group; a part of it shows in the count
+                            checked: grp.on === grp.ids.length && grp.ids.length > 0
+                            onToggled: c => {
+                                root.touched = true;
+                                root.wizard.toggleGroup(grp.modelData.id, c);
+                            }
+                        }
+                        PxText {
+                            id: grpOpen
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            kind: "tiny"
+                            dim: !grpOpenMouse.containsMouse
+                            text: grp.expanded ? I18n.t("свернуть ▾", "fold ▾") : I18n.t("раскрыть ›", "open ›")
+                            MouseArea {
+                                id: grpOpenMouse
+                                anchors.fill: parent
+                                anchors.margins: -Theme.u * 2
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    const o = Object.assign({}, appsCol.open);
+                                    o[grp.modelData.id] = !grp.expanded;
+                                    appsCol.open = o;
+                                }
+                            }
+                        }
+                    }
+                    PxText {
+                        visible: !grp.expanded
+                        width: parent.width
+                        elide: Text.ElideRight
+                        kind: "tiny"
+                        dim: true
+                        text: grp.ids.map(i => I18n.t(appsCol.byId[i].ru, appsCol.byId[i].en)).join(", ")
+                    }
+                    Flow {
+                        visible: grp.expanded
+                        width: parent.width
+                        spacing: Theme.u * 3
+                        Repeater {
+                            model: grp.expanded ? grp.ids.map(i => appsCol.byId[i]) : []
+                            AppChip {}
+                        }
+                    }
                 }
             }
             PxText {
@@ -1636,7 +1682,7 @@ Item {
                 wrapMode: Text.Wrap
                 kind: "tiny"
                 dim: true
-                text: !root.wizard || !root.wizard.appsChecked ? I18n.t("проверяю, что уже стоит…", "checking what you have…") : root.wizard.appsToInstall.length ? I18n.t("поставлю: ", "to install: ") + root.wizard.appsToInstall.length + I18n.t(" — после «Начать работу», в терминале", " — after “Start”, in a terminal") : I18n.t("ставить нечего ♡", "nothing to install ♡")
+                text: !root.wizard || !root.wizard.appsChecked ? I18n.t("проверяю, что уже стоит…", "checking what you have…") : root.wizard.appsToInstall.length ? I18n.t("поставлю: ", "to install: ") + root.wizard.appsToInstall.length + I18n.t(" — после «Начать работу», в терминале. Потом обновления доставят то, что автор добавит в отмеченные группы.", " — after “Start”, in a terminal. Later, updates bring what the author adds to the ticked groups.") : I18n.t("ставить нечего ♡", "nothing to install ♡")
             }
         }
     }

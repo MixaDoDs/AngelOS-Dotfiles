@@ -21,7 +21,7 @@ PxPage {
         Component.onCompleted: Renderer.refresh()
         SettingRow {
             label: I18n.t("Движок", "Renderer")
-            hint: Renderer.mode === "vulkan" ? I18n.t("Vulkan: плавно на NVIDIA без сборки, но менее обкатан в Quickshell", "Vulkan: smooth on NVIDIA without building anything, but less tested in Quickshell") : Renderer.mode === "opengl" ? I18n.t("обычный Qt; на NVIDIA анимации упираются в ~60 кадров и дёргаются", "stock Qt; on NVIDIA animations are capped near 60 fps and stutter") : I18n.t("OpenGL + исправленный плагин Qt (если он собран) — рекомендуется", "OpenGL + the fixed Qt plugin (when built) — recommended")
+            hint: Renderer.mode === "vulkan" ? I18n.t("Vulkan: на NVIDIA (Qt 6.12) окна замирают, пока не двинешь мышь — не рекомендуется", "Vulkan: on NVIDIA (Qt 6.12) windows freeze until the mouse moves — not recommended") : Renderer.mode === "opengl" ? I18n.t("обычный Qt; на NVIDIA анимации упираются в ~60 кадров и дёргаются", "stock Qt; on NVIDIA animations are capped near 60 fps and stutter") : I18n.t("OpenGL + исправленный плагин Qt (если он собран) — рекомендуется", "OpenGL + the fixed Qt plugin (when built) — recommended")
             PxSegmented {
                 model: [
                     {

@@ -333,7 +333,7 @@ Singleton {
             return;
         }
         notify.kind = kind;
-        notify.command = ["notify-send", "-a", "angelOS", "--wait", "-t", "60000", "-h", "string:x-angelos-sound:notify", "-i", Quickshell.shellDir + "/data/icons/" + (kind === "water" ? "water.svg" : "wellbeing.svg")].concat(bs.flatMap(b => ["-A", b.id + "=" + b.label])).concat([title(kind), msg]);
+        notify.command = ["notify-send", "-a", "angelOS", "--wait", "-t", "60000", "-h", "string:x-angelos-sound:notify", "-i", Quickshell.shellDir + "/data/icons/" + (kind === "water" ? "water.svg" : "wellbeing.svg")].concat(...bs.map(b => ["-A", b.id + "=" + b.label])).concat([title(kind), msg]);
         notify.running = false;
         notify.running = true;
     }

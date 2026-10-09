@@ -558,7 +558,8 @@ Singleton {
             ys.push(r[1], r[1] + r[3] + gap, r[1] - gap - h);
         }
         if (grid) {
-            const lines = list => list.flatMap(v => [Math.floor(v / g) * g, Math.ceil(v / g) * g]);
+            // no Array.flatMap in Qt's JS engine
+            const lines = list => [].concat(...list.map(v => [Math.floor(v / g) * g, Math.ceil(v / g) * g]));
             xs = lines(xs);
             ys = lines(ys);
         }

@@ -142,6 +142,13 @@ PxPage {
             }
         }
         PxText {
+            visible: !!Updates.repo && !Updates.blocked && !Updates.needsRestart
+            width: parent.width
+            wrapMode: Text.Wrap
+            color: Theme.textDim
+            text: Updates.systemPackages >= 0 && !Updates.busy ? I18n.t("Система обновлена вместе с angelOS (пакетов: ", "The system was updated along with angelOS (packages: ") + Updates.systemPackages + ")." : I18n.t("«Обновить» сначала обновляет систему (pacman -Syu, спросит пароль администратора), потом angelOS — чтобы новой оболочке хватило свежих Quickshell и Qt.", "Update upgrades the system first (pacman -Syu, asks for the admin password), then angelOS — so the new shell gets a fresh enough Quickshell and Qt.")
+        }
+        PxText {
             visible: Updates.needsRestart
             width: parent.width
             wrapMode: Text.Wrap
