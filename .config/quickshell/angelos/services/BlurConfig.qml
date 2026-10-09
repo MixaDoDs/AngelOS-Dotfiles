@@ -12,7 +12,12 @@ Singleton {
     property real saturation: 1
     property string log: ""
     property bool supported: false
-    readonly property bool busy: !!(writer.running || reader.running)   // undefined while the Processes are being made
+    // set by the Processes themselves: a binding on their `running` read it before they were
+    // made and logged "Unable to assign [undefined] to bool" (Qt 6.12)
+    property bool busy: false
+    function _busy() {
+        busy = writer.running || reader.running;
+    }
     function refresh() {
         if (!busy)
             reader.running = true;
@@ -30,6 +35,7 @@ Singleton {
     Process {
         id: reader
         running: true
+        onRunningChanged: root._busy()
         command: ["python3", Quickshell.shellDir + "/scripts/blur-config.py"]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -49,6 +55,7 @@ Singleton {
     }
     Process {
         id: writer
+        onRunningChanged: root._busy()
         stdout: StdioCollector {
             onStreamFinished: if (text.trim()) root.log = text.trim()
         }
