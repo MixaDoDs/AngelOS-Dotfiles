@@ -17,11 +17,13 @@ bringing in what the author adds later.
                                     the end unless --no-wait. Remembers the pick (see below)
   apps-install.py pick ID…          remember the pick without installing anything
   apps-install.py pending [--repo DIR]
-                                    JSON {"apps": [id…], "packages": [name…], "fish": bool}: what the author added
+                                    JSON {"apps": [id…], "suggest": [id…], "packages": [name…], "fish": bool}: what the author added
                                     since this system last looked — apps in the groups the user took,
                                     and the base packages of DIR/packages (the dotfiles repository) —
                                     and that is not installed; fish: the login shell is still bash
-                                    (an install from before fish came with angelOS), not asked yet.
+                                    (an install from before fish came with angelOS), not asked yet;
+                                    suggest: on a system that never picked, the author's other apps
+                                    (shown once, unticked).
                                     Changes nothing
   apps-install.py sync [--repo DIR] [--no-wait]
                                     in a terminal: shows the pending ones (all ticked), installs the
@@ -272,11 +274,14 @@ def pending(repo):
     taken = {g["id"] for g in cat["groups"] if picked & set(g["apps"])}
     new_apps = [i for g in cat["groups"] if g["id"] in taken for i in g["apps"]
                 if i in by and i not in known and i not in picked and not installed(by[i])]
+    # a system that never picked: the rest of the author's apps shown once too, unticked
+    suggest = [] if "known" in st else [i for g in cat["groups"] if g.get("default") and g["id"] not in taken
+                                         for i in g["apps"] if i in by and not installed(by[i])]
     seen = set(st.get("knownBase", []))
     base = [p for p in base_packages(repo) if p not in seen]
     missing = run(["pacman", "-T", *base]).stdout.split() if base and shutil.which("pacman") else []
     new_pkgs = [p for p in missing if pacman_has(p)]
-    return {"apps": new_apps, "packages": new_pkgs, "fish": fish_wanted(st)}
+    return {"apps": new_apps, "suggest": suggest, "packages": new_pkgs, "fish": fish_wanted(st)}
 
 
 def ack(repo, shown_apps=(), fish_shown=True):
@@ -290,10 +295,14 @@ def ack(repo, shown_apps=(), fish_shown=True):
     save_state(st)
 
 
-def choose(labels):
-    """all ticked; untick what is not wanted (gum when there is one, else a numbered prompt)"""
+def choose(labels, ticked=None):
+    """ticked (all when None) preselected; the user changes it (gum when there is one, else a
+    numbered prompt)"""
+    ticked = set(range(len(labels))) if ticked is None else set(ticked)
+    labels = [l.replace(",", " ·") for l in labels]   # gum: the preselected ones go comma-separated
     if shutil.which("gum"):
-        r = subprocess.run(["gum", "choose", "--no-limit", "--selected=*", "--height", str(min(len(labels) + 2, 24)),
+        sel = ",".join(labels[i] for i in sorted(ticked))
+        r = subprocess.run(["gum", "choose", "--no-limit", "--selected=" + sel, "--height", str(min(len(labels) + 2, 24)),
                             "--header", t("Что поставить? (пробел — снять, Enter — дальше)",
                                           "What to install? (space unticks, Enter goes on)"), *labels],
                            stdout=subprocess.PIPE, text=True)
@@ -302,24 +311,27 @@ def choose(labels):
         chosen = set(r.stdout.splitlines())
         return [i for i, label in enumerate(labels) if label in chosen]
     for n, label in enumerate(labels, 1):
-        print(f"  {n:2}. {label}")
+        print(f"  {n:2}. [{'x' if n - 1 in ticked else ' '}] {label}")
     try:
-        answer = input(t("Enter — всё; номера через пробел — убрать их; 0 — ничего: ",
-                         "Enter — all of them; numbers — leave those out; 0 — none: ")).split()
+        answer = input(t("Enter — как отмечено; номера через пробел — переключить их; 0 — ничего: ",
+                         "Enter — as ticked; numbers — flip those; 0 — none: ")).split()
     except EOFError:
         answer = []
     if answer == ["0"]:
         return []
-    drop = {int(x) - 1 for x in answer if x.isdigit()}
-    return [i for i in range(len(labels)) if i not in drop]
+    flip = {int(x) - 1 for x in answer if x.isdigit()}
+    return [i for i in range(len(labels)) if (i in ticked) != (i in flip)]
 
 
 def sync(repo, wait=True):
     p = pending(repo)
     cat = apps()
     labels, items = [], []
-    for i in p["apps"]:
+    unticked = set()
+    for i in p["apps"] + p["suggest"]:
         a = cat[i]
+        if i in p["suggest"]:
+            unticked.add(len(items))
         labels.append(f"{t(a['ru'], a['en'])} — {t(a.get('hintRu', ''), a.get('hintEn', ''))}")
         items.append(("app", i))
     if p["fish"]:
@@ -333,9 +345,9 @@ def sync(repo, wait=True):
         say(t("ничего нового — всё как у автора ♡", "nothing new: everything is as the author has it ♡"))
         ack(repo)
         return finish(0, wait)
-    say(t("автор angelOS добавил программы — всё отмечено, как у него:",
-          "angelOS's author added apps — all ticked, as the author has them:"))
-    picked = [items[n] for n in choose(labels)]
+    say(t("как у автора angelOS — отмечено то, что подходит к твоему выбору:",
+          "as angelOS's author has it — ticked is what fits your pick:"))
+    picked = [items[n] for n in choose(labels, [n for n in range(len(items)) if n not in unticked])]
     ids = [v for k, v in picked if k == "app"]
     names = [v for k, v in picked if k == "pkg"]
     rc = 0
@@ -346,7 +358,7 @@ def sync(repo, wait=True):
         rc = subprocess.run(["sudo", "pacman", "-Syu", "--needed", *names]).returncode
     if ids:
         rc = install(ids, wait=False) or rc
-    ack(repo, p["apps"])
+    ack(repo, p["apps"] + p["suggest"])
     return finish(rc, wait)
 
 

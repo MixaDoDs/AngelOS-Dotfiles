@@ -548,8 +548,9 @@ choose_apps() {
   for entry in "${APP_GROUPS[@]}"; do
     IFS='|' read -r gid def en ru ids <<<"$entry"
     local names=() ; for id in ${ids//,/ }; do names+=("$(_ "${APP_EN[$id]}" "${APP_RU[$id]}")"); done
-    local list; list="$(printf '%s, ' "${names[@]}")"
-    labels+=("$(_ "$en" "$ru") — ${list%, }")
+    # no commas in a label: gum takes the preselected ones as a comma-separated list
+    local list; list="$(printf '%s · ' "${names[@]}")"
+    labels+=("$(_ "$en" "$ru") — ${list% · }")
     [[ "$def" == 1 ]] && pre+="${#labels[@]} "
   done
   tui_section "$(_ "The author's apps" 'Программы автора')" \
@@ -563,7 +564,8 @@ choose_apps() {
       IFS='|' read -r gid def en ru ids <<<"$entry"
       IFS=, read -ra apps_of <<<"$ids"; labels=() pre=""
       for id in "${apps_of[@]}"; do
-        labels+=("$(_ "${APP_EN[$id]} — ${APP_HINT_EN[$id]}" "${APP_RU[$id]} — ${APP_HINT_RU[$id]}")")
+        local label; label="$(_ "${APP_EN[$id]} — ${APP_HINT_EN[$id]}" "${APP_RU[$id]} — ${APP_HINT_RU[$id]}")"
+        labels+=("${label//,/ ·}")
         pre+="${#labels[@]} "
       done
       picked="$(ui_choose_many "$(_ "$en" "$ru")" "$pre" "${labels[@]}")"

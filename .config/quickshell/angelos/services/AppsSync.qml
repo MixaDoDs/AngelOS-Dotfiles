@@ -17,9 +17,10 @@ Singleton {
 
     readonly property string script: Quickshell.shellDir + "/scripts/apps-install.py"
     property var apps: []          // catalog ids
+    property var suggest: []       // a system that never picked: the author's other apps, once
     property var packages: []      // base package names
     property bool fish: false      // the login shell is still bash: the author's fish is offered
-    readonly property int count: apps.length + packages.length + (fish ? 1 : 0)
+    readonly property int count: apps.length + suggest.length + packages.length + (fish ? 1 : 0)
     property string _told: ""
     property var _names: ({})
 
@@ -35,6 +36,7 @@ Singleton {
     function skip() {
         Quickshell.execDetached(["python3", script, "ack", "--repo", Updates.repo || ""]);
         apps = [];
+        suggest = [];
         packages = [];
         fish = false;
     }
@@ -61,6 +63,7 @@ Singleton {
                 try {
                     const p = JSON.parse(text);
                     root.apps = p.apps || [];
+                    root.suggest = p.suggest || [];
                     root.packages = p.packages || [];
                     root.fish = !!p.fish;
                 } catch (e) {
@@ -71,11 +74,11 @@ Singleton {
         }
     }
     function tell() {
-        const key = apps.concat(packages).join(",") + (fish ? ",fish" : "");
+        const key = apps.concat(suggest, packages).join(",") + (fish ? ",fish" : "");
         if (count === 0 || key === _told)
             return;
         _told = key;
-        const list = (fish ? [I18n.t("fish вместо bash", "fish instead of bash")] : []).concat(apps.map(i => _names[i] || i), packages);
+        const list = (fish ? [I18n.t("fish вместо bash", "fish instead of bash")] : []).concat(apps.concat(suggest).map(i => _names[i] || i), packages);
         const shown = list.slice(0, 6).join(", ") + (list.length > 6 ? I18n.t(" и ещё ", " and ") + (list.length - 6) : "");
         notifier.command = ["notify-send", "-a", "angelOS", "-i", "system-software-install", "--wait", "-A", "install=" + I18n.t("Поставить", "Install"), "-A", "skip=" + I18n.t("Не надо", "No, thanks"), I18n.t("Как у автора angelOS", "As angelOS's author has it"), shown + I18n.t(" — как у автора. Поставить? (в терминале, всё отмечено — сними лишнее)", " — as the author has them. Install? (in a terminal, all ticked: untick what you don't want)")];
         notifier.running = true;
