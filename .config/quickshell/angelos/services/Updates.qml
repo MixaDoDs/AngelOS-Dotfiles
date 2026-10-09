@@ -417,6 +417,8 @@ Singleton {
                     root.landed = pending.commits;
                     root.needsRestart = true;
                 }
+                // the apps the author added since: told (installed only when asked)
+                AppsSync.check();
                 // the installer ships default binds / cursor: put the user's choices back
                 WorkspaceAnim.reapply();
                 if (Cursors.hellOn)

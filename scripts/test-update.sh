@@ -165,9 +165,11 @@ check "success: no FAILED line" bash -c "! grep -q '^FAILED ' '$W/$CASE.out'"
 check "success: repository fast-forwarded" head_is "$V2"
 check "success: shell code updated, new file installed" \
   bash -c "grep -q '// v2' '$H/$QML_FILE' && [[ -f '$H/$NEW_FILE' ]] && grep -q 'v2 layout' '$H/$LAYOUT'"
-check "success: the user's binds kept, the new version parked in kept-updates" \
-  bash -c "grep -q 'my own binds' '$H/.config/niri/cfg/keybinds.kdl' && ! grep -q 'v2 binds' '$H/.config/niri/cfg/keybinds.kdl' &&
-           grep -q 'v2 binds' '$STATE/kept-updates/.config/niri/cfg/keybinds.kdl'"
+# both added a line at the end: merged, both stay — the user's first (install.sh merge_config)
+check "success: a changed config merged — the user's line kept, v2's added after it, nothing parked" \
+  bash -c "f='$H/.config/niri/cfg/keybinds.kdl'; grep -q 'my own binds' \"\$f\" && grep -q 'v2 binds' \"\$f\" &&
+           (( \$(grep -n 'my own binds' \"\$f\" | cut -d: -f1) < \$(grep -n 'v2 binds' \"\$f\" | cut -d: -f1) )) &&
+           [[ ! -e '$STATE/kept-updates/.config/niri/cfg/keybinds.kdl' ]]"
 check "success: key profile merged — the user's keys kept, v2's new and changed keys in" \
   bash -c "f='$H/$PIXEL'; grep -q 'spawn \"mine\"' \"\$f\" && grep -q 'Mod+Ctrl+F7' \"\$f\" && ! grep -qE '^ *Mod\+Space ' \"\$f\" &&
            grep -q 'v2-new' \"\$f\" && grep -q 'Previous desk v2' \"\$f\" && ls '$H/.config/niri/cfg/' | grep -q 'keybinds-pixel.kdl.bak.' &&

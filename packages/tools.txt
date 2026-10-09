@@ -31,3 +31,6 @@ helvum
 mission-center
 meld
 scrcpy
+# archives in the file manager; paccache and checkupdates
+ark
+pacman-contrib

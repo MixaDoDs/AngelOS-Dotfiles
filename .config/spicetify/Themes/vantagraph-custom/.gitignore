@@ -1,0 +1,354 @@
+# ==============================================================================
+# Miabeyefendi - Universal .gitignore Template
+# https://github.com/Miabeyefendi
+# Comments are kept in English on purpose: this is the universal convention for
+# shared dotfiles. Trim sections you do not use; ignoring a few extra patterns
+# is harmless, but never delete the "Environment & Secrets" block.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Operating system cruft
+# ------------------------------------------------------------------------------
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+# macOS
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+Icon
+
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
+
+# ------------------------------------------------------------------------------
+# Compiled binaries / shared libraries (top level, language-agnostic)
+# ------------------------------------------------------------------------------
+# UYARI: Derlenmis uygulamasini repoda yayinliyorsan (or. SteamEdge) asagiya
+# istisna ekle, yoksa surum dosyan sessizce commit edilmez:
+#   !Release/SteamEdge.exe
+#   !dist/*.dll
+*.exe
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# ------------------------------------------------------------------------------
+# Environment & secrets (CRITICAL - never commit real credentials)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.sample
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+id_rsa
+id_dsa
+secrets.json
+credentials.json
+client_secret*.json
+service-account*.json
+*.tfvars
+!*.tfvars.example
+
+# ------------------------------------------------------------------------------
+# Credentials & user data (CRITICAL - account, login and session files)
+# These are the files that leak a real person's account, not just an API key.
+# ------------------------------------------------------------------------------
+account.json
+accounts.json
+password.json
+passwords.json
+login.json
+logins.json
+user.json
+users.json
+profile.json
+profiles.json
+token.json
+tokens.json
+auth.json
+authorization.json
+cookie.json
+cookies.json
+cookies.txt
+session.json
+sessions.json
+storage_state.json
+config.local.json
+settings.local.json
+secrets.*
+!secrets.example.*
+*.session
+*.sessions
+*.cookies
+*.token
+*.credentials
+.netrc
+_netrc
+.htpasswd
+
+# ------------------------------------------------------------------------------
+# Python
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+# Virtual environments
+env/
+venv/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+# Testing / coverage / type checking
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+htmlcov/
+.cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+# Notebooks
+.ipynb_checkpoints/
+
+# ------------------------------------------------------------------------------
+# Node / JavaScript / TypeScript / Web / Browser extensions
+# ------------------------------------------------------------------------------
+node_modules/
+jspm_packages/
+.npm/
+.yarn/
+.pnp.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+lerna-debug.log*
+# Build output
+# UYARI: Bunlar her derinlikte eslesir. Derleme ciktisini repoda yayinliyorsan
+# ilgili yolu istisna et, or. "!Github-Push/dist/"
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+.astro/
+.vite/
+.turbo/
+.parcel-cache/
+.cache/
+storybook-static/
+# Browser extension packaged output
+extension/dist/
+web-ext-artifacts/
+*.xpi
+*.crx
+*.pem
+# Framework / tooling caches
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+.vercel/
+.netlify/
+
+# ------------------------------------------------------------------------------
+# C# / .NET
+# ------------------------------------------------------------------------------
+[Bb]in/[Dd]ebug/
+[Bb]in/[Rr]elease/
+[Bb]in/[Xx]64/
+[Bb]in/[Xx]86/
+[Bb]in/[Aa]ny[Cc]PU/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+*.cache
+*.nupkg
+*.snupkg
+.vs/
+project.lock.json
+artifacts/
+
+# ------------------------------------------------------------------------------
+# C / C++
+# ------------------------------------------------------------------------------
+*.o
+*.ko
+*.obj
+*.elf
+*.lib
+*.a
+*.la
+*.lo
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+*.gch
+*.pch
+*.d
+
+# ------------------------------------------------------------------------------
+# Rust
+# ------------------------------------------------------------------------------
+/target/
+**/*.rs.bk
+*.pdb
+
+# ------------------------------------------------------------------------------
+# Go
+# ------------------------------------------------------------------------------
+*.test
+*.prof
+/vendor/
+
+# ------------------------------------------------------------------------------
+# Java / Kotlin / JVM
+# ------------------------------------------------------------------------------
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+.gradle/
+.kotlin/
+
+# ------------------------------------------------------------------------------
+# Editors & IDEs
+# ------------------------------------------------------------------------------
+# VS Code (keep shared settings, ignore the rest)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+# JetBrains (IntelliJ, PyCharm, Rider, WebStorm, etc.)
+.idea/
+*.iml
+*.ipr
+*.iws
+# Vim / Emacs / misc
+*.swp
+*.swo
+*~
+\#*\#
+.\#*
+
+# ------------------------------------------------------------------------------
+# Containers / infra / tooling
+# ------------------------------------------------------------------------------
+.terraform/
+*.tfstate
+*.tfstate.*
+docker-compose.override.yml
+
+# ------------------------------------------------------------------------------
+# Cache directories (any depth)
+# ------------------------------------------------------------------------------
+cache/
+Cache/
+CACHE/
+.cache/
+**/cache/
+**/Cache/
+*.cache
+
+# ------------------------------------------------------------------------------
+# Logs, temp files, archives, databases
+# ------------------------------------------------------------------------------
+*.log
+logs/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.sqlite
+*.sqlite3
+*.db
+
+# ------------------------------------------------------------------------------
+# Vantagraph only
+# ------------------------------------------------------------------------------
+# Release archive, built separately and attached to the GitHub release
+Vantagraph.rar
+*.rar
+# Local working notes, never published
+CLAUDE.md
+AGENTS.md
+# Local debug helper and the social preview source
+Extensions/_debug-perf.js
+screenshots/SocialTemplate.jpg
+
+# Image staging folder, never published
+for git/
+
+# internal notes (Turkish, local only)
+docs/guides/ayar-sistemi.md
+docs/guides/dosya-haritasi.md
+docs/guides/gorseller.md
+docs/guides/kurulum-test-deploy.md
+docs/guides/oneriler-ve-acik-sorular.md
+docs/guides/renk-sistemi.md
+docs/guides/tuzaklar.md

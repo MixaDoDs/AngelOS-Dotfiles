@@ -22,10 +22,14 @@
 #                                  is there already nothing changes, unless FISH_DEFAULT=1 is given.
 #                                  fish's look comes with it: the pure prompt, fastfetch, eza, fzf…
 #                                  (packages/fish.txt)
-#   INSTALL_APPS=0|1               the author's apps (full profile): APPS picks them, default all of
-#   APPS=helium,telegram,…         packages/apps.txt + packages/apps-flatpak.txt (Helium, Telegram,
-#                                  Spotify, Obsidian, qView, mpv, LocalSend, Discord). Asked
-#                                  interactively (all ticked); unattended default 0
+#   INSTALL_APPS=0|1               the author's apps (full profile): APPS picks them. Asked
+#   APPS=all|games,chat,helium,…   interactively in groups (all ticked = as the author has it);
+#                                  unattended default 0. all = the ticked groups; group ids
+#                                  (games media chat browsers music graphics dev utils extra) or
+#                                  app ids (.config/quickshell/angelos/data/apps-catalog.json).
+#                                  pacman first, the AUR through paru, else Flathub
+#                                  (scripts/apps-install.py, which remembers the pick: Settings →
+#                                  Updates later brings what the author adds to those groups)
 #   CACHYOS_REPOS=1|0              Arch Linux (x86_64): add the author's repositories before the
 #                                  packages — CachyOS's (for the CPU: v3/v4/znver4, above Arch's;
 #                                  the next -Syu takes CachyOS's builds) and [multilib]. Without them
@@ -59,7 +63,7 @@
 #   INSTALL_WALLPAPERS=0|1         older switch: 0 = no packs, 1 = all packs
 #   ENABLE_SERVICES=0|1            enable the systemd user services
 #   INTRO_SOUNDS=1|0               mix the first run's intro sound now, in the background
-#   INSTALL_FLATPAK=0|1            install packages/flatpak-apps.txt
+#   INSTALL_FLATPAK=0|1            (older switch, ignored: OBS and Blender are in the apps' catalog)
 #   INSTALL_TOOLS=1|0              small everyday tools from packages/tools.txt (fish, btop,
 #                                  ripgrep, yt-dlp, pavucontrol…; asked interactively, default 1;
 #                                  0 together with SKIP_PACKAGES=1)
@@ -500,11 +504,6 @@ ask_profile() {
                     "Поставить ещё мелкие утилиты на каждый день ($tools, packages/tools.txt)?")" "$( ((INSTALL_TOOLS)) && echo y || echo n)" \
       && INSTALL_TOOLS=1 || INSTALL_TOOLS=0
   fi
-  if [[ "$MODE" == 1 || "$MODE" == full ]] && ! given INSTALL_FLATPAK && [[ -s "$ROOT/packages/flatpak-apps.txt" ]]; then
-    ui_confirm "$(_ "Also install these apps from Flathub: $(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/flatpak-apps.txt" | sed 's/.*\.//' | paste -sd, -)?" \
-                    "Поставить ещё и эти программы из Flathub: $(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/flatpak-apps.txt" | sed 's/.*\.//' | paste -sd, -)?")" n \
-      && INSTALL_FLATPAK=1 || INSTALL_FLATPAK=0
-  fi
   local m="$MODE"; [[ "$m" == 1 ]] && m=full; [[ "$m" == 2 ]] && m=tech
   tui_section "$(_ 'Ready to go live' 'Готовы к эфиру')" \
     "$(_ "profile $m · shell ${DESKTOP_SHELL} · theme ${ANGELOS_THEME} · the layouts come next" \
@@ -513,63 +512,87 @@ ask_profile() {
 
 # ── The author's apps (full profile) ─────────────────────────────────────────
 
-# id|package|kind|English|Russian. The packages come from packages/apps.txt (pacman) and
-# packages/apps-flatpak.txt (Flathub); the labels for the menu live here (unknown ones show the name).
-declare -A APP_LABEL=(
-  [helium-browser-bin]="Helium — the browser in the Dock|Helium — браузер в Dock"
-  [telegram-desktop]="Telegram (angelOS themes it)|Telegram (angelOS его тематизирует)"
-  [spotify-launcher]="Spotify (the bar's lyrics follow it)|Spotify (лирика на панели идёт за ним)"
-  [obsidian]="Obsidian — notes|Obsidian — заметки"
-  [qview]="qView — the picture viewer|qView — просмотр картинок"
-  [mpv]="mpv — the video player|mpv — видеоплеер"
-  [localsend]="LocalSend — files to the phone|LocalSend — файлы на телефон"
-  [com.discordapp.Discord]="Discord (Flathub, as in the Dock)|Discord (Flathub, как в Dock)"
-)
-APP_LIST=()
+# The catalog .config/quickshell/angelos/data/apps-catalog.json (the setup wizard's too): what the
+# author has, in groups. scripts/apps-install.py installs the picked ones (pacman, the AUR through
+# paru, Flathub) and remembers the pick, so Settings → Updates later brings the apps the author
+# adds to the groups taken here (nothing is ever removed).
+APPS_PY="$ROOT/.config/quickshell/angelos/scripts/apps-install.py"
+declare -A APP_EN=() APP_RU=() APP_HINT_EN=() APP_HINT_RU=()
+APP_GROUPS=()   # id|default|English|Russian|app,ids
 load_apps() {
-  local pkg kind file id label
-  APP_LIST=()
-  for kind in pacman flatpak; do
-    file="$ROOT/packages/apps.txt"; [[ "$kind" == flatpak ]] && file="$ROOT/packages/apps-flatpak.txt"
-    [[ -f "$file" ]] || continue
-    while IFS= read -r pkg; do
-      id="${pkg,,}"; id="${id##*.}"; id="${id%%-*}"
-      label="${APP_LABEL[$pkg]:-$pkg|$pkg}"
-      APP_LIST+=("$id|$pkg|$kind|$label")
-    done < <(grep -Ev '^[[:space:]]*(#|$)' "$file")
-  done
+  ((${#APP_GROUPS[@]})) && return 0
+  local kind id a b c d
+  while IFS=$'\t' read -r kind id a b c d; do
+    if [[ "$kind" == G ]]; then
+      APP_GROUPS+=("$id|$a|$b|$c|$d")
+    elif [[ "$kind" == A ]]; then
+      APP_EN["$id"]="$a" APP_RU["$id"]="$b" APP_HINT_EN["$id"]="$c" APP_HINT_RU["$id"]="$d"
+    fi
+  done < <(python3 "$APPS_PY" tsv 2>/dev/null)
 }
 
+# the catalog is read with python3 — a bare Arch Linux may not have it before its packages
+need_python() {
+  command -v python3 >/dev/null 2>&1 && return 0
+  [[ "$SKIP_PACKAGES" != 1 ]] && command -v pacman >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1 || return 1
+  say "$(_ 'The list of apps needs python (from the official repositories)' 'Списку программ нужен python (из официальных репозиториев)')"
+  sudo pacman -S --needed --noconfirm python >/dev/null && command -v python3 >/dev/null 2>&1
+}
+
+APPS_ASKED=0
 choose_apps() {
-  local labels=() entry id pkg kind en ru picked n all=""
+  local entry gid def en ru ids labels=() pre="" picked n i g_ids=() app_ids=() apps_of=() id
+  need_python || { warn "$(_ 'python3 is missing: the apps are skipped (later: Settings → Updates)' 'нет python3: программы пропущены (потом: Настройки → Обновления)')"; return 0; }
   load_apps
-  for entry in "${APP_LIST[@]}"; do
-    IFS='|' read -r id pkg kind en ru <<<"$entry"
-    labels+=("$(_ "$en" "$ru")")
-    all+="${#labels[@]} "
+  ((${#APP_GROUPS[@]})) || return 0
+  for entry in "${APP_GROUPS[@]}"; do
+    IFS='|' read -r gid def en ru ids <<<"$entry"
+    local names=() ; for id in ${ids//,/ }; do names+=("$(_ "${APP_EN[$id]}" "${APP_RU[$id]}")"); done
+    local list; list="$(printf '%s, ' "${names[@]}")"
+    labels+=("$(_ "$en" "$ru") — ${list%, }")
+    [[ "$def" == 1 ]] && pre+="${#labels[@]} "
   done
-  tui_section "$(_ 'The apps from the screenshots' 'Программы со скриншотов')" \
-    "$(_ 'What the author has in the Dock and on the stream. All ticked; untick what you do not want.' \
-         'То, что у автора в Dock и на стриме. Всё отмечено — сними лишнее.')"
-  picked="$(ui_choose_many "$(_ 'Apps' 'Программы')" "$all" "${labels[@]}")"
-  APPS=""
-  for n in $picked; do
-    IFS='|' read -r id pkg kind en ru <<<"${APP_LIST[n-1]}"
-    APPS+="${APPS:+,}$id"
-  done
+  tui_section "$(_ "The author's apps" 'Программы автора')" \
+    "$(_ "Everything angelOS's author has, in groups. Ticked = as the author has it; untick what you don't want. Updates later bring what the author adds to the groups you take." \
+         'Всё, что стоит у автора angelOS, по группам. Отмечено — как у автора; сними лишнее. Потом обновления доставят то, что автор добавит в выбранные группы.')"
+  picked="$(ui_choose_many "$(_ 'Groups' 'Группы')" "$pre" "${labels[@]}")"
+  for n in $picked; do g_ids+=("${APP_GROUPS[n-1]}"); done
+  APPS_ASKED=1
+  if ((${#g_ids[@]})) && ui_confirm "$(_ 'Open the groups and untick single apps?' 'Раскрыть группы и снять отдельные программы?')" n; then
+    for entry in "${g_ids[@]}"; do
+      IFS='|' read -r gid def en ru ids <<<"$entry"
+      IFS=, read -ra apps_of <<<"$ids"; labels=() pre=""
+      for id in "${apps_of[@]}"; do
+        labels+=("$(_ "${APP_EN[$id]} — ${APP_HINT_EN[$id]}" "${APP_RU[$id]} — ${APP_HINT_RU[$id]}")")
+        pre+="${#labels[@]} "
+      done
+      picked="$(ui_choose_many "$(_ "$en" "$ru")" "$pre" "${labels[@]}")"
+      for n in $picked; do app_ids+=("${apps_of[n-1]}"); done
+    done
+  else
+    for entry in "${g_ids[@]}"; do
+      IFS='|' read -r gid def en ru ids <<<"$entry"
+      IFS=, read -ra apps_of <<<"$ids"; app_ids+=("${apps_of[@]}")
+    done
+  fi
+  APPS="$(IFS=,; echo "${app_ids[*]:-}")"
   if [[ -n "$APPS" ]]; then INSTALL_APPS=1; else INSTALL_APPS=0; APPS=none; fi
 }
 
-# APPS → the chosen entries of APP_LIST, one per line
+# APPS → app ids, one per line: all = the default groups (as the author has it); a group id
+# stands for its apps; none/0/no = nothing
 chosen_apps() {
-  local entry id want
-  load_apps
+  local entry gid def en ru ids want
   case "${APPS,,}" in ""|none|0|no) return 0 ;; esac
-  for entry in "${APP_LIST[@]}"; do
-    id="${entry%%|*}"
-    if [[ "${APPS,,}" == all ]]; then echo "$entry"; continue; fi
-    for want in ${APPS//,/ }; do [[ "${want,,}" == "$id" ]] && echo "$entry"; done
-  done
+  load_apps
+  for want in ${APPS//,/ }; do
+    want="${want,,}"
+    if [[ -n "${APP_EN[$want]:-}" ]]; then echo "$want"; continue; fi
+    for entry in "${APP_GROUPS[@]}"; do
+      IFS='|' read -r gid def en ru ids <<<"$entry"
+      if [[ "$want" == "$gid" || ( "$want" == all && "$def" == 1 ) ]]; then printf '%s\n' ${ids//,/ }; fi
+    done
+  done | awk '!seen[$0]++'
 }
 
 # ── Wallpaper packs ──────────────────────────────────────────────────────────
@@ -727,11 +750,6 @@ pacman_install() {
   if nvim_will_be_ours && [[ -f "$ROOT/packages/nvim.txt" ]]; then
     mapfile -t -O "${#packages[@]}" packages < <(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/nvim.txt")
   fi
-  # the author's apps (full profile, asked): the pacman ones here, Flathub's in install_apps
-  if [[ "$INSTALL_APPS" == 1 ]]; then
-    mapfile -t -O "${#packages[@]}" packages < <(chosen_apps | awk -F'|' '$3 == "pacman" {print $2}' | available_only)
-    chosen_apps | grep -q '|flatpak|' && packages+=(flatpak)
-  fi
 
   # OCR language packs follow the chosen keyboard layouts.
   for code in "${KB_LIST[@]}"; do
@@ -834,11 +852,12 @@ install_voxtype_model() {
 # ── Config files ─────────────────────────────────────────────────────────────
 
 N_INSTALLED=0 N_UNCHANGED=0 N_KEPT=0 N_PARKED=0 N_MERGED=0
+MERGED=()     # configs the user had changed that took the author's changes (merge_config)
 OVERWRITE_CONFIGS="${OVERWRITE_CONFIGS:-0}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME_DIR/.local/state}/angelos"
 MANIFEST="$STATE_DIR/installed-files.sha256"
 PARKED_DIR="$STATE_DIR/kept-updates"
-BASES_DIR="$STATE_DIR/key-profile-bases"
+BASES_DIR="$STATE_DIR/key-profile-bases"   # the repository versions merges start from (key profiles, configs)
 declare -A PREV_SUM=() NEW_SUM=()
 # filled once per run by install_configs (one grep, two sha256sum runs instead of a few
 # processes per file): repo files holding a placeholder, checksums of repo and installed files
@@ -880,8 +899,56 @@ backup() {
 keep_existing() {
   case "$1" in
     .config/niri/monitor.kdl|.config/user-dirs.dirs|.config/user-dirs.locale|.config/mimeapps.list) return 0 ;;
+    # the terminal Settings → Default apps picked; the file manager's places
+    .config/xdg-terminals.list|.config/gtk-3.0/bookmarks|.config/gtk-4.0/bookmarks) return 0 ;;
   esac
   return 1
+}
+
+# Two layers: the author's configs are the base, the user's changes go on top. A config the user
+# never changed simply follows the author on every update. One they changed (by hand, or through
+# angelOS's settings) is merged three ways (merge_config: git merge-file): base = the version the
+# installer put there last time, ours = the file as it is, theirs = the repository's now. What the
+# author changed comes in; where both changed the same lines, the user's lines win — the author's
+# are the backup. The key profiles merge by key instead (merge_key_profile). Files angelOS
+# generates (the palette's theme files, GTK's, fastfetch's style; Noctalia's and Voxtype's own)
+# are not merged: the user's stay, the new version is parked. So is anything without a known base
+# (an install older than the manifest), and everything on the author's own machine (owner/).
+# One's own lines can also go in files the repository never ships, read last:
+# ~/.config/fish/user.fish and ~/.config/niri/cfg/user.kdl (its binds and rules win).
+generated() {
+  case "$1" in
+    .config/niri/angelos.kdl|.config/kitty/themes/*|.config/foot/themes/*|.config/alacritty/themes/*) return 0 ;;
+    .config/btop/themes/*|.config/gtk-3.0/*|.config/gtk-4.0/*|.config/fastfetch/*) return 0 ;;
+    .config/noctalia/*|.config/voxtype/*|.config/nvim/lazy-lock.json) return 0 ;;
+  esac
+  return 1
+}
+mergeable() { # a text config of the author's (not the shell's code, a font or an icon)
+  [[ "$1" == .config/* ]] && ! is_program "$1" && ! generated "$1" || return 1
+  case "$1" in *.png|*.svg|*.ttf|*.otf|*.otb|*.cache) return 1 ;; esac
+  return 0
+}
+OWNER_HOME=0
+[[ -d "$HOME_DIR/.config/quickshell/angelos/owner" ]] && OWNER_HOME=1
+
+# niri's config.kdl replaced: the includes angelOS's services added to it (cfg/angelos-windows.kdl,
+# -laptop, -minimize; CachyOS's cfg/display.kdl) go into the new one too, before user.kdl
+carry_includes() { # old-file new-file
+  local line missing=()
+  while IFS= read -r line; do
+    grep -qxF -- "$line" "$2" || missing+=("$line")
+  done < <(grep -E '^include "\./cfg/(angelos-[a-z0-9-]+|display)\.kdl"$' "$1" 2>/dev/null)
+  ((${#missing[@]})) || return 0
+  python3 - "$2" "${missing[@]}" <<'PY' 2>/dev/null || printf '%s\n' "${missing[@]}" >>"$2"
+import sys
+path, lines = sys.argv[1], sys.argv[2:]
+text = open(path).read()
+anchor = "\n// yours, read last"
+add = "".join(l + "\n" for l in lines)
+text = text.replace(anchor, "\n" + add + anchor, 1) if anchor in text else text.rstrip("\n") + "\n" + add
+open(path, "w").write(text)
+PY
 }
 
 sum_of() { sha256sum -- "$1" | cut -d' ' -f1; }
@@ -999,9 +1066,14 @@ install_file() {
   # changed since the installer wrote it (by hand, or by angelOS's settings:
   # hotkeys, animations, the default browser…): the user's version stays —
   # a theme's key profile gets the repository's new keys merged in around the user's
+  # changed since the installer wrote it: merged (the user's lines win), else the user's stays
+  # and the new version is parked
   if [[ -e "$dst" && "$OVERWRITE_CONFIGS" != 1 ]] && ! is_program "$rel" && ! niri_foreign "$rel" \
      && ! untouched "$rel" "$dst" "$srel"; then
-    merge_key_profile "$rel" "$dst" "$srel" "$new" "$src" && return 0
+    if ((OWNER_HOME == 0)); then
+      merge_key_profile "$rel" "$dst" "$srel" "$new" "$src" && return 0
+      merge_config "$rel" "$dst" "$srel" "$new" "$src" && return 0
+    fi
     mkdir -p -- "$(dirname -- "$PARKED_DIR/$rel")"
     cp -- "$new" "$PARKED_DIR/$rel"
     chmod --reference="$src" "$PARKED_DIR/$rel"
@@ -1014,6 +1086,10 @@ install_file() {
   cp -- "$new" "$dst"
   chmod --reference="$src" "$dst"
   NEW_SUM["$rel"]="$sum"
+  if [[ "$rel" == .config/niri/config.kdl && -e "$dst.bak.$STAMP" ]]; then
+    carry_includes "$dst.bak.$STAMP" "$dst"
+    NEW_SUM["$rel"]="$(sum_of "$dst")"   # as it is now: the next update takes it for untouched
+  fi
   save_base "$rel" "$new"
   N_INSTALLED=$((N_INSTALLED + 1))
 }
@@ -1031,7 +1107,7 @@ install_file() {
 is_key_profile() { [[ "$1" =~ ^\.config/niri/cfg/keybinds-(common|pixel|macos)\.kdl$ ]]; }
 
 save_base() { # rel rendered-repo-file
-  is_key_profile "$1" || return 0
+  is_key_profile "$1" || mergeable "$1" || return 0
   mkdir -p -- "$(dirname -- "$BASES_DIR/$1")" && cp -- "$2" "$BASES_DIR/$1" || true
 }
 
@@ -1067,6 +1143,86 @@ merge_key_profile() { # rel installed-file repo-file rendered-new src
   cp -- "$merged" "$dst"
   chmod --reference="$src" "$dst"
   N_MERGED=$((N_MERGED + 1))
+}
+
+# git merge-file --diff3's output on stdin → resolved (see merge_config)
+MERGE_RESOLVE='
+import sys
+out, part, ours, base, theirs = [], None, [], [], []
+for line in sys.stdin.read().splitlines(keepends=True):
+    if line.startswith("<<<<<<< ") and part is None:
+        part, ours, base, theirs = "ours", [], [], []
+    elif line.startswith("||||||| ") and part == "ours":
+        part = "base"
+    elif line.startswith("=======") and part == "base":
+        part = "theirs"
+    elif line.startswith(">>>>>>> ") and part == "theirs":
+        out += ours
+        if not "".join(base).strip():
+            out += [l for l in theirs if l not in ours]
+        part = None
+    elif part == "ours":
+        ours.append(line)
+    elif part == "base":
+        base.append(line)
+    elif part == "theirs":
+        theirs.append(line)
+    else:
+        out.append(line)
+if part is not None:
+    sys.exit(1)
+sys.stdout.write("".join(out))
+'
+
+merge_config() { # rel installed-file repo-file rendered-new src — see generated()
+  local rel="$1" dst="$2" srel="$3" new="$4" src="$5" base merged
+  mergeable "$rel" && command -v git >/dev/null 2>&1 || return 1
+  grep -Iq . "$dst" 2>/dev/null || [[ ! -s "$dst" ]] || return 1   # text only
+  base="$(mktemp)" merged="$(mktemp)"; TMP_FILES+=("$base" "$merged")
+  base_of "$rel" "$srel" "$base" || return 1
+  # conflicts: both added lines at one place → both stay (the user's first); both changed the
+  # same lines → the user's stay
+  if command -v python3 >/dev/null 2>&1; then
+    { git merge-file -p --diff3 -- "$dst" "$base" "$new" 2>/dev/null; [[ $? -lt 128 ]]; } |
+      python3 -c "$MERGE_RESOLVE" >"$merged" && [[ "${PIPESTATUS[0]}" == 0 ]] || return 1
+  else
+    git merge-file -p --ours -- "$dst" "$base" "$new" >"$merged" 2>/dev/null || return 1
+  fi
+  # the manifest keeps the repository version's checksum: the next update merges again
+  NEW_SUM["$rel"]="$(sum_of "$new")"
+  save_base "$rel" "$new"
+  if cmp -s -- "$merged" "$dst"; then
+    N_UNCHANGED=$((N_UNCHANGED + 1)); return 0
+  fi
+  backup "$dst"
+  unset 'DST_SUM[$dst]'
+  cp -- "$merged" "$dst"
+  chmod --reference="$src" "$dst"
+  MERGED+=("$rel")
+  N_MERGED=$((N_MERGED + 1))
+}
+
+# A merged niri file that niri refuses (two edits that only made sense apart): the user's own
+# version goes back and the author's new one is parked — never a desktop that doesn't start
+niri_merge_guard() {
+  local rel bad=() cfg="$HOME_DIR/.config/niri/config.kdl"
+  ((${#MERGED[@]})) && command -v niri >/dev/null 2>&1 && [[ -f "$cfg" ]] || return 0
+  niri validate -c "$cfg" >/dev/null 2>&1 && return 0
+  for rel in "${MERGED[@]}"; do
+    [[ "$rel" == .config/niri/* && -e "$HOME_DIR/$rel.bak.$STAMP" ]] || continue
+    mkdir -p -- "$(dirname -- "$PARKED_DIR/$rel")"
+    cp -- "$HOME_DIR/$rel" "$PARKED_DIR/$rel"
+    mv -f -- "$HOME_DIR/$rel.bak.$STAMP" "$HOME_DIR/$rel"
+    bad+=("$rel"); N_PARKED=$((N_PARKED + 1)); N_MERGED=$((N_MERGED - 1))
+  done
+  ((${#bad[@]})) && warn "$(_ "niri refused the merged ${bad[*]}: yours kept, the author's new version parked" \
+                               "niri не принял слитые ${bad[*]}: оставлены твои, новая версия автора отложена")"
+  local keep=() m b
+  for m in "${MERGED[@]}"; do
+    for b in "${bad[@]}"; do [[ "$m" == "$b" ]] && continue 2; done
+    keep+=("$m")
+  done
+  MERGED=("${keep[@]}")
 }
 
 # The theme's niri keys: cfg/keybinds.kdl picks the pixel or the Mac profile (angelOS's
@@ -1149,12 +1305,39 @@ install_configs() {
     install_file "${srcs[i]}" "${rels[i]}"
   done
 
+  user_layer
+  niri_merge_guard
+
   # The light variants also answer to the regular command names.
   if [[ "$MODE" == tech ]]; then
     install_file "$ROOT/.local/bin/niri-screenshot-region-simple" ".local/bin/niri-screenshot-region"
     install_file "$ROOT/.local/bin/niri-record-region-simple" ".local/bin/niri-record-region"
   fi
   save_manifest
+}
+
+# The user's own layer (see generated()): made once with a word on what it is, never touched again
+user_layer() {
+  local kdl="$HOME_DIR/.config/niri/cfg/user.kdl" fish="$HOME_DIR/.config/fish/user.fish"
+  if [[ -f "$HOME_DIR/.config/niri/config.kdl" && ! -e "$kdl" ]]; then
+    mkdir -p -- "${kdl%/*}"
+    cat >"$kdl" <<'KDL'
+// Yours: niri reads this file last, so a bind or a rule here wins over angelOS's.
+// Updates bring the author's changes into the rest of ~/.config/niri; this file is never touched.
+// For example:
+// binds {
+//     Mod+Shift+T { spawn "foot"; }
+// }
+KDL
+  fi
+  if [[ -d "$HOME_DIR/.config/fish" && ! -e "$fish" ]]; then
+    cat >"$fish" <<'FISH'
+# Yours: config.fish reads this file last, so what you set here wins. Updates bring the
+# author's changes into config.fish; this file is never touched. For example:
+# alias ll 'eza -l'
+FISH
+  fi
+  return 0
 }
 
 install_assets() {
@@ -1335,15 +1518,6 @@ enable_services() {
   fi
 }
 
-install_flatpak() {
-  [[ "$INSTALL_FLATPAK" == 1 ]] || return 0
-  command -v flatpak >/dev/null 2>&1 || { warn "$(_ 'flatpak not found' 'flatpak не найден')"; return 0; }
-  [[ -f "$ROOT/packages/flatpak-apps.txt" ]] || return 0
-  mapfile -t apps < <(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/flatpak-apps.txt")
-  ((${#apps[@]})) && flatpak install -y flathub "${apps[@]}"
-  return 0
-}
-
 # angelOS: CLI on PATH, theme files for kitty/foot/gtk/niri, shell wiring.
 # On the first login angelOS opens its setup wizard and then the interface tips.
 # What was asked here is not asked again by angelOS's setup wizard: the game on or off
@@ -1464,16 +1638,20 @@ fish_prompt_fallback() {
     warn "$(_ 'fisher could not fetch the pure prompt (offline?): fish keeps its own prompt' 'fisher не скачал prompt pure (нет сети?): у fish останется свой prompt')"
 }
 
-# the author's apps from Flathub (the pacman ones went with the packages)
+# the author's apps: scripts/apps-install.py installs them (pacman, the AUR, Flathub) and remembers
+# the pick; "none" picked in the menu is remembered too (updates then offer only new groups' apps… none)
 install_apps() {
-  [[ "$INSTALL_APPS" == 1 && "$SKIP_PACKAGES" != 1 ]] || return 0
+  [[ "$SKIP_PACKAGES" != 1 ]] || return 0
   local ids=()
-  mapfile -t ids < <(chosen_apps | awk -F'|' '$3 == "flatpak" {print $2}')
-  ((${#ids[@]})) || return 0
-  command -v flatpak >/dev/null 2>&1 || { warn "$(_ 'flatpak not found: Flathub apps skipped' 'flatpak не найден: программы из Flathub пропущены')"; return 0; }
-  flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
-  flatpak --user install -y --noninteractive flathub "${ids[@]}" ||
-    warn "$(_ "Flathub apps did not install: ${ids[*]}" "Программы из Flathub не установились: ${ids[*]}")"
+  [[ "$INSTALL_APPS" == 1 ]] && mapfile -t ids < <(chosen_apps)
+  if ((${#ids[@]} == 0)); then
+    ((APPS_ASKED)) && command -v python3 >/dev/null 2>&1 && python3 "$APPS_PY" pick >/dev/null 2>&1
+    return 0
+  fi
+  need_python || { warn "$(_ 'python3 is missing: the apps are skipped' 'нет python3: программы пропущены')"; return 0; }
+  ANGELOS_LANG="$UI" python3 "$APPS_PY" install --no-wait "${ids[@]}" ||
+    warn "$(_ 'Not every app installed (see above); again: Settings → Updates → the apps' \
+              'Не все программы поставились (смотри выше); ещё раз: Настройки → Обновления → программы')"
   return 0
 }
 
@@ -1528,13 +1706,18 @@ summary() {
   fi
   say "$(_ "Files: $N_INSTALLED installed, $N_UNCHANGED unchanged, $N_KEPT kept" \
            "Файлы: $N_INSTALLED установлено, $N_UNCHANGED без изменений, $N_KEPT сохранено")"
-  if ((N_MERGED)); then
-    say "$(_ "Shortcuts: angelOS's new keys merged into $N_MERGED key profile(s), yours kept (backup: *.bak.$STAMP)" \
-             "Горячие клавиши: новые клавиши angelOS добавлены в $N_MERGED профил(я/ей), твои сохранены (бэкап: *.bak.$STAMP)")"
+  if ((N_MERGED - ${#MERGED[@]} > 0)); then
+    say "$(_ "Shortcuts: angelOS's new keys merged into $((N_MERGED - ${#MERGED[@]})) key profile(s), yours kept (backup: *.bak.$STAMP)" \
+             "Горячие клавиши: новые клавиши angelOS добавлены в $((N_MERGED - ${#MERGED[@]})) профил(я/ей), твои сохранены (бэкап: *.bak.$STAMP)")"
   fi
   if [[ "$NIRI_FOREIGN" == 1 ]]; then
     say "$(_ "Niri: the config that was there was not angelOS's — replaced, so angelOS's keys work (the old one: ~/.config/niri/*.bak.$STAMP)" \
              "Niri: прежний конфиг был не от angelOS — заменён, чтобы работали клавиши angelOS (старый: ~/.config/niri/*.bak.$STAMP)")"
+  fi
+  if ((${#MERGED[@]})); then
+    say "$(_ "The author's changes merged into ${#MERGED[@]} config file(s) you had changed — where you both changed the same lines, yours stay (before: *.bak.$STAMP):" \
+             "Изменения автора влиты в ${#MERGED[@]} конфиг(ов), которые ты менял — где вы оба меняли одни строки, остались твои (как было: *.bak.$STAMP):")"
+    printf '   ~/%s\n' "${MERGED[@]}"
   fi
   if ((N_PARKED)); then
     say "$(_ "Your changes kept in $N_PARKED config file(s); their new versions: ${PARKED_DIR/#$HOME_DIR/\~}/ (OVERWRITE_CONFIGS=1 replaces them, with a backup)" \
@@ -1667,7 +1850,6 @@ STEPS=(
   "install_noctalia_defaults|Noctalia defaults|настройки Noctalia"
   "install_voxtype|Voxtype|Voxtype"
   "install_voxtype_model|the Whisper model|модель Whisper"
-  "install_flatpak|Flathub|Flathub"
   "install_apps|the apps|программы"
   "setup_fish_shell|fish|fish"
   "install_sddm|the login screen|экран входа"

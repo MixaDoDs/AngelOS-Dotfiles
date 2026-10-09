@@ -399,9 +399,15 @@ cd AngelOS-Dotfiles
 9. **Клавиатура** — отметь раскладки, выбери включённую после входа и сочетание для переключения.
 
 Дальше — установка с бэкапом всего, что заменяется (`имя.bak.ГГГГММДД-ЧЧММСС`), проверка конфига niri и подсказка,
-что дальше. Повторный запуск безопасен: неизменённые файлы остаются, а изменённые тобой (или настройками angelOS)
-сохраняются, их новые версии кладутся в `~/.local/state/angelos/kept-updates/`. При первом входе angelOS откроет
-мастер настройки — без тех вопросов, что уже задал установщик.
+что дальше. Повторный запуск безопасен. Настройка автора — основа, твоё — поверх: конфиг, который ты не менял, при
+каждом обновлении становится как у автора; в изменённый тобой (или настройками angelOS) вливаются изменения автора,
+а где вы оба меняли одни строки — остаются твои (старый файл рядом, `*.bak.<дата>`). Горячие клавиши сливаются так же,
+по клавишам. Файлы, которые angelOS генерирует (цвета темы, стиль fastfetch…), остаются твоими, их новые версии
+кладутся в `~/.local/state/angelos/kept-updates/`. Свои строки можно держать в `~/.config/fish/user.fish` и
+`~/.config/niri/cfg/user.kdl` — они читаются последними и не трогаются. Настройки самого angelOS всегда твои. После
+обновления angelOS предложит программы, которые автор добавил в выбранные тобой группы (и fish, если ты ещё на bash), —
+сам он ничего не ставит и не удаляет. При первом входе angelOS откроет мастер настройки — без тех вопросов, что уже
+задал установщик.
 
 ### Без вопросов
 
@@ -410,7 +416,7 @@ cd AngelOS-Dotfiles
 ```bash
 DOTFILES_MODE=full DESKTOP_SHELL=angelos ANGELOS_THEME=macos MAC_KEYS=1 \
 KB_LAYOUTS="us ru" KB_TOGGLE=alt_shift WALLPAPER_PACKS=Pixel \
-FISH_DEFAULT=1 INSTALL_APPS=1 APPS=helium,telegram,discord \
+FISH_DEFAULT=1 INSTALL_APPS=1 APPS=games,chat,helium \
 INSTALL_VOXTYPE=0 INSTALL_SDDM=1 ./install.sh
 ```
 
@@ -422,7 +428,7 @@ INSTALL_VOXTYPE=0 INSTALL_SDDM=1 ./install.sh
 | `MAC_KEYS` | `1` \| `0` | клавиши ⌘ с образом macOS |
 | `ANGELOS_GAME` | `1` \| `0` | игра |
 | `FISH_DEFAULT` | `1` \| `0` | fish — оболочка входа (уже стоящий fish не трогается без явного `1`) |
-| `INSTALL_APPS`, `APPS` | `0`/`1`, `all` \| `helium,telegram,…` | программы со скриншотов (без вопросов — никаких) |
+| `INSTALL_APPS`, `APPS` | `0`/`1`, `all` \| группы (`games,media,chat,browsers,music,graphics,dev,utils,extra`) \| программы (`helium,telegram,…`) | программы автора ([`apps-catalog.json`](.config/quickshell/angelos/data/apps-catalog.json); `all` — как у автора; без вопросов — никаких) |
 | `WALLPAPER_PACKS` | `all` \| `none` \| `Lain,Pixel,…` | паки обоев |
 | `KB_LAYOUTS`, `KB_TOGGLE` | `us,ru`, `alt_shift` \| `ctrl_shift` \| `caps` \| `ralt` \| `lalt` \| `grp:…` | клавиатура |
 | `INSTALL_VOXTYPE`, `DOWNLOAD_VOXTYPE_MODEL` | `1` \| `0` | голосовой ввод |
@@ -496,7 +502,7 @@ niri и `niri validate`, иначе страница предложит **Вер
 .local/bin/                  утилиты
 .local/share/                пиксельная тема значков pixora и шрифты
 Pictures/                    обои по умолчанию (паки — в PixelStreetArt_Wallpapers)
-packages/                    pacman.txt, angelos.txt, sddm.txt, tools.txt, fish.txt, nvim.txt, apps*.txt, flatpak-apps.txt
+packages/                    pacman.txt, angelos.txt, sddm.txt, tools.txt, fish.txt, nvim.txt (программы: data/apps-catalog.json)
 installer/tui.sh             лицо установщика: меню gum, пиксельные рамки, сердечки, чат стрима
 install.sh                   установщик: спрашивает всё, делает бэкапы, только Arch Linux / CachyOS
 scripts/check.sh             проверка репозитория со сквозными тестами установщика

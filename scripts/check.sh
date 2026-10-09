@@ -180,7 +180,7 @@ check_files() {
     install.sh .install installer/tui.sh \
     .config/niri/config.kdl .config/niri/cfg/keybinds.kdl .config/niri/cfg/keybinds-common.kdl \
     .config/niri/cfg/keybinds-pixel.kdl .config/niri/cfg/keybinds-macos.kdl .config/fish/config.fish \
-    packages/fish.txt packages/nvim.txt packages/apps.txt packages/apps-flatpak.txt \
+    packages/fish.txt packages/nvim.txt .config/quickshell/angelos/data/apps-catalog.json \
     .config/niri/config-no-noctalia.kdl .config/niri/noctalia.kdl \
     .config/niri/monitor.kdl .config/niri/cfg/input.kdl .config/niri/cfg/rules.kdl \
     .config/voxtype/config.toml \
@@ -391,13 +391,28 @@ inst_default() {
     echo '{ "old": true }' >"$d/$ff"
     manifest="$d/.local/state/angelos/installed-files.sha256"
     sed -i "s|^[0-9a-f]*  $ff\$|$(sha256sum "$d/$ff" | cut -d' ' -f1)  $ff|" "$manifest"
+    # the author's change and the user's in one file (config.fish): the base the installer kept
+    # is made to lack the author's last lines, the user changed a line of it and added one
+    fish=".config/fish/config.fish" bases="$d/.local/state/angelos/key-profile-bases"
+    head -n -2 "$ROOT/$fish" >"$bases/$fish"
+    sed -i "s|^[0-9a-f]*  $fish\$|$(sha256sum "$bases/$fish" | cut -d' ' -f1)  $fish|" "$manifest"
+    { sed 's/^alias n nvim$/alias n micro/' "$bases/$fish"; echo '# my own line'; } >"$d/$fish"
+    # a file angelOS generates (the palette's kitty colours): the user's stays, the new one is parked
+    kt=".config/kitty/themes/angelos.conf"
+    echo '# my colours' >>"$d/$kt"
     install_case default || fail "installer: update run with changed configs"
     if grep -q '// my own binds' "$d/.config/niri/cfg/keybinds.kdl" &&
        grep -q 'firefox.desktop' "$d/.config/mimeapps.list" &&
-       [[ -f "$d/.local/state/angelos/kept-updates/.config/niri/cfg/keybinds.kdl" ]]; then
-      pass "installer: an update keeps changed configs (new versions parked)"
+       grep -q '# my colours' "$d/$kt" && [[ -f "$d/.local/state/angelos/kept-updates/$kt" ]]; then
+      pass "installer: an update keeps changed configs (generated ones parked)"
     else
-      fail "installer: an update keeps changed configs (new versions parked)"
+      fail "installer: an update keeps changed configs (generated ones parked)"
+    fi
+    if grep -q '^# my own line$' "$d/$fish" && grep -q '^alias n micro$' "$d/$fish" && ! grep -q '^alias n nvim$' "$d/$fish" &&
+       grep -q 'source ~/.config/fish/user.fish' "$d/$fish" && compgen -G "$d/$fish.bak.*" >/dev/null; then
+      pass "installer: an update merges the author's changes into a changed config, the user's lines win"
+    else
+      fail "installer: an update merges the author's changes into a changed config, the user's lines win"; sed 's/^/      /' "$d/$fish"
     fi
     # (the repository's file as installed: @HOME@ filled in, as the fastfetch config has it)
     if cmp -s <(sed "s|@HOME@|$d|g" "$ROOT/$ff") "$d/$ff"; then
@@ -823,7 +838,7 @@ check_hygiene() {
   fi
 
   # Inline comments in a package list would be passed to pacman verbatim.
-  for list in pacman.txt sddm.txt angelos.txt tools.txt fish.txt nvim.txt apps.txt apps-flatpak.txt; do
+  for list in pacman.txt sddm.txt angelos.txt tools.txt fish.txt nvim.txt; do
     if grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/$list" | grep -q '[[:space:]#]'; then
       fail "packages/$list: package lines must contain only the name"
     else

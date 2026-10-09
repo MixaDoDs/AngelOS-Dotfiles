@@ -1,0 +1,401 @@
+================================================================================
+NOTICE
+MIABEYEFENDI - AUTHORSHIP, SUPPLEMENTAL TERMS & LEGAL DISCLAIMER
+================================================================================
+
+Author        : Mustafa Ihsan Albayrak
+Username      : Miabeyefendi (@miabeyefendi)
+Profile       : https://github.com/Miabeyefendi
+
+Copyright (C) 2026 Mustafa Ihsan Albayrak ("Miabeyefendi").
+(Per project: set the year to the year that project's code was first published,
+and extend to a range, e.g. "2026-2028", only as real later years pass. Do not
+use a future year that has not yet occurred.)
+
+This product / project includes software developed by Mustafa Ihsan Albayrak
+("Miabeyefendi"), https://github.com/Miabeyefendi.
+
+This work is licensed under the GNU Affero General Public License, Version 3
+(AGPL-3.0). The complete, authoritative text of that license is in the LICENSE
+file distributed with this work, and is also published at
+https://www.gnu.org/licenses/agpl-3.0.txt
+
+The clarifications and additional terms in PART A (English) and PART B (Turkish)
+below are supplemental terms applied under Section 7 of the AGPL-3.0. They do not
+restrict the freedoms granted by the AGPL-3.0; they only add the limited, legally
+permitted notice and attribution requirements expressly allowed by Section 7(b),
+and they record the warranty and liability position already established by
+Sections 15 and 16 of that License.
+
+If any supplemental term in PART A / PART B is held unenforceable, that term is to
+be severed and the remainder of this file and the AGPL-3.0 continue in full force.
+In the event of a genuine conflict between a supplemental term and the AGPL-3.0
+itself, the AGPL-3.0 prevails.
+
+This NOTICE file must be distributed together with the LICENSE file, unmodified,
+in every copy, derivative work, and deployment of this project.
+
+================================================================================
+REQUIRED ATTRIBUTION - ZORUNLU ATIF
+================================================================================
+
+EN: The following author attribution is a required term under AGPL-3.0 Section
+    7(b) and MUST be preserved, unmodified and visibly, in every copy, derivative
+    work, and deployment (including the project root and any "About" / credits
+    screen):
+
+        "Miabeyefendi (Mustafa Ihsan Albayrak) - https://github.com/Miabeyefendi"
+
+    Removing, hiding, or altering this attribution is not permitted. For closed-
+    source, proprietary, or non-AGPL use, a separate written commercial license is
+    required (see Section 8 below). Third-party trademarks and platform names
+    referenced anywhere in this project belong to their respective owners; their
+    use is nominative fair use and implies no affiliation or endorsement.
+
+--------------------------------------------------------------------------------
+
+TR: Aşağıdaki yazar atfı, AGPL-3.0 Bölüm 7(b) kapsamında zorunlu bir şarttır ve
+    her kopyada, türev eserde ve dağıtımda (proje kök dizini ve varsa "Hakkında" /
+    katkıda bulunanlar ekranı dahil) değiştirilmeden ve görünür biçimde KORUNMAK
+    zorundadır:
+
+        "Miabeyefendi (Mustafa İhsan Albayrak) - https://github.com/Miabeyefendi"
+
+    Bu atfı kaldırmak, gizlemek veya değiştirmek yasaktır. Kapalı kaynaklı,
+    tescilli veya AGPL dışı kullanım için ayrı, yazılı bir ticari lisans gereklidir
+    (bkz. aşağıdaki Bölüm 8). Bu projede anılan üçüncü taraf ticari markalar ve
+    platform adları ilgili sahiplerine aittir; kullanımları nominatif/dürüst
+    kullanımdır ve hiçbir bağ veya onay anlamına gelmez.
+
+================================================================================
+PART A - ENGLISH
+================================================================================
+
+0. NATURE OF THIS PROJECT
+-------------------------
+This project, and all source code, assets, graphics, and written material it
+contains, is the work of an independent individual (Miabeyefendi). It is a
+personal, hobby-grade project, built to solve my own everyday needs and
+curiosities. It is NOT a commercial product, NOT backed by a company, and comes
+with NO service-level agreement (SLA), NO guaranteed support, and NO uptime
+commitment. Treat it accordingly.
+
+1. RIGHTS GRANTED TO YOU
+------------------------
+Subject to the AGPL-3.0 and the supplemental terms below, you may freely:
+  - download, read, and study the source code for any purpose, including
+    educational and private use;
+  - run the software locally for your own personal use;
+  - modify it and adapt it to your own needs;
+  - redistribute it and distribute your modified versions;
+  - use it for commercial purposes,
+
+PROVIDED THAT you comply with the AGPL-3.0 in full - most importantly the
+copyleft and source-availability obligations (Sections 4, 5, 6, and 13).
+
+2. CONDITIONS YOU MUST RESPECT
+------------------------------
+  a) COPYLEFT. Any distributed work that is based on, or incorporates, this
+     project must itself be licensed as a whole under the AGPL-3.0, and its
+     complete corresponding source code must be made available under the same
+     license (AGPL-3.0 Sections 5 and 6).
+
+  b) NETWORK USE / SaaS (this is the key point). If you run a modified version
+     of this software on a server and let users interact with it over a network
+     - including any "Software as a Service" (SaaS), hosted, or web-based
+     offering - you MUST offer those users access to the complete corresponding
+     source code of your modified version, under the AGPL-3.0, at no charge
+     (AGPL-3.0 Section 13). You may not use this code to build a closed-source
+     hosted product. This obligation exists specifically and intentionally.
+
+  c) MANDATORY ATTRIBUTION (supplemental term under AGPL-3.0 Section 7(b)).
+     As permitted by Section 7(b) of the AGPL-3.0, as a condition of use you
+     must preserve, and may not remove, obscure, or alter, the following
+     author attribution in any copy or derivative work you distribute or deploy:
+
+         "Miabeyefendi (Mustafa Ihsan Albayrak) - https://github.com/Miabeyefendi"
+
+     This attribution must remain in the root directory of the project (for
+     example in the LICENSE, README, or NOTICE file) and, where the software has
+     a user interface, in a reasonably visible "About" / credits section. This
+     is the only additional restriction imposed under Section 7.
+
+  d) MARK YOUR CHANGES. As required by AGPL-3.0 Section 5(a), modified files
+     must carry prominent notices stating that you changed them and the date of
+     change, so that bugs in your version are not wrongly attributed to me.
+
+3. WHAT IS NOT PERMITTED
+------------------------
+  - Passing off my code, designs, algorithms, or written material as your own
+    original work (plagiarism), whether by removing my attribution or by making
+    only cosmetic changes.
+  - Distributing or hosting a derivative while stripping out, hiding, or
+    falsifying the license, copyright, or author notices.
+  - Re-licensing this work, or any part of it, under terms incompatible with
+    the AGPL-3.0 (including turning it into a closed-source or proprietary
+    product) without a separate commercial license (see Section 8).
+
+4. NO WARRANTY
+--------------
+THIS SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. THE
+ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS WITH YOU. THIS
+RESTATES AND DOES NOT LIMIT SECTION 15 OF THE AGPL-3.0.
+
+5. LIMITATION OF LIABILITY AND ASSUMPTION OF RISK
+-------------------------------------------------
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE AUTHOR
+(MIABEYEFENDI) BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES OF ANY KIND, INCLUDING
+BUT NOT LIMITED TO: account suspensions or bans, IP blocks, rate-limiting,
+data loss, loss of profits, business interruption, hardware or software damage,
+or any other loss arising out of or in connection with the use, misuse,
+modification, or inability to use this software - EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES. THIS RESTATES AND DOES NOT LIMIT SECTION 16 OF THE
+AGPL-3.0.
+
+You acknowledge that you download, install, run, and modify this software
+entirely at your own risk and on your own responsibility, as the sole "end user"
+and operator. Where applicable law does not allow the full exclusion of certain
+warranties or liabilities, the author's liability is limited to the minimum
+amount permitted by that law.
+
+6. LAWFUL USE AND THIRD-PARTY PLATFORMS
+---------------------------------------
+Some of these projects are automation tools, browser extensions, data-collection
+("scraping") scripts, bots, or utilities that interact with third-party
+platforms and services (for example, but not limited to, Instagram, Letterboxd,
+Steam, Discord, GitHub, and similar). The following applies:
+
+  a) The source code is published as a neutral, general-purpose tool and as an
+     expression of programming technique, for educational and personal use.
+     Publishing source code is not, in itself, an instruction to break any law
+     or any third party's Terms of Service.
+
+  b) The third-party platforms named or targeted by any project are NOT
+     affiliated with, endorsed by, sponsored by, or partnered with the author.
+     All trademarks, service marks, and product names are the property of their
+     respective owners and are referenced only for identification and
+     interoperability purposes (nominative fair use).
+
+  c) You, the operator, are solely responsible for ensuring that your particular
+     use of the software complies with all applicable laws, regulations, and the
+     Terms of Service of any platform you interact with. The decision to run the
+     software against any given service, and any consequence of doing so, is
+     yours alone.
+
+  d) The author does not collect, receive, store, or process any data that you
+     obtain by running these tools on your own machine; such data never reaches
+     the author.
+
+7. INDEMNIFICATION
+------------------
+To the maximum extent permitted by applicable law, you agree to indemnify,
+defend, and hold harmless the author (Miabeyefendi) from and against any and all
+claims, demands, proceedings, liabilities, damages, losses, and expenses
+(including reasonable legal fees) brought by any person or entity - including any
+company or platform - and arising out of or related to your use, deployment, or
+distribution of this software, or your violation of any law or third-party
+Terms of Service. Nothing in this section purports to waive any right that
+cannot be waived under applicable law.
+
+8. DUAL LICENSING: COMMERCIAL AND PROPRIETARY USE
+-------------------------------------------------
+This work is offered under two paths, and you must choose one:
+
+  PATH 1 - FREE, UNDER THE AGPL-3.0.
+  You may use this software, including for commercial purposes and to make money
+  with it, at no charge, AS LONG AS you fully comply with the AGPL-3.0 and the
+  supplemental terms above. In particular, you must keep the complete source code
+  available under the AGPL-3.0 (including for network/SaaS use under Section 13),
+  and you must preserve the author attribution in Section 2(c). Earning revenue is
+  permitted on this path; hiding the source code or removing my name is not.
+
+  PATH 2 - SEPARATE COMMERCIAL / PROPRIETARY LICENSE.
+  If you do NOT want to comply with the AGPL-3.0 - for example you want to keep
+  your derivative closed-source, embed it in a proprietary product, or run it as
+  a hosted/SaaS service without releasing your source code - then the AGPL does
+  not permit that, and you must obtain a separate, written commercial license from
+  the author (Miabeyefendi) IN ADVANCE. Such a license:
+    - is the only lawful way to use this work outside the AGPL-3.0;
+    - is granted at the author's sole discretion and only in writing;
+    - may require ongoing terms, including a royalty or revenue share ("loyalty")
+      payable to the author, and continued, visible author attribution; and
+    - does not exist by default - silence is not a grant.
+
+Using this work outside the AGPL-3.0 without such a written commercial license is
+copyright infringement and automatically terminates your rights under the
+AGPL-3.0 (see Section 8 of the AGPL-3.0). To request a commercial license or
+discuss revenue sharing, contact me through my GitHub profile:
+https://github.com/Miabeyefendi
+
+================================================================================
+PART B - TÜRKÇE
+================================================================================
+
+0. BU PROJENİN NİTELİĞİ
+-----------------------
+Bu proje ve içerdiği tüm kaynak kodlar, varlıklar, grafikler ve yazılı
+materyaller, bağımsız bir bireyin (Miabeyefendi) eseridir. Kişisel, hobi
+seviyesinde bir projedir; kendi günlük ihtiyaçlarımı ve meraklarımı çözmek için
+yapılmıştır. Ticari bir ürün DEĞİLDİR, bir şirket tarafından DESTEKLENMEZ ve
+hiçbir hizmet seviyesi anlaşması (SLA), garantili destek veya çalışma süresi
+taahhüdü İÇERMEZ. Buna göre değerlendirin.
+
+1. SİZE TANINAN HAKLAR
+----------------------
+AGPL-3.0 ve aşağıdaki ek şartlara tabi olmak kaydıyla şunları serbestçe
+yapabilirsiniz:
+  - kaynak kodu eğitim ve kişisel kullanım dahil her amaçla indirebilir,
+    okuyabilir ve inceleyebilirsiniz;
+  - yazılımı kendi kişisel kullanımınız için yerelde çalıştırabilirsiniz;
+  - değiştirebilir ve kendi ihtiyaçlarınıza uyarlayabilirsiniz;
+  - yeniden dağıtabilir ve değiştirilmiş sürümlerinizi dağıtabilirsiniz;
+  - ticari amaçla kullanabilirsiniz,
+
+ANCAK bunu, AGPL-3.0'a tam olarak uymak - özellikle copyleft ve kaynak kodu
+erişilebilir kılma yükümlülükleri (Bölüm 4, 5, 6 ve 13) - şartıyla yapabilirsiniz.
+
+2. UYMANIZ GEREKEN KOŞULLAR
+---------------------------
+  a) COPYLEFT. Bu projeyi temel alan veya içeren, dağıtılan her eser; bütün
+     olarak AGPL-3.0 altında lisanslanmalı ve eksiksiz karşılık gelen kaynak
+     kodu aynı lisansla erişilebilir kılınmalıdır (AGPL-3.0 Bölüm 5 ve 6).
+
+  b) AĞ ÜZERİNDEN KULLANIM / SaaS (en kritik nokta budur). Bu yazılımın
+     değiştirilmiş bir sürümünü bir sunucuda çalıştırır ve kullanıcıların ağ
+     üzerinden onunla etkileşmesine izin verirseniz - "Hizmet olarak Yazılım"
+     (SaaS), barındırılan (hosted) veya web tabanlı her sunum dahil - bu
+     kullanıcılara, değiştirilmiş sürümünüzün eksiksiz karşılık gelen kaynak
+     kodunu AGPL-3.0 altında ve ücretsiz olarak sunmak ZORUNDASINIZ (AGPL-3.0
+     Bölüm 13). Bu kodu kapalı kaynaklı, barındırılan bir ürün yapmak için
+     kullanamazsınız. Bu yükümlülük özellikle ve bilerek konulmuştur.
+
+  c) ZORUNLU ATIF (AGPL-3.0 Bölüm 7(b) kapsamında ek şart). AGPL-3.0'ın 7(b)
+     maddesinin izin verdiği şekilde, kullanım şartı olarak; dağıttığınız veya
+     yayına aldığınız her kopya ya da türev eserde aşağıdaki yazar atfını
+     korumak zorundasınız, bunu kaldıramaz, gizleyemez veya değiştiremezsiniz:
+
+         "Miabeyefendi (Mustafa İhsan Albayrak) - https://github.com/Miabeyefendi"
+
+     Bu atıf, projenin kök (root) dizininde (örneğin LICENSE, README veya NOTICE
+     dosyasında) ve yazılımın bir kullanıcı arayüzü varsa makul ölçüde görünür
+     bir "Hakkında" / katkıda bulunanlar bölümünde kalmalıdır. Bölüm 7 uyarınca
+     konulan tek ek kısıtlama budur.
+
+  d) DEĞİŞİKLİKLERİNİZİ İŞARETLEYİN. AGPL-3.0 Bölüm 5(a) gereği, değiştirilmiş
+     dosyalar; onları değiştirdiğinizi ve değişiklik tarihini belirten belirgin
+     bildirimler taşımalıdır. Böylece sizin sürümünüzdeki hatalar yanlışlıkla
+     bana atfedilmez.
+
+3. İZİN VERİLMEYENLER
+---------------------
+  - Kodlarımı, tasarımlarımı, algoritmalarımı veya yazılı materyalimi; atfımı
+    kaldırarak ya da yalnızca kozmetik değişiklikler yaparak kendi özgün eserinmiş
+    gibi sunmak (intihal).
+  - Bir türevi dağıtırken veya barındırırken lisans, telif veya yazar
+    bildirimlerini çıkarmak, gizlemek ya da tahrif etmek.
+  - Bu eseri veya herhangi bir parçasını; ayrı bir ticari lisans olmadan (bkz.
+    Bölüm 8), AGPL-3.0 ile bağdaşmayan şartlar altında yeniden lisanslamak
+    (kapalı kaynaklı veya tescilli bir ürüne çevirmek dahil).
+
+4. GARANTİ YOKTUR
+-----------------
+BU YAZILIM, "OLDUĞU GİBİ" (AS IS) VE "MEVCUT OLDUĞU ŞEKİLDE" (AS AVAILABLE),
+TİCARİ ELVERİŞLİLİK, BELİRLİ BİR AMACA UYGUNLUK VE İHLAL ETMEME ZIMNİ
+GARANTİLERİ DAHİL ANCAK BUNLARLA SINIRLI OLMAMAK ÜZERE, AÇIK VEYA ZIMNİ HİÇBİR
+GARANTİ VERİLMEKSİZİN SUNULMAKTADIR. YAZILIMIN KALİTESİ VE PERFORMANSINA İLİŞKİN
+TÜM RİSK SİZE AİTTİR. BU İFADE, AGPL-3.0'IN 15. BÖLÜMÜNÜ TEKRARLAR VE SINIRLAMAZ.
+
+5. SORUMLULUĞUN SINIRLANMASI VE RİSKİN ÜSTLENİLMESİ
+---------------------------------------------------
+UYGULANABİLİR YASANIN İZİN VERDİĞİ AZAMİ ÖLÇÜDE, YAZAR (MIABEYEFENDI), HİÇBİR
+DURUMDA SİZE VEYA HERHANGİ BİR ÜÇÜNCÜ TARAFA KARŞI; HESAP ASKIYA ALINMALARI VEYA
+YASAKLARI (BAN), IP ENGELLERİ, HIZ SINIRLAMASI, VERİ KAYBI, KÂR KAYBI, İŞ
+KESİNTİSİ, DONANIM VEYA YAZILIM HASARI YA DA BU YAZILIMIN KULLANIMI, YANLIŞ
+KULLANIMI, DEĞİŞTİRİLMESİ VEYA KULLANILAMAMASINDAN DOĞAN BAŞKA HERHANGİ BİR KAYIP
+DAHİL ANCAK BUNLARLA SINIRLI OLMAMAK ÜZERE; HİÇBİR DOĞRUDAN, DOLAYLI, ARIZİ, ÖZEL,
+CEZAİ VEYA SONUÇ NİTELİĞİNDEKİ ZARARDAN - BÖYLE BİR ZARAR OLASILIĞI BİLDİRİLMİŞ
+OLSA DAHİ - SORUMLU TUTULAMAZ. BU İFADE, AGPL-3.0'IN 16. BÖLÜMÜNÜ TEKRARLAR VE
+SINIRLAMAZ.
+
+Bu yazılımı tek "son kullanıcı" ve işletici olarak; tamamen kendi riskinizle ve
+kendi sorumluluğunuzda indirdiğinizi, kurduğunuzu, çalıştırdığınızı ve
+değiştirdiğinizi kabul edersiniz. Uygulanabilir yasanın belirli garantilerin veya
+sorumlulukların tamamen hariç tutulmasına izin vermediği yerlerde, yazarın
+sorumluluğu o yasanın izin verdiği asgari tutarla sınırlıdır.
+
+6. YASAL KULLANIM VE ÜÇÜNCÜ TARAF PLATFORMLAR
+---------------------------------------------
+Bu projelerin bazıları; üçüncü taraf platform ve hizmetlerle (örnek olarak ancak
+bunlarla sınırlı olmamak üzere Instagram, Letterboxd, Steam, Discord, GitHub ve
+benzerleri) etkileşen otomasyon araçları, tarayıcı eklentileri, veri toplama
+("scraping") scriptleri, botlar veya araçlardır. Aşağıdakiler geçerlidir:
+
+  a) Kaynak kod; nötr, genel amaçlı bir araç ve bir programlama tekniği ifadesi
+     olarak, eğitim ve kişisel kullanım için yayınlanmıştır. Kaynak kod
+     yayınlamak, tek başına, herhangi bir yasayı veya üçüncü tarafın Kullanım
+     Koşullarını (TOS) ihlal etme talimatı DEĞİLDİR.
+
+  b) Herhangi bir projenin adını andığı veya hedef aldığı üçüncü taraf
+     platformlar; yazarla bağlı, yazar tarafından onaylanmış, sponsorlu veya
+     ortak DEĞİLDİR. Tüm ticari markalar, hizmet markaları ve ürün adları ilgili
+     sahiplerinin mülkiyetindedir ve yalnızca tanımlama ve birlikte
+     çalışabilirlik amacıyla anılmıştır (nominatif/dürüst kullanım).
+
+  c) Yazılımın sizin belirli kullanımınızın; ilgili tüm yasalara, mevzuata ve
+     etkileştiğiniz herhangi bir platformun Kullanım Koşullarına uygun olmasını
+     sağlamaktan yalnızca siz, işletici olarak sorumlusunuz. Yazılımı herhangi
+     bir hizmete karşı çalıştırma kararı ve bunun her sonucu yalnızca size aittir.
+
+  d) Yazar; bu araçları kendi makinenizde çalıştırarak elde ettiğiniz hiçbir
+     veriyi toplamaz, almaz, saklamaz veya işlemez; bu tür veriler hiçbir zaman
+     yazara ulaşmaz.
+
+7. TAZMİNAT (INDEMNIFICATION)
+-----------------------------
+Uygulanabilir yasanın izin verdiği azami ölçüde; yazılımı kullanmanız, yayına
+almanız veya dağıtmanız ya da herhangi bir yasayı veya üçüncü taraf Kullanım
+Koşullarını ihlal etmenizden doğan veya bununla ilişkili olarak herhangi bir kişi
+veya kuruluş - bir şirket veya platform dahil - tarafından ileri sürülen her türlü
+iddia, talep, dava, sorumluluk, zarar, kayıp ve masrafa (makul avukatlık
+ücretleri dahil) karşı yazarı (Miabeyefendi) tazmin etmeyi, savunmayı ve zarardan
+ari tutmayı kabul edersiniz. Bu bölümdeki hiçbir hüküm, uygulanabilir yasa
+uyarınca feragat edilemeyecek bir hakkın feragatini amaçlamaz.
+
+8. ÇİFT LİSANSLAMA: TİCARİ VE TESCİLLİ KULLANIM
+-----------------------------------------------
+Bu eser iki yol altında sunulur ve birini seçmek zorundasınız:
+
+  YOL 1 - AGPL-3.0 ALTINDA, ÜCRETSİZ.
+  Bu yazılımı; AGPL-3.0'a ve yukarıdaki ek şartlara tam olarak uyduğunuz sürece,
+  ticari amaçlar ve para kazanmak dahil, ücretsiz kullanabilirsiniz. Özellikle,
+  eksiksiz kaynak kodu AGPL-3.0 altında erişilebilir tutmak (Bölüm 13 uyarınca
+  ağ/SaaS kullanımı dahil) ve Bölüm 2(c)'deki yazar atfını korumak zorundasınız.
+  Bu yolda gelir elde etmek serbesttir; kaynak kodu gizlemek veya adımı kaldırmak
+  serbest DEĞİLDİR.
+
+  YOL 2 - AYRI TİCARİ / TESCİLLİ LİSANS.
+  AGPL-3.0'a uymak İSTEMİYORSANIZ - örneğin türevinizi kapalı kaynaklı tutmak,
+  tescilli bir ürüne gömmek ya da kaynak kodunuzu yayınlamadan barındırılan/SaaS
+  bir hizmet olarak çalıştırmak istiyorsanız - AGPL buna izin vermez ve yazardan
+  (Miabeyefendi) ÖNCEDEN, yazılı ve ayrı bir ticari lisans almak zorundasınız.
+  Böyle bir lisans:
+    - bu eseri AGPL-3.0 dışında kullanmanın tek yasal yoludur;
+    - yalnızca yazarın takdiriyle ve yalnızca yazılı olarak verilir;
+    - yazara ödenecek bir royalti veya gelir payı ("loyalty") ile sürekli ve
+      görünür yazar atfı dahil olmak üzere süregelen şartlar içerebilir; ve
+    - varsayılan olarak mevcut değildir - sessizlik bir izin sayılmaz.
+
+Bu eseri, böyle yazılı bir ticari lisans olmadan AGPL-3.0 dışında kullanmak telif
+hakkı ihlalidir ve AGPL-3.0 kapsamındaki haklarınızı otomatik olarak sona erdirir
+(bkz. AGPL-3.0 Bölüm 8). Ticari lisans talep etmek veya gelir paylaşımını
+görüşmek için GitHub profilim üzerinden benimle iletişime geçin:
+https://github.com/Miabeyefendi
+
+================================================================================
+END OF NOTICE
+The full text of the GNU Affero General Public License v3.0 that governs this
+work is in the LICENSE file distributed alongside this NOTICE.
+================================================================================

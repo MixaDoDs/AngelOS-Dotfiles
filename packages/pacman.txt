@@ -50,6 +50,11 @@ fontconfig
 # Fallback glyphs (Cyrillic, symbols, emoji) the pixel fonts do not cover.
 noto-fonts
 noto-fonts-emoji
+# the author's fonts: CJK, the Nerd Font of the terminal prompt, the common Latin ones
+noto-fonts-cjk
+ttf-meslo-nerd
+ttf-dejavu
+ttf-liberation
 capitaine-cursors
 xdg-user-dirs
 xdg-utils

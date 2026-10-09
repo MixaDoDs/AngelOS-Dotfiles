@@ -1,0 +1,369 @@
+// VANTAGRAPH - Deep DOM Color Scanner
+// Her --spice- değişkenini benzersiz renge çevirip,
+// tüm DOM'u tarayıp, o rengi KULLANAN elementleri BULUR.
+// Sayfalar arası gezer, context menu açar, her yeri tarar.
+
+
+(async function() {
+  const root = document.documentElement;
+  const cs = getComputedStyle(root);
+
+  const VARS = [
+    "text","subtext","main","main-elevated","highlight","highlight-elevated",
+    "sidebar","player","playbar","card","shadow","selected-row","button",
+    "button-active","button-disabled","tab-active","accent","play-button",
+    "play-button-active","progress-fg","progress-bg","heart",
+    "notification","notification-error"
+  ];
+
+  // Her değişkene benzersiz RGB ata (tarama sırasında eşleşme için)
+  // Özellikle UI'da asla doğal olarak bulunmayacak renkler
+  const MARKER_COLORS = {};
+  VARS.forEach((v, i) => {
+    // rgb(1, 50+i*8, 200-i*7) gibi benzersiz renkler
+    MARKER_COLORS[v] = `rgb(1, ${50 + i * 8}, ${200 - i * 7})`;
+  });
+
+  // Orijinalleri kaydet
+  const originals = {};
+  VARS.forEach(v => {
+    originals[v] = cs.getPropertyValue(`--spice-${v}`).trim();
+  });
+
+  function resetAll() {
+    VARS.forEach(v => {
+      if (originals[v]) root.style.setProperty(`--spice-${v}`, originals[v]);
+      else root.style.removeProperty(`--spice-${v}`);
+    });
+  }
+
+  function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ── Status panel ──
+  let panel = document.getElementById("vg-scanner-panel");
+  if (panel) panel.remove();
+  panel = document.createElement("div");
+  panel.id = "vg-scanner-panel";
+  panel.style.cssText = `
+    position:fixed; bottom:10px; right:10px; z-index:999999;
+    background:rgba(0,0,0,0.95); color:#fff; padding:16px;
+    border-radius:12px; font-family:monospace; font-size:12px;
+    max-height:70vh; overflow-y:auto; width:500px;
+    border:2px solid #0ff;
+  `;
+  document.body.appendChild(panel);
+
+  function updatePanel(html) { panel.innerHTML = html; }
+
+  //  CORE SCANNER: Tek bir değişkeni benzersiz renge çevir,
+  //  tüm DOM'u tara, o rengi kullanan elementleri bul
+
+  function rgbToString(r, g, b) { return `rgb(${r}, ${g}, ${b})`; }
+
+  function parseRGB(str) {
+    if (!str) return null;
+    const m = str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (!m) return null;
+    return { r: parseInt(m[1]), g: parseInt(m[2]), b: parseInt(m[3]) };
+  }
+
+  function colorsMatch(computed, target) {
+    const c = parseRGB(computed);
+    const t = parseRGB(target);
+    if (!c || !t) return false;
+    return Math.abs(c.r - t.r) <= 2 && Math.abs(c.g - t.g) <= 2 && Math.abs(c.b - t.b) <= 2;
+  }
+
+  function scanDOMForColor(targetRGB, contextLabel) {
+    const found = [];
+    const allEls = document.querySelectorAll("*");
+
+    for (const el of allEls) {
+      // Skip our own panel
+      if (el.closest("#vg-scanner-panel")) continue;
+
+      let matchedProps = [];
+      try {
+        const s = getComputedStyle(el);
+        const checks = [
+          ["background-color", s.backgroundColor],
+          ["color", s.color],
+          ["border-color", s.borderTopColor],
+          ["border-bottom", s.borderBottomColor],
+          ["border-left", s.borderLeftColor],
+          ["border-right", s.borderRightColor],
+          ["outline-color", s.outlineColor],
+          ["fill", s.fill],
+          ["stroke", s.stroke],
+          ["box-shadow", s.boxShadow],
+          ["caret-color", s.caretColor],
+          ["text-decoration-color", s.textDecorationColor],
+          ["column-rule-color", s.columnRuleColor],
+        ];
+
+        for (const [prop, val] of checks) {
+          if (val && colorsMatch(val, targetRGB)) {
+            matchedProps.push(prop);
+          }
+        }
+        // box-shadow can contain rgb
+        if (s.boxShadow && s.boxShadow !== "none") {
+          const shadowRGBs = s.boxShadow.match(/rgba?\(\d+,\s*\d+,\s*\d+/g) || [];
+          for (const sr of shadowRGBs) {
+            if (colorsMatch(sr + ")", targetRGB)) {
+              if (!matchedProps.includes("box-shadow")) matchedProps.push("box-shadow");
+            }
+          }
+        }
+      } catch(e) {}
+
+      if (matchedProps.length > 0) {
+        const rect = el.getBoundingClientRect();
+        const testid = el.getAttribute("data-testid") || "";
+        const encoreId = el.getAttribute("data-encore-id") || "";
+        const ariaLabel = el.getAttribute("aria-label") || "";
+        const cls = (el.className && typeof el.className === 'string')
+          ? el.className.substring(0, 80) : "";
+
+        found.push({
+          tag: el.tagName.toLowerCase(),
+          cls,
+          testid,
+          encoreId,
+          ariaLabel,
+          props: matchedProps,
+          visible: rect.width > 0 && rect.height > 0,
+          rect: { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height) },
+          el,
+          context: contextLabel
+        });
+      }
+    }
+    return found;
+  }
+
+  //  NAVIGATION HELPERS
+
+  async function navigateTo(path) {
+    try {
+      if (Spicetify?.Platform?.History?.push) {
+        Spicetify.Platform.History.push(path);
+      } else if (Spicetify?.Platform?.History?.replace) {
+        Spicetify.Platform.History.replace(path);
+      }
+    } catch(e) {}
+    await wait(1500); // Sayfanın yüklenmesini bekle
+  }
+
+  async function openContextMenu() {
+    const track = document.querySelector('[data-testid="tracklist-row"]')
+      || document.querySelector('[role="row"]')
+      || document.querySelector('[data-testid="card"]');
+    if (track) {
+      const rect = track.getBoundingClientRect();
+      track.dispatchEvent(new MouseEvent("contextmenu", {
+        bubbles: true, cancelable: true,
+        clientX: rect.left + rect.width/2,
+        clientY: rect.top + rect.height/2, button: 2
+      }));
+      await wait(600);
+    }
+  }
+
+  function closeContextMenu() {
+    document.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
+  }
+
+  async function triggerNotification() {
+    try {
+      Spicetify.showNotification("🔍 Scanner: notification test");
+    } catch(e) {}
+    await wait(500);
+  }
+
+  async function triggerErrorNotification() {
+    try {
+      Spicetify.showNotification("🔍 Scanner: error test", true);
+    } catch(e) {}
+    await wait(500);
+  }
+
+  //  MAIN SCAN LOOP
+
+  const RESULTS = {}; // varName → [found elements]
+  const startPage = window.location.pathname;
+
+  const PAGES = [
+    { path: null, label: "Mevcut Sayfa" },
+    { path: "/", label: "Ana Sayfa (Home)" },
+    { path: "/search", label: "Arama (Search)" },
+    { path: "/collection/tracks", label: "Liked Songs" },
+  ];
+
+  const SPECIAL_ACTIONS = [
+    { label: "Context Menu Açık", before: openContextMenu, after: () => { closeContextMenu(); } },
+    { label: "Notification", before: triggerNotification, after: () => {} },
+    { label: "Error Notification", before: triggerErrorNotification, after: () => {} },
+  ];
+
+  let totalSteps = VARS.length;
+  let currentStep = 0;
+
+  for (const varName of VARS) {
+    currentStep++;
+    const markerRGB = MARKER_COLORS[varName];
+    RESULTS[varName] = [];
+
+    updatePanel(`
+      <div style="color:#0ff;font-weight:bold;font-size:14px;">🔍 TARANIYOR...</div>
+      <div style="margin:8px 0;">${currentStep}/${totalSteps}: <b>--spice-${varName}</b></div>
+      <div style="background:${markerRGB};color:#fff;padding:4px 8px;border-radius:4px;">
+        Marker: ${markerRGB}</div>
+      <div style="color:#888;margin-top:8px;">Sayfalar geziliyor...</div>
+    `);
+
+    // Her sayfa için tara
+    for (const page of PAGES) {
+      // Sayfaya git
+      if (page.path !== null) {
+        await navigateTo(page.path);
+      }
+
+      // Değişkeni marker'a çevir (diğerleri orijinal)
+      resetAll();
+      root.style.setProperty(`--spice-${varName}`, markerRGB);
+      await wait(200); // Render bekle
+
+      // Normal DOM tara
+      const normalFinds = scanDOMForColor(markerRGB, `${page.label}`);
+      RESULTS[varName].push(...normalFinds);
+
+      // Özel aksiyonlar (context menu, notification vb.)
+      for (const action of SPECIAL_ACTIONS) {
+        resetAll();
+        root.style.setProperty(`--spice-${varName}`, markerRGB);
+        await action.before();
+        await wait(200);
+        const actionFinds = scanDOMForColor(markerRGB, `${page.label} + ${action.label}`);
+        RESULTS[varName].push(...actionFinds);
+        await action.after();
+        await wait(200);
+      }
+    }
+
+    resetAll();
+  }
+
+  // Başlangıç sayfasına dön
+  if (startPage && startPage !== window.location.pathname) {
+    await navigateTo(startPage);
+  }
+
+  //  SONUÇLARI GÖSTER
+
+  let reportHTML = `<div style="color:#0ff;font-weight:bold;font-size:16px;margin-bottom:12px;">
+    ✅ TARAMA TAMAMLANDI</div>`;
+
+  // Özet tablo
+  reportHTML += `<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+    <tr style="border-bottom:1px solid #444;">
+      <th style="text-align:left;padding:4px;color:#888;">Değişken</th>
+      <th style="text-align:center;padding:4px;color:#888;">Bulunan</th>
+      <th style="text-align:left;padding:4px;color:#888;">Durum</th>
+    </tr>`;
+
+  // Deduplicate
+  for (const varName of VARS) {
+    const raw = RESULTS[varName];
+    // Dedupe by tag+cls+testid+props
+    const seen = new Set();
+    RESULTS[varName] = raw.filter(r => {
+      const key = `${r.tag}|${r.cls}|${r.testid}|${r.props.join(",")}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  for (const varName of VARS) {
+    const finds = RESULTS[varName];
+    const visibleFinds = finds.filter(f => f.visible);
+    const count = finds.length;
+    const vCount = visibleFinds.length;
+
+    let status, color;
+    if (vCount === 0 && count === 0) {
+      status = "❌ ETKİSİZ"; color = "#f44";
+    } else if (vCount === 0) {
+      status = "⚠️ Gizli (" + count + ")"; color = "#fa0";
+    } else {
+      status = "✅ Aktif (" + vCount + " görünür)"; color = "#4f4";
+    }
+
+    reportHTML += `<tr style="border-bottom:1px solid #333;cursor:pointer;" 
+      onclick="document.getElementById('vg-detail-${varName}').style.display=
+        document.getElementById('vg-detail-${varName}').style.display==='none'?'block':'none'">
+      <td style="padding:4px;"><b>--spice-${varName}</b></td>
+      <td style="text-align:center;padding:4px;">${count}</td>
+      <td style="padding:4px;color:${color};">${status}</td>
+    </tr>`;
+
+    // Detail section (collapsed)
+    reportHTML += `<tr><td colspan="3">
+      <div id="vg-detail-${varName}" style="display:none;padding:8px;background:#111;margin:4px 0;border-radius:6px;font-size:11px;">`;
+
+    if (finds.length === 0) {
+      reportHTML += `<div style="color:#f44;">Hiçbir elementte bu renk bulunamadı. 
+        Bu değişken ya Encore tarafından override ediliyor ya da hiçbir DOM elementine uygulanmıyor.</div>`;
+    } else {
+      finds.forEach((f, idx) => {
+        const idStr = f.testid ? `[testid="${f.testid}"]` : "";
+        const encStr = f.encoreId ? `[encore="${f.encoreId}"]` : "";
+        const ariaStr = f.ariaLabel ? `[aria="${f.ariaLabel.substring(0,30)}"]` : "";
+        const vizIcon = f.visible ? "👁️" : "👻";
+        reportHTML += `<div style="margin:2px 0;padding:2px 4px;background:#1a1a1a;border-radius:3px;
+          ${f.visible ? '' : 'opacity:0.5;'}">
+          ${vizIcon} <b>&lt;${f.tag}&gt;</b> ${idStr}${encStr}${ariaStr}<br>
+          <span style="color:#888;">class: ${f.cls || '(yok)'}</span><br>
+          <span style="color:#0ff;">props: ${f.props.join(", ")}</span><br>
+          <span style="color:#666;">konum: ${f.rect.x},${f.rect.y} (${f.rect.w}×${f.rect.h}) | ${f.context}</span>
+        </div>`;
+      });
+    }
+
+    reportHTML += `</div></td></tr>`;
+  }
+
+  reportHTML += `</table>`;
+
+  reportHTML += `<div style="color:#888;font-size:11px;margin-top:8px;">
+    💡 Satıra tıkla → detayları aç/kapa<br>
+    👁️ = Görünür element | 👻 = Gizli/0px element<br>
+    ❌ = Hiçbir yerde bulunamadı → değişken etkisiz
+  </div>`;
+                
+  console.log("%c🔍 VANTAGRAPH COLOR SCAN SONUÇLARI", "color:#0ff;font-weight:bold;font-size:16px;");
+
+  for (const varName of VARS) {
+    const finds = RESULTS[varName];
+    const visible = finds.filter(f => f.visible);
+    if (finds.length === 0) {
+      console.log(`%c❌ --spice-${varName}: ETKİSİZ - hiçbir element kullanmıyor`, "color:#f44;font-weight:bold;");
+    } else {
+      console.log(`%c✅ --spice-${varName}: ${visible.length} görünür / ${finds.length} toplam element`, "color:#4f4;font-weight:bold;");
+      finds.forEach(f => {
+        const id = f.testid ? `[${f.testid}]` : f.encoreId ? `[${f.encoreId}]` : "";
+        console.log(`   ${f.visible?'👁️':'👻'} <${f.tag}> ${id} → ${f.props.join(",")} | ${f.context}`);
+      });
+    }
+  }
+
+  // Panel'e sonucu göster
+  updatePanel(reportHTML);
+
+  // Global'e kaydet
+  window.__VG_SCAN_RESULTS = RESULTS;
+  console.log("%c\nSonuçlar window.__VG_SCAN_RESULTS'da kayıtlı", "color:#888;");
+
+})();
+

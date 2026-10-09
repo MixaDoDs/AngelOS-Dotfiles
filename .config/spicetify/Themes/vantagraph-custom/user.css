@@ -1,0 +1,1304 @@
+/* Vantagraph Custom - Core Theme CSS
+   Sections follow Spotify DOM order: 0 Root, 1 Top, 2 Topbar, 3 LeftSidebar,
+   4 Main, 5 RightSidebar, 6 Player, 7 Lyrics, 8 ContextMenu, 9 Misc,
+   10 Layout, 11 Colorist, 12 Focus, 13 Hover.
+   Extension-specific CSS lives in each extension. */
+
+
+/* 0. ROOT VARIABLES & GLOBAL */
+
+:root {
+  --vg-radius-sm: 8px;
+  --vg-radius-md: 12px;
+  --vg-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --vg-control-size: clamp(28px, 2.8vw, 34px);
+  --vg-control-size-lg: clamp(36px, 3.6vw, 44px);
+  --vg-icon-size: clamp(14px, 1.4vw, 18px);
+  --vg-icon-size-sm: clamp(12px, 1.2vw, 16px);
+  --vg-progress-height: clamp(24px, 2.4vw, 30px);
+  --vg-progress-gap: 6px;
+  --vg-progress-pad-x: 16px;
+  --lyrics-color-background: transparent !important;
+
+  /* editor colours: theme.js writes every one of these inline from the
+     Colors tab. The values here only cover the moment before it runs. */
+  --vg-menu-text: var(--spice-text);
+  --vg-icon: var(--spice-subtext);
+  --vg-icon-hover: var(--spice-accent);
+  --vg-play-icon: var(--spice-panel);
+  --vg-row-hover: rgba(255, 255, 255, 0.06);
+  --vg-divider: rgba(255, 255, 255, 0.06);
+  --vg-shine: rgba(255, 255, 255, 0.25);
+  --vg-glass-topbar: rgba(0, 0, 0, 0.35);
+  --vg-glass-sidebar: rgba(0, 0, 0, 0.35);
+  --vg-glass-main: rgba(0, 0, 0, 0.25);
+  --vg-glass-right: rgba(0, 0, 0, 0.3);
+  --vg-glass-player: rgba(0, 0, 0, 0.4);
+  --vg-glass-edge: rgba(255, 255, 255, 0.08);
+
+  /* Encore internal overrides */
+  --essential-positive: var(--spice-accent) !important;
+  --essential-negative: var(--spice-accent) !important;
+  --essential-positive-text: var(--spice-panel, var(--spice-main)) !important;
+  --positive: var(--spice-accent) !important;
+}
+
+/* global */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  --text-subdued: var(--spice-subtext) !important;
+}
+
+body {
+  background: transparent !important;
+}
+
+
+/* 1. TOP CONTAINER (.vg-root) */
+
+.vg-root {
+  overflow: hidden;
+}
+
+
+/* 2. TOP BAR / NAV BAR (.vg-global-nav) */
+
+/* topbar button sizing: Encore wraps each button to its SVG intrinsic width
+   (20x32 native vs 32x32 VG). Force uniform 32x32 on all action buttons (excl. profile). */
+
+/* uniform 16x16 SVG */
+button[aria-label="Vantagraph Custom"] svg,
+button[aria-label="Lyric Miniplayer"] svg,
+button[title="Vantagraph Custom"] svg,
+button[title="Lyric Miniplayer"] svg,
+.vg-topbar-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* container gap */
+.main-actionButtons {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* min-width 32x32 on all action buttons: native 20px expand, VG 32px stay,
+   profile avatar untouched (excluded). Use min-width not width. */
+.main-actionButtons button,
+.main-topBar-topbarContentRight button,
+[data-testid="topbar-right"] button {
+  min-width: 32px !important;
+  min-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* profile avatar: left margin separates from action group */
+.main-userWidget-box,
+.vg-user-widget {
+  margin-left: 32px !important;
+}
+
+/* VG custom buttons: extra stability */
+button[aria-label="Vantagraph Custom"],
+button[aria-label="Lyric Miniplayer"],
+button[title="Vantagraph Custom"],
+button[title="Lyric Miniplayer"],
+.vg-topbar-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  -webkit-app-region: no-drag !important;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 9999;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* normal */
+
+.vg-global-nav-link:hover {
+  border-radius: var(--vg-radius-sm);
+}
+
+.vg-global-nav-link svg,
+.vg-library-icon svg {
+  width: var(--vg-icon-size) !important;
+  height: var(--vg-icon-size) !important;
+}
+
+/* topbar scroll opacity */
+.vg-topbar-bg {
+  transition: opacity 0.3s ease !important;
+}
+
+/* remove header gradient overlays */
+.vg-actionbar-bg,
+.vg-home-header,
+.vg-entity-header-overlay {
+  background: transparent !important;
+}
+
+/* filter chips (All/Music/Podcasts) */
+.vg-home-filter-chips {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.vg-home-filter-chips::after,
+.vg-home-filter-chips::before {
+  display: none !important;
+  background: none !important;
+}
+
+/* bg-active: topbar glass */
+
+.vg-bg-active .Root__globalNav,
+.vg-bg-active .Root__top-bar {
+  background: var(--vg-glass-topbar) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--vg-glass-edge) 75%, transparent) !important;
+  z-index: 10 !important;
+  position: relative;
+}
+
+.vg-bg-active .Root__globalNav::before,
+.vg-bg-active .Root__top-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+
+/* bg-active: panel glass layer. A pre-blurred, viewport-fixed copy of the
+   background painted behind the panel content, tinted per panel via
+   --vg-glass-tint. Static raster; backdrop-filter re-read the backdrop on
+   every panel repaint and halved navigation fps on Spotify 1.3.
+   theme.js sets --vg-bg-image and --vg-bg-filter alongside the bg element. */
+.vg-bg-active #Desktop_LeftSidebar_Id::before,
+.vg-bg-active .Root__main-view::before,
+.vg-bg-active .Root__right-sidebar::before,
+.vg-bg-active .vg-np-container::before {
+  content: "";
+  position: absolute;
+  inset: -48px; /* blur bleed lands outside the clipped panel box */
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--vg-glass-tint), var(--vg-glass-tint)),
+    var(--vg-bg-image);
+  background-attachment: scroll, fixed;
+  background-size: auto, cover;
+  background-position: center;
+  filter: var(--vg-bg-filter, brightness(1)) blur(22px) saturate(130%);
+}
+
+/* player bar: its own ::before/::after are the shine lines, so the glass sits on
+   the inner container and reaches up over the progress row */
+.vg-bg-active .vg-np-container::before {
+  top: -72px;
+}
+
+/* bg-active: card hover reveals are instant. Spotify fades the card action
+   buttons in over 0.2s and every frame of that fade repaints the card over the
+   glass panel; with all transitions off the pointer sweep went 73 to 137 fps */
+.vg-bg-active [class*="_tertiary-footer-visibility-buttons_"],
+.vg-bg-active .vg-card,
+.vg-bg-active .vg-card-play,
+.vg-bg-active [data-testid="card"],
+.vg-bg-active .main-card-card {
+  transition: none !important;
+}
+
+/* 3. LEFT SIDEBAR (#Desktop_LeftSidebar_Id, .vg-nav) */
+
+/* normal */
+
+.main-navBar-mainNav.vg-nav {
+  margin: 5px 0 !important;
+}
+
+.vg-nav {
+  margin-bottom: 0 !important;
+  border-radius: var(--vg-radius-md);
+}
+
+/* inner container radius reset (outer wrapper owns corners) */
+.vg-library-entrypoints,
+.main-yourLibraryX-libraryContainer,
+.main-yourLibraryX-entryPoints {
+  border-radius: 0 !important;
+}
+
+.vg-nav .vg-library-rootlist,
+.vg-nav .vg-rootlist-wrapper {
+  background: transparent !important;
+}
+
+.vg-library-entrypoints {
+  background: transparent !important;
+}
+
+.vg-library-nav-link:hover {
+  border-radius: var(--vg-radius-sm);
+}
+
+/* bg-active */
+
+/* GPU compositing: prevents flicker / black-line artifacts */
+.vg-bg-active #Desktop_LeftSidebar_Id {
+  will-change: transform;
+  transform: translateZ(0);
+  contain: layout style;
+}
+
+/* glass on outermost, inner layers transparent */
+.vg-bg-active #Desktop_LeftSidebar_Id {
+  --vg-glass-tint: var(--vg-glass-sidebar);
+  background: transparent !important;
+  border-radius: var(--vg-radius-md) !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+  box-shadow:
+    4px 0 16px color-mix(in srgb, var(--spice-shadow) 30%, transparent),
+    0 0 24px var(--vg-glass-edge),
+    inset 0 0 30px color-mix(in srgb, var(--vg-glass-edge) 60%, transparent),
+    inset 1px 1px 0 var(--vg-glass-edge) !important;
+  position: relative;
+}
+
+/* noise texture overlay. No blend mode: mix-blend-mode made every hover
+   transition inside the panel re-blend the whole panel (65 vs 107 fps) */
+.vg-bg-active #Desktop_LeftSidebar_Id::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.vg-bg-active #Desktop_LeftSidebar_Id .Root__nav-bar,
+.vg-bg-active #Desktop_LeftSidebar_Id .vg-nav,
+.vg-bg-active #Desktop_LeftSidebar_Id nav,
+.vg-bg-active #Desktop_LeftSidebar_Id .main-navBar-mainNav,
+.vg-bg-active #Desktop_LeftSidebar_Id .main-yourLibraryX-libraryContainer,
+.vg-bg-active #Desktop_LeftSidebar_Id .main-yourLibraryX-header,
+.vg-bg-active .vg-nav,
+.vg-bg-active .Root__nav-bar {
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+
+/* 4. MAIN VIEW (.Root__main-view, .vg-main) */
+
+/* normal */
+
+.main-view-container.vg-main-view-container,
+.Root__main-view.vg-main,
+#main-view {
+  overflow: hidden;
+  margin: 5px 0 !important;
+  border-radius: var(--vg-radius-md) !important;
+}
+
+.vg-main {
+  border-radius: var(--vg-radius-md);
+  overflow: hidden;
+}
+
+/* cards */
+.vg-card {
+  border-radius: var(--vg-radius-md) !important;
+  transition: transform var(--vg-transition), box-shadow var(--vg-transition) !important;
+  overflow: hidden;
+}
+
+.vg-card:hover {
+  transform: translateY(-4px) scale(1.01) !important;
+}
+
+.vg-card-image-wrap {
+  border-radius: var(--vg-radius-sm) !important;
+  overflow: hidden;
+}
+
+/* play button on cards */
+.vg-card-play {
+  opacity: 0;
+  transition: opacity var(--vg-transition), transform var(--vg-transition) !important;
+  transform: translateY(8px);
+}
+
+.vg-card:hover .vg-card-play {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* track list */
+.vg-track-row {
+  border-radius: var(--vg-radius-sm) !important;
+  transition: background-color var(--vg-transition) !important;
+}
+
+.vg-track-row:hover {
+  background: var(--vg-row-hover) !important;
+}
+
+/* active track */
+.vg-track-row.vg-track-row-active .vg-track-row-title {
+  color: var(--spice-accent) !important;
+}
+
+/* track list header */
+.vg-track-header {
+  border-bottom: 1px solid var(--vg-divider) !important;
+  background: transparent !important;
+}
+
+/* bg-active */
+
+/* GPU compositing */
+.vg-bg-active .vg-main,
+.vg-bg-active .Root__main-view {
+  will-change: transform;
+  transform: translateZ(0);
+  contain: layout style;
+}
+
+/* main view glass */
+.vg-bg-active .vg-main,
+.vg-bg-active .Root__main-view {
+  --vg-glass-tint: var(--vg-glass-main);
+  background: transparent !important;
+  border-radius: var(--vg-radius-md) !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--spice-shadow) 20%, transparent),
+    0 0 24px var(--vg-glass-edge),
+    inset 0 0 40px color-mix(in srgb, var(--vg-glass-edge) 50%, transparent),
+    inset 0 1px 0 var(--vg-glass-edge) !important;
+  position: relative;
+}
+
+/* bg-active: strip density-engine margin so main aligns with sidebars */
+.vg-bg-active #main-view#main-view {
+  margin: 0 !important;
+}
+
+.vg-bg-active .Root__main-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.vg-bg-active .Root__main-view .main-view-container,
+.vg-bg-active .Root__main-view .os-host {
+  background: transparent !important;
+}
+
+
+/* 5. RIGHT SIDEBAR (.Root__right-sidebar, .vg-right) */
+
+/* normal */
+
+.Root__right-sidebar>div:first-child,
+.vg-right>div:first-child {
+  margin: 5px 0 !important;
+}
+
+/* inner container radius reset */
+.Root__right-sidebar>div:first-child,
+.Root__right-sidebar>div:first-child>div,
+.Root__right-sidebar>div:first-child>div>div,
+.vg-right>div:first-child,
+.vg-right>div:first-child>div,
+#Desktop_PanelContainer_Id {
+  border-radius: 0 !important;
+}
+
+#Desktop_PanelContainer_Id {
+  --section-border-radius: 0px !important;
+}
+
+.vg-right {
+  border-radius: var(--vg-radius-md);
+}
+
+/* bg-active */
+
+/* GPU compositing */
+.vg-bg-active .vg-right,
+.vg-bg-active .Root__right-sidebar {
+  will-change: transform;
+  transform: translateZ(0);
+  contain: layout style;
+}
+
+/* right sidebar glass */
+.vg-bg-active .vg-right,
+.vg-bg-active .Root__right-sidebar {
+  --vg-glass-tint: var(--vg-glass-right);
+  background: transparent !important;
+  border-radius: var(--vg-radius-md) !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+  contain: layout style !important;
+  box-shadow:
+    -4px 0 16px color-mix(in srgb, var(--spice-shadow) 25%, transparent),
+    0 0 24px var(--vg-glass-edge),
+    inset 0 0 30px color-mix(in srgb, var(--vg-glass-edge) 50%, transparent),
+    inset -1px 1px 0 color-mix(in srgb, var(--vg-glass-edge) 88%, transparent) !important;
+  position: relative;
+}
+
+.vg-bg-active .Root__right-sidebar::after,
+.vg-bg-active .vg-right::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+
+/* 6. PLAYER BAR (.Root__now-playing-bar, .vg-now-playing) */
+
+/* Encore token override (player bar only): force --spice-player as bg
+   for visual separation from main view, no spillover elsewhere */
+.Root__now-playing-bar,
+footer[data-testid="now-playing-bar"] {
+  --background-base: var(--spice-player) !important;
+  --background-elevated-base: var(--spice-player) !important;
+  --background-highlight: var(--spice-stroke, var(--spice-highlight)) !important;
+  background-color: var(--spice-player) !important;
+}
+
+/* normal */
+
+.vg-now-playing {
+  background-color: var(--spice-player) !important;
+}
+
+/* player bar premium effects (matches vg-next-track-card):
+   border, glow, inset highlight, top shine line, accent gradient */
+.Root__now-playing-bar,
+.vg-now-playing-bar {
+  position: relative;
+  border-top: 1px solid var(--spice-stroke, var(--spice-highlight)) !important;
+  box-shadow:
+    0 -6px 20px color-mix(in srgb, var(--spice-shadow) 35%, transparent),
+    inset 0 2px 0 color-mix(in srgb, var(--vg-shine) 40%, transparent) !important;
+  overflow: visible;
+}
+
+/* top-edge shine line */
+.Root__now-playing-bar::before,
+.vg-now-playing-bar::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      var(--vg-shine) 25%,
+      var(--vg-shine) 75%,
+      transparent 100%);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* accent gradient line (top inner edge) */
+.Root__now-playing-bar::after,
+.vg-now-playing-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      var(--spice-accent) 50%,
+      transparent 100%);
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* bg mode: transparent so background image shows through */
+.vg-bg-active .vg-now-playing {
+  background-color: transparent !important;
+}
+
+/* container: relative for progress bar positioning */
+.vg-np-container {
+  position: relative !important;
+  padding: 0 !important;
+  padding-top: var(--vg-progress-height) !important;
+  border-radius: var(--vg-radius-sm) var(--vg-radius-sm) 0 0 !important;
+}
+
+/* 3-col bar: keep Spotify default flex */
+.vg-np-bar {
+  background: transparent !important;
+  padding: 0 8px !important;
+}
+
+.vg-np-extra-controls {
+  flex-shrink: 0 !important;
+}
+
+/* no boxes: transparent bg */
+.vg-np-left {
+  overflow: visible !important;
+}
+
+/* cover art: strip glow/bg/shadow */
+.vg-np-cover,
+.vg-np-cover-collapsed,
+.vg-np-cover-collapsed *,
+.vg-np-cover *,
+.vg-np-cover img,
+.vg-np-cover-collapsed img,
+.vg-cover-art,
+.vg-cover-art-image {
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+/* Spotify 1.3: x-entityImage carries a 60px hero shadow (0 4px 60px #00000080)
+   that now leaks onto cards and What's New covers, clipped into a muddy block */
+.x-entityImage-imageContainer {
+  box-shadow: none !important;
+}
+
+
+.vg-np-cover>div,
+.vg-np-cover-collapsed>div {
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.vg-np-nowplaying {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.vg-np-nowplaying .vg-track-info-name,
+.vg-np-nowplaying a {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* player control buttons */
+.vg-player-controls {
+  align-items: center !important;
+  gap: 8px;
+}
+
+/* control sizing */
+.vg-player-controls button {
+  width: var(--vg-control-size) !important;
+  height: var(--vg-control-size) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
+.vg-player-controls button svg {
+  width: var(--vg-icon-size) !important;
+  height: var(--vg-icon-size) !important;
+}
+
+.vg-player-controls button[data-testid="control-button-playpause"] {
+  width: var(--vg-control-size-lg) !important;
+  height: var(--vg-control-size-lg) !important;
+  border-radius: 50% !important;
+}
+
+.vg-player-controls button[data-testid="control-button-playpause"] svg {
+  width: calc(var(--vg-icon-size) + 2px) !important;
+  height: calc(var(--vg-icon-size) + 2px) !important;
+}
+
+.vg-np-extra-controls button {
+  width: var(--vg-control-size) !important;
+  height: var(--vg-control-size) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
+.vg-np-extra-controls button svg {
+  width: var(--vg-icon-size-sm) !important;
+  height: var(--vg-icon-size-sm) !important;
+}
+
+/* play/pause: inset box-shadow trick */
+button[data-testid="control-button-playpause"]>span,
+button[data-testid="control-button-playpause"]:hover>span,
+button[data-testid="control-button-playpause"]>span:hover {
+  box-shadow: inset 0 0 0 100px var(--spice-play-button) !important;
+  color: var(--vg-play-icon) !important;
+}
+
+button[data-testid="control-button-playpause"]:hover>span {
+  box-shadow: inset 0 0 0 100px var(--spice-play-button-active) !important;
+  transform: scale(1.05);
+}
+
+/* dynamic button hovers */
+.vg-player-controls button:hover:not([data-testid="control-button-playpause"]),
+.vg-np-extra-controls button:hover {
+  filter: drop-shadow(0 0 4px var(--vg-icon-hover));
+  color: var(--vg-icon-hover) !important;
+}
+
+/* progress bar: absolute on top */
+.vg-playback-bar {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--vg-progress-gap) !important;
+  padding: 4px var(--vg-progress-pad-x) !important;
+  height: var(--vg-progress-height) !important;
+  z-index: 10 !important;
+  background: transparent !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--vg-divider) 67%, transparent) !important;
+  border-radius: var(--vg-radius-sm) var(--vg-radius-sm) 0 0 !important;
+}
+
+.vg-playback-bar>div:not(.vg-playback-progress) {
+  color: var(--spice-subtext) !important;
+  font-size: 11px !important;
+  min-width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.vg-playback-progress {
+  flex: 1 !important;
+}
+
+/* progress bar override */
+.vg-playback-bar .vg-progress-bar,
+.vg-progressbar-interactive .vg-progress-bar:hover,
+.vg-progressbar-interactive .vg-progressbar-dragging,
+.vg-x-progressbar-slider {
+  --fg-color: var(--spice-progress-fg) !important;
+}
+
+.vg-progress-bar-bg,
+.vg-x-progressbar-bg {
+  /* no opacity: fill is a child, opacity cascades. Use rgba var instead. */
+  background-color: var(--spice-progress-bg-alpha) !important;
+}
+
+/* bar-bg fix: Encore seekbar bg (empty portion of both playback + volume) */
+.x-progressBar-sliderArea,
+[data-testid="progress-bar"]>div:first-child,
+[data-testid="playback-progressbar"]>div:first-child {
+  background-color: var(--spice-bar-bg, var(--spice-progress-bg-alpha)) !important;
+}
+
+/* bar-bg fix: volume bar bg */
+[data-testid="volume-bar"] .x-progressBar-sliderArea {
+  background-color: var(--spice-bar-bg, var(--spice-progress-bg-alpha)) !important;
+}
+
+/* bar-bg fix: override Encore essential-subdued for seekbar empty */
+.playback-bar [data-encore-id="slider"]>div:first-child,
+.volume-bar [data-encore-id="slider"]>div:first-child {
+  background-color: var(--spice-bar-bg, var(--spice-progress-bg-alpha)) !important;
+}
+
+/* heart fix: only paint red when actually liked (aria-checked=true) */
+button[aria-checked="true"][data-testid="add-button"] svg,
+button[aria-checked="true"][aria-label*="Save"] svg,
+button[aria-checked="true"][aria-label*="Like"] svg,
+button[aria-checked="true"][data-testid="add-button"] path {
+  fill: var(--spice-heart, var(--spice-accent)) !important;
+}
+
+/* play-btn-hover: --spice-play-button-active is written with it (COLOR_KEYS spice alias) */
+
+/* progress bar fill: correct Encore var */
+.x-progressBar-fillColor {
+  background-color: var(--spice-bar-fill, var(--spice-progress-fg)) !important;
+}
+
+/* extra controls */
+.vg-np-extra-controls button {
+  opacity: 0.7;
+  transition: opacity var(--vg-transition) !important;
+}
+
+.vg-np-extra-controls button:hover {
+  opacity: 1;
+}
+
+.vg-now-playing-bar-container {
+  border-top: none !important;
+}
+
+/* volume bar: wider */
+[data-testid="volume-bar"],
+.vg-volume-bar {
+  min-width: 250px !important;
+  width: 250px !important;
+}
+
+/* responsive */
+@media (max-width: 768px) {
+  .vg-playback-bar {
+    padding: 4px 8px !important;
+    gap: 4px !important;
+  }
+
+  .vg-playback-bar>div:not(.vg-playback-progress) {
+    min-width: 30px;
+    font-size: 10px !important;
+  }
+
+  .vg-np-bar {
+    padding: 0 4px !important;
+  }
+
+  .vg-np-left {
+    min-width: 0 !important;
+    flex: 0 1 auto !important;
+  }
+
+  .vg-np-right {
+    min-width: 0 !important;
+    flex: 0 1 auto !important;
+  }
+}
+
+@keyframes vg-vinyl-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* progress bar hover: theme accent (not hardcoded green) */
+.x-progressBar-sliderArea:hover .x-progressBar-fillColor,
+.vg-progressbar-interactive:hover .x-progressBar-fillColor,
+[data-testid="progress-bar"]:hover .x-progressBar-fillColor {
+  background-color: var(--spice-progress-fg) !important;
+}
+
+.x-progressBar-sliderArea:hover+.progress-bar__slider,
+[data-testid="progress-bar"]:hover .progress-bar__slider {
+  background-color: var(--spice-progress-fg) !important;
+}
+
+/* bg-active */
+
+/* now-playing-bar glass */
+.vg-bg-active .Root__now-playing-bar,
+.vg-bg-active .vg-now-playing-bar {
+  --vg-glass-tint: var(--vg-glass-player);
+  background: transparent !important;
+  clip-path: inset(-1px 0 0 0); /* keeps the top shine line, clips the glass bleed */
+  border-top: 1px solid color-mix(in srgb, var(--vg-glass-edge) 75%, transparent) !important;
+  box-shadow:
+    0 -4px 16px color-mix(in srgb, var(--spice-shadow) 30%, transparent),
+    0 0 24px color-mix(in srgb, var(--vg-glass-edge) 75%, transparent),
+    inset 0 1px 0 var(--vg-glass-edge) !important;
+}
+
+/* fix: container curves align with transparent bg */
+.vg-bg-active .vg-now-playing-bar-container,
+.vg-bg-active .Root__now-playing-bar footer,
+.vg-bg-active .Root__now-playing-bar>div {
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* fix: next-track widget transparent bg + aligned radius */
+.vg-bg-active [data-testid="now-playing-bar"],
+.vg-bg-active .vg-np-container {
+  border-radius: 0 !important;
+}
+
+/* next-track card: strip curves, match playing-bar glass */
+.vg-bg-active .vg-next-track-card {
+  background: color-mix(in srgb, var(--vg-glass-player) 88%, transparent) !important;
+  backdrop-filter: blur(16px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+  border-color: var(--vg-glass-edge) !important;
+}
+
+/* drop curves: can't form one box */
+.vg-bg-active .vg-next-track-card::before,
+.vg-bg-active .vg-next-track-card::after {
+  display: none !important;
+}
+
+
+/* 7. LYRICS */
+
+.vg-lyrics-container {
+  background: transparent !important;
+}
+
+.vg-lyrics-highlight {
+  color: var(--spice-accent) !important;
+}
+
+
+/* 8. CONTEXT MENU */
+
+.vg-context-menu {
+  background: var(--spice-card) !important;
+  border: 1px solid var(--vg-divider) !important;
+  border-radius: var(--vg-radius-md) !important;
+}
+
+.vg-context-menu-item {
+  border-radius: var(--vg-radius-sm) !important;
+}
+
+.vg-context-menu-item:hover {
+  background: var(--vg-row-hover) !important;
+}
+
+/* menu text + icons: Menu Text colour (follows Text until changed) */
+[data-testid="context-menu"] *,
+.main-contextMenu-container *,
+[class*="context-menu"] li,
+[class*="context-menu"] a,
+[class*="context-menu"] span,
+[class*="context-menu"] button {
+  color: var(--vg-menu-text) !important;
+}
+
+[data-testid="context-menu"] svg,
+.main-contextMenu-container svg,
+[class*="context-menu"] svg {
+  fill: var(--vg-menu-text) !important;
+  color: var(--vg-menu-text) !important;
+}
+
+
+/* big cards (More like ..., Made for you): hover reveal locked open.
+   Spotify animates the footer height for 0.4s (layout every frame), fades the
+   button row and gradient in, and zooms the cover images over 5s on hover.
+   Class comes from theme.js VG_CLASS_MAP. */
+.vg-big-card > footer {
+  height: calc(var(--footer-height, 5rem) + 8px + 48px) !important;
+  will-change: auto !important;
+}
+
+.vg-big-card > footer > div:last-child {
+  opacity: 1 !important;
+}
+
+.vg-big-card > footer > div:first-child {
+  will-change: auto !important;
+}
+
+.vg-big-card img {
+  scale: 1 !important;
+}
+
+.vg-big-card,
+.vg-big-card * {
+  transition: none !important;
+}
+
+
+/* 9. SNIPPETS & MISC */
+
+/* Encore design system overrides */
+
+/* Encore internal color fix: .encore-internal-color-text-subdued computes
+   its colour internally and skips --text-subdued, so the player and topbar
+   buttons carrying that class get `color` forced to the Icons colour. */
+
+/* player bar extra controls (volume/connect/queue) */
+.Root__now-playing-bar .encore-internal-color-text-subdued,
+.Root__now-playing-bar [class*="encore-internal-color-text-subdued"],
+.vg-np-extra-controls .encore-internal-color-text-subdued,
+.vg-np-extra-controls [class*="encore-internal-color-text-subdued"],
+footer .encore-internal-color-text-subdued,
+footer [class*="encore-internal-color-text-subdued"] {
+  color: var(--vg-icon) !important;
+}
+
+/* player extra control SVGs (mask-image inherits color) */
+.Root__now-playing-bar .encore-internal-color-text-subdued svg,
+.vg-np-extra-controls .encore-internal-color-text-subdued svg,
+footer .encore-internal-color-text-subdued svg {
+  color: inherit !important;
+}
+
+/* player center controls (shuffle/prev/next/repeat) */
+.player-controls__buttons .encore-internal-color-text-subdued,
+.vg-player-controls .encore-internal-color-text-subdued,
+[data-testid="player-controls"] .encore-internal-color-text-subdued {
+  color: var(--vg-icon) !important;
+}
+
+.player-controls__buttons .encore-internal-color-text-subdued svg,
+.vg-player-controls .encore-internal-color-text-subdued svg,
+[data-testid="player-controls"] .encore-internal-color-text-subdued svg {
+  color: inherit !important;
+}
+
+/* topbar home icon (Encore internal class blocks theme color) */
+.Root__globalNav .encore-internal-color-text-subdued,
+.Root__top-bar .encore-internal-color-text-subdued,
+.Root__globalNav [class*="encore-internal-color-text-subdued"],
+.Root__top-bar [class*="encore-internal-color-text-subdued"] {
+  color: var(--vg-icon) !important;
+}
+
+.Root__globalNav .encore-internal-color-text-subdued svg,
+.Root__top-bar .encore-internal-color-text-subdued svg {
+  color: inherit !important;
+}
+
+/* home icon active needs text (not subdued) */
+[aria-label="Home"][class*="encore-internal-color-text-base"],
+a[href="/"] [class*="encore-internal-color-text-base"] {
+  color: var(--spice-text) !important;
+}
+
+[aria-label="Home"][class*="encore-internal-color-text-base"] svg,
+a[href="/"] [class*="encore-internal-color-text-base"] svg {
+  color: inherit !important;
+}
+
+/* dividers */
+.vg-rootlist-divider {
+  display: none !important;
+}
+
+/* Encore: override token source colors */
+.encore-dark-theme .encore-bright-accent-set,
+.encore-dark-theme .encore-bright-accent-set:hover {
+  --background-base: var(--spice-play-button) !important;
+  --background-highlight: var(--spice-play-button-active) !important;
+  --background-press: var(--spice-play-button-active) !important;
+  --text-base: var(--vg-play-icon) !important;
+  --text-subdued: var(--vg-play-icon) !important;
+}
+
+.encore-dark-theme .encore-inverted-light-set,
+.encore-dark-theme .encore-inverted-light-set:hover {
+  --background-base: var(--spice-text) !important;
+  --background-highlight: var(--spice-text) !important;
+  --background-press: var(--spice-subtext) !important;
+}
+
+/* rounded images snippet */
+.vg-nav-third {
+  margin: 0 0 0 1px;
+  border-radius: 6px;
+}
+
+.vg-cover-art-image,
+.vg-artist-overview-image,
+.vg-home-shortcut-image {
+  border-radius: 4px;
+}
+
+.vg-entity-header-shadow,
+.vg-category-card-image,
+.vg-entity-image-circle,
+.vg-main-image,
+.vg-card-image,
+.vg-card-image-wrap,
+.vg-entity-image-placeholder>div,
+.vg-artist-overview-section {
+  border-radius: 6px;
+}
+
+.vg-card-image-circular,
+.vg-entity-image-placeholder,
+.vg-entity-header-circle {
+  border-radius: 50% !important;
+}
+
+.vg-track-row-image {
+  border-radius: 3px;
+}
+
+.vg-home-shortcut-image,
+.vg-home-shortcut-image-wrapper {
+  border-radius: 4px !important;
+}
+
+.vg-special-rounded {
+  border-radius: 20% !important;
+}
+
+
+/* 10. LAYOUT - equal gaps via flex gap */
+
+.vg-root {
+  padding: 8px !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+}
+
+/* outer wrapper radius + overflow (inner divs own margin) */
+.vg-nav,
+#Desktop_LeftSidebar_Id,
+[data-testid="left-sidebar"] {
+  border-radius: var(--vg-radius-md) !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+}
+
+.vg-main,
+[data-testid="main-view"],
+.Root__main-view {
+  border-radius: var(--vg-radius-md) !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+}
+
+.vg-right,
+[data-testid="right-sidebar"],
+.Root__right-sidebar {
+  border-radius: var(--vg-radius-md) !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+  contain: layout style !important;
+}
+
+/* player bar */
+.vg-now-playing {
+  border-radius: 0 0 var(--vg-radius-sm) var(--vg-radius-sm) !important;
+}
+
+.vg-np-container {
+  border-radius: var(--vg-radius-md) var(--vg-radius-md) var(--vg-radius-sm) var(--vg-radius-sm) !important;
+}
+
+
+/* 11. COLORIST - 60-30-10 elevation + typography */
+
+/* typographic hierarchy: text vs subtext enforcement */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.main-entityHeader-title,
+.main-shelf-title,
+.main-type-alto {
+  color: var(--spice-text) !important;
+}
+
+.main-trackInfo-artists,
+.main-type-mesto,
+.main-trackList-rowSubTitle {
+  color: var(--spice-subtext) !important;
+}
+
+
+/* 12. WCAG keyboard focus (visible only on tab; mouse unaffected) */
+
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--spice-accent);
+  outline-offset: 2px;
+  border-radius: var(--vg-radius-sm, 4px);
+}
+
+/* toggle switch focus */
+input:focus-visible~.x-toggle-indicatorWrapper {
+  outline: 2px solid var(--spice-accent);
+  outline-offset: 2px;
+}
+
+
+/* 13. HOVER micro-animations - 0.15s ease, no layout shift.
+   layers: translateY (buttons), translateX (nav), scale (heart/play), shadow (cards) */
+
+/* player controls: lift */
+.player-controls__buttons button,
+.vg-player-controls button:not([data-testid="control-button-playpause"]) {
+  transition: transform 0.15s ease, filter 0.15s ease, color 0.15s ease;
+}
+
+.player-controls__buttons button:hover,
+.vg-player-controls button:not([data-testid="control-button-playpause"]):hover {
+  transform: translateY(-1px);
+}
+
+.player-controls__buttons button:active,
+.vg-player-controls button:not([data-testid="control-button-playpause"]):active {
+  transform: translateY(0);
+}
+
+/* play/pause: lift + scale */
+[data-testid="control-button-playpause"] {
+  transition: transform 0.15s ease;
+}
+
+[data-testid="control-button-playpause"]:hover {
+  transform: translateY(-1px) scale(1.04);
+}
+
+[data-testid="control-button-playpause"]:active {
+  transform: translateY(0) scale(1);
+}
+
+/* topbar buttons: lift */
+.Root__globalNav button,
+.Root__top-bar button,
+.main-topBar-button {
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.Root__globalNav button:hover,
+.Root__top-bar button:hover,
+.main-topBar-button:hover {
+  transform: translateY(-1px);
+}
+
+.Root__globalNav button:active,
+.Root__top-bar button:active,
+.main-topBar-button:active {
+  transform: translateY(0);
+}
+
+/* sidebar nav: slide right */
+.main-navBar-navBar a,
+[class*="NavLink"],
+.main-yourLibraryX-navLink {
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.main-navBar-navBar a:hover,
+[class*="NavLink"]:hover,
+.main-yourLibraryX-navLink:hover {
+  transform: translateX(3px);
+}
+
+/* cards: lift + shadow */
+[data-testid="card"],
+.main-card-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-testid="card"]:hover,
+.main-card-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--spice-shadow) 25%, transparent);
+}
+
+[data-testid="card"]:active,
+.main-card-card:active {
+  transform: translateY(-1px);
+}
+
+/* heart/like: pulse */
+[data-testid="add-button"],
+button[aria-label*="Save"],
+button[aria-label*="Like"],
+button[aria-label*="Kaydet"],
+button[aria-label*="Beğen"] {
+  transition: transform 0.15s ease;
+}
+
+[data-testid="add-button"]:hover,
+button[aria-label*="Save"]:hover,
+button[aria-label*="Like"]:hover,
+button[aria-label*="Kaydet"]:hover,
+button[aria-label*="Beğen"]:hover {
+  transform: scale(1.18);
+}
+
+[data-testid="add-button"]:active,
+button[aria-label*="Save"]:active,
+button[aria-label*="Like"]:active {
+  transform: scale(0.92);
+}
+
+/* playlist chips: lift */
+.main-genericButton-button {
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.main-genericButton-button:hover {
+  transform: translateY(-1px);
+}
+
+.main-genericButton-button:active {
+  transform: translateY(0);
+}
+
+/* extra controls (volume/queue): lift */
+.main-nowPlayingBar-right button,
+.vg-np-extra-controls button {
+  transition: transform 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
+}
+
+.main-nowPlayingBar-right button:hover,
+.vg-np-extra-controls button:hover {
+  transform: translateY(-1px);
+}
+
+/* volume/progress slider thumb: scale */
+.progress-bar [role="slider"],
+[data-testid="progress-bar"] [role="slider"],
+[data-testid="volume-bar"] [role="slider"] {
+  transition: transform 0.12s ease;
+}
+
+.progress-bar [role="slider"]:hover,
+[data-testid="progress-bar"] [role="slider"]:hover,
+[data-testid="volume-bar"] [role="slider"]:hover {
+  transform: scale(1.25);
+}

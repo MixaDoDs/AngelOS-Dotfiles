@@ -47,7 +47,11 @@ EXTRAS = [
     ".config/niri/cfg/rules.kdl", ".config/niri/noctalia.kdl", ".config/niri/angelos.kdl",
     ".config/kitty/kitty.conf", ".config/foot/foot.ini", ".config/alacritty/alacritty.toml",
     ".config/gtk-3.0/gtk.css", ".config/gtk-4.0/gtk.css",
+    # the user's own layer, made by the installer once (install.sh user_layer)
+    ".config/niri/cfg/user.kdl", ".config/fish/user.fish",
 ]
+# the installer's state besides the manifest: new versions it parked, the bases of its merges
+STATE_DIRS = ("kept-updates", "key-profile-bases")
 TEMPLATES = ".config/quickshell/angelos/templates/templates.json"
 ABSENT = {"kind": "absent"}
 
@@ -168,7 +172,8 @@ def candidates(home, state, repo, revs):
             pass
     paths.update(os.path.join(home, rel) for rel in EXTRAS)
     paths.add(os.path.join(state, MANIFEST))
-    paths.update(walk(os.path.join(state, "kept-updates")))
+    for sub in STATE_DIRS:
+        paths.update(walk(os.path.join(state, sub)))
     return paths
 
 
@@ -239,7 +244,8 @@ def cmd_finish(a):
         bak = f"{p}.bak.{meta['stamp']}"
         if os.path.lexists(bak):
             paths.add(bak)
-    paths.update(walk(os.path.join(meta["state"], "kept-updates")))
+    for sub in STATE_DIRS:
+        paths.update(walk(os.path.join(meta["state"], sub)))
     after = {p: state_of(p) for p in sorted(paths)}
     write_json(d / "after.json", {"version": VERSION, "entries": after})
     man = Path(meta["state"], MANIFEST)
@@ -321,8 +327,9 @@ def cmd_restore(a):
         # that differs from the snapshot now counts as its change
         say("обновление прервалось и не записало, что изменило — возвращаю всё к снимку")
         after = {p: state_of(p) for p in before["entries"]}
-        for p in walk(os.path.join(state, "kept-updates")):
-            after.setdefault(p, state_of(p))
+        for sub in STATE_DIRS:
+            for p in walk(os.path.join(state, sub)):
+                after.setdefault(p, state_of(p))
     b_entries = before["entries"]
     changed = sorted(p for p in set(b_entries) | set(after)
                      if p != man_path and b_entries.get(p, ABSENT) != after.get(p, ABSENT))

@@ -1,0 +1,24 @@
+// Vantagraph Custom
+spicetify config inject_css 1 replace_colors 1 overwrite_assets 1 inject_theme_js 1
+spicetify config current_theme vantagraph-custom
+spicetify config extensions vantagraph-custom-settings.js
+spicetify config extensions vantagraph-custom-volume-plus.js
+spicetify config extensions vantagraph-custom-lyric-miniplayer.js
+spicetify config extensions vantagraph-custom-loopyloop.js
+spicetify apply
+
+// Optional
+spicetify config extensions vantagraph-custom-taskbarplayer.js
+spicetify config extensions vantagraph-custom-debug.js
+spicetify apply
+
+// Default
+spicetify config inject_css 0 replace_colors 0 overwrite_assets 0 inject_theme_js 0
+spicetify config current_theme marketplace
+spicetify config extensions vantagraph-custom-settings.js-
+spicetify config extensions vantagraph-custom-volume-plus.js-
+spicetify config extensions vantagraph-custom-lyric-miniplayer.js-
+spicetify config extensions vantagraph-custom-loopyloop.js-
+spicetify config extensions vantagraph-custom-taskbarplayer.js-
+spicetify config extensions vantagraph-custom-debug.js-
+spicetify apply

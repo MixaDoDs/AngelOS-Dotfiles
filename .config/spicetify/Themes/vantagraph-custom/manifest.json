@@ -1,0 +1,39 @@
+[
+  {
+    "name": "Vantagraph Custom",
+    "description": "The lite, do-it-yourself Vantagraph: every colour in Spotify is yours to set from an in-app editor (HEX, RGB, RGBA, HSL, opacity, eyedropper, undo, palette sharing). Settings panel, PiP lyric karaoke, taskbar player, scroll-wheel volume and per-track loop included. No custom icon set.",
+    "preview": "design/screenshots/preview.gif",
+    "readme": "README.md",
+    "usercss": "user.css",
+    "schemes": "color.ini",
+    "branch": "main",
+    "include": [
+      "https://raw.githubusercontent.com/Miabeyefendi/Vantagraph-Custom/main/theme.js",
+      "https://raw.githubusercontent.com/Miabeyefendi/Vantagraph-Custom/main/Extensions/vantagraph-custom-settings.js",
+      "https://raw.githubusercontent.com/Miabeyefendi/Vantagraph-Custom/main/Extensions/vantagraph-custom-volume-plus.js",
+      "https://raw.githubusercontent.com/Miabeyefendi/Vantagraph-Custom/main/Extensions/vantagraph-custom-lyric-miniplayer.js",
+      "https://raw.githubusercontent.com/Miabeyefendi/Vantagraph-Custom/main/Extensions/vantagraph-custom-loopyloop.js",
+      "https://raw.githubusercontent.com/Miabeyefendi/Vantagraph-Custom/main/Extensions/vantagraph-custom-taskbarplayer.js"
+    ],
+    "authors": [
+      {
+        "name": "Miabeyefendi",
+        "url": "https://github.com/Miabeyefendi"
+      }
+    ],
+    "tags": [
+      "dark",
+      "light",
+      "custom-colors",
+      "color-editor",
+      "lite",
+      "modular",
+      "lyrics",
+      "miniplayer",
+      "taskbar",
+      "settings-panel",
+      "loop",
+      "volume"
+    ]
+  }
+]

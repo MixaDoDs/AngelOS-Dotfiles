@@ -403,9 +403,15 @@ What it asks (English, or Russian when your locale is `ru_*`):
 9. **Keyboard** — tick your layouts, pick the one active after login and the switch shortcut.
 
 Then it installs, with a backup of everything it replaces (`name.bak.YYYYMMDD-HHMMSS`), validates niri's config and
-says what is next. Re-running is safe: unchanged files stay, files you (or angelOS's settings) changed are kept and
-their new versions are parked in `~/.local/state/angelos/kept-updates/`. On the first login angelOS opens its setup
-wizard — without the questions the installer already asked.
+says what is next. Re-running is safe. The author's setup is the base and yours goes on top: a config you never
+changed follows the author on every update; one you (or angelOS's settings) changed gets the author's changes merged
+in, and where you both changed the same lines yours stay (the old file is next to it as `*.bak.<date>`). Shortcuts
+merge the same way, key by key. Files angelOS generates (theme colours, fastfetch's style…) stay yours, their new
+versions parked in `~/.local/state/angelos/kept-updates/`. Lines of your own can also go in `~/.config/fish/user.fish`
+and `~/.config/niri/cfg/user.kdl` — read last, never touched. angelOS's own settings are always yours. After an
+update angelOS offers the apps the author added to the groups you took (and fish, if you are still on bash) — it
+never installs or removes anything by itself. On the first login angelOS opens its setup wizard — without the
+questions the installer already asked.
 
 ### Unattended
 
@@ -414,7 +420,7 @@ Every question has a variable, so it also runs with no terminal at all (`./insta
 ```bash
 DOTFILES_MODE=full DESKTOP_SHELL=angelos ANGELOS_THEME=macos MAC_KEYS=1 \
 KB_LAYOUTS="us ru" KB_TOGGLE=alt_shift WALLPAPER_PACKS=Pixel \
-FISH_DEFAULT=1 INSTALL_APPS=1 APPS=helium,telegram,discord \
+FISH_DEFAULT=1 INSTALL_APPS=1 APPS=games,chat,helium \
 INSTALL_VOXTYPE=0 INSTALL_SDDM=1 ./install.sh
 ```
 
@@ -426,7 +432,7 @@ INSTALL_VOXTYPE=0 INSTALL_SDDM=1 ./install.sh
 | `MAC_KEYS` | `1` \| `0` | the ⌘ keys with the macOS look |
 | `ANGELOS_GAME` | `1` \| `0` | the game |
 | `FISH_DEFAULT` | `1` \| `0` | fish as the login shell (an installed fish is left alone unless `1` is given) |
-| `INSTALL_APPS`, `APPS` | `0`/`1`, `all` \| `helium,telegram,…` | the apps from the screenshots (unattended default: none) |
+| `INSTALL_APPS`, `APPS` | `0`/`1`, `all` \| groups (`games,media,chat,browsers,music,graphics,dev,utils,extra`) \| apps (`helium,telegram,…`) | the author's apps ([`apps-catalog.json`](.config/quickshell/angelos/data/apps-catalog.json); `all` = as the author has it; unattended default: none) |
 | `WALLPAPER_PACKS` | `all` \| `none` \| `Lain,Pixel,…` | wallpaper packs |
 | `KB_LAYOUTS`, `KB_TOGGLE` | `us,ru`, `alt_shift` \| `ctrl_shift` \| `caps` \| `ralt` \| `lalt` \| `grp:…` | keyboard |
 | `INSTALL_VOXTYPE`, `DOWNLOAD_VOXTYPE_MODEL` | `1` \| `0` | voice input |
@@ -500,7 +506,7 @@ session switchers.
 .local/bin/                  helper tools
 .local/share/                the pixora icon theme and pixel fonts
 Pictures/                    the default wallpapers (the packs live in PixelStreetArt_Wallpapers)
-packages/                    pacman.txt, angelos.txt, sddm.txt, tools.txt, fish.txt, nvim.txt, apps*.txt, flatpak-apps.txt
+packages/                    pacman.txt, angelos.txt, sddm.txt, tools.txt, fish.txt, nvim.txt (the apps: data/apps-catalog.json)
 installer/tui.sh             the installer's face: gum menus, pixel frames, hearts, the stream chat
 install.sh                   the installer: asks everything, backs up, Arch Linux / CachyOS only
 scripts/check.sh             repository check, with end-to-end installer tests

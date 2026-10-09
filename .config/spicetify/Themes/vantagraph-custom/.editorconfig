@@ -1,0 +1,94 @@
+# ==============================================================================
+# Miabeyefendi - Universal .editorconfig Template
+# https://github.com/Miabeyefendi
+# EditorConfig keeps indentation and line endings consistent across editors.
+# Docs: https://EditorConfig.org   |   Most editors support it natively or via a plugin.
+# ==============================================================================
+
+# Stop searching for .editorconfig files in parent directories.
+root = true
+
+# ------------------------------------------------------------------------------
+# Baseline for every file
+# ------------------------------------------------------------------------------
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 100
+
+# ------------------------------------------------------------------------------
+# Markdown: trailing whitespace can be a hard line break, so keep it.
+# Long prose lines are fine, so do not enforce a max length.
+# ------------------------------------------------------------------------------
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# ------------------------------------------------------------------------------
+# Web / config languages: 2-space indentation is the common convention.
+# ------------------------------------------------------------------------------
+[*.{js,jsx,ts,tsx,mjs,cjs,vue,svelte,json,jsonc,json5,html,htm,css,scss,sass,less,yml,yaml,toml}]
+indent_size = 2
+
+# ------------------------------------------------------------------------------
+# Python: 4 spaces (PEP 8) and a slightly longer line budget.
+# ------------------------------------------------------------------------------
+[*.py]
+indent_size = 4
+max_line_length = 88
+
+# ------------------------------------------------------------------------------
+# C# / .NET: 4 spaces (Microsoft convention).
+# ------------------------------------------------------------------------------
+[*.cs]
+indent_size = 4
+
+# ------------------------------------------------------------------------------
+# C / C++ / Rust / Java / Kotlin: 4 spaces.
+# ------------------------------------------------------------------------------
+[*.{c,h,cpp,hpp,rs,java,kt}]
+indent_size = 4
+
+# ------------------------------------------------------------------------------
+# Go: official style uses real tabs, not spaces.
+# ------------------------------------------------------------------------------
+[*.go]
+indent_style = tab
+indent_size = 4
+
+# ------------------------------------------------------------------------------
+# Makefiles REQUIRE tabs - spaces will break the build.
+# ------------------------------------------------------------------------------
+[Makefile]
+indent_style = tab
+
+[*.{mk,mak}]
+indent_style = tab
+
+# ------------------------------------------------------------------------------
+# Shell scripts: 2 spaces, LF (Unix only).
+# ------------------------------------------------------------------------------
+[*.{sh,bash,zsh}]
+indent_size = 2
+end_of_line = lf
+
+# ------------------------------------------------------------------------------
+# Windows batch / PowerShell scripts: keep CRLF line endings.
+# ------------------------------------------------------------------------------
+[*.{bat,cmd,ps1,psm1}]
+end_of_line = crlf
+
+# ------------------------------------------------------------------------------
+# Do not touch generated or vendored files.
+# ------------------------------------------------------------------------------
+[*.min.*]
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+[{package.json,*.lock,package-lock.json,yarn.lock,pnpm-lock.yaml}]
+indent_size = 2
+insert_final_newline = false

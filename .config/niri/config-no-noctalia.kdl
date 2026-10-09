@@ -11,3 +11,6 @@ include "./cfg/privacy-block.kdl"
 include "./cfg/misc.kdl"
 
 include "./cfg/game-mode.kdl"
+
+// yours, read last (its binds and rules win over the ones above); updates never touch it
+include optional=true "./cfg/user.kdl"

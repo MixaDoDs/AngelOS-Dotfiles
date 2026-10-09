@@ -1,2 +1,0 @@
-# The author's apps from Flathub (installed per user): Discord, as the Dock knows it.
-com.discordapp.Discord

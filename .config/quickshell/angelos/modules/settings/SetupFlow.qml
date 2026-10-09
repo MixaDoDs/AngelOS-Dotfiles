@@ -161,6 +161,7 @@ Scope {
     // ---- the apps (data/apps-catalog.json, scripts/apps-install.py) ----
     property var catalog: ({
             "apps": [],
+            "groups": [],
             "personas": [],
             "browsers": []
         })
@@ -173,7 +174,30 @@ Scope {
             try {
                 root.catalog = JSON.parse(text());
             } catch (e) {}
+            root.seedApps();
         }
+    }
+    // what the installer's menu picked (scripts/apps-install.py remembers it)
+    property var installerPick: null
+    FileView {
+        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/angelos/apps.json"
+        printErrors: false
+        onLoaded: {
+            try {
+                root.installerPick = JSON.parse(text()).apps || [];
+            } catch (e) {}
+            root.seedApps();
+        }
+    }
+    // nothing picked yet: the installer's pick, else «Как у автора» (everything the author has)
+    function seedApps() {
+        if (Config.setup.persona || (Config.setup.apps || []).length || !catalog.groups.length)
+            return;
+        if (installerPick && installerPick.length) {
+            Config.setup.apps = installerPick.slice();
+            return;
+        }
+        pickPersona("author");
     }
     Process {
         id: appProbe
@@ -186,12 +210,30 @@ Scope {
             }
         }
     }
-    // a persona ticks its apps (and keeps the browser the user picked, Helium by default)
+    function groupApps(gid) {
+        const g = (catalog.groups || []).find(x => x.id === gid);
+        return g ? g.apps : [];
+    }
+    // all of a group on or off
+    function toggleGroup(gid, on) {
+        const ids = groupApps(gid);
+        const rest = (Config.setup.apps || []).filter(a => !ids.includes(a));
+        Config.setup.apps = on ? rest.concat(ids) : rest;
+    }
+    // a persona ticks its apps (and keeps the browser the user picked, Helium by default);
+    // one with groups («Как у автора») ticks whole groups
     function pickPersona(id) {
         const p = catalog.personas.find(x => x.id === id);
         Config.setup.persona = id;
         if (!p)
             return;
+        if (p.groups) {
+            let ids = [];
+            for (const g of p.groups)
+                ids = ids.concat(groupApps(g));
+            Config.setup.apps = ids;
+            return;
+        }
         const browsers = (Config.setup.apps || []).filter(a => catalog.browsers.includes(a));
         Config.setup.apps = (browsers.length ? browsers : ["helium"]).concat(p.apps.filter(a => !catalog.browsers.includes(a)));
     }
@@ -203,9 +245,15 @@ Scope {
     readonly property var appsToInstall: (Config.setup.apps || []).filter(a => !(appStatus[a] || {}).installed && (!appsChecked || (appStatus[a] || {}).via))
     function installApps() {
         const ids = appsToInstall;
-        if (ids.length === 0 || Shell.dev || Quickshell.env("ANGELOS_TEST") === "1")
+        if (Shell.dev || Quickshell.env("ANGELOS_TEST") === "1")
             return;
-        Shell.exec(Shell.terminalArgv(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "install"].concat(ids), "angelos-apps"));
+        // the pick is remembered either way (install remembers all it is given, skips what is
+        // there): updates bring what the author adds to its groups
+        if (ids.length === 0) {
+            Quickshell.execDetached(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "pick"].concat(Config.setup.apps || []));
+            return;
+        }
+        Shell.exec(Shell.terminalArgv(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "install"].concat(Config.setup.apps || []), "angelos-apps"));
     }
 
     readonly property var steps: stepList.filter(s => s.when === undefined || s.when)
