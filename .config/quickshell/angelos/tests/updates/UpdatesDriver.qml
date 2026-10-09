@@ -160,6 +160,27 @@ Scope {
                 // the same commit again after a failed attempt: that one may have half-installed
                 report("retry-offers-restart", Updates.lastRun === "ok" && Updates.needsRestart && Updates.askRestart, state());
             }
+        },
+        {
+            "name": "system-fails",
+            "run": () => {
+                Updates.needsRestart = false;
+                Updates.askRestart = false;
+                Updates.update();
+            },
+            "check": () => {
+                // pacman -Syu stopped before the snapshot: angelOS untouched, nothing to restore
+                report("system-fails-state", Updates.lastRun === "failed" && Updates.failedStage === "system" && Updates.failure.indexOf("conflicting files") >= 0 && Updates.systemPackages === -1 && !Updates.needsRestart, state());
+                report("page-system-fails-next", shownText(Updates.nextStep("system").slice(0, 40)));
+            }
+        },
+        {
+            "name": "update-qt",
+            "run": () => Updates.update(),
+            "check": () => {
+                // nothing new in angelOS, but Qt moved under the running shell: restart it
+                report("system-qt-restart", Updates.lastRun === "ok" && Updates.systemPackages === 5 && Updates.needsRestart && Updates.askRestart, state());
+            }
         }
     ]
 

@@ -104,12 +104,23 @@ case "$step" in
     echo "UPDATED ccc ccc 0"
     printf 'LAST ok done %s ccc ccc\n' "$HOME/.local/state/angelos/backups/20991231-235959-update" >"$S/last"
     exit 0 ;;
+  system-fails)
+    echo "» сначала обновляю систему (pacman -Syu) — попросит пароль администратора"
+    echo "error: failed to commit transaction (conflicting files)"
+    echo "FAILED system обновление системы (pacman -Syu) остановилось: failed to commit transaction (conflicting files). angelOS не обновлялся"
+    exit 8 ;;
+  update-qt)
+    echo "SYSTEM 5 1"
+    echo "BACKUP $HOME/.local/state/angelos/backups/20260101-140000-update"
+    echo "UPDATED ccc ccc 0"
+    printf 'LAST ok done %s ccc ccc\n' "$HOME/.local/state/angelos/backups/20260101-140000-update" >"$S/last"
+    exit 0 ;;
 esac
 echo "unexpected run: $*"
 exit 99
 SH
 chmod +x "$T/root/scripts/dotfiles-update.sh"
-printf '%s\n' dirty install-fails claims-then-fails restore-fails restore-ok update-ok local-commits install-dies update-same >"$H/stub/plan"
+printf '%s\n' dirty install-fails claims-then-fails restore-fails restore-ok update-ok local-commits install-dies update-same system-fails update-qt >"$H/stub/plan"
 # quiet, offline settings (as test-ui.sh)
 cat >"$H/.config/angelos/settings.json" <<'JSON'
 {"setup": {"complete": true}, "stream": {"auto": false}, "y2k": {"sounds": false, "helper": false, "boot": false},
