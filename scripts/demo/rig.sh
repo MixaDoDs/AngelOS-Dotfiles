@@ -68,21 +68,71 @@ seed_home() { # home theme palette
     "$h/.config/quickshell/angelos/modules/polkit/PolkitDialog.qml"
   grep -q 'ANGELOS_DEMO' "$h/.config/quickshell/angelos/modules/polkit/PolkitDialog.qml" ||
     die "could not switch off the stand's polkit agent (modules/polkit/PolkitDialog.qml changed?)"
-  # fastfetch in the frame: angel@angelos, and nothing about your machine that is yours — no
-  # board, no local IP, no gear list (scripts/gear.py), no disk
-  python3 - "$h/.config/fastfetch/config.jsonc" <<'PY'
-import json, re, sys
+  # Settings → About says «angelos», not the machine's hostname (/etc/hostname is the right
+  # source for everyone else)
+  # (the script sits in a JS template literal: no `${…}` in it)
+  sed -i 's#host=$(cat /etc/hostname 2>/dev/null || uname -n)#host=$([ -n "$HOSTNAME" ] \&\& echo "$HOSTNAME" || cat /etc/hostname 2>/dev/null || uname -n)#' \
+    "$h/.config/quickshell/angelos/services/SystemInfo.qml"
+  grep -q 'host=$(\[ -n "$HOSTNAME" \]' "$h/.config/quickshell/angelos/services/SystemInfo.qml" ||
+    die "could not hide the hostname in the stand (services/SystemInfo.qml changed?)"
+  # `angelos intro` in the stand plays at once: nothing can click its «continue?» question
+  python3 - "$h/.config/quickshell/angelos/modules/settings/SetupIntro.qml" <<'PY'
+import sys
 p = sys.argv[1]
-text = "\n".join(l for l in open(p).read().splitlines() if not l.lstrip().startswith("//"))
-d = json.loads(re.sub(r",(\s*[}\]])", r"\1", text))
-keep = []
-for m in d.get("modules", []):
-    kind = m if isinstance(m, str) else m.get("type")
-    if kind in ("host", "disk", "localip", "publicip", "command", "battery", "board", "bios", "users", "wifi"):
-        continue
-    keep.append({"type": "title", "format": "angel@angelos"} if kind == "title" else m)
-d["modules"] = keep
-json.dump(d, open(p, "w"), ensure_ascii=False, indent=2)
+s = open(p).read()
+old = 'askIn = 0;\n            phase = "ask";\n            askFade.restart();\n            return;'
+if old in s:
+    open(p, "w").write(s.replace(old, "go();\n            return;", 1))
+PY
+  # fastfetch in the frame: angelOS's own style (the shell writes it through
+  # scripts/fastfetch_style.py a moment after it starts, and again on every theme change), with
+  # nothing about your machine that is yours — angel@angelos, no board, no local IP, no disk, no
+  # gear list (scripts/gear.py: your keyboard, mouse and mic). The filter sits inside the stand's
+  # copy of the style script, so every config it writes goes through it and the «written by
+  # angelOS» mark stays (a config without the mark counts as the user's own and is left alone,
+  # and fastfetch then falls back to the distro's logo).
+  python3 - "$h/.config/quickshell/angelos/scripts/fastfetch_style.py" "$h/.config/fastfetch/config.jsonc" <<'PY'
+import json, re, sys
+script, conf = sys.argv[1], sys.argv[2]
+FILTER = '''
+# demo stand (scripts/demo/rig.sh): nothing of the machine's in the frame
+_write_real = write
+
+
+def _demo_filter(text):
+    lines = text.splitlines()
+    head = [l for l in lines if l.lstrip().startswith("//")]
+    body = "\\n".join(l for l in lines if not l.lstrip().startswith("//"))
+    d = json.loads(re.sub(r",(\\s*[}\\]])", r"\\1", body))
+    keep = []
+    for m in d.get("modules", []):
+        kind = m if isinstance(m, str) else m.get("type")
+        if kind in ("host", "disk", "localip", "publicip", "command", "battery", "board", "bios", "users", "wifi"):
+            continue
+        if kind == "custom" and re.search("супер|super", json.dumps(m, ensure_ascii=False), re.I):
+            continue                                    # the gear's header, without the gear
+        if isinstance(m, dict):
+            m = json.loads(json.dumps(m).replace("{user-name}", "angel").replace("{host-name}", "angelos"))
+        keep.append(m)
+    d["modules"] = keep
+    return "\\n".join(head) + "\\n" + json.dumps(d, ensure_ascii=False, indent=2) + "\\n"
+
+
+def write(path, text):
+    if Path(path) == CONFIG:
+        text = _demo_filter(text)
+    return _write_real(path, text)
+
+'''
+s = open(script).read()
+at = s.index('if __name__ == "__main__":')
+open(script, "w").write(s[:at] + FILTER + s[at:])
+# the shipped config too, until the shell writes its own (same filter, the mark kept)
+sys.path.insert(0, str(__import__("pathlib").Path(script).parent))
+import importlib.util
+spec = importlib.util.spec_from_file_location("ffs", script); ffs = importlib.util.module_from_spec(spec); spec.loader.exec_module(ffs)
+shipped = open(conf).read()
+open(conf, "w").write(ffs._demo_filter(shipped))
 PY
   # the stand's own wallpapers and the usual folders; the shipped pictures stay out of the frame
   mkdir -p "$h/Pictures" "$h/Desktop" "$h/Documents" "$h/Downloads" "$h/Music" "$h/Videos"
@@ -102,6 +152,8 @@ import json, os, sys
 path, palette, home = sys.argv[1], sys.argv[2], sys.argv[3]
 d = json.load(open(path)) if os.path.exists(path) else {}
 d.setdefault("setup", {})["complete"] = True          # no wizard, no tips: a desktop in use
+d["setup"]["introSeen"] = 99                           # the update's intro never asks here
+d.setdefault("wallpaper", {})["releaseSeen"] = 99      # no «new wallpapers» news in the frame
 y = d.setdefault("y2k", {}); y["raysSeen"] = True
 y["seenTips"] = ["wallpaper", "fonts", "sound", "cursor", "appearance", "widgets", "bar", "workspaces", "y2k",
                  "monitor", "shortcuts", "plugins", "updates", "lock", "capture", "lyrics", "deskmenu", "sfx",
@@ -111,6 +163,16 @@ d.setdefault("bar", {})["userName"] = "angel"
 a = d.setdefault("appearance", {}); a["mode"] = palette; a["language"] = os.environ.get("DEMO_LANG", "en")
 d.setdefault("wallpaper", {})["fallback"] = os.path.join(home, "Pictures", f"angelos-demo-{palette}.png")
 json.dump(d, open(path, "w"), ensure_ascii=False, indent=4)
+# the game's save: every achievement already earned, so no «achievement earned» toast pops into
+# a picture when the stand clicks something for the first time (the save fills the rest itself)
+import time
+ach = json.load(open(os.path.join(home, ".config/quickshell/angelos/story/achievements.json")))
+ach = ach if isinstance(ach, list) else ach.get("achievements", ach)
+now = int(time.time() * 1000) - 60000
+save = os.path.join(os.path.dirname(path), "save.json")
+s = json.load(open(save)) if os.path.exists(save) else {}
+s.setdefault("achievements", {})["got"] = {a["id"]: now for a in ach if isinstance(a, dict) and a.get("id")}
+json.dump(s, open(save, "w"), ensure_ascii=False, indent=4)
 PY
 }
 
