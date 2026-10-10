@@ -1338,39 +1338,54 @@ Item {
     // light, dark or by the time of day: the mode, each card drawn in its own palette
     Component {
         id: look
-        Choices {
-            n: 3
-            Repeater {
-                model: [["light", I18n.t("Светлая", "Light"), I18n.t("днём и при ярком свете", "for daylight")], ["dark", I18n.t("Тёмная", "Dark"), I18n.t("вечером и в темноте", "for evenings and dim rooms")], ["auto", I18n.t("Авто", "Auto"), I18n.t("днём светлая, вечером тёмная", "light by day, dark by night")]]
-                Choice {
-                    id: lookCard
-                    required property var modelData
-                    width: parent.cardWidth
-                    label: modelData[1]
-                    hint: modelData[2]
-                    checked: Config.appearance.mode === modelData[0]
-                    onPicked: Config.appearance.mode = modelData[0]
-                    Item {
-                        width: parent.width
-                        height: Math.round(width * 0.6)
-                        ThemePic {
-                            anchors.fill: parent
-                            pal: Theme.paletteFor(lookCard.modelData[0] !== "light")
-                        }
-                        // auto: the light half over the dark one
+        Column {
+            width: parent ? parent.width : 0
+            spacing: Theme.u * 4
+            Choices {
+                width: parent.width
+                n: 3
+                Repeater {
+                    model: [["light", I18n.t("Светлая", "Light"), I18n.t("днём и при ярком свете", "for daylight")], ["dark", I18n.t("Тёмная", "Dark"), I18n.t("вечером и в темноте", "for evenings and dim rooms")], ["auto", I18n.t("Авто", "Auto"), I18n.t("днём светлая, вечером тёмная", "light by day, dark by night")]]
+                    Choice {
+                        id: lookCard
+                        required property var modelData
+                        width: parent.cardWidth
+                        label: modelData[1]
+                        hint: modelData[2]
+                        checked: Config.appearance.mode === modelData[0]
+                        onPicked: Config.appearance.mode = modelData[0]
                         Item {
-                            visible: lookCard.modelData[0] === "auto"
-                            width: Math.round(parent.width / 2)
-                            height: parent.height
-                            clip: true
+                            width: parent.width
+                            height: Math.round(width * 0.6)
                             ThemePic {
-                                width: lookCard.width - Theme.u * 10
+                                anchors.fill: parent
+                                pal: Theme.paletteFor(lookCard.modelData[0] !== "light")
+                            }
+                            // auto: the light half over the dark one
+                            Item {
+                                visible: lookCard.modelData[0] === "auto"
+                                width: Math.round(parent.width / 2)
                                 height: parent.height
-                                pal: Theme.paletteFor(false)
+                                clip: true
+                                ThemePic {
+                                    width: lookCard.width - Theme.u * 10
+                                    height: parent.height
+                                    pal: Theme.paletteFor(false)
+                                }
                             }
                         }
                     }
                 }
+            }
+            // Pixora's folders (Nautilus, file choosers) in the same colours, or one of their own
+            PxText {
+                text: I18n.t("Папки — в цвет темы или свой цвет", "Folders: the theme's colour or one of their own")
+                kind: "tiny"
+                dim: true
+            }
+            FolderSwatches {
+                width: parent.width
+                onPicked: root.touched = true
             }
         }
     }
@@ -1806,50 +1821,6 @@ Item {
         }
     }
     // a little desktop in a palette: the desk, a window with its title, text, the bar
-    component ThemePic: Item {
-        id: pic
-        property var pal: ({})
-        clip: true
-        Rectangle {
-            anchors.fill: parent
-            color: pic.pal.desk || "#000000"
-            border.width: 1
-            border.color: Qt.alpha(pic.pal.text || "#ffffff", 0.3)
-        }
-        Rectangle {
-            x: parent.width * 0.14
-            y: parent.height * 0.14
-            width: parent.width * 0.62
-            height: parent.height * 0.56
-            color: pic.pal.face || "#202020"
-            Rectangle {
-                width: parent.width
-                height: Math.max(2, parent.height * 0.18)
-                color: pic.pal.accent || "#ff69b4"
-            }
-            Column {
-                x: parent.width * 0.1
-                y: parent.height * 0.32
-                spacing: Math.max(1, parent.height * 0.08)
-                Repeater {
-                    model: [0.7, 0.5, 0.6]
-                    Rectangle {
-                        required property real modelData
-                        width: pic.width * 0.62 * 0.8 * modelData
-                        height: Math.max(1, pic.height * 0.04)
-                        color: pic.pal.text || "#ffffff"
-                        opacity: 0.8
-                    }
-                }
-            }
-        }
-        Rectangle {
-            anchors.bottom: parent.bottom
-            width: parent.width
-            height: Math.max(2, parent.height * 0.12)
-            color: pic.pal.faceAlt || "#303030"
-        }
-    }
 
     // how much moves (Motion.set — Settings → Theme → Motion, `angelos motion`)
     Component {

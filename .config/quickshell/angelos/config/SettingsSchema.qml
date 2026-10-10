@@ -10,6 +10,7 @@ JsonAdapter {
         property string customAccent: "#c77dff"
         property string motion: "full"      // how much moves: full | calm (no flashes, shaking, sudden loud sounds) | off (no animations: the shell, niri, hell) — config/Motion
         property string iconStyle: "angelos" // the shell's icons: angelos (our own) | pixelarticons | hackernoon — widgets/IconSets.js (D3)
+        property string folders: "theme"     // Pixora's folders (scripts/folder-tint.py): pixora (as drawn) | theme (the accent) | pink | lavender | mint | sky | gold
         property string customAccentHell: ""  // unused since 2026-10-08: hell wears its circle's accent, not its wallpaper's
         property string language: "ru"
         property string mode: "dark"        // light | dark | auto

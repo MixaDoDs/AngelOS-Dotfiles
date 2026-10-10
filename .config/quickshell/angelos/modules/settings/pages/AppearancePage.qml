@@ -449,6 +449,13 @@ PxPage {
             hint: I18n.t("значки самой оболочки — панель, настройки, меню, кнопки. Сердечки, рожки и пентаграмма остаются своими в любом стиле. Значки приложений — тема системы, она отдельно", "The shell's own icons — the bar, settings, menus, buttons. Hearts, horns and the pentagram stay ours in every style. App icons are the system's icon theme, a separate thing")
             IconStyleCards {}
         }
+        SettingRow {
+            label: I18n.t("Цвет папок", "Folder colour")
+            hint: I18n.t("папки в Nautilus и в окнах выбора файлов (тема значков Pixora): в цвет темы — они меняются вместе с ней, в аду тоже; или один из цветов; или как нарисовал автор Pixora", "Folders in Nautilus and in file choosers (the Pixora icon theme): in the theme's colour, changing with it, hell included; one of the colours; or as Pixora's author drew them")
+            FolderSwatches {
+                width: parent ? parent.width : implicitWidth
+            }
+        }
     }
 
     PxGroup {

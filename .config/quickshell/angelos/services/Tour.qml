@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 
 // Guided tips: UI elements register here, the overlay circles them one by one.
@@ -80,8 +81,68 @@ Singleton {
         },
         {
             "key": "desktop",
+            "demo": "desktop",
             "title": I18n.t("Рабочий стол", "Desktop"),
             "text": I18n.t("ПКМ по обоям — меню как в Windows 11: виджеты (Вид ▸), заметки, папки, персонализация. Виджеты таскаются за заголовок.", "Right-click the wallpaper for a Windows 11-style menu: widgets (View ▸), notes, folders, personalization. Drag widgets by their title.")
+        },
+        // the keys: no element to circle; the card shows them and the thing itself opens
+        // (modules/tour/TourOverlay: demo = what to show — a real window or a played scene)
+        {
+            "key": "keys:launcher",
+            "demo": "launcher",
+            "keys": ["Mod", "Space"],
+            "title": I18n.t("Программы", "Apps"),
+            "text": I18n.t("Начни печатать название — Enter запускает. Там же калькулятор и поиск по настройкам.", "Start typing a name; Enter launches it. A calculator and the settings search are there too.")
+        },
+        {
+            "key": "keys:overview",
+            "demo": "overview",
+            "keys": ["Mod", "Tab"],
+            "title": I18n.t("Все окна сразу", "Every window at once"),
+            "text": I18n.t("Обзор niri: столы и окна мелко, перетаскивай их мышью. Mod+← → листают ленту окон.", "niri's overview: the workspaces and windows small, drag them around. Mod+← → scroll the window ribbon.")
+        },
+        {
+            "key": "keys:settings",
+            "demo": "settings",
+            "keys": ["Mod", "S"],
+            "title": I18n.t("Настройки", "Settings"),
+            "text": I18n.t("Всё, что спрашивал мастер, и намного больше. Поиск сверху находит любую настройку.", "Everything the wizard asked and much more. The search on top finds any setting.")
+        },
+        {
+            "key": "keys:clipboard",
+            "demo": "clipboard",
+            "keys": ["Mod", "V"],
+            "title": I18n.t("Буфер обмена", "Clipboard"),
+            "text": I18n.t("Всё, что ты копировал, — текст и картинки. Клик кладёт обратно.", "Everything you copied, text and pictures. A click puts it back.")
+        },
+        {
+            "key": "keys:theme",
+            "demo": "theme",
+            "keys": ["Mod", "Alt", "T"],
+            "title": I18n.t("Светлая ↔ тёмная", "Light ↔ dark"),
+            "text": I18n.t("Тема переключается сразу везде: оболочка, окна, терминал, браузер, Telegram, папки.", "The theme flips everywhere at once: the shell, windows, the terminal, the browser, Telegram, folders.")
+        },
+        {
+            "key": "keys:shot",
+            "demo": "shot",
+            "keys": ["Mod", "Shift", "S"],
+            "title": I18n.t("Скриншот области", "Region screenshot"),
+            "text": I18n.t("Выдели — картинка в буфере и в Изображения/Screenshots. Mod+Shift+R — то же видео.", "Pick a region: the picture is in the clipboard and in Pictures/Screenshots. Mod+Shift+R records it.")
+        },
+        {
+            "key": "keys:voice",
+            "demo": "voice",
+            "keys": ["Mod", "Shift", "V"],
+            "needs": "voxtype",
+            "title": I18n.t("Голосовой ввод", "Voice input"),
+            "text": I18n.t("Нажми, говори, нажми ещё раз — текст напечатается там, где курсор.", "Press, talk, press again: the text is typed where the cursor is.")
+        },
+        {
+            "key": "keys:all",
+            "demo": "keys",
+            "keys": ["Mod", "Shift", "Esc"],
+            "title": I18n.t("Все сочетания", "Every shortcut"),
+            "text": I18n.t("Шпаргалка niri поверх всего. Свои клавиши — Настройки → Клавиатура.", "niri's cheat sheet over everything. Your own keys: Settings → Keyboard.")
         },
         {
             "key": "end",
@@ -94,15 +155,31 @@ Singleton {
     readonly property var active: {
         revision;
         const here = Object.keys(_items).some(k => _items[k].some(e => screenOf(e) === screen));
-        return steps.filter(s => s.key === "desktop" || s.key === "end" || !!_items[s.key] && (!here || _items[s.key].some(e => screenOf(e) === screen)));
+        return steps.filter(s => s.key === "desktop" || s.key === "end" || (s.key.startsWith("keys:") && (!s.needs || needs[s.needs])) || !!_items[s.key] && (!here || _items[s.key].some(e => screenOf(e) === screen)));
     }
     readonly property var current: active[Math.min(step, active.length - 1)] || null
+    // what some key tips need installed (voice input)
+    property var needs: ({})
+    Process {
+        id: needsProbe
+        command: ["sh", "-c", "[ -x \"$HOME/.local/bin/voxtype\" ] && echo voxtype; exit 0"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const n = {};
+                for (const w of text.split(/\s+/))
+                    if (w)
+                        n[w] = true;
+                root.needs = n;
+            }
+        }
+    }
 
     // `where`: the screen asked for (the wizard's); otherwise the main one (Shell.mainScreenFor)
     function start(where) {
         const s = Shell.mainScreenFor(where || "");
         screen = s ? s.name : "";
         step = 0;
+        needsProbe.running = true;
         running = true;
     }
     function next() {

@@ -18,7 +18,7 @@ Singleton {
     // change re-renders — also the ones that come late: Theme.realm turns midway through the
     // widgets' burn, after Angel.demon (a return "as in the game" used to render heaven's
     // file with hell's accent and stay so); hell's wallpaper accent lands a beat after the circle
-    readonly property string paletteText: JSON.stringify(Object.assign(Theme.exportPalette(), decorPalette(), terminalPalette(), appsPalette(), hellPalette(), macPalette(), fontPalette()), null, 2)
+    readonly property string paletteText: JSON.stringify(Object.assign(Theme.exportPalette(), decorPalette(), terminalPalette(), appsPalette(), hellPalette(), macPalette(), fontPalette(), folderPalette()), null, 2)
     readonly property string disabled: (Config.appearance.disabledTemplates || []).join(",")
     readonly property string signature: Config.appearance.themeApps + "|" + disabled + "|" + paletteText
     property string lastLog: ""
@@ -258,6 +258,30 @@ Singleton {
 
     // the fonts, for apps that take a stylesheet (scripts/discord-theme.py): the user's own
     // choice and the body size on its pixel grid (13 px at ×1)
+    // Pixora's folders (scripts/folder-tint.py): their body and shade in the accent (hell's in
+    // hell), in one of the fixed colours, or as Pixora draws them
+    readonly property var folderColors: ({
+            "pink": ["#ff9ec7", "#c2668f"],
+            "lavender": ["#c9b0ff", "#8f74c9"],
+            "mint": ["#9fe6c0", "#5fa883"],
+            "sky": ["#9fd2ff", "#5e93c4"],
+            "gold": ["#f2d27a", "#b8913f"]
+        })
+    function folderPalette() {
+        const mode = Config.appearance.folders || "theme";
+        if (mode === "pixora")
+            return {
+                "folderTint": "pixora"
+            };
+        const fixed = folderColors[mode];
+        const accent = Angel.demon ? Theme.hellAccent : Theme.accent;
+        return {
+            "folderTint": mode,
+            "folderFill": fixed ? fixed[0] : h(Theme.mix(accent, "#ffffff", 0.35)),
+            "folderShade": fixed ? fixed[1] : h(Theme.mix(accent, "#000000", 0.25))
+        };
+    }
+
     function fontPalette() {
         return {
             "fontTitle": Theme.fontTitle,
