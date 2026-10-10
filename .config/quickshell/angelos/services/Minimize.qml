@@ -108,11 +108,12 @@ Singleton {
     }
     // apps the session bus starts (Nautilus) get their environment from systemd's user manager;
     // environment.d can't hold ld.so's literal $LIB, so the shell puts the preload there each
-    // login (extras/minimize-hook/install.sh puts it in angelos.service and niri's config)
+    // login (extras/minimize-hook/install.sh puts it in angelos.service and niri's config; the
+    // dotfiles' install.sh too, for everyone) — not once `install.sh --remove` left minimize-hook.off
     readonly property string hookLib: Quickshell.env("HOME") + "/.local/lib/angelos/$LIB/libangelos-minimize.so"
     Process {
         running: true
-        command: ["sh", "-c", 'lib="$1"; [ -f "$(printf %s "$lib" | sed "s/\\$LIB/lib/")" ] || exit 0; cur=$(systemctl --user show-environment 2>/dev/null | sed -n "s/^LD_PRELOAD=//p" | sed "s/^\\$\x27\\(.*\\)\x27$/\\1/"); case "$cur" in *libangelos-minimize.so*) exit 0 ;; "") v="$lib" ;; *) v="$cur:$lib" ;; esac; systemctl --user set-environment "LD_PRELOAD=$v"', "sh", root.hookLib]
+        command: ["sh", "-c", 'lib="$1"; [ -f "$(printf %s "$lib" | sed "s/\\$LIB/lib/")" ] || exit 0; [ -e "$HOME/.config/angelos/minimize-hook.off" ] && exit 0; cur=$(systemctl --user show-environment 2>/dev/null | sed -n "s/^LD_PRELOAD=//p" | sed "s/^\\$\x27\\(.*\\)\x27$/\\1/"); case "$cur" in *libangelos-minimize.so*) exit 0 ;; "") v="$lib" ;; *) v="$cur:$lib" ;; esac; systemctl --user set-environment "LD_PRELOAD=$v"', "sh", root.hookLib]
     }
     // which window of that process: the one with that title (Nautilus runs all its windows in one
     // process), the focused one, the last focused

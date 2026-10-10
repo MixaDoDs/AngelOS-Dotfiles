@@ -1790,9 +1790,9 @@ Scope {
                 return;
             report("game-pact", !Story.inHell && Story.marked && Story.circle === "" && HellLook.circle === "base" && Story.hell.outcomes.length === 1, "out by " + (Story.hell.outcomes[0] || {}).kind + " in " + (Date.now() - started) + " ms, marked " + Story.marked);
             Story.setEnabled(false);
-            const off = !Story.enabled && !Angel.demon && !Angel.shown && !Novel.enabled;
+            const off = !Story.enabled && !Angel.demon && !Angel.shown && !Novel.enabled && !Diary.atHand;
             Story.setEnabled(true);
-            report("game-off", off && Story.enabled, "off: no angel, demon or novel; on again");
+            report("game-off", off && Story.enabled, "off: no angel, demon, novel or diary bookmark; on again");
             Story.reset();
             report("game-reset", Object.keys(Story.vars).length === 0 && !Story.hell.pact && (Story.hell.outcomes || []).length === 0 && Story.chill === 0 && !Story.player.coldRoute, "the save starts over");
             // the angel's warmth (item 11): a throw cools her a step, a day without one warms

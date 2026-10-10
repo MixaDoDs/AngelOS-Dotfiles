@@ -39,6 +39,9 @@ Singleton {
     readonly property var thing: Heaven.thing(thingId)
     // the key is had (the game off: everything is)
     readonly property bool owned: !!thing && Heaven.has(thingId)
+    // its bookmark on a screen edge (modules/diary/DiaryTab): a thing of the game — with the game
+    // off (the wizard's «No game») there's none, and Settings has no page to turn it off (#55)
+    readonly property bool atHand: Story.enabled && owned && !hidden && Config.game.diaryTab !== false
     // where the cover opens: the player's pick, else the author's
     readonly property string side: Config.game.diarySide === "left" || Config.game.diarySide === "right" ? Config.game.diarySide : doc.side === "left" ? "left" : "right"
 

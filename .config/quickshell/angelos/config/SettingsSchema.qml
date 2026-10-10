@@ -113,6 +113,7 @@ JsonAdapter {
         property bool liveMeteors: true
         property bool liveWater: true
         property bool liveLights: true
+        property bool liveEvents: true      // now and then: a glint over a ring, a pebble, a gust
         property int liveFps: 24            // 0: every frame of the screen
         property var liveOverrides: ({})   // path -> {sky, water: "on"|"off", axis: 0..1}
         // the release's name, small and see-through in a free corner (widgets/ReleaseMark)
@@ -190,6 +191,7 @@ JsonAdapter {
         property string from: ""            // the wizard's "where do you come from": windows | mac | linux | new | ""
         property string persona: ""         // the wizard's "who are you": streamer | worker | regular | creative | ""
         property var apps: []               // the apps ticked in the wizard (data/apps-catalog.json ids), browsers included
+        property string browser: ""         // the wizard's «Which browser?»: a catalog id or desktop:<file.desktop>; "" = not picked (the default one stays)
         property int introSeen: 0           // the first run's intro last seen (SetupIntro.version): a newer one plays once after the update
     }
 

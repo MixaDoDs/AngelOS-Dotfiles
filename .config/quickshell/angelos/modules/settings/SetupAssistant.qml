@@ -323,6 +323,7 @@ Item {
                                         "look": look,
                                         "wallpaper": wallpaper,
                                         "who": who,
+                                        "browser": browserStep,
                                         "apps": apps,
                                         "fastfetch": fastfetch,
                                         "widgets": widgetsStep,
@@ -1596,6 +1597,61 @@ Item {
             }
         }
     }
+    // ---- which browser: one card each (the catalog's, then the ones installed some other way);
+    // the picked one opens on Mod+B and links (scripts/apps-install.py browser) ----
+    Component {
+        id: browserStep
+        Column {
+            id: brCol
+            width: parent.width
+            spacing: Theme.u * 4
+            readonly property var list: root.wizard ? root.wizard.browserList : []
+            PxText {
+                visible: brCol.list.length === 0
+                kind: "tiny"
+                dim: true
+                text: I18n.t("смотрю, какие браузеры есть…", "looking at the browsers…")
+            }
+            Grid {
+                id: brGrid
+                width: parent.width
+                columns: 4
+                spacing: Theme.u * 4
+                readonly property int cardWidth: Math.floor((width - spacing * (columns - 1)) / columns)
+                readonly property real cardHeight: {
+                    let h = 0;
+                    for (const c of children)
+                        if (c.picked !== undefined)
+                            h = Math.max(h, c.implicitHeight);
+                    return h;
+                }
+                Repeater {
+                    model: brCol.list
+                    Choice {
+                        id: brCard
+                        required property var modelData
+                        // nowhere to get it from (no repository, AUR or Flathub has it here)
+                        readonly property bool none: !modelData.installed && !modelData.via
+                        width: brGrid.cardWidth
+                        enabled: !none
+                        opacity: none ? 0.45 : 1
+                        label: I18n.t(modelData.ru, modelData.en) + (modelData.installed ? "  ✓" : "")
+                        hint: modelData.installed ? I18n.t("уже стоит", "installed") : none ? I18n.t("нет в репозиториях", "not in your repositories") : I18n.t(modelData.hintRu, modelData.hintEn)
+                        checked: root.wizard && root.wizard.browser === modelData.id
+                        onPicked: {
+                            root.touched = true;
+                            root.wizard.pickBrowser(modelData.id);
+                        }
+                        PxIcon {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            name: brCard.modelData.icon || "search"
+                            pixel: Theme.u * 3
+                        }
+                    }
+                }
+            }
+        }
+    }
     // ---- the apps: the catalog's groups (ticked by the template); a group opens to its apps ----
     Component {
         id: apps
@@ -1620,7 +1676,9 @@ Item {
                     required property var modelData
                     width: appsCol.width
                     spacing: Theme.u * 2
-                    readonly property var ids: modelData.apps.filter(i => !!appsCol.byId[i])
+                    // «Браузеры» shows the main browser too when the author's group doesn't hold it
+                    readonly property string main: root.wizard && modelData.id === "browsers" && root.wizard.isCatalogBrowser(root.wizard.browser) ? root.wizard.browser : ""
+                    readonly property var ids: (main && !modelData.apps.includes(main) ? modelData.apps.concat([main]) : modelData.apps).filter(i => !!appsCol.byId[i])
                     readonly property int on: ids.filter(i => (Config.setup.apps || []).includes(i)).length
                     readonly property bool expanded: !!appsCol.open[modelData.id]
                     Item {
@@ -1694,6 +1752,7 @@ Item {
         readonly property bool have: !!st.installed
         readonly property bool none: root.wizard && root.wizard.appsChecked && !have && !st.via
         readonly property bool on: (Config.setup.apps || []).includes(modelData.id)
+        readonly property bool main: !!root.wizard && root.wizard.browser === modelData.id
         width: parent ? Math.floor((parent.width - Theme.u * 3) / 2) : Theme.u * 112
         height: Theme.u * 22
         opacity: none ? 0.45 : 1
@@ -1731,7 +1790,7 @@ Item {
                 elide: Text.ElideRight
                 kind: "tiny"
                 dim: true
-                text: chip.have ? I18n.t("уже стоит", "installed") : chip.none ? I18n.t("нет в репозиториях", "not in your repositories") : I18n.t(chip.modelData.hintRu, chip.modelData.hintEn)
+                text: chip.main ? I18n.t("основной браузер (шаг «Какой браузер?»)", "the main browser (the «Which browser?» step)") : chip.have ? I18n.t("уже стоит", "installed") : chip.none ? I18n.t("нет в репозиториях", "not in your repositories") : I18n.t(chip.modelData.hintRu, chip.modelData.hintEn)
             }
         }
         MouseArea {

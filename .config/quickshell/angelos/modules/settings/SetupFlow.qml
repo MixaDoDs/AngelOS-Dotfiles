@@ -137,6 +137,12 @@ Scope {
             "text": I18n.t("Подберу программы под то, чем ты занимаешься. На следующем шаге можно поправить список.", "I'll pick apps for what you do. You can change the list on the next step.")
         },
         {
+            "id": "browser",
+            "icon": "search",
+            "title": I18n.t("Какой браузер?", "Which browser?"),
+            "text": I18n.t("Он откроется по Mod+B и по ссылкам из программ. Не стоит — поставлю вместе с остальными программами. Потом поменять: Настройки → Приложения по умолчанию.", "It opens on Mod+B and for links from apps. Not installed yet? It comes with the other apps. To change it later: Settings → Default applications.")
+        },
+        {
             "id": "apps",
             "icon": "package",
             "title": I18n.t("Какие программы поставить?", "Which apps should I install?"),
@@ -167,6 +173,43 @@ Scope {
         })
     property var appStatus: ({})        // id -> {installed, via}; empty until checked
     readonly property bool appsChecked: Object.keys(appStatus).length > 0
+    // «Which browser?»: the catalog's browsers and the ones installed some other way
+    // (scripts/apps-install.py browsers); current = the default browser now
+    property var browserList: []
+    property string browserNow: ""
+    // the one Mod+B and links will open: the pick, else what is the default now, else Helium
+    readonly property string browser: Config.setup.browser || browserNow || "helium"
+    function isCatalogBrowser(id) {
+        return (catalog.browsers || []).includes(id);
+    }
+    Process {
+        id: browserProbe
+        command: ["python3", Quickshell.shellDir + "/scripts/apps-install.py", "browsers"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const d = JSON.parse(text);
+                    root.browserList = d.list || [];
+                    root.browserNow = d.current || "";
+                } catch (e) {}
+                root.keepBrowser();
+            }
+        }
+    }
+    // a replacement: the new one is ticked, the one picked before (a catalog browser) is not
+    function pickBrowser(id) {
+        const old = browser;
+        let list = (Config.setup.apps || []).filter(a => a !== old && a !== id);
+        if (isCatalogBrowser(id))
+            list.push(id);
+        Config.setup.browser = id;
+        Config.setup.apps = list;
+    }
+    // the main browser is always among the apps to install
+    function keepBrowser() {
+        if (isCatalogBrowser(browser) && !(Config.setup.apps || []).includes(browser))
+            Config.setup.apps = (Config.setup.apps || []).concat([browser]);
+    }
     FileView {
         path: Quickshell.shellDir + "/data/apps-catalog.json"
         printErrors: false
@@ -219,9 +262,10 @@ Scope {
         const ids = groupApps(gid);
         const rest = (Config.setup.apps || []).filter(a => !ids.includes(a));
         Config.setup.apps = on ? rest.concat(ids) : rest;
+        keepBrowser();
     }
-    // a persona ticks its apps (and keeps the browser the user picked, Helium by default);
-    // one with groups («Как у автора») ticks whole groups
+    // a persona ticks its apps and keeps the browsers ticked so far (the main one always: the
+    // «Which browser?» step); one with groups («Как у автора») ticks whole groups
     function pickPersona(id) {
         const p = catalog.personas.find(x => x.id === id);
         Config.setup.persona = id;
@@ -232,12 +276,16 @@ Scope {
             for (const g of p.groups)
                 ids = ids.concat(groupApps(g));
             Config.setup.apps = ids;
-            return;
+        } else {
+            const browsers = (Config.setup.apps || []).filter(a => isCatalogBrowser(a));
+            Config.setup.apps = browsers.concat(p.apps.filter(a => !isCatalogBrowser(a)));
         }
-        const browsers = (Config.setup.apps || []).filter(a => catalog.browsers.includes(a));
-        Config.setup.apps = (browsers.length ? browsers : ["helium"]).concat(p.apps.filter(a => !catalog.browsers.includes(a)));
+        keepBrowser();
     }
+    // the main browser stays ticked: «Which browser?» changes it
     function toggleApp(id, on) {
+        if (!on && id === browser)
+            return;
         const now = (Config.setup.apps || []).filter(a => a !== id);
         Config.setup.apps = on ? now.concat([id]) : now;
     }
@@ -249,11 +297,13 @@ Scope {
             return;
         // the pick is remembered either way (install remembers all it is given, skips what is
         // there): updates bring what the author adds to its groups
+        // the browser: made the default once it is there (now, when it is installed already)
+        const pick = ["--browser", browser].concat(Config.setup.apps || []);
         if (ids.length === 0) {
-            Quickshell.execDetached(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "pick"].concat(Config.setup.apps || []));
+            Quickshell.execDetached(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "pick"].concat(pick));
             return;
         }
-        Shell.exec(Shell.terminalArgv(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "install"].concat(Config.setup.apps || []), "angelos-apps"));
+        Shell.exec(Shell.terminalArgv(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "install"].concat(pick), "angelos-apps"));
     }
 
     readonly property var steps: stepList.filter(s => s.when === undefined || s.when)
@@ -332,6 +382,7 @@ Scope {
                 githubLogin.refresh();
                 touchpadProbe.running = true;
                 appProbe.running = true;
+                browserProbe.running = true;
             }
             root.pickHost();
         }

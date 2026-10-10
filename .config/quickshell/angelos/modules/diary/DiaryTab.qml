@@ -15,8 +15,9 @@ import qs.widgets
 Scope {
     id: root
 
-    // gone for good once she caught you and hid it (Settings → Achievements → Things opens it then)
-    readonly property bool wanted: Config.ready && Config.game.diaryTab !== false && Diary.owned && !Diary.hidden && !Shell.locked && !Shell.setupLocked
+    // gone for good once she caught you and hid it (Settings → Achievements → Things opens it then),
+    // and never with the game off (Diary.atHand)
+    readonly property bool wanted: Config.ready && Diary.atHand && !Shell.locked && !Shell.setupLocked
     property bool dragging: false
     property string ghostEdge: ""
     property real ghostOffset: 0.5

@@ -162,8 +162,40 @@ def gsettings(schema, key, value=None):
     return value
 
 
+def interface_defaults():
+    """The icons, font and cursor of ~/.config/gtk-3.0/settings.ini into gsettings, for the keys
+    nobody has set yet. GTK 4 apps under Wayland (Nautilus…) read gsettings through the portal,
+    not settings.ini: on a fresh install they showed Adwaita's blue folders and font while the
+    author's — set by hand long ago — had pixora and Cozette."""
+    import configparser
+    import shutil
+    if not shutil.which("dconf"):
+        return
+    ini = configparser.ConfigParser(interpolation=None)
+    try:
+        ini.read(GTK3 / "settings.ini")
+        s = ini["Settings"]
+    except (configparser.Error, KeyError):
+        return
+    dirs = (HOME / ".local/share/icons", HOME / ".icons", Path("/usr/share/icons"))
+    has_theme = lambda name, sub: any((d / name / sub).exists() for d in dirs)
+    want = [("icon-theme", s.get("gtk-icon-theme-name"), lambda v: has_theme(v, "index.theme")),
+            ("cursor-theme", s.get("gtk-cursor-theme-name"), lambda v: has_theme(v, "cursors")),
+            ("font-name", (s.get("gtk-font-name") or "").replace(",", ""), lambda v: True)]
+    size = s.get("gtk-cursor-theme-size")
+    for key, value, ok in want:
+        if not value or not ok(value):
+            continue
+        r = subprocess.run(["dconf", "read", "/org/gnome/desktop/interface/" + key], capture_output=True, text=True)
+        if r.returncode == 0 and not r.stdout.strip():
+            gsettings("org.gnome.desktop.interface", key, value)
+            if key == "cursor-theme" and size and size.isdigit():
+                gsettings("org.gnome.desktop.interface", "cursor-size", size)
+
+
 def main():
     pal = json.loads(Path(sys.argv[1]).read_text())
+    interface_defaults()
     suffix = "-dark" if pal.get("mode") == "dark" else ""
     base = "adw-gtk3" + suffix
     base_dir = next((d / base for d in (HOME / ".local/share/themes", HOME / ".themes", Path("/usr/share/themes")) if (d / base / "gtk-3.0/gtk.css").exists()), None)

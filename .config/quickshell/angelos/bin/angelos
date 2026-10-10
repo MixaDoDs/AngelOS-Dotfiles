@@ -4,6 +4,7 @@
 #   angelos settingsView win11|sidebar|controlpanel|properties|tiles | settingsSkin classic|windose|stream
 #   angelos theme light|dark|auto|toggle | wallpaper <path|random> | bar taskbar|top|island
 #   angelos startMenu | sidebar | idle | lockPreview | fontPreset arcade|soft|block|angelos
+#   angelos browser — the default browser (Mod+B; Settings → Default apps), an installed one when it isn't
 #   angelos ws <n|up|down|prev> | alttab next|prev|cancel|apps|appsback|appwin|appwinback | lens in|out|close|toggle | start | restart | stop | run | status | log | report | sprites | switch angelos|noctalia
 #   angelOS is also a game played over your desktop (an angel, a demon, a story that follows
 #   your choices). Out of it at once, any time: `angelos game off` or Mod+Ctrl+Shift+Escape;
@@ -12,6 +13,7 @@
 #   The Angel's diary (its key is an achievement's): `angelos diary open [page] | list | validate`.
 #   angelos motion full|calm|off — how much moves: calm = no flashes, shaking or sudden loud
 #   sounds; off = no animations at all (the shell, niri, hell), an optimisation mode
+#   angelos scene edit [picture] | mcp — the author's live-wallpaper scene editor and its MCP server
 #   angelos author status|fetch|login — the author's own tools (the chapter editor), only for
 #   the GitHub account with access to the author's private repository; gh keeps the login
 #   angelos setup — the setup wizard again (full screen, with Close); `angelos setup skip` — out of the
@@ -240,6 +242,7 @@ case "$1" in
   switch)  shift; exec python3 "$SHELL_DIR/scripts/switch.py" "$@" ;;
   sddm)    shift; [ $# -gt 0 ] || set -- status; exec python3 "$SHELL_DIR/scripts/sddm-theme.py" "$@" ;;
   settings) exec qs -c angelos ipc call angelos settings "${2:-}" ;;
+  browser) exec python3 "$SHELL_DIR/scripts/default-apps.py" open-browser ;;
   setup)
     [ $# -eq 1 ] && exec qs -c angelos ipc call angelos setup
     shift
@@ -272,6 +275,16 @@ case "$1" in
       *) exec niri msg action focus-window-previous ;;
     esac
     ;;
+  scene)
+    # which parts of a wallpaper come alive: the scene editor (`angelos scene edit [picture]`)
+    # and its MCP server for Claude (`angelos scene mcp`) — the author's tools (owner/)
+    ed="$SHELL_DIR/owner/scene-editor"
+    [ -d "$ed" ] || { echo "the scene editor is the author's tool, not part of angelOS (angelos author)" >&2; exit 1; }
+    case "${2:-edit}" in
+      edit) shift; [ $# -gt 0 ] && shift; exec python3 "$ed/scene-editor.py" "$@" ;;
+      mcp)  exec python3 "$ed/scene-mcp.py" ;;
+      *)    echo "usage: angelos scene edit [picture] | mcp" >&2; exit 2 ;;
+    esac ;;
   novel)
     # the novel's dialogue editor runs without the shell (the author's tool: owner/, see
     # `angelos author`); the rest goes over IPC

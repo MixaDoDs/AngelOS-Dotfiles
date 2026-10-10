@@ -13,7 +13,8 @@ import qs.config
 // it shows the scene upside down), a waterfall streams down, the picture's own lights twinkle.
 // Per picture the finding can be corrected: Config.wallpaper.liveOverrides[path] =
 // {sky: "auto"|"on"|"off", water: "auto"|"on"|"off", axis: 0..1 (the waterline)}.
-// `angelos liveWall status|on|off|analyze`
+// `angelos liveWall status|on|off|analyze|glint|pebble|gust|eye|rings` (the events: that one now,
+// on every screen whose scene has it)
 Singleton {
     id: root
 
@@ -23,6 +24,8 @@ Singleton {
     property int version: 0
 
     readonly property bool on: Config.wallpaper.live && !Motion.still
+    // a rare event now (widgets/LiveWall): 1 glint, 2 pebble, 3 gust, 4 eye, 5 rings
+    signal poke(int kind)
 
     // what is known about a picture: null while it is being looked at
     function info(path) {
@@ -134,6 +137,10 @@ Singleton {
             parts.push(e.mirror ? I18n.t("вода с отражением", "water with a reflection") : I18n.t("вода", "water"));
         if (e.water && i.water && i.water.falls > 0)
             parts.push(I18n.t("водопад", "a waterfall"));
+        if (i.scene && i.scene.objects > 0)
+            parts.push(I18n.t("кольцо в небе", "a ring in the sky"));
+        if (i.scene && (i.scene.rims || []).length > 0)
+            parts.push(I18n.t("обрыв", "a cliff edge"));
         if (e.lights)
             parts.push(I18n.t("огоньков: ", "lights: ") + e.lights);
         if (e.glints)

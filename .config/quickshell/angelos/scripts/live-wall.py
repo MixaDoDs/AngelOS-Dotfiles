@@ -9,20 +9,35 @@ layer per art pixel
 
     R  the layer, ×32: 1 sky (stars come out, a star falls), 2 a cloud, 3 a thing in the sky (a
        ring, a moon: a glint runs over it), 4 still water (a lake, a sea), 5 falling water,
-       6 land (rocks, a shore: clouds' shadows pass over it); 0 nothing (indoors, a photo)
+       6 land under an open horizon (rocks, a shore: clouds' shadows pass over it); 0 nothing
     G  within the layer: the water's depth from its line 0…1, a fall's way down from its top,
        the place round a ring 0…1
     B  small bright points already in the picture: in the sky lights (stars, lit windows)
        that twinkle, on the water glints that shimmer
 
-Hints the author ships next to a picture (<name>.scene.json) say what a look cannot be sure of:
-    {"rings": [[cx, cy, rx, ry, t], …]}   a ring in the sky: centre and radii in the picture's
-                                          0…1, t its half-thickness over the radius
+Hints the author ships next to a picture (<name>.scene.json) say what a look cannot be sure of
+(the scene editor writes them: owner/scene-editor, `angelos scene edit`; every key optional):
+    {"rings": [[cx, cy, rx, ry, t], …]}   a ring in the sky, roughly: centre and radii in the
+                                          picture's 0…1, t its half-thickness over the radius.
+                                          Its stone is found in that band (fine texture, not a
+                                          cloud's warm colour, above the horizon) and the ellipse
+                                          fitted to it, tilt and all
+    "paint": {"size": [w, h], "png": B64} the layers painted by hand, over what was found: an RGBA
+                                          PNG (any size, scaled to the mask without smoothing), a
+                                          pixel's colour the nearest of PAINT; alpha 0 = as found
+    "lights": [[x, y], …]                 more points that twinkle (on water: glints), 0…1
+    "rims" | "eyes" | "ponds": [[x, y]…]  where a pebble breaks off, an eye opens, rings spread —
+                                          instead of the places found
+    "effects": {"stars": false, …}        what this picture never does: stars, meteors, lights,
+                                          water, glint, pebble, gust, eye, rings (widgets/LiveWall)
+    "night": 0…1, "axis": 0…1, "mirror"   how dark the sky is (stars from 0.5), the waterline,
+                                          whether the water shows the scene upside down
 
 The JSON: {mask, size: [w, h] of the picture, grid: [cell w, cell h, offset x, offset y] of one
 art pixel in the picture's pixels (cell 1 = a photo), pixelArt, sky: {found, night, area},
 water: {found, axis, mirror, area, falls}, lights, glints, scene: {outdoor, rims, objects}}.
-rims are where a pebble may break off (land over a fall or the dark), picture 0…1. axis is the waterline (0 top … 1 bottom);
+rims are where a pebble may break off (land over a fall or the dark), eyes where an eye may
+open deep in a cloud; picture 0…1. axis is the waterline (0 top … 1 bottom);
 mirror = the water shows the scene upside down, so the sky's stars are drawn there too.
 
 Only numpy and Pillow, no model. What it looks for:
@@ -52,7 +67,7 @@ import numpy as np
 from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = None
-VERSION = 7
+VERSION = 13
 MAX_W = 960          # the mask is never wider than this
 
 
@@ -393,6 +408,47 @@ def mirror_axis(L, unit):
 
 
 L_SKY, L_CLOUD, L_THING, L_WATER, L_FALL, L_LAND = 1, 2, 3, 4, 5, 6
+# the painted layers' colours (hints "paint"; the scene editor draws with these): layer → RGB
+PAINT = {0: (40, 40, 48), L_SKY: (74, 108, 255), L_CLOUD: (255, 143, 200), L_THING: (255, 210, 74),
+         L_WATER: (40, 220, 190), L_FALL: (220, 80, 220), L_LAND: (150, 110, 60)}
+
+
+def paint_of(hints, w, h):
+    """The hand-painted layers on the mask's grid: (h, w) int8, -1 where it is as found."""
+    out = np.full((h, w), -1, dtype=np.int8)
+    p = hints.get("paint")
+    if not isinstance(p, dict) or not p.get("png"):
+        return out
+    try:
+        import base64
+        import io
+        im = Image.open(io.BytesIO(base64.b64decode(p["png"]))).convert("RGBA")
+    except Exception:
+        return out
+    if im.size != (w, h):
+        im = im.resize((w, h), Image.NEAREST)
+    a = np.asarray(im).astype(np.int32)
+    ids = np.array(list(PAINT))
+    cols = np.array([PAINT[i] for i in ids])
+    d = ((a[..., None, :3] - cols[None, None]) ** 2).sum(-1)
+    lay = ids[d.argmin(-1)]
+    on = a[..., 3] > 127
+    out[on] = lay[on]
+    return out
+
+
+def points_of(hints, key):
+    """A list of [x, y] in 0…1 from the hints, or None (not given)."""
+    v = hints.get(key)
+    if not isinstance(v, list):
+        return None
+    out = []
+    for q in v:
+        try:
+            out.append([round(min(1, max(0, float(q[0]))), 4), round(min(1, max(0, float(q[1]))), 4)])
+        except (TypeError, ValueError, IndexError):
+            pass
+    return out
 
 
 def hints_of(path):
@@ -404,26 +460,81 @@ def hints_of(path):
         return {}, 0
 
 
-def rings(hints, h, w):
-    """The hinted rings on the mask: (mask, place round them 0…1)."""
+def ring_field(xs, ys, cx, cy, M):
+    """For pixel coords: d (1 on the ellipse (p-c)ᵀM(p-c) = 1) and the place round it 0…1."""
+    dx, dy = xs - cx, ys - cy
+    d = np.sqrt(np.maximum(M[0, 0] * dx * dx + 2 * M[0, 1] * dx * dy + M[1, 1] * dy * dy, 0))
+    ev, V = np.linalg.eigh(M)
+    p = np.stack([dx, dy], -1) @ V * np.sqrt(np.maximum(ev, 1e-12))
+    return d, (np.arctan2(p[..., 1], p[..., 0]) / (2 * np.pi)) % 1.0
+
+
+def fit_ellipse(x, y):
+    """The ellipse through points (centred near 0): (cx, cy, M) or None."""
+    D = np.stack([x * x, x * y, y * y, x, y], 1)
+    try:
+        a, b, c, d, e = np.linalg.lstsq(D, np.ones(len(x)), rcond=None)[0]
+    except np.linalg.LinAlgError:
+        return None
+    Q = np.array([[a, b / 2], [b / 2, c]])
+    if a <= 0 or np.linalg.det(Q) <= 0:
+        return None
+    ctr = np.linalg.solve(2 * Q, -np.array([d, e]))
+    k = 1 + ctr @ Q @ ctr
+    return (ctr[0], ctr[1], Q / k) if k > 0 else None
+
+
+def rings(hints, A, below):
+    """The hinted rings' stone on the mask: (mask, place round them 0…1). below: the first
+    row under the horizon (a ring stands in the sea: what is lower is not its stone)."""
+    h, w = A.shape[:2]
     on = np.zeros((h, w), dtype=bool)
     where = np.zeros((h, w), dtype=np.float32)
-    ys, xs = np.mgrid[0:h, 0:w]
-    u, v = (xs + 0.5) / w, (ys + 0.5) / h
-    for r in hints.get("rings", []):
+    if not hints.get("rings"):
+        return on, where
+    m1 = box(A, 1)
+    sd = np.sqrt(np.maximum(box(A * A, 1) - m1 * m1, 0)).mean(2)
+    stone = (box((sd > 0.05).astype(np.float32), 1) > 0.5) & (m1[..., 0] - m1[..., 1] < 0.09)
+    stone[below:] = False
+    ys, xs = np.mgrid[0:h, 0:w].astype(np.float64) + 0.5
+    for r in hints["rings"]:
         try:
             cx, cy, rx, ry, t = (float(x) for x in r[:5])
         except (TypeError, ValueError):
             continue
-        dx, dy = (u - cx) / max(rx, 1e-3), (v - cy) / max(ry, 1e-3)
-        m = np.abs(np.sqrt(dx * dx + dy * dy) - 1) <= t
-        on |= m
-        where[m] = ((np.arctan2(dy, dx) / (2 * np.pi)) % 1.0)[m]
+        X, Y = cx * w, cy * h
+        M = np.diag([1 / max(rx * w, 1) ** 2, 1 / max(ry * h, 1) ** 2])
+        r0 = (rx * w + ry * h) / 2
+        band = t * 1.6
+        for it in range(4):
+            d, ang = ring_field(xs, ys, X, Y, M)
+            sel = stone & (np.abs(d - 1) <= band)
+            # the ring's pieces (clouds cut it), not a mountain the ellipse happens to cross
+            keep = np.zeros((h, w), dtype=bool)
+            parts = components(sel)
+            big = max((len(c[0]) for c in parts), default=0)
+            for cy_, cx_ in parts:
+                if len(cy_) >= 0.25 * big:
+                    keep[cy_, cx_] = True
+            if it == 3 or keep.sum() < 30:
+                break
+            f = fit_ellipse(xs[keep] - X, ys[keep] - Y)
+            # a short arc fits any ellipse: the fit may not wander far from the hint
+            if f is None or np.hypot(f[0], f[1]) > 0.25 * r0:
+                break
+            ev = np.linalg.eigvalsh(f[2])
+            if not (0.6 * r0 < 1 / np.sqrt(ev.max()) and 1 / np.sqrt(ev.min()) < 1.6 * r0):
+                break
+            X, Y, M = X + f[0], Y + f[1], f[2]
+            band = t
+        on |= keep
+        where[keep] = ang[keep]
     return on, where
 
 
-def analyze(path, debug=None):
-    hints, _ = hints_of(path)
+def analyze(path, debug=None, hints=None):
+    if hints is None:
+        hints, _ = hints_of(path)
     im, size, fmt = load(path)
     a = np.asarray(im)
     k, ox, oy = pixel_grid(a)
@@ -581,6 +692,34 @@ def analyze(path, debug=None):
         sky[:] = False
         night = 0.0
 
+    # ---- painted by hand (hints "paint"): over what was found ----
+    paint = paint_of(hints, w, h)
+    painted = paint >= 0
+    if painted.any():
+        had_water = water.any()
+        p_fall = paint == L_FALL
+        sky = (sky & ~painted) | (paint == L_SKY)
+        water = (water & ~painted) | (paint == L_WATER) | p_fall
+        falls = (falls & ~painted) | p_fall
+        if water.any() and not had_water:
+            axis = int(np.nonzero((water & ~falls).any(1))[0].min()) if (water & ~falls).any() else int(np.nonzero(water.any(1))[0].min())
+            mirror = False
+        water_area = float(water.mean())
+        if (paint == L_SKY).any():
+            sky_area = float(sky.mean())
+            if not sky_found:
+                sky_l = float(Lc[sky].mean())
+                night = float(np.clip((0.42 - sky_l) / 0.3, 0, 1))
+            sky_found = True
+        elif not sky.any():
+            sky_found, night = False, 0.0
+    if isinstance(hints.get("night"), (int, float)):
+        night = float(np.clip(hints["night"], 0, 1))
+    if isinstance(hints.get("axis"), (int, float)) and water.any():
+        axis = int(np.clip(hints["axis"], 0, 1) * h)
+    if isinstance(hints.get("mirror"), bool):
+        mirror = hints["mirror"] and water.any()
+
     # ---- the mask ----
     lights = np.zeros((h, w), dtype=np.float32)
     glints = np.zeros((h, w), dtype=np.float32)
@@ -607,15 +746,15 @@ def analyze(path, debug=None):
         glints[:] = 0
         n_g = 0
     # ---- the scene ----
-    # outdoors (a sky, a horizon) everything else is land; above a horizon, what is not sky is
-    # a cloud (or a hinted ring)
-    outdoor = bool(sky_found) or horizon_row is not None
+    # under an open horizon everything else is land (clouds' shadows pass over it); above it,
+    # what is not sky is a cloud (or a hinted ring). Elsewhere (a city, a room, a photo) the
+    # rest stays nothing: no shadows over it
+    outdoor = horizon_row is not None
     layer = np.zeros((h, w), dtype=np.uint8)
     param = np.zeros((h, w), dtype=np.float32)
     if outdoor:
         layer[:] = L_LAND
-        if horizon_row is not None:
-            layer[:horizon_row] = L_CLOUD
+        layer[:horizon_row] = L_CLOUD
     layer[sky] = L_SKY
     layer[water] = L_WATER
     rows = np.arange(h)[:, None]
@@ -626,15 +765,57 @@ def analyze(path, debug=None):
     if falls.any():
         top = np.where(falls.any(0), np.argmax(falls, 0), h)
         param = np.where(falls, np.clip((rows - top[None, :]) / (0.3 * h), 0, 1), param)
-    ring, round_ = rings(hints, h, w)
+    ring, round_ = rings(hints, A, horizon_row if horizon_row is not None else h)
     # a ring is the stone of it: not the sky through it, nor a bright cloud in front
     ring &= ~sky & ~water & ~falls
+    # a cloud (it drifts) is a cloud's colour: warm, peach by day, pink at night; what else
+    # stands over the horizon (mountains, a ring's edge, a tower) is nothing and stays put
+    if outdoor:
+        S_ = box(filled, 1)
+        warm = (S_[..., 0] - S_[..., 1]) > 0.07
+        # the ring's whole band (its lit side is warm too) and a margin round it
+        hull = erode(dilate(ring, 5), 5) | dilate(ring, 2)
+        still = (layer == L_CLOUD) & (~warm | hull)
+        layer[still] = 0
     layer[ring] = L_THING
     param = np.where(ring, round_, param)
     lights[ring] = 0
+    if painted.any():
+        layer[painted] = paint[painted]
+        # within the painted layers: the water's depth, a fall's way down, a thing's place
+        # across it (where a glint runs)
+        wat = layer == L_WATER
+        if (painted & wat).any():
+            span = max(1, int(np.nonzero(wat.any(1))[0].max()) - axis + 1)
+            param = np.where(painted & wat, np.clip((rows - axis) / span, 0, 1), param)
+        fl = layer == L_FALL
+        if (painted & fl).any():
+            top = np.where(fl.any(0), np.argmax(fl, 0), h)
+            param = np.where(painted & fl, np.clip((rows - top[None, :]) / (0.3 * h), 0, 1), param)
+        th = painted & (layer == L_THING)
+        if th.any():
+            xs_ = np.nonzero(th.any(0))[0]
+            cols_ = np.arange(w)[None, :]
+            param = np.where(th, np.clip((cols_ - xs_.min()) / max(1, np.ptp(xs_)), 0, 1), param)
+        still_ = painted & (paint == 0)
+        lights[still_] = 0
+        glints[still_] = 0
+        # a scene painted outdoors (clouds, land, water) gets its events too
+        if not outdoor and (np.isin(paint, (L_CLOUD, L_LAND)).any() or (painted & wat).any()):
+            outdoor = True
+            horizon_row = max(0, axis - 1) if water.any() else int(np.nonzero(np.isin(paint, (L_LAND,)).any(1))[0].min()) if (paint == L_LAND).any() else 0
+    # points that twinkle, added by hand (on water: glints)
+    for x_, y_ in points_of(hints, "lights") or []:
+        yy, xx = min(h - 1, int(y_ * h)), min(w - 1, int(x_ * w))
+        if layer[yy, xx] in (L_WATER, L_FALL):
+            glints[yy, xx] = 1.0
+            n_g += 1
+        else:
+            lights[yy, xx] = 1.0
+            n_l += 1
     # where a pebble may break off: land with a fall or the dark under it
     rims = []
-    if outdoor and horizon_row is not None:
+    if outdoor:
         land = layer == L_LAND
         dark = L < 0.08
         under = np.zeros((h, w), dtype=bool)
@@ -646,6 +827,42 @@ def analyze(path, debug=None):
             order = np.argsort(xs_)
             for i in np.linspace(0, len(order) - 1, min(24, len(order))).astype(int):
                 rims.append([round((xs_[order[i]] + 0.5) / w, 4), round((ys_[order[i]] + 0.5) / h, 4)])
+    # where an eye may open (Uriel: the Ophanim are near, out of the frame): deep inside a
+    # cloud, its whole almond (13×7 art pixels and a margin) cloud
+    eyes = []
+    if outdoor:
+        inside = layer == L_CLOUD
+        for _ in range(4):
+            inside = erode(inside, 1)
+        inside &= box(inside.astype(np.float32), 3) > 0.99
+        inside[:, :10] = inside[:, -10:] = False
+        inside[:5] = False
+        ys_, xs_ = np.nonzero(inside)
+        if len(xs_):
+            order = np.argsort(xs_)
+            for i in np.linspace(0, len(order) - 1, min(12, len(order))).astype(int):
+                eyes.append([round((xs_[order[i]] + 0.5) / w, 4), round((ys_[order[i]] + 0.5) / h, 4)])
+    # where rings may spread on the water: a place with open water all round, as far as the
+    # rings ever reach (16 art pixels across, 5 up and down: flat circles seen from the shore)
+    ponds = []
+    if outdoor and water.any():
+        sea = water & ~falls
+        ok = sea.copy()
+        for dx in range(-17, 18):
+            ok &= np.roll(sea, dx, 1) if abs(dx) < w else ok
+        for dy in range(-5, 6):
+            ok &= np.roll(sea, dy, 0)
+        ok[:, :17] = ok[:, -17:] = False
+        ok[: horizon_row + 6] = False
+        ys_, xs_ = np.nonzero(ok)
+        if len(xs_):
+            pick = np.random.default_rng(7).choice(len(xs_), min(16, len(xs_)), replace=False)
+            ponds = [[round((xs_[i] + 0.5) / w, 4), round((ys_[i] + 0.5) / h, 4)] for i in pick]
+    # the places put by hand win over the found ones
+    rims = points_of(hints, "rims") if points_of(hints, "rims") is not None else rims
+    eyes = points_of(hints, "eyes") if points_of(hints, "eyes") is not None else eyes
+    ponds = points_of(hints, "ponds") if points_of(hints, "ponds") is not None else ponds
+    effects = {k: bool(v) for k, v in (hints.get("effects") or {}).items() if isinstance(v, bool)}
     # no alpha: Qt premultiplies it, and a zero would wipe the other three
     rgb = np.stack([layer.astype(np.float32) * 32 / 255, param, np.maximum(lights, glints)], -1)
     mask = Image.fromarray((np.clip(rgb, 0, 1) * 255).astype(np.uint8), "RGB")
@@ -660,7 +877,10 @@ def analyze(path, debug=None):
                   "mirror": bool(mirror), "area": round(water_area, 3), "falls": round(float(falls.mean()), 3)},
         "lights": n_l,
         "glints": n_g,
-        "scene": {"outdoor": outdoor, "rims": rims, "objects": int(len(hints.get("rings", [])))},
+        "scene": {"outdoor": outdoor, "rims": rims, "eyes": eyes, "ponds": ponds,
+                  "objects": int(len(hints.get("rings", [])) + bool((layer == L_THING).any() and painted.any()))},
+        "effects": effects,
+        "painted": bool(painted.any()),
     }
     if debug:
         dim = A * 0.35 * 255

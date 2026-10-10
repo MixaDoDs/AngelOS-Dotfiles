@@ -96,6 +96,22 @@ def render(text, pal, quote=None):
     return re.sub(r"\{\{\s*([\w.]+)\s*\}\}", sub, text)
 
 
+def ensure_gtk_import(folder):
+    """~/.config/gtk-{3,4}.0/gtk.css is the one file GTK reads of ours, and libadwaita apps
+    (Nautilus, most of GNOME's) read nothing else — they ignore the theme name. The repository
+    never shipped it (the author's came from Noctalia's days), so on a fresh install angelos.css
+    was rendered and never loaded: Nautilus & co. stayed plain Adwaita. A gtk.css of the user's
+    keeps its lines; the import goes on top (a Noctalia one counts as wired, switch.py swaps it)."""
+    css = folder / "gtk.css"
+    if css.is_symlink():
+        return
+    text = css.read_text() if css.exists() else ""
+    if re.search(r"""@import\s+(url\()?\s*["']?(angelos|noctalia)\.css""", text):
+        return
+    css.write_text('@import url("angelos.css");\n' + text)
+    print(f"wrote {css}")
+
+
 def main():
     args = sys.argv[1:]
     text = None
@@ -140,6 +156,8 @@ def main():
                         tmp.write_text(out)
                         tmp.replace(dst)
                         print(f"wrote {dst}")
+                if dst.name == "angelos.css" and dst.parent.name in ("gtk-3.0", "gtk-4.0"):
+                    ensure_gtk_import(dst.parent)
             for key in ("command", "reload"):
                 if e.get(key):
                     subprocess.run(["sh", "-c", render(e[key], p, shlex.quote)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)

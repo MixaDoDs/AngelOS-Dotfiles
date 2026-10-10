@@ -4,7 +4,8 @@
 #   - angelos.service drop-in: the shell and what it starts         (Environment=, $LIB literal)
 #   - ~/.config/niri/cfg/angelos-minimize.kdl + include: what niri starts
 #   - systemd's user manager now (services/Minimize.qml does it each login): D-Bus-started apps
-# Apps running already get it when they start again. uninstall: install.sh --remove
+# Apps running already get it when they start again. uninstall: install.sh --remove (the dotfiles'
+# install.sh, which puts it in for everyone, then leaves it out)
 set -e
 here=$(dirname "$0")
 lib='$LIB'
@@ -14,6 +15,8 @@ kdl="$HOME/.config/niri/cfg/angelos-minimize.kdl"
 conf="$HOME/.config/niri/config.kdl"
 if [ "${1:-}" = --remove ]; then
     rm -f "$dropin" "$kdl"
+    # the dotfiles' install.sh builds it for everyone: this file tells it to stay away
+    mkdir -p "$HOME/.config/angelos" && : > "$HOME/.config/angelos/minimize-hook.off"
     [ -f "$conf" ] && sed -i '/angelos-minimize.kdl/d; /extras\/minimize-hook/d' "$conf"
     systemctl --user unset-environment LD_PRELOAD 2>/dev/null || true
     systemctl --user daemon-reload
@@ -21,6 +24,7 @@ if [ "${1:-}" = --remove ]; then
     exit 0
 fi
 "$here/build.sh"
+rm -f "$HOME/.config/angelos/minimize-hook.off"
 mkdir -p "$(dirname "$dropin")" "$(dirname "$kdl")"
 cat > "$dropin" <<UNIT
 # angelOS minimize hook (extras/minimize-hook): the windows' own minimize buttons go to angelOS.

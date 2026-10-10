@@ -486,4 +486,55 @@ Singleton {
             onStreamFinished: root.hellImages = text.split("\n").filter(l => l !== "")
         }
     }
+
+    // ---- new pictures: Settings → Wallpaper «Добавить обои…» or a drop from the file manager.
+    // Copied into the folder (the same file already there is skipped, another one of that name
+    // gets a -2), with a picture's .scene.json (the live wallpaper's hints); then a new scan.
+    // The choosers open where the last pick was (scripts/pick-file.py --remember), not in ~ ----
+    property string importNote: ""
+    readonly property bool importing: importer.running || addPicker.running || dirPicker.running
+    function importFiles(paths) {
+        paths = (paths || []).filter(f => /\.(png|jpe?g|webp|gif|bmp)$/i.test(f));
+        if (paths.length === 0 || importer.running)
+            return;
+        importNote = "";
+        importer.command = ["sh", "-c", 'd="$1"; shift; mkdir -p "$d" || exit 1; n=0; k=0; for f; do [ -f "$f" ] || continue; case "$f" in "$d"/*) k=$((k+1)); continue;; esac; b=$(basename "$f"); t="$d/$b"; if [ -e "$t" ]; then if cmp -s "$f" "$t"; then k=$((k+1)); continue; fi; s="${b%.*}"; e="${b##*.}"; i=2; while [ -e "$d/$s-$i.$e" ]; do i=$((i+1)); done; t="$d/$s-$i.$e"; fi; cp "$f" "$t" && n=$((n+1)); sc="${f%.*}.scene.json"; [ -f "$sc" ] && cp -n "$sc" "${t%.*}.scene.json"; done; echo "$n $k"', "sh", heavenDir].concat(paths);
+        importer.running = true;
+    }
+    function pickToImport() {
+        if (!addPicker.running)
+            addPicker.running = true;
+    }
+    function pickDir() {
+        if (!dirPicker.running)
+            dirPicker.running = true;
+    }
+    Process {
+        id: importer
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const [n, k] = text.trim().split(" ").map(x => parseInt(x) || 0);
+                root.importNote = n > 0 ? I18n.t("Добавлено: ", "Added: ") + n + (k ? I18n.t(" (уже были: ", " (already there: ") + k + ")" : "") : k ? I18n.t("Эти обои уже в папке", "These are in the folder already") : I18n.t("Ничего не скопировалось", "Nothing was copied");
+                root.scan();
+            }
+        }
+    }
+    Process {
+        id: addPicker
+        command: ["python3", Quickshell.shellDir + "/scripts/pick-file.py", "--multi", "--remember", "wallpaper-add", I18n.t("angelOS — добавить обои", "angelOS — add wallpapers"), I18n.t("Картинки", "Pictures"), "*.png", "*.jpg", "*.jpeg", "*.webp", "*.gif", "*.bmp"]
+        stdout: StdioCollector {
+            onStreamFinished: root.importFiles(text.split("\n").filter(l => l !== ""))
+        }
+    }
+    Process {
+        id: dirPicker
+        command: ["python3", Quickshell.shellDir + "/scripts/pick-file.py", "--dir", "--start", root.heavenDir, I18n.t("angelOS — папка с обоями", "angelOS — the wallpaper folder")]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const d = text.trim();
+                if (d)
+                    Config.wallpaper.dir = d.startsWith(Config.home + "/") ? "~" + d.slice(Config.home.length) : d;
+            }
+        }
+    }
 }

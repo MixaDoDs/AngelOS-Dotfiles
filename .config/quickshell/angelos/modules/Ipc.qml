@@ -970,8 +970,18 @@ IpcHandler {
             Config.wallpaper.live = cmd === "on";
         else if (cmd === "analyze")
             LiveWalls.reanalyze(path);
+        else if (cmd.startsWith("reload ")) {
+            // a picture's scene changed (the scene editor, owner/scene-editor): looked at again
+            // wherever it is shown
+            const p = cmd.slice(7).trim();
+            if (LiveWalls.info(p) || LiveWalls.busy === p)
+                LiveWalls.reanalyze(p);
+            return "ok " + p;
+        }
+        else if (["glint", "pebble", "gust", "eye", "rings"].includes(cmd))
+            LiveWalls.poke(["glint", "pebble", "gust", "eye", "rings"].indexOf(cmd) + 1);
         else if (cmd && cmd !== "status")
-            return "usage: liveWall status|on|off|analyze";
+            return "usage: liveWall status|on|off|analyze|reload <path>|glint|pebble|gust|eye|rings";
         return (Config.wallpaper.live ? "on" : "off") + "  " + path + "\n" + LiveWalls.describe(path) + "\n" + JSON.stringify(LiveWalls.effective(path));
     }
     function bar(style: string): void {

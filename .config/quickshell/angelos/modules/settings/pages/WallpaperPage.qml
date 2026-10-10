@@ -146,6 +146,11 @@ PxPage {
                 }
                 PxButton {
                     compact: true
+                    icon: "folder"
+                    onClicked: Wallpapers.pickDir()
+                }
+                PxButton {
+                    compact: true
                     icon: "refresh"
                     onClicked: {
                         Config.wallpaper.dir = dirField.text;
@@ -157,6 +162,44 @@ PxPage {
                     icon: "sparkle"
                     text: I18n.t("случайные", "random")
                     onClicked: Wallpapers.random(page.target === "all" ? "" : page.output)
+                }
+            }
+        }
+        // new pictures into the folder: picked (the chooser opens where the last pick was) or
+        // dragged in from the file manager
+        SettingRow {
+            visible: !page.hell
+            label: I18n.t("Добавить обои", "Add wallpapers")
+            hint: Wallpapers.importNote || I18n.t("Скопирует картинки в папку выше. Можно перетащить файлы прямо сюда из файлового менеджера", "Copies the pictures into the folder above. Files can be dragged right here from the file manager")
+            PxBox {
+                width: Theme.u * 150
+                height: Theme.u * 14
+                sunken: true
+                color: addDrop.containsDrag ? Qt.alpha(Theme.accent, 0.25) : Theme.sunken
+                Row {
+                    anchors.centerIn: parent
+                    spacing: Theme.u * 3
+                    PxButton {
+                        compact: true
+                        icon: "plus"
+                        text: Wallpapers.importing ? "…" : I18n.t("Выбрать файлы…", "Pick files…")
+                        enabled: !Wallpapers.importing
+                        onClicked: Wallpapers.pickToImport()
+                    }
+                    PxText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        dim: !addDrop.containsDrag
+                        text: addDrop.containsDrag ? I18n.t("отпусти", "drop") : I18n.t("или перетащи сюда", "or drop here")
+                    }
+                }
+                DropArea {
+                    id: addDrop
+                    anchors.fill: parent
+                    onEntered: drag => drag.accepted = drag.hasUrls
+                    onDropped: drop => {
+                        Wallpapers.importFiles((drop.urls || []).map(u => String(u)).filter(u => u.startsWith("file://")).map(u => decodeURIComponent(u.slice(7))));
+                        drop.accept(Qt.CopyAction);
+                    }
                 }
             }
         }
@@ -510,10 +553,19 @@ PxPage {
         SettingRow {
             visible: Config.wallpaper.live
             label: I18n.t("Вода", "Water")
-            hint: I18n.t("рябь, блики, отражение неба, тени облаков; водопады текут", "ripples, glints, the sky's reflection, clouds' shadows; waterfalls stream")
+            hint: I18n.t("водопады текут, море колышется, туман в бездне, блики, тени облаков", "waterfalls pour, the sea sways, mist in the abyss, glints, clouds' shadows")
             PxToggle {
                 checked: Config.wallpaper.liveWater
                 onToggled: c => Config.wallpaper.liveWater = c
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.live
+            label: I18n.t("Редкие события", "Now and then")
+            hint: I18n.t("раз в 12–35 секунд: блик по кольцу, камешек с обрыва, порыв ветра, глаз в облаке ночью, круги по воде; под музыку — в долю. В полноэкранном режиме сцена замирает", "every 12–35 seconds: a glint over a ring, a pebble off the edge, a gust, an eye in a cloud at night, rings over the water; with music, on the beat. Under a fullscreen window the scene holds still")
+            PxToggle {
+                checked: Config.wallpaper.liveEvents
+                onToggled: c => Config.wallpaper.liveEvents = c
             }
         }
         SettingRow {

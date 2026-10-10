@@ -11,6 +11,9 @@ and stand-in zenity; the session's own portal is never asked.
   zenity       no portal on the bus: zenity
   none         no portal, no zenity, no kdialog: exit 2 and why — the avatar button used to do
                nothing at all when zenity (never installed by angelOS) was missing
+  remember     the next chooser opens in the folder of the last pick (per --remember key), not ~
+  start        --start DIR wins over the remembered folder; zenity gets it as --filename=DIR/
+  multi        --multi: the portal is asked for several, every path printed on its own line
 """
 import json
 import os
@@ -71,16 +74,16 @@ def check(name, ok, detail=""):
         failures.append(name)
 
 
-def pick(zenity=False):
+def pick(zenity=False, opts=()):
     path = f"{withz}:{bare}" if zenity else str(bare)
     (tmp / "zenity-args").unlink(missing_ok=True)
-    r = subprocess.run([sys.executable, str(SCRIPT), "angelOS — аватарка", "Картинки", "*.png", "*.jpg"],
+    r = subprocess.run([sys.executable, str(SCRIPT), *opts, "angelOS — аватарка", "Картинки", "*.png", "*.jpg"],
                        env=dict(os.environ, PATH=path), capture_output=True, text=True, timeout=20)
     return r.returncode, r.stdout.strip(), r.stderr
 
 
-def portal(code, uri=""):
-    p = subprocess.Popen([sys.executable, str(FAKE), str(code), uri], stdout=subprocess.PIPE, text=True)
+def portal(code, *uris):
+    p = subprocess.Popen([sys.executable, str(FAKE), str(code), *uris], stdout=subprocess.PIPE, text=True)
     assert p.stdout.readline().strip() == "ready"
     return p
 
@@ -105,6 +108,41 @@ check("failed", rc == 0 and out == "/from/zenity.png", f"rc={rc} out={out!r} {er
 rc, out, err = pick(zenity=True)
 args = (tmp / "zenity-args").read_text() if (tmp / "zenity-args").exists() else ""
 check("zenity", rc == 0 and out == "/from/zenity.png" and "--file-filter=Картинки | *.png *.jpg" in args, f"rc={rc} out={out!r} args={args!r} {err}")
+
+# remember: two folders that exist, one key each
+pics, art = tmp / "My Pictures", tmp / "art"
+pics.mkdir()
+art.mkdir()
+p = portal(0, (pics / "a.png").as_uri())
+pick(opts=("--remember", "walls"))
+first = json.loads(p.stdout.readline())
+p.terminate()
+p = portal(0, (art / "b.png").as_uri())
+pick(opts=("--remember", "walls"))
+second = json.loads(p.stdout.readline())
+p.terminate()
+check("remember", first["current_folder"] in (None, "") or first["current_folder"] != str(pics), str(first))
+check("remember: opens where the last pick was", second["current_folder"] == str(pics), str(second))
+p = portal(0, (pics / "c.png").as_uri())
+pick(opts=("--remember", "other"))
+other = json.loads(p.stdout.readline())
+p.terminate()
+check("remember: per key", other["current_folder"] != str(art), str(other))
+
+p = portal(0, (pics / "d.png").as_uri())
+pick(opts=("--remember", "walls", "--start", str(art)))
+started = json.loads(p.stdout.readline())
+p.terminate()
+check("start", started["current_folder"] == str(art), str(started))
+rc, out, err = pick(zenity=True, opts=("--start", str(art)))
+args = (tmp / "zenity-args").read_text() if (tmp / "zenity-args").exists() else ""
+check("start: zenity", f"--filename={art}/" in args, args)
+
+p = portal(0, (pics / "e.png").as_uri(), (pics / "f g.png").as_uri())
+rc, out, err = pick(opts=("--multi",))
+call = json.loads(p.stdout.readline())
+p.terminate()
+check("multi", rc == 0 and out.split("\n") == [str(pics / "e.png"), str(pics / "f g.png")] and call["multiple"], f"rc={rc} out={out!r} {call}")
 
 rc, out, err = pick()
 check("none", rc == 2 and out == "" and "no file chooser" in err, f"rc={rc} out={out!r} {err}")
