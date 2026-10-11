@@ -192,6 +192,8 @@ Singleton {
     }
 
     // ---- the eco mode: Motion "off" + no blur and no animations in niri (niri-game-mode) ----
+    // (Motion "off" already rests the live wallpaper: services/LiveWalls; the music spectrum's cava
+    // and the Settings window kept built ahead follow `eco` themselves: MusicSpectrum, LazyWindows)
     // auto: on battery at or below ecoAt, or while the profile is power-saver (not the one eco
     // itself set). It may put the profile on power-saver and gives the old one back after.
     property bool _savedByEco: false

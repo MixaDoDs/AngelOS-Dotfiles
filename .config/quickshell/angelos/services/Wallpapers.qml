@@ -62,9 +62,150 @@ Singleton {
         const p = (w.workspaces || {})[key(output, idx)] || (w.outputs || {})[output] || w.fallback || (shown === Config.wallpaper ? (releaseWall() || images[0]) : "") || "";
         return Config.expand(p);
     }
-    // … and the file of it the screen shows
+    // … and the file of it the screen shows (its pixel copy when pixel wallpapers are on)
     function resolve(output, idx) {
-        return pick(raw(output, idx), output);
+        return pixel(pick(raw(output, idx), output), output);
+    }
+
+    // ---- pixel wallpapers (Settings → Wallpaper → Pixel wallpaper, scripts/wall-pixelate.py) ----
+    // Any picture redrawn in big pixels: a copy per screen, made once into the cache at exactly
+    // the screen's pixels (every art pixel a whole square), from then on what that screen
+    // shows — the desktop, the lock, the login screen, the alive wallpaper (the theme's colours
+    // still come from the picture itself: services/PaletteGenerator). Pixel art, and a GIF that
+    // moves, stay as they are. Heaven's only: hell's paintings are the circle's.
+    readonly property bool pixelOn: Config.wallpaper.pixel && !hellOn
+    property var pixeled: ({})         // key (path, screen, the numbers) -> the script's JSON
+    property var pixelOrigin: ({})     // a copy -> the picture it was made from
+    property string pixelBusy: ""      // the picture being redrawn now
+    readonly property var _pix: ({
+            "queue": [],                // keys waiting (not a property: asked from bindings)
+            "jobs": {},                 // key -> [path, "WxH"]
+            "last": {}                  // path + screen -> the copy shown last, while a new one is made
+        })
+    // the screen's real pixels, "WxH" (a screen that is not there: Full HD)
+    function screenPixels(output) {
+        const s = Quickshell.screens.find(x => x.name === output);
+        if (!s || !(s.width > 0 && s.height > 0))
+            return "1920x1080";
+        const r = s.devicePixelRatio > 0 ? s.devicePixelRatio : 1;
+        return Math.round(s.width * r) + "x" + Math.round(s.height * r);
+    }
+    function _pixKey(path, wh) {
+        return [path, wh, Config.wallpaper.pixelSize, Config.wallpaper.pixelColors, Config.wallpaper.pixelDither].join("|");
+    }
+    // the picture a file stands for: a pixel copy's original, else the file itself
+    function origin(path) {
+        return pixelOrigin[path] || path;
+    }
+    // what the script said about a picture on a screen: null while it is being redrawn
+    function pixelInfo(path, output) {
+        path = origin(path);
+        return path ? pixeled[_pixKey(path, screenPixels(output))] || null : null;
+    }
+    // low: asked ahead (_pixWarm), after what a screen is waiting for now
+    function pixel(path, output, low) {
+        if (!pixelOn || !path || !path.startsWith("/"))
+            return path;
+        const wh = screenPixels(output), k = _pixKey(path, wh);
+        const j = pixeled[k];
+        if (j)
+            return j.out || path;
+        if (!_pix.jobs[k]) {
+            _pix.jobs[k] = [path, wh];
+            if (low)
+                _pix.queue.unshift(k);
+            else
+                _pix.queue.push(k);
+            Qt.callLater(root._pixNext);
+        }
+        // meanwhile: the copy shown so far (a slider was moved); at start-up nothing, so the
+        // big original is not read only to be dropped a moment later
+        return _pix.last[path + "|" + wh] || (settled ? path : "");
+    }
+    function _pixNext() {
+        if (pixeler.running || _pix.queue.length === 0)
+            return;
+        // the newest question first: an answer nobody waits for any more can wait
+        const k = _pix.queue.pop();
+        const job = _pix.jobs[k];
+        if (pixeled[k] || !job)
+            return Qt.callLater(root._pixNext);
+        // asked with numbers that are not the settings' any more (a slider on its way), or
+        // the pixels were switched off meanwhile: nobody waits for this one
+        if (!pixelOn || k !== _pixKey(job[0], job[1])) {
+            delete _pix.jobs[k];
+            return Qt.callLater(root._pixNext);
+        }
+        pixeler.key = k;
+        pixeler.said = false;
+        pixelBusy = job[0];
+        pixeler.command = ["python3", Quickshell.shellDir + "/scripts/wall-pixelate.py", job[0], "--screen", job[1], "--size", String(Config.wallpaper.pixelSize), "--colors", String(Config.wallpaper.pixelColors), "--dither", String(Config.wallpaper.pixelDither), "--cache", Config.cacheDir + "/wall-pixel"];
+        pixeler.running = true;
+    }
+    // The copies a screen will want next are made ahead: every workspace's picture, and its
+    // other file for the other theme (day ⇄ night) — so a switch of workspace or theme puts the
+    // copy up at once instead of the picture first and its copy a moment later.
+    readonly property string _pixWarmKey: pixelOn ? [stateKey, _pixKey("", ""), Quickshell.screens.map(s => s.name + screenPixels(s.name)).join(","), images.length, Object.keys(meta).length].join("|") : ""
+    on_PixWarmKeyChanged: if (_pixWarmKey)
+        Qt.callLater(root._pixWarm)
+    function _pixWarm() {
+        if (!pixelOn)
+            return;
+        for (const s of Quickshell.screens) {
+            const idxs = [1];
+            for (const k in (shown.workspaces || {})) {
+                const at = k.lastIndexOf(":");
+                if (k.slice(0, at) === s.name)
+                    idxs.push(parseInt(k.slice(at + 1)) || 1);
+            }
+            for (const i of idxs) {
+                const p = raw(s.name, i);
+                for (const dark of [Theme.dark, !Theme.dark])
+                    pixel(pickFor(p, aspectOf(s.name), dark), s.name, true);
+            }
+        }
+    }
+    function _pixDone(k, j) {
+        const job = _pix.jobs[k];
+        if (!job)
+            return;
+        delete _pix.jobs[k];
+        if (!j || !j.out)
+            j = {
+                "out": job[0],
+                "error": (j && j.error) || "no answer"
+            };
+        if (j.out !== job[0]) {
+            _pix.last[job[0] + "|" + job[1]] = j.out;
+            const o = Object.assign({}, pixelOrigin);
+            o[j.out] = job[0];
+            pixelOrigin = o;
+        }
+        const m = Object.assign({}, pixeled);
+        m[k] = j;
+        pixeled = m;
+    }
+    Process {
+        id: pixeler
+        property string key
+        property bool said: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let j = null;
+                try {
+                    j = JSON.parse(text.trim().split("\n").pop());
+                } catch (e) {}
+                pixeler.said = true;
+                root._pixDone(pixeler.key, j);
+            }
+        }
+        onExited: {
+            // no python, no numpy: the picture as it is
+            if (!pixeler.said)
+                root._pixDone(pixeler.key, null);
+            root.pixelBusy = "";
+            Qt.callLater(root._pixNext);
+        }
     }
 
     // ---- one wallpaper in several files (scripts/wall-meta.py) ----
@@ -99,6 +240,8 @@ Singleton {
         return variantsOn ? heavenSets.members[path] || hellSets.members[path] || [path] : [path];
     }
     function sameSet(a, b) {
+        a = origin(a);
+        b = origin(b);
         return a === b || (!!a && !!b && members(a).includes(b));
     }
     function nameOf(path) {

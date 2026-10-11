@@ -373,6 +373,7 @@
           "blocks": [
             "wallpaper/@",
             "wallpaper/releases",
+            "wallpaper/pixel",
             "wallpaper/live",
             "wallpaper/images"
           ],

@@ -66,6 +66,13 @@ PxBox {
             "act": () => GameDebug.open = true
         },
         {
+            "text": I18n.t("Редактор живых обоев…", "Alive wallpaper editor…"),
+            "extra": true,
+            "icon": "layers",
+            "show": SceneEditor.allowed,
+            "act": () => SceneEditor.edit("")
+        },
+        {
             "text": I18n.t("Сундуки ✦", "Chests ✦") + (Chests.count > 0 ? " · " + Chests.count : ""),
             "extra": true,
             "icon": "sparkleStar",

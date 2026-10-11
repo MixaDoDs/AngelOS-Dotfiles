@@ -160,6 +160,9 @@ start suite theme
 start suite search
 start suite tour
 start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1
+start suite perf
+start suite leak
+start suite guard
 wait
 
 # A shard or suite that failed in the crowd runs once more on its own, the rest being done:
@@ -174,7 +177,7 @@ for sh in "${SHARDS[@]}"; do
   rm -rf "${T:?}/$n"
   start driver "$n" "$from" "$until"
 done
-for s in scale lock theme search tour sddm; do
+for s in scale lock theme search tour sddm perf leak guard; do
   [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" == 0 ]] && continue
   retried+=("$s")
   if [[ "$s" == sddm ]]; then start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1; else start suite "$s"; fi
@@ -227,6 +230,15 @@ result sddm "SDDM theme: builds, loads, types, fails and logs in" "SDDM theme" 2
 result search "settings search: the query table finds what it must, fast" "settings search" 30
 # the tips after the wizard (tests/tour): three screens, the main one every time, never the streamed one
 result tour "tips after the wizard: on the main screen ×10, its own Start circled, never the streamed screen" "tips placement" 20
+# the idle budget (tests/perf): left alone, the services rest — no binding that rebuilds itself,
+# no poll gone fast, no helper started over and over
+result perf "idle budget: CPU, wake-ups and processes started at rest" "idle budget" 10
+# memory that stays behind (tests/leak): every settings page opened round after round — a page
+# that leaves something when it goes makes each round cost more
+result leak "memory: settings pages opened round after round leave nothing behind" "memory left behind" 10
+# the hang watchdog (tests/guard, no shell needed): it asks a healthy shell once a minute, not
+# every tick, and still aborts one that stopped answering
+result guard "hang watchdog: a healthy shell is left in peace, a busy, stuck or silent one is caught" "hang watchdog" 10
 
 if ((fail)); then echo "» UI SELF-TEST FAILED"; exit 1; fi
 echo "» UI self-test passed ♡"

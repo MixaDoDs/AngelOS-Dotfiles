@@ -106,6 +106,12 @@ JsonAdapter {
         // one wallpaper in several files (day / night, 21:9, 32:9, 9:16 …, scripts/wall-meta.py):
         // every screen shows the file that fits the theme and its shape (services/Wallpapers: pick)
         property bool variants: true
+        // pixel wallpapers (services/Wallpapers: pixel, scripts/wall-pixelate.py): any picture is
+        // shown as a copy redrawn in big pixels for the screen it is on; the original is not touched
+        property bool pixel: false
+        property int pixelSize: 4          // screen pixels to one art pixel on a 1080-pixel screen: 2 … 12
+        property int pixelColors: 32       // colours of the copy's palette: 8 … 64
+        property int pixelDither: 60       // 0 … 100: how much of the smooth parts is dithered
         // half-alive wallpapers (services/LiveWalls): stars twinkle and fall in a night sky,
         // water ripples and mirrors them, the picture's lights twinkle
         property bool live: true
@@ -388,7 +394,7 @@ JsonAdapter {
         property string criticalAction: "suspend" // at criticalAt, after a minute's warning: suspend | hibernate | poweroff | nothing
         property bool plugSound: true       // the charger in / out: the USB in / out sounds (Golden Gate: its own "power")
         property bool angel: true           // the angel (the demon) notices the battery: tired, sleepy, glad of the charger
-        property string eco: "auto"         // the eco mode (Motion "off" + no blur + niri's animations off): auto | on | off
+        property string eco: "auto"         // the eco mode (Motion "off" + no blur + niri's animations off, no cava spectrum, Settings not kept built): auto | on | off
         property int ecoAt: 30              // auto: on battery at or below this; 100 = whenever on battery
         property bool ecoWithSaver: true    // auto: also while the power profile is "power-saver"
         property bool ecoSaverProfile: true // the eco mode switches the profile to power-saver (and back when it ends)

@@ -299,6 +299,11 @@ IpcHandler {
     function debug(line: string): string {
         return GameDebug.command(line);
     }
+    // the live wallpaper's scene editor, a window of the shell: the author's only
+    // (services/SceneEditor → owner/scene-editor). `angelos scene edit [picture] | close | status`
+    function scene(line: string): string {
+        return SceneEditor.command(line);
+    }
     // the corner helper: `angelos helper "tip | joke | hint | ask <text> | plea | talk | gift | stay | status"`
     // (owner: angel — the demon leaves at once; dev or owner: prank, ascend, fx,
     // hell, throw; dev only: drag)
@@ -938,6 +943,16 @@ IpcHandler {
     function flavor(name: string): void {
         Config.appearance.flavor = name;
     }
+    // `angelos perf [seconds]` (scripts/perf.py): what the shell spends — services/Perf
+    function perf(): string {
+        return Perf.snapshot();
+    }
+    function perfStart(seconds: int): int {
+        return Perf.start(seconds);
+    }
+    function perfReport(): string {
+        return Perf.report();
+    }
     // how much moves: `angelos motion full|calm|off` (no argument: the level now)
     function motion(level: string): string {
         if (!level || level === "status")
@@ -983,6 +998,25 @@ IpcHandler {
         else if (cmd && cmd !== "status")
             return "usage: liveWall status|on|off|analyze|reload <path>|glint|pebble|gust|eye|rings";
         return (Config.wallpaper.live ? "on" : "off") + "  " + path + "\n" + LiveWalls.describe(path) + "\n" + JSON.stringify(LiveWalls.effective(path));
+    }
+    // pixel wallpapers: `angelos pixelWall status|on|off|size N|colors N|dither N` (any picture
+    // redrawn in big pixels, a copy per screen: services/Wallpapers, scripts/wall-pixelate.py)
+    function pixelWall(cmd: string): string {
+        const scr = Shell.focusedScreen ? Shell.focusedScreen.name : (Shell.screens[0] ? Shell.screens[0].name : "");
+        const ws = Niri.activeWorkspace(scr);
+        const w = cmd.trim().split(/\s+/), n = parseInt(w[1]);
+        if (w[0] === "on" || w[0] === "off")
+            Config.wallpaper.pixel = w[0] === "on";
+        else if (w[0] === "size" && n >= 1 && n <= 32)
+            Config.wallpaper.pixelSize = n;
+        else if (w[0] === "colors" && n >= 2 && n <= 256)
+            Config.wallpaper.pixelColors = n;
+        else if (w[0] === "dither" && n >= 0 && n <= 100)
+            Config.wallpaper.pixelDither = n;
+        else if (w[0] && w[0] !== "status")
+            return "usage: pixelWall status|on|off|size 1…32|colors 2…256|dither 0…100";
+        const raw = Wallpapers.pick(Wallpapers.raw(scr, ws ? ws.idx : 1), scr);
+        return (Config.wallpaper.pixel ? "on" : "off") + "  size " + Config.wallpaper.pixelSize + "  colors " + Config.wallpaper.pixelColors + "  dither " + Config.wallpaper.pixelDither + "\n" + raw + "\n" + Wallpapers.resolve(scr, ws ? ws.idx : 1) + "\n" + JSON.stringify(Wallpapers.pixelInfo(raw, scr));
     }
     function bar(style: string): void {
         Config.bar.style = style;

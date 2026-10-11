@@ -27,20 +27,22 @@ Item {
     // the Mac cat's one colour: the fur unless a host gives another (the menu bar's ink)
     property color ink: fur
     property int frame: 0
+    // shown on a screen: a cat in a closed popup (Quickshell keeps its items) stands still
+    readonly property bool onScreen: visible && !!Window.window && Window.window.visible
 
     implicitWidth: mac ? macCat.implicitWidth : hell ? cerberus.width : sprite.width
     implicitHeight: mac ? macCat.implicitHeight : (hell ? cerberus.height : sprite.height) + pixel
 
     Timer {
         interval: Math.max(50, root.frameMs)
-        running: root.pace !== "idle" && root.visible
+        running: root.pace !== "idle" && root.onScreen
         repeat: true
         onTriggered: root.frame = (root.frame + 1) % 5
     }
     Timer {
         // slow zzz blink while asleep (the Cerberus sleeps without it)
         interval: 700
-        running: root.pace === "idle" && root.visible && (!root.hell || root.mac)
+        running: root.pace === "idle" && root.onScreen && (!root.hell || root.mac)
         repeat: true
         onTriggered: root.frame = (root.frame + 1) % 2
     }
@@ -62,7 +64,7 @@ Item {
         id: sprite
         visible: !root.hell && !root.mac
         pixel: root.pixel
-        bitmap: root.pace === "idle" ? Frames.sleep.map((r, i) => root.frame === 1 && i < 2 ? r.replace(/y/g, ".") : r) : Frames.run(root.frame)
+        bitmap: !visible ? Frames.sleep : root.pace === "idle" ? Frames.sleep.map((r, i) => root.frame === 1 && i < 2 ? r.replace(/y/g, ".") : r) : Frames.run(root.frame)
         body: root.fur
         fill: Theme.accent
         fill3: Theme.accent2
@@ -73,10 +75,10 @@ Item {
         id: cerberus
         visible: root.hell && !root.mac
         pixel: root.pixel
-        frame: root.frame
-        asleep: root.pace === "idle"
-        alert: root.pace === "run"
-        blink: root.frame === 1
+        frame: visible ? root.frame : 0
+        asleep: !visible || root.pace === "idle"
+        alert: visible && root.pace === "run"
+        blink: visible && root.frame === 1
         y: root.pace !== "idle" && root.frame % 2 === 1 ? 0 : root.pixel
     }
 }

@@ -427,6 +427,146 @@ PxPage {
         }
     }
 
+    // pixel wallpapers (services/Wallpapers: pixel): any picture redrawn in big pixels
+    PxGroup {
+        id: pixelGroup
+        name: "pixel"
+        title: I18n.t("Пиксельные обои", "Pixel wallpaper")
+        icon: "grid"
+        width: parent.width
+        // the picture of the screen these settings are open on, and what was made of it
+        readonly property string picked: Wallpapers.pick(Wallpapers.raw(page.output, page.wsIdx), page.output)
+        readonly property string shownFile: Wallpapers.resolve(page.output, page.wsIdx)
+        readonly property var info: Wallpapers.pixelInfo(picked, page.output)
+        readonly property bool busy: Config.wallpaper.pixel && !page.hell && !!picked && !info
+        readonly property string said: {
+            if (page.hell)
+                return I18n.t("в Аду свои картины: их не перерисовываю", "hell has its own paintings: they are not redrawn");
+            if (!picked)
+                return "";
+            if (!info)
+                return I18n.t("перерисовываю…", "redrawing…");
+            if (info.skip === "art")
+                return I18n.t("уже пиксель-арт — оставлена как есть", "pixel art already: left as it is");
+            if (info.skip === "animated")
+                return I18n.t("гифка — оставлена как есть", "a GIF that moves: left as it is");
+            if (info.error)
+                return I18n.t("не вышло, показываю как есть: ", "it did not work, shown as it is: ") + info.error;
+            if (info.small)
+                return I18n.t("маленькая картинка — только увеличена без сглаживания, ", "a small picture: only enlarged without smoothing, ") + info.art[0] + "×" + info.art[1];
+            return info.art[0] + "×" + info.art[1] + I18n.t(" пикселей, цветов: ", " pixels, colours: ") + info.colors;
+        }
+
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Любая картинка — фото, арт, скриншот — показывается перерисованной в крупных пикселях, как всё в angelOS: своя палитра из цветов картинки, дизеринг вместо плавных переходов, чистые края. Копия делается под каждый экран, пиксель в пиксель; сам файл не меняется. Живые обои, блокировка и экран входа берут уже пиксельную; цвета темы — по-прежнему из самой картинки.", "Any picture, a photo, a painting or a screenshot, is shown redrawn in big pixels like the rest of angelOS: a palette of the picture's own colours, dither instead of smooth gradients, clean edges. A copy is made for every screen, pixel for pixel; the file itself is not changed. The alive wallpaper, the lock and the login screen take the pixel one; the theme's colours still come from the picture itself.")
+        }
+        SettingRow {
+            label: I18n.t("Пиксельные обои", "Pixel wallpaper")
+            hint: I18n.t("для всех обоев сразу; уже пиксельные и гифки остаются как есть", "for every wallpaper at once; pixel art and GIFs stay as they are")
+            PxToggle {
+                checked: Config.wallpaper.pixel
+                onToggled: c => Config.wallpaper.pixel = c
+            }
+        }
+        // the copy of this screen's picture: whole, and its middle at the screen's own pixels
+        Row {
+            id: pixRow
+            visible: Config.wallpaper.pixel && !page.hell && !!pixelGroup.picked
+            width: parent.width
+            spacing: Theme.u * 4
+            Repeater {
+                model: 2
+                Item {
+                    id: pixBox
+                    required property int index
+                    width: Math.floor((pixRow.width - pixRow.spacing) / 2)
+                    height: Math.round(Math.min(width, Theme.u * 160) * 9 / 16)
+                    PxBox {
+                        anchors.fill: parent
+                        sunken: true
+                        color: Theme.sunken
+                    }
+                    Item {
+                        anchors.fill: parent
+                        anchors.margins: Theme.u
+                        clip: true
+                        Image {
+                            anchors.centerIn: parent
+                            width: pixBox.index === 0 ? parent.width : implicitWidth
+                            height: pixBox.index === 0 ? parent.height : implicitHeight
+                            source: pixelGroup.shownFile ? "file://" + Wallpapers.display(pixelGroup.shownFile) : ""
+                            fillMode: pixBox.index === 0 ? Image.PreserveAspectCrop : Image.Pad
+                            asynchronous: true
+                            smooth: false
+                        }
+                    }
+                    PxText {
+                        x: Theme.u * 3
+                        y: Theme.u * 2
+                        kind: "tiny"
+                        color: "#ffffff"
+                        style: Text.Outline
+                        styleColor: "#000000"
+                        text: pixBox.index === 0 ? I18n.t("целиком", "whole") : I18n.t("как на экране", "as on the screen")
+                    }
+                }
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.pixel
+            label: I18n.t("На этой картинке", "In this picture")
+            hint: pixelGroup.picked.replace(Config.home, "~")
+            PxText {
+                width: Math.min(Theme.u * 170, implicitWidth)
+                wrapMode: Text.Wrap
+                text: pixelGroup.said
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.pixel
+            label: I18n.t("Размер пикселя", "Pixel size")
+            hint: I18n.t("сколько точек экрана в одном пикселе картинки (на экране Full HD; на большем — крупнее, вид тот же). 4 — как у обоев релизов", "how many screen dots make one pixel of the picture (on a Full HD screen; bigger on a bigger one, the look is the same). 4 is what the release wallpapers use")
+            PxSegmented {
+                model: [2, 3, 4, 5, 6, 8, 10, 12].map(v => ({
+                            "label": String(v),
+                            "value": v
+                        }))
+                currentValue: Config.wallpaper.pixelSize
+                onActivated: v => Config.wallpaper.pixelSize = v
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.pixel
+            label: I18n.t("Цветов", "Colours")
+            hint: I18n.t("палитра собирается из цветов самой картинки; меньше — плакатнее", "the palette is made of the picture's own colours; fewer looks more like a poster")
+            PxSegmented {
+                model: [8, 12, 16, 24, 32, 48, 64].map(v => ({
+                            "label": String(v),
+                            "value": v
+                        }))
+                currentValue: Config.wallpaper.pixelColors
+                onActivated: v => Config.wallpaper.pixelColors = v
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.pixel
+            label: I18n.t("Дизеринг", "Dither")
+            hint: I18n.t("шахматка между соседними цветами там, где картинка гладкая (небо, стены); на краях и деталях его нет. 0 — ровные пятна цвета", "a checker between neighbouring colours where the picture is smooth (a sky, a wall); none on edges and details. 0: flat patches of colour")
+            PxSlider {
+                width: parent.width
+                from: 0
+                to: 100
+                stepSize: 10
+                value: Config.wallpaper.pixelDither
+                suffix: " %"
+                onReleased: v => Config.wallpaper.pixelDither = Math.round(v)
+            }
+        }
+    }
+
     // half-alive wallpapers (services/LiveWalls): what in the picture may move a little
     PxGroup {
         id: liveGroup
@@ -437,7 +577,7 @@ PxPage {
         // the picture on the screen these settings are open on
         readonly property string path: Wallpapers.resolve(page.output, page.wsIdx)
         readonly property var fx: LiveWalls.effective(path)
-        readonly property var over: (Config.wallpaper.liveOverrides || {})[path] || {}
+        readonly property var over: LiveWalls.override(path)
         Component.onCompleted: LiveWalls.request(path)
         onPathChanged: LiveWalls.request(path)
 
@@ -473,6 +613,17 @@ PxPage {
                     text: I18n.t("ещё раз", "again")
                     onClicked: LiveWalls.reanalyze(liveGroup.path)
                 }
+            }
+        }
+        // the author's only: paint what is what in this picture (services/SceneEditor)
+        SettingRow {
+            visible: SceneEditor.allowed
+            label: I18n.t("Редактор сцены", "The scene editor")
+            hint: I18n.t("закрасить, что на картинке небо, вода, водопад; отключить эффекты, поставить места событий, отдать запрос Claude. Или `angelos scene edit`", "paint what in the picture is sky, water, a waterfall; switch effects off, put the events' places, hand a request to Claude. Or `angelos scene edit`")
+            PxButton {
+                icon: "layers"
+                text: I18n.t("Открыть", "Open")
+                onClicked: SceneEditor.edit(Wallpapers.origin(liveGroup.path))
             }
         }
         // the same picture, alive, small

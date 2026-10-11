@@ -80,10 +80,12 @@ Singleton {
     }
 
     // ---- per picture: the finding, corrected by hand ----
+    // (kept under the picture itself: its pixel copy, services/Wallpapers, changes with a slider)
     function override(path) {
-        return (Config.wallpaper.liveOverrides || {})[path] || {};
+        return (Config.wallpaper.liveOverrides || {})[Wallpapers.origin(path)] || {};
     }
     function setOverride(path, key, value) {
+        path = Wallpapers.origin(path);
         const all = Object.assign({}, Config.wallpaper.liveOverrides || {});
         const o = Object.assign({}, all[path] || {});
         if (value === "auto" || value === undefined || value === null)

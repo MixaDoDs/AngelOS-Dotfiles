@@ -217,10 +217,15 @@ Singleton {
         const size = w && w.layout ? w.layout.window_size : null;
         return !!size && size[0] >= s.width && size[1] >= s.height;
     }
-    // nobody looks at this screen: locked, the first-run wizard over it, or a fullscreen
-    // window on top. Timers that only animate things (angel, cava, clocks) pause then.
+    // nobody looks at this screen: locked, the first-run wizard over it, the idle screen over
+    // it, or a fullscreen window on top. Timers that only animate things (angel, cava, clocks,
+    // the live wallpaper) pause then.
     function hiddenScreen(name) {
-        return locked || setupLocked || fullscreenOn(name);
+        return locked || setupLocked || idleOver(name) || fullscreenOn(name);
+    }
+    // the idle screen (modules/idle/IdleScreen) covers every screen, or the main one only
+    function idleOver(name) {
+        return Idle.active && (Config.idle.allScreens || name === primaryName || screens.length === 1);
     }
 
     // with no page given Settings open on Home (a window already open stays where it is)

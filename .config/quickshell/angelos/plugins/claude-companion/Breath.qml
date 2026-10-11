@@ -29,10 +29,12 @@ Item {
     // reach the scene graph. A 60 fps NumberAnimation here kept every bar and
     // the full-screen desktop layer repainting and cost several % CPU idle.
     property real _phase: 0
+    // shown on a screen: in a closed popup (Quickshell keeps its items) nobody sees it breathe
+    readonly property bool onScreen: visible && !!Window.window && Window.window.visible
     Timer {
         interval: 100
         repeat: true
-        running: root.visible && root.state !== "none" && root.state !== "idle" && root.speed > 0
+        running: root.onScreen && root.state !== "none" && root.state !== "idle" && root.speed > 0
         onRunningChanged: if (!running)
             root.glow = 1
         onTriggered: {

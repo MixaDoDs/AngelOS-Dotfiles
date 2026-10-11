@@ -11,9 +11,13 @@
 #   back: `angelos game on`. `angelos game status | reset` (the save, ~/.config/angelos/save.json).
 #   Achievements (the game on only): `angelos ach status | list | events | validate | streak`.
 #   The Angel's diary (its key is an achievement's): `angelos diary open [page] | list | validate`.
+#   angelos perf [seconds] | --stand | --profile | --budget — what the shell spends and where (scripts/perf.py)
 #   angelos motion full|calm|off — how much moves: calm = no flashes, shaking or sudden loud
 #   sounds; off = no animations at all (the shell, niri, hell), an optimisation mode
-#   angelos scene edit [picture] | mcp — the author's live-wallpaper scene editor and its MCP server
+#   angelos pixelWall [status] | on | off | size N | colors N | dither N — any wallpaper redrawn in
+#   big pixels (Settings → Wallpaper → Pixel wallpaper), a copy per screen; the file is not touched
+#   angelos scene edit [picture] | close | web [picture] | mcp — the author's live-wallpaper scene
+#   editor (a window of the shell; web: the same as a page in a browser) and its MCP server
 #   angelos author status|fetch|login — the author's own tools (the chapter editor), only for
 #   the GitHub account with access to the author's private repository; gh keeps the login
 #   angelos setup — the setup wizard again (full screen, with Close); `angelos setup skip` — out of the
@@ -130,24 +134,56 @@ case "$1" in
   # → SIGABRT: Quickshell writes a crash report with the stack and the log tail
   # (~/.cache/quickshell/crashes, `angelos report`) and starts itself again in the
   # same process. Off with `echo off > ~/.config/angelos/guard`.
+  # A probe starts a whole quickshell (~40 ms of CPU, and it wakes the shell), so it is
+  # asked only when the main thread looks wrong — busy all the tick (spinning, as that
+  # hang) or not woken once in it (stuck) — after a miss, and once a minute anyway
+  # (ANGELOS_GUARD_EVERY). The look is two reads of /proc by the shell's builtins: a tick
+  # starts nothing but its `sleep`.
   guard)
     pid="${2:?pid}" misses=0 first="${ANGELOS_GUARD_FIRST:-25}" tick="${ANGELOS_GUARD_TICK:-3}" probe_timeout="${ANGELOS_GUARD_TIMEOUT:-2}"
+    every="${ANGELOS_GUARD_EVERY:-60}" hz="$(getconf CLK_TCK 2>/dev/null || echo 100)" last_cpu="" last_sw="" since=0
+    # the main thread now: $state (R, S, T…), $cpu (ticks) and $sw (times it slept), or false
+    # when unreadable
+    main_thread() {
+      line="" state=""
+      read -r line <"/proc/$pid/task/$pid/stat" 2>/dev/null || return 1
+      set -- ${line##*) }
+      state="$1" cpu=$((${12} + ${13})) sw=""
+      while read -r k v; do
+        [ "$k" = voluntary_ctxt_switches: ] && { sw="$v"; break; }
+      done <"/proc/$pid/task/$pid/status"
+      [ -n "$sw" ]
+    }
     sleep "$first"
     while kill -0 "$pid" 2>/dev/null; do
       # stopped on purpose (kill -STOP, a debugger): a SIGABRT would wait for SIGCONT and
       # crash it the moment it wakes (#46)
-      case "$(proc_state "$pid")" in
-        T|t) misses=0; sleep "$tick"; continue ;;
+      seen=0
+      main_thread && seen=1
+      case "$state" in
+        T|t) misses=0 last_cpu=""; sleep "$tick"; continue ;;
       esac
-      if timeout "$probe_timeout" "$(qs_bin)" ipc --pid "$pid" show >/dev/null 2>&1; then
-        misses=0
+      probe=0 since=$((since + tick))
+      if [ "$seen" = 1 ] && [ -n "$last_cpu" ]; then
+        [ $(((cpu - last_cpu) * 100 / (hz * tick))) -ge 80 ] && probe=1
+        [ "$sw" = "$last_sw" ] && probe=1
       else
-        misses=$((misses + 1))
+        probe=1
+      fi
+      last_cpu="${cpu:-}" last_sw="${sw:-}"
+      [ "$misses" -gt 0 ] || [ "$since" -ge "$every" ] && probe=1
+      if [ "$probe" = 1 ]; then
+        since=0
+        if timeout "$probe_timeout" "$(qs_bin)" ipc --pid "$pid" show >/dev/null 2>&1; then
+          misses=0
+        else
+          misses=$((misses + 1))
+        fi
       fi
       if [ "$misses" -ge 3 ]; then
         echo "angelOS guard: pid $pid has not answered IPC for ~15 s, SIGABRT (crash report + restart)" >&2
         kill -ABRT "$pid" 2>/dev/null
-        misses=0
+        misses=0 last_cpu=""
         sleep "$first"
       fi
       sleep "$tick"
@@ -237,6 +273,7 @@ case "$1" in
       *) echo "angelos dotfiles status|admin|install-hook"; exit 2 ;;
     esac ;;
   report)  shift; exec python3 "$SHELL_DIR/scripts/report.py" "$@" ;;
+  perf)    shift; exec python3 "$SHELL_DIR/scripts/perf.py" "$@" ;;
   # the circles' demons from the author's sheets (~/Pictures/angelos-sprites/<circle>/)
   sprites) shift; [ $# -gt 0 ] || set -- skins; exec python3 "$SHELL_DIR/scripts/sprite-rig.py" "$@" ;;
   switch)  shift; exec python3 "$SHELL_DIR/scripts/switch.py" "$@" ;;
@@ -276,14 +313,19 @@ case "$1" in
     esac
     ;;
   scene)
-    # which parts of a wallpaper come alive: the scene editor (`angelos scene edit [picture]`)
+    # which parts of a wallpaper come alive: the scene editor (`angelos scene edit [picture]`, a window of the shell)
     # and its MCP server for Claude (`angelos scene mcp`) — the author's tools (owner/)
     ed="$SHELL_DIR/owner/scene-editor"
     [ -d "$ed" ] || { echo "the scene editor is the author's tool, not part of angelOS (angelos author)" >&2; exit 1; }
     case "${2:-edit}" in
-      edit) shift; [ $# -gt 0 ] && shift; exec python3 "$ed/scene-editor.py" "$@" ;;
+      edit|close|status)
+        # the editor is a window of the shell (services/SceneEditor)
+        pic="${3:-}"
+        [ -n "$pic" ] && pic="$(realpath -- "$pic" 2>/dev/null || printf '%s' "$pic")"
+        exec qs -c angelos ipc call angelos scene "${2:-edit}${pic:+ $pic}" ;;
+      web)  shift; shift; exec python3 "$ed/scene-editor.py" "$@" ;;   # the same as a page in a browser window
       mcp)  exec python3 "$ed/scene-mcp.py" ;;
-      *)    echo "usage: angelos scene edit [picture] | mcp" >&2; exit 2 ;;
+      *)    echo "usage: angelos scene edit [picture] | close | status | web [picture] | mcp" >&2; exit 2 ;;
     esac ;;
   novel)
     # the novel's dialogue editor runs without the shell (the author's tool: owner/, see

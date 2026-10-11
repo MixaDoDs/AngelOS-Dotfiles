@@ -6,6 +6,11 @@ WINDOW minutes, infers each session's state from its last user/assistant record,
 and sums token usage incrementally (same cache as hooks/pulse.py).
 Prints one JSON array: [{id, state, model, in, out, cc, cr, cwd, age}].
 Only reports anything while a `claude` process is running.
+
+  scan.py               one look, one line
+  scan.py --watch SEC   looks every SEC seconds and prints a line when something other than the
+                        ages changed (a minute at the most between lines): one Python for the
+                        shell's whole life instead of one every few seconds
 """
 import glob
 import json
@@ -66,10 +71,9 @@ def last_state(path):
     return "idle", model, cwd
 
 
-def main():
+def scan():
     if not claude_running():
-        print("[]")
-        return
+        return []
     now = time.time()
     out = []
     for path in glob.glob(os.path.expanduser("~/.claude/projects/*/*.jsonl")):
@@ -98,7 +102,28 @@ def main():
         model = (model or tok.get("model") or "?").replace("claude-", "")
         out.append({"id": short, "state": state, "model": model, "in": tok["in"], "out": tok["out"],
                     "cc": tok["cc"], "cr": tok["cr"], "cwd": os.path.basename(cwd) if cwd else "", "age": int(age)})
-    print(json.dumps(out))
+    return out
+
+
+def watch(every):
+    last, said = None, 0.0
+    while True:
+        out = scan()
+        key = json.dumps([{k: v for k, v in s.items() if k != "age"} for s in out], sort_keys=True)
+        if key != last or time.time() - said >= 60:
+            print(json.dumps(out), flush=True)
+            last, said = key, time.time()
+        time.sleep(every)
+
+
+def main():
+    if len(sys.argv) > 2 and sys.argv[1] == "--watch":
+        try:
+            watch(max(0.5, float(sys.argv[2])))
+        except (KeyboardInterrupt, BrokenPipeError):
+            pass
+        return
+    print(json.dumps(scan()))
 
 
 if __name__ == "__main__":

@@ -37,7 +37,9 @@ Singleton {
         autoTimer.restart()
     readonly property string screenName: Config.appearance.paletteScreen || (Shell.primaryScreen ? Shell.primaryScreen.name : "")
     readonly property var workspace: Niri.activeWorkspace(screenName)
-    readonly property string wallpaper: Wallpapers.resolve(screenName, workspace ? workspace.idx : 1)
+    // the picture itself, not its pixel copy (services/Wallpapers: pixel): the colours stay put
+    // while the pixels are switched on and off or a slider is moved
+    readonly property string wallpaper: Wallpapers.origin(Wallpapers.resolve(screenName, workspace ? workspace.idx : 1))
     // never in hell: there the colours are the circle's (Theme.generated), whatever the picture
     readonly property bool auto: Config.ready && Config.appearance.flavor === "wallpaper" && Config.appearance.autoWallpaperColors && !Wallpapers.hellOn
 
@@ -56,7 +58,7 @@ Singleton {
     function generate() {
         const screen = Niri.focusedOutput || screenName;
         const ws = Niri.activeWorkspace(screen);
-        const path = Wallpapers.resolve(screen, ws ? ws.idx : 1);
+        const path = Wallpapers.origin(Wallpapers.resolve(screen, ws ? ws.idx : 1));
         if (!path) {
             error = I18n.t("Сначала выбери обои", "Choose a wallpaper first");
             return;

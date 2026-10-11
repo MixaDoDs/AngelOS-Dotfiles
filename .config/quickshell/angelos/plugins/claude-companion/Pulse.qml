@@ -67,17 +67,20 @@ Singleton {
         return Object.values(out).sort((a, b) => b.at - a.at);
     }
 
+    // one scan.py for the shell's whole life: it looks every 3 s and prints a line only when
+    // something changed (a Python started every 3 s cost more than all of the plugin's drawing);
+    // scan() starts it again if it ended
     function scan() {
         if (!scanner.running)
             scanner.running = true;
     }
     Process {
         id: scanner
-        command: ["python3", Quickshell.shellDir + "/plugins/claude-companion/hooks/scan.py"]
-        stdout: StdioCollector {
-            onStreamFinished: {
+        command: ["python3", "-u", Quickshell.shellDir + "/plugins/claude-companion/hooks/scan.py", "--watch", "3"]
+        stdout: SplitParser {
+            onRead: line => {
                 try {
-                    root.scanned = JSON.parse(text) || [];
+                    root.scanned = JSON.parse(line) || [];
                 } catch (e) {}
             }
         }

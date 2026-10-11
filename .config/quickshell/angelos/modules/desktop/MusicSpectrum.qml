@@ -13,7 +13,8 @@ import qs.widgets
 // interface or one channel pair → FIFO → cava. cava's own `source = <sink>`
 // silently fell back to the default *input*, i.e. the microphone.
 // In hell (Theme.realm) the bars are dried blood; a loud one's top block is the one accent.
-// cava and the tap stop while nobody can see the desk (locked, fullscreen game),
+// cava and the tap stop while nobody can see the desk (locked, fullscreen game) and in the
+// eco mode (services/Power: two processes and 30 frames a second for looks),
 // and run only in the widget's face (`face`, DesktopWidgetHost) — its input copy (shown over
 // the player's buttons) would share the FIFO and the config. A watchdog restarts a
 // cava that stopped printing frames (B4).
@@ -28,13 +29,15 @@ Item {
     property int rows: 14                    // the pixel bars' height, in blocks
     property real fitWidth: 0                // > 0: the bars stretch to this width
     readonly property bool passive: true     // nothing to click: no input copy needed
-    readonly property bool paused: Shell.hiddenScreen(screenName)
+    readonly property bool paused: Shell.hiddenScreen(screenName) || Power.eco
     readonly property bool live: visible && face && !paused
     onLiveChanged: {
         if (!live) {
             restart.stop();
+            restart.interval = 2000;
             proc.running = false;
             levels = [];
+            proc.lastLine = "";
         } else {
             writeConf();
         }
@@ -90,21 +93,34 @@ Item {
     Process {
         id: proc
         command: ["python3", Quickshell.shellDir + "/scripts/audio-tap.py", "run", "--conf", root.conf, "--fifo", root.fifo, root.source]
+        property double startedAt: 0
         onStarted: {
             root.starts++;
             root.lastFrame = Date.now();
+            startedAt = Date.now();
         }
+        // the same frame again (silence prints zeros 30 times a second) changes nothing on screen:
+        // no new levels, no frame drawn
+        property string lastLine: ""
         stdout: SplitParser {
             onRead: line => {
                 root.lastFrame = Date.now();
+                if (line === proc.lastLine)
+                    return;
+                proc.lastLine = line;
                 root.levels = line.split(";").filter(s => s !== "").map(n => parseInt(n) / 100);
             }
         }
         onExited: code => {
-            if (code === 127)
+            if (code === 127) {
                 root.missing = true;
-            else if (root.live)
+            } else if (root.live) {
+                // a tap that ends right away (no sound server, the sink gone) is tried again
+                // later and later, up to a minute — not every 2 s for ever; a run that lasted
+                // brings the 2 s back
+                restart.interval = Date.now() - startedAt > 15000 ? 2000 : Math.min(60000, restart.interval * 2);
                 restart.start();
+            }
         }
     }
     Timer {

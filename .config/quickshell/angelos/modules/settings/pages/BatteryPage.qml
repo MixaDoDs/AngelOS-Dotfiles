@@ -85,7 +85,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("angelOS перестаёт двигаться ради красоты: без анимаций, размытия и адских эффектов, niri тоже без анимаций. Ангел остаётся, но дышит тише. Сейчас: ", "angelOS stops moving for looks: no animations, no blur, no hell effects, and niri without animations too. The angel stays, breathing quieter. Now: ") + (Power.eco ? I18n.t("включён (", "on (") + Power.ecoWhy + ")" : I18n.t("выключен", "off"))
+            text: I18n.t("angelOS перестаёт двигаться ради красоты: без анимаций, размытия и адских эффектов, niri тоже без анимаций; живые обои и спектр музыки замирают, окно настроек не держится в памяти. Ангел остаётся, но дышит тише. Сейчас: ", "angelOS stops moving for looks: no animations, no blur, no hell effects, and niri without animations too; the live wallpaper and the music spectrum rest, the Settings window is not kept in memory. The angel stays, breathing quieter. Now: ") + (Power.eco ? I18n.t("включён (", "on (") + Power.ecoWhy + ")" : I18n.t("выключен", "off"))
         }
         SettingRow {
             label: I18n.t("Когда включать", "When")

@@ -20,19 +20,31 @@ Scope {
     readonly property bool shown: Config.voxtype.indicator === "angelos" && (recording || working)
     property bool hasVoxtype: false
 
-    // voxtype rewrites the file on every change; polling is cheap and survives renames
+    // voxtype rewrites the file on every change: the watch follows it through the renames and a
+    // file made again (it polled every 150 ms before — 7 wake-ups a second for nothing); while the
+    // file is not there yet (voxtype not started) a slow look every 3 s finds it
+    readonly property bool watching: hasVoxtype && Config.voxtype.indicator === "angelos"
+    property bool fileThere: false
     Timer {
-        interval: 150
-        running: root.hasVoxtype && Config.voxtype.indicator === "angelos"
+        interval: 3000
+        running: root.watching && !root.fileThere
         repeat: true
         onTriggered: stateView.reload()
     }
     FileView {
         id: stateView
-        path: root.stateFile
+        path: root.watching ? root.stateFile : ""
+        watchChanges: true
         printErrors: false
-        onLoaded: root.state = text().trim() || "idle"
-        onLoadFailed: root.state = "idle"
+        onFileChanged: reload()
+        onLoaded: {
+            root.fileThere = true;
+            root.state = text().trim() || "idle";
+        }
+        onLoadFailed: {
+            root.fileThere = false;
+            root.state = "idle";
+        }
     }
     Process {
         running: true

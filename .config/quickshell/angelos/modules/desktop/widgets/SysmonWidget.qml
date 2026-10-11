@@ -74,8 +74,6 @@ Item {
             net.reload();
             if (root.cpuTempPath)
                 temp.reload();
-            if (!gpuProc.running)
-                gpuProc.running = true;
         }
     }
     FileView {
@@ -155,10 +153,12 @@ Item {
     }
     Process {
         id: gpuProc
-        // NVIDIA through nvidia-smi, AMD through amdgpu's sysfs; Intel's load stays "—"
-        command: ["sh", Quickshell.shellDir + "/scripts/gpu-stats.sh"]
-        stdout: StdioCollector {
-            onStreamFinished: {
+        // NVIDIA through nvidia-smi, AMD through amdgpu's sysfs; Intel's load stays "—".
+        // One process while the widget is seen, a line every 2 s (a card that can't say ends it)
+        running: root.seen
+        command: ["sh", Quickshell.shellDir + "/scripts/gpu-stats.sh", "--watch", "2"]
+        stdout: SplitParser {
+            onRead: text => {
                 const v = text.split(",").map(s => parseFloat(s));
                 if (v.length >= 4 && !isNaN(v[0])) {
                     root.gpu = v[0] / 100;

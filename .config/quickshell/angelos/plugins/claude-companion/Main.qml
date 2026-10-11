@@ -8,9 +8,10 @@ Item {
     id: root
     property var plugin
 
-    // hookless discovery of running sessions + plan limits, picked up on their own
+    // hookless discovery of running sessions + plan limits, picked up on their own (Pulse's
+    // scanner watches by itself; this only brings it back if it ended)
     Timer {
-        interval: 3000
+        interval: 30000
         running: true
         repeat: true
         triggeredOnStart: true

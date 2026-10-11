@@ -71,10 +71,19 @@ Scope {
     // navigation, Home, the search with its index, the look in use — so it opens at once
     // (the pages one goes on to come and go: SettingsView). Not during the boot screen, the
     // first-run wizard or a stream (the build is a second of CPU); asked again until it fits.
+    // Not in the eco mode either (services/Power): the kept window is ~100 MB a machine that
+    // saves has better uses for — it goes when eco comes, and opens as any other window does.
+    Connections {
+        target: Power
+        function onEcoChanged() {
+            if (Power.eco)
+                Shell.settingsWarm = false;
+        }
+    }
     Timer {
         id: settingsWarm
         interval: 8000
-        running: !Shell.settingsWarm && Quickshell.env("ANGELOS_SETTINGS_WARM") !== "0"   // 0: never (to compare)
+        running: !Shell.settingsWarm && !Power.eco && Quickshell.env("ANGELOS_SETTINGS_WARM") !== "0"   // 0: never (to compare)
         repeat: true
         onTriggered: {
             if (Shell.bootOpen || Shell.bootCover || Shell.setupOpen || StreamMode.active)
@@ -112,6 +121,13 @@ Scope {
     LazyLoader {
         source: GameDebug.windowUrl
         active: GameDebug.shown
+    }
+
+    // the live wallpaper's scene editor: the author's only, its window comes with
+    // owner/scene-editor (services/SceneEditor; nothing looked for in a public install)
+    LazyLoader {
+        source: SceneEditor.windowUrl
+        active: SceneEditor.shown
     }
 
     // the Angel's diary (services/Diary): its closing swing plays inside the window

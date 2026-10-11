@@ -487,6 +487,9 @@ Scope {
     readonly property string shots: Quickshell.env("ANGELOS_TEST_SHOTS") || ""
     property bool undoDone: false
     property int cavaFirst: 0
+    property bool cavaEcoRests: false
+    property string ecoWas: ""
+    property bool ecoProfileWas: true
     // boot: the tries at the boot screen's chime
     property int bootTries: 0
     property var bootKeep: ({})
@@ -2174,6 +2177,50 @@ Scope {
                 Wallpapers.meta = meta0;
                 report("walls-variants", one && day && night && wide && tall && lone && tags && off, "one card " + one + ", day " + day + ", night " + night + ", 21:9 " + wide + ", a tall screen takes the tall file " + tall + ", a lone picture stays " + lone + ", marks " + tags + ", off: every file " + off);
             }
+            // pixel wallpapers: a screen shows the copy made for it, which still stands for its
+            // picture (the same wallpaper, its corrections); off, and in hell, the picture itself
+            {
+                const pic = "/tmp/selftest-pix/lake.png", copy = "/tmp/selftest-pix/cache/lake-1920x1080.png";
+                const keepWall = [Config.wallpaper.fallback, Config.wallpaper.outputs, Config.wallpaper.workspaces, Config.wallpaper.liveOverrides, Wallpapers.settled];
+                Config.wallpaper.outputs = ({});
+                Config.wallpaper.workspaces = ({});
+                Config.wallpaper.fallback = pic;
+                Wallpapers.settled = true;
+                const plain = Wallpapers.resolve("S", 1) === pic && Wallpapers.origin(pic) === pic;
+                Config.wallpaper.pixel = true;
+                // asked: the picture itself until the copy is there (the answer is given here, by hand)
+                const waiting = Wallpapers.resolve("S", 1) === pic && Wallpapers.pixelInfo(pic, "S") === null;
+                const key = Wallpapers._pixKey(pic, Wallpapers.screenPixels("S"));
+                Wallpapers._pixDone(key, {
+                    "out": copy,
+                    "art": [480, 270],
+                    "block": 4,
+                    "colors": 32
+                });
+                const shown = Wallpapers.resolve("S", 1) === copy && Wallpapers.origin(copy) === pic && Wallpapers.sameSet(copy, pic) && (Wallpapers.pixelInfo(copy, "S") || {}).block === 4;
+                LiveWalls.setOverride(copy, "sky", "on");
+                const kept = (Config.wallpaper.liveOverrides[pic] || {}).sky === "on" && Config.wallpaper.liveOverrides[copy] === undefined && LiveWalls.override(copy).sky === "on";
+                // another number: asked again, the copy shown so far stays up meanwhile
+                const size0 = Config.wallpaper.pixelSize;
+                Config.wallpaper.pixelSize = size0 === 8 ? 6 : 8;
+                const meanwhile = Wallpapers.resolve("S", 1) === copy;
+                Wallpapers._pixDone(Wallpapers._pixKey(pic, Wallpapers.screenPixels("S")), {
+                    "out": pic,
+                    "skip": "art"
+                });
+                const skipped = Wallpapers.resolve("S", 1) === pic && (Wallpapers.pixelInfo(pic, "S") || {}).skip === "art";
+                Config.wallpaper.pixelSize = size0;
+                const back = Wallpapers.resolve("S", 1) === copy;
+                Config.wallpaper.pixel = false;
+                const off = Wallpapers.resolve("S", 1) === pic;
+                Config.wallpaper.pixel = false;
+                Config.wallpaper.liveOverrides = keepWall[3];
+                Config.wallpaper.fallback = keepWall[0];
+                Config.wallpaper.outputs = keepWall[1];
+                Config.wallpaper.workspaces = keepWall[2];
+                Wallpapers.settled = keepWall[4];
+                report("walls-pixel", plain && waiting && shown && kept && meanwhile && skipped && back && off, "off: the picture " + plain + ", asked: the picture meanwhile " + waiting + ", then its copy (same wallpaper) " + shown + ", a correction kept under the picture " + kept + ", a slider moved: the old copy meanwhile " + meanwhile + ", pixel art left as it is " + skipped + ", the number back: the copy at once " + back + ", off again " + off);
+            }
             // a turned monitor: the turn and the mirror apart, and back together
             {
                 const t = Outputs.transformOf;
@@ -2418,6 +2465,35 @@ Scope {
             if (!back && Date.now() - started < 20000)
                 return;
             report("cava-back", back && !w.missing, "started " + cavaFirst + "×, hidden and shown → " + w.starts + "×, frames " + (back ? "again" : "stopped") + " after " + (Date.now() - started) + " ms" + (w.missing ? " (cava missing)" : ""));
+            // the eco mode rests it too (services/Power); the machine's real power profile is
+            // not this test's to change
+            cavaFirst = w.starts;
+            ecoWas = Config.power.eco;
+            ecoProfileWas = Config.power.ecoSaverProfile;
+            Config.power.ecoSaverProfile = false;
+            Config.power.eco = "on";
+            started = Date.now();
+            phase = "cava-eco";
+            return;
+        }
+        if (phase === "cava-eco") {
+            if (Date.now() - started < 800)
+                return;
+            const w = cavaStage.item;
+            cavaEcoRests = Power.eco && !w.live && w.starts === cavaFirst && w.levels.length === 0;
+            Config.power.eco = "off";
+            started = Date.now();
+            phase = "cava-eco-back";
+            return;
+        }
+        if (phase === "cava-eco-back") {
+            const w = cavaStage.item;
+            const back = w.starts > cavaFirst && Date.now() - w.lastFrame < 500;
+            if (!back && Date.now() - started < 20000)
+                return;
+            report("cava-eco", cavaEcoRests && back && !Motion.still, "eco on: the spectrum rests " + cavaEcoRests + "; off: frames " + (back ? "again" : "stopped") + ", things move again " + !Motion.still);
+            Config.power.eco = ecoWas;
+            Config.power.ecoSaverProfile = ecoProfileWas;
             cavaStage.active = false;
             phase = "rmb";
             return;

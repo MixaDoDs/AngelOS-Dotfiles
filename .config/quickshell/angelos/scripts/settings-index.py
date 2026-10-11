@@ -13,7 +13,8 @@ titles, SettingRow labels and hints, and the texts inside a row or group
 A group or row shown only in developer mode (`shown:`/`visible: Config.developer.enabled`)
 is marked "developer": true, its rows too — the search leaves them out while the mode is off.
 One shown only to the author (`shown: GameDebug.allowed`, the game's debug panel from
-owner/debug) is marked "owner": true — the search leaves it out for everyone else.
+owner/debug; `visible: SceneEditor.allowed`, the live wallpaper's scene editor from
+owner/scene-editor) is marked "owner": true — the search leaves it out for everyone else.
 One about hardware (`visible: Laptop.has("lid")`) is marked "needs": "lid", its rows too —
 the search leaves it out on a machine without it (a desktop: no lid, no laptop keys).
 
@@ -35,7 +36,7 @@ SETS = re.compile(r'onToggled:\s*(\w+)\s*=>\s*Config\.(\w+\.\w+)\s*=\s*\1\s*;?\s
 PROP = re.compile(r'^\s*"?(heading|subtitle|title|label|hint|text|placeholder)"?\s*:\s*(.*)$')
 OPEN = re.compile(r"^\s*([A-Z][\w.]*)\s*\{")
 DEV = re.compile(r"^\s*(shown|visible)\s*:\s*Config\.developer\.enabled\s*$")
-OWNER = re.compile(r"^\s*(shown|visible)\s*:\s*GameDebug\.allowed\s*$")
+OWNER = re.compile(r"^\s*(shown|visible)\s*:\s*(GameDebug|SceneEditor)\.allowed\s*$")
 NEEDS = re.compile(r'^\s*(shown|visible)\s*:\s*Laptop\.has\("(\w+)"\)\s*$')
 NAME = re.compile(r'^\s*name\s*:\s*"([^"]+)"')
 

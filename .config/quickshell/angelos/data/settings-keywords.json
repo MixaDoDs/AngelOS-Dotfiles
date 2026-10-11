@@ -417,6 +417,20 @@
     "фон",
     "wallpaper"
   ],
+  "wallpaper/pixel": [
+    "пиксельные обои",
+    "пикселить обои",
+    "пикселизация",
+    "пикселизовать",
+    "пиксель-арт",
+    "пиксель арт",
+    "дизеринг",
+    "мозаика",
+    "pixelate",
+    "pixel art",
+    "pixel wallpaper",
+    "dither"
+  ],
   "wallpaper/releases": [
     "обои релиза",
     "release wallpaper"
