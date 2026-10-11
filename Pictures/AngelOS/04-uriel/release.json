@@ -1,0 +1,78 @@
+{
+  "number": 4,
+  "codename": "Uriel",
+  "date": "2026-10-11",
+  "walls": [
+    {
+      "name": "Uriel Free",
+      "day": "uriel-free.png",
+      "night": "uriel-free-night.png",
+      "variants": [
+        {
+          "file": "uriel-free-day-9x16.png",
+          "time": "day",
+          "shape": "9:16"
+        },
+        {
+          "file": "uriel-free-night-9x16.png",
+          "time": "night",
+          "shape": "9:16"
+        },
+        {
+          "file": "uriel-free-day-21x9.png",
+          "time": "day",
+          "shape": "21:9"
+        },
+        {
+          "file": "uriel-free-night-21x9.png",
+          "time": "night",
+          "shape": "21:9"
+        }
+      ]
+    },
+    {
+      "name": "Uriel Space",
+      "day": "uriel-space.png",
+      "variants": [
+        {
+          "file": "uriel-space-9x16.png",
+          "time": "",
+          "shape": "9:16"
+        },
+        {
+          "file": "uriel-space-21x9.png",
+          "time": "",
+          "shape": "21:9"
+        }
+      ]
+    },
+    {
+      "name": "Uriel Forest",
+      "day": "uriel-forest.png",
+      "night": "uriel-forest-night.png",
+      "variants": [
+        {
+          "file": "uriel-forest-day-9x16.png",
+          "time": "day",
+          "shape": "9:16"
+        },
+        {
+          "file": "uriel-forest-night-9x16.png",
+          "time": "night",
+          "shape": "9:16"
+        },
+        {
+          "file": "uriel-forest-day-21x9.png",
+          "time": "day",
+          "shape": "21:9"
+        },
+        {
+          "file": "uriel-forest-night-21x9.png",
+          "time": "night",
+          "shape": "21:9"
+        }
+      ]
+    }
+  ],
+  "art": "made for angelOS by its author, MIT like the rest of the repository"
+}
