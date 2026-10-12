@@ -1,6 +1,5 @@
-# Core Niri/Noctalia rice
+# Core niri desktop
 niri
-noctalia
 nautilus
 nautilus-python
 eog

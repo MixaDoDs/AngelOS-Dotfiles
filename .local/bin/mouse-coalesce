@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+"""Thin a fast (4–8 kHz) mouse down in games, only while one is running.
+
+Wine (and its Wayland driver) turns every mouse report into a wineserver message; at 8000 a
+second a heavy game (Cyberpunk, Arc Raiders) falls behind and the camera drags for half a
+second, then catches up. Light games keep up, the desktop is fine. So: while niri-game-mode's
+flag ($XDG_RUNTIME_DIR/niri-game-mode/game) exists, grab the real mouse and replay it through
+a uinput copy, motion summed into at most RATE reports a second. Buttons and the wheel go
+through at once, and motion waits at most 1/RATE s. Flag gone → ungrab, the mouse is raw again.
+
+    mouse-coalesce [--rate 2000] [--device /dev/input/by-id/...-event-mouse]
+
+Without --rate it is angelOS's setting (settings.json gaming.mouseRate, the setup wizard's
+«Scripts» or Settings → Games), read each time a game starts: 0 = leave the mouse alone.
+Without --device: the first USB mouse (/dev/input/by-id/*-event-mouse). The mouse and
+/dev/uinput need the input group (install.sh: 70-angelos-uinput.rules).
+
+The copy is another mouse to niri, so input.kdl's mouse { } (flat accel) applies to it too."""
+from __future__ import annotations
+
+import argparse
+import glob
+import os
+import select
+import signal
+import struct
+import sys
+import time
+from pathlib import Path
+
+import json
+
+import evdev
+from evdev import ecodes as e
+
+GAME_FLAG = Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}") / "niri-game-mode/game"
+DEVICE_GLOB = "/dev/input/by-id/*-event-mouse"
+SETTINGS = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "angelos/settings.json"
+
+
+def gaming() -> dict:
+    try:
+        g = json.loads(SETTINGS.read_text()).get("gaming", {})
+        return g if isinstance(g, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def setting_rate() -> int:
+    """angelOS's gaming.mouseRate (0 = off)"""
+    try:
+        return int(gaming().get("mouseRate", 0) or 0)
+    except (ValueError, TypeError):
+        return 0
+EVENT = struct.Struct("llHHi")  # struct input_event on 64-bit
+
+
+def find_device(path: str | None) -> str | None:
+    if path:
+        return path if os.path.exists(path) else None
+    hits = sorted(glob.glob(DEVICE_GLOB))
+    # the one picked in angelOS (gaming.mouseDevice: a part of its by-id name) — a keyboard with
+    # a mouse interface of its own (Hall-effect ones) is an "event-mouse" too
+    want = str(gaming().get("mouseDevice") or "").replace(" ", "_")
+    if want:
+        hits = [h for h in hits if want in os.path.basename(h)] or hits
+    return hits[0] if hits else None
+
+
+def coalesce(dev: evdev.InputDevice, ui: evdev.UInput, period: float, flag: Path) -> None:
+    """Replay dev into ui until the game flag is gone (or the mouse is unplugged)."""
+    fd = dev.fd
+    dx = dy = 0
+    frame: list[tuple[int, int, int]] = []
+    next_emit = 0.0
+    flag_check = 0.0
+    buf = b""
+
+    def flush(now: float, extra: list[tuple[int, int, int]]) -> None:
+        nonlocal dx, dy, next_emit
+        if not (dx or dy or extra):
+            return
+        if dx:
+            ui.write(e.EV_REL, e.REL_X, dx)
+        if dy:
+            ui.write(e.EV_REL, e.REL_Y, dy)
+        for etype, code, value in extra:
+            ui.write(etype, code, value)
+        ui.syn()
+        dx = dy = 0
+        next_emit = now + period
+
+    while True:
+        now = time.monotonic()
+        if now >= flag_check:
+            if not flag.exists():
+                if dx or dy:
+                    flush(now, [])
+                return
+            flag_check = now + 0.5
+        pending = dx or dy
+        timeout = max(0.0, next_emit - now) if pending else max(0.0, flag_check - now)
+        ready, _, _ = select.select([fd], [], [], timeout)
+        now = time.monotonic()
+        if not ready:
+            if pending:
+                flush(now, [])
+            continue
+        buf += os.read(fd, EVENT.size * 256)  # OSError (ENODEV) when unplugged → caller
+        n = len(buf) - len(buf) % EVENT.size
+        chunk, buf = buf[:n], buf[n:]
+        for off in range(0, n, EVENT.size):
+            _, _, etype, code, value = EVENT.unpack_from(chunk, off)
+            if etype == e.EV_SYN:
+                if code == e.SYN_DROPPED:
+                    frame.clear()
+                    continue
+                if code != e.SYN_REPORT:
+                    continue
+                other = [ev for ev in frame if ev[0] != e.EV_REL or ev[1] not in (e.REL_X, e.REL_Y)]
+                for etype2, code2, value2 in frame:
+                    if etype2 == e.EV_REL and code2 == e.REL_X:
+                        dx += value2
+                    elif etype2 == e.EV_REL and code2 == e.REL_Y:
+                        dy += value2
+                frame.clear()
+                if other or now >= next_emit:
+                    flush(now, other)
+            elif etype != e.EV_MSC:
+                frame.append((etype, code, value))
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--rate", type=int, default=0, help="max motion reports a second in games (default: angelOS's setting)")
+    ap.add_argument("--device", help=f"evdev node (default: first of {DEVICE_GLOB})")
+    ap.add_argument("--flag", type=Path, default=GAME_FLAG, help="coalesce while this file exists")
+    args = ap.parse_args()
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+
+    while True:
+        if not args.flag.exists():
+            time.sleep(0.5)
+            continue
+        rate = args.rate or setting_rate()
+        if rate <= 0:
+            time.sleep(2)
+            continue
+        period = 1.0 / rate
+        path = find_device(args.device)
+        if not path:
+            time.sleep(2)
+            continue
+        dev = ui = None
+        try:
+            dev = evdev.InputDevice(path)
+            ui = evdev.UInput.from_device(dev, name=f"{dev.name} ({rate} Hz)")
+            dev.grab()
+            print(f"mouse-coalesce: {dev.name} → {rate} Hz", file=sys.stderr, flush=True)
+            coalesce(dev, ui, period, args.flag)
+            print("mouse-coalesce: raw again", file=sys.stderr, flush=True)
+        except OSError as err:
+            print(f"mouse-coalesce: {path}: {err}", file=sys.stderr, flush=True)
+            time.sleep(2)
+        finally:
+            if dev is not None:
+                try:
+                    dev.ungrab()
+                except OSError:
+                    pass
+                dev.close()
+            if ui is not None:
+                ui.close()
+
+
+if __name__ == "__main__":
+    main()

@@ -66,7 +66,7 @@ hearts and a chat that commented on what was going on. It asked nine things and 
 | It asked | What I said |
 | --- | --- |
 | Profile | `full` (the whole look) or `tech` (niri config and the helper tools only) |
-| Shell | angelOS (default), Noctalia, or none |
+| Shell | angelOS (default) or none |
 | Look | **Pixel** or **macOS**, and with macOS whether I wanted the ⌘ keys |
 | The game | angelOS as a game, or plain dotfiles (`ANGELOS_GAME=0\|1`) |
 | Wallpapers | packs from [PixelStreetArt_Wallpapers](https://github.com/MixaDoDs/PixelStreetArt_Wallpapers), only the ticked folders |
@@ -399,7 +399,7 @@ fails if one ever slips in. Your angelOS settings (`~/.config/angelos`) are your
 ```text
 .config/quickshell/angelos/  angelOS: the shell, both looks, plugins, templates, docs
 .config/niri/                niri: config, key profiles (common / pixel / macos), rules, animations
-.config/                     fish, kitty, foot, Alacritty, GTK, btop, fastfetch, Neovim, Noctalia, Voxtype
+.config/                     fish, kitty, foot, Alacritty, GTK, btop, fastfetch, Neovim, Voxtype
 .local/bin/                  helper tools
 .local/share/                the pixora icon theme and pixel fonts
 Pictures/AngelOS/            every release's wallpapers, with their scene hints

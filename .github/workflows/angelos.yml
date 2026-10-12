@@ -48,6 +48,7 @@ jobs:
       # QtMultimedia, as on a real install (packages/angelos.txt). python-gobject: the Golden Gate
       # menu bar's helper talks D-Bus through it (packages/pacman.txt), and its test needs it.
       # python-cairo: Settings → Capture draws its frame previews with it (packages/pacman.txt).
+      # hunspell: the spelling check loads libhunspell (tests/spell, tests/vault/run.sh).
       # scripts/ci-local.sh runs this job locally in the same image —
       # the publish script and the pre-push hook do that before every push.
       - name: Packages
@@ -55,7 +56,7 @@ jobs:
           pacman -Syu --noconfirm --needed git dbus diffutils python python-pillow python-numpy python-gobject python-cairo \
             quickshell qt6-declarative qt6-5compat qt6-imageformats qt6-svg qt6-multimedia \
             qt6-multimedia-ffmpeg niri noto-fonts \
-            shellcheck ripgrep
+            shellcheck ripgrep hunspell
           test -x /usr/lib/qt6/bin/qmlformat
       - uses: actions/checkout@v5
       # the checkout belongs to another user than the container's root

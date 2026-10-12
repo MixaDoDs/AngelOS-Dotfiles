@@ -2,7 +2,7 @@
         gaps 15 // Gap between windows
         center-focused-column "always" // Don’t auto-center focused column
 
-        background-color "transparent" // <- needed for noctalia-shell to set wallpaper
+        background-color "transparent" // <- needed for the shell to draw the wallpaper
 
         // Focus indicator: a thin outline instead of Niri's default 4 px ring.
         // With focus-follows-mouse the thick, near-white ring jumped from window

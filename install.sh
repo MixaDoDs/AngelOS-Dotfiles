@@ -6,7 +6,7 @@
 # with environment variables (everything has a default, so it also works unattended):
 #
 #   DOTFILES_MODE=full|tech        full = styling + desktop shell + assets, tech = minimal
-#   DESKTOP_SHELL=angelos|noctalia|none
+#   DESKTOP_SHELL=angelos|none
 #                                  desktop shell (default angelos; tech defaults to none).
 #                                  angelOS = the pixel Quickshell shell shipped in .config/quickshell/angelos
 #   ANGELOS_THEME=pixel|macos      angelOS's look: pixel = the pink pixel desktop, macos = Golden Gate
@@ -41,9 +41,9 @@
 #                                  a story that follows your choices); 0 = plain dotfiles without it.
 #                                  Asked interactively; unattended runs leave the current choice alone.
 #                                  Later: `angelos game on|off`, Mod+Ctrl+Shift+Escape leaves it at once
-#   NOCTALIA=1|0                   legacy switch: NOCTALIA=1 means DESKTOP_SHELL=noctalia
-#   NOCTALIA_RESET_SETTINGS=0|1    move aside Noctalia GUI settings saved by an earlier
-#                                  run, so the preconfigured shell setup applies (default 0)
+#   ANGELOS_SELF_UPDATE=1|0        a clone that is behind its remote is fast-forwarded first and the
+#                                  installer starts over as the new version (default 1; never when
+#                                  the clone has edits or commits of its own, or without git)
 #   KB_LAYOUTS=us,ru               keyboard layouts, XKB codes, first one is the default
 #   KB_TOGGLE=alt_shift            layout switch: alt_shift | ctrl_shift | caps | ralt | lalt | none
 #                                  (or a raw XKB option such as grp:shifts_toggle)
@@ -51,6 +51,10 @@
 #   VOXTYPE_LANGUAGE=ru            dictation language (default: derived from KB_LAYOUTS)
 #   INSTALL_SDDM=1|0               SDDM login screen with the angelOS theme
 #                                  (default 1, or 0 together with SKIP_PACKAGES=1)
+#   DEVICE_ACCESS=1|0              let the user at the seat read the charge of wireless mice from
+#                                  their dongles: a udev rule that opens only the maker's interface
+#                                  without input (extras/hid-access; default 1, or 0 together with
+#                                  SKIP_PACKAGES=1)
 #   SKIP_PACKAGES=0|1              skip `pacman -Syu`
 #   INSTALL_VOXTYPE=0|1            voice input binary (checksum-verified download)
 #   DOWNLOAD_VOXTYPE_MODEL=0|1     Whisper large-v3-turbo model (~1.6 GB)
@@ -106,24 +110,26 @@ VOXTYPE_FORCE="${VOXTYPE_FORCE:-0}"
 # asks about the rest.
 is_set() { [[ -n "${!1+x}" ]]; }
 for v in DOTFILES_MODE DESKTOP_SHELL NOCTALIA KB_LAYOUTS KB_TOGGLE INSTALL_VOXTYPE DOWNLOAD_VOXTYPE_MODEL \
-         INSTALL_WALLPAPERS WALLPAPER_PACKS INSTALL_SDDM NOCTALIA_RESET_SETTINGS ANGELOS_GAME GITHUB_LOGIN \
+         INSTALL_WALLPAPERS WALLPAPER_PACKS INSTALL_SDDM DEVICE_ACCESS ANGELOS_GAME GITHUB_LOGIN \
          INSTALL_FLATPAK INSTALL_TOOLS ANGELOS_THEME MAC_KEYS FISH_DEFAULT INSTALL_APPS APPS; do
   is_set "$v" && declare -r "GIVEN_$v=1"
 done
 given() { local n="GIVEN_$1"; [[ -n "${!n:-}" ]]; }
 
 MODE="${DOTFILES_MODE:-full}"
-# NOCTALIA=1/0 given explicitly keeps working as before
-if is_set NOCTALIA && [[ "${NOCTALIA}" != 0 && "${NOCTALIA}" != 1 ]]; then
-  printf 'NOCTALIA must be 0 or 1\n' >&2
+# Noctalia is not part of these dotfiles any more (angelOS took its place). The old switch still
+# means what it can: NOCTALIA=0 was "no desktop shell". Asking for Noctalia itself stops here,
+# before anything is touched
+if ! is_set DESKTOP_SHELL && [[ "${NOCTALIA:-}" == 0 ]]; then DESKTOP_SHELL=none; fi
+if [[ "${DESKTOP_SHELL:-}" == noctalia ]] || { is_set NOCTALIA && [[ "$NOCTALIA" != 0 ]]; }; then
+  printf '%s\n' \
+    'Noctalia is no longer shipped with these dotfiles: DESKTOP_SHELL=angelos (the default) or none (plain niri).' \
+    'Nothing was changed. A Noctalia you installed yourself and its config stay as they are.' \
+    'Noctalia больше не входит в эти dotfiles: DESKTOP_SHELL=angelos (по умолчанию) или none (голый niri).' \
+    'Ничего не изменено. Noctalia, которую ты поставил сам, и её конфиг остаются как есть.' >&2
   exit 1
 fi
-if ! is_set DESKTOP_SHELL && is_set NOCTALIA; then
-  [[ "$NOCTALIA" == 1 ]] && DESKTOP_SHELL=noctalia || DESKTOP_SHELL=none
-fi
 DESKTOP_SHELL="${DESKTOP_SHELL:-angelos}"
-NOCTALIA=0
-NOCTALIA_RESET_SETTINGS="${NOCTALIA_RESET_SETTINGS:-0}"
 SKIP_PACKAGES="${SKIP_PACKAGES:-0}"
 INSTALL_VOXTYPE="${INSTALL_VOXTYPE:-1}"
 DOWNLOAD_VOXTYPE_MODEL="${DOWNLOAD_VOXTYPE_MODEL:-1}"
@@ -147,6 +153,8 @@ INSTALL_SDDM="${INSTALL_SDDM:-1}"
 # A config-only run (SKIP_PACKAGES=1) leaves the system alone unless asked to.
 [[ "$SKIP_PACKAGES" == 1 ]] && ! given INSTALL_SDDM && INSTALL_SDDM=0
 [[ "$SKIP_PACKAGES" == 1 ]] && ! given INSTALL_TOOLS && INSTALL_TOOLS=0
+DEVICE_ACCESS="${DEVICE_ACCESS:-1}"
+[[ "$SKIP_PACKAGES" == 1 ]] && ! given DEVICE_ACCESS && DEVICE_ACCESS=0
 KB_LAYOUTS="${KB_LAYOUTS:-us,ru}"
 KB_TOGGLE="${KB_TOGGLE:-alt_shift}"
 KB_VARIANT="${KB_VARIANT:-}"
@@ -196,6 +204,65 @@ fi
 warn() { printf '%s[dotfiles] WARNING:%s %s\n' "$C_WARN" "$C_OFF2" "$*" >&2; }
 die()  { DIED=1; printf '%s[dotfiles] ERROR:%s %s\n' "$C_ERR" "$C_OFF2" "$*" >&2; exit 1; }
 hr()   { printf '%s%s%s\n' "$C_DIM" '♡ ─────────────────────────────────────────────────────── ♡' "$C_OFF"; }
+
+# ── Self-update ──────────────────────────────────────────────────────────────
+# A clone that fell behind installed an old angelOS, and Settings → Updates then still showed
+# the update: it had to be installed twice. So before anything else the installer asks what the
+# branch's newest commit is — GitHub's API, one small curl, no objects; `git ls-remote` for
+# another host or without curl — and when the clone is behind and has nothing of its own (no
+# commits, no edits), fast-forwards it and starts over as the new version.
+# Never: ANGELOS_SELF_UPDATE=0; an update run by Settings → Updates (DOTFILES_STAMP: it pulled
+# already); a copy without git (an archive). Offline, or a clone with changes of its own: it
+# says so and installs what is here.
+self_update() {
+  [[ "${ANGELOS_SELF_UPDATE:-1}" == 1 && -z "${DOTFILES_STAMP:-}" && -z "${ANGELOS_SELF_UPDATED:-}" ]] || return 0
+  command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1 || return 0
+  local branch url slug head remote="" n
+  branch="$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)" || return 0
+  [[ -n "$branch" && "$branch" != HEAD ]] || return 0
+  url="$(git -C "$ROOT" remote get-url origin 2>/dev/null)" || return 0
+  head="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null)" || return 0
+  if [[ "$url" =~ ^(https://github\.com/|git@github\.com:)([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)$ ]] && command -v curl >/dev/null 2>&1; then
+    slug="${BASH_REMATCH[2]%.git}"
+    remote="$(curl -fsSL --max-time 8 -H 'Accept: application/vnd.github.sha' "https://api.github.com/repos/$slug/commits/$branch" 2>/dev/null || true)"
+    [[ "$remote" =~ ^[0-9a-f]{40}$ ]] || remote=""
+  fi
+  [[ -n "$remote" ]] || remote="$(timeout 12 git -C "$ROOT" ls-remote --heads origin "$branch" 2>/dev/null | awk '{print $1; exit}' || true)"
+  if [[ -z "$remote" ]]; then
+    warn "$(_ 'Could not ask whether a newer angelOS is out (no network?): installing the version that is here' \
+              'Не удалось узнать, вышла ли версия новее (нет сети?): ставлю ту, что здесь')"
+    return 0
+  fi
+  [[ "$remote" != "$head" ]] || return 0
+  # a commit this clone has already and stands on top of: the clone is ahead, not behind
+  if git -C "$ROOT" cat-file -e "$remote^{commit}" 2>/dev/null && git -C "$ROOT" merge-base --is-ancestor "$remote" HEAD 2>/dev/null; then
+    return 0
+  fi
+  if [[ -n "$(git -C "$ROOT" status --porcelain 2>/dev/null)" ]]; then
+    warn "$(_ "A newer angelOS is out, but this folder has edits of its own: installing the version that is here. To get the new one: git -C \"$ROOT\" stash -u (or commit), then run the installer again" \
+              "Вышла версия новее, но в этой папке есть свои правки: ставлю ту, что здесь. Чтобы получить новую: git -C \"$ROOT\" stash -u (или коммит), потом запусти установщик снова")"
+    return 0
+  fi
+  say "$(_ 'A newer angelOS is out: updating this folder first' 'Вышла версия новее: сначала обновляю эту папку')"
+  if ! timeout 180 git -C "$ROOT" fetch --quiet origin "$branch" 2>/dev/null; then
+    warn "$(_ 'git fetch failed: installing the version that is here' 'git fetch не удался: ставлю ту версию, что здесь')"
+    return 0
+  fi
+  if [[ "$(git -C "$ROOT" rev-list --count FETCH_HEAD..HEAD 2>/dev/null || echo 1)" != 0 ]]; then
+    warn "$(_ "This folder has commits of its own, so it can't simply be moved to the new version: installing what is here (git -C \"$ROOT\" pull --rebase brings the new one in)" \
+              "В этой папке есть свои коммиты, просто перемотать её на новую версию нельзя: ставлю то, что здесь (новую подтянет git -C \"$ROOT\" pull --rebase)")"
+    return 0
+  fi
+  n="$(git -C "$ROOT" rev-list --count HEAD..FETCH_HEAD 2>/dev/null || echo '?')"
+  if ! git -C "$ROOT" merge --ff-only --quiet FETCH_HEAD 2>/dev/null; then
+    warn "$(_ 'The folder could not be moved to the new version: installing what is here' 'Перемотать папку на новую версию не вышло: ставлю то, что здесь')"
+    return 0
+  fi
+  say "$(_ "Updated ($n new commits): starting over as the new version" "Обновлено (новых коммитов: $n): начинаю заново уже новой версией")"
+  ANGELOS_SELF_UPDATED=1 exec bash "$ROOT/install.sh" "$@"
+}
+case " $* " in *" -h "*|*" --help "*) ;; *) self_update "$@" ;; esac
+# ── /Self-update ─────────────────────────────────────────────────────────────
 
 # the interface (gum menus, hearts, the "stream chat"); plain prompts without a terminal
 # shellcheck source=installer/tui.sh
@@ -336,6 +403,9 @@ kb_toggle_option() {
 choose_keyboard() {
   local reply bad n code i entry id label opt
 
+  # the setup wizard asks them on the first login (its «Keyboard layouts»): the defaults (us,ru)
+  # until then, worked out as for an unattended run
+  if wizard_next && ! given KB_LAYOUTS; then local INTERACTIVE=0; fi
   # asked here or given: the setup wizard won't ask again (apply_setup_answers)
   if ((INTERACTIVE)) || given KB_LAYOUTS; then KB_ASKED=1; fi
   if ((INTERACTIVE)) && ! given KB_LAYOUTS && ((TUI)); then
@@ -445,6 +515,12 @@ choose_keyboard() {
 
 # ── Interactive questions ────────────────────────────────────────────────────
 
+# the setup wizard asks the rest on the first login (angelOS, full profile): the look, the game,
+# the keyboard layouts, the apps (and the browser), voice input — so this run doesn't
+wizard_next() {
+  [[ "${DESKTOP_SHELL:-angelos}" == angelos && ("$MODE" == 1 || "$MODE" == full) ]]
+}
+
 ask_profile() {
   local answer
   ((INTERACTIVE)) || return 0
@@ -458,15 +534,20 @@ ask_profile() {
   if [[ "$MODE" == 1 || "$MODE" == full ]] && ! given DESKTOP_SHELL && ! given NOCTALIA; then
     answer="$(ui_choose "$(_ 'Desktop shell' 'Оболочка рабочего стола')" 1 \
       "$(_ 'angelOS  – the pastel Quickshell shell: bar, Dock, widgets, settings (recommended)' 'angelOS  – пастельная оболочка на Quickshell: панель, Dock, виджеты, настройки (рекомендуется)')" \
-      "$(_ 'Noctalia – the previous shell' 'Noctalia – прежняя оболочка')" \
       "$(_ 'none     – plain niri' 'нет      – голый niri')")"
     case "$answer" in
-      2) DESKTOP_SHELL=noctalia ;;
-      3) DESKTOP_SHELL=none ;;
+      2) DESKTOP_SHELL=none ;;
       *) DESKTOP_SHELL=angelos ;;
     esac
   fi
-  if [[ "${DESKTOP_SHELL:-angelos}" == angelos && ("$MODE" == 1 || "$MODE" == full) ]] && ! given ANGELOS_THEME; then
+  if wizard_next; then
+    tui_section "$(_ 'The rest comes on the first login' 'Остальное — при первом входе')" \
+      "$(_ 'The look, the game, the keyboard layouts, the apps and the browser, voice input: the setup wizard' \
+           'Тема, игра, раскладки, программы и браузер, голосовой ввод — это спросит мастер настройки')" \
+      "$(_ 'asks on the first login, with pictures. Here: only the system part (~1 GB).' \
+           'при первом входе, с картинками. Здесь — только системная часть (~1 ГБ).')"
+  fi
+  if [[ "${DESKTOP_SHELL:-angelos}" == angelos && ("$MODE" == 1 || "$MODE" == full) ]] && ! given ANGELOS_THEME && ! wizard_next; then
     tui_section "$(_ 'Theme' 'Тема')" \
       "$(_ 'Pixel: the pink pixel desktop — Start, lyrics, the angel. macOS (Golden Gate): Dock, menu bar,' 'Pixel: розовый пиксельный стол — «Пуск», лирика, ангел. macOS (Golden Gate): Dock, строка меню,')" \
       "$(_ 'Liquid Glass, Mac sounds and ⌘ keys. Switch any time: Settings → Appearance.' 'Liquid Glass, маковские звуки и клавиши ⌘. Сменить можно когда угодно: Настройки → Оформление.')"
@@ -484,7 +565,7 @@ ask_profile() {
       GIVEN_MAC_KEYS=1
     fi
   fi
-  if [[ "${DESKTOP_SHELL:-angelos}" == angelos && ("$MODE" == 1 || "$MODE" == full) ]] && ! given ANGELOS_GAME; then
+  if [[ "${DESKTOP_SHELL:-angelos}" == angelos && ("$MODE" == 1 || "$MODE" == full) ]] && ! given ANGELOS_GAME && ! wizard_next; then
     ui_confirm "$(_ 'angelOS is also a game played over your desktop: an angel in the corner, and a story that follows your choices. Play it? (No = plain dotfiles; `angelos game on|off` changes it later)' \
                     'angelOS — это ещё и игра поверх рабочего стола: ангел в углу и история, которая идёт за твоими выборами. Играть? (Нет — обычные дотфайлы; потом: `angelos game on|off`)')" y \
       && ANGELOS_GAME=1 || ANGELOS_GAME=0
@@ -510,10 +591,15 @@ ask_profile() {
     # shellcheck disable=SC2034  # read through given()
     GIVEN_FISH_DEFAULT=1
   fi
-  if [[ "$MODE" == 1 || "$MODE" == full ]] && ! given INSTALL_APPS && ! given APPS && [[ "$SKIP_PACKAGES" != 1 ]]; then
+  if [[ "$MODE" == 1 || "$MODE" == full ]] && ! given INSTALL_APPS && ! given APPS && [[ "$SKIP_PACKAGES" != 1 ]] && ! wizard_next; then
     choose_apps
   fi
-  if ! given INSTALL_VOXTYPE; then
+  # voice input is 1.6 GB: the wizard offers it (Settings → Sound later), not this run
+  if wizard_next && ! given INSTALL_VOXTYPE; then
+    INSTALL_VOXTYPE=0
+    DOWNLOAD_VOXTYPE_MODEL=0
+  fi
+  if ! given INSTALL_VOXTYPE && ! wizard_next; then
     ui_confirm "$(_ 'Install offline voice input (Voxtype + ~1.6 GB Whisper model)?' \
                     'Поставить голосовой ввод (Voxtype + модель Whisper ~1.6 ГБ)?')" y \
       && { INSTALL_VOXTYPE=1; DOWNLOAD_VOXTYPE_MODEL=1; } || { INSTALL_VOXTYPE=0; DOWNLOAD_VOXTYPE_MODEL=0; }
@@ -731,6 +817,17 @@ available_only() {
   done
 }
 
+# names on stdin → minus what the user removed as extras (Settings → Programs → Extras writes
+# $STATE_DIR/removed-packages.txt): an update never brings those back
+not_removed() {
+  local list="${STATE_DIR:-${XDG_STATE_HOME:-$HOME_DIR/.local/state}/angelos}/removed-packages.txt"
+  if [[ -s "$list" ]]; then
+    grep -vxF -f <(grep -Ev '^[[:space:]]*(#|$)' "$list") || true
+  else
+    cat
+  fi
+}
+
 # Will ~/.config/nvim be the LazyVim config of this repository? (as install_configs decides)
 nvim_will_be_ours() {
   [[ ! -e "$HOME_DIR/.config/nvim" ]] && return 0
@@ -761,7 +858,6 @@ pacman_install() {
   cachyos_repos
 
   mapfile -t packages < <(grep -Ev '^[[:space:]]*(#|$)' "$list")
-  [[ "$NOCTALIA" == 0 ]] && mapfile -t packages < <(printf '%s\n' "${packages[@]}" | grep -Ev '^noctalia$')
   if [[ "$DESKTOP_SHELL" == angelos && -f "$ROOT/packages/angelos.txt" ]]; then
     mapfile -t -O "${#packages[@]}" packages < <(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/angelos.txt")
   fi
@@ -780,6 +876,9 @@ pacman_install() {
     mapfile -t -O "${#packages[@]}" packages < <(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/nvim.txt")
   fi
 
+  # what the user removed as extras stays removed
+  mapfile -t packages < <(printf '%s\n' "${packages[@]}" | not_removed)
+
   # OCR language packs follow the chosen keyboard layouts.
   for code in "${KB_LIST[@]}"; do
     pkg="${KB_TESS[$code]:-}"
@@ -791,6 +890,11 @@ pacman_install() {
     fi
   done
 
+  # how much this is, before it starts (what's missing with its dependencies; the system's own
+  # upgrade comes on top): the apps, voice input and the like are the wizard's, one by one later
+  local mb
+  mb="$(pacman -Sp --needed --print-format '%s' "${packages[@]}" 2>/dev/null | awk '{s+=$1} END {printf "%d", s/1048576}')"
+  [[ "${mb:-0}" -gt 0 ]] && say "$(_ "angelOS's packages: about $mb MB to download" "Пакеты angelOS: скачается около $mb МБ")"
   # -Syu, not -S: Arch does not support partial upgrades, and with a stale
   # package database a plain -S fails with 404s halfway through.
   say "$(_ 'Updating the system and installing packages (pacman -Syu)…' \
@@ -816,6 +920,13 @@ pacman_install() {
   fi
   # angelOS Meta tap reads the keyboards via evdev (issue #6); the group applies after re-login
   [[ "$DESKTOP_SHELL" == angelos ]] && ! id -nG "$USER" | grep -qw input && sudo usermod -aG input "$USER" || true
+  # the same group may make a virtual mouse (mouse-coalesce in games): /dev/uinput is root's alone
+  # unless a rule says so (Steam brings one; without Steam nothing did)
+  local rule=/etc/udev/rules.d/70-angelos-uinput.rules
+  if [[ "$DESKTOP_SHELL" == angelos && ! -f "$rule" ]]; then
+    printf '# angelOS: the input group makes virtual input devices (mouse-coalesce)\nKERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"\n' |
+      sudo tee "$rule" >/dev/null && sudo udevadm control --reload 2>/dev/null && sudo udevadm trigger --name-match=uinput 2>/dev/null || true
+  fi
 }
 
 # angelOS is tested on Quickshell 0.3.2: an older one (a stale mirror, a pinned package)
@@ -839,60 +950,23 @@ quickshell_check() {
   return 0
 }
 
-install_noctalia() {
-  [[ "$NOCTALIA" == 0 ]] && return 0
-  if command -v noctalia >/dev/null 2>&1 || command -v noctalia-shell >/dev/null 2>&1 ||
-     (command -v pacman >/dev/null 2>&1 && pacman -Q cachyos-niri-noctalia >/dev/null 2>&1); then
-    return 0
-  fi
-  [[ "$SKIP_PACKAGES" == 1 ]] && { warn "$(_ 'Noctalia is not installed (SKIP_PACKAGES=1)' 'Noctalia не установлена (SKIP_PACKAGES=1)')"; return 0; }
-  command -v pacman >/dev/null 2>&1 || die "$(_ 'Noctalia needs pacman' 'Для Noctalia нужен pacman')"
-  sudo pacman -S --needed noctalia || sudo pacman -S --needed cachyos-niri-noctalia
-}
-
 # ── Voxtype ──────────────────────────────────────────────────────────────────
 
 install_voxtype() {
   [[ "$INSTALL_VOXTYPE" == 1 ]] || { say "$(_ 'Voxtype skipped' 'Voxtype пропущен')"; return 0; }
-  local bin="$HOME_DIR/.local/bin/voxtype" arch variant url sha actual tmp
-  mkdir -p -- "$HOME_DIR/.local/bin"
-
-  arch="$(uname -m)"
-  [[ "$arch" == x86_64 ]] || { warn "$(_ 'Voxtype auto-download supports x86_64 only' 'Автозагрузка Voxtype поддерживает только x86_64')"; return 0; }
-
-  if [[ -x "$bin" && "$VOXTYPE_FORCE" != 1 && "$("$bin" --version 2>/dev/null || true)" == *"voxtype ${VOXTYPE_VERSION}"* ]]; then
-    say "$(_ 'Voxtype already installed:' 'Voxtype уже установлен:') $("$bin" --version 2>/dev/null)"
-    return 0
-  fi
-
-  variant=baseline
-  if grep -qE '(^|[[:space:]])avx512f([[:space:]]|$)' /proc/cpuinfo 2>/dev/null; then variant=avx512
-  elif grep -qE '(^|[[:space:]])avx2([[:space:]]|$)' /proc/cpuinfo 2>/dev/null; then variant=avx2; fi
-
-  case "$variant" in
-    baseline) sha=1c9d78b4f6805e4f12ba3670949d3c22788269bdbc54215afffa42cafd0b4a7a ;;
-    avx2)     sha=e7d5de68cc8fc610c3c961c47f879451db9bee4a2df152e9a66f1078072e7f28 ;;
-    avx512)   sha=bb2da45c7676bc128da998da928cb239ab6eef9fe53c31c9b4a77e819e521715 ;;
-  esac
-  url="https://github.com/peteonrails/voxtype/releases/download/v${VOXTYPE_VERSION}/voxtype-${VOXTYPE_VERSION}-linux-x86_64-${variant}"
-
-  command -v curl >/dev/null 2>&1 || die "$(_ 'curl is required to download Voxtype' 'Для загрузки Voxtype нужен curl')"
-  tmp="$(mktemp)"; TMP_FILES+=("$tmp")
-  say "$(_ "Downloading Voxtype ${VOXTYPE_VERSION} (${variant})" "Загрузка Voxtype ${VOXTYPE_VERSION} (${variant})")"
-  curl --fail --location --retry 3 --output "$tmp" "$url"
-  actual="$(sha256sum "$tmp" | awk '{print $1}')"
-  [[ "$actual" == "$sha" ]] || die "$(_ "Voxtype SHA256 mismatch: expected $sha, got $actual" "SHA256 Voxtype не совпал: ожидался $sha, получен $actual")"
-  install -m 0755 "$tmp" "$bin"
+  # one place for this and the setup wizard: scripts/voxtype-install.sh (checked by SHA256)
+  local out
+  out="$(VOXTYPE_VERSION="$VOXTYPE_VERSION" VOXTYPE_FORCE="$VOXTYPE_FORCE" HOME="$HOME_DIR" \
+         bash "$ROOT/.config/quickshell/angelos/scripts/voxtype-install.sh" binary "${VOXTYPE_LANGUAGE:-en}" 2>&1)" || true
+  sed -n 's/^STEP /  /p' <<<"$out"
+  grep -q '^DONE' <<<"$out" || die "Voxtype: $(sed -n 's/^FAIL //p' <<<"$out" | tail -1)"
 }
-
 install_voxtype_model() {
   [[ "$DOWNLOAD_VOXTYPE_MODEL" == 1 ]] || { say "$(_ 'Voxtype model skipped' 'Модель Voxtype пропущена')"; return 0; }
   [[ -x "$HOME_DIR/.local/bin/voxtype" ]] || { warn "$(_ 'Model skipped: Voxtype is not installed' 'Модель пропущена: Voxtype не установлен')"; return 0; }
-  if "$HOME_DIR/.local/bin/voxtype" setup --download --model large-v3-turbo --activate --no-post-install; then
-    say "$(_ 'Voxtype model large-v3-turbo is ready' 'Модель Voxtype large-v3-turbo готова')"
-  else
-    warn "$(_ 'Model download failed; retry later with:' 'Не удалось скачать модель; повторите позже командой:')"
-    warn "voxtype setup --download --model large-v3-turbo --activate --no-post-install"
+  if HOME="$HOME_DIR" bash "$ROOT/.config/quickshell/angelos/scripts/voxtype-install.sh" model | sed -n 's/^STEP /  /p;s/^FAIL /  /p'; then
+    [[ -n "$(ls "$HOME_DIR"/.local/share/voxtype/models/*large-v3-turbo* 2>/dev/null)" ]] &&
+      say "$(_ 'Voxtype model large-v3-turbo is ready' 'Модель Voxtype large-v3-turbo готова')"
   fi
 }
 
@@ -958,7 +1032,7 @@ keep_existing() {
 # installer put there last time, ours = the file as it is, theirs = the repository's now. What the
 # author changed comes in; where both changed the same lines, the user's lines win — the author's
 # are the backup. The key profiles merge by key instead (merge_key_profile). Files angelOS
-# generates (the palette's theme files, GTK's, fastfetch's style; Noctalia's and Voxtype's own)
+# generates (the palette's theme files, GTK's, fastfetch's style; Voxtype's own)
 # are not merged: the user's stay, the new version is parked. So is anything without a known base
 # (an install older than the manifest), and everything on the author's own machine (owner/).
 # One's own lines can also go in files the repository never ships, read last:
@@ -967,7 +1041,7 @@ generated() {
   case "$1" in
     .config/niri/angelos.kdl|.config/kitty/themes/*|.config/foot/themes/*|.config/alacritty/themes/*) return 0 ;;
     .config/btop/themes/*|.config/gtk-3.0/*|.config/gtk-4.0/*|.config/fastfetch/*) return 0 ;;
-    .config/noctalia/*|.config/voxtype/*|.config/nvim/lazy-lock.json) return 0 ;;
+    .config/voxtype/*|.config/nvim/lazy-lock.json) return 0 ;;
   esac
   return 1
 }
@@ -1166,11 +1240,13 @@ base_of() { # rel repo-file dest: the repository's version the installer put at 
   fi
   git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1 || return 1
   raw="$(mktemp)"; TMP_FILES+=("$raw")
+  # the plain niri variants were *-no-noctalia.kdl until Noctalia left the dotfiles
+  local was="${srel/-plain.kdl/-no-noctalia.kdl}"
   while read -r h; do
-    git -C "$ROOT" show "$h:$srel" >"$raw" 2>/dev/null || continue
+    git -C "$ROOT" show "$h:$srel" >"$raw" 2>/dev/null || git -C "$ROOT" show "$h:$was" >"$raw" 2>/dev/null || continue
     render "$raw" "$dest"
     [[ "$(sum_of "$dest")" == "$want" ]] && return 0
-  done < <(git -C "$ROOT" log --format=%H -n 200 -- "$srel" 2>/dev/null)
+  done < <(git -C "$ROOT" log --format=%H -n 200 -- "$srel" "$was" 2>/dev/null)
   return 1
 }
 
@@ -1293,16 +1369,13 @@ destination() {
   DEST=""
   case "$rel" in
     */__pycache__/*|*.pyc|*.bak.*|.config/quickshell/angelos/owner/*) return 0 ;;
-    # Niri: the Noctalia and the plain variants share one destination.
-    # Niri: the shell-wired files (angelOS in the repo; rewired for Noctalia after install)
-    # and the plain variants share one destination.
+    # Niri: the files wired for angelOS and their plain variants (no desktop shell) share one
+    # destination.
     .config/niri/config.kdl|.config/niri/cfg/autostart.kdl|.config/niri/cfg/keybinds.kdl)
       [[ "$DESKTOP_SHELL" != none ]] || return 0 ;;
-    *-no-noctalia.kdl)
+    *-plain.kdl)
       [[ "$DESKTOP_SHELL" == none ]] || return 0
-      rel="${rel/-no-noctalia/}" ;;
-    .config/niri/noctalia.kdl|.config/noctalia/*)
-      [[ "$NOCTALIA" == 1 ]] || return 0 ;;
+      rel="${rel/-plain/}" ;;
     .config/quickshell/angelos/*)
       [[ "$DESKTOP_SHELL" != none ]] || return 0 ;;
     .config/systemd/user/*)
@@ -1410,28 +1483,41 @@ install_assets() {
   return 0
 }
 
-# Noctalia takes its colours from the wallpaper, so the default one is installed
-# even when the collection is skipped (or in the tech profile).
-install_noctalia_defaults() {
-  [[ "$NOCTALIA" == 1 ]] || return 0
-  local rel overrides
-  rel="$(sed -n 's|^path = "@HOME@/\(.*\)"$|\1|p' "$ROOT/.config/noctalia/config.toml" | head -n 1)"
-  if [[ -n "$rel" && -f "$ROOT/$rel" && ! -e "$HOME_DIR/$rel" ]]; then
-    mkdir -p -- "$(dirname -- "$HOME_DIR/$rel")"
-    cp -p -- "$ROOT/$rel" "$HOME_DIR/$rel"
-  fi
+# ── The devices' charge ──────────────────────────────────────────────────────
 
-  # Settings saved from Noctalia's GUI (or its first-run wizard) override
-  # ~/.config/noctalia/config.toml, so an earlier run would hide the rice setup.
-  overrides="${NOCTALIA_STATE_HOME:-${XDG_STATE_HOME:-$HOME_DIR/.local/state}}/noctalia/settings.toml"
-  [[ -f "$overrides" ]] || return 0
-  if [[ "$NOCTALIA_RESET_SETTINGS" == 1 ]] ||
-     { ((INTERACTIVE)) && ! given NOCTALIA_RESET_SETTINGS &&
-       confirm "$(_ "Noctalia settings saved earlier (${overrides/#$HOME_DIR/\~}) override the rice config. Reset them (a backup is kept)?" \
-                    "Сохранённые ранее настройки Noctalia (${overrides/#$HOME_DIR/\~}) перекрывают конфиг rice. Сбросить их (с бэкапом)?")" n; }; then
-    mv -- "$overrides" "$overrides.bak.$STAMP"
-    say "backup: ${overrides/#$HOME_DIR/\~}.bak.$STAMP"
-  fi
+# The bar's ampoules ask a wireless mouse's dongle how much is left, over hidraw — root's alone
+# on a fresh system, so the charge never showed. extras/hid-access is a udev rule and the helper
+# it asks: only the makers angelOS can ask, of their devices only the configuration interface
+# that carries no input or output report (the dongle's keyboard and mouse interfaces stay
+# root's: nothing typed or moved can be read through the rule), and only to the user sitting at
+# this computer (logind's ACL, uaccess) — never MODE=0666 and never a group. Headsets need
+# nothing here: the headsetcontrol package brings its own rules.
+HID_ACCESS="$ROOT/.config/quickshell/angelos/extras/hid-access/install.sh"
+# missing | old | ok, "" when this checkout has no such thing or it is switched off
+hid_access_state() {
+  [[ "$DESKTOP_SHELL" == angelos && -f "$HID_ACCESS" ]] || return 0
+  ANGELOS_SYSROOT="$SYSROOT" sh "$HID_ACCESS" --status 2>/dev/null || true
+}
+device_access() {
+  [[ "$DEVICE_ACCESS" == 1 ]] || return 0
+  local state
+  state="$(hid_access_state)"
+  [[ -n "$state" && "$state" != ok ]] || return 0
+  if [[ -n "$SYSROOT" ]]; then
+    ANGELOS_SYSROOT="$SYSROOT" sh "$HID_ACCESS" >/dev/null
+  elif ((EUID == 0)); then
+    sh "$HID_ACCESS" >/dev/null
+  elif command -v sudo >/dev/null 2>&1 && { [[ -t 0 ]] || sudo -n true 2>/dev/null; }; then
+    sudo sh "$HID_ACCESS" >/dev/null
+  else
+    false
+  fi || {
+    warn "$(_ "the devices' charge: the udev rule was not installed (no admin password here) — Settings → Devices → Device charge offers it" \
+             "заряд устройств: правило udev не поставлено (здесь не спросить пароль администратора) — его предложат Настройки → Устройства → Заряд устройств")"
+    return 0
+  }
+  say "$(_ "the devices' charge: a mouse's dongle may be asked — its service interface only, by the user at the seat only" \
+          "заряд устройств: донгл мыши можно спрашивать — только служебный интерфейс и только пользователю за этим компьютером")"
 }
 
 # ── SDDM login screen ────────────────────────────────────────────────────────
@@ -1568,6 +1654,8 @@ install_sddm() {
 #     theme the user's install had (pixel-cyberpunk, which angelOS no longer ships); again when
 #     the author changes it, with the user's own look and colours (Settings → Lock screen).
 #     Another theme the user picked stays
+#   - the udev rule for the devices' charge (device_access above), missing or changed by the
+#     author; DEVICE_ACCESS=0 leaves it out
 # Only for the real home of this user (never a test's or a chroot's) and never on the author's
 # own machine. FOLLOW_SYSTEM=0 skips it.
 FOLLOW_SYSTEM="${FOLLOW_SYSTEM:-1}"
@@ -1576,12 +1664,11 @@ follow_system() {
   [[ "$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)" == "$HOME_DIR" ]] || return 0
   command -v pacman >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 || return 0
   local sddm_py="$ROOT/.config/quickshell/angelos/scripts/sddm-theme.py" sddm_src="$ROOT/.config/quickshell/angelos/extras/sddm/angelos"
-  local pkgs=() fish="" theme="" applied="" built="" root_sddm="" stamp="$STATE_DIR/sddm-theme.sha256" hash cur look="" pal=""
+  local pkgs=() fish="" theme="" applied="" built="" root_sddm="" stamp="$STATE_DIR/sddm-theme.sha256" hash cur look="" pal="" hid=""
   local -a lists=(pacman.txt angelos.txt tools.txt fish.txt)
   command -v sddm >/dev/null 2>&1 && lists+=(sddm.txt)
   # base packages missing here that the repositories have
-  mapfile -t pkgs < <(cd "$ROOT/packages" && cat "${lists[@]}" 2>/dev/null | sed 's/#.*//' | tr -s ' \t' '\n' | grep -v '^$' | sort -u |
-                        { if pacman -Q noctalia >/dev/null 2>&1; then cat; else grep -vx noctalia; fi; } |
+  mapfile -t pkgs < <(cd "$ROOT/packages" && cat "${lists[@]}" 2>/dev/null | sed 's/#.*//' | tr -s ' \t' '\n' | grep -v '^$' | sort -u | not_removed |
                         xargs -r pacman -T 2>/dev/null | xargs -r -n1 sh -c 'pacman -Si "$0" >/dev/null 2>&1 && echo "$0"')
   # fish: bash or sh as the login shell, not asked before
   case "$(basename "$(getent passwd "$(id -un)" | cut -d: -f7)")" in
@@ -1602,7 +1689,11 @@ PY
       theme=1
     fi
   fi
-  ((${#pkgs[@]})) || [[ -n "$fish$theme" ]] || return 0
+  # the devices' charge: the udev rule (device_access above) missing or older than the author's
+  if ! { given DEVICE_ACCESS && [[ "$DEVICE_ACCESS" == 0 ]]; }; then
+    case "$(hid_access_state)" in missing|old) hid="$HID_ACCESS" ;; esac
+  fi
+  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid" ]] || return 0
 
   if [[ -n "$theme" ]]; then
     local -a opts=()
@@ -1616,8 +1707,8 @@ PY
       theme=""
     fi
   fi
-  ((${#pkgs[@]})) || [[ -n "$fish$theme" ]] || return 0
-  say "$(_ "As the author has it:" "Как у автора:")${pkgs[*]:+ $(_ "packages" "пакеты") ${pkgs[*]};}${fish:+ $(_ "fish instead of bash;" "fish вместо bash;")}${theme:+ $(_ "the angelOS login screen" "экран входа angelOS")} — $(_ "the admin password" "пароль администратора")"
+  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid" ]] || return 0
+  say "$(_ "As the author has it:" "Как у автора:")${pkgs[*]:+ $(_ "packages" "пакеты") ${pkgs[*]};}${fish:+ $(_ "fish instead of bash;" "fish вместо bash;")}${theme:+ $(_ "the angelOS login screen;" "экран входа angelOS;")}${hid:+ $(_ "the devices' charge (a mouse's dongle: its service interface only)" "заряд устройств (донгл мыши: только служебный интерфейс)")} — $(_ "the admin password" "пароль администратора")"
 
   local -a root=()
   if ((EUID == 0)); then root=()
@@ -1630,7 +1721,7 @@ PY
   fi
   # shellcheck disable=SC2016  # the root script's own variables
   if "${root[@]}" sh -c '
-    pkgs="$1"; user="$2"; fish="$3"; src="$4"; sddm="$5"; uid="$6"; rc=0
+    pkgs="$1"; user="$2"; fish="$3"; src="$4"; sddm="$5"; uid="$6"; hid="$7"; rc=0
     if [ -n "$pkgs" ]; then
       # shellcheck disable=SC2086
       pacman -Syu --needed --noconfirm $pkgs || rc=1
@@ -1642,7 +1733,10 @@ PY
     if [ -n "$src" ]; then
       sh -c "$sddm" sh "$src" /usr/share/sddm/themes/angelos /etc/sddm.conf.d/zz-angelos.conf "$uid" >/dev/null || rc=1
     fi
-    exit $rc' sh "${pkgs[*]}" "$(id -un)" "$fish" "${theme:+$built/angelos}" "$root_sddm" "$(id -u)" </dev/null; then
+    if [ -n "$hid" ]; then
+      sh "$hid" >/dev/null || rc=1
+    fi
+    exit $rc' sh "${pkgs[*]}" "$(id -un)" "$fish" "${theme:+$built/angelos}" "$root_sddm" "$(id -u)" "$hid" </dev/null; then
     applied=1
     say "$(_ "the system is as the author has it ♡" "система как у автора ♡")${fish:+ $(_ "(fish from the next login)" "(fish — со следующего входа)")}"
   else
@@ -1673,6 +1767,8 @@ enable_services() {
   command -v systemctl >/dev/null 2>&1 || { warn "$(_ 'systemctl not found; user services not enabled' 'systemctl не найден; user-сервисы не включены')"; return 0; }
   systemctl --user daemon-reload || true
   systemctl --user enable niri-game-mode.service || true
+  # a fast mouse thinned in games: idle until gaming.mouseRate is set (the wizard, Settings → Games)
+  systemctl --user enable mouse-coalesce.service || true
   # a password dialog even when the shell's own polkit agent is not up (hyprpolkitagent as the fallback)
   [[ -f "$HOME_DIR/.config/systemd/user/polkit-agent-guard.service" ]] &&
     { systemctl --user enable polkit-agent-guard.service || true; }
@@ -1754,12 +1850,6 @@ install_shell() {
     # The generated theme files are shipped with the repository and are
     # installed by install_configs. Do not regenerate them here: doing so
     # would overwrite the shipped palette and make a second install dirty.
-  else
-    # Noctalia: the repo ships angelOS wiring; rewrite it for Noctalia in place
-    python3 "$shell_dir/scripts/switch.py" noctalia-forward >/dev/null 2>&1 \
-      || warn "$(_ 'Could not wire niri for Noctalia' 'Не удалось переключить niri на Noctalia')"
-    # the rewired files are the installer's own work, not the user's changes
-    remember .config/niri/config.kdl .config/niri/cfg/autostart.kdl .config/niri/cfg/keybinds.kdl
   fi
 }
 
@@ -1995,8 +2085,7 @@ bootstrap_tui
 ask_profile
 normalize_mode
 [[ "$MODE" == tech ]] && ! given DESKTOP_SHELL && ! given NOCTALIA && DESKTOP_SHELL=none
-[[ "$DESKTOP_SHELL" =~ ^(angelos|noctalia|none)$ ]] || die "DESKTOP_SHELL must be angelos, noctalia or none"
-[[ "$DESKTOP_SHELL" == noctalia ]] && NOCTALIA=1 || NOCTALIA=0
+[[ "$DESKTOP_SHELL" =~ ^(angelos|none)$ ]] || die "DESKTOP_SHELL must be angelos or none"
 case "${ANGELOS_THEME,,}" in
   pixel|classic|angelos) ANGELOS_THEME=pixel ;;
   macos|mac|goldengate|golden-gate) ANGELOS_THEME=macos ;;
@@ -2005,6 +2094,7 @@ esac
 [[ "$FISH_DEFAULT" == 0 || "$FISH_DEFAULT" == 1 ]] || die "FISH_DEFAULT must be 0 or 1"
 [[ "$MAC_KEYS" == 0 || "$MAC_KEYS" == 1 ]] || die "MAC_KEYS must be 0 or 1"
 [[ "$INSTALL_APPS" == 0 || "$INSTALL_APPS" == 1 ]] || die "INSTALL_APPS must be 0 or 1"
+[[ "$DEVICE_ACCESS" == 0 || "$DEVICE_ACCESS" == 1 ]] || die "DEVICE_ACCESS must be 0 or 1"
 [[ "$CACHYOS_REPOS" == 0 || "$CACHYOS_REPOS" == 1 ]] || die "CACHYOS_REPOS must be 0 or 1"
 # APPS given alone means "these ones, please"
 given APPS && ! given INSTALL_APPS && [[ "${APPS,,}" != none ]] && INSTALL_APPS=1
@@ -2014,16 +2104,15 @@ choose_keyboard
 STEPS=(
   "pacman_install|packages (pacman -Syu)|пакеты (pacman -Syu)"
   "quickshell_check|Quickshell version|версия Quickshell"
-  "install_noctalia|Noctalia|Noctalia"
   "install_configs|configs|конфиги"
   "install_shell|angelOS|angelOS"
   "install_assets|fonts, icons, wallpapers|шрифты, значки, обои"
-  "install_noctalia_defaults|Noctalia defaults|настройки Noctalia"
   "install_voxtype|Voxtype|Voxtype"
   "install_voxtype_model|the Whisper model|модель Whisper"
   "install_apps|the apps|программы"
   "setup_fish_shell|fish|fish"
   "install_sddm|the login screen|экран входа"
+  "device_access|the devices' charge|заряд устройств"
   "follow_system|as the author has it: packages, fish, the login screen|как у автора: пакеты, fish, экран входа"
   "enable_services|user services|user-сервисы"
   "validate|niri validate|niri validate"

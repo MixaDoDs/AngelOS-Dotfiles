@@ -170,10 +170,7 @@ check_shellcheck() {
   fi
 }
 
-# ── Required files, Noctalia, SDDM theme, Niri config ────────────────────────
-
-noctalia_cfg="$ROOT/.config/noctalia/config.toml"
-wallpaper="$(sed -n 's|^path = "@HOME@/\(.*\)"$|\1|p' "$noctalia_cfg" | head -n 1)"
+# ── Required files, SDDM theme, Niri config ──────────────────────────────────
 
 check_files() {
   for file in \
@@ -181,12 +178,10 @@ check_files() {
     .config/niri/config.kdl .config/niri/cfg/keybinds.kdl .config/niri/cfg/keybinds-common.kdl \
     .config/niri/cfg/keybinds-pixel.kdl .config/niri/cfg/keybinds-macos.kdl .config/fish/config.fish \
     packages/fish.txt packages/nvim.txt .config/quickshell/angelos/data/apps-catalog.json \
-    .config/niri/config-no-noctalia.kdl .config/niri/noctalia.kdl \
+    .config/niri/config-plain.kdl .config/niri/cfg/autostart-plain.kdl .config/niri/cfg/keybinds-plain.kdl \
     .config/niri/monitor.kdl .config/niri/cfg/input.kdl .config/niri/cfg/rules.kdl \
     .config/voxtype/config.toml \
     .config/gtk-3.0/bookmarks .config/gtk-4.0/bookmarks \
-    .config/kitty/themes/noctalia.conf .config/alacritty/themes/noctalia.toml \
-    .config/foot/themes/noctalia \
     .local/bin/niri-screenshot-region .local/bin/niri-record-region \
     .local/bin/niri-screenshot-region-simple .local/bin/niri-record-region-simple \
     .local/bin/niri-record-overlay .local/bin/niri-record-overlay-simple \
@@ -217,24 +212,13 @@ check_files() {
     fail "niri keys: cfg/keybinds.kdl must include keybinds-common.kdl and keybinds-pixel.kdl"
   fi
 
-  if [[ -n "$wallpaper" && -f "$ROOT/$wallpaper" ]]; then
-    pass "Noctalia: default wallpaper $wallpaper is in the repository"
+  # Noctalia left the dotfiles: nothing of it is shipped (credits in THIRD-PARTY.md stay)
+  if [[ -z "$(cd "$ROOT" && ls -d .config/noctalia .config/niri/noctalia.kdl .config/*/themes/noctalia* 2>/dev/null)" ]] &&
+     ! grep -qx noctalia "$ROOT"/packages/*.txt; then
+    pass "Noctalia is not shipped: no config, theme files or package of it"
   else
-    fail "Noctalia: default wallpaper '$wallpaper' is missing from the repository"
+    fail "Noctalia is back in the repository (a config, a theme file or the package)"
   fi
-  if grep -q '^setup_wizard_enabled = false$' "$noctalia_cfg"; then
-    pass "Noctalia: first-run wizard is off (the config is preseeded)"
-  else
-    fail "Noctalia: setup_wizard_enabled = false is missing"
-  fi
-  # A plugin widget whose plugin is not enabled renders nothing and warns.
-  while read -r plugin; do
-    if sed -n '/^enabled = \[/,/\]/p' "$noctalia_cfg" | grep -q "\"$plugin\""; then
-      pass "Noctalia: widget plugin $plugin is enabled"
-    else
-      fail "Noctalia: a widget uses plugin $plugin, which is not in [plugins].enabled"
-    fi
-  done < <(sed -n 's|^type = "\([^":]*/[^":]*\):.*"$|\1|p' "$noctalia_cfg" | sort -u)
 
   theme_dir="$ROOT/.config/quickshell/angelos/extras/sddm/angelos"
   current=angelos
@@ -263,7 +247,7 @@ check_files() {
 
   if command -v niri >/dev/null 2>&1; then
     if niri validate -c "$ROOT/.config/niri/config.kdl" >/dev/null 2>&1 &&
-       niri validate -c "$ROOT/.config/niri/config-no-noctalia.kdl" >/dev/null 2>&1; then
+       niri validate -c "$ROOT/.config/niri/config-plain.kdl" >/dev/null 2>&1; then
       pass "Niri KDL validation (both variants)"
     else
       fail "Niri KDL validation"
@@ -308,7 +292,7 @@ install_case() {
   local home="$WORK/$name"
   mkdir -p "$home"
   env -i HOME="$home" PATH="$WORK/stubs:$PATH" LANG=C \
-      SKIP_PACKAGES=1 INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 \
+      SKIP_PACKAGES=1 INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 ANGELOS_SELF_UPDATE=0 \
       ENABLE_SERVICES=0 INSTALL_WALLPAPERS=0 INSTALL_SDDM=0 INTRO_SOUNDS=0 "$@" \
       "$ROOT/install.sh" >"$WORK/$name.log" 2>&1 </dev/null
 }
@@ -446,30 +430,6 @@ inst_default() {
   fi
 }
 
-inst_noctalia() {
-  if install_case noctalia DESKTOP_SHELL=noctalia; then
-    expect_line noctalia .config/noctalia/config.toml '^setup_wizard_enabled = false$' \
-      "installer: Noctalia config is preseeded"
-    if command -v noctalia >/dev/null 2>&1; then
-      if noctalia config validate "$WORK/noctalia/.config/noctalia/config.toml" >"$WORK/noctalia-validate" 2>&1 &&
-         ! grep -Eq '^(WARN|ERROR)' "$WORK/noctalia-validate"; then
-        pass "installer: installed Noctalia config validates without warnings"
-      else
-        fail "installer: installed Noctalia config validates without warnings"; sed 's/^/    /' "$WORK/noctalia-validate"
-      fi
-    else
-      skip "Noctalia config validation (noctalia is not installed)"
-    fi
-    if [[ -f "$WORK/noctalia/$wallpaper" ]]; then
-      pass "installer: default wallpaper installed for Noctalia"
-    else
-      fail "installer: default wallpaper installed for Noctalia"
-    fi
-  else
-    fail "installer: Noctalia run"; sed 's/^/    /' "$WORK/noctalia.log"
-  fi
-}
-
 inst_layouts() {
   if install_case layouts KB_LAYOUTS="us de ua" KB_TOGGLE=ctrl_shift; then
     expect_line layouts "$input" '^[[:space:]]*layout "us,de,ua"$'                  "installer: custom layouts (KB_LAYOUTS)"
@@ -525,6 +485,31 @@ inst_pixel() {
   fi
 }
 
+inst_hid() {
+  # the devices' charge: the udev rule and its helper land in a fake system root; a config-only
+  # run (SKIP_PACKAGES=1, as Settings → Updates) leaves the system alone unless asked
+  local hidroot="$WORK/hid-root" rule helper
+  rule="$hidroot/etc/udev/rules.d/70-angelos-peripherals.rules"
+  helper="$hidroot/usr/local/libexec/angelos-hid-feature-only"
+  if [[ ! -f "$ROOT/.config/quickshell/angelos/extras/hid-access/install.sh" ]]; then
+    skip "installer: the devices' charge (no extras/hid-access in this tree)"
+    return 0
+  fi
+  if install_case hid DEVICE_ACCESS=1 SYSROOT="$hidroot" && [[ -x "$helper" ]] &&
+     cmp -s "$rule" "$ROOT/.config/quickshell/angelos/extras/hid-access/70-angelos-peripherals.rules" &&
+     ! grep -Ev '^[[:space:]]*(#|$)' "$rule" | grep -Eq 'MODE|GROUP|OWNER' &&
+     ! grep -Ev '^[[:space:]]*(#|$)' "$rule" | grep -v 'PROGRAM==.*angelos-hid-feature-only' | grep -q .; then
+    pass "installer: DEVICE_ACCESS=1 installs the udev rule for the devices' charge — the helper's yes and uaccess only"
+  else
+    fail "installer: DEVICE_ACCESS=1"; sed 's/^/    /' "$WORK/hid.log" | tail -20
+  fi
+  if install_case hidkeep SYSROOT="$WORK/hidkeep-root" && [[ ! -e "$WORK/hidkeep-root/etc/udev" && ! -e "$WORK/hidkeep-root/usr" ]]; then
+    pass "installer: a config-only run installs no udev rule unless asked (DEVICE_ACCESS)"
+  else
+    fail "installer: a config-only run left the system alone"
+  fi
+}
+
 inst_fish() {
   # fish as the login shell: /etc/shells and chsh land in a fake system root (no real chsh)
   if command -v fish >/dev/null 2>&1; then
@@ -557,8 +542,8 @@ inst_single() {
 
 inst_tech() {
   if install_case tech DOTFILES_MODE=tech; then
-    if [[ ! -e "$WORK/tech/.local/share" && ! -e "$WORK/tech/.config/noctalia" && ! -e "$WORK/tech/Pictures" ]] &&
-       ! grep -q noctalia "$WORK/tech/.config/niri/config.kdl"; then
+    if [[ ! -e "$WORK/tech/.local/share" && ! -e "$WORK/tech/.config/quickshell" && ! -e "$WORK/tech/Pictures" ]] &&
+       ! grep -q 'angelos\.kdl' "$WORK/tech/.config/niri/config.kdl"; then
       pass "installer: tech profile is minimal"
     else
       fail "installer: tech profile is minimal"
@@ -568,12 +553,68 @@ inst_tech() {
   fi
 }
 
-inst_nonoctalia() {
-  if install_case nonoctalia NOCTALIA=0 && [[ ! -e "$WORK/nonoctalia/.config/noctalia" ]]; then
-    pass "installer: NOCTALIA=0 skips Noctalia files"
+# The installer brings its own clone up to date first (install.sh self_update): its block in a
+# stand-in installer that only says its version, between throw-away repositories. A clone behind
+# its remote starts over as the new version; one with edits or commits of its own, a run by
+# Settings → Updates, ANGELOS_SELF_UPDATE=0 and a remote that can't be reached install what is there.
+check_self_update() {
+  local w="$WORK/selfupdate" c out g=(git -c user.name=check -c user.email=check@localhost -c init.defaultBranch=main)
+  mkdir -p "$w/src"
+  {
+    printf '%s\n' '#!/usr/bin/env bash' 'set -Eeuo pipefail' 'ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"' \
+      '_() { printf "%s" "$1"; }' 'say() { printf "[dotfiles] %s\n" "$*"; }' 'warn() { printf "[dotfiles] WARNING: %s\n" "$*" >&2; }'
+    sed -n '/^# ── Self-update ──/,/^# ── \/Self-update ──/p' "$ROOT/install.sh"
+    printf '%s\n' 'echo "installing VERSION-1"'
+  } >"$w/src/install.sh"
+  if ! grep -q '^self_update()' "$w/src/install.sh"; then fail "self-update: its block is in install.sh"; return; fi
+  "${g[@]}" init -q "$w/src" && "${g[@]}" -C "$w/src" add install.sh && "${g[@]}" -C "$w/src" commit -q -m v1 &&
+    "${g[@]}" clone -q --bare "$w/src" "$w/origin.git" || { fail "self-update: the fixture"; return; }
+  for c in behind off settings dirty ahead offline help; do "${g[@]}" clone -q "$w/origin.git" "$w/$c"; done
+  sed -i 's/VERSION-1/VERSION-2/' "$w/src/install.sh"
+  "${g[@]}" -C "$w/src" commit -q -am v2 && "${g[@]}" -C "$w/src" push -q "$w/origin.git" HEAD:main
+  echo mine >"$w/dirty/notes.txt"
+  echo mine >"$w/ahead/mine.txt" && "${g[@]}" -C "$w/ahead" add mine.txt && "${g[@]}" -C "$w/ahead" commit -q -m mine
+  "${g[@]}" -C "$w/offline" remote set-url origin "$w/gone.git"
+  run_su() { local d="$1"; shift; out="$(env -i HOME="$w" PATH="$PATH" LANG=C "$@" bash "$w/$d/install.sh" 2>&1)"; }
+  if run_su behind && grep -q 'installing VERSION-2' <<<"$out" && ! grep -q 'VERSION-1' <<<"$out" &&
+     [[ "$(git -C "$w/behind" rev-parse HEAD)" == "$(git -C "$w/origin.git" rev-parse main)" ]]; then
+    pass "self-update: a clone behind its remote is fast-forwarded and starts over as the new version"
   else
-    fail "installer: NOCTALIA=0 skips Noctalia files"
+    fail "self-update: a clone behind its remote is fast-forwarded and starts over as the new version"; sed 's/^/    /' <<<"$out"
   fi
+  if run_su off ANGELOS_SELF_UPDATE=0 && grep -q 'VERSION-1' <<<"$out" && run_su settings DOTFILES_STAMP=20260101-000000 && grep -q 'VERSION-1' <<<"$out"; then
+    pass "self-update: off with ANGELOS_SELF_UPDATE=0 and in an update run by Settings"
+  else
+    fail "self-update: off with ANGELOS_SELF_UPDATE=0 and in an update run by Settings"; sed 's/^/    /' <<<"$out"
+  fi
+  if run_su dirty && grep -q 'VERSION-1' <<<"$out" && grep -q 'WARNING.*edits of its own' <<<"$out" && [[ -f "$w/dirty/notes.txt" ]] &&
+     run_su ahead && grep -q 'VERSION-1' <<<"$out" && [[ -f "$w/ahead/mine.txt" ]]; then
+    pass "self-update: a clone with edits or commits of its own installs what is there, untouched"
+  else
+    fail "self-update: a clone with edits or commits of its own installs what is there, untouched"; sed 's/^/    /' <<<"$out"
+  fi
+  if run_su offline && grep -q 'VERSION-1' <<<"$out" && grep -q 'WARNING' <<<"$out"; then
+    pass "self-update: a remote that can't be reached is said and the install goes on"
+  else
+    fail "self-update: a remote that can't be reached is said and the install goes on"; sed 's/^/    /' <<<"$out"
+  fi
+}
+
+# No desktop shell: niri's plain variants land under the usual names (no angelOS wiring, fuzzel
+# and the like on the keys), angelOS itself is not installed. The old NOCTALIA=0 means the same.
+inst_noshell() {
+  local c n
+  for c in "noshell DESKTOP_SHELL=none" "noshell-legacy NOCTALIA=0"; do
+    n="${c%% *}"
+    if install_case "$n" "${c#* }" && [[ ! -e "$WORK/$n/.config/quickshell/angelos" && ! -e "$WORK/$n/.config/noctalia" ]] &&
+       ! grep -q 'angelos' "$WORK/$n/.config/niri/config.kdl" "$WORK/$n/.config/niri/cfg/autostart.kdl" &&
+       grep -q 'spawn "fuzzel"' "$WORK/$n/.config/niri/cfg/keybinds.kdl" &&
+       [[ -z "$(ls "$WORK/$n/.config/niri/"*-plain.kdl "$WORK/$n/.config/niri/cfg/"*-plain.kdl 2>/dev/null)" ]]; then
+      pass "installer: ${c#* } is plain niri, no desktop shell"
+    else
+      fail "installer: ${c#* } is plain niri, no desktop shell"; sed 's/^/    /' "$WORK/$n.log" | tail -20
+    fi
+  done
 }
 
 inst_voice() {
@@ -661,7 +702,7 @@ inst_sddm() {
 inst_bad() {
   # Bad input must be refused, not written into the config.
   i=0
-  for bad in "KB_LAYOUTS=us zz9" "KB_TOGGLE=nonsense" "DOTFILES_MODE=nope" "NOCTALIA=2" "GITHUB_LOGIN=2" \
+  for bad in "KB_LAYOUTS=us zz9" "KB_TOGGLE=nonsense" "DOTFILES_MODE=nope" "NOCTALIA=1" "DESKTOP_SHELL=noctalia" "GITHUB_LOGIN=2" \
              "ANGELOS_THEME=windows" "FISH_DEFAULT=2" "INSTALL_APPS=yes" "MAC_KEYS=2"; do
     i=$((i + 1))
     if install_case "bad$i" "$bad"; then fail "installer rejects: $bad"; else pass "installer rejects: $bad"; fi
@@ -689,27 +730,6 @@ inst_foreignniri() {
     pass "installer: the user's edit of angelOS's niri config stays"
   else
     fail "installer: the user's edit of angelOS's niri config stays"
-  fi
-}
-
-inst_reset() {
-  # Noctalia GUI settings from an earlier run: kept unless a reset is asked for.
-  reset="$1"
-  state="$WORK/reset$reset/.local/state/noctalia"
-  mkdir -p "$state"
-  echo '[bar.default]' >"$state/settings.toml"
-  if install_case "reset$reset" DESKTOP_SHELL=noctalia NOCTALIA_RESET_SETTINGS=$reset; then
-    if [[ "$reset" == 1 ]]; then
-      [[ ! -e "$state/settings.toml" ]] && compgen -G "$state/settings.toml.bak.*" >/dev/null &&
-        pass "installer: NOCTALIA_RESET_SETTINGS=1 moves old Noctalia settings aside" ||
-        fail "installer: NOCTALIA_RESET_SETTINGS=1 moves old Noctalia settings aside"
-    else
-      [[ -f "$state/settings.toml" ]] &&
-        pass "installer: existing Noctalia settings are kept by default" ||
-        fail "installer: existing Noctalia settings are kept by default"
-    fi
-  else
-    fail "installer: Noctalia settings reset=$reset"; sed 's/^/    /' "$WORK/reset$reset.log"
   fi
 }
 
@@ -814,6 +834,19 @@ check_search() {
     sed 's/^/    /' "$WORK/search.log"; fail "settings search: tests/search/run.sh (exit $rc)"
   fi
 }
+# passwords and spelling inside the shell, offscreen (tests/vault/run.sh): the services against
+# stand-in managers and a stand-in clipboard, a text area underlining with made-up dictionaries
+check_vault_ui() {
+  local rc=0 shell="$ROOT/.config/quickshell/angelos"
+  bash "$shell/tests/vault/run.sh" "$shell" >"$WORK/vault-ui.log" 2>&1 || rc=$?
+  if ((rc == 0)); then
+    pass "$(sed -n 's/^  ✓ //p' "$WORK/vault-ui.log" | tail -1)"
+  elif ((rc == 77)) && [[ "${REQUIRE_UI:-0}" != 1 ]]; then
+    skip "passwords and spelling in the shell (quickshell or libhunspell is not installed)"
+  else
+    sed 's/^/    /' "$WORK/vault-ui.log"; fail "passwords and spelling: tests/vault/run.sh (exit $rc)"
+  fi
+}
 # the way a user meets it: installed from older commits, their own old script updating to
 # this tree, then the new one once more (scripts/test-update-old.sh; issue #36 among them)
 check_updates_old() {
@@ -909,6 +942,7 @@ job plugin-studio check_plugin_studio
 job sddm-stamp py_test sddm-stamp sddm/test_source_stamp.py "SDDM: every build input triggers a refresh"
 timed settings-search check_search
 job sprite-rig py_test sprite-rig sprites/test_sprite_rig.py "sprite-rig: authored frame strips"
+job caps py_test caps caps/test_caps.py "Caps Lock on the bar: the LED over several keyboards"
 timed audio-tap py_test audio-tap audio/test_audio_tap.py "cava's audio tap: no hangs (stand-ins for cava and pw-record)"
 # the Golden Gate menu bar's helper: menus found by the window's pid, on a private bus (77 = no gi / dbus)
 timed appmenu py_test appmenu appmenu/test_appmenu.py "global menu: Qt, GTK, appmenu-gtk-module and X11 menus found by pid, clicks reach the app" 77
@@ -928,14 +962,22 @@ timed qt-look py_test qt qt/test_qt_theme.py "Qt look: Telegram's own fields lef
 # the avatar's file chooser: the portal's, else zenity; a word when there is none (77 = no gi / dbus)
 timed file-chooser py_test pick settings/test_pick_file.py "file chooser: the XDG portal's, zenity when it can't, a reason when there is none" 77
 timed switch py_test switch theme/test_switch.py "switch.py on an update: the user's palette, not the stock one; one Voxtype (throw-away HOME)"
+timed telegram-push py_test telegram-push theme/test_telegram_push.py "Freshgram's theme by itself: asked once a day at most, applied when allowed, the user's own pick left alone"
+timed peripherals py_test peripherals peripherals/test_probe.py "devices' charge: the hidraw interface picked, the battery report's bytes, headsetcontrol's JSON — no real device asked"
+timed privacy py_test privacy privacy/test_privacy.py "privacy on stream: the mode's rule, the list of apps changed while on or off, an app-id can't break the rule (throw-away HOME, no niri)"
+timed vault py_test vault vault/test_vault.py "passwords: Bitwarden (bw, rbw) and 1Password states, unlocking, the list without a secret in it, the copy marked sensitive and wiped (stand-in managers and clipboard)"
+timed spell py_test spell spell/test_spell.py "spelling: what is underlined and where, what is left alone, own words, dictionaries installed and removed (made-up dictionaries, no network)" 77
+timed vault-ui check_vault_ui
+timed autostart py_test autostart setup/test_autostart.py "autostart: an app or a command added, switched and removed; a system entry only ever switched off by an override"
+timed programs py_test programs setup/test_programs.py "programs: a removal planned first (what goes along, what refuses), done with one password; the clean-up of orphans and the cache"
+timed setup-apps py_test setup-apps setup/test_apps_install.py "setup wizard's install: one password (the admin helper runs pacman only), progress per app, failures named"
 job author-tools check_author_tools
+job self-update check_self_update
 job shellcheck check_shellcheck
 if [[ "${SKIP_INSTALL_TEST:-0}" != 1 ]]; then
-  for c in noctalia layouts macos mackeys0 pixel fish single tech nonoctalia voice sddm bad foreignniri; do
+  for c in layouts macos mackeys0 pixel hid fish single tech noshell voice sddm bad foreignniri; do
     job "installer-$c" "inst_$c"
   done
-  job installer-reset0 inst_reset 0
-  job installer-reset1 inst_reset 1
   for c in ubuntu eos force arch alarm; do
     job "installer-distro-$c" "inst_distro_$c"
   done

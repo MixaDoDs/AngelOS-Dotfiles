@@ -66,7 +66,7 @@ cd AngelOS-Dotfiles
 | Спросило | Что я ответил |
 | --- | --- |
 | Профиль | `full` (весь облик) или `tech` (только конфиг niri и утилиты) |
-| Оболочка | angelOS (по умолчанию), Noctalia или ничего |
+| Оболочка | angelOS (по умолчанию) или ничего |
 | Облик | **Pixel** или **macOS**, а для macOS — нужны ли ⌘-клавиши |
 | Игра | angelOS как игра или просто дотфайлы (`ANGELOS_GAME=0\|1`) |
 | Обои | паки из [PixelStreetArt_Wallpapers](https://github.com/MixaDoDs/PixelStreetArt_Wallpapers), качаются только отмеченные папки |
@@ -399,7 +399,7 @@ cookies, истории, кэшей, keyring и состояния сессии,
 ```text
 .config/quickshell/angelos/  angelOS: оболочка, оба облика, плагины, шаблоны, документация
 .config/niri/                niri: конфиг, профили клавиш (common / pixel / macos), правила, анимации
-.config/                     fish, kitty, foot, Alacritty, GTK, btop, fastfetch, Neovim, Noctalia, Voxtype
+.config/                     fish, kitty, foot, Alacritty, GTK, btop, fastfetch, Neovim, Voxtype
 .local/bin/                  утилиты
 .local/share/                тема иконок pixora и пиксельные шрифты
 Pictures/AngelOS/            обои каждого релиза с подсказками сцен

@@ -41,3 +41,8 @@ home/
 # Media not part of rice
 Videos/
 Pictures/Screenshots/
+
+# The author's own tooling (Claude Code hooks with home paths, graphify cache, agent plans)
+/.claude/
+/graphify-out/
+/docs/superpowers/

@@ -23,12 +23,18 @@ networkmanager
 bluez
 bluez-utils
 python-evdev
+# the charge of USB headsets for the bar's ampoules (it brings its own udev rules: the user at
+# the seat only); mice behind a dongle are asked by angelOS itself (extras/hid-access)
+headsetcontrol
 # workspace IPC, cursor theme generation and plugin runtime checks
 socat
 bubblewrap
 python-pillow
 # Y2K sounds are synthesised with numpy (ffmpeg turns them into .ogg when present)
 python-numpy
+# spelling in notes and replies (scripts/spell.py loads libhunspell; the dictionaries are
+# downloaded per language from Settings → Devices → Spelling)
+hunspell
 # desktop widgets and plugins
 cava
 wlsunset

@@ -1,0 +1,15 @@
+[Unit]
+ConditionEnvironment=XDG_CURRENT_DESKTOP=niri
+Description=angelOS: a fast mouse thinned down while niri-game-mode sees a game (gaming.mouseRate)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=@HOME@/.local/bin/mouse-coalesce
+Restart=always
+RestartSec=2
+Environment=XDG_RUNTIME_DIR=%t
+
+[Install]
+WantedBy=graphical-session.target
