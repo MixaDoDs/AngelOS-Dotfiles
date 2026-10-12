@@ -39,7 +39,7 @@ Item {
     readonly property bool roomy: width >= 1500 && width > height
 
     // ---- light or dark, from the shell's theme ----
-    readonly property bool dark: Theme.dark
+    readonly property bool dark: Theme.night
     readonly property color ink: dark ? "#e8ecff" : "#2f3d6e"
     readonly property color dim: dark ? "#a9b3e0" : "#6a7aa8"
     readonly property color outline: dark ? "#0a0d22" : "#2f3d6e"

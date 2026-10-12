@@ -622,6 +622,7 @@
           "hintEn": "clocks, the visualizer and more on the desktop",
           "blocks": [
             "widgets/add",
+            "widgets/discord",
             "widgets/on-desktop"
           ],
           "more": [
@@ -1698,6 +1699,7 @@
             "hintEn": "widgets on the desktop",
             "blocks": [
               "widgets/add",
+              "widgets/discord",
               "widgets/on-desktop"
             ],
             "more": [

@@ -14,6 +14,7 @@ JsonAdapter {
         property string customAccentHell: ""  // unused since 2026-10-08: hell wears its circle's accent, not its wallpaper's
         property string language: "ru"
         property string mode: "dark"        // light | dark | auto
+        property string dayLook: "dusk"     // the interface by day (Theme.dayLooks): dusk | sage | lavender | olive | amber | glass | scheme
         property int lightFrom: 8           // auto: light theme from this hour
         property int darkFrom: 20           // auto: dark theme from this hour
         property string flavor: "overdose" // bubblegum | overdose | cyberangel
@@ -275,6 +276,19 @@ JsonAdapter {
     property JsonObject keycast: JsonObject {
         property bool enabled: false
         property bool text: false           // plain typing too, not only shortcuts and special keys
+    }
+
+    // Discord: the people of your call as little pixel people walking over the bar (DiscordCrew)
+    property JsonObject discord: JsonObject {
+        property bool crew: false
+        property string crewScreen: ""      // "" = the main screen (Shell.primaryScreen)
+        property string crewSize: "m"       // s | m | l — everyone's size
+        property string crewMain: "me"      // who is drawn bigger: "me" | "none" | a Discord user id
+        property bool crewNames: true       // the names over the heads
+        property bool crewBurst: true       // whoever leaves the call bursts
+        property bool crewDrag: true        // they take the pointer: carried, thrown, a menu on right click
+        property var crewSteps: ({})        // user id → art pixels bigger (+) or smaller (−) than the rest
+        property var crewHidden: []         // user ids not shown
     }
 
     property JsonObject spell: JsonObject {

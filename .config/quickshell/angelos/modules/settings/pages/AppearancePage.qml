@@ -91,6 +91,18 @@ PxPage {
             }
         }
         SettingRow {
+            label: I18n.t("Интерфейс днём", "The interface by day")
+            hint: I18n.t("обои и программы светлые, а панель, меню и окна оболочки — в этом облике", "the wallpaper and the programs stay light; the bar, menus and the shell's windows wear this look")
+            PxCombo {
+                model: Object.keys(Theme.dayLooks).map(k => ({
+                            "label": Theme.dayLooks[k].name,
+                            "value": k
+                        }))
+                currentValue: Theme.dayLookId
+                onActivated: v => Config.appearance.dayLook = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Цветовая схема", "Color scheme")
             PxCombo {
                 model: Object.keys(Theme.flavors).map(k => ({

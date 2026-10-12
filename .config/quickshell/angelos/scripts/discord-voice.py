@@ -7,9 +7,15 @@ once to allow it. Prints one JSON line per change:
 
   {"state": "no-discord" | "auth" | "authorizing" | "idle" | "call",
    "channel": "General", "users": [{"id", "name", "avatar": "/path.png" | "", "speaking",
-   "muted", "deaf"}], "error": ""}
+   "muted", "deaf", "me", "quiet", "volume"}], "error": ""}
 
-stdin: "auth" — ask Discord for the permission (the widget's button), "forget" — drop the token.
+"me" is you — the account this Discord is signed into (the little people draw you bigger).
+"quiet" and "volume" are yours for that person: muted for you alone, how loud you hear them
+(0–200). Discord's local RPC tells nothing about screen sharing, cameras, roles or rights, and
+has no server mute or kick: only what is here.
+
+stdin: "auth" — ask Discord for the permission (the widget's button), "forget" — drop the token,
+"quiet <id> 0|1" and "volume <id> <0–200>" — that person for you alone.
 The token is kept in ~/.local/state/angelos/discord-rpc.json (0600), the avatars in
 ~/.cache/angelos/discord-avatars/.
 
@@ -164,6 +170,7 @@ class Voice:
         self.out, self.fetch = out, fetch
         self.state, self.channel, self.channel_id, self.error = "no-discord", "", "", ""
         self.users = {}                 # id → user line
+        self.me = ""                    # your own id, known once authenticated
         self.order = []
         self._last = None
         self._fetching = set()
@@ -223,6 +230,9 @@ class Voice:
             "speaking": old.get("speaking", False),
             "muted": bool(st.get("mute") or st.get("self_mute") or st.get("suppress")),
             "deaf": bool(st.get("deaf") or st.get("self_deaf")),
+            "me": uid == self.me,
+            "quiet": bool(vs.get("mute")),
+            "volume": round(vs["volume"]) if isinstance(vs.get("volume"), (int, float)) else 100,
         }
         if uid not in self.order:
             self.order.append(uid)
@@ -319,6 +329,8 @@ class Session:
                     self.authorize()
             elif asked == "AUTHORIZE":
                 self.voice.set("auth", why)
+            elif asked:
+                print(f"discord-voice: {asked}: {why}", file=sys.stderr, flush=True)
             return
         if asked == "AUTHORIZE":
             try:
@@ -331,8 +343,19 @@ class Session:
             self.cmd("AUTHENTICATE", {"access_token": token})
         elif asked == "AUTHENTICATE":
             self.authorized = True
+            self.voice.me = (data.get("user") or {}).get("id") or ""
             self.cmd("SUBSCRIBE", {}, "VOICE_CHANNEL_SELECT")
             self.cmd("GET_SELECTED_VOICE_CHANNEL")
+        elif asked == "SET_USER_VOICE_SETTINGS":
+            # Discord's answer is what it has set
+            with self.voice.lock:
+                u = self.voice.users.get(data.get("user_id"))
+                if u:
+                    if "mute" in data:
+                        u["quiet"] = bool(data["mute"])
+                    if isinstance(data.get("volume"), (int, float)):
+                        u["volume"] = round(data["volume"])
+            self.voice.emit()
         elif asked == "GET_SELECTED_VOICE_CHANNEL":
             ch = data if data and data.get("id") else None
             if ch and not any(cid == ch["id"] for _, cid in self.subscribed):
@@ -346,6 +369,16 @@ class Session:
         elif word == "forget":
             self.save("")
             self.voice.set("auth")
+        else:
+            # "quiet <id> 0|1", "volume <id> <0–200>": that person, for you alone
+            part = word.split()
+            if len(part) == 3 and part[0] in ("quiet", "volume") and part[1] in self.voice.users and part[2].isdigit():
+                args = {"user_id": part[1]}
+                if part[0] == "quiet":
+                    args["mute"] = part[2] != "0"
+                else:
+                    args["volume"] = max(0, min(200, int(part[2])))
+                self.cmd("SET_USER_VOICE_SETTINGS", args)
 
     def run(self):
         while True:
@@ -440,7 +473,7 @@ def self_test():
     s.handle(client.recv())
     m = server.take()
     assert m["cmd"] == "AUTHENTICATE" and m["args"]["access_token"] == "fresh-abc" and tokens["t"] == "fresh-abc"
-    server.push({"cmd": "AUTHENTICATE", "nonce": m["nonce"], "data": {"user": {}}})
+    server.push({"cmd": "AUTHENTICATE", "nonce": m["nonce"], "data": {"user": {"id": "1"}}})
     s.handle(client.recv())
     sub, get = server.take(), server.take()
     assert sub["cmd"] == "SUBSCRIBE" and sub["evt"] == "VOICE_CHANNEL_SELECT" and get["cmd"] == "GET_SELECTED_VOICE_CHANNEL"
@@ -453,6 +486,25 @@ def self_test():
     st = state()
     assert st["state"] == "call" and st["channel"] == "Болталка" and [u["name"] for u in st["users"]] == ["anna", "bob"]
     assert st["users"][1]["muted"] and not st["users"][0]["muted"]
+    assert [u["me"] for u in st["users"]] == [True, False]      # you are the one who authenticated
+    # that person for you alone: asked of Discord, shown as Discord answers; a stranger is not asked
+    s.line("quiet 2 1\n")
+    m = server.take()
+    assert m["cmd"] == "SET_USER_VOICE_SETTINGS" and m["args"] == {"user_id": "2", "mute": True}
+    server.push({"cmd": "SET_USER_VOICE_SETTINGS", "nonce": m["nonce"], "data": {"user_id": "2", "mute": True, "volume": 100}})
+    s.handle(client.recv())
+    s.line("volume 1 350\n")
+    m = server.take()
+    assert m["args"] == {"user_id": "1", "volume": 200}
+    server.push({"cmd": "SET_USER_VOICE_SETTINGS", "nonce": m["nonce"], "data": {"user_id": "1", "volume": 200.0}})
+    s.handle(client.recv())
+    s.line("quiet 99 1\n")
+    st = state()
+    assert [(u["quiet"], u["volume"]) for u in st["users"]] == [(False, 200), (True, 100)], st
+    s.line("quiet 2 0\n")
+    m = server.take()
+    server.push({"cmd": "SET_USER_VOICE_SETTINGS", "nonce": m["nonce"], "data": {"user_id": "2", "mute": False}})
+    s.handle(client.recv())
     for evt, data in [("SPEAKING_START", {"user_id": "1"}), ("VOICE_STATE_CREATE", user("3", "cat", self_deaf=True)),
                       ("VOICE_STATE_DELETE", user("2", "bob"))]:
         server.push({"cmd": "DISPATCH", "evt": evt, "data": data})

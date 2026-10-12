@@ -316,6 +316,22 @@ Singleton {
                     "toggle": "check",
                     "checked": DesktopWidgets.has(t.type, scr)
                 }));
+        // the people of the Discord call over the bar: looked for among the widgets
+        const crewHere = Config.discord.crew && (Config.discord.crewScreen || Shell.primaryName) === scr;
+        widgets.push(AppMenu.item("desk:w:discord-crew", I18n.t("Человечки из звонка Discord", "Little People from the Discord Call"), {
+            "kind": "fn",
+            "fn": () => {
+                if (crewHere) {
+                    Config.discord.crew = false;
+                } else {
+                    Config.discord.crewScreen = scr === Shell.primaryName ? "" : scr;
+                    Config.discord.crew = true;
+                }
+            }
+        }, {
+            "toggle": "check",
+            "checked": crewHere
+        }));
         const out = [fn("desk:wall", I18n.t("Изменить обои…", "Change Wallpaper…"), () => Shell.openSettings("wallpaper")), AppMenu.sep("desk1"), AppMenu.submenu("desk:widgets", I18n.t("Виджеты", "Widgets"), widgets)];
         // editing only while there is something to move
         if (DesktopWidgets.editMode || DesktopWidgets.uidsFor(scr).length > 0)

@@ -34,13 +34,24 @@ PopupWindow {
     property bool reopening: false
     // a desktop widget's own menu (openWidget): its uid; "" = the desktop's
     property string widgetUid: ""
+    // a list of someone else's under a title (openList: the Discord people's menu, DiscordCrew)
+    property string listTitle: ""
+    readonly property bool own: widgetUid !== "" || listTitle !== ""
     function openWidget(uid, x, y) {
         widgetUid = uid;
+        listTitle = "";
         widgetList = widgetItems(uid);
+        show(x, y);
+    }
+    function openList(title, items, x, y) {
+        widgetUid = "";
+        listTitle = title || " ";
+        widgetList = items;
         show(x, y);
     }
     function openAt(x, y) {
         widgetUid = "";
+        listTitle = "";
         widgetList = [];
         Achievements.note("deskmenu.open", DeskMenu.style);
         if (ringStyle) {
@@ -222,6 +233,23 @@ PopupWindow {
                 "keepOpen": true,
                 "run": () => DesktopWidgets.toggle(t.type, root.screenName)
             })).concat([
+            // not a widget, but looked for among them: the people of the Discord call over the
+            // bar (modules/desktop/DiscordCrew), on this screen
+            {
+                "label": I18n.t("Человечки из звонка Discord", "Little people from the Discord call"),
+                "icon": "headphones",
+                "checkable": true,
+                "checked": () => Config.discord.crew && (Config.discord.crewScreen || Shell.primaryName) === root.screenName,
+                "keepOpen": true,
+                "run": () => {
+                    if (Config.discord.crew && (Config.discord.crewScreen || Shell.primaryName) === root.screenName) {
+                        Config.discord.crew = false;
+                    } else {
+                        Config.discord.crewScreen = root.screenName === Shell.primaryName ? "" : root.screenName;
+                        Config.discord.crew = true;
+                    }
+                }
+            },
             {
                 "separator": true
             },
@@ -459,7 +487,7 @@ PopupWindow {
 
             // Y2K gloss: a little title in the chrome
             PxText {
-                visible: root.skin === "y2k" && !root.widgetUid
+                visible: root.skin === "y2k" && !root.own
                 anchors.horizontalCenter: parent.horizontalCenter
                 topPadding: Theme.u * 4
                 kind: "tiny"
@@ -472,7 +500,7 @@ PopupWindow {
             // quick actions (Windows 11 puts cut/copy/paste here; we put the everyday stuff), signed
             Row {
                 id: quick
-                visible: DeskMenu.quick.length > 0 && !root.widgetUid
+                visible: DeskMenu.quick.length > 0 && !root.own
                 anchors.horizontalCenter: parent.horizontalCenter
                 topPadding: Theme.u * 2
                 bottomPadding: Theme.u * 2
@@ -540,7 +568,7 @@ PopupWindow {
                 }
             }
             PxMenuItem {
-                visible: DeskMenu.quick.length > 0 && DeskMenu.items.length > 0 && !root.widgetUid
+                visible: DeskMenu.quick.length > 0 && DeskMenu.items.length > 0 && !root.own
                 height: visible ? implicitHeight : 0
                 separator: true
                 skin: root.skin
@@ -548,7 +576,7 @@ PopupWindow {
 
             // ---- a widget's menu: its name, then its entries ----
             PxText {
-                visible: !!root.widgetUid
+                visible: root.own
                 x: Theme.u * 4
                 topPadding: Theme.u * 2
                 bottomPadding: Theme.u
@@ -557,6 +585,8 @@ PopupWindow {
                 kind: "tiny"
                 dim: true
                 text: {
+                    if (root.listTitle)
+                        return root.listTitle;
                     const w = DesktopWidgets.byUid(root.widgetUid);
                     const info = w ? DesktopWidgets.typeInfo(w.type) : null;
                     return info ? DesktopWidgets.titleOf(info) + " · " + info.label : "";
@@ -596,7 +626,7 @@ PopupWindow {
                 }
             }
             Repeater {
-                model: root.widgetUid ? [] : DeskMenu.items
+                model: root.own ? [] : DeskMenu.items
                 PxMenuItem {
                     id: entryItem
                     required property string modelData
@@ -629,7 +659,7 @@ PopupWindow {
             }
             Repeater {
                 // QML menu components from plugins can't live in a flyout list; they stay inline
-                model: root.widgetUid ? [] : Plugins.menuComponents
+                model: root.own ? [] : Plugins.menuComponents
                 Loader {
                     required property var modelData
                     width: col.width

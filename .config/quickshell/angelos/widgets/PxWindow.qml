@@ -17,6 +17,8 @@ Item {
     readonly property bool windose: skin === "windose" && !hell
     readonly property bool streamSkin: skin === "stream" && !hell
     readonly property string settingsSkin: windose ? "windose" : streamSkin ? "stream" : "classic"
+    // the window by day: the title a solid plate, a rule of the outline's colour under it
+    readonly property bool zine: Theme.zine && !hell && !windose && !streamSkin
     property bool flamesLive: true         // (kept for plugins: hell's rim is still now, HellAmbient moves it)
     property bool trim: true               // hell's rim (a copy drawn over its twin leaves it to it)
 
@@ -61,7 +63,7 @@ Item {
         y: frame.inset + Theme.u
         width: root.width - 2 * x
         height: root.titleHeight
-        color: root.windose ? Theme.windoseRose : root.streamSkin ? Theme.streamPanel : root.hell ? (root.active ? Theme.mix(Theme.hellFaceAlt, Theme.hellRim, 0.25) : Theme.hellFace) : root.active ? Theme.menuHeader : Theme.faceAlt
+        color: root.windose ? Theme.windoseRose : root.streamSkin ? Theme.streamPanel : root.hell ? (root.active ? Theme.mix(Theme.hellFaceAlt, Theme.hellRim, 0.25) : Theme.hellFace) : root.active ? (root.zine ? Theme.title1 : Theme.menuHeader) : Theme.faceAlt
         // Windose: the candy gradient from pink to lilac
         gradient: root.windose ? candy : null
         Gradient {
@@ -123,7 +125,7 @@ Item {
                 font.family: gothic ? Theme.fontHell : root.compact ? Theme.fontBody : Theme.fontTitle
                 font.pixelSize: gothic ? Theme.hellPx(Theme.fs) : root.compact ? Theme.sizeBody : Theme.sizeTitle
                 font.bold: root.windose
-                color: root.windose ? Theme.text : root.streamSkin ? Theme.streamText : root.hell ? Theme.hellText : Theme.text
+                color: root.windose ? Theme.text : root.streamSkin ? Theme.streamText : root.hell ? Theme.hellText : root.zine && root.active ? Theme.titleText : Theme.text
                 style: Text.Normal
                 styleColor: Qt.alpha(Theme.edge, 0.55)
                 anchors.verticalCenter: parent.verticalCenter
@@ -215,6 +217,15 @@ Item {
                 }
             }
         }
+    }
+
+    Rectangle {
+        visible: root.zine
+        x: frame.inset
+        y: bar.y + bar.height + Theme.u
+        width: root.width - 2 * x
+        height: Theme.u
+        color: Theme.edge
     }
 
     Item {

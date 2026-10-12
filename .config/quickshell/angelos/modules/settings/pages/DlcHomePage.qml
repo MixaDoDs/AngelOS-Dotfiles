@@ -117,7 +117,7 @@ PxPage {
         {
             "icon": Theme.dark ? "sun" : "moon",
             "label": Theme.dark ? I18n.t("Светлая тема", "Light theme") : I18n.t("Тёмная тема", "Dark theme"),
-            "run": () => Config.appearance.mode = Theme.dark ? "light" : "dark"
+            "run": () => Config.appearance.mode = Theme.night ? "light" : "dark"
         },
         {
             "icon": "plus",

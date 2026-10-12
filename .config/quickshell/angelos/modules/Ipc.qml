@@ -23,6 +23,10 @@ IpcHandler {
         Config.lyrics.screens = [];
         Lyrics.visibleToggle = true;
     }
+    // the people of the Discord call walking over the bar: on / off
+    function discordCrew(): void {
+        Config.discord.crew = !Config.discord.crew;
+    }
     // the keys pressed, on screen (Mod+Shift+K): on / off
     function keycast(): void {
         if (Shell.setupLocked)

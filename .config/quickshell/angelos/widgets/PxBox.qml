@@ -2,6 +2,7 @@ import QtQuick
 import qs.config
 
 // Win98-style bevelled box. raised by default, `sunken` for inputs/pressed.
+// By day (Theme.zine) it is flat: the outline alone, no bevels.
 // `hell: Theme.hell` gives it hell's obsidian bevels (Theme.realm).
 Item {
     id: root
@@ -12,7 +13,7 @@ Item {
     property int bevel: settingsSkin === "windose" ? Math.max(1, Math.floor(Theme.u / 2)) : Theme.u
     property bool sunken: false
     property bool outline: true
-    property bool flat: settingsSkin === "windose"
+    property bool flat: settingsSkin === "windose" || (Theme.zine && !hell)
     property bool shadow: false
     property int shadowSize: Theme.u * 2
     property color hiColor: hell ? Theme.hellHi : settingsSkin === "windose" ? Theme.windoseLine : Theme.hi
@@ -29,7 +30,7 @@ Item {
         y: root.shadowSize
         width: root.shadowSize
         height: root.height
-        color: Qt.alpha(Theme.shadow, Theme.dark ? 0.55 : 0.35)
+        color: Qt.alpha(Theme.shadow, Theme.shadowAlpha)
     }
     Rectangle {
         visible: root.shadow
@@ -37,7 +38,7 @@ Item {
         y: root.height
         width: root.width
         height: root.shadowSize
-        color: Qt.alpha(Theme.shadow, Theme.dark ? 0.55 : 0.35)
+        color: Qt.alpha(Theme.shadow, Theme.shadowAlpha)
     }
 
     Rectangle {

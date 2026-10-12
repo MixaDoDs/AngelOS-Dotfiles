@@ -160,7 +160,7 @@ Singleton {
             }
             for (const i of idxs) {
                 const p = raw(s.name, i);
-                for (const dark of [Theme.dark, !Theme.dark])
+                for (const dark of [Theme.night, !Theme.night])
                     pixel(pickFor(p, aspectOf(s.name), dark), s.name, true);
             }
         }
@@ -318,7 +318,7 @@ Singleton {
         return best;
     }
     function pick(path, output) {
-        return path ? pickFor(path, aspectOf(output), Theme.dark) : path;
+        return path ? pickFor(path, aspectOf(output), Theme.night) : path;
     }
     Process {
         id: metaReader
@@ -574,8 +574,8 @@ Singleton {
         const scr = Quickshell.screens;
         const wide = scr.find(s => s.name === Shell.primaryName && s.width >= s.height) || scr.find(s => s.width >= s.height);
         const tall = scr.find(s => s.height > s.width);
-        const w = wide ? resolve(wide.name, 1) : tall ? pickFor(raw(tall.name, 1), 16 / 9, Theme.dark) : "";
-        const t = tall ? resolve(tall.name, 1) : wide ? pickFor(raw(wide.name, 1), 9 / 16, Theme.dark) : "";
+        const w = wide ? resolve(wide.name, 1) : tall ? pickFor(raw(tall.name, 1), 16 / 9, Theme.night) : "";
+        const t = tall ? resolve(tall.name, 1) : wide ? pickFor(raw(wide.name, 1), 9 / 16, Theme.night) : "";
         return [w || t, t || w];
     }
     readonly property string loginKey: loginWalls().join("\n")

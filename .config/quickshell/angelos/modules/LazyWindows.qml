@@ -1,10 +1,12 @@
 import QtQuick
 import QtQml.Models
 import Quickshell
+import qs.config
 import qs.services
 import qs.widgets
 import qs.modules.chest
 import qs.modules.clipboard
+import qs.modules.desktop
 import qs.modules.diary
 import qs.modules.keycast
 import qs.modules.launcher
@@ -35,6 +37,11 @@ Scope {
         ChestOverlay {}
     }
 
+    // the people of the Discord call over the bar: only while there is a call to show
+    LazyLoader {
+        active: Config.discord.crew && DiscordVoice.state === "call"
+        DiscordCrew {}
+    }
     // the keys pressed on screen (Mod+Shift+K): only while it is on
     LazyLoader {
         active: KeyCast.on

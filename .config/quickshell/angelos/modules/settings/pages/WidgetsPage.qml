@@ -124,6 +124,153 @@ PxPage {
         }
     }
 
+    // the people of the Discord call as little pixel people over the bar (modules/desktop/
+    // DiscordCrew): also in right-click on the desktop → View, and in a right click on any of them
+    PxGroup {
+        name: "discord"
+        title: I18n.t("Человечки из звонка Discord", "Little people from the Discord call")
+        icon: "headphones"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Человечки из звонка Discord", "Little people from the Discord call")
+            hint: !Config.discord.crew ? I18n.t("Кто в твоём голосовом канале — ходят над панелью, говорящий подпрыгивает; их можно таскать мышью, а кто вышел — лопается", "Whoever is in your voice channel walks over the bar; the one speaking hops. Drag them with the mouse; whoever leaves bursts")
+                : DiscordVoice.state === "no-discord" ? I18n.t("Discord не запущен", "Discord is not running")
+                : DiscordVoice.state === "auth" ? (DiscordVoice.error || I18n.t("Discord ещё не разрешил — нажми «Подключить»", "Discord has not allowed it yet — press Connect"))
+                : DiscordVoice.state === "authorizing" ? I18n.t("Подтверди в окне Discord…", "Allow it in Discord's window…")
+                : DiscordVoice.state === "call" ? I18n.t("В звонке: ", "In the call: ") + DiscordVoice.users.length
+                : I18n.t("Появятся, когда зайдёшь в голосовой канал", "They come when you join a voice channel")
+            Row {
+                spacing: Theme.u * 3
+                PxButton {
+                    visible: Config.discord.crew && DiscordVoice.state === "auth"
+                    compact: true
+                    accent: true
+                    icon: "headphones"
+                    text: I18n.t("Подключить", "Connect")
+                    onClicked: DiscordVoice.authorize()
+                }
+                PxToggle {
+                    checked: Config.discord.crew
+                    onToggled: v => Config.discord.crew = v
+                }
+            }
+        }
+        SettingRow {
+            visible: Config.discord.crew
+            label: I18n.t("Размер", "Size")
+            hint: I18n.t("Всех сразу. Одного — ПКМ по нему: «Увеличить», «Уменьшить»", "Of all of them. For one — right-click them: Bigger, Smaller")
+            PxCombo {
+                width: Theme.u * 70
+                model: [
+                    {
+                        "label": I18n.t("Мелкие", "Small"),
+                        "value": "s"
+                    },
+                    {
+                        "label": I18n.t("Обычные", "Usual"),
+                        "value": "m"
+                    },
+                    {
+                        "label": I18n.t("Крупные", "Large"),
+                        "value": "l"
+                    }
+                ]
+                currentValue: Config.discord.crewSize
+                onActivated: v => Config.discord.crewSize = v
+            }
+        }
+        SettingRow {
+            visible: Config.discord.crew
+            label: I18n.t("Главный", "The main one")
+            hint: I18n.t("Он в полтора раза крупнее остальных. Выбрать любого — ПКМ по нему", "Half as big again as the rest. To pick anyone — right-click them")
+            PxCombo {
+                width: Theme.u * 70
+                model: [
+                    {
+                        "label": I18n.t("Я", "Me"),
+                        "value": "me"
+                    },
+                    {
+                        "label": I18n.t("Никто", "No one"),
+                        "value": "none"
+                    }
+                ].concat(DiscordVoice.users.filter(u => !u.me || Config.discord.crewMain === u.id).map(u => ({
+                            "label": u.name,
+                            "value": u.id
+                        })), !["me", "none"].includes(Config.discord.crewMain) && !DiscordVoice.users.some(u => u.id === Config.discord.crewMain) ? [
+                    {
+                        "label": I18n.t("Выбранный (не в звонке)", "The picked one (not in the call)"),
+                        "value": Config.discord.crewMain
+                    }
+                ] : [])
+                currentValue: Config.discord.crewMain
+                onActivated: v => Config.discord.crewMain = v
+            }
+        }
+        SettingRow {
+            visible: Config.discord.crew
+            label: I18n.t("Экран", "Screen")
+            PxCombo {
+                width: Theme.u * 70
+                model: [
+                    {
+                        "label": I18n.t("Главный экран", "The main screen"),
+                        "value": ""
+                    }
+                ].concat(page.screenModel)
+                currentValue: Config.discord.crewScreen
+                onActivated: v => Config.discord.crewScreen = v
+            }
+        }
+        SettingRow {
+            visible: Config.discord.crew
+            label: I18n.t("Имена над головой", "Names over the heads")
+            PxToggle {
+                checked: Config.discord.crewNames
+                onToggled: v => Config.discord.crewNames = v
+            }
+        }
+        SettingRow {
+            visible: Config.discord.crew
+            label: I18n.t("Брать мышью", "Take them with the mouse")
+            hint: I18n.t("Таскать, бросать, ПКМ — меню человечка. Выключено — клики проходят сквозь них", "Carry, throw, right-click for a person's menu. Off — clicks go through them")
+            PxToggle {
+                checked: Config.discord.crewDrag
+                onToggled: v => Config.discord.crewDrag = v
+            }
+        }
+        SettingRow {
+            visible: Config.discord.crew
+            label: I18n.t("Взрыв, когда кто-то вышел", "A burst when someone leaves")
+            PxToggle {
+                checked: Config.discord.crewBurst
+                onToggled: v => Config.discord.crewBurst = v
+            }
+        }
+        SettingRow {
+            visible: Config.discord.crew && (Config.discord.crewHidden.length > 0 || Object.keys(Config.discord.crewSteps).length > 0)
+            label: I18n.t("Спрятанные и свои размеры", "The hidden and the resized")
+            hint: I18n.t("Спрятано: ", "Hidden: ") + Config.discord.crewHidden.length + I18n.t(", со своим размером: ", ", with a size of their own: ") + Object.keys(Config.discord.crewSteps).length
+            Row {
+                spacing: Theme.u * 3
+                PxButton {
+                    compact: true
+                    visible: Config.discord.crewHidden.length > 0
+                    icon: "eye"
+                    text: I18n.t("Вернуть спрятанных", "Bring back the hidden")
+                    onClicked: Config.discord.crewHidden = []
+                }
+                PxButton {
+                    compact: true
+                    visible: Object.keys(Config.discord.crewSteps).length > 0
+                    icon: "refresh"
+                    text: I18n.t("Сбросить размеры", "Reset the sizes")
+                    onClicked: Config.discord.crewSteps = ({})
+                }
+            }
+        }
+    }
+
     PxGroup {
         name: "on-desktop"
         title: I18n.t("На рабочем столе", "On the desktop") + " (" + DesktopWidgets.widgets.length + ")"

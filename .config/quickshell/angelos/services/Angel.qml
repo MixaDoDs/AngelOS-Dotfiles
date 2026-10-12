@@ -1225,7 +1225,7 @@ Singleton {
             "id": "light",
             "key": "appearance.mode",
             "value": () => "light",
-            "can": () => Theme.dark,
+            "can": () => Theme.night,
             "page": "appearance",
             "ru": "Ослепила? Светлая тема! Обратно — Mod+Alt+T или «Тема и цвета».",
             "en": "Blinded? Light theme! Back with Mod+Alt+T or in Theme and colours."

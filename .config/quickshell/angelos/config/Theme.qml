@@ -5,7 +5,8 @@ import Quickshell
 import qs.config
 
 // Pixel pink palette in the spirit of NEEDY GIRL OVERDOSE.
-// Light = "angel" (pastel win98), dark = "overdose" (night stream).
+// Night = "overdose" (night stream). By day the wallpaper and the programs are light and the
+// interface wears a day look (dayLooks): mostly not a white one.
 Singleton {
     id: root
 
@@ -19,7 +20,139 @@ Singleton {
         const a = Config.appearance;
         return a.darkFrom > a.lightFrom ? (h >= a.darkFrom || h < a.lightFrom) : (h >= a.darkFrom && h < a.lightFrom);
     }
-    readonly property bool dark: Config.appearance.mode === "dark" || (Config.appearance.mode === "auto" && autoDark)
+    // night: the mode itself (the wallpaper's night variant, the lock's sky, what the programs
+    // are told). dark: the interface has light text on dark surfaces — at night, and by day
+    // in a day look that is dark
+    readonly property bool night: Config.appearance.mode === "dark" || (Config.appearance.mode === "auto" && autoDark)
+    readonly property bool dark: night || (!!dayLook && dayLook.dark === true)
+
+    // ---- the day looks (Config.appearance.dayLook): the interface by day ----
+    // Each is a whole palette, the scheme's own accent aside. "scheme" = the colour scheme's
+    // light half on the zine's paper. `apps: "light"`: the programs get the scheme's light
+    // palette (a dark interface over light programs, as Windows' custom mode); the others
+    // dress the programs in their own colours. `alpha`: panels no more opaque than this.
+    readonly property var dayLooks: ({
+            dusk: {
+                name: I18n.t("Сумерки", "Dusk"),
+                dark: true,
+                apps: "light",
+                desk: "#343a4a",
+                face: "#3d4457",
+                faceAlt: "#485068",
+                sunken: "#323848",
+                text: "#eef1f8",
+                textDim: "#b4bac8",
+                hi: "#59627a",
+                lo: "#2c3140",
+                edge: "#1c202b",
+                shadow: "#1c202b",
+                accent: "#8fb4ff",
+                accent2: "#c9b3ff",
+                title1: "#4d5670",
+                title2: "#4d5670"
+            },
+            sage: {
+                name: I18n.t("Шалфей", "Sage"),
+                dark: false,
+                desk: "#aab7a0",
+                face: "#c5cfbd",
+                faceAlt: "#b7c3ae",
+                sunken: "#d6ddd0",
+                text: "#1c2a22",
+                textDim: "#46544b",
+                hi: "#d6ddd0",
+                lo: "#96a68b",
+                edge: "#1c2a22",
+                shadow: "#1c2a22",
+                accent: "#2f6b4f",
+                accent2: "#6b4f1c",
+                title1: "#96a68b",
+                title2: "#96a68b"
+            },
+            lavender: {
+                name: I18n.t("Лаванда", "Lavender"),
+                dark: true,
+                desk: "#4a4466",
+                face: "#5b5478",
+                faceAlt: "#676089",
+                sunken: "#4b4563",
+                text: "#f4efff",
+                textDim: "#cbc4e0",
+                hi: "#7a7399",
+                lo: "#3f3a57",
+                edge: "#231f33",
+                shadow: "#231f33",
+                accent: "#ffb3e0",
+                accent2: "#b3e0ff",
+                title1: "#6f6791",
+                title2: "#6f6791"
+            },
+            olive: {
+                name: I18n.t("Олива", "Olive"),
+                dark: true,
+                desk: "#4a5132",
+                face: "#5d6540",
+                faceAlt: "#69724a",
+                sunken: "#4c5334",
+                text: "#f3f5e0",
+                textDim: "#ced3b4",
+                hi: "#7c8558",
+                lo: "#3e442a",
+                edge: "#22260f",
+                shadow: "#22260f",
+                accent: "#e8d86a",
+                accent2: "#f0b078",
+                title1: "#737c50",
+                title2: "#737c50"
+            },
+            amber: {
+                name: I18n.t("Янтарь", "Amber"),
+                dark: true,
+                desk: "#120c04",
+                face: "#1a1206",
+                faceAlt: "#2a1c08",
+                sunken: "#0a0702",
+                text: "#ffb000",
+                textDim: "#c08400",
+                hi: "#3a2606",
+                lo: "#0a0702",
+                edge: "#7a5200",
+                shadow: "#000000",
+                accent: "#ffb000",
+                accent2: "#ff7a00",
+                title1: "#3a2606",
+                title2: "#3a2606",
+                danger: "#ff5a1f",
+                ok: "#ffd866"
+            },
+            glass: {
+                name: I18n.t("Дымчатое стекло", "Smoked glass"),
+                dark: true,
+                apps: "light",
+                alpha: 0.62,
+                shadowAlpha: 0.4,
+                desk: "#12121a",
+                face: "#12121a",
+                faceAlt: "#262630",
+                sunken: "#08080c",
+                text: "#ffffff",
+                textDim: "#c8c8d2",
+                hi: "#3a3a46",
+                lo: "#08080c",
+                edge: "#000000",
+                shadow: "#000000",
+                accent: "#4287fa",
+                accent2: "#8fb4ff",
+                title1: "#1c1c26",
+                title2: "#1c1c26"
+            },
+            scheme: {
+                name: I18n.t("Бумага (по цветовой схеме)", "Paper (the colour scheme's)")
+            }
+        })
+    readonly property string dayLookId: Config.appearance.dayLook in dayLooks ? Config.appearance.dayLook : "dusk"
+    // the look on now: null at night, in the Golden Gate skin and for "scheme"
+    readonly property var dayLook: night || macLook || dayLookId === "scheme" ? null : dayLooks[dayLookId]
 
     function generated(isDark) {
         // the accent "from the wallpaper" is heaven's only: hell wears hell's own, one for every
@@ -28,6 +161,17 @@ Singleton {
         // the switch in the dark between circles freeze it for 170–440 ms (the circles' own
         // colours come through Theme.hell*)
         const seed = Qt.color(root.hell ? HellLook.fallback.palette.accent : Config.appearance.customAccent || "#c77dff");
+        if (!isDark) {
+            // the paper and the ink stay; the wallpaper gives the spot colour (a grey one stays grey)
+            const sat = seed.hslSaturation < 0.1 ? seed.hslSaturation : 0.95;
+            const spot = hex(Qt.hsla(seed.hslHue, sat, 0.62, 1));
+            return Object.assign({}, zinePaper, {
+                accent: spot,
+                accent2: hex(Qt.hsla(seed.hslHue, sat * 0.9, 0.4, 1)),
+                title1: spot,
+                title2: spot
+            });
+        }
         const floor = Qt.color(isDark ? "#12141a" : "#fffdf8");
         const ink = Qt.color(isDark ? "#fafafa" : "#202126");
         const a = isDark ? mix(seed, Qt.color("#ffffff"), 0.25) : mix(seed, Qt.color("#161820"), 0.32);
@@ -267,10 +411,10 @@ Singleton {
             overdose: {
                 name: "Overdose",
                 light: {
-                    accent: "#c2185b",
+                    accent: "#fb407f",
                     accent2: "#7b4fc9",
-                    title1: "#b0174f",
-                    title2: "#7b4fc9"
+                    title1: "#fb407f",
+                    title2: "#fb407f"
                 },
                 dark: {
                     accent: "#ff2e7e",
@@ -296,6 +440,16 @@ Singleton {
             }
         })
 
+    // the light theme's paper (2026-10-12, "Зин"): kraft desk, cream paper, ink for the text, the
+    // outline and the shadow. Boxes are flat (Theme.zine): no bevels, an outline and a solid shadow
+    readonly property var zinePaper: ({
+            desk: "#e6dabf",
+            face: "#fbf5e6",
+            faceAlt: "#efe5cc",
+            sunken: "#fffdf6",
+            text: "#17141f",
+            textDim: "#5d5666"
+        })
     readonly property var legacyBase: legacyFor(dark)
     function legacyFor(isDark) {
         return isDark ? ({
@@ -316,35 +470,32 @@ Singleton {
                 selectText: "#1a0d24",
                 shadow: "#000000",
                 ansi: ["#2a1838", "#ff4f6d", "#57e3a2", "#ffe066", "#7b8cff", "#ff5cad", "#4fe3ff", "#e8cfe0", "#6b4f7d", "#ff7a93", "#8af0c0", "#fff0a0", "#a3b0ff", "#ff9fd0", "#9ff0ff", "#ffffff"]
-            }) : ({
-                // the light one (2026-10-12): a calm pastel instead of the old neon pink — lilac-grey
-                // desk, near-white paper, a plum outline (the pixel icons' ink too); every text pair ≥ 4.5:1
-                desk: "#e6dfeb",
-                face: "#f8f5f9",
-                faceAlt: "#eee8f2",
-                sunken: "#ffffff",
-                text: "#2a1d35",
-                textDim: "#655775",
+            }) : Object.assign({}, zinePaper, {
                 titleText: "#ffffff",
-                hi: "#ffffff",
-                lo: "#cfc3d8",
-                edge: "#574669",
+                // lines drawn by hand (separators, grooves): the kraft's own shades
+                hi: "#fffdf6",
+                lo: "#cfc2a0",
+                edge: "#17141f",
                 accent3: "#976000",
                 accent4: "#7d5cc4",
                 danger: "#c8264b",
                 ok: "#137a52",
                 selectText: "#ffffff",
-                shadow: "#b3a2c2",
+                shadow: "#17141f",
                 // on a light background: every colour readable as text (white is a mid grey, as GitHub Light's)
-                ansi: ["#2a1d35", "#c8264b", "#137a52", "#976000", "#3d4fc0", "#b0207a", "#0f6f8a", "#6e6080", "#8f7ca0", "#e0305a", "#1f9468", "#b07a00", "#5a6be0", "#d0308a", "#178aa8", "#8f7ca0"]
+                ansi: ["#17141f", "#c8264b", "#137a52", "#976000", "#3d4fc0", "#b0207a", "#0f6f8a", "#6e6080", "#8f7ca0", "#e0305a", "#1f9468", "#b07a00", "#5a6be0", "#d0308a", "#178aa8", "#8f7ca0"]
             });
     }
     // the chosen flavour's colours in either mode, whichever is on now (the wizard's previews)
     function paletteFor(isDark) {
+        const look = isDark || dayLookId === "scheme" ? null : dayLooks[dayLookId];
+        if (look)
+            return Object.assign({}, legacyFor(look.dark), look);
         const f = (flavors[Config.appearance.flavor] || flavors.overdose)[isDark ? "dark" : "light"];
         return f.desk ? f : Object.assign({}, legacyFor(isDark), f);
     }
-    readonly property var flavor: (flavors[Config.appearance.flavor] || flavors.overdose)[dark ? "dark" : "light"]
+    readonly property var schemeFlavor: (flavors[Config.appearance.flavor] || flavors.overdose)[night ? "dark" : "light"]
+    readonly property var flavor: dayLook || schemeFlavor
 
     // ---- the Golden Gate skin (Config.settingsUi.skin "goldengate"): macOS 27's colours ----
     // While the skin is on and the demon doesn't rule, the palette is a Mac's — light or dark,
@@ -352,6 +503,24 @@ Singleton {
     // Qt, the terminals, Telegram, Steam, the browsers, the shell's own pixel windows) looks like
     // a Mac too. services/GoldenGate takes its accent from here.
     readonly property bool macLook: Config.ready && Config.settingsUi.skin === "goldengate" && realm !== "hell"
+    // a palette with its own paper (a named scheme, a day look) over the legacy roles: what it
+    // doesn't say — the outline, the shadow, the 16 colours — comes from what it does
+    function baseOf(fl, isDark, isNight) {
+        const legacy = legacyFor(isDark);
+        if (!fl.desk)
+            return legacy;
+        return Object.assign({}, legacy, {
+            sunken: fl.desk,
+            hi: fl.faceAlt,
+            lo: fl.desk,
+            edge: isNight ? fl.desk : fl.text,
+            shadow: isNight ? legacy.shadow : fl.text,
+            selectText: isDark ? fl.desk : "#ffffff",
+            accent3: fl.accent2,
+            accent4: fl.accent2,
+            ansi: [fl.desk, "#e36b78", "#8eaf73", "#d8b56b", fl.accent2, fl.accent, "#72b7b0", fl.text, fl.textDim, "#f58b98", "#aacf93", "#efd18b", fl.accent2, fl.accent, "#92d7d0", fl.text]
+        }, fl);
+    }
     readonly property var macAccents: ({
             "blue": ["#0088ff", "#0091ff"],
             "purple": ["#a550a7", "#bf5af2"],
@@ -410,22 +579,7 @@ Singleton {
             // Terminal.app's "Basic" colours
             ansi: ["#000000", "#990000", "#00a600", "#999900", "#0000b2", "#b200b2", "#00a6b2", "#bfbfbf", "#666666", "#e50000", "#00d900", "#e5e500", "#0000ff", "#e500e5", "#00e5e5", "#e5e5e5"]
         })
-    readonly property var base: {
-        if (macLook)
-            return macBase;
-        if (!flavor.desk)
-            return legacyBase;
-        return Object.assign({}, legacyBase, flavor, {
-            sunken: flavor.desk,
-            hi: flavor.faceAlt,
-            lo: flavor.desk,
-            edge: flavor.desk,
-            selectText: dark ? flavor.desk : "#ffffff",
-            accent3: flavor.accent2,
-            accent4: flavor.accent2,
-            ansi: [flavor.desk, "#e36b78", "#8eaf73", "#d8b56b", flavor.accent2, flavor.accent, "#72b7b0", flavor.text, flavor.textDim, "#f58b98", "#aacf93", "#efd18b", flavor.accent2, flavor.accent, "#92d7d0", flavor.text]
-        });
-    }
+    readonly property var base: macLook ? macBase : baseOf(flavor, dark, night)
     readonly property color menuSurface: mix(face, accent, dark ? 0.08 : 0.04)
     readonly property color menuHeader: mix(faceAlt, accent, dark ? 0.16 : 0.10)
     readonly property color menuBorder: mix(faceAlt, accent, 0.32)
@@ -439,7 +593,8 @@ Singleton {
     readonly property bool highContrast: Config.ready && !!Config.appearance.highContrast
     readonly property color text: highContrast ? mix(base.text, dark ? "#ffffff" : "#000000", 0.6) : base.text
     readonly property color textDim: highContrast ? mix(base.textDim, text, 0.7) : base.textDim
-    readonly property color titleText: base.text
+    // on a window's title plate by day (PxWindow): the text colour if it reads there
+    readonly property color titleText: zine ? inkOn(title1) : base.text
     readonly property color hi: base.hi
     readonly property color lo: highContrast ? mix(base.lo, dark ? "#ffffff" : "#000000", 0.35) : base.lo
     readonly property color edge: highContrast ? mix(base.edge, dark ? "#ffffff" : "#000000", 0.35) : base.edge
@@ -452,12 +607,16 @@ Singleton {
     readonly property color danger: base.danger
     readonly property color ok: base.ok
     readonly property color select: accent
-    readonly property color selectText: base.selectText
+    // the zine's spot colour may be a light one: ink on it then, white on a deep one
+    readonly property color selectText: zine ? (luminance(accent) > 0.3 ? "#17141f" : "#ffffff") : base.selectText
     readonly property color shadow: base.shadow
+    // by day the interface is a zine: flat boxes (widgets/PxBox), an outline, a solid shadow
+    readonly property bool zine: !night && !macLook
+    readonly property real shadowAlpha: zine ? (dayLook && dayLook.shadowAlpha || 1) : dark ? 0.55 : 0.35
     readonly property var ansi: base.ansi
 
     // translucent panel background (blur shows through)
-    readonly property real panelAlpha: Config.appearance.blur ? Config.appearance.opacity : 1
+    readonly property real panelAlpha: Math.min(dayLook && dayLook.alpha || 1, Config.appearance.blur ? Config.appearance.opacity : 1)
     readonly property color panel: Qt.alpha(face, panelAlpha)
     readonly property color panelAlt: Qt.alpha(faceAlt, panelAlpha)
 
@@ -678,25 +837,50 @@ Singleton {
         return Qt.rgba(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t, a.a + (b.a - a.a) * t);
     }
 
+    function luminance(c) {
+        const f = v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+    }
+
+    function inkOn(bg) {
+        const l = luminance(bg), t = luminance(base.text);
+        if ((Math.max(l, t) + 0.05) / (Math.min(l, t) + 0.05) >= 4.5)
+            return base.text;
+        return l > 0.3 ? "#17141f" : "#ffffff";
+    }
+
     function hex(c) {
         const h = v => ("0" + Math.round(v * 255).toString(16)).slice(-2);
         return "#" + h(c.r) + h(c.g) + h(c.b);
     }
 
     // flat palette for templates
+    // What the programs get. By day in a look with `apps: "light"` it is the scheme's light
+    // palette, not the interface's.
     function exportPalette() {
+        const own = !!dayLook && dayLook.apps === "light";
+        const src = own ? Object.assign({}, baseOf(schemeFlavor, false, false), {
+            titleText: "#ffffff",
+            accent: schemeFlavor.accent,
+            accent2: schemeFlavor.accent2,
+            title1: schemeFlavor.title1,
+            title2: schemeFlavor.title2,
+            select: schemeFlavor.accent,
+            selectText: luminance(Qt.color(schemeFlavor.accent)) > 0.3 ? "#17141f" : "#ffffff"
+        }) : root;
+        const isDark = own ? false : dark;
         const p = {
-            mode: dark ? "dark" : "light",
+            mode: isDark ? "dark" : "light",
             flavor: macLook ? "goldengate" : Config.appearance.flavor
         };
         const keys = ["desk", "face", "faceAlt", "sunken", "text", "textDim", "titleText", "hi", "lo", "edge", "accent", "accent2", "accent3", "accent4", "title1", "title2", "danger", "ok", "select", "selectText", "shadow"];
         for (const k of keys)
-            p[k] = hex(root[k]);
+            p[k] = hex(Qt.color(src[k]));
         for (let i = 0; i < 16; i++)
-            p["color" + i] = ansi[i];
-        p.bg = dark ? p.desk : p.face;
+            p["color" + i] = src.ansi[i];
+        p.bg = isDark ? p.desk : p.face;
         p.fg = p.text;
-        p.bgAlt = dark ? p.face : p.faceAlt;
+        p.bgAlt = isDark ? p.face : p.faceAlt;
         return p;
     }
 }

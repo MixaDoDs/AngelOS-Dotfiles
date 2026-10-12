@@ -69,6 +69,9 @@ Item {
         visible: !root.barInk && root.settingsSkin === "classic" && (!root.flat || mouse.containsMouse || root.checked)
         sunken: root.down
         hell: root.hell
+        // the light theme: a raised button stands on a one-pixel ink shadow, a pressed one sits on the paper
+        shadow: Theme.zine && !root.hell && !root.flat && !root.compact && !root.down
+        shadowSize: Theme.u
         color: root.down && root.downColor.a > 0 && !root.hell && !root.accent && !root.danger ? root.downColor : root.hell ? (root.accent ? (mouse.containsMouse ? Qt.lighter(Theme.hellBlood, 1.15) : Theme.hellBlood) : root.checked ? Theme.mix(Theme.hellFace, Theme.hellBlood, 0.45) : mouse.containsMouse ? Theme.mix(Theme.hellFace, Theme.hellEmber, 0.2) : Theme.hellFace) : root.accent ? (mouse.containsMouse ? Qt.lighter(Theme.accent, 1.08) : Theme.accent) : root.danger && mouse.containsMouse ? Theme.danger : root.checked ? Theme.mix(Theme.face, Theme.accent, Theme.dark ? 0.4 : 0.3) : mouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.12) : Theme.face
     }
 

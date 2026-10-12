@@ -1504,6 +1504,9 @@ Scope {
             // switching the shell's palette 24 times re-inks everything loaded and takes ~40 s);
             // the palette as Theme builds it — the one on screen must come out the same
             const keepMode = Config.appearance.mode;
+            // the schemes' own light halves: by day a look would stand in for them (Theme.dayLooks)
+            const keepLook = Config.appearance.dayLook;
+            Config.appearance.dayLook = "scheme";
             const looks = Object.keys(built).map(id => [id, built[id].createObject(stage, {
                         "menu": fake(960, 540, 1)
                     })]);
@@ -1540,6 +1543,7 @@ Scope {
                 }
             }
             Config.appearance.mode = keepMode;
+            Config.appearance.dayLook = keepLook;
             for (const [id, o] of looks)
                 o.destroy();
             stage.destroy();
@@ -2730,7 +2734,7 @@ Scope {
             const stage = Qt.createQmlObject("import QtQuick; Item { width: 400; height: 300 }", win.contentItem);
             const bad = [];
             const dc = Qt.createComponent(Quickshell.shellDir + "/modules/desktop/widgets/DiscordWidget.qml");
-            let drawn = 0;
+            let drawn = 0, crewDone = false;
             if (dc.status !== Component.Ready)
                 bad.push("DiscordWidget: " + dc.errorString().trim().split("\n")[0]);
             else {
@@ -2749,6 +2753,73 @@ Scope {
                             bad.push("the connect button takes no click");
                         o.destroy();
                     }
+                // the little people over the bar: one each, kept through a speaking change, gone on leaving
+                // (with a burst, the rest staying where they were), you bigger than the rest (and the
+                // window as tall as you need), each picked up and carried with the pointer
+                const cc = Qt.createComponent(Quickshell.shellDir + "/modules/desktop/DiscordCrewStage.qml");
+                if (cc.status !== Component.Ready)
+                    bad.push("DiscordCrewStage: " + cc.errorString().trim().split("\n")[0]);
+                else {
+                    DiscordVoice.state = "call";
+                    const call = people.slice(0, 4).map(p => p.id === "1" ? Object.assign({}, p, {"me": true}) : p);
+                    DiscordVoice.users = call;
+                    const crewStage = cc.createObject(stage, {"width": 1280, "height": 128});
+                    const guyOf = id => crewStage.children.find(c => c.uid === id);
+                    const first = guyOf("0");
+                    DiscordVoice.users = call.map(p => p.id === "0" ? Object.assign({}, p, {"speaking": true}) : p);
+                    const kept = !!first && guyOf("0") === first && first.speaking;
+                    const main = guyOf("1"), other = guyOf("2");
+                    const bigger = !!main && !!other && main.width > other.width && main.x + main.width <= crewStage.maxX + other.width && crewStage.tall > crewStage.u * 64;
+                    const at = other.x, floorY = other.height - other.u * 10;
+                    sim.mousePress(other, other.width / 2, floorY, Qt.LeftButton, Qt.NoModifier, -1);
+                    const took = other.held && crewStage.lifted && crewStage.flyers[0] === other;
+                    sim.mouseMove(other, other.width / 2 - 60, floorY - 30, -1, Qt.LeftButton, Qt.NoModifier);
+                    sim.mouseMove(other, other.width / 2 - 60, floorY - 40, -1, Qt.LeftButton, Qt.NoModifier);
+                    const carried = took && other.x < at - 60 && other.alt > 20;
+                    // carried over the strip's top: the room is the screen's, not the strip's
+                    crewStage.room = 900;
+                    sim.mouseMove(other, other.width / 2, floorY - 700, -1, Qt.LeftButton, Qt.NoModifier);
+                    const high = other.alt > 500;
+                    sim.mouseMove(other, other.width / 2, floorY - 40, -1, Qt.LeftButton, Qt.NoModifier);
+                    sim.mouseRelease(other, other.width / 2, floorY - other.alt, Qt.LeftButton, Qt.NoModifier, -1);
+                    const freed = carried && high && !other.held && crewStage.hits.length === 4;
+                    const stood = guyOf("3").x;
+                    DiscordVoice.users = call.slice(2);
+                    const small = crewStage.tall === crewStage.u * 64;
+                    const burst = crewStage.boomed === 2 && crewStage.bursts === 2 && guyOf("3").x === stood && crewStage.hits.length === 2;
+                    DiscordVoice.users = call.slice(1);
+                    // a person's menu: the main one is whoever is picked, bigger and smaller by an art
+                    // pixel, hidden ones are gone without a burst, a burst on demand brings them back
+                    const keep = [Config.discord.crewMain, Config.discord.crewSteps, Config.discord.crewHidden, Config.discord.crewSize];
+                    const two = guyOf("2"), items = crewStage.itemsFor(two), was = two.u;
+                    const pick = icon => items.find(i => i.icon === icon);
+                    pick("star").run();
+                    const picked = Config.discord.crewMain === "2" && two.main && !guyOf("1").main && two.u === crewStage.bigU && pick("star").checked();
+                    pick("plus").run();
+                    const grown = two.u === crewStage.bigU + 1 && crewStage.tall === two.u * 64;
+                    pick("refresh").run();
+                    pick("star").run();
+                    const back = Config.discord.crewMain === "none" && two.u === crewStage.u;
+                    Config.discord.crewSize = "l";
+                    const large = crewStage.u === Theme.u + 1 && two.u === crewStage.u;
+                    Config.discord.crewSize = keep[3];
+                    const booms = crewStage.boomed;
+                    pick("skull").run();
+                    const popped = crewStage.boomed === booms + 1 && guyOf("2") === two && two.flying;
+                    pick("eye").run();
+                    const hid = !guyOf("2") && crewStage.count === 2 && crewStage.boomed === booms + 1 && Config.discord.crewHidden.includes("2");
+                    Config.discord.crewHidden = [];
+                    const menu = picked && grown && back && large && popped && hid && crewStage.count === 3 && items.some(i => i.flyout && i.flyout.length === 5);
+                    Config.discord.crewMain = keep[0];
+                    Config.discord.crewSteps = keep[1];
+                    Config.discord.crewHidden = keep[2];
+                    crewDone = crewStage.count === 3 && kept && !guyOf("0") && bigger && small && freed && burst && menu;
+                    if (!menu)
+                        bad.push("crew menu: picked " + picked + ", grown " + grown + ", back " + back + ", large " + large + ", popped " + popped + ", hid " + hid);
+                    if (!crewDone)
+                        bad.push("crew: count " + crewStage.count + ", kept " + kept + ", you bigger " + bigger + ", low without you " + small + ", taken " + took + ", carried " + carried + " (x " + at + " → " + other.x + ", alt " + other.alt + "), let go " + freed + ", burst " + burst + " (" + crewStage.boomed + "/" + crewStage.bursts + ", hits " + crewStage.hits.length + ")");
+                    crewStage.destroy();
+                }
                 DiscordVoice.state = "no-discord";
                 DiscordVoice.users = [];
             }
@@ -2780,7 +2851,7 @@ Scope {
             Updates.release = rel;
             Config.updates.paperSeen = seen;
             stage.destroy();
-            report("new-1012", !bad.length && drawn === 15 && typed === "Ctrl+C|hi" && hush && hung && paperDrawn && away, bad.join("; ") + " discord drawn " + drawn + "/15; keys " + typed + ", quiet for a password " + hush + "; paper hung " + hung + ", drawn " + paperDrawn + ", put away " + away);
+            report("new-1012", !bad.length && drawn === 15 && crewDone && typed === "Ctrl+C|hi" && hush && hung && paperDrawn && away, bad.join("; ") + " discord drawn " + drawn + "/15, crew " + crewDone + "; keys " + typed + ", quiet for a password " + hush + "; paper hung " + hung + ", drawn " + paperDrawn + ", put away " + away);
             phase = "rmb";
             return;
         }
