@@ -943,6 +943,10 @@ job sddm-stamp py_test sddm-stamp sddm/test_source_stamp.py "SDDM: every build i
 timed settings-search check_search
 job sprite-rig py_test sprite-rig sprites/test_sprite_rig.py "sprite-rig: authored frame strips"
 job caps py_test caps caps/test_caps.py "Caps Lock on the bar: the LED over several keyboards"
+job sideload py_test sideload plugins/test_sideload.py "plugins outside the catalog: a .zip, a GitHub link and its updates, unsafe archives refused (throw-away HOME)"
+job calc py_test calc calc/test_calc.py "launcher currencies: a lone 100 USD, 10к рублей, курс доллара, units and maths left alone" 77
+job keycast py_test keycast keycast/test_keycast.py "keys on screen: shortcuts, typing only when asked, nothing while a password is typed"
+job discord-voice py_test discord-voice discord/test_discord_voice.py "Discord call widget: token and its renewal, who is in the call, speaking (stand-in Discord)"
 timed audio-tap py_test audio-tap audio/test_audio_tap.py "cava's audio tap: no hangs (stand-ins for cava and pw-record)"
 # the Golden Gate menu bar's helper: menus found by the window's pid, on a private bus (77 = no gi / dbus)
 timed appmenu py_test appmenu appmenu/test_appmenu.py "global menu: Qt, GTK, appmenu-gtk-module and X11 menus found by pid, clicks reach the app" 77

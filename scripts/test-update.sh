@@ -131,7 +131,10 @@ home = sys.argv[1]
 # not installed files: the snapshots, the repository, caches (gsettings in the theme hooks)
 skip = {os.path.join(home, ".local/state/angelos/backups"), os.path.join(home, "AngelOS-Dotfiles"), os.path.join(home, ".cache")}
 for base, dirs, files in os.walk(home):
-    dirs[:] = sorted(d for d in dirs if os.path.join(base, d) not in skip)
+    # GTK 4's pictures by content (gtk-live.py version_gtk4): a few older looks are kept on
+    # purpose for apps still running in them, so a restore leaves the newer one there too
+    dirs[:] = sorted(d for d in dirs if os.path.join(base, d) not in skip
+                     and not (d.startswith("v-") and base.endswith(".config/gtk-4.0/assets")))
     for f in sorted(files):
         p = os.path.join(base, f)
         if f in ("update-last", "stub-calls"):
@@ -269,6 +272,7 @@ restore "$BACKUP"
 if ((RC == 0)); then pass "invalid niri: restore exit 0"; else fail "invalid niri: restore exit $RC"; show "$W/$CASE.restore.out"; fi
 fingerprint >"$W/after"
 check "invalid niri: after the restore every file is as before the update" diff -q "$W/before" "$W/after"
+diff "$W/before" "$W/after" | head -20   # which files, when they differ
 check "invalid niri: repository back on v1" head_is "$V1"
 
 # ── 4. niri is not installed: the update cannot be confirmed ─────────────────
