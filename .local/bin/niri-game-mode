@@ -51,7 +51,6 @@ window-rule {
 }
 
 layer-rule {
-    match namespace="^noctalia-"
     match namespace="^angelos-"
     background-effect {
         blur false
@@ -86,7 +85,6 @@ window-rule {
 }
 
 layer-rule {
-    match namespace="^noctalia-"
     match namespace="^angelos-"
     background-effect {
         blur false

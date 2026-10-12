@@ -252,10 +252,10 @@ Singleton {
             bubblegum: {
                 name: "Bubblegum",
                 light: {
-                    accent: "#ff4fa3",
-                    accent2: "#57d5ff",
-                    title1: "#ff7ec0",
-                    title2: "#b895ff"
+                    accent: "#c92a7a",
+                    accent2: "#1a72a0",
+                    title1: "#c92a7a",
+                    title2: "#7d5cc4"
                 },
                 dark: {
                     accent: "#ff5cad",
@@ -267,10 +267,10 @@ Singleton {
             overdose: {
                 name: "Overdose",
                 light: {
-                    accent: "#e8307f",
-                    accent2: "#9b5cff",
-                    title1: "#ff3d8b",
-                    title2: "#ff8ab8"
+                    accent: "#c2185b",
+                    accent2: "#7b4fc9",
+                    title1: "#b0174f",
+                    title2: "#7b4fc9"
                 },
                 dark: {
                     accent: "#ff2e7e",
@@ -282,10 +282,10 @@ Singleton {
             cyberangel: {
                 name: "Cyber Angel",
                 light: {
-                    accent: "#ff5cad",
-                    accent2: "#1fb8e6",
-                    title1: "#7fdcff",
-                    title2: "#ff9ad0"
+                    accent: "#c41f72",
+                    accent2: "#126f9a",
+                    title1: "#126f9a",
+                    title2: "#c41f72"
                 },
                 dark: {
                     accent: "#ff6ec2",
@@ -317,23 +317,26 @@ Singleton {
                 shadow: "#000000",
                 ansi: ["#2a1838", "#ff4f6d", "#57e3a2", "#ffe066", "#7b8cff", "#ff5cad", "#4fe3ff", "#e8cfe0", "#6b4f7d", "#ff7a93", "#8af0c0", "#fff0a0", "#a3b0ff", "#ff9fd0", "#9ff0ff", "#ffffff"]
             }) : ({
-                desk: "#ffd1e8",
-                face: "#fff3f9",
-                faceAlt: "#ffe3f1",
+                // the light one (2026-10-12): a calm pastel instead of the old neon pink — lilac-grey
+                // desk, near-white paper, a plum outline (the pixel icons' ink too); every text pair ≥ 4.5:1
+                desk: "#e6dfeb",
+                face: "#f8f5f9",
+                faceAlt: "#eee8f2",
                 sunken: "#ffffff",
-                text: "#3b1f4a",
-                textDim: "#9a7aa8",
+                text: "#2a1d35",
+                textDim: "#655775",
                 titleText: "#ffffff",
                 hi: "#ffffff",
-                lo: "#e7a6cc",
-                edge: "#5a2e6e",
-                accent3: "#ffc93c",
-                accent4: "#b895ff",
-                danger: "#ff3d64",
-                ok: "#2fbf7f",
+                lo: "#cfc3d8",
+                edge: "#574669",
+                accent3: "#976000",
+                accent4: "#7d5cc4",
+                danger: "#c8264b",
+                ok: "#137a52",
                 selectText: "#ffffff",
-                shadow: "#5a2e6e",
-                ansi: ["#3b1f4a", "#e0305a", "#1f9e6a", "#c98a00", "#4b5fd6", "#e0308a", "#1b9ec2", "#b89cb0", "#9a7aa8", "#ff5c80", "#34c28a", "#e0a82e", "#6f80f0", "#ff5cad", "#3cc0e0", "#fff3f9"]
+                shadow: "#b3a2c2",
+                // on a light background: every colour readable as text (white is a mid grey, as GitHub Light's)
+                ansi: ["#2a1d35", "#c8264b", "#137a52", "#976000", "#3d4fc0", "#b0207a", "#0f6f8a", "#6e6080", "#8f7ca0", "#e0305a", "#1f9468", "#b07a00", "#5a6be0", "#d0308a", "#178aa8", "#8f7ca0"]
             });
     }
     // the chosen flavour's colours in either mode, whichever is on now (the wizard's previews)

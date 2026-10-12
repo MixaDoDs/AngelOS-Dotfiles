@@ -92,6 +92,11 @@ QtObject {
 }
 ```
 
+`query()` вызывается внутри привязки лаунчера: в ней только читай. Загрузку данных запускай
+отложенно — `Qt.callLater(fetch)`, а не `fetch()`: иначе функция меняет то, что сама же читает,
+и Qt пишет в журнал «Binding loop detected for property "results"» (строка «Загружаю…»
+при этом не появляется). Когда данные пришли — `changed()`.
+
 Готовые примеры: `plugins/web-search` (префикс `web`, фавиконки, MRU),
 `plugins/claude-companion` (префикс `claude`), `plugins/codex-companion`
 (префикс `codex`) и `plugins/osu-mini` (`osu`).
@@ -369,6 +374,8 @@ import Quickshell   // и остальное из Quickshell
 Свои синглтоны кладутся рядом с `qmldir` (см. `plugins/stream-stats`, `plugins/cat`).
 Свою пиксельную картинку можно нарисовать прямо в плагине: `PxIcon { bitmap: ["..#..", ".#o#.", …] }`.
 Попап у виджета панели — `import qs.modules.bar` и `BarPopup { anchorItem: … }` (см. `plugins/speedtest`).
+Чтобы попап не висел в памяти, пока его не открыли, оберни его в `LazyPopup { id: pop; panelId: "…"; anchorItem: root; warm: <курсор на кнопке>; BarPopup { … } }`
+и снаружи обращайся к `pop.visible` / `pop.toggle()` (см. `plugins/cat`): он строится при наведении и уходит через полминуты после закрытия.
 
 ### Полезное
 

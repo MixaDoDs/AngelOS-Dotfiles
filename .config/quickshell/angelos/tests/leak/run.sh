@@ -5,7 +5,7 @@
 # it goes costs nothing, so the rounds after it must not grow the shell by more than the budget.
 #
 #   tests/leak/run.sh [angelOS dir]     exit 0 = within, 77 = no quickshell
-#   LEAK_ROUNDS=n LEAK_DWELL_MS=ms      rounds (6, at least 4), time on each page (120)
+#   LEAK_ROUNDS=n LEAK_DWELL_MS=ms      rounds (10, at least 4), time on each page (120)
 #   LEAK_MAX_KB=kb                      growth allowed a round over the last three (3072)
 #
 # What it measures (2026-10-11, 16 rounds, heap profile): about 1 MB a round stays even now, 20 KB
@@ -15,7 +15,9 @@ set -uo pipefail
 DIR="$(cd "${1:-"$(dirname "$0")/../.."}" && pwd)"
 [[ -f "$DIR/shell.qml" ]] || { echo "no angelOS in $DIR"; exit 2; }
 MAX_KB="${LEAK_MAX_KB:-3072}"
-ROUNDS="${LEAK_ROUNDS:-6}"
+# ten rounds: with 53 pages the caches are still filling in rounds 2–5 (6 rounds read 3–5 MB a
+# round for a tree that settles at 1.7; one page alone over 40 rounds: 50–80 KB a round)
+ROUNDS="${LEAK_ROUNDS:-10}"
 ((ROUNDS >= 4)) || ROUNDS=4
 
 QS="$(command -v quickshell || true)"

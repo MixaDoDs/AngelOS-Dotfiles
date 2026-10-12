@@ -80,6 +80,15 @@ PanelWindow {
             win.show("flag");
         }
     }
+    // privacy on stream switched under Do not disturb, where its notification isn't shown
+    Connections {
+        target: Privacy
+        function onFlag(icon, text) {
+            win.flagIcon = icon;
+            win.flagText = text;
+            win.show("flag");
+        }
+    }
     Connections {
         target: Niri
         function onLayoutSwitched() {

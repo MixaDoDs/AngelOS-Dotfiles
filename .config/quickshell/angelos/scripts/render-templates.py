@@ -132,6 +132,9 @@ def main():
     # for the entries that run angelOS's own scripts on the same palette
     pal["shellDir"] = str(SHELL)
     pal["paletteFile"] = str(Path(sys.argv[1]).resolve())
+    # a palette written before the browsers' bar had a colour of its own (Settings → Windows)
+    pal.setdefault("browserBar", pal.get("decorHeader", pal.get("bgAlt", "#202020")))
+    pal.setdefault("browserBarText", pal.get("decorText", pal.get("fg", "#fafafa")))
     disabled = set(filter(None, (sys.argv[2] if len(sys.argv) > 2 else "").split(",")))
     for e in load_entries():
         if e["id"] in disabled:

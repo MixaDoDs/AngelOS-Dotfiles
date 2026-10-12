@@ -51,6 +51,7 @@ ShellRoot {
     Lock {}
     PolkitDialog {}
     UpdatePrompt {}
+    AppsSyncPrompt {}
     SetupWizard {}
     TourOverlay {}
     PluginHost {}
@@ -148,6 +149,8 @@ ShellRoot {
         Backlight.available; // the backlight keys and the dimming before idle
         Gestures.status; // the touchpad's own gestures (scripts/gesture-watch.py)
         Wellbeing.loaded; // screen time and the breaks the angel reminds of (Settings → Wellbeing)
+        Capture.sorting; // niri's screenshots into month folders (scripts/screenshot-sort.py)
         Cobweb.enabled; // cobwebs on windows nobody moved for a while (Settings → Windows → Cobwebs)
+        Devices.holders; // the keyboard's lights follow the system's colour (no helper until needed)
     }
 }

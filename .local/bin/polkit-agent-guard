@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Keep a polkit authentication agent registered for the niri session, always.
 
-The shell's agent (angelOS or Noctalia) is preferred because it follows the
-theme. Whenever no shell is running, or its agent will not register, a fallback
+The shell's agent (angelOS's) is preferred because it follows the theme.
+Whenever no shell is running, or its agent will not register, a fallback
 agent is started at once. When the shell comes back, the fallback steps aside
-and the shell is asked to register again (Noctalia: config reload, angelOS:
-`qs -c angelos ipc call angelos polkitRegister`).
+and the shell is asked to register again
+(`qs -c angelos ipc call angelos polkitRegister`).
 
 polkitd itself is the judge: registering a probe agent for the session fails
 with "already exists" while someone holds the slot.
@@ -25,12 +25,12 @@ FALLBACKS = [
     ["/usr/lib/polkit-kde-authentication-agent-1"],
     ["/usr/lib/mate-polkit/polkit-mate-authentication-agent-1"],
 ]
-POLL = 1.0             # look for a (re)started Noctalia this often
+POLL = 1.0             # look for a (re)started shell this often
 PROBE_INTERVAL = 15.0  # confirm that someone holds the slot this often
-STARTUP_GRACE = 5.0    # let a fresh Noctalia finish starting before handing over
+STARTUP_GRACE = 5.0    # let a fresh shell finish starting before handing over
 REGISTER_WAIT = 3.0    # time a fresh fallback gets to register before it is judged
 QUICK_EXIT = 10.0      # a fallback dying sooner than this counts as a failure
-PROBE_PATH = "/org/noctalia/AgentGuardProbe"
+PROBE_PATH = "/org/angelos/AgentGuardProbe"
 
 
 def log(msg: str) -> None:
@@ -73,16 +73,8 @@ def probe() -> str:
     return "held" if "already exists" in r.stderr else "unknown"
 
 
-def shell_kind(pid: int) -> str:
-    try:
-        with open(f"/proc/{pid}/comm", "rb") as f:
-            return "noctalia" if f.read().strip() == b"noctalia" else "angelos"
-    except OSError:
-        return "noctalia"
-
-
-def noctalia_pid() -> int | None:
-    """Pid of the shell daemon: Noctalia or angelOS (quickshell -c angelos), not IPC clients."""
+def shell_pid() -> int | None:
+    """Pid of the shell daemon: angelOS (quickshell -c angelos), not its IPC clients."""
     uid = os.getuid()
     found = []
     for d in os.listdir("/proc"):
@@ -93,16 +85,13 @@ def noctalia_pid() -> int | None:
                 continue
             with open(f"/proc/{d}/comm", "rb") as f:
                 comm = f.read().strip()
-            if comm not in (b"noctalia", b"quickshell", b"qs"):
+            if comm not in (b"quickshell", b"qs"):
                 continue
             with open(f"/proc/{d}/cmdline", "rb") as f:
                 argv = f.read().split(b"\0")[:-1]
         except OSError:
             continue
-        if comm == b"noctalia":
-            if argv and all(a.startswith(b"-") for a in argv[1:]):
-                found.append(int(d))
-        elif b"angelos" in argv and b"ipc" not in argv and b"kill" not in argv and b"log" not in argv:
+        if b"angelos" in argv and b"ipc" not in argv and b"kill" not in argv and b"log" not in argv:
             found.append(int(d))
     return min(found) if found else None
 
@@ -116,11 +105,6 @@ def proc_age(pid: int) -> float:
     except (OSError, ValueError, IndexError):
         return 0.0
     return up - start / os.sysconf("SC_CLK_TCK")
-
-
-def noctalia_msg(*args: str) -> bool:
-    r = run(["noctalia", "msg", *args], timeout=3.0)
-    return r is not None and r.returncode == 0
 
 
 class Fallback:
@@ -196,23 +180,19 @@ def angelos_ipc(*args: str) -> bool:
     return r is not None and r.returncode == 0
 
 
-def hand_over(fb: Fallback, kind: str = "noctalia") -> bool:
+def hand_over(fb: Fallback) -> bool:
     """Move the slot to the shell; return False if its agent will not register."""
-    alive = angelos_ipc("status") if kind == "angelos" else noctalia_msg("color-scheme-get")
-    if not alive:
+    if not angelos_ipc("status"):
         return True  # not answering IPC yet; keep whatever holds the slot now
     fb.stop()
     time.sleep(0.3)  # let polkitd drop the fallback's registration
     for _ in range(3):
-        if kind == "angelos":
-            angelos_ipc("polkitRegister")
-        else:
-            noctalia_msg("config-reload")  # Noctalia registers its agent on reload
+        angelos_ipc("polkitRegister")
         time.sleep(1.0)
         state = probe()
         if state != "free":
             if state == "unknown":
-                log("cannot query polkitd; assuming Noctalia's agent is fine")
+                log("cannot query polkitd; assuming the shell's agent is fine")
             return True
     return False
 
@@ -221,17 +201,17 @@ def main() -> None:
     # This guard owns the fallback; a separately started unit would only collide.
     run(["systemctl", "--user", "stop", "hyprpolkitagent.service"])
     fb = Fallback()
-    tracked: tuple[int, int] | None = None  # (pid, pidfd) of the Noctalia daemon
-    broken: int | None = None               # Noctalia pid whose agent would not register
+    tracked: tuple[int, int] | None = None  # (pid, pidfd) of the shell
+    broken: int | None = None               # the shell's pid whose agent would not register
     next_probe = 0.0
     while True:
         try:
             if tracked is None:
-                pid = noctalia_pid()
+                pid = shell_pid()
                 if pid is not None:
                     try:
                         tracked = (pid, os.pidfd_open(pid))
-                        log(f"shell running (pid {pid}, {shell_kind(pid)})")
+                        log(f"shell running (pid {pid})")
                     except OSError:
                         pass
             pid = tracked[0] if tracked else None
@@ -246,13 +226,12 @@ def main() -> None:
                         fb.stop()
                         fb.next_candidate()
             elif proc_age(pid) >= STARTUP_GRACE and (fb.running() or now >= next_probe):
-                kind = shell_kind(pid)
                 if fb.running():
-                    ok = hand_over(fb, kind)
+                    ok = hand_over(fb)
                     if ok and not fb.running():
                         log("shell holds the agent")
                 else:
-                    ok = probe() != "free" or hand_over(fb, kind)
+                    ok = probe() != "free" or hand_over(fb)
                 if not ok:
                     log(f"shell (pid {pid}) agent will not register; using the fallback")
                     broken = pid

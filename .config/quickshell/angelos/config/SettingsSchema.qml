@@ -149,6 +149,9 @@ JsonAdapter {
     property JsonObject decor: JsonObject {
         property bool gtkButtons: true      // GTK 3/4 window buttons drawn like angelOS's (templates gtk3/gtk4)
         property string gtkLayout: "maximize,close" // GTK title bar buttons, in order (gsettings button-layout, right side)
+        // the bar of Helium and Chromium on their "GTK" theme — the tab strip, the open tab and
+        // the toolbar are one colour there (templates/gtk3.css): "" = the title bars', or #rrggbb
+        property string browserBar: ""
     }
 
     // window menu (modules/bar/parts/WindowMenu.qml): "Make floating / Back to tiling" and
@@ -157,6 +160,8 @@ JsonAdapter {
     // Fullscreen, Move to desk / monitor, Close, End task.
     property JsonObject windows: JsonObject {
         property bool floatButtons: false   // experimental: floating + maximize buttons in the window menu
+        // every new window floats (a niri rule in angelos.kdl, ThemeExport); Golden Gate has its own (mac.floating)
+        property bool floatAll: false
         // cobwebs (services/Cobweb): a window nobody moved for a while gets a spider and its web
         property bool cobweb: true
         property bool cobwebInside: true    // the web over the window itself (off: only the bar's buttons)
@@ -213,6 +218,7 @@ JsonAdapter {
     property JsonObject osd: JsonObject {
         property bool enabled: true
         property bool layout: true          // show keyboard layout switches
+        property bool caps: true            // Caps Lock: an arrow on the bar while it is on (services/CapsLock)
         property string position: "bottom-center"
         property int ms: 900
     }
@@ -251,6 +257,30 @@ JsonAdapter {
         property bool settings: true        // Start search and the launcher find settings too, mixed with apps by relevance
         property bool files: true           // …and files by name or type ("sex", ".jpeg", ".картинки"), services/FileSearch
         property bool filePreview: true     // thumbnails of pictures and videos in those results, Spotlight's preview
+    }
+
+    // password managers: Bitwarden (bw, rbw) and 1Password (op) in the launcher, services/Vault
+    property JsonObject vault: JsonObject {
+        property bool enabled: true         // `pw NAME` in the launcher finds logins; Enter copies the password
+        property int clearAfter: 30         // seconds until a copied secret is wiped from the clipboard (0 = never)
+        property int lockAfter: 15          // idle minutes until a vault the shell opened is locked again (0 = never)
+        property bool lockWithScreen: true  // …and when the screen locks
+        property bool hideOnStream: true    // on air: names and logins are masked in the results
+        property bool everywhere: true      // an open vault's entries also among the launcher's ordinary results, no `pw` needed (never on air)
+    }
+
+    // spelling in the shell's own text fields (notes, replies), services/Spell
+    // the keys pressed, on screen (Mod+Shift+K; services/KeyCast): shortcuts, and typing if asked;
+    // never while a password is typed
+    property JsonObject keycast: JsonObject {
+        property bool enabled: false
+        property bool text: false           // plain typing too, not only shortcuts and special keys
+    }
+
+    property JsonObject spell: JsonObject {
+        property bool enabled: true         // misspelt words are underlined (needs a dictionary: Settings → Keyboard → Spelling)
+        property var off: []                // installed dictionaries switched off: ["en-GB", …]
+        property bool suggest: true         // the strip of corrections under a note while the caret is in a misspelt word
     }
 
     property JsonObject lock: JsonObject {
@@ -375,6 +405,7 @@ JsonAdapter {
         property bool autoCheck: true       // look for updates once a day, never installs by itself
         property string lastCheck: ""
         property int available: 0
+        property int paperSeen: 0           // the release whose «what's new» paper was put away (ChangelogPaper)
     }
 
     property JsonObject network: JsonObject {
@@ -408,6 +439,41 @@ JsonAdapter {
         property bool dim: true             // the backlight dims 30 s before the screens go off (or the lock, or sleep)
         property string lidAction: "suspend"     // the lid closed on battery: suspend | hibernate | lock | nothing
         property string lidActionAc: "suspend"   // …on mains; with a monitor plugged in the lid does nothing (niri turns the panel off)
+    }
+
+    // the charge of the mouse, the keyboard, the headphones… (services/Peripherals; the bar's
+    // ampoules; Settings → Devices → Device charge)
+    property JsonObject peripherals: JsonObject {
+        property bool show: true            // bar: an ampoule a device (only where a device reports its charge)
+        property bool glyphs: true          // the device's icon next to its ampoule
+        property string percent: "low"      // the number next to it: never | low | always
+        property bool keyboardAccent: false // the keyboard's lights follow the system's colour (services/Devices)
+        property var keyboardColors: []      // the colours last given to the keyboard's lights, newest first (Settings → Device driver)
+        property int showBelow: 100         // on the bar only the devices at or below this % (100 = all of them)
+        property string sort: "manual"      // manual (the list in Settings) | lowest (the emptiest first)
+        property int max: 4                 // at most this many on the bar, the rest in the panel
+        property string size: "normal"      // the ampoule's width: slim | normal | wide
+        property bool rack: true            // the shelf they stand on
+        property string palette: "realm"    // the liquid: realm (the theme's accents; blood and fire in hell) | traffic | ice | mono | custom
+        property var colors: ["#e5484d", "#f5c542", "#3fb68b"] // custom: empty, half, full
+        property string paint: "height"     // height: the colours run up the glass and the charge cuts them | level: all of it in the level's colour
+        property bool steps: true           // pixel steps, a colour an art-pixel row; false = blended
+        property bool glint: true           // the glass's pixel highlight
+        property bool bubbles: true         // bubbles rise while it charges
+        property bool alerts: true          // a notification at lowAt and veryLowAt (once per discharge, per device)
+        property int lowAt: 20
+        property int veryLowAt: 10
+        property bool fullAlert: false      // …and when one is charged
+        property bool angel: true           // the angel (the demon) notices a device running low
+        property bool upower: true          // source: UPower (Bluetooth, Logitech, gamepads)
+        property bool vendor: true          // source: the makers' own HID reports (scripts/peripherals.py: LAMZU)
+        property bool headset: true         // source: headsetcontrol, where installed (USB headsets)
+        property int pollMinutes: 5         // how often the last two are asked
+        property int keepMinutes: 1440      // a device that stopped answering stays this long (as it was for ten minutes, then dimmed); 0 = gone at once
+        property var hidden: []             // device ids left out
+        property var names: ({})            // id -> a name of your own
+        property var kinds: ({})            // id -> its icon: mouse | keyboard | headset | gamepad | phone | pen | speaker | touchpad | other
+        property var sequence: []           // ids in your order (sort: manual); new ones go to the end
     }
 
     // laptops: keys, the backlight, the lid, a convertible (services/Laptop, Backlight)
@@ -534,6 +600,12 @@ JsonAdapter {
         property bool calm: false           // older settings: became appearance.motion "calm" (config/Motion migrates it once)
     }
 
+    // games: a fast mouse thinned while one runs (.local/bin/mouse-coalesce; niri-game-mode's flag)
+    property JsonObject gaming: JsonObject {
+        property int mouseRate: 0           // motion reports a second in games: 0 = the mouse as it is | 1000 | 2000 | 4000
+        property string mouseDevice: ""     // a part of the mouse's /dev/input/by-id name ("" = the first USB mouse)
+    }
+
     // the novel (services/Novel, ~/AngelOs-Nov): chapters the angel plays out on the desktop
     property JsonObject novel: JsonObject {
         property bool enabled: true
@@ -565,6 +637,9 @@ JsonAdapter {
         property bool dndSet: false         // stream mode switched DND on (switched off again when the stream ends)
         property bool suppressed: false     // switched off by hand during this stream (kept through a shell restart)
         property bool castHinted: false     // the angel told once that OBS can take her onto the stream (StreamMode.hintCast)
+        // privacy on stream (services/Privacy): the mode on by itself while OBS is live
+        property bool privacyAuto: false
+        property bool privacySet: false     // …and it was the stream that switched it on (off again when the stream ends)
         // the angel on stream (services/StreamAngel, modules/y2k/AngelHelper): she sits on the
         // streamed screen's taskbar (its bottom edge when the bar is elsewhere) and talks with the mic
         property bool streamer: false

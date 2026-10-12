@@ -18,7 +18,14 @@ Singleton {
     readonly property string cacheDir: home + "/.cache/angelos"
 
     property bool newConfig: false
-    readonly property bool ready: file.loaded || newConfig
+    // settings.json is read and it parsed. One that doesn't parse (cut short by a crash or a
+    // power cut: it is written in place) is put right first, see JsonRescue — read as it was
+    // it meant "every default", and that was written back a moment later
+    property bool _parsed: false
+    property int _badLoads: 0
+    readonly property bool ready: (file.loaded && _parsed) || newConfig
+    // such a repair at this start: "restored" (the last good copy) | "lost" (defaults) | ""
+    readonly property string repaired: rescue.outcome
     property alias appearance: adapter.appearance
     property alias bar: adapter.bar
     property alias wallpaper: adapter.wallpaper
@@ -45,17 +52,22 @@ Singleton {
     property alias updates: adapter.updates
     property alias network: adapter.network
     property alias power: adapter.power
+    property alias peripherals: adapter.peripherals
     property alias laptop: adapter.laptop
     property alias gestures: adapter.gestures
     property alias stream: adapter.stream
     property alias lens: adapter.lens
     property alias novel: adapter.novel
     property alias game: adapter.game
+    property alias gaming: adapter.gaming
     property alias decor: adapter.decor
     property alias windows: adapter.windows
     property alias mac: adapter.mac
     property alias recovery: adapter.recovery
     property alias wellbeing: adapter.wellbeing
+    property alias vault: adapter.vault
+    property alias spell: adapter.spell
+    property alias keycast: adapter.keycast
     // the same schema, never loaded: every setting's default value
     readonly property SettingsSchema defaults: SettingsSchema {}
 
@@ -102,8 +114,8 @@ Singleton {
     // ---- Undo (Settings → "Undo"): every save remembers what the user changed ----
     // Each step is [{path, old, new}]; bookkeeping the shell does by itself
     // (counters, the angel's state, update checks) is never a step.
-    readonly property var sections: ["appearance", "bar", "wallpaper", "workspaces", "alttab", "lyrics", "setup", "notifications", "osd", "launcher", "voxtype", "desktop", "lock", "idle", "sidebar", "capture", "plugins", "dotfiles", "system", "developer", "settingsUi", "y2k", "cursor", "updates", "network", "power", "laptop", "gestures", "stream", "lens", "decor", "windows", "novel", "game", "mac", "recovery", "wellbeing"]
-    readonly property var notUndoable: ["launcher.usage", "settingsUi.usage", "settingsUi.searchHistory", "settingsUi.expert", "settingsUi.skinChosen", "settingsUi.viewPicked", "settingsUi.win11Once", "updates.lastCheck", "updates.available", "setup.complete", "setup.gameAsked", "setup.keyboardAsked", "lyrics.sourcesVersion", "desktop.initialized", "plugins.data", "plugins.lastCheck", "plugins.notifiedFor", "plugins.storeRetired", "stream.dndSet", "stream.suppressed", "stream.castHinted", "lock.chestNotified", "y2k.helperGreeted", "y2k.character", "y2k.demonSince", "y2k.pleas", "y2k.lastPlea", "y2k.pranks", "y2k.nextPrank", "y2k.seenTips", "y2k.angelSaved", "y2k.raysSeen", "y2k.returns", "cursor.beforeHell", "cursor.beforeHellSize", "cursor.beforeMac", "mac.wallBefore", "wallpaper.themes", "wallpaper.themeOf", "wallpaper.releaseSeen", "recovery.lastPush", "appearance.customAccentHell", "game.enabled"]
+    readonly property var sections: ["appearance", "bar", "wallpaper", "workspaces", "alttab", "lyrics", "setup", "notifications", "osd", "launcher", "voxtype", "desktop", "lock", "idle", "sidebar", "capture", "plugins", "dotfiles", "system", "developer", "settingsUi", "y2k", "cursor", "updates", "network", "power", "peripherals", "laptop", "gestures", "stream", "lens", "decor", "windows", "novel", "game", "gaming", "mac", "recovery", "wellbeing", "vault", "spell", "keycast"]
+    readonly property var notUndoable: ["launcher.usage", "settingsUi.usage", "settingsUi.searchHistory", "settingsUi.expert", "settingsUi.skinChosen", "settingsUi.viewPicked", "settingsUi.win11Once", "updates.lastCheck", "updates.available", "updates.paperSeen", "setup.complete", "setup.gameAsked", "setup.keyboardAsked", "lyrics.sourcesVersion", "desktop.initialized", "plugins.data", "plugins.lastCheck", "plugins.notifiedFor", "plugins.storeRetired", "stream.dndSet", "stream.suppressed", "stream.castHinted", "stream.privacySet", "lock.chestNotified", "y2k.helperGreeted", "y2k.character", "y2k.demonSince", "y2k.pleas", "y2k.lastPlea", "y2k.pranks", "y2k.nextPrank", "y2k.seenTips", "y2k.angelSaved", "y2k.raysSeen", "y2k.returns", "cursor.beforeHell", "cursor.beforeHellSize", "cursor.beforeMac", "mac.wallBefore", "wallpaper.themes", "wallpaper.themeOf", "wallpaper.releaseSeen", "recovery.lastPush", "appearance.customAccentHell", "game.enabled"]
     property var undoStack: []
     readonly property bool canUndo: undoStack.length > 0
     readonly property var lastStep: undoStack.length ? undoStack[undoStack.length - 1] : null
@@ -148,8 +160,27 @@ Singleton {
         if (!saveTimer.running)
             return;
         saveTimer.stop();
+        _write();
+    }
+    // The language of a first start nobody answered for (the installer asks on a terminal
+    // only; a clone by hand, a script, a package never do): the system's, not the author's.
+    // Like the installer: Russian for a ru_* locale, English for everyone else — the wizard's
+    // first step still asks. `saved`: settings.json as parsed, null when there is none
+    function _firstLanguage(saved) {
+        if (saved && ((saved.appearance && typeof saved.appearance.language === "string") || (saved.setup && saved.setup.complete)))
+            return;
+        const locale = String(Quickshell.env("ANGELOS_LANG") || Quickshell.env("LC_ALL") || Quickshell.env("LC_MESSAGES") || Quickshell.env("LANG") || Qt.locale().name || "");
+        const lang = /^ru/i.test(locale) ? "ru" : "en";
+        if (adapter.appearance.language !== lang)
+            adapter.appearance.language = lang;
+    }
+    // never before the file is read: the adapter still holds the defaults then
+    function _write() {
+        if (!ready)
+            return;
         _record();
         file.writeAdapter();
+        rescue.keepLater();
     }
     function undo() {
         const step = lastStep;
@@ -168,9 +199,34 @@ Singleton {
     Timer {
         id: saveTimer
         interval: 350
+        onTriggered: root._write()
+    }
+
+    JsonRescue {
+        id: rescue
+        path: root.dir + "/settings.json"
+        onRescued: restored => {
+            file.reload();
+            if (Quickshell.env("ANGELOS_TEST") !== "1")
+                tellRepaired.start();
+        }
+    }
+    // a half-written file at the very start (another instance saving): read it once more
+    Timer {
+        id: againSoon
+        interval: 500
+        onTriggered: file.reload()
+    }
+    // said once the shell's own notifications are up
+    Timer {
+        id: tellRepaired
+        interval: 5000
         onTriggered: {
-            root._record();
-            file.writeAdapter();
+            const kept = "~/.config/angelos/settings.json.broken-…";
+            if (root.repaired === "restored")
+                Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "dialog-warning", "-t", "20000", I18n.t("Настройки восстановлены", "Settings restored"), I18n.t("Файл настроек оказался повреждён (запись оборвалась). Вернулась последняя целая копия; повреждённый лежит рядом: ", "The settings file was damaged (a write was cut short). The last good copy is back; the damaged file is kept next to it: ") + kept]);
+            else
+                Quickshell.execDetached(["notify-send", "-a", "angelOS", "-u", "critical", "-i", "dialog-warning", I18n.t("Настройки начаты заново", "Settings started over"), I18n.t("Файл настроек оказался повреждён, а целой копии не нашлось. Повреждённый лежит рядом: ", "The settings file was damaged and there was no good copy. The damaged file is kept next to it: ") + kept]);
         }
     }
 
@@ -193,6 +249,25 @@ Singleton {
         onFileChanged: reload()
         // loaded from disk (start, another instance, an edit by hand): not an undo step
         onLoaded: {
+            if (!rescue.valid(file.text())) {
+                // the shell is running: someone is in the middle of writing it, the whole
+                // file follows; what is in memory stays
+                if (root._parsed)
+                    return;
+                if (rescue.outcome === "") {
+                    if (root._badLoads++ === 0)
+                        againSoon.start();
+                    else
+                        rescue.rescue();
+                    return;
+                }
+                // no good copy to bring back: the defaults, and they are saved
+                root._firstLanguage(null);
+                saveTimer.restart();
+            } else if (!root._parsed) {
+                rescue.keepNow();
+                root._firstLanguage(JSON.parse(file.text()));
+            }
             // a new section declared in SettingsSchema but missing from the user's
             // settings.json stays undefined on the adapter; seed it from defaults so
             // Config.<section>.<key> works without optional-chaining in every consumer
@@ -204,10 +279,12 @@ Singleton {
                 adapter[sec] = copy;
             }
             root._snap = root.snapshot();
+            root._parsed = true;
         }
         onAdapterUpdated: saveTimer.restart()
         onLoadFailed: error => {
             if (error === FileViewError.FileNotFound) {
+                root._firstLanguage(null);
                 root.newConfig = true;
                 saveTimer.restart();
             }

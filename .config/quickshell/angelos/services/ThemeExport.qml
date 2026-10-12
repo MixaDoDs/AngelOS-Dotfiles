@@ -18,7 +18,7 @@ Singleton {
     // change re-renders — also the ones that come late: Theme.realm turns midway through the
     // widgets' burn, after Angel.demon (a return "as in the game" used to render heaven's
     // file with hell's accent and stay so); hell's wallpaper accent lands a beat after the circle
-    readonly property string paletteText: JSON.stringify(Object.assign(Theme.exportPalette(), decorPalette(), terminalPalette(), appsPalette(), hellPalette(), macPalette(), fontPalette(), folderPalette()), null, 2)
+    readonly property string paletteText: JSON.stringify(Object.assign(Theme.exportPalette(), decorPalette(), terminalPalette(), appsPalette(), hellPalette(), macPalette(), windowsPalette(), fontPalette(), folderPalette()), null, 2)
     readonly property string disabled: (Config.appearance.disabledTemplates || []).join(",")
     readonly property string signature: Config.appearance.themeApps + "|" + disabled + "|" + paletteText
     property string lastLog: ""
@@ -102,12 +102,29 @@ Singleton {
         };
     }
 
+    // Settings → Windows → Floating windows: every new window floats (templates/niri.kdl)
+    function windowsPalette() {
+        return {
+            "floatRules": Config.windows.floatAll ? "// every window floats (Settings → Windows → Floating windows)\nwindow-rule {\n    open-floating true\n}\n" : ""
+        };
+    }
+
     // window decorations (templates gtk3-decor/gtk4-decor, scripts/gtk-live.py, Helium):
     // heaven's title bars like angelOS's own windows, hell's in obsidian and blood
+    // the browsers' bar when Settings → Windows picks no colour: a step brighter than the
+    // title bars, so the open tab (the bar's colour) stands out from the dark ones
+    readonly property color browserBarAuto: Theme.mix(Theme.faceAlt, Theme.accent, Theme.dark ? 0.30 : 0.16)
     function decorPalette() {
         const hell = Angel.demon;
         const h = c => Theme.hex(c);
+        // the browsers' bar (Settings → Windows → Title bars): a colour of its own in heaven, its
+        // text light or dark by how bright it is; hell keeps obsidian and blood
+        const own = !hell && /^#[0-9a-f]{6}$/i.test(Config.decor.browserBar || "") ? Qt.color(Config.decor.browserBar) : null;
+        const bar = own || (hell ? Theme.mix(Theme.hellFaceAlt, Theme.hellBlood, 0.35) : browserBarAuto);
+        const barText = own ? (0.299 * own.r + 0.587 * own.g + 0.114 * own.b < 0.58 ? "#fafafa" : "#16181d") : h(hell ? Theme.hellText : (Theme.dark ? Theme.text : Theme.edge));
         return {
+            "browserBar": h(bar),
+            "browserBarText": barText,
             "realm": hell ? "hell" : "heaven",
             "decorGtk": Config.decor.gtkButtons ? "1" : "",
             "decorButtons": /^[a-z,]*$/.test(Config.decor.gtkLayout || "") ? Config.decor.gtkLayout : "maximize,close",

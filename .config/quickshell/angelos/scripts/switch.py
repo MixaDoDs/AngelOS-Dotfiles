@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Switch the desktop shell between Noctalia and angelOS.
+"""Wire niri and the apps' themes for angelOS.
 
   switch.py angelos [--no-restart] [--no-validate]
-                                     patch niri + app themes for angelOS, start it;
+                                     patch niri + app themes for angelOS, start it (a config
+                                     wired for another shell — CachyOS's with Noctalia's keys —
+                                     is rewired; a Noctalia that runs is stopped). A config niri
+                                     refuses afterwards is put back from this run's backup;
                                      --no-validate: the caller runs `niri validate` itself
-                                     and undoes a failure (Settings → Updates), so no
-                                     fallback to Noctalia here
-  switch.py noctalia                 restore files from the last switch backup, start Noctalia
+                                     and undoes a failure (Settings → Updates)
   switch.py status
 
 Every run that touches files first copies them into a *new* folder
@@ -101,7 +102,7 @@ def backup(tag):
         n += 1
         dst = base.with_name(base.name + f"-{n}")
     dst.mkdir(parents=True)
-    for f in FILES + [NIRI / "noctalia.kdl", NIRI / "angelos.kdl"]:
+    for f in FILES + [NIRI / "angelos.kdl"]:
         if f.exists():
             rel = f.relative_to(HOME)
             (dst / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -186,7 +187,7 @@ def one_voxtype(t):
 
 
 def to_angelos(restart=True, validate=True):
-    backup("switch")
+    saved = backup("switch")
     # theme files first: niri must never include a missing file
     render_themes()
     if not (NIRI / "angelos.kdl").exists():
@@ -207,7 +208,7 @@ def to_angelos(restart=True, validate=True):
     if r and r.returncode != 0:
         log("niri validate НЕ прошёл — откатываю")
         print(r.stderr)
-        to_noctalia(restart=False)
+        restore(saved)
         sys.exit(1)
     if r:
         log("niri: конфиг валиден")
@@ -220,71 +221,19 @@ def to_angelos(restart=True, validate=True):
         log("angelOS запущен ♡")
 
 
-def unpatch_keys(t):
-    """angelOS keybinds back to `noctalia msg …` (inverse of patch_keys)."""
-    for pat, fn, _title in KEYS:
-        noct = pat.replace("\\", "")
-        t = t.replace('spawn-sh "' + CLI + " " + fn + '"', 'spawn-sh "noctalia msg ' + noct + '"')
-    t = re.sub(r'^(\s*)// (XF86MonBrightness\w+[^\n]*noctalia msg[^\n]*)$', r'\1\2', t, flags=re.M)
-    t = re.sub(r"\n\s*// ─── angelOS extras ───\n(?:[^\n]*angelos[^\n]*\n)*", "\n", t)
-    return t.replace("// ─── angelOS keybinds (were noctalia) ───", "// ─── noctalia-shell keybinds ───")
-
-
-def unpatch_rules(t):
-    return re.sub(r"\n?\s*// ─── angelOS \(managed by angelos switch.py\) ───.*?// ─── /angelOS ───\n?", "\n", t, flags=re.S)
-
-
-def to_noctalia_forward():
-    """No switch backup (e.g. a fresh install from the repo): rewrite the wiring in place."""
-    backup("switch-back")
-    edit(NIRI / "cfg/autostart.kdl", lambda t: re.sub(r'spawn-at-startup\s+(?:"qs"\s+"-c"\s+"angelos"\s+"-n"|"angelos"\s+"(?:run|start)")', 'spawn-at-startup "noctalia"', t))
-    edit(NIRI / "config.kdl", lambda t: t.replace('include "angelos.kdl"', 'include "noctalia.kdl"'))
-    for keys in ("keybinds.kdl", "keybinds-common.kdl", "keybinds-pixel.kdl", "keybinds-macos.kdl"):
-        edit(NIRI / "cfg" / keys, unpatch_keys)
-    edit(NIRI / "cfg/rules.kdl", unpatch_rules)
-    edit(HOME / ".config/kitty/kitty.conf", lambda t: t.replace("include themes/angelos.conf", "include themes/noctalia.conf"))
-    edit(HOME / ".config/foot/foot.ini", lambda t: t.replace("include=~/.config/foot/themes/angelos", "include=~/.config/foot/themes/noctalia"))
-    edit(HOME / ".config/alacritty/alacritty.toml", lambda t: t.replace("themes/angelos.toml", "themes/noctalia.toml"))
-    for g in ("gtk-3.0", "gtk-4.0"):
-        edit(HOME / f".config/{g}/gtk.css", lambda t: t.replace('@import url("angelos.css");', '@import url("noctalia.css");'))
-    MARK.unlink(missing_ok=True)
-
-
-def to_noctalia(restart=True):
-    backups = sorted((STATE / "backups").glob("*-switch*"))
-    src = None
-    for b in reversed(backups):
-        cfg = b / ".config/niri/config.kdl"
-        if cfg.exists() and 'include "noctalia.kdl"' in cfg.read_text():
-            src = b
-            break
-    if not src:
-        log("бэкапа с Noctalia нет — переписываю обвязку на месте")
-        to_noctalia_forward()
-        if restart:
-            # through bin/angelos: the systemd service would bring a plain `qs kill` back
-            subprocess.run([str(SHELL / "bin/angelos"), "stop"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.Popen(["setsid", "-f", "noctalia"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return
-    backup("switch-back")
+def restore(src):
+    """the files of a backup folder back where they were"""
     for rel in json.loads((src / "files.json").read_text()):
         shutil.copy2(src / rel, HOME / rel)
         log("восстановлен", rel)
-    MARK.unlink(missing_ok=True)
-    if restart:
-        subprocess.run([str(SHELL / "bin/angelos"), "stop"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(0.5)
-        subprocess.Popen(["setsid", "-f", "noctalia"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        log("Noctalia запущена")
 
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
     if cmd == "angelos":
         to_angelos(restart="--no-restart" not in sys.argv, validate="--no-validate" not in sys.argv)
-    elif cmd == "noctalia-forward":
-        to_noctalia_forward()
-    elif cmd == "noctalia":
-        to_noctalia(restart="--no-restart" not in sys.argv)
+    elif cmd == "status":
+        print("active:", "angelos" if MARK.exists() else "other")
     else:
-        print("active:", "angelos" if MARK.exists() else "noctalia/other")
+        # `switch.py noctalia` went with Noctalia itself; what the files were before a switch is kept
+        sys.exit(f"switch.py angelos | status — the files from before each switch: {STATE / 'backups'}/*-switch")

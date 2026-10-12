@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>angelOS [dev] — живые обои</title>
+<link rel="stylesheet" href="/editor.css">
+</head>
+<body>
+<header>
+  <b class="logo">✧ живые обои</b>
+  <span id="picName" class="dim">выбери картинку слева</span>
+  <span class="grow"></span>
+  <span id="saveState" class="dim"></span>
+  <label class="inline" title="сохранять само через секунду после правки — рабочий стол подхватит сразу"><input type="checkbox" id="autosave" checked> автосохранение</label>
+  <button id="btnSave" class="accent" title="Ctrl+S">Сохранить</button>
+  <button id="btnUndo" title="Ctrl+Z — шаг назад в редакторе">↶</button>
+  <button id="btnRedo" title="Ctrl+Shift+Z">↷</button>
+  <button id="btnRevert" title="вернуть файл сцены к прошлому сохранению (и правку Claude тоже)">откат файла</button>
+  <button id="btnShow" title="поставить эту картинку на экран, который не идёт в эфир">на экран</button>
+  <button id="btnFolder" title="открыть папку картинки">папка</button>
+</header>
+<div id="banner" hidden></div>
+<main>
+  <aside id="left">
+    <input id="search" placeholder="поиск картинки…">
+    <div id="pics"></div>
+  </aside>
+  <section id="stageWrap">
+    <div id="stage">
+      <img id="bg" alt="">
+      <canvas id="over"></canvas>
+      <svg id="marks"></svg>
+    </div>
+    <div id="empty" class="empty">Выбери обои слева — или открой из Настроек → Dotfiles → «Анимация…»</div>
+  </section>
+  <aside id="right">
+    <nav class="tabs">
+      <button data-tab="paint" class="on">Слои</button>
+      <button data-tab="fx">Эффекты</button>
+      <button data-tab="points">Места</button>
+      <button data-tab="claude">Claude <span id="reqCount"></span></button>
+    </nav>
+
+    <div class="tab" id="tab-paint">
+      <div class="hint">Закрась, что чем является — так и будет двигаться. «Как найдено» стирает твой рисунок: там решает автоматика.</div>
+      <div id="layers"></div>
+      <div class="row tools">
+        <button data-tool="brush" class="on" title="B">✎ кисть</button>
+        <button data-tool="rect" title="R">▭ прямоуг.</button>
+        <button data-tool="lasso" title="L — клики по точкам, двойной клик / Enter замыкает">⬠ лассо</button>
+        <button data-tool="fill" title="F — заливка похожего цвета">◍ заливка</button>
+        <button data-tool="pick" title="I — взять слой с картинки">⌖ пипетка</button>
+      </div>
+      <div class="row"><span class="dim">кисть</span><input type="range" id="brush" min="1" max="40" value="6"><span id="brushV">6</span></div>
+      <div class="row"><span class="dim">допуск заливки</span><input type="range" id="tol" min="1" max="40" value="8"><span id="tolV">8</span></div>
+      <div class="row"><span class="dim">показывать</span>
+        <select id="view">
+          <option value="final">итог (рисунок поверх найденного)</option>
+          <option value="found">только найденное</option>
+          <option value="paint">только мой рисунок</option>
+          <option value="picture">картинку без слоёв</option>
+        </select>
+      </div>
+      <div class="row"><span class="dim">прозрачность</span><input type="range" id="opacity" min="0" max="100" value="55"></div>
+      <div class="row"><span class="dim">масштаб</span><input type="range" id="zoom" min="100" max="400" step="25" value="100"><span id="zoomV">100%</span></div>
+      <div class="row">
+        <button id="btnFoundTo" title="всё, что автоматика нашла этим слоем, — перекрасить выбранным">найденное «…» → выбранный слой</button>
+        <select id="foundLayer"></select>
+      </div>
+      <div class="row"><button id="btnClearPaint" class="danger">стереть весь рисунок</button></div>
+      <div class="hint">Клетка редактора — один пиксель арта (сетка <span id="gridV">—</span>).</div>
+    </div>
+
+    <div class="tab" id="tab-fx" hidden>
+      <div class="hint">Что эти обои не делают никогда (остальное — как в Настройках → Обои → Живые).</div>
+      <div id="effects"></div>
+      <h4>Небо и вода</h4>
+      <div class="row"><span class="dim">ночь</span>
+        <label class="inline"><input type="checkbox" id="nightAuto" checked> сама</label>
+        <input type="range" id="night" min="0" max="100" value="0"><span id="nightV"></span></div>
+      <div class="hint">звёзды выходят с 50 %</div>
+      <div class="row"><span class="dim">линия воды</span>
+        <label class="inline"><input type="checkbox" id="axisAuto" checked> сама</label>
+        <input type="range" id="axis" min="0" max="100" value="65"><span id="axisV"></span></div>
+      <div class="row"><span class="dim">отражение</span>
+        <select id="mirror"><option value="auto">как найдено</option><option value="on">есть</option><option value="off">нет</option></select></div>
+      <h4>Посмотреть на рабочем столе</h4>
+      <div class="row" id="pokes">
+        <button data-poke="glint">блик</button><button data-poke="pebble">камешек</button>
+        <button data-poke="gust">ветер</button><button data-poke="eye">глаз</button><button data-poke="rings">круги</button>
+      </div>
+      <div class="hint">событие сразу на всех экранах, где у сцены оно есть</div>
+    </div>
+
+    <div class="tab" id="tab-points" hidden>
+      <div class="hint">Где случаются редкие события. Клик — поставить, правый клик — убрать ближайшее. Пока своих нет, берутся найденные (бледные).</div>
+      <div class="row" id="pointKinds"></div>
+      <div class="row"><button id="btnPointsFound">взять найденные как свои</button><button id="btnPointsClear" class="danger">убрать свои</button></div>
+      <h4>Кольца в небе</h4>
+      <div class="hint">Инструмент «кольцо»: тяни от центра. Камень кольца найдётся в этой полосе сам (наклон тоже).</div>
+      <div class="row"><button data-tool="ring">◯ кольцо</button><span class="dim">толщина</span><input type="range" id="ringT" min="2" max="30" value="8"></div>
+      <div id="ringsList" class="dim"></div>
+    </div>
+
+    <div class="tab" id="tab-claude" hidden>
+      <div class="hint">Обведи места и напиши, что сделать. Claude видит запрос через MCP (angelos-scene), правит ту же сцену — изменения появятся здесь сами.</div>
+      <div class="row"><button data-tool="region">▭ обвести для Claude</button><button id="btnRegionsClear">очистить</button><span id="regionsV" class="dim"></span></div>
+      <textarea id="note" placeholder="например: «облака справа должны плыть, а гора — стоять; глаз только в левом облаке»"></textarea>
+      <div class="row"><button id="btnSend" class="accent">Отдать Claude</button></div>
+      <h4>Запросы</h4>
+      <div id="requests"></div>
+    </div>
+    <div id="status" class="dim"></div>
+  </aside>
+</main>
+<script src="/editor.js"></script>
+</body>
+</html>

@@ -66,9 +66,13 @@ class BrowserTheme(unittest.TestCase):
         self.bin.mkdir()
         (self.bin / "helium").write_text(FAKE)
         (self.bin / "helium").chmod(0o755)
+        (self.bin / "helium-browser").symlink_to("helium")   # the name browser-theme.py reopens by
         self.procs = []
         self.env = dict(os.environ, HOME=str(self.home), ANGELOS_BROWSER_HELIUM=str(self.prof),
-                        ANGELOS_BROWSER_NO_REOPEN="1", XDG_CONFIG_HOME=str(self.home / ".config"))
+                        ANGELOS_BROWSER_NO_REOPEN="1", XDG_CONFIG_HOME=str(self.home / ".config"),
+                        # the stand-in is the only Helium there is: a reopen by name must not lean
+                        # on a real one being installed (CI has none)
+                        PATH=str(self.bin) + os.pathsep + os.environ.get("PATH", ""))
         self.env.pop("NIRI_SOCKET", None)
 
     def tearDown(self):
@@ -225,6 +229,79 @@ class BrowserTheme(unittest.TestCase):
         self.run_bt("revert", "firefox")
         self.assertFalse((prof / "user.js").exists())
         self.assertFalse((prof / "chrome").exists())
+
+    # ---- the look "tabs": the theme extension by a line in the launcher's flags file ----
+
+    def status(self, bid):
+        return next(b for b in self.run_bt("status")["browsers"] if b["id"] == bid)
+
+    def flags(self):
+        f = self.home / ".config/helium-browser-flags.conf"
+        return f.read_text() if f.exists() else None
+
+    def theme(self):
+        return str(self.home / ".local/share/angelos/helium/theme")
+
+    def test_tabs_needs_the_built_theme(self):
+        r = self.run_bt("tabs", "helium", ok=False)
+        self.assertFalse(r["ok"])
+        self.assertIsNone(self.flags())
+
+    def test_tabs_writes_one_line_and_apply_takes_it_out(self):
+        self.run_bt("build", str(self.palette()))
+        self.assertFalse(self.status("helium")["tabs"])
+        r = self.run_bt("tabs", "helium")
+        self.assertTrue(r["ok"] and r["done"])
+        self.assertEqual([x for x in self.flags().splitlines() if not x.startswith("#")], ["--load-extension=" + self.theme()])
+        self.assertTrue(self.status("helium")["tabs"])
+        before = self.flags()
+        self.run_bt("tabs", "helium")                                 # again: nothing doubled
+        self.assertEqual(self.flags(), before)
+        prefs_before = (self.prof / "Default/Preferences").read_text()
+        self.assertEqual(json.loads(prefs_before), PREFS, "the look is the flags file alone: the profile is the browser's")
+        self.run_bt("apply", "helium")                                # GTK: the line goes
+        self.assertIsNone(self.flags(), "a file that held nothing else is gone")
+        self.assertFalse(self.status("helium")["tabs"])
+        self.assertTrue(self.status("helium")["live"])
+
+    def test_tabs_keeps_the_persons_flags(self):
+        self.run_bt("build", str(self.palette()))
+        f = self.home / ".config/helium-browser-flags.conf"
+        mine = "# my flags\n--enable-features=Foo\n# --load-extension=/commented/out\n--load-extension=/my/ext,/my/other\n"
+        f.write_text(mine)
+        self.run_bt("tabs", "helium")
+        lines = self.flags().splitlines()
+        self.assertIn("--enable-features=Foo", lines)
+        self.assertIn("# --load-extension=/commented/out", lines)
+        self.assertIn("--load-extension=/my/ext,/my/other," + self.theme(), lines, "one flag: Chromium reads the last one only")
+        self.assertEqual(sum(1 for x in lines if x.startswith("--load-extension=")), 1)
+        self.assertTrue(self.status("helium")["tabs"])
+        self.run_bt("revert", "helium")
+        self.assertEqual(self.flags(), mine, "exactly the person's file again")
+        backups = list((self.home / ".local/share/angelos/browsers").glob("backup-helium-*/helium-browser-flags.conf"))
+        self.assertTrue(backups, "the flags file was copied before each change")
+
+    def test_tabs_on_an_open_browser_waits_for_a_choice(self):
+        self.run_bt("build", str(self.palette()))
+        p = self.start(self.prof)
+        r = self.run_bt("tabs", "helium")
+        self.assertTrue(r["ok"] and r["running"] and not r["done"])
+        self.assertIsNone(self.flags(), "nothing written until restart-now or next-start is chosen")
+        r = self.run_bt("tabs", "helium", "--wait")
+        self.assertTrue(r["done"] and r["running"])
+        self.assertIn("--load-extension=" + self.theme(), self.flags())
+        self.assertIsNone(p.poll(), "left open: the theme comes at its next start")
+
+    def test_tabs_restart_closes_only_this_browser(self):
+        self.run_bt("build", str(self.palette()))
+        p, other, default = self.start(self.prof), self.start(self.other), self.start(self.default)
+        r = self.run_bt("tabs", "helium", "--restart")
+        self.assertTrue(r["ok"] and r["done"] and r["reopened"])
+        p.wait(timeout=10)
+        self.assertIn("--load-extension=" + self.theme(), self.flags())
+        self.assertEqual(json.loads((self.prof / "Default/Preferences").read_text())["profile"]["exit_type"], "SessionEnded")
+        self.assertIsNone(other.poll())
+        self.assertIsNone(default.poll())
 
     def test_build_rewrites_only_on_change(self):
         f = self.palette()

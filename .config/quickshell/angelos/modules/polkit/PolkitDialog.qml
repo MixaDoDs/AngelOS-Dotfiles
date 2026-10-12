@@ -28,6 +28,9 @@ Scope {
     }
     Component.onCompleted: Shell.polkitReregister = reregister
     onRegisteredChanged: Shell.polkitRegistered = registered
+    // a password asked: the keys on screen keep quiet (services/KeyCast)
+    readonly property bool asking: !!agent && agent.isActive && !!flow
+    onAskingChanged: KeyCast.polkitOpen = asking
 
     PanelWindow {
         id: win

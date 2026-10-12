@@ -16,7 +16,7 @@ layer per art pixel
        that twinkle, on the water glints that shimmer
 
 Hints the author ships next to a picture (<name>.scene.json) say what a look cannot be sure of
-(the scene editor writes them: owner/scene-editor, `angelos scene edit`; every key optional):
+(the scene editor writes them: scripts/scene-editor, `angelos scene edit`; every key optional):
     {"rings": [[cx, cy, rx, ry, t], …]}   a ring in the sky, roughly: centre and radii in the
                                           picture's 0…1, t its half-thickness over the radius.
                                           Its stone is found in that band (fine texture, not a
@@ -452,12 +452,21 @@ def points_of(hints, key):
 
 
 def hints_of(path):
-    """The author's hints next to the picture: <name>.scene.json (and its mtime) or ({}, 0)."""
-    f = Path(path).with_name(Path(path).stem + ".scene.json")
+    """The scene of the picture (and its mtime) or ({}, 0): the user's own from the scene editor
+    ($XDG_DATA_HOME/angelos/scenes/<name>.<hash>.scene.json, for pictures it can't write next to),
+    else the one next to the picture (<name>.scene.json: the author's, or the user's)."""
+    p = Path(path)
+    data = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
     try:
-        return json.loads(f.read_text()), int(f.stat().st_mtime)
-    except (OSError, ValueError):
-        return {}, 0
+        tag = hashlib.sha1(str(p.resolve()).encode()).hexdigest()[:10]
+    except OSError:
+        tag = ""
+    for f in ([data / "angelos/scenes" / f"{p.stem}.{tag}.scene.json"] if tag else []) + [p.with_name(p.stem + ".scene.json")]:
+        try:
+            return json.loads(f.read_text()), int(f.stat().st_mtime)
+        except (OSError, ValueError):
+            continue
+    return {}, 0
 
 
 def ring_field(xs, ys, cx, cy, M):

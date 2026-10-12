@@ -1,0 +1,40 @@
+# angelOS: the USB bridge, from boot on: it holds the keyboards' service interfaces (read all
+# the time) and lends one to the user at the seat. Its own system user, nothing but USB device
+# nodes in reach, no network, no new privileges.
+[Unit]
+Description=angelOS USB bridge (holds a keyboard's service interface for its settings page)
+Requires=angelos-usb-bridge.socket
+After=angelos-usb-bridge.socket
+
+[Service]
+ExecStart=/usr/bin/python3 -I /usr/local/libexec/angelos-usb/bridge.py
+User=angelos-usb
+Group=angelos-usb
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+DevicePolicy=closed
+DeviceAllow=char-usb_device rw
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+MemoryMax=96M
+TasksMax=16
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

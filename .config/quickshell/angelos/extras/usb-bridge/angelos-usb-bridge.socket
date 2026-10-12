@@ -1,0 +1,13 @@
+# angelOS: the USB bridge's door (extras/usb-bridge; docs/devices.md, «Доступ»).
+# Anyone may knock; the bridge itself lets in only the user at this computer's seat.
+[Unit]
+Description=angelOS USB bridge (a keyboard's service interface for its settings page)
+
+[Socket]
+ListenSequentialPacket=/run/angelos-usb/bridge.sock
+SocketMode=0666
+DirectoryMode=0755
+Accept=no
+
+[Install]
+WantedBy=sockets.target

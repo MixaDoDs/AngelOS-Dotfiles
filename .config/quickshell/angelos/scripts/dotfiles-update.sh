@@ -328,7 +328,7 @@ fi
 STAGE=niri-integration
 if [[ -f "$CONF/angelos/active" ]]; then
   say "$(_ "angelOS is active — wiring it into niri again" "angelOS активен — перепроверяю интеграцию с niri")"
-  # --no-validate: no fallback to Noctalia here; a failure is undone with the snapshot
+  # --no-validate: validated below; a failure is undone with the snapshot
   python3 "$CONF/quickshell/angelos/scripts/switch.py" angelos --no-restart --no-validate 2>&1 ||
     fail niri-integration "$(_ "switch.py could not wire angelOS into niri (see the log above)" "switch.py не смог подключить angelOS к niri (подробности в журнале выше)")" 11
 fi

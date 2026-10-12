@@ -278,7 +278,22 @@ Singleton {
         printErrors: false
         onFileChanged: reload()
         onAdapterUpdated: writeSoon.restart()
-        onLoaded: root.loadedSave()
+        // a save cut short by a crash or a power cut (it is written in place) read as a new
+        // game and was written back: the last good copy comes back first (config/JsonRescue)
+        onLoaded: {
+            if (!saveRescue.valid(fileView.text())) {
+                // the shell is running: someone is in the middle of writing it
+                if (root.ready)
+                    return;
+                if (saveRescue.outcome === "") {
+                    saveRescue.rescue();
+                    return;
+                }
+            } else if (!root.ready) {
+                saveRescue.keepNow();
+            }
+            root.loadedSave();
+        }
         onLoadFailed: error => {
             if (error === FileViewError.FileNotFound)
                 root.migrate();
@@ -291,7 +306,17 @@ Singleton {
     Timer {
         id: writeSoon
         interval: 300
-        onTriggered: fileView.writeAdapter()
+        onTriggered: {
+            if (!root.ready)
+                return;
+            fileView.writeAdapter();
+            saveRescue.keepLater();
+        }
+    }
+    JsonRescue {
+        id: saveRescue
+        path: root.file
+        onRescued: fileView.reload()
     }
     function loadedSave() {
         if (ready)

@@ -35,8 +35,10 @@ Item {
 
     function query(text, prefixed) {
         if (!CommunityPlugins.entries.length) {
+            // later: query() runs inside the launcher's results binding, and refresh() sets
+            // what this reads (a binding loop)
             if (!CommunityPlugins.busy)
-                CommunityPlugins.refresh();
+                Qt.callLater(CommunityPlugins.refresh);
             return [{
                     "id": "settings",
                     "title": CommunityPlugins.error ? I18n.t("Каталог недоступен", "Catalog unavailable") : I18n.t("Загружаю каталог плагинов…", "Loading the plugin catalog…"),

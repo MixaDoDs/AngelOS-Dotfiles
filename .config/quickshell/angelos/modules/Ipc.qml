@@ -23,6 +23,16 @@ IpcHandler {
         Config.lyrics.screens = [];
         Lyrics.visibleToggle = true;
     }
+    // the keys pressed, on screen (Mod+Shift+K): on / off
+    function keycast(): void {
+        if (Shell.setupLocked)
+            return;
+        KeyCast.toggle();
+    }
+    // the «what's new» paper of this release on the desktop again (Updates.paperShown)
+    function paper(): void {
+        Updates.paperForced = true;
+    }
     // the setup wizard again, as a window that holds nothing (the first run opens by itself)
     function setup(): void {
         Shell.setupOpen = true;
@@ -102,6 +112,22 @@ IpcHandler {
             "manual": Config.stream.manual,
             "auto": Config.stream.auto,
             "obs": StreamMode.obsUp ? (StreamMode.obsLive ? "live" : "up") : (StreamMode.obsAuth ? "password" : "down")
+        });
+    }
+    // privacy on stream (services/Privacy): on | off | toggle — the mode; app — the focused
+    // window's app into its list or out of it; status. The `angelos privacy …` of the CLI goes
+    // to the tool itself (~/.local/bin/niri-cast-privacy), which needs no shell
+    function privacy(cmd: string): string {
+        if (["on", "off", "toggle"].includes(cmd))
+            Privacy.set(cmd);
+        else if (cmd === "app")
+            Privacy.app("toggle", "");
+        else if (cmd !== "status" && cmd !== "")
+            return "on | off | toggle | app | status";
+        return JSON.stringify({
+            "on": Privacy.on,
+            "auto": Config.stream.privacyAuto,
+            "apps": Privacy.apps
         });
     }
     // stay awake (services/Awake): on | off | toggle | status — by hand; stream mode and
@@ -300,7 +326,7 @@ IpcHandler {
         return GameDebug.command(line);
     }
     // the live wallpaper's scene editor, a window of the shell: the author's only
-    // (services/SceneEditor → owner/scene-editor). `angelos scene edit [picture] | close | status`
+    // (services/SceneEditor → modules/sceneeditor). `angelos scene edit [picture] | close | status`
     function scene(line: string): string {
         return SceneEditor.command(line);
     }
@@ -986,7 +1012,7 @@ IpcHandler {
         else if (cmd === "analyze")
             LiveWalls.reanalyze(path);
         else if (cmd.startsWith("reload ")) {
-            // a picture's scene changed (the scene editor, owner/scene-editor): looked at again
+            // a picture's scene changed (the scene editor, modules/sceneeditor): looked at again
             // wherever it is shown
             const p = cmd.slice(7).trim();
             if (LiveWalls.info(p) || LiveWalls.busy === p)
@@ -1050,6 +1076,34 @@ IpcHandler {
     // the rest of the laptop: `angelos laptop help` (services/Laptop.ipc)
     function laptop(line: string): string {
         return Laptop.ipc(line);
+    }
+    // the devices' charge (the bar's ampoules): `angelos peripherals list | refresh`
+    // (services/Peripherals.ipc)
+    function peripherals(line: string): string {
+        return Peripherals.ipc(line);
+    }
+    // the devices' driver (Hall-effect keyboards, mice): `angelos devices status`; the rest of
+    // `angelos devices …` is scripts/devices.py and needs no shell (services/Devices.ipc)
+    function devices(line: string): string {
+        return Devices.ipc(line);
+    }
+    // presets of settings: `angelos preset help` (services/Presets.ipc)
+    function preset(line: string): string {
+        return Presets.ipc(line);
+    }
+    // the author's new apps after an update, in the shell's own window: `angelos apps help`
+    // (services/AppsSync.ipc)
+    function apps(line: string): string {
+        return AppsSync.ipc(line);
+    }
+    // password managers in the launcher: `angelos vault help` (services/Vault.ipc); no secret
+    // ever crosses this channel
+    function vault(line: string): string {
+        return Vault.ipc(line);
+    }
+    // spelling in notes and replies: `angelos spell help` (services/Spell.ipc)
+    function spell(line: string): string {
+        return Spell.ipc(line);
     }
     // the cobwebs on windows: `angelos cobweb help` (services/Cobweb.ipc)
     function cobweb(line: string): string {

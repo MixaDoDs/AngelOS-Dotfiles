@@ -1,0 +1,490 @@
+{
+  "_comment": [
+    "Dictionaries the spelling check can download (scripts/spell.py install CODE, Settings → Devices → Spelling):",
+    "the Hunspell dictionaries collected in github.com/wooorm/dictionaries, fetched from the commit pinned in \"ref\" as",
+    "dictionaries/CODE/index.aff + index.dic (+ license). Each dictionary keeps its authors' own licence; none is shipped with angelOS.",
+    "\"top\": shown first. Names in both languages."
+  ],
+  "source": "https://raw.githubusercontent.com/wooorm/dictionaries",
+  "ref": "8cfea406b505e4d7df52d5a19bce525df98c54ab",
+  "top": [
+    "ru",
+    "en",
+    "uk",
+    "en-GB",
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pl",
+    "pt",
+    "tr",
+    "nl",
+    "cs",
+    "bg",
+    "sr",
+    "ko"
+  ],
+  "langs": [
+    {
+      "code": "bg",
+      "ru": "Болгарский",
+      "en": "Bulgarian"
+    },
+    {
+      "code": "br",
+      "ru": "Бретонский",
+      "en": "Breton"
+    },
+    {
+      "code": "ca",
+      "ru": "Каталанский",
+      "en": "Catalan"
+    },
+    {
+      "code": "ca-valencia",
+      "ru": "Каталанский (валенсийский)",
+      "en": "Catalan (Valencian)"
+    },
+    {
+      "code": "cs",
+      "ru": "Чешский",
+      "en": "Czech"
+    },
+    {
+      "code": "cy",
+      "ru": "Валлийский",
+      "en": "Welsh"
+    },
+    {
+      "code": "da",
+      "ru": "Датский",
+      "en": "Danish"
+    },
+    {
+      "code": "de",
+      "ru": "Немецкий",
+      "en": "German"
+    },
+    {
+      "code": "de-AT",
+      "ru": "Немецкий (Австрия)",
+      "en": "German (Austria)"
+    },
+    {
+      "code": "de-CH",
+      "ru": "Немецкий (Швейцария)",
+      "en": "German (Switzerland)"
+    },
+    {
+      "code": "el",
+      "ru": "Греческий",
+      "en": "Greek"
+    },
+    {
+      "code": "el-polyton",
+      "ru": "Греческий (политоника)",
+      "en": "Greek (polytonic)"
+    },
+    {
+      "code": "en",
+      "ru": "Английский (США)",
+      "en": "English (US)"
+    },
+    {
+      "code": "en-AU",
+      "ru": "Английский (Австралия)",
+      "en": "English (Australia)"
+    },
+    {
+      "code": "en-CA",
+      "ru": "Английский (Канада)",
+      "en": "English (Canada)"
+    },
+    {
+      "code": "en-GB",
+      "ru": "Английский (Великобритания)",
+      "en": "English (UK)"
+    },
+    {
+      "code": "en-ZA",
+      "ru": "Английский (ЮАР)",
+      "en": "English (South Africa)"
+    },
+    {
+      "code": "eo",
+      "ru": "Эсперанто",
+      "en": "Esperanto"
+    },
+    {
+      "code": "es",
+      "ru": "Испанский",
+      "en": "Spanish"
+    },
+    {
+      "code": "es-AR",
+      "ru": "Испанский (Аргентина)",
+      "en": "Spanish (Argentina)"
+    },
+    {
+      "code": "es-BO",
+      "ru": "Испанский (Боливия)",
+      "en": "Spanish (Bolivia)"
+    },
+    {
+      "code": "es-CL",
+      "ru": "Испанский (Чили)",
+      "en": "Spanish (Chile)"
+    },
+    {
+      "code": "es-CO",
+      "ru": "Испанский (Колумбия)",
+      "en": "Spanish (Colombia)"
+    },
+    {
+      "code": "es-CR",
+      "ru": "Испанский (Коста-Рика)",
+      "en": "Spanish (Costa Rica)"
+    },
+    {
+      "code": "es-CU",
+      "ru": "Испанский (Куба)",
+      "en": "Spanish (Cuba)"
+    },
+    {
+      "code": "es-DO",
+      "ru": "Испанский (Доминикана)",
+      "en": "Spanish (Dominican Republic)"
+    },
+    {
+      "code": "es-EC",
+      "ru": "Испанский (Эквадор)",
+      "en": "Spanish (Ecuador)"
+    },
+    {
+      "code": "es-GT",
+      "ru": "Испанский (Гватемала)",
+      "en": "Spanish (Guatemala)"
+    },
+    {
+      "code": "es-HN",
+      "ru": "Испанский (Гондурас)",
+      "en": "Spanish (Honduras)"
+    },
+    {
+      "code": "es-MX",
+      "ru": "Испанский (Мексика)",
+      "en": "Spanish (Mexico)"
+    },
+    {
+      "code": "es-NI",
+      "ru": "Испанский (Никарагуа)",
+      "en": "Spanish (Nicaragua)"
+    },
+    {
+      "code": "es-PA",
+      "ru": "Испанский (Панама)",
+      "en": "Spanish (Panama)"
+    },
+    {
+      "code": "es-PE",
+      "ru": "Испанский (Перу)",
+      "en": "Spanish (Peru)"
+    },
+    {
+      "code": "es-PH",
+      "ru": "Испанский (Филиппины)",
+      "en": "Spanish (Philippines)"
+    },
+    {
+      "code": "es-PR",
+      "ru": "Испанский (Пуэрто-Рико)",
+      "en": "Spanish (Puerto Rico)"
+    },
+    {
+      "code": "es-PY",
+      "ru": "Испанский (Парагвай)",
+      "en": "Spanish (Paraguay)"
+    },
+    {
+      "code": "es-SV",
+      "ru": "Испанский (Сальвадор)",
+      "en": "Spanish (El Salvador)"
+    },
+    {
+      "code": "es-US",
+      "ru": "Испанский (США)",
+      "en": "Spanish (US)"
+    },
+    {
+      "code": "es-UY",
+      "ru": "Испанский (Уругвай)",
+      "en": "Spanish (Uruguay)"
+    },
+    {
+      "code": "es-VE",
+      "ru": "Испанский (Венесуэла)",
+      "en": "Spanish (Venezuela)"
+    },
+    {
+      "code": "et",
+      "ru": "Эстонский",
+      "en": "Estonian"
+    },
+    {
+      "code": "eu",
+      "ru": "Баскский",
+      "en": "Basque"
+    },
+    {
+      "code": "fa",
+      "ru": "Персидский",
+      "en": "Persian"
+    },
+    {
+      "code": "fo",
+      "ru": "Фарерский",
+      "en": "Faroese"
+    },
+    {
+      "code": "fr",
+      "ru": "Французский",
+      "en": "French"
+    },
+    {
+      "code": "fur",
+      "ru": "Фриульский",
+      "en": "Friulian"
+    },
+    {
+      "code": "fy",
+      "ru": "Западнофризский",
+      "en": "West Frisian"
+    },
+    {
+      "code": "ga",
+      "ru": "Ирландский",
+      "en": "Irish"
+    },
+    {
+      "code": "gd",
+      "ru": "Шотландский гэльский",
+      "en": "Scottish Gaelic"
+    },
+    {
+      "code": "gl",
+      "ru": "Галисийский",
+      "en": "Galician"
+    },
+    {
+      "code": "he",
+      "ru": "Иврит",
+      "en": "Hebrew"
+    },
+    {
+      "code": "hr",
+      "ru": "Хорватский",
+      "en": "Croatian"
+    },
+    {
+      "code": "hu",
+      "ru": "Венгерский",
+      "en": "Hungarian"
+    },
+    {
+      "code": "hy",
+      "ru": "Армянский",
+      "en": "Armenian"
+    },
+    {
+      "code": "hyw",
+      "ru": "Западноармянский",
+      "en": "Western Armenian"
+    },
+    {
+      "code": "ia",
+      "ru": "Интерлингва",
+      "en": "Interlingua"
+    },
+    {
+      "code": "ie",
+      "ru": "Интерлингве",
+      "en": "Interlingue"
+    },
+    {
+      "code": "is",
+      "ru": "Исландский",
+      "en": "Icelandic"
+    },
+    {
+      "code": "it",
+      "ru": "Итальянский",
+      "en": "Italian"
+    },
+    {
+      "code": "ka",
+      "ru": "Грузинский",
+      "en": "Georgian"
+    },
+    {
+      "code": "ko",
+      "ru": "Корейский",
+      "en": "Korean"
+    },
+    {
+      "code": "la",
+      "ru": "Латынь",
+      "en": "Latin"
+    },
+    {
+      "code": "lb",
+      "ru": "Люксембургский",
+      "en": "Luxembourgish"
+    },
+    {
+      "code": "lt",
+      "ru": "Литовский",
+      "en": "Lithuanian"
+    },
+    {
+      "code": "ltg",
+      "ru": "Латгальский",
+      "en": "Latgalian"
+    },
+    {
+      "code": "lv",
+      "ru": "Латышский",
+      "en": "Latvian"
+    },
+    {
+      "code": "mk",
+      "ru": "Македонский",
+      "en": "Macedonian"
+    },
+    {
+      "code": "mn",
+      "ru": "Монгольский",
+      "en": "Mongolian"
+    },
+    {
+      "code": "nb",
+      "ru": "Норвежский (букмол)",
+      "en": "Norwegian Bokmål"
+    },
+    {
+      "code": "nds",
+      "ru": "Нижненемецкий",
+      "en": "Low German"
+    },
+    {
+      "code": "ne",
+      "ru": "Непальский",
+      "en": "Nepali"
+    },
+    {
+      "code": "nl",
+      "ru": "Нидерландский",
+      "en": "Dutch"
+    },
+    {
+      "code": "nn",
+      "ru": "Норвежский (нюнорск)",
+      "en": "Norwegian Nynorsk"
+    },
+    {
+      "code": "oc",
+      "ru": "Окситанский",
+      "en": "Occitan"
+    },
+    {
+      "code": "pl",
+      "ru": "Польский",
+      "en": "Polish"
+    },
+    {
+      "code": "pt",
+      "ru": "Португальский (Бразилия)",
+      "en": "Portuguese (Brazil)"
+    },
+    {
+      "code": "pt-PT",
+      "ru": "Португальский (Португалия)",
+      "en": "Portuguese (Portugal)"
+    },
+    {
+      "code": "ro",
+      "ru": "Румынский",
+      "en": "Romanian"
+    },
+    {
+      "code": "ru",
+      "ru": "Русский",
+      "en": "Russian"
+    },
+    {
+      "code": "rw",
+      "ru": "Киньяруанда",
+      "en": "Kinyarwanda"
+    },
+    {
+      "code": "sk",
+      "ru": "Словацкий",
+      "en": "Slovak"
+    },
+    {
+      "code": "sl",
+      "ru": "Словенский",
+      "en": "Slovenian"
+    },
+    {
+      "code": "sr",
+      "ru": "Сербский (кириллица)",
+      "en": "Serbian (Cyrillic)"
+    },
+    {
+      "code": "sr-Latn",
+      "ru": "Сербский (латиница)",
+      "en": "Serbian (Latin)"
+    },
+    {
+      "code": "sv",
+      "ru": "Шведский",
+      "en": "Swedish"
+    },
+    {
+      "code": "sv-FI",
+      "ru": "Шведский (Финляндия)",
+      "en": "Swedish (Finland)"
+    },
+    {
+      "code": "tk",
+      "ru": "Туркменский",
+      "en": "Turkmen"
+    },
+    {
+      "code": "tlh",
+      "ru": "Клингонский (pIqaD)",
+      "en": "Klingon (pIqaD)"
+    },
+    {
+      "code": "tlh-Latn",
+      "ru": "Клингонский (латиница)",
+      "en": "Klingon (Latin)"
+    },
+    {
+      "code": "tr",
+      "ru": "Турецкий",
+      "en": "Turkish"
+    },
+    {
+      "code": "uk",
+      "ru": "Украинский",
+      "en": "Ukrainian"
+    },
+    {
+      "code": "vi",
+      "ru": "Вьетнамский",
+      "en": "Vietnamese"
+    }
+  ]
+}

@@ -41,6 +41,9 @@ Item {
     readonly property bool turning: fx.turning
     readonly property string stepId: step ? step.id : ""
     onStepIdChanged: turnSoon.restart()
+    // the same step with new words (the install's title once it is over): no turn, just them
+    onStepChanged: if (step && shown && step.id === shown.id && step !== shown)
+        shown = step
     // (a timer, not Qt.callLater: it goes with the questions when they are unloaded)
     Timer {
         id: turnSoon
@@ -324,6 +327,8 @@ Item {
                                         "wallpaper": wallpaper,
                                         "who": who,
                                         "browser": browserStep,
+                                        "install": installStep,
+                                        "scripts": scriptsStep,
                                         "apps": apps,
                                         "fastfetch": fastfetch,
                                         "widgets": widgetsStep,
@@ -372,7 +377,7 @@ Item {
                         spacing: Theme.u * 4
                         PxButton {
                             id: backButton
-                            visible: root.shownIndex > 0
+                            visible: root.shownIndex > 0 && !(root.shown && root.shown.id === "install")
                             kind: "title"
                             icon: "arrowLeft"
                             text: I18n.t("Назад", "Back")
@@ -387,7 +392,10 @@ Item {
                             }
                             kind: "title"
                             accent: true
-                            text: root.shownIndex >= root.count - 1 ? I18n.t("Начать работу", "Start using angelOS") : root.shown && root.shown.id === "github" && root.gh && !root.gh.settled ? I18n.t("Пропустить", "Skip") : I18n.t("Продолжить", "Continue")
+                            readonly property var inst: root.wizard ? root.wizard.installState : null
+                            enabled: !(inst && inst.running)
+                            opacity: enabled ? 1 : 0.5
+                            text: root.shown && root.shown.id === "install" ? (inst && inst.done && (inst.failed.length || inst.auth) ? I18n.t("Пропустить", "Skip") : I18n.t("Начать работу", "Start using angelOS")) : root.shown && root.shown.id === "ready" && root.wizard && root.wizard.appsToInstall.length && !(inst && inst.active) ? I18n.t("Поставить программы", "Install the apps") : root.shownIndex >= root.count - 1 ? I18n.t("Начать работу", "Start using angelOS") : root.shown && root.shown.id === "github" && root.gh && !root.gh.settled ? I18n.t("Пропустить", "Skip") : I18n.t("Продолжить", "Continue")
                             onClicked: root.wizard.next()
                         }
                     }
@@ -1256,6 +1264,35 @@ Item {
                             }
                         }
                     }
+                    // the refresh rate: the fastest is what the monitor was bought for
+                    PxText {
+                        visible: hzRow.rates.length > 1
+                        text: I18n.t("Частота: больше — плавнее", "Refresh rate: higher is smoother")
+                        kind: "tiny"
+                        dim: true
+                    }
+                    Flow {
+                        id: hzRow
+                        readonly property var rates: Outputs.ratesOf(turnCol.modelData.name)
+                        visible: rates.length > 1
+                        width: parent.width
+                        spacing: Theme.u * 2
+                        Repeater {
+                            model: hzRow.rates
+                            PxButton {
+                                required property var modelData
+                                required property int index
+                                icon: index === 0 ? "sparkle" : ""
+                                text: modelData.hz + I18n.t(" Гц", " Hz")
+                                checked: Outputs.rateOf(turnCol.modelData.name) === modelData.hz
+                                enabled: !Outputs.busy && !!turnCol.d
+                                onClicked: {
+                                    root.touched = true;
+                                    Outputs.setMode(turnCol.modelData.name, modelData.mode);
+                                }
+                            }
+                        }
+                    }
                 }
             }
             // turned: keep it (and remember it past a reboot) or it comes back by itself
@@ -1657,16 +1694,288 @@ Item {
                             root.touched = true;
                             root.wizard.pickBrowser(modelData.id);
                         }
-                        PxIcon {
+                        AppGlyph {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            name: brCard.modelData.icon || "search"
-                            pixel: Theme.u * 3
+                            app: brCard.modelData
+                            size: Theme.u * 16
                         }
                     }
                 }
             }
         }
     }
+    // ---- the install: hearts for how far it is, each app with its state, the last lines of the
+    // output under it; «Ещё раз» for what didn't make it ----
+    Component {
+        id: installStep
+        Column {
+            id: instCol
+            width: parent.width
+            spacing: Theme.u * 4
+            readonly property var st: root.wizard ? root.wizard.installState : null
+            readonly property var items: st ? st.items : []
+            readonly property int doneCount: items.filter(x => x.state === "done" || x.state === "fail").length
+            PxProgress {
+                width: parent.width
+                busy: !!instCol.st && instCol.st.running
+                value: instCol.items.length ? (instCol.doneCount + (instCol.st && instCol.st.running ? instCol.st.sub : 0)) / instCol.items.length : 0
+                text: instCol.st && instCol.st.running && instCol.st.auth === "" && /пароль|password/.test(instCol.st.status) ? I18n.t("жду пароль…", "waiting for the password…") : ""
+            }
+            PxText {
+                width: parent.width
+                elide: Text.ElideRight
+                kind: "tiny"
+                dim: true
+                text: instCol.st ? (instCol.st.done ? I18n.t("готово: ", "done: ") + instCol.items.filter(x => x.state === "done").length + " / " + instCol.items.length : instCol.doneCount + " / " + instCol.items.length + " · " + instCol.st.status) : ""
+            }
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 3
+                Repeater {
+                    model: instCol.items
+                    Item {
+                        id: row
+                        required property var modelData
+                        width: Math.floor((instCol.width - Theme.u * 3) / 2)
+                        height: Theme.u * 14
+                        opacity: modelData.state === "wait" ? 0.55 : 1
+                        PxBox {
+                            anchors.fill: parent
+                            color: row.modelData.state === "run" ? Theme.mix(Theme.face, Theme.accent, 0.25) : row.modelData.state === "fail" ? Theme.mix(Theme.face, "#d8203a", 0.25) : Theme.face
+                            sunken: row.modelData.state === "run"
+                        }
+                        AppGlyph {
+                            id: glyph
+                            x: Theme.u * 3
+                            anchors.verticalCenter: parent.verticalCenter
+                            app: row.modelData
+                            size: Theme.u * 9
+                        }
+                        PxText {
+                            x: glyph.x + glyph.width + Theme.u * 3
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - x - Theme.u * 12
+                            elide: Text.ElideRight
+                            font.bold: row.modelData.state === "run"
+                            text: I18n.t(row.modelData.ru, row.modelData.en)
+                        }
+                        PxText {
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.u * 3
+                            anchors.verticalCenter: parent.verticalCenter
+                            kind: "tiny"
+                            text: ({
+                                    "done": "✓",
+                                    "fail": "✕",
+                                    "run": "…",
+                                    "wait": ""
+                                })[row.modelData.state] || ""
+                        }
+                    }
+                }
+            }
+            // the output's last lines, as a terminal would have shown them
+            PxBox {
+                width: parent.width
+                height: logText.implicitHeight + Theme.u * 6
+                sunken: true
+                color: Theme.mix(Theme.face, "#000000", 0.25)
+                PxText {
+                    id: logText
+                    x: Theme.u * 3
+                    y: Theme.u * 3
+                    width: parent.width - Theme.u * 6
+                    kind: "tiny"
+                    dim: true
+                    wrapMode: Text.NoWrap
+                    elide: Text.ElideRight
+                    font.family: Theme.fontMono
+                    text: instCol.st ? instCol.st.log.slice(-6).join("\n") || " " : " "
+                }
+            }
+            PxButton {
+                visible: !!instCol.st && instCol.st.done && (instCol.st.failed.length > 0 || instCol.st.auth !== "")
+                text: I18n.t("Ещё раз", "Try again")
+                icon: "refresh"
+                onClicked: root.wizard.retryInstall()
+            }
+        }
+    }
+    // ---- what else angelOS can do: game mode, the mouse in games, voice input, and the keys
+    // of the rest (scripts/features.py) ----
+    Component {
+        id: scriptsStep
+        Column {
+            id: scCol
+            width: parent.width
+            spacing: Theme.u * 3
+            readonly property var f: root.wizard ? root.wizard.features : ({})
+            readonly property var mice: (f.mouse || {}).devices || []
+            FeatureRow {
+                icon: "gamepad"
+                title: I18n.t("Игровой режим", "Game mode")
+                about: I18n.t("Игра на весь экран — niri выключает анимации и эффекты, питание «производительность». Вышел — всё как было.", "A game goes full screen: niri drops its animations and effects, power goes to «performance». Out of it, everything's back.")
+                missing: !((scCol.f.gameMode || {}).installed)
+                PxToggle {
+                    checked: !!(scCol.f.gameMode || {}).enabled
+                    onToggled: c => {
+                        root.touched = true;
+                        root.wizard.setFeature("game-mode", c);
+                    }
+                }
+            }
+            FeatureRow {
+                icon: "mouse"
+                title: I18n.t("Мышь в играх", "The mouse in games")
+                about: I18n.t("Мышь на 4–8 кГц в тяжёлой игре (особенно через Wine/Proton) душит её: камера дёргается и догоняет. В игре angelOS прореживает движение до выбранной частоты, клики — сразу. На рабочем столе мышь как есть.", "A 4–8 kHz mouse chokes a heavy game (Wine/Proton most of all): the camera drags, then catches up. In a game angelOS thins the motion to the rate you pick; clicks go through at once. On the desktop the mouse is as it is.")
+                missing: !((scCol.f.mouse || {}).installed)
+                note: (scCol.f.mouse || {}).uinput === false && Config.gaming.mouseRate > 0 ? I18n.t("заработает после перезахода (группа input)", "works after logging in again (the input group)") : ""
+                PxSegmented {
+                    model: [
+                        {"label": I18n.t("как есть", "as is"), "value": 0},
+                        {"label": "1000", "value": 1000},
+                        {"label": "2000", "value": 2000},
+                        {"label": "4000", "value": 4000}
+                    ]
+                    currentValue: Config.gaming.mouseRate || 0
+                    onActivated: v => {
+                        root.touched = true;
+                        root.wizard.setMouseRate(v);
+                    }
+                }
+                PxCombo {
+                    visible: scCol.mice.length > 1 && Config.gaming.mouseRate > 0
+                    model: [{"label": I18n.t("первая мышь", "the first mouse"), "value": ""}].concat(scCol.mice.map(m => ({"label": m, "value": m})))
+                    currentValue: Config.gaming.mouseDevice || ""
+                    onActivated: v => Config.gaming.mouseDevice = v
+                }
+            }
+            FeatureRow {
+                icon: "mic"
+                title: I18n.t("Голосовой ввод", "Voice input")
+                about: I18n.t("Mod+Shift+V — говоришь, текст печатается туда, где курсор. Офлайн, на своей видеокарте или процессоре. Скачается ~1,6 ГБ — вместе с программами.", "Mod+Shift+V: you talk, the text is typed where the cursor is. Offline, on your own GPU or CPU. A ~1.6 GB download, with the apps.")
+                note: (scCol.f.voice || {}).installed && (scCol.f.voice || {}).model ? I18n.t("уже стоит ✓", "installed ✓") : ""
+                PxToggle {
+                    checked: root.wizard ? root.wizard.voiceWanted || !!((scCol.f.voice || {}).installed && (scCol.f.voice || {}).enabled) : false
+                    onToggled: c => {
+                        root.touched = true;
+                        root.wizard.setVoice(c);
+                    }
+                }
+            }
+            // the ones on a key: nothing to switch, just where they are
+            PxText {
+                text: I18n.t("По клавишам — уже работают:", "On a key, working already:")
+                kind: "tiny"
+                dim: true
+            }
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 3
+                Repeater {
+                    model: [
+                        ["eye", I18n.t("Приватность на стриме", "Privacy on stream"), "Mod+Shift+X", I18n.t("мессенджеры, пароли, браузер — чёрные в эфире, у тебя живые. Список свой: Mod+Ctrl+Shift+X на окне или Настройки → Стрим-режим", "Messengers, passwords, the browser go black on stream, stay live for you. The list is yours: Mod+Ctrl+Shift+X on a window, or Settings → Stream mode"), "privacy"],
+                        ["document", I18n.t("Текст с экрана", "Text off the screen"), "Mod+Shift+T", I18n.t("выдели область — текст в буфере (OCR)", "pick a region: its text is in the clipboard (OCR)"), "ocr"],
+                        ["camera", I18n.t("Скриншот области", "Region screenshot"), "Mod+Shift+S", I18n.t("в Изображения/Screenshots", "into Pictures/Screenshots"), "shot"],
+                        ["play", I18n.t("Запись области", "Region recording"), "Mod+Shift+R", I18n.t("ещё раз — стоп, в Видео", "again to stop; into Videos"), "record"]
+                    ]
+                    PxBox {
+                        id: keyCard
+                        required property var modelData
+                        readonly property bool there: !!(scCol.f[modelData[4]] || {}).installed || !scCol.f[modelData[4]]
+                        width: Math.floor((scCol.width - Theme.u * 3) / 2)
+                        height: keyCol.implicitHeight + Theme.u * 6
+                        opacity: there ? 1 : 0.45
+                        Column {
+                            id: keyCol
+                            x: Theme.u * 3
+                            y: Theme.u * 3
+                            width: parent.width - Theme.u * 6
+                            spacing: Theme.u
+                            Row {
+                                spacing: Theme.u * 2
+                                PxIcon {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    name: keyCard.modelData[0]
+                                    pixel: Math.max(1, Math.round(Theme.u * 0.75))
+                                }
+                                PxText {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    font.bold: true
+                                    text: keyCard.modelData[1]
+                                }
+                            }
+                            PxText {
+                                kind: "tiny"
+                                text: keyCard.modelData[2]
+                                color: Theme.accent
+                            }
+                            PxText {
+                                width: parent.width
+                                wrapMode: Text.Wrap
+                                kind: "tiny"
+                                dim: true
+                                text: keyCard.modelData[3]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // one of angelOS's little programs: its icon, name and what it does; its switch on the right
+    component FeatureRow: PxBox {
+        id: frow
+        property string icon: "sparkle"
+        property string title: ""
+        property string about: ""
+        property string note: ""
+        property bool missing: false
+        default property alias controls: ctl.data
+        width: parent ? parent.width : Theme.u * 200
+        height: Math.max(fcol.implicitHeight, ctl.implicitHeight) + Theme.u * 8
+        opacity: missing ? 0.45 : 1
+        enabled: !missing
+        PxIcon {
+            id: ficon
+            x: Theme.u * 4
+            y: Theme.u * 4
+            name: frow.icon
+            pixel: Math.max(1, Theme.u)
+        }
+        Column {
+            id: fcol
+            x: ficon.x + ficon.width + Theme.u * 4
+            y: Theme.u * 4
+            width: parent.width - x - ctl.width - Theme.u * 8
+            spacing: Theme.u
+            PxText {
+                font.bold: true
+                text: frow.title + (frow.missing ? I18n.t(" — не установлено", " — not installed") : "")
+            }
+            PxText {
+                width: parent.width
+                wrapMode: Text.Wrap
+                kind: "tiny"
+                dim: true
+                text: frow.about
+            }
+            PxText {
+                visible: frow.note !== ""
+                kind: "tiny"
+                color: Theme.accent
+                text: frow.note
+            }
+        }
+        Column {
+            id: ctl
+            anchors.right: parent.right
+            anchors.rightMargin: Theme.u * 4
+            y: Theme.u * 4
+            spacing: Theme.u * 2
+        }
+    }
+    // an app's own icon (data/app-icons/<id>.png, pixelated from the real one), else its kind's
     // ---- the apps: the catalog's groups (ticked by the template); a group opens to its apps ----
     Component {
         id: apps
@@ -1755,7 +2064,7 @@ Item {
                 wrapMode: Text.Wrap
                 kind: "tiny"
                 dim: true
-                text: !root.wizard || !root.wizard.appsChecked ? I18n.t("проверяю, что уже стоит…", "checking what you have…") : root.wizard.appsToInstall.length ? I18n.t("поставлю: ", "to install: ") + root.wizard.appsToInstall.length + I18n.t(" — после «Начать работу», в терминале. Потом обновления доставят то, что автор добавит в отмеченные группы.", " — after “Start”, in a terminal. Later, updates bring what the author adds to the ticked groups.") : I18n.t("ставить нечего ♡", "nothing to install ♡")
+                text: !root.wizard || !root.wizard.appsChecked ? I18n.t("проверяю, что уже стоит…", "checking what you have…") : root.wizard.appsToInstall.length ? I18n.t("поставлю: ", "to install: ") + root.wizard.appsToInstall.length + I18n.t(" — после «Начать работу», прямо здесь, с полоской прогресса. Потом обновления доставят то, что автор добавит в отмеченные группы.", " — after “Start”, right here, with a progress bar. Later, updates bring what the author adds to the ticked groups.") : I18n.t("ставить нечего ♡", "nothing to install ♡")
             }
         }
     }
@@ -1783,11 +2092,11 @@ Item {
             height: width
             anchors.verticalCenter: parent.verticalCenter
             clip: true
-            PxIcon {
+            // its own icon (✓ for what is there is in its name: a ticked app is not installed yet)
+            AppGlyph {
                 anchors.centerIn: parent
-                // ✓ only for what is there: a ticked app is not installed yet (it looked as if it were)
-                name: chip.have ? "check" : chip.modelData.icon
-                pixel: Math.max(1, Math.round(Theme.u * 0.85))
+                app: chip.modelData
+                size: Theme.u * 12
             }
         }
         Column {

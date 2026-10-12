@@ -18,7 +18,7 @@ Item {
     // the hell bar draws the Cerberus as he is (his colours are made for the dark plates)
     // instead of tinting him; the popup open is the state the bar shows
     property bool hellBar: false
-    readonly property bool barOpen: popup.visible
+    readonly property bool barOpen: pop.visible
 
     Component.onCompleted: if (plugin)
         Cpu.intervalMs = plugin.get("poll", 2) * 1000
@@ -46,39 +46,48 @@ Item {
         }
     }
     MouseArea {
+        id: hot
         anchors.fill: parent
+        hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: popup.toggle()
+        onClicked: pop.toggle()
     }
 
-    BarPopup {
-        id: popup
+    // built when the pointer comes to the cat, gone a while after it closed (LazyPopup)
+    LazyPopup {
+        id: pop
         panelId: "cat"
         anchorItem: root
-        above: BarLayout.bottom
-        title: Skin.title(Angel.demon && !root.mac ? I18n.t("цербер", "cerberus") : root.mac ? I18n.t("Котик", "Cat") : I18n.t("котик", "cat"))
-        icon: "heart"
-        contentWidth: Skin.px(240)
-        contentHeight: Skin.px(140)
+        warm: hot.containsMouse
+        BarPopup {
+            id: popup
+            panelId: "cat"
+            anchorItem: root
+            above: BarLayout.bottom
+            title: Skin.title(Angel.demon && !root.mac ? I18n.t("цербер", "cerberus") : root.mac ? I18n.t("Котик", "Cat") : I18n.t("котик", "cat"))
+            icon: "heart"
+            contentWidth: Skin.px(240)
+            contentHeight: Skin.px(140)
 
-        Column {
-            anchors.centerIn: parent
-            spacing: Skin.px(8)
-            CatSprite {
-                anchors.horizontalCenter: parent.horizontalCenter
-                plugin: root.plugin
-                pixel: root.mac ? GoldenGate.px(6) : Theme.u * 4
-            }
-            PxText {
-                anchors.horizontalCenter: parent.horizontalCenter
-                kind: "title"
-                text: "CPU " + Math.round(Cpu.percent) + "%"
-            }
-            PxText {
-                anchors.horizontalCenter: parent.horizontalCenter
-                dim: true
-                readonly property int pace: Cpu.percent < (root.plugin ? root.plugin.get("walk", 15) : 15) ? 0 : Cpu.percent < (root.plugin ? root.plugin.get("run", 60) : 60) ? 1 : 2
-                text: root.mac ? [I18n.t("Спит", "Sleeping"), I18n.t("Гуляет", "Walking"), I18n.t("Бежит", "Running")][pace] : Angel.demon ? [I18n.t("дремлет… zzz ×3", "Dozing… zzz ×3"), I18n.t("рыщет по процессам", "Prowling the processes"), I18n.t("ГОНИТСЯ ЗА ДУШАМИ!!", "CHASING SOULS!!")][pace] : [I18n.t("спит… zzz", "Sleeping… zzz"), I18n.t("гуляет ♡", "Walking ♡"), I18n.t("БЕЖИТ!!", "RUNNING!!")][pace]
+            Column {
+                anchors.centerIn: parent
+                spacing: Skin.px(8)
+                CatSprite {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    plugin: root.plugin
+                    pixel: root.mac ? GoldenGate.px(6) : Theme.u * 4
+                }
+                PxText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    kind: "title"
+                    text: "CPU " + Math.round(Cpu.percent) + "%"
+                }
+                PxText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    dim: true
+                    readonly property int pace: Cpu.percent < (root.plugin ? root.plugin.get("walk", 15) : 15) ? 0 : Cpu.percent < (root.plugin ? root.plugin.get("run", 60) : 60) ? 1 : 2
+                    text: root.mac ? [I18n.t("Спит", "Sleeping"), I18n.t("Гуляет", "Walking"), I18n.t("Бежит", "Running")][pace] : Angel.demon ? [I18n.t("дремлет… zzz ×3", "Dozing… zzz ×3"), I18n.t("рыщет по процессам", "Prowling the processes"), I18n.t("ГОНИТСЯ ЗА ДУШАМИ!!", "CHASING SOULS!!")][pace] : [I18n.t("спит… zzz", "Sleeping… zzz"), I18n.t("гуляет ♡", "Walking ♡"), I18n.t("БЕЖИТ!!", "RUNNING!!")][pace]
+                }
             }
         }
     }

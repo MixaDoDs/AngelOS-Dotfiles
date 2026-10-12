@@ -19,6 +19,8 @@ Item {
     // Enter applies and leaves the field, Esc just leaves it (issue #9) — unless
     // the field is the whole point of its window (launcher, search, passwords)
     property bool keepFocus: false
+    // underline misspelt words (PxSpell): for fields a sentence is typed in, not names or searches
+    property bool spell: false
     signal accepted
     signal edited
     signal keyPressed(var event)
@@ -116,6 +118,17 @@ Item {
         }
         onTextEdited: root.edited()
 
+        property bool entered: false
+        onActiveFocusChanged: if (activeFocus)
+            entered = true
+        Loader {
+            anchors.fill: parent
+            active: root.spell && !root.password && input.entered && Spell.on
+            sourceComponent: PxSpell {
+                target: input
+            }
+        }
+
         cursorDelegate: Rectangle {
             id: caret
             width: root.mac ? 1 : Theme.u * 2
@@ -150,4 +163,10 @@ Item {
         font: input.font
         elide: Text.ElideRight
     }
+
+    // a password typed here is never shown by the keys on screen (services/KeyCast)
+    readonly property bool _secretHeld: root.password && input.activeFocus
+    on_SecretHeldChanged: KeyCast.secretFields += _secretHeld ? 1 : -1
+    Component.onDestruction: if (_secretHeld)
+        KeyCast.secretFields -= 1
 }

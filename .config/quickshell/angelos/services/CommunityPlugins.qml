@@ -56,14 +56,31 @@ Singleton {
         const e = entry(id);
         return !!p && !!e && newer(p.version, e.version);
     }
-    readonly property var updates: entries.filter(e => canUpdate(e.id))
+    // from outside the registry (a .zip, a GitHub link: sideload()): where each came from, and for
+    // GitHub's whether a newer release/commit is out ({id, kind, source, ref, latest, update})
+    property var sideloaded: []
+    function sideloadOf(id) {
+        return sideloaded.find(s => s.id === id) || null;
+    }
+    readonly property var updates: entries.filter(e => canUpdate(e.id)).concat(sideloaded.filter(s => s.update && Plugins.byId(s.id) && !entry(s.id)).map(s => ({
+                    "id": s.id,
+                    "version": s.latest,
+                    "sideload": true
+                })))
+    function updateVersion(id) {
+        const u = updates.find(e => e.id === id);
+        return u ? u.version : "";
+    }
     // where a plugin came from: bundled with angelOS, the community catalog, or yours (Studio, by hand)
     function origin(p) {
         if (!p)
             return "";
         if (p.bundled)
             return "bundled";
-        return entry(p.id) ? "community" : "own";
+        if (entry(p.id))
+            return "community";
+        const s = sideloadOf(p.id);
+        return s ? s.kind : "own";
     }
 
     // ---- the registry ----
@@ -87,7 +104,7 @@ Singleton {
         _start(e, undefined);
     }
     function update(id) {
-        const p = Plugins.byId(id), e = entry(id);
+        const p = Plugins.byId(id), e = updates.find(u => u.id === id);
         if (!p || !e || busy)
             return;
         _start(e, String(p.version || "0"));
@@ -97,6 +114,19 @@ Singleton {
             return;
         queue = updates.slice(1);
         _start(updates[0], String(Plugins.byId(updates[0].id).version || "0"));
+    }
+    // a .zip file, a .zip link or a GitHub repository link: not reviewed (the page says so)
+    function sideload(source) {
+        source = String(source || "").trim();
+        if (!source || busy)
+            return;
+        Achievements.note("plugin.install");
+        error = "";
+        message = "";
+        busyId = source.replace(/\/+$/, "").split("/").pop();
+        action = "install";
+        installer.command = ["python3", script, "sideload", source];
+        installer.running = true;
     }
     function rollback(id) {
         if (busy)
@@ -112,7 +142,7 @@ Singleton {
         message = "";
         busyId = e.id;
         action = oldVersion === undefined ? "install" : "update";
-        installer.command = ["python3", script, oldVersion === undefined ? "install" : "update", e.id, e.version].concat(oldVersion === undefined ? [] : [oldVersion]);
+        installer.command = e.sideload ? ["python3", script, "sideload-update", e.id] : ["python3", script, oldVersion === undefined ? "install" : "update", e.id, e.version].concat(oldVersion === undefined ? [] : [oldVersion]);
         installer.running = true;
     }
     function _next() {
@@ -121,7 +151,7 @@ Singleton {
         const e = queue[0];
         queue = queue.slice(1);
         const p = Plugins.byId(e.id);
-        if (p && newer(p.version, e.version))
+        if (p && (e.sideload || newer(p.version, e.version)))
             _start(e, String(p.version || "0"));
         else
             Qt.callLater(_next);
@@ -189,6 +219,7 @@ Singleton {
             id: fetchErr
         }
         onExited: code => {
+            checker.running = true;
             if (!root._quiet)
                 root.action = "";
             if (code !== 0) {
@@ -210,6 +241,24 @@ Singleton {
                     root.error = String(e);
             }
         }
+    }
+    // the sideloaded ones, after every catalog check (GitHub's API: one or two requests each)
+    Process {
+        id: checker
+        command: ["python3", root.script, "sideload-check"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.sideloaded = JSON.parse(text).plugins || [];
+                    root.maybeNotify();
+                } catch (e) {}
+            }
+        }
+    }
+    Timer {
+        running: root.live
+        interval: 8000
+        onTriggered: checker.running = true
     }
     Process {
         id: installer
@@ -236,6 +285,8 @@ Singleton {
                     "loadDir": r.loadDir,
                     "update": !!r.updated
                 };
+                if (r.kind)
+                    checker.running = true;
                 Plugins.reload();
             } catch (e) {
                 root.error = String(e);

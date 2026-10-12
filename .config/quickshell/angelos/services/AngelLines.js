@@ -508,6 +508,22 @@ const battery = {
     }
 };
 
+// a device on the desk running low (services/Peripherals.lowReached; Settings → Device charge →
+// "notices"); %1 is the device's name. Drafts (2026-10-11): the author's to rewrite
+const peripherals = {
+    "angel": {
+        "low": [["%1 просит зарядку. Ампула почти на донышке ♡", "%1 is asking for a charger. The ampoule's nearly at the bottom ♡"],
+                ["Я заглянула в аптечку: у «%1» осталось совсем чуть-чуть.", "I looked into the medicine box: “%1” has only a little left."]],
+        "veryLow": [["%1 вот-вот уснёт. Поставь на зарядку, пожалуйста!", "%1 is about to fall asleep. Put it on charge, please!"],
+                    ["Последняя капля у «%1». Провод, скорее ♡", "The last drop in “%1”. A cable, quick ♡"]]
+    },
+    "demon": {
+        "low": [["«%1» на исходе. Мне нравится смотреть, как что-то медленно гаснет. Тебе — вряд ли.", "“%1” is running out. I enjoy watching things fade slowly. You probably don't."],
+                ["Склянка «%1» почти пуста. Нет, моей кровью её не дольёшь.", "The “%1” vial is nearly empty. No, you can't top it up with my blood."]],
+        "veryLow": [["%1 умирает у тебя в руках. Красиво. Провод всё-таки воткни.", "%1 is dying in your hands. Beautiful. Plug the cable in anyway."]]
+    }
+};
+
 // on stream (services/StreamAngel): she sits on the taskbar in the streamed picture, and
 // says these to the chat; the demon's ones are hell's, said only on stream
 const stream = {

@@ -67,7 +67,7 @@ Scope {
             // which one is the main (with more than one) and how each stands: turned on its side,
             // upside down (SetupAssistant: screens)
             "title": Shell.screens.length > 1 ? I18n.t("Экраны: какой главный и как стоят?", "Screens: which is the main one, and how do they stand?") : I18n.t("Как стоит монитор?", "How does the monitor stand?"),
-            "text": Shell.screens.length > 1 ? I18n.t("На главном будут виджеты, ангел и заставка, на него niri ставит фокус при входе. Монитор стоит вертикально или вверх ногами — поверни картинку.", "The main one gets the widgets, the angel and the screensaver; niri focuses it at login. A monitor upright or upside down: turn its picture.") : I18n.t("Если монитор стоит вертикально или вверх ногами — поверни картинку. Обои подстроятся сами.", "If the monitor stands upright or upside down, turn the picture. The wallpaper follows."),
+            "text": (Shell.screens.length > 1 ? I18n.t("На главном будут виджеты, ангел и заставка, на него niri ставит фокус при входе. ", "The main one gets the widgets, the angel and the screensaver; niri focuses it at login. ") : "") + I18n.t("Стоит вертикально или вверх ногами — поверни картинку. Частота: у монитора на 144 Гц и выше выбери самую большую — всё станет плавнее.", "Standing on its side or upside down? Turn the picture. Refresh rate: on a 144 Hz monitor or faster pick the highest, and everything gets smoother."),
             "when": Shell.screens.length > 0
         },
         {
@@ -146,7 +146,13 @@ Scope {
             "id": "apps",
             "icon": "package",
             "title": I18n.t("Какие программы поставить?", "Which apps should I install?"),
-            "text": I18n.t("Отмеченные поставятся, когда закончишь: откроется терминал, спросит пароль и покажет, как идёт. Уже стоящие помечены ✓.", "The ticked ones get installed when you finish: a terminal opens, asks for your password and shows how it goes. The ones you have are marked ✓.")
+            "text": I18n.t("Отмеченные поставятся прямо здесь, когда закончишь: пароль администратора спросят один раз, а полоска покажет, как идёт. Уже стоящие помечены ✓.", "The ticked ones get installed right here when you finish: the admin password is asked once, and a bar shows how it goes. The ones you have are marked ✓.")
+        },
+        {
+            "id": "scripts",
+            "icon": "terminal",
+            "title": I18n.t("Что ещё умеет angelOS", "What else angelOS can do"),
+            "text": I18n.t("Маленькие программы, которые идут с angelOS: что-то работает само, что-то — по клавишам. Включи то, что нужно.", "Little programs that come with angelOS: some work by themselves, some on a key. Switch on what you need.")
         },
         {
             "id": "github",
@@ -162,6 +168,14 @@ Scope {
             "title": I18n.t("Всё готово ♡", "You're ready ♡"),
             "text": Config.setup.from === "mac" ? I18n.t("Самое нужное. Mod — это ⌘ Command (на обычной клавиатуре — клавиша Windows).", "The keys you'll need. Mod is ⌘ Command (the Windows key on a PC keyboard).") : I18n.t("Самое нужное. Mod — это клавиша Windows.", "The keys you'll need. Mod is the Windows key."),
             "attention": "next"
+        },
+        {
+            "id": "install",
+            "icon": "package",
+            "title": setupInstall.done ? (setupInstall.failed.length || setupInstall.auth ? I18n.t("Почти всё ♡", "Almost there ♡") : I18n.t("Программы стоят ♡", "The apps are in ♡")) : I18n.t("Ставлю программы…", "Installing the apps…"),
+            "text": setupInstall.done ? (setupInstall.auth ? I18n.t("Без пароля администратора программы не поставить. Попробуй ещё раз или пропусти — потом: Настройки → Обновления.", "The apps can't go in without the admin password. Try again or skip: later, Settings → Updates.") : setupInstall.failed.length ? I18n.t("Не все поставились — можно повторить, а можно идти дальше.", "Not all of them made it: try again, or go on.") : I18n.t("Всё на месте. Можно начинать.", "Everything is in place. Let's start.")) : I18n.t("Пароль спросят один раз. Рабочий стол откроется, когда всё встанет.", "The password is asked once. The desktop opens when everything is in."),
+            "attention": setupInstall.done ? "next" : "",
+            "when": setupInstall.active
         }
     ]
     // ---- the apps (data/apps-catalog.json, scripts/apps-install.py) ----
@@ -289,6 +303,163 @@ Scope {
         const now = (Config.setup.apps || []).filter(a => a !== id);
         Config.setup.apps = on ? now.concat([id]) : now;
     }
+    // ---- the install, inside the wizard: the admin password once (pkexec → the shell's polkit
+    // dialog), progress per app, the desktop held until it is over (scripts/apps-install.py --events)
+    QtObject {
+        id: setupInstall
+        property bool active: false     // the «install» step is in the list
+        property bool running: false
+        property bool done: false
+        property var items: []          // [{id, ru, en, icon, installed, via, state: wait|run|done|fail}]
+        property string current: ""
+        property string status: ""      // what it does right now (the last line of the output)
+        property int n: 0
+        property int of: 0
+        property var failed: []
+        property string auth: ""        // why it never started (the password was not given…)
+        property var log: []
+        property real sub: 0            // how far the app now going is (pacman's "(3/12) installing …")
+    }
+    readonly property alias installState: setupInstall
+    function onInstallEvent(e) {
+        if (e.ev === "plan") {
+            setupInstall.items = e.items.map(x => Object.assign({}, x, {
+                    "state": x.installed ? "done" : "wait"
+                }));
+        } else if (e.ev === "auth") {
+            setupInstall.status = I18n.t("введи пароль администратора", "enter the admin password");
+        } else if (e.ev === "step") {
+            setupInstall.status = e.text;
+        } else if (e.ev === "item") {
+            setupInstall.items = setupInstall.items.map(x => x.id !== e.id ? x : Object.assign({}, x, {
+                    "state": e.state === "start" ? "run" : e.state
+                }));
+            setupInstall.n = e.n;
+            setupInstall.of = e.of;
+            setupInstall.current = e.state === "start" ? e.id : "";
+            setupInstall.sub = 0;
+        } else if (e.ev === "done") {
+            setupInstall.failed = (e.failed || []).concat(e.skipped || []);
+            setupInstall.auth = e.auth || "";
+            setupInstall.done = true;
+            setupInstall.running = false;
+            setupInstall.current = "";
+            appProbe.running = true;
+        }
+    }
+    Process {
+        id: installProc
+        stdout: SplitParser {
+            onRead: line => {
+                if (line.startsWith("EV ")) {
+                    try {
+                        root.onInstallEvent(JSON.parse(line.slice(3)));
+                    } catch (e) {}
+                    return;
+                }
+                // eslint-disable-next-line no-control-regex
+                const clean = line.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "").replace(/\r/g, "").trim();
+                if (!clean)
+                    return;
+                setupInstall.log = setupInstall.log.concat([clean]).slice(-120);
+                if (setupInstall.running && !clean.startsWith("»"))
+                    setupInstall.status = clean;
+                const part = Shell.stepOf(clean, setupInstall.sub);
+                if (part >= 0)
+                    setupInstall.sub = part;
+            }
+        }
+        onExited: (code, status) => {
+            if (!setupInstall.done) {
+                setupInstall.done = true;
+                setupInstall.running = false;
+                setupInstall.failed = setupInstall.items.filter(x => x.state !== "done").map(x => x.id);
+            }
+        }
+    }
+    function startInstall(ids) {
+        setupInstall.active = true;
+        setupInstall.running = true;
+        setupInstall.done = false;
+        setupInstall.failed = [];
+        setupInstall.auth = "";
+        setupInstall.n = 0;
+        setupInstall.sub = 0;
+        setupInstall.of = ids.length;
+        setupInstall.status = I18n.t("начинаю…", "starting…");
+        setupInstall.items = ids.map(i => {
+            const a = (catalog.apps || []).find(x => x.id === i) || {};
+            return {
+                "id": i,
+                "ru": a.ru || i,
+                "en": a.en || i,
+                "icon": a.icon || "package",
+                "installed": false,
+                "via": "",
+                "state": "wait"
+            };
+        });
+        installProc.command = ["python3", Quickshell.shellDir + "/scripts/apps-install.py", "install", "--events", "--no-wait", "--browser", browser].concat(ids);
+        installProc.running = true;
+    }
+    // the UI self-test (tests/ui/Driver.qml): the install step fed with events, no process
+    function simulateInstall(evs) {
+        setupInstall.active = true;
+        setupInstall.running = true;
+        setupInstall.done = false;
+        for (const e of evs)
+            onInstallEvent(e);
+        step = steps.findIndex(s => s.id === "install");
+    }
+    // «Ещё раз»: only what didn't make it
+    function retryInstall() {
+        const again = setupInstall.auth ? appsToInstall : setupInstall.failed.filter(i => (appStatus[i] || {}).via !== "");
+        startInstall(again.length ? again : appsToInstall);
+    }
+    // ---- «What else angelOS can do» (scripts/features.py): game mode, the mouse in games, voice
+    // input (installed with the apps: catalog id "voxtype"), and the keys of the rest ----
+    property var features: ({})
+    Process {
+        id: featureProbe
+        command: ["python3", Quickshell.shellDir + "/scripts/features.py", "status"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.features = JSON.parse(text);
+                } catch (e) {}
+            }
+        }
+    }
+    function refreshFeatures() {
+        featureProbe.running = true;
+    }
+    function setFeature(what, on) {
+        if (Shell.dev || Quickshell.env("ANGELOS_TEST") === "1")
+            return;
+        Quickshell.execDetached(["sh", "-c", 'python3 "$1" set "$2" "$3" >/dev/null; exit 0', "sh", Quickshell.shellDir + "/scripts/features.py", what, on ? "on" : "off"]);
+        featureTimer.restart();
+    }
+    Timer {
+        id: featureTimer
+        interval: 1500
+        onTriggered: root.refreshFeatures()
+    }
+    // the mouse in games: the rate (0 = as it is) and which mouse; its service runs when it is on
+    function setMouseRate(rate) {
+        Config.gaming.mouseRate = rate;
+        if (rate > 0 && !((features.mouse || {}).enabled))
+            setFeature("mouse", true);
+    }
+    // voice input is a download (1.6 GB): it goes with the apps
+    readonly property bool voiceWanted: (Config.setup.apps || []).includes("voxtype")
+    function setVoice(on) {
+        toggleApp("voxtype", on);
+        if (!on && (features.voice || {}).installed)
+            setFeature("voice", false);
+        else if (on && (features.voice || {}).installed)
+            setFeature("voice", true);
+    }
+
     // what is left to install: ticked and not there yet
     readonly property var appsToInstall: (Config.setup.apps || []).filter(a => !(appStatus[a] || {}).installed && (!appsChecked || (appStatus[a] || {}).via))
     function installApps() {
@@ -301,9 +472,13 @@ Scope {
         const pick = ["--browser", browser].concat(Config.setup.apps || []);
         if (ids.length === 0) {
             Quickshell.execDetached(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "pick"].concat(pick));
-            return;
+            return false;
         }
-        Shell.exec(Shell.terminalArgv(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "install"].concat(pick), "angelos-apps"));
+        // remembered as picked (updates bring what the author adds to these groups) …
+        Quickshell.execDetached(["python3", Quickshell.shellDir + "/scripts/apps-install.py", "pick"].concat(Config.setup.apps || []));
+        // … and installed right here, the wizard's last step
+        startInstall(ids);
+        return true;
     }
 
     readonly property var steps: stepList.filter(s => s.when === undefined || s.when)
@@ -315,12 +490,21 @@ Scope {
         step = Math.max(0, Math.min(last, i));
     }
     function next() {
+        // the install runs: nothing goes on until it is over
+        if (setupInstall.running)
+            return;
+        if (cur && cur.id === "ready" && !setupInstall.active && installApps()) {
+            step = steps.findIndex(s => s.id === "install");
+            return;
+        }
         if (step < last)
             step++;
         else
             finish();
     }
     function back() {
+        if (setupInstall.running || (cur && cur.id === "install"))
+            return;
         if (step > 0)
             step--;
     }
@@ -332,10 +516,14 @@ Scope {
         step = 0;
     }
     function finish() {
+        if (setupInstall.running)
+            return;
         Config.setup.complete = true;
         // the tips start where the questions were answered, once the wizard's screens are gone
         tipsOn = tipsAfter ? (host ? host.name : "") || "-" : "";
-        installApps();
+        if (!setupInstall.active)
+            installApps();
+        setupInstall.active = false;
         close();
         if (tipsOn)
             tipsTimer.start();
@@ -383,6 +571,7 @@ Scope {
                 touchpadProbe.running = true;
                 appProbe.running = true;
                 browserProbe.running = true;
+                featureProbe.running = true;
             }
             root.pickHost();
         }

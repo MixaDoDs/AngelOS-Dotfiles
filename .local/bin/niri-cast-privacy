@@ -1,79 +1,267 @@
 #!/usr/bin/env python3
-"""Toggle niri block-out for sensitive apps in screencasts. Local screens stay live."""
+"""Privacy on stream: the apps of a list go black in screencasts (niri's block-out), the
+screens themselves stay live.
+
+  niri-cast-privacy [toggle]         on ⇄ off                              (Mod+Shift+X)
+  niri-cast-privacy on | off
+  niri-cast-privacy app [toggle|add|remove|forget] [APP_ID]
+        which apps the mode hides. No APP_ID: the focused window's app   (toggle: Mod+Ctrl+Shift+X).
+        add / remove tick an app on or off and keep it in the list, forget drops it.
+  niri-cast-privacy status           JSON {"on", "apps": [{"id", "name", "on"}], "open": [{"id", "name"}]}
+                                     open: the apps of the windows open now that are not in the list
+
+The list is ~/.config/angelos/privacy.json — angelOS's Settings → Streaming → Stream mode → Privacy on stream
+edits the same file; without one it is Telegram, Freshgram, Bitwarden, Helium and Discord. An
+app is a window's app-id, matched whole (`niri msg windows`). The mode itself is niri's
+cfg/privacy-block.kdl (config.kdl includes it): a window rule with block-out-from "screencast",
+so a new window of a listed app is black from its first frame. Changing the list while the
+mode is on rewrites the rule at once. A rule niri refuses is put back as it was.
+ANGELOS_TEST=1: no niri, no notifications (tests/privacy).
+"""
 from __future__ import annotations
 
+import fcntl
+import json
+import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 
-RULES = Path.home() / ".config/niri/cfg/privacy-block.kdl"
-APPS = (
-    ("Telegram", r"^org\.telegram\.desktop$"),
-    ("Bitwarden", r"^Bitwarden$"),
-    ("Helium", r"^helium$"),
-    ("Discord", r"^discord$"),
+HOME = Path.home()
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config")
+NIRI = CONFIG / "niri"
+RULES = NIRI / "cfg/privacy-block.kdl"
+LIST = CONFIG / "angelos/privacy.json"
+DATA_DIRS = [Path(os.environ.get("XDG_DATA_HOME") or HOME / ".local/share")] + [
+    Path(d) for d in (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":") if d]
+TEST = os.environ.get("ANGELOS_TEST") == "1"
+RU = (os.environ.get("ANGELOS_LANG") or os.environ.get("LANG") or "en")[:2].lower() == "ru"
+ON_MARK = "// privacy block-out on"
+OFF_MARK = "// privacy block-out off"
+DEFAULT = (
+    ("org.telegram.desktop", "Telegram"),
+    ("io.github.snowyfluffy.freshgram", "Freshgram"),
+    ("Bitwarden", "Bitwarden"),
+    ("helium", "Helium"),
+    ("discord", "Discord"),
 )
+# never a candidate: the shell's own windows
+SKIP = {"org.quickshell"}
+
+
+def t(ru: str, en: str) -> str:
+    return ru if RU else en
 
 
 def notify(title: str, body: str, ok: bool = True) -> None:
-    subprocess.call(
-        [
-            "notify-send",
-            "-a",
-            "niri",
-            "-u",
-            "normal" if ok else "critical",
-            "-t",
-            "2500",
-            title,
-            body,
-        ]
-    )
+    if TEST:
+        return
+    subprocess.call(["notify-send", "-a", "niri", "-i", "view-private" if ok else "dialog-error",
+                     "-u", "normal" if ok else "critical", "-t", "2500", title, body])
 
+
+def niri_json(*args: str):
+    if TEST:
+        return None
+    try:
+        r = subprocess.run(["niri", "msg", "--json", *args], capture_output=True, text=True, timeout=5)
+        return json.loads(r.stdout) if r.returncode == 0 else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
+# ---- the list ----
+
+def app_name(app_id: str) -> str:
+    """the app's name from its desktop entry, else the app-id's last word"""
+    for d in DATA_DIRS:
+        apps = d / "applications"
+        for f in (apps / (app_id + ".desktop"), apps / (app_id.lower() + ".desktop")):
+            try:
+                for line in f.read_text(errors="replace").splitlines():
+                    if line.startswith("Name="):
+                        return line[5:].strip() or app_id
+            except OSError:
+                continue
+    last = re.split(r"[.]", app_id)[-1] or app_id
+    return last[:1].upper() + last[1:]
+
+
+def clean(apps) -> list[dict]:
+    out, seen = [], set()
+    for a in apps if isinstance(apps, list) else []:
+        app_id = a.get("id") if isinstance(a, dict) else None
+        if not isinstance(app_id, str) or not valid(app_id) or app_id in seen:
+            continue
+        seen.add(app_id)
+        name = a.get("name")
+        out.append({"id": app_id, "name": name if isinstance(name, str) and name.strip() else app_name(app_id),
+                    "on": a.get("on") is not False})
+    return out
+
+
+def valid(app_id: str) -> bool:
+    return bool(app_id.strip()) and len(app_id) < 200 and not re.search(r'["\x00-\x1f]', app_id)
+
+
+def load() -> list[dict]:
+    try:
+        return clean(json.loads(LIST.read_text()).get("apps"))
+    except (OSError, ValueError, AttributeError):
+        return [{"id": i, "name": n, "on": True} for i, n in DEFAULT]
+
+
+def write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name("." + path.name + ".tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+def save(apps: list[dict]) -> None:
+    write(LIST, json.dumps({"apps": apps}, ensure_ascii=False, indent=2) + "\n")
+
+
+# ---- niri's rule ----
 
 def is_on() -> bool:
-    if not RULES.exists():
+    try:
+        text = RULES.read_text()
+    except OSError:
         return False
-    return "block-out-from" in RULES.read_text()
+    # a file from before the list had no mark of its own
+    return text.startswith(ON_MARK) or "block-out-from" in text
 
 
-def write_off() -> None:
-    RULES.parent.mkdir(parents=True, exist_ok=True)
-    RULES.write_text("// privacy block-out off (Mod+Shift+X)\n")
+def rule(on: bool, apps: list[dict]) -> str:
+    if not on:
+        return OFF_MARK + " (Mod+Shift+X)\n"
+    lines = [ON_MARK + " (Mod+Shift+X) — written by niri-cast-privacy from angelos/privacy.json"]
+    hidden = [a for a in apps if a["on"]]
+    if hidden:
+        lines.append("window-rule {")
+        for a in hidden:
+            lines.append('    match app-id=r#"^%s$"#' % re.sub(r"([\\.+*?()|\[\]{}^$])", r"\\\1", a["id"]))
+        lines.append('    block-out-from "screencast"')
+        lines.append("}")
+    return "\n".join(lines) + "\n"
 
 
-def write_on() -> None:
-    lines = [
-        "// privacy block-out on (Mod+Shift+X)",
-        "window-rule {",
-    ]
-    for _name, regex in APPS:
-        lines.append('    match app-id=r#"' + regex + '"#')
-    lines.append('    block-out-from "screencast"')
-    lines.append("}")
-    lines.append("")
-    RULES.parent.mkdir(parents=True, exist_ok=True)
-    RULES.write_text("\n".join(lines))
-
-
-def reload() -> None:
+def apply(on: bool, apps: list[dict]) -> None:
+    """write the rule; niri must take it, or the old file comes back"""
+    try:
+        old = RULES.read_text()
+    except OSError:
+        old = None
+    write(RULES, rule(on, apps))
+    if TEST:
+        return
+    main_cfg = NIRI / "config.kdl"
+    try:
+        included = "privacy-block.kdl" in main_cfg.read_text()
+    except OSError:
+        included = True     # a config of another shape: niri's own word below
+    r = subprocess.run(["niri", "validate"], capture_output=True, text=True)
+    if r.returncode != 0:
+        if old is None:
+            RULES.unlink(missing_ok=True)
+        else:
+            write(RULES, old)
+        raise RuntimeError((r.stderr or r.stdout).strip().splitlines()[-1] if (r.stderr or r.stdout).strip() else "niri validate")
     subprocess.check_call(["niri", "msg", "action", "load-config-file"])
+    if on and not included:
+        raise RuntimeError(t("config.kdl не подключает cfg/privacy-block.kdl — правило не действует",
+                             "config.kdl does not include cfg/privacy-block.kdl: the rule has no effect"))
+
+
+def names(apps: list[dict]) -> str:
+    hidden = [a["name"] for a in apps if a["on"]]
+    return ", ".join(hidden) if hidden else t("список пуст", "the list is empty")
+
+
+# ---- commands ----
+
+def switch(mode: str) -> None:
+    apps = load()
+    on = not is_on() if mode == "toggle" else mode == "on"
+    apply(on, apps)
+    if on:
+        notify("Privacy ON", t("В стриме чёрные: ", "Black on stream: ") + names(apps))
+    else:
+        notify("Privacy OFF", t("Снова в стриме: ", "Back on stream: ") + names(apps))
+
+
+def focused_app() -> str | None:
+    w = niri_json("focused-window")
+    return w.get("app_id") if isinstance(w, dict) else None
+
+
+def app(action: str, app_id: str | None) -> None:
+    if app_id is None:
+        app_id = focused_app()
+        if not app_id:
+            raise RuntimeError(t("нет окна в фокусе", "no focused window"))
+    if not valid(app_id):
+        raise RuntimeError(t("так приложение не называется: ", "not an app-id: ") + repr(app_id))
+    apps = load()
+    row = next((a for a in apps if a["id"] == app_id), None)
+    if action == "forget":
+        apps = [a for a in apps if a["id"] != app_id]
+        hide = False
+    else:
+        hide = action == "add" or (action == "toggle" and not (row and row["on"]))
+        if row:
+            row["on"] = hide
+        elif hide:
+            row = {"id": app_id, "name": app_name(app_id), "on": True}
+            apps.append(row)
+    save(apps)
+    on = is_on()
+    if on:
+        apply(True, apps)
+    name = row["name"] if row else app_id
+    if hide:
+        notify(t("Privacy: %s скрывается", "Privacy: %s is hidden") % name,
+               t("уже чёрное в стриме", "black on stream right now") if on
+               else t("станет чёрным в стриме по Mod+Shift+X", "goes black on stream with Mod+Shift+X"))
+    else:
+        notify(t("Privacy: %s не скрывается", "Privacy: %s is not hidden") % name,
+               t("снова видно в стриме", "visible on stream again") if on
+               else t("останется в стриме и в приватном режиме", "stays on stream in privacy mode too"))
+
+
+def status() -> dict:
+    apps = load()
+    known = {a["id"] for a in apps}
+    opened: list[dict] = []
+    for w in niri_json("windows") or []:
+        app_id = w.get("app_id")
+        if app_id and app_id not in known and app_id not in SKIP and valid(app_id):
+            known.add(app_id)
+            opened.append({"id": app_id, "name": app_name(app_id)})
+    return {"on": is_on(), "apps": apps, "open": sorted(opened, key=lambda a: a["name"].lower())}
 
 
 def main() -> None:
-    names = ", ".join(name for name, _ in APPS)
-    try:
-        if is_on():
-            write_off()
-            reload()
-            notify("Privacy OFF", "Telegram, Bitwarden, Helium, Discord снова в стриме")
-        else:
-            write_on()
-            reload()
-            notify("Privacy ON", "В стриме чёрные: " + names)
-    except Exception as e:
-        notify("Privacy FAIL", str(e), ok=False)
-        sys.exit(1)
+    args = sys.argv[1:] or ["toggle"]
+    if args == ["status"]:
+        print(json.dumps(status(), ensure_ascii=False))
+        return
+    ok_app = args[0] == "app" and len(args) <= 3 and (len(args) < 2 or args[1] in ("toggle", "add", "remove", "forget"))
+    if not ok_app and args not in (["toggle"], ["on"], ["off"]):
+        sys.exit(__doc__)
+    LIST.parent.mkdir(parents=True, exist_ok=True)
+    with open(LIST.parent / ".privacy.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            if ok_app:
+                app(args[1] if len(args) > 1 else "toggle", args[2] if len(args) > 2 else None)
+            else:
+                switch(args[0])
+        except Exception as e:
+            notify("Privacy FAIL", str(e), ok=False)
+            sys.exit("niri-cast-privacy: %s" % e)
 
 
 if __name__ == "__main__":

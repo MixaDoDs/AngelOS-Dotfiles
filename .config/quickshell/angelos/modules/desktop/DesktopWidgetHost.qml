@@ -18,6 +18,12 @@ import qs.widgets
 //          dragged or in edit mode — and steps aside while workspaces slide.
 //          Widgets with nothing to click (clock, sysmon, cava, the companions'
 //          orbs) keep their input copy empty: one set of timers and processes.
+// The content is built only where it is seen (2026-10-12): the face's while somebody can see
+// this screen's desk and half a minute after (Shell.hiddenScreen: locked, the idle screen, a
+// fullscreen window on top) — then it goes with its timers, textures and helpers, and comes
+// back built in the background and faded in; the input copy's only for a widget that has
+// something to click (the face knows: it is the same content). The frame keeps the size the
+// content had, so no widget moves and none is missed by the pointer.
 // The frame (Settings → Widgets, or the widget's own in its right-click menu): a little
 // .exe window (PxWindow, dragged by the title bar), a plate or none (WidgetPlate, dragged
 // by any bare spot, its name on a tab while the pointer is on it). A double click on the
@@ -49,7 +55,13 @@ Item {
     property bool interactive: false
     readonly property var widget: DesktopWidgets.byUid(uid)
     readonly property var info: widget ? DesktopWidgets.typeInfo(widget.type) : null
-    readonly property bool wants: !content.item || content.item.wantVisible === undefined || content.item.wantVisible
+    // the content's own say (music with no player hides); without the content: what it said
+    // last, and for the input copy what its face says
+    readonly property bool liveWants: !content.item || content.item.wantVisible === undefined || content.item.wantVisible
+    property bool keptWants: true
+    onLiveWantsChanged: if (has)
+        keptWants = liveWants
+    readonly property bool wants: has ? liveWants : !face && faceTwin ? faceTwin.wants : keptWants
     readonly property bool dragging: DesktopWidgets.drag.uid === uid
     // window | plate | none (DesktopWidgets.frameOf); the macOS card has its own
     readonly property string frameKind: DesktopWidgets.frameOf(widget)
@@ -72,6 +84,24 @@ Item {
     readonly property real zoom: DesktopWidgets.scaleOf(widget)
     signal contextMenu(real x, real y)
     signal interactionStarted()
+
+    // ---- the content: only where it is seen ----
+    readonly property bool deskSeen: !Shell.hiddenScreen(screenName)
+    Linger {
+        id: seenKeep
+        when: host.deskSeen
+        ms: 30000
+    }
+    readonly property bool wantContent: face ? seenKeep.alive : !!faceTwin && faceTwin.interactive && faceTwin.wantContent
+    onWantContentChanged: content.sync()
+    // the content is there, whole (a flag of its own: Loader.item changes in the middle of the
+    // loader's own sizing, and a size read then loops)
+    property bool has: false
+    // the content's size, kept while it is away (the input copy without one takes its face's)
+    property real keptW: 0
+    property real keptH: 0
+    readonly property real contentW: has ? content.implicitWidth : !face && faceTwin ? faceTwin.contentW : keptW
+    readonly property real contentH: has ? content.implicitHeight : !face && faceTwin ? faceTwin.contentH : keptH
 
     function clampX(v) {
         return Math.max(0, Math.min(area.width - width, v));
@@ -395,8 +425,8 @@ Item {
             scale: host.zoom
             transformOrigin: Item.TopLeft
             // with the grid on: whole cells (DesktopWidgets.fit), the content in the middle
-            width: DesktopWidgets.fit(Math.max(Theme.u * 70, content.implicitWidth + (inset + bodyPadding) * 2), host.zoom)
-            height: DesktopWidgets.fit(titleHeight + content.implicitHeight + bodyPadding * 2 + inset * 2 + Theme.u * 2, host.zoom)
+            width: DesktopWidgets.fit(Math.max(Theme.u * 70, host.contentW + (inset + bodyPadding) * 2), host.zoom)
+            height: DesktopWidgets.fit(titleHeight + host.contentH + bodyPadding * 2 + inset * 2 + Theme.u * 2, host.zoom)
             readonly property int inset: Theme.u * 2
             title: DesktopWidgets.titleOf(host.info)
             icon: host.info ? host.info.icon : "heart"
@@ -419,16 +449,55 @@ Item {
                 y: parent ? Math.max(0, Math.floor((parent.height - height) / 2)) : 0
                 // the input copy of a widget with nothing to click runs nothing: the face shows it
                 visible: host.face || host.interactive
-                onLoaded: host.checkInput()
+                // back after it was away: built in the background (no frame is late for it),
+                // then faded in
+                property bool again: false
+                asynchronous: again
+                onLoaded: {
+                    host.keptW = implicitWidth;
+                    host.keptH = implicitHeight;
+                    host.keptWants = host.liveWants;
+                    host.has = true;
+                    host.checkInput();
+                    if (again && host.face)
+                        back.restart();
+                }
+                onImplicitWidthChanged: if (host.has)
+                    host.keptW = implicitWidth
+                onImplicitHeightChanged: if (host.has)
+                    host.keptH = implicitHeight
+                NumberAnimation {
+                    id: back
+                    target: content
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: Motion.ms(160)
+                }
                 // a plugin changed by Plugin Studio comes back through a new path
                 readonly property string src: host.info && host.info.plugin ? Plugins.url(host.info.plugin, host.info.plugin.desktopWidget) : ""
                 onSrcChanged: if (item) {
+                    host.has = false;
                     source = "";
                     load();
                 }
-                Component.onCompleted: load()
+                Component.onCompleted: sync()
+                // the content comes and goes with host.wantContent
+                function sync() {
+                    if (host.wantContent) {
+                        if (status === Loader.Null)
+                            load();
+                    } else if (status !== Loader.Null) {
+                        back.stop();
+                        opacity = 1;
+                        again = true;
+                        host.has = false;
+                        source = "";
+                        host.checkInput();
+                    }
+                }
                 function load() {
-                    if (!host.widget || !host.info)
+                    if (!host.wantContent || !host.widget || !host.info)
                         return;
                     const props = {
                         "screenName": host.screenName,
@@ -458,8 +527,8 @@ Item {
             y: canvas.pad
             scale: host.zoom
             transformOrigin: Item.TopLeft
-            width: DesktopWidgets.fit(content.implicitWidth + padding * 2, host.zoom)
-            height: DesktopWidgets.fit(content.implicitHeight + padding * 2, host.zoom)
+            width: DesktopWidgets.fit(host.contentW + padding * 2, host.zoom)
+            height: DesktopWidgets.fit(host.contentH + padding * 2, host.zoom)
             bare: host.frameKind === "none"
             hell: Theme.hell
             fill: !host.overFace
@@ -478,8 +547,8 @@ Item {
             y: canvas.pad
             scale: host.zoom
             transformOrigin: Item.TopLeft
-            width: DesktopWidgets.fit(content.implicitWidth + padding * 2, host.zoom)
-            height: DesktopWidgets.fit(content.implicitHeight + padding * 2, host.zoom)
+            width: DesktopWidgets.fit(host.contentW + padding * 2, host.zoom)
+            height: DesktopWidgets.fit(host.contentH + padding * 2, host.zoom)
             editing: DesktopWidgets.editMode && !host.face
             closable: DesktopWidgets.editMode
             glassBody: !host.overFace

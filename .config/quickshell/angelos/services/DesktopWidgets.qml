@@ -341,6 +341,14 @@ Singleton {
             "sizes": ["s", "m", "l"]
         },
         {
+            // who is in your Discord call (services/DiscordVoice): S the faces, M with names, L the channel too
+            "type": "discord",
+            "label": I18n.t("Discord: кто в звонке", "Discord: who is in the call"),
+            "icon": "headphones",
+            "title": "discord",
+            "sizes": ["s", "m", "l"]
+        },
+        {
             // hell's own: offered, shown and spun only while the demon rules
             "type": "hellwheel",
             "label": I18n.t("Колесо Ада", "Wheel of Hell"),

@@ -1,0 +1,15 @@
+# angelOS: the charge of wireless mice, read from their dongles (the bar's ampoules,
+# scripts/peripherals.py). Installed by extras/hid-access/install.sh; do not edit, an update
+# writes it again.
+#
+# What it opens, and to whom:
+#   - only the makers angelOS can ask (the list below is peripherals.py's);
+#   - of their devices only the maker's configuration interface, and only when the helper
+#     finds no input or output report in it: the dongle's keyboard and mouse interfaces stay
+#     root's alone, so no program can read keys or movement through this rule;
+#   - only to the user sitting at this computer (uaccess: logind's ACL, taken away at logout
+#     or a switch to another seat) — never MODE="0666", never a group.
+# The number must stay below 73: 73-seat-late.rules is what turns the tag into the ACL.
+
+# LAMZU (the Aurora feature report)
+ACTION!="remove", SUBSYSTEM=="hidraw", KERNEL=="hidraw*", ATTRS{idVendor}=="373e", PROGRAM=="/usr/local/libexec/angelos-hid-feature-only %S%p", TAG+="uaccess"

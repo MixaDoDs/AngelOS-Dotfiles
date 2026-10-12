@@ -201,6 +201,24 @@ PxPage {
                 onActivated: v => Config.capture.recordFps = v
             }
         }
+        // the keys pressed, on screen (services/KeyCast): for guides and streams
+        SettingRow {
+            label: I18n.t("Показывать нажатые клавиши", "Show the keys pressed")
+            hint: KeyCast.error !== "" ? KeyCast.error : I18n.t("Mod+Shift+K — вкл/выкл. Сочетания и особые клавиши внизу экрана; пока вводится пароль — ничего", "Mod+Shift+K turns it on and off. Shortcuts and special keys at the bottom of the screen; nothing while a password is typed")
+            PxToggle {
+                checked: Config.keycast.enabled
+                onToggled: v => Config.keycast.enabled = v
+            }
+        }
+        SettingRow {
+            visible: Config.keycast.enabled
+            label: I18n.t("И набираемый текст", "Typing too")
+            hint: I18n.t("Буквы по клавишам (латиницей — раскладку клавиатура не сообщает)", "Letters by key (Latin: the keyboard does not report the layout)")
+            PxToggle {
+                checked: Config.keycast.text
+                onToggled: v => Config.keycast.text = v
+            }
+        }
     }
     PxGroup {
         name: "recording-more"
@@ -334,7 +352,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Скин читают инструменты ~/.local/bin/niri-screenshot-region и niri-record-overlay из dotfiles. Снимки — в ~/Pictures/Screenshots/приложение/месяц, записи — в ~/Videos.", "The skin is used by ~/.local/bin/niri-screenshot-region and niri-record-overlay from the dotfiles. Shots go to ~/Pictures/Screenshots/app/month, recordings to ~/Videos.")
+            text: I18n.t("Скин читают инструменты ~/.local/bin/niri-screenshot-region и niri-record-overlay из dotfiles. Снимки — в ~/Pictures/Screenshots, по папкам месяцев («2026-10 Октябрь»), записи — в ~/Videos.", "The skin is used by ~/.local/bin/niri-screenshot-region and niri-record-overlay from the dotfiles. Shots go to ~/Pictures/Screenshots, one folder per month (“2026-10 October”), recordings to ~/Videos.")
         }
     }
 }

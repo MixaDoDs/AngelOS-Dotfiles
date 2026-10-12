@@ -218,12 +218,19 @@ PxPage {
                 onToggled: c => Config.wallpaper.variants = c
             }
         }
+        PxText {
+            visible: Wallpapers.copiesHidden > 0
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Одинаковые картинки показаны один раз: копий спрятано — ", "The same picture is shown once: copies left out — ") + Wallpapers.copiesHidden + I18n.t(". Файлы на месте, из списка убраны только повторы.", ". The files stay where they are, only the repeats are off the list.")
+        }
     }
 
     // every big release of angelOS brings wallpapers drawn for it (services/Wallpapers: releases)
     PxGroup {
         name: "releases"
-        visible: !page.hell && Wallpapers.releases.length > 0
+        visible: !page.hell && Wallpapers.releasesShown.length > 0
         title: I18n.t("Обои релизов angelOS", "angelOS release wallpapers")
         icon: "sparkle"
         width: parent.width
@@ -235,7 +242,7 @@ PxPage {
             text: Wallpapers.variantsOn ? I18n.t("С каждым крупным релизом приходят свои обои, нарисованные для angelOS: днём и ночью — сами сменятся вместе с темой. Клик — поставить.", "Every big release comes with wallpapers drawn for angelOS, a day and a night one: they follow the theme. Click to apply.") : I18n.t("С каждым крупным релизом приходят свои обои, нарисованные для angelOS: днём и ночью. Клик — поставить.", "Every big release comes with wallpapers drawn for angelOS, a day and a night one. Click to apply.")
         }
         Repeater {
-            model: Wallpapers.releases
+            model: Wallpapers.releasesShown
             Column {
                 id: relCol
                 required property var modelData
@@ -615,11 +622,11 @@ PxPage {
                 }
             }
         }
-        // the author's only: paint what is what in this picture (services/SceneEditor)
+        // paint what is what in this picture (services/SceneEditor)
         SettingRow {
             visible: SceneEditor.allowed
             label: I18n.t("Редактор сцены", "The scene editor")
-            hint: I18n.t("закрасить, что на картинке небо, вода, водопад; отключить эффекты, поставить места событий, отдать запрос Claude. Или `angelos scene edit`", "paint what in the picture is sky, water, a waterfall; switch effects off, put the events' places, hand a request to Claude. Or `angelos scene edit`")
+            hint: I18n.t("закрасить, что на картинке небо, вода, водопад; отключить эффекты, поставить места событий. Или `angelos scene edit`", "paint what in the picture is sky, water, a waterfall; switch effects off, put the events' places. Or `angelos scene edit`")
             PxButton {
                 icon: "layers"
                 text: I18n.t("Открыть", "Open")

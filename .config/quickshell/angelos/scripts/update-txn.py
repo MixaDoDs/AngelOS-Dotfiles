@@ -44,7 +44,7 @@ EXTRAS = [
     ".local/bin/angelos", ".config/angelos/active", ".config/angelos/dotfiles-source",
     ".config/niri/config.kdl", ".config/niri/cfg/autostart.kdl", ".config/niri/cfg/keybinds.kdl",
     ".config/niri/cfg/keybinds-common.kdl", ".config/niri/cfg/keybinds-pixel.kdl", ".config/niri/cfg/keybinds-macos.kdl",
-    ".config/niri/cfg/rules.kdl", ".config/niri/noctalia.kdl", ".config/niri/angelos.kdl",
+    ".config/niri/cfg/rules.kdl", ".config/niri/angelos.kdl",
     ".config/kitty/kitty.conf", ".config/foot/foot.ini", ".config/alacritty/alacritty.toml",
     ".config/gtk-3.0/gtk.css", ".config/gtk-4.0/gtk.css",
     # the user's own layer, made by the installer once (install.sh user_layer)
@@ -121,8 +121,10 @@ def destinations(rel):
     if "/__pycache__/" in rel or rel.endswith(".pyc") or ".bak." in rel or rel.startswith(".config/quickshell/angelos/owner/"):
         return []
     out = [rel]
-    if "-no-noctalia" in rel:
-        out.append(rel.replace("-no-noctalia", ""))
+    # niri's variants for no desktop shell (*-no-noctalia.kdl in revisions before 2026-10-11)
+    for plain in ("-plain", "-no-noctalia"):
+        if plain in rel:
+            out.append(rel.replace(plain, ""))
     if rel.startswith(".local/bin/") and rel.endswith("-simple"):
         out.append(rel[: -len("-simple")])
     return out

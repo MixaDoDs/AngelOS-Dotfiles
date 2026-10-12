@@ -164,6 +164,12 @@ Variants {
                 }
             }
 
+            // «what's new» after an update to a big release, on the main screen
+            ChangelogPaper {
+                anchors.fill: parent
+                screenName: win.modelData.name
+            }
+
             DesktopMenu {
                 id: menu
                 parentWindow: win

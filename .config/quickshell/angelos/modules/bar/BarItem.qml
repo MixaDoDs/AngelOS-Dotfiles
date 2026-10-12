@@ -34,7 +34,7 @@ Loader {
     // an icon without words takes a square cell on the hell bar: one grid, equal steps
     readonly property bool iconOnly: !!item && item.barInk !== undefined && item.icon !== undefined && item.icon !== "" && item.text === ""
 
-    readonly property bool tall: wid === "start" || wid === "tasks" || wid === "media" || wid === "lyrics"
+    readonly property bool tall: wid === "start" || wid === "tasks" || wid === "media" || wid === "lyrics" || wid === "peripherals" || wid === "eq"
     // Windows 11-like centred taskbar: the window buttons as wide as they need, shrinking when crowded
     property bool centered: false
     // upright: "Windows" as wide as the bar and as tall as the room left (or its buttons, compact)
@@ -62,6 +62,9 @@ Loader {
             return Wifi.available && !!Wifi.wiredDevice && Config.network.showWired;
         if (wid === "battery")
             return Power.hasBattery && Config.power.showBattery;
+        // the devices' ampoules: only where a device reports its charge
+        if (wid === "peripherals")
+            return Config.peripherals.show && Peripherals.onBar.length > 0;
         if (wid === "media")
             return Config.bar.showMedia && !!Lyrics.player && Lyrics.title !== "";
         if (wid === "lyrics")
@@ -107,6 +110,8 @@ Loader {
             return layoutC;
         case "volume":
             return volumeC;
+        case "eq":
+            return eqC;
         case "bell":
             return bellC;
         case "wifi":
@@ -117,6 +122,8 @@ Loader {
             return wiredC;
         case "battery":
             return batteryC;
+        case "peripherals":
+            return peripheralsC;
         case "clock":
             return clockC;
         default:
@@ -183,6 +190,13 @@ Loader {
         }
     }
     Component {
+        id: eqC
+        EqButton {
+            above: root.bar.above
+            vertical: root.vertical
+        }
+    }
+    Component {
         id: bellC
         Bell {}
     }
@@ -211,11 +225,18 @@ Loader {
         }
     }
     Component {
+        id: peripheralsC
+        PeripheralsButton {
+            above: root.bar.above
+        }
+    }
+    Component {
         id: clockC
         Clock {
             screenName: root.bar.screenName
             above: root.bar.above
             showDate: !root.vertical && (root.bar.style === "taskbar" || root.bar.style === "windose")
+            narrow: root.vertical
         }
     }
     Component {

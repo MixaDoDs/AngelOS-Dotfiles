@@ -6,6 +6,7 @@ import qs.widgets
 import qs.modules.chest
 import qs.modules.clipboard
 import qs.modules.diary
+import qs.modules.keycast
 import qs.modules.launcher
 import qs.modules.laptop
 import qs.modules.session
@@ -32,6 +33,12 @@ Scope {
     LazyLoader {
         active: chestKeep.alive
         ChestOverlay {}
+    }
+
+    // the keys pressed on screen (Mod+Shift+K): only while it is on
+    LazyLoader {
+        active: KeyCast.on
+        KeyCastOverlay {}
     }
 
     Linger {
@@ -73,6 +80,8 @@ Scope {
     // first-run wizard or a stream (the build is a second of CPU); asked again until it fits.
     // Not in the eco mode either (services/Power): the kept window is ~100 MB a machine that
     // saves has better uses for — it goes when eco comes, and opens as any other window does.
+    // Since 2026-10-12 off unless asked for: bin/angelos starts the shell with
+    // ANGELOS_SETTINGS_WARM=0 (the window is ~136 MB of the shell's memory); =1 keeps it built.
     Connections {
         target: Power
         function onEcoChanged() {
@@ -83,7 +92,7 @@ Scope {
     Timer {
         id: settingsWarm
         interval: 8000
-        running: !Shell.settingsWarm && !Power.eco && Quickshell.env("ANGELOS_SETTINGS_WARM") !== "0"   // 0: never (to compare)
+        running: !Shell.settingsWarm && !Power.eco && Quickshell.env("ANGELOS_SETTINGS_WARM") !== "0"
         repeat: true
         onTriggered: {
             if (Shell.bootOpen || Shell.bootCover || Shell.setupOpen || StreamMode.active)
@@ -123,8 +132,7 @@ Scope {
         active: GameDebug.shown
     }
 
-    // the live wallpaper's scene editor: the author's only, its window comes with
-    // owner/scene-editor (services/SceneEditor; nothing looked for in a public install)
+    // the live wallpaper's scene editor (modules/sceneeditor, services/SceneEditor)
     LazyLoader {
         source: SceneEditor.windowUrl
         active: SceneEditor.shown

@@ -5,6 +5,7 @@
   browser-theme.py build PALETTE.json          write the static themes for the palette's realm
   browser-theme.py status                      every browser found, as JSON
   browser-theme.py apply ID [--restart|--wait] turn angelOS's look on in ID's profile
+  browser-theme.py tabs ID [--restart|--wait]  Helium, Chromium: the look "tabs" instead
   browser-theme.py revert ID [--restart|--wait] put the profile back as it was before
   ID: helium, chromium or firefox
 
@@ -15,8 +16,15 @@ Two looks:
           the default one.
   static  a theme file for the current palette and realm, read when the browser starts:
           Chromium's theme extension ~/.local/share/angelos/helium/theme (helium://extensions
-          → Developer mode → Load unpacked, once; Chromium can't load a theme by itself) and
+          → Developer mode → Load unpacked, once) and
           Firefox's userChrome.css (angelOS turns it on in the profile by `apply firefox`).
+  tabs    that theme extension, loaded by angelOS itself: one line, --load-extension=…, in the
+          browser's flags file (~/.config/helium-browser-flags.conf, chromium-flags.conf; the
+          other lines and a --load-extension of the user's own are kept). For Helium, where
+          the GTK theme cannot show which tab is open (it paints the strip, the open tab and
+          the toolbar in one colour and fills no other tab): here the open tab is the bright
+          one. The colours are read at the browser's start, so heaven and hell do not switch
+          live. `apply` (back to GTK) and `revert` take the line out again.
 
 Profiles are touched only by `apply`/`revert` (a button in Settings), never by `build`.
 Chromium writes its Preferences when it quits, so they are edited only while it is closed:
@@ -73,9 +81,9 @@ def config_home(env):
 
 BROWSERS = {
     "helium": {"name": "Helium", "kind": "chromium", "comm": "helium", "dir": "net.imput.helium",
-               "bins": ["helium-browser", "/opt/helium-browser-bin/helium"]},
+               "bins": ["helium-browser", "/opt/helium-browser-bin/helium"], "flags": "helium-browser-flags.conf"},
     "chromium": {"name": "Chromium", "kind": "chromium", "comm": "chromium", "dir": "chromium",
-                 "bins": ["chromium", "/usr/lib/chromium/chromium"]},
+                 "bins": ["chromium", "/usr/lib/chromium/chromium"], "flags": "chromium-flags.conf"},
     "firefox": {"name": "Firefox", "kind": "firefox", "comm": "firefox", "dir": None,
                 "bins": ["firefox", "/usr/lib/firefox/firefox"]},
 }
@@ -96,25 +104,40 @@ def mix(a, b, t):
     return "#" + "".join("%02x" % round(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
 
+def luma(h):
+    r, g, b = rgb(h)
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255
+
+
 def looks(p, hell):
-    """The browser's parts in the palette's (or hell's) colours, as #rrggbb."""
+    """The browser's parts in the palette's (or hell's) colours, as #rrggbb.
+    The open tab must be seen at a glance. It is the toolbar's colour ("toolbar"), so that one
+    is the bright one — in heaven the theme's own colour for the browsers' bar (palette key
+    browserBar, Settings → Windows) — and the frame and the other tabs ("tab") are dark.
+    Chromium lays the other tabs flat on the dark frame, the open one joins the toolbar.
+    Helium paints its tab strip in the toolbar's colour too: there the other tabs are dark
+    plates on it and the open one is the bright gap between them."""
     if hell:
         h = HELL
         return {
-            "frame": mix(h["faceAlt"], h["blood"], 0.35), "frameInactive": h["face"],
+            "frame": h["face"], "frameInactive": h["sunken"],
             "incognito": h["body"], "incognitoInactive": h["sunken"],
-            "tab": h["face"], "tabInactive": h["sunken"], "tabText": h["flame"], "tabTextDim": h["textDim"],
-            "toolbar": h["face"], "text": h["text"], "icon": h["flame"],
+            "tab": h["sunken"], "tabInactive": h["sunken"], "tabText": h["flame"], "tabTextDim": h["textDim"],
+            "toolbar": mix(h["faceAlt"], h["blood"], 0.35), "text": h["text"], "barText": h["text"], "icon": h["flame"],
             "field": h["sunken"], "desk": h["body"], "link": h["ember"], "accent": h["blood"],
             "button": h["faceAlt"], "edge": h["edge"], "select": h["blood"], "selectText": h["text"],
             "dark": True,
         }
     dark = p.get("mode") == "dark"
+    bar = p.get("browserBar") or mix(p["faceAlt"], p["accent"], 0.30 if dark else 0.16)
+    text = p.get("browserBarText") or p["text"]         # on the bar: a picked one may be light
     return {
-        "frame": mix(p["faceAlt"], p["accent"], 0.16 if dark else 0.10), "frameInactive": p["faceAlt"],
+        "frame": p["faceAlt"], "frameInactive": p["face"],
         "incognito": mix(p["desk"], "#000000", 0.4), "incognitoInactive": mix(p["desk"], "#000000", 0.5),
-        "tab": p["faceAlt"], "tabInactive": p["faceAlt"], "tabText": p["text"], "tabTextDim": p["textDim"],
-        "toolbar": p["face"], "text": p["text"], "icon": p["accent"],
+        "tab": p["desk"], "tabInactive": p["desk"], "tabText": text, "tabTextDim": p["textDim"],
+        # the accent as the icons' colour only where it stands out from the bar
+        "toolbar": bar, "text": p["text"], "barText": text,
+        "icon": p["accent"] if abs(luma(p["accent"]) - luma(bar)) > 0.22 else text,
         "field": p["sunken"], "desk": p["desk"], "link": p["accent"], "accent": p["accent"],
         "button": p["face"], "edge": p.get("edge", p["sunken"]),
         "select": p.get("select", p["accent"]), "selectText": p.get("selectText", p["desk"]),
@@ -127,11 +150,11 @@ def chromium_colors(c):
         "frame": rgb(c["frame"]), "frame_inactive": rgb(c["frameInactive"]),
         "frame_incognito": rgb(c["incognito"]), "frame_incognito_inactive": rgb(c["incognitoInactive"]),
         "background_tab": rgb(c["tab"]), "background_tab_inactive": rgb(c["tabInactive"]),
-        "toolbar": rgb(c["toolbar"]), "toolbar_text": rgb(c["text"]),
+        "toolbar": rgb(c["toolbar"]), "toolbar_text": rgb(c["barText"]),
         "toolbar_button_icon": rgb(c["icon"]),
         "tab_text": rgb(c["tabText"]), "tab_background_text": rgb(c["tabTextDim"]),
         "tab_background_text_inactive": rgb(c["tabTextDim"]),
-        "bookmark_text": rgb(c["text"]),
+        "bookmark_text": rgb(c["barText"]),
         "omnibox_background": rgb(c["field"]), "omnibox_text": rgb(c["text"]),
         "ntp_background": rgb(c["desk"]), "ntp_text": rgb(c["text"]),
         "ntp_link": rgb(c["link"]), "ntp_header": rgb(c["accent"]),
@@ -146,8 +169,8 @@ def firefox_css(c, realm):
         "toolbox-text-color": c["text"], "toolbox-text-color-inactive": c["tabTextDim"],
         "toolbox-bgcolor": c["frame"], "toolbox-bgcolor-inactive": c["frameInactive"], "toolbox-textcolor": c["text"],
         "lwt-accent-color": c["frame"], "lwt-text-color": c["text"],
-        "toolbar-background-color": c["toolbar"], "toolbar-text-color": c["text"],
-        "toolbar-bgcolor": c["toolbar"], "toolbar-color": c["text"],
+        "toolbar-background-color": c["toolbar"], "toolbar-text-color": c["barText"],
+        "toolbar-bgcolor": c["toolbar"], "toolbar-color": c["barText"],
         "tab-background-color-selected": c["toolbar"], "tab-text-color-selected": c["tabText"],
         "tab-selected-bgcolor": c["toolbar"], "tab-selected-textcolor": c["tabText"],
         "tab-text-color": c["tabTextDim"], "tab-loading-fill": c["accent"],
@@ -157,11 +180,11 @@ def firefox_css(c, realm):
         "toolbar-field-color": c["text"], "toolbar-field-focus-color": c["text"],
         "toolbar-field-focus-background-color": c["field"], "toolbar-field-focus-border-color": c["accent"],
         "toolbarbutton-icon-fill": c["icon"],
-        "panel-background-color": c["toolbar"], "panel-text-color": c["text"], "panel-border-color": c["edge"],
-        "arrowpanel-background": c["toolbar"], "arrowpanel-color": c["text"], "arrowpanel-border-color": c["edge"],
+        "panel-background-color": c["toolbar"], "panel-text-color": c["barText"], "panel-border-color": c["edge"],
+        "arrowpanel-background": c["toolbar"], "arrowpanel-color": c["barText"], "arrowpanel-border-color": c["edge"],
         "focus-outline-color": c["accent"],
         "urlbarView-highlight-background": c["select"], "urlbarView-highlight-color": c["selectText"],
-        "sidebar-background-color": c["toolbar"], "sidebar-text-color": c["text"],
+        "sidebar-background-color": c["toolbar"], "sidebar-text-color": c["barText"],
         "chrome-content-separator-color": c["edge"], "newtab-background-color": c["desk"],
     }
     body = "\n".join("  --%s: %s !important;" % kv for kv in v.items())
@@ -173,8 +196,8 @@ def firefox_css(c, realm):
             "#nav-bar, #PersonalToolbar { background-color: %s !important; color: %s !important; }\n"
             ".tab-background[selected] { background-color: %s !important; }\n"
             "menupopup, panel { --panel-background: %s !important; --panel-color: %s !important; }\n"
-            % (realm, scheme, body, c["frame"], c["text"], c["frameInactive"], c["toolbar"], c["text"],
-               c["toolbar"], c["toolbar"], c["text"]))
+            % (realm, scheme, body, c["frame"], c["text"], c["frameInactive"], c["toolbar"], c["barText"],
+               c["toolbar"], c["toolbar"], c["barText"]))
 
 
 def write_text(path, text):
@@ -268,6 +291,22 @@ def close_gently(b, timeout=30):
             return argv
         time.sleep(0.2)
     return None
+
+
+def keep_session(b):
+    """A copy of the open windows and tabs before a restart (Chromium's Default/Sessions) into a
+    new folder: on 2026-10-12 a real Helium came back from a gentle restart with one new window
+    instead of its 35 tabs — they were still in History → Recently closed (Ctrl+Shift+T), and
+    in the old session file, but nothing here had kept that file."""
+    src = b["profile"] / "Default/Sessions"
+    if not src.is_dir():
+        return None
+    d = backup(b["id"], [])
+    try:
+        shutil.copytree(src, d / "Sessions")
+    except (OSError, shutil.Error):
+        return None
+    return d
 
 
 def zombie(pid):
@@ -400,6 +439,64 @@ def dig(d, path, create=False):
     return d, keys[-1]
 
 
+# The look "tabs": the theme extension named in the launcher's flags file. Only our path is
+# ever added or taken away; a line that held nothing else goes with its comment.
+FLAG = "--load-extension="
+FLAG_NOTE = "# angelOS: the theme with a visible open tab (Settings - Windows; browser-theme.py apply or revert takes it out)"
+
+
+def flags_file(b):
+    return config_home(os.environ) / b["flags"]
+
+
+def flags_loaded(text):
+    """the paths of the active --load-extension lines"""
+    out = []
+    for line in text.splitlines():
+        if line.strip().startswith(FLAG):
+            out += [x for x in line.strip()[len(FLAG):].split(",") if x]
+    return out
+
+
+def flags_has(b):
+    return str(THEME) in flags_loaded(read_text(flags_file(b)))
+
+
+def flags_set(b, on):
+    """Our extension into the flags file or out of it; True if the file changed."""
+    path = flags_file(b)
+    old = read_text(path)
+    lines, done = [], False
+    for line in old.splitlines():
+        if line.strip() == FLAG_NOTE:
+            continue
+        if line.strip().startswith(FLAG):
+            paths = [x for x in line.strip()[len(FLAG):].split(",") if x and x != str(THEME)]
+            if on and not done:                    # Chromium reads the last such flag only: one line
+                paths.append(str(THEME))
+                done = True
+                lines.append(FLAG_NOTE)
+            if paths:
+                lines.append(FLAG + ",".join(paths))
+            continue
+        lines.append(line)
+    if on and not done:
+        lines += [FLAG_NOTE, FLAG + str(THEME)]
+    new = "\n".join(lines) + "\n" if lines else ""
+    if new == old:
+        return False
+    if path.exists():
+        backup(b["id"], [path])
+    if new:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".angelos-tmp")
+        tmp.write_text(new)
+        tmp.replace(path)
+    else:
+        path.unlink(missing_ok=True)
+    return True
+
+
 def chromium_gtk_mode(prefs):
     ext = (prefs.get("extensions") or {}).get("theme") or {}
     return ext.get("system_theme") == 1 and not ext.get("id")
@@ -413,13 +510,14 @@ def chromium_status(b):
             if isinstance(v, dict) and v.get("path") == str(THEME):
                 loaded = True
     return {"profile": prefs is not None, "live": bool(prefs and chromium_gtk_mode(prefs)),
-            "static": loaded, "theme": str(THEME)}
+            "static": loaded, "tabs": flags_has(b), "theme": str(THEME)}
 
 
 def chromium_edit(b, bid, on):
     path = b["profile"] / "Default/Preferences"
     prefs = json.loads(path.read_text())
     undo = load_undo(bid, b["profile"])
+    flags_set(b, False)                              # GTK, or as it was: not the look "tabs"
     if on:
         folder = backup(bid, [path])
         before = undo["before"] if undo else {}
@@ -566,6 +664,32 @@ def status():
     print(json.dumps({"browsers": out}, ensure_ascii=False))
 
 
+def tabs(bid, mode):
+    """The look "tabs": the flags file is the whole of it — the browser takes the theme by
+    itself at its next start. An open browser is asked about first (restart now, or leave it
+    for the next start); nothing is written until one of the two is chosen."""
+    b = BROWSERS[bid]
+    if b["kind"] != "chromium":
+        return {"ok": False, "error": "%s has no such look" % b["name"]}
+    if not (THEME / "manifest.json").exists():
+        return {"ok": False, "error": "the theme is not built yet (Settings → Appearance: app themes)"}
+    if not re.fullmatch(r"[\w./+@:-]+", str(THEME)):
+        # the launchers split their flags file as a shell would
+        return {"ok": False, "error": "the theme's path has characters a flags file can't hold: %s" % THEME}
+    open_now = running(b)
+    if open_now and mode not in ("restart", "wait"):
+        return {"ok": True, "done": False, "running": True}
+    subprocess.run(["systemctl", "--user", "stop", waiter_unit(bid)], capture_output=True)
+    flags_set(b, True)
+    if open_now and mode == "restart":
+        keep_session(b)
+        if close_gently(b) is None:
+            return {"ok": False, "error": "%s didn't close" % b["name"], "running": True}
+        # through the launcher, not the way it ran: the flags file is the launcher's
+        return {"ok": True, "done": True, "reopened": reopen(b, None)}
+    return {"ok": True, "done": True, "running": open_now}
+
+
 def edit(bid, on, mode):
     b = BROWSERS[bid]
     if b["kind"] == "firefox":
@@ -576,6 +700,7 @@ def edit(bid, on, mode):
         return {"ok": False, "error": "no %s profile yet: start it once" % b["name"]}
     if running(b):
         if mode == "restart":
+            keep_session(b)
             argv = close_gently(b)
             if argv is None:
                 return {"ok": False, "error": "%s didn't close" % b["name"], "running": True}
@@ -616,10 +741,10 @@ def main():
         print(json.dumps({"ok": True, "changed": changed, "realm": realm}))
     elif a == ["status"]:
         status()
-    elif len(a) >= 2 and a[0] in ("apply", "revert") and a[1] in BROWSERS:
+    elif len(a) >= 2 and a[0] in ("apply", "revert", "tabs") and a[1] in BROWSERS:
         mode = next((m[2:] for m in a[2:] if m in ("--restart", "--wait", "--waiting")), "")
         try:
-            r = edit(a[1], a[0] == "apply", mode)
+            r = tabs(a[1], mode) if a[0] == "tabs" else edit(a[1], a[0] == "apply", mode)
         except (OSError, ValueError, RuntimeError) as e:
             r = {"ok": False, "error": str(e)}
         print(json.dumps(r, ensure_ascii=False))

@@ -210,6 +210,8 @@ Singleton {
         "Показывать громкость": "Show volume",
         "Показывать смену раскладки": "Show layout changes",
         "маленький бейдж RU/EN": "Small RU/EN badge",
+        "Показывать Caps Lock": "Show Caps Lock",
+        "стрелка на панели рядом с раскладкой, пока он включён": "An arrow on the bar next to the layout while it is on",
         "Установленные (": "Installed (",
         "Перечитать плагины": "Reload plugins",
         "Новый плагин": "New plugin",

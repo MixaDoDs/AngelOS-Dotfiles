@@ -8,6 +8,7 @@ binds {
     Mod+S                               hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
     Mod+Alt+S                           hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
     Mod+Shift+Q                         hotkey-overlay-title="angelOS: выключение" { spawn-sh "qs -c angelos ipc call angelos session"; }
+    Mod+Shift+K                         repeat=false hotkey-overlay-title="angelOS: показ нажатых клавиш" { spawn-sh "qs -c angelos ipc call angelos keycast"; }
     Mod+E                               hotkey-overlay-title="File Manager: Nautilus" { spawn "nautilus"; }
     XF86AudioRaiseVolume                allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos volumeUp"; }
     XF86AudioLowerVolume                allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos volumeDown"; }
@@ -47,7 +48,8 @@ binds {
     Mod+ESCAPE                          allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
     CTRL+ALT+Delete                     { quit; } // Also quits Niri
     Mod+Shift+P                         { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
-    Mod+Shift+X                         repeat=false allow-inhibiting=false hotkey-overlay-title="Privacy: block Telegram Bitwarden Helium Discord" { spawn "@HOME@/.local/bin/niri-cast-privacy"; }
+    Mod+Shift+X                         repeat=false allow-inhibiting=false hotkey-overlay-title="Privacy: black out the listed apps on stream" { spawn "@HOME@/.local/bin/niri-cast-privacy"; }
+    Mod+Ctrl+Shift+X                    repeat=false allow-inhibiting=false hotkey-overlay-title="Privacy: hide / show this window's app" { spawn "@HOME@/.local/bin/niri-cast-privacy" "app" "toggle"; }
     Mod+Alt+Y                           hotkey-overlay-title="angelOS: лирика вкл/выкл" { spawn-sh "qs -c angelos ipc call angelos lyrics"; }
     Mod+Alt+T                           hotkey-overlay-title="angelOS: светлая/тёмная" { spawn-sh "qs -c angelos ipc call angelos theme toggle"; }
 }

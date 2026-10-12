@@ -56,6 +56,28 @@ Singleton {
         }
         onLoadFailed: root.release = null
     }
+    // «what's new» hung on the desktop (modules/desktop/ChangelogPaper) after an update to a big
+    // release whose author ticked the paper (owner Dotfiles → «ВАЖНО»): once per release, not on a
+    // fresh system (its first run already is this release), not in tests unless asked
+    property bool paperForced: false              // IPC `angelos paper`: hang it again
+    property bool _paperSettled: false
+    readonly property var paperNotes: release && release.paper && Array.isArray(release.notes) ? release.notes : []
+    readonly property bool paperShown: paperNotes.length > 0 && !Shell.setupLocked && (paperForced || _paperSettled && release.number > Config.updates.paperSeen && Quickshell.env("ANGELOS_TEST") !== "1")
+    function putPaperAway() {
+        paperForced = false;
+        if (release)
+            Config.updates.paperSeen = release.number;
+    }
+    // settled: Config.ready comes before the settings' values (as Wallpapers' release offer)
+    Timer {
+        running: Config.ready && !root._paperSettled
+        interval: 15000
+        onTriggered: {
+            if (!Config.setup.complete && root.release && Config.updates.paperSeen < root.release.number)
+                Config.updates.paperSeen = root.release.number;
+            root._paperSettled = true;
+        }
+    }
     property int landed: 0                        // commits the last update brought
     property int systemPackages: -1               // packages the system update of this run upgraded (-1: none ran)
     property bool _systemQt: false                // "SYSTEM <n> 1": Quickshell/Qt changed under the running shell
@@ -452,6 +474,38 @@ Singleton {
     }
 
     // ---- once a day, only telling ----
+    // the clone moved by something other than Settings → Updates — `git pull`, ./install.sh in a
+    // terminal (it brings its clone up to date itself): what «N updates» said is stale, and it
+    // stayed until the next daily check — the update kept hanging in Settings after it was
+    // installed, and people installed it twice. So look again when the clone's HEAD moves…
+    FileView {
+        path: root.repo && !Shell.dev ? root.repo + "/.git/logs/HEAD" : ""
+        printErrors: false
+        watchChanges: true
+        onFileChanged: repoMoved.restart()
+    }
+    // … or when the installer was run from another clone: updates come from that one now
+    FileView {
+        path: Shell.dev ? "" : Config.dir + "/dotfiles-source"
+        printErrors: false
+        watchChanges: true
+        onFileChanged: {
+            root.find();
+            repoMoved.restart();
+        }
+    }
+    Timer {
+        id: repoMoved
+        interval: 4000
+        // our own update moves it too: it reports for itself, the look comes after it
+        onTriggered: {
+            if (root.busy)
+                restart();
+            else
+                root.check();
+        }
+    }
+
     property string notifiedFor: ""
     function maybeNotify() {
         if (behind <= 0 || !incoming.length || Shell.dev)

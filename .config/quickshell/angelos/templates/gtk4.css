@@ -155,3 +155,131 @@ scale > trough > slider {
 switch > slider {
     margin: 0;
 }
+
+/* ---- Nautilus (its own stylesheet: .nautilus-*; ours, the user's, wins on the same selector).
+   The header's buttons are a Win98 flat toolbar: no frame until the pointer is on one (raised),
+   pressed or on (sunken) — a row of half-visible bevels on a dark header read as broken frames.
+   The path bar is an address field: one sunken frame, the folders in it flat, the one under the
+   pointer tinted. Selection in the views in the theme's accent (Nautilus greys it out itself:
+   --accent-bg-color #959595 on its views), square cells and rows, a dashed rubber band.
+   The selectors repeat a class to outweigh the generic button frames above. */
+.nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize) {
+    border: 2px solid transparent;
+    border-image: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+}
+.nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize):hover {
+    border-image: url("assets/frame-raised.svg") 4 / 4px stretch;
+    background-color: {{bgAlt}};
+    background-clip: padding-box;
+}
+.nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize):active,
+.nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize):checked {
+    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+    background-color: alpha({{accent}}, 0.18);
+    background-clip: padding-box;
+}
+.nautilus-window.nautilus-window headerbar button:not(.close):not(.maximize):not(.minimize):disabled {
+    border-image: none;
+    background: none;
+}
+
+.nautilus-pathbar {
+    border: 2px solid transparent;
+    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+    border-radius: 0;
+    background-color: {{bg}};
+    color: {{fg}};
+    background-clip: padding-box;
+    box-shadow: none;
+}
+.nautilus-pathbar > scrolledwindow undershoot.left,
+.nautilus-pathbar > scrolledwindow undershoot.right {
+    border-radius: 0;
+}
+.nautilus-window .nautilus-pathbar.nautilus-pathbar.nautilus-pathbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill) {
+    border: none;
+    border-image: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: none;
+    margin: 2px 1px;
+}
+.nautilus-window .nautilus-pathbar.nautilus-pathbar.nautilus-pathbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):hover {
+    border-image: none;
+    background-color: alpha({{accent}}, 0.18);
+}
+.nautilus-window .nautilus-pathbar.nautilus-pathbar.nautilus-pathbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):active,
+.nautilus-window .nautilus-pathbar.nautilus-pathbar.nautilus-pathbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):checked {
+    border-image: none;
+    background-color: alpha({{accent}}, 0.30);
+}
+.nautilus-path-button.current-dir label {
+    font-weight: bold;
+}
+.nautilus-path-button:drop(active) {
+    box-shadow: inset 0 0 0 2px {{accent}};
+}
+
+.nautilus-list-view listview,
+.nautilus-grid-view gridview,
+.nautilus-network-view listview {
+    --accent-bg-color: {{accent}};
+    --accent-fg-color: {{selectText}};
+    --accent-color: {{accent}};
+}
+.nautilus-grid-view gridview > child,
+.nautilus-grid-view .nautilus-view-cell,
+.nautilus-list-view columnview > listview > row,
+.nautilus-network-view listview > row,
+.navigation-sidebar > row,
+placessidebar row {
+    border-radius: 0;
+}
+.nautilus-grid-view gridview > child:selected,
+.nautilus-list-view columnview > listview > row:selected,
+.nautilus-network-view listview > row:selected {
+    background-color: alpha({{accent}}, 0.32);
+    color: {{fg}};
+}
+.nautilus-grid-view gridview > child:selected:focus-within,
+.nautilus-list-view columnview > listview > row:selected:focus-within {
+    background-color: alpha({{accent}}, 0.45);
+}
+.navigation-sidebar > row:selected {
+    background-color: {{accent}};
+    color: {{selectText}};
+}
+.navigation-sidebar > row:selected image {
+    color: {{selectText}};
+}
+rubberband {
+    border-radius: 0;
+    border: 1px dashed {{accent}};
+    background-color: alpha({{accent}}, 0.15);
+}
+.nautilus-grid-view:drop(active),
+.nautilus-list-view:drop(active),
+.nautilus-network-view:drop(active) {
+    box-shadow: inset 0 0 0 2px {{accent}};
+}
+
+/* the status bar in the corner (what is selected, what loads) */
+.floating-bar {
+    border: 2px solid transparent;
+    border-image: url("assets/frame-raised.svg") 4 / 4px stretch;
+    border-radius: 0;
+    background-color: {{bgAlt}};
+    background-clip: padding-box;
+    box-shadow: none;
+}
+
+/* the search field and the progress button */
+.nautilus-query-editor {
+    border-radius: 0;
+}
+.nautilus-progress-indicator menubutton > button {
+    border-radius: 0;
+}

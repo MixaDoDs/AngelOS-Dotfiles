@@ -19,7 +19,24 @@ Singleton {
     // background: what changed since shows after a restart (Settings says so, with the button)
     property bool needsRestart: false
     readonly property bool running: !!status.running
-    // the angelOS look changed (ThemeExport rendered the GTK 4 CSS anew) while Nautilus ran
+    // the angelOS look changed (ThemeExport rendered the GTK 4 CSS anew) while Nautilus ran.
+    // Nothing of it on the screen: it quits at once (`nautilus -q`; the next window starts it
+    // in the new look). Windows of it open: it quits when the last one closes — never under them.
+    property bool _stale: false
+    readonly property bool hasWindows: Niri.windows.some(w => /^org\.gnome\.Nautilus$/i.test(w.app_id || ""))
+    onHasWindowsChanged: if (!hasWindows && _stale)
+        freshen.restart()
+    Timer {
+        id: freshen
+        interval: 1500     // a window closed and another opened right away: leave it be
+        onTriggered: {
+            if (!root._stale || root.hasWindows || !root.running || worker.running || Shell.dev)
+                return;
+            root._stale = false;
+            root.needsRestart = false;
+            root.run(["restart"]);
+        }
+    }
     Connections {
         target: ThemeExport
         function onRenderedChanged() {
@@ -44,6 +61,7 @@ Singleton {
     }
     function restartNautilus() {
         needsRestart = false;
+        _stale = false;
         run(["restart"]);
     }
     function run(args) {
@@ -74,8 +92,11 @@ Singleton {
             onStreamFinished: {
                 try {
                     root.status = JSON.parse(text);
-                    if (root._themeCheck && root.status.running)
+                    if (root._themeCheck && root.status.running) {
                         root.needsRestart = true;
+                        root._stale = true;
+                        freshen.restart();
+                    }
                 } catch (e) {}
                 root._themeCheck = false;
             }
@@ -92,8 +113,11 @@ Singleton {
                     root._firstApply = false;
                     if (r.status)
                         root.status = r.status;
-                    if (r.restart)
+                    if (r.restart) {
                         root.needsRestart = true;
+                        root._stale = true;
+                        freshen.restart();
+                    }
                     root.log = r.error ? r.error : (r.errors || []).concat(r.changes || r.removed || []).join("\n") || (r.quit !== undefined ? (r.quit ? I18n.t("Nautilus закрыт — следующее окно откроется уже с изменениями", "Nautilus quit — the next window opens with the changes") : I18n.t("Nautilus не был запущен", "Nautilus was not running")) : I18n.t("уже всё на месте", "everything is in place already"));
                 } catch (e) {
                     root.log = text.trim();

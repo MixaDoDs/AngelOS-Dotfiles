@@ -72,7 +72,13 @@
     "звук в записи",
     "fps",
     "screen recording",
-    "video"
+    "video",
+    "показ клавиш",
+    "нажатые клавиши",
+    "keycast",
+    "screenkey",
+    "show keys",
+    "гайд"
   ],
   "capture/skin": [
     "верёвочки",
@@ -137,6 +143,17 @@
     "заставка при входе",
     "boot screen",
     "splash"
+  ],
+  "y2k/stream-privacy": [
+    "приватность",
+    "приват",
+    "скрыть окно",
+    "скрыть приложение",
+    "чёрное окно",
+    "privacy",
+    "hide window",
+    "block out",
+    "blackout"
   ],
   "y2k/stream-mode": [
     "стрим",
@@ -295,6 +312,17 @@
     "логотип",
     "надпись angelos",
     "logo"
+  ],
+  "windows/window-decorations/Цвет панели браузера": [
+    "helium",
+    "хелиум",
+    "вкладки",
+    "цвет вкладок",
+    "яркость вкладок",
+    "браузер",
+    "tabs",
+    "tab colour",
+    "browser"
   ],
   "windows/window-decorations": [
     "заголовок окна",
@@ -629,5 +657,82 @@
     "taskbar position",
     "taskbar left",
     "vertical taskbar"
+  ],
+  "vault/managers": [
+    "пароли",
+    "менеджер паролей",
+    "bitwarden",
+    "битварден",
+    "1password",
+    "rbw",
+    "vaultwarden",
+    "хранилище паролей",
+    "password manager",
+    "passwords",
+    "vault"
+  ],
+  "vault/launcher": [
+    "пароль в лаунчере",
+    "найти пароль",
+    "скопировать пароль",
+    "код 2fa",
+    "find a password",
+    "copy a password"
+  ],
+  "vault/safety": [
+    "стереть буфер обмена",
+    "пароль в буфере",
+    "закрывать хранилище",
+    "wipe the clipboard",
+    "lock the vault"
+  ],
+  "spell/check": [
+    "орфография",
+    "проверка орфографии",
+    "правописание",
+    "опечатки",
+    "ошибки в тексте",
+    "подчёркивать ошибки",
+    "spelling",
+    "spell check",
+    "spellcheck",
+    "typos"
+  ],
+  "spell/installed": [
+    "словарь",
+    "словари",
+    "hunspell",
+    "dictionary",
+    "dictionaries"
+  ],
+  "spell/download": [
+    "скачать словарь",
+    "скачать язык",
+    "язык проверки",
+    "download a dictionary",
+    "download a language"
+  ],
+  "windows/floating": [
+    "плавающие окна",
+    "float",
+    "floating",
+    "все окна плавающие",
+    "как в windows",
+    "поверх",
+    "без тайлинга",
+    "не тайлинг",
+    "stacking",
+    "overlap"
+  ],
+  "programs/bloat": [
+    "лишнее",
+    "блоат",
+    "bloat",
+    "preinstalls",
+    "omarchy",
+    "удалить ненужное",
+    "предустановленные",
+    "очистить систему",
+    "debloat"
   ]
 }

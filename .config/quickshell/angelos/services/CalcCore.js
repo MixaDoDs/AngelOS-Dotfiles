@@ -6,6 +6,7 @@
 //   sin(30) (degrees; with pi inside — radians) · ln, log, log2, abs, round…
 //   10 км в милях · 100f to c · 5 GB in MB · 2 ч в мин · 70 kg в фунтах
 //   100 usd в rub · 50€ to $ · 1000 рублей в долларах (rates come from Calc.qml)
+//   100$ · 10к рублей · сколько 2,5 тыс евро в рублях? · курс доллара · курс евро к рублю
 
 const FUNCS = {
     "sqrt": Math.sqrt,
@@ -396,13 +397,13 @@ function convert(text) {
 
 // ---- currencies: the rates (per 1 USD) come from Calc.qml ----
 const CURRENCIES = {
-    "USD": ["usd", "$", "us$", "dollar", "dollars", "доллар", "доллара", "долларов", "долларах", "доллары", "бакс", "бакса", "баксов", "баксах"],
+    "USD": ["usd", "$", "us$", "dollar", "dollars", "доллар", "доллара", "долларов", "долларах", "доллары", "доллару", "долл", "бакс", "бакса", "баксов", "баксах", "баксы"],
     "EUR": ["eur", "€", "euro", "euros", "евро"],
-    "RUB": ["rub", "₽", "руб", "рубль", "рубля", "рублей", "рублях", "рубли", "р"],
-    "GBP": ["gbp", "£", "фунт стерлингов", "фунтов стерлингов", "фунтах стерлингов"],
+    "RUB": ["rub", "₽", "руб", "рубль", "рубля", "рублей", "рублях", "рубли", "рублю", "р"],
+    "GBP": ["gbp", "£", "pound", "pounds", "фунт", "фунта", "фунтов", "фунтах", "фунту", "фунт стерлингов", "фунтов стерлингов", "фунтах стерлингов"],
     "JPY": ["jpy", "¥", "yen", "иена", "иены", "иен", "иенах"],
-    "CNY": ["cny", "rmb", "yuan", "юань", "юаня", "юаней", "юанях"],
-    "UAH": ["uah", "₴", "гривна", "гривны", "гривен", "гривнах"],
+    "CNY": ["cny", "rmb", "yuan", "юань", "юаня", "юаней", "юанях", "юаню"],
+    "UAH": ["uah", "₴", "гривна", "гривны", "гривен", "гривнах", "гривне"],
     "KZT": ["kzt", "₸", "тенге"],
     "BYN": ["byn", "бел руб", "белорусский рубль", "белорусских рублей"],
     "TRY": ["try", "₺", "лира", "лиры", "лир", "лирах"],
@@ -411,7 +412,13 @@ const CURRENCIES = {
     "KRW": ["krw", "₩", "вона", "вон"],
     "INR": ["inr", "₹", "рупия", "рупии", "рупий"],
     "GEL": ["gel", "₾", "лари"],
-    "AMD": ["amd", "֏", "драм", "драма", "драмов"]
+    "AMD": ["amd", "֏", "драм", "драма", "драмов"],
+    "AED": ["aed", "дирхам", "дирхама", "дирхамов"],
+    "THB": ["thb", "฿", "бат", "бата", "батов"],
+    "CAD": ["cad", "c$", "канадский доллар", "канадских долларов"],
+    "AUD": ["aud", "a$", "австралийский доллар", "австралийских долларов"],
+    "SEK": ["sek", "шведская крона", "шведских крон"],
+    "CZK": ["czk", "kč", "чешская крона", "чешских крон"]
 };
 const _cur = {};
 for (const code in CURRENCIES)
@@ -424,21 +431,58 @@ function currency(name, rates) {
     const up = n.toUpperCase();
     return /^[A-Z]{3}$/.test(up) && rates && rates[up] ? up : null;
 }
-const SYMBOL_FIRST = /^\s*([$€£¥₽₴₸₺₹₩₾])\s*(\d[\d\s]*(?:[.,]\d+)?)(.*)$/;
+const SYMBOL_FIRST = /^\s*([$€£¥₽₴₸₺₹₩₾฿])\s*(\d[\d\s]*(?:[.,]\d+)?)(.*)$/;
+// "сколько …?", "how much is …": the question around a sum
+const ASK = /^\s*(?:сколько\s+(?:будет\s+)?|how\s+much\s+(?:is\s+)?|convert\s+|переведи\s+|перевести\s+)/i;
+// 10к, 2,5 тыс, 1.2m, 3 млн: the amount's own multiplier (not a letter of the next word)
+const MULT = /^(\s*-?\d[\d\s]*(?:[.,]\d+)?)\s*(k|к|тыс\.?|тысяч[аи]?|m|mln|млн\.?|миллион(?:а|ов)?)(?![a-zа-яё])/i;
+const MULTS = {"k": 1e3, "к": 1e3, "m": 1e6, "mln": 1e6};
+function multiplier(word) {
+    const w = word.toLowerCase().replace(/\.$/, "");
+    return MULTS[w] || (w.startsWith("тыс") ? 1e3 : 1e6);
+}
+const RATE = /^\s*(?:курс|exchange\s+rate|rate)\s+(.+?)(?:\s+(?:к|в|to|in)\s+(.+?))?\s*$/i;
+const LONE = /^\s*(-?\d[\d\s]*(?:[.,]\d+)?)\s*(.+?)\s*$/;
+// the other side when only one currency is named: home (the locale's), or — home itself
+// named — dollars (euros for dollars)
+function other(a, home) {
+    if (home && a !== home)
+        return home;
+    return a === "USD" ? "EUR" : "USD";
+}
 
-// "100 usd в rub" → {amount, from, to} (the rate is applied by Calc.qml) or null
-function money(text, rates) {
-    let t = String(text);
+// "100 usd в rub" → {amount, from, to} (the rate is applied by Calc.qml) or null; `home` is the
+// currency a lone sum goes into ("100$", "курс доллара")
+function money(text, rates, home) {
+    let t = String(text).replace(ASK, "").replace(/[?？]+\s*$/, "");
+    const r = RATE.exec(t);
+    if (r) {
+        const a = currency(r[1], rates);
+        const b = r[2] ? currency(r[2], rates) : a && other(a, home);
+        return a && b && a !== b ? {
+            "amount": 1,
+            "from": a,
+            "to": b
+        } : null;
+    }
     const sym = SYMBOL_FIRST.exec(t);
     if (sym)
         t = sym[2].trim() + " " + sym[1] + " " + sym[3].trim();
     // "100$ в рублях": a symbol glued to the number
-    t = t.replace(/^(\s*-?\d[\d\s]*(?:[.,]\d+)?)([$€£¥₽₴₸₺₹₩₾])/, "$1 $2");
+    t = t.replace(/^(\s*-?\d[\d\s]*(?:[.,]\d+)?)([$€£¥₽₴₸₺₹₩₾฿])/, "$1 $2");
+    let k = 1;
+    const mm = MULT.exec(t);
+    if (mm) {
+        k = multiplier(mm[2]);
+        t = mm[1] + " " + t.slice(mm[0].length).trim();
+    }
     const m = PHRASE.exec(t);
-    if (!m)
+    const lone = m ? null : LONE.exec(t);
+    if (!m && !lone)
         return null;
-    const v = number(m[1]);
-    const a = currency(m[2], rates), b = currency(m[3], rates);
+    const v = number((m || lone)[1]) * k;
+    const a = currency((m || lone)[2], rates);
+    const b = m ? currency(m[3], rates) : a && other(a, home);
     if (!isFinite(v) || !a || !b || a === b)
         return null;
     return {

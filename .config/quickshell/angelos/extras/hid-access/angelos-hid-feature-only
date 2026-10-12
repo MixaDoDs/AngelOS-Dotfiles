@@ -1,0 +1,47 @@
+#!/bin/sh
+# angelOS: is this hidraw node a maker's configuration interface that carries no input?
+#   angelos-hid-feature-only /sys/devices/…/hidraw/hidrawN      exit 0 = yes
+# udev asks it (70-angelos-peripherals.rules, as root, only for the makers listed there)
+# before letting the user at the seat open the node: the charge of a wireless mouse is read
+# from its dongle with a feature report (scripts/peripherals.py). Yes only for a report
+# descriptor that opens with a vendor usage page (06 xx FF), has a feature report of 64 bytes
+# without a report id and no input or output report at all — through such a node nothing
+# typed, clicked or moved can be read, and the keyboard's and the mouse's own interfaces of
+# the same dongle never pass. The same test as peripherals.py's vendor_feature_interface
+# (tests/peripherals keeps the two alike). Reads one sysfs file, writes nothing.
+PATH=/usr/bin:/bin
+f="${1:-}/device/report_descriptor"
+[ -f "$f" ] || exit 1
+od -An -v -tu1 -N4096 -- "$f" | awk '
+    { for (i = 1; i <= NF; i++) d[n++] = $i }
+    END {
+        if (n < 6 || d[0] != 6 || d[2] != 255)
+            exit 1
+        i = 0; size = 0; count = 0; feature = 0
+        while (i < n) {
+            b = d[i]
+            if (b == 254) {                         # a long item
+                if (i + 1 >= n)
+                    break
+                i += 3 + d[i + 1]
+                continue
+            }
+            len = b % 4
+            if (len == 3)
+                len = 4
+            tag = b - b % 4
+            val = 0
+            for (k = len; k >= 1; k--)
+                val = val * 256 + (i + k < n ? d[i + k] : 0)
+            if (tag == 132 || tag == 128 || tag == 144)     # a report id, an input, an output
+                exit 1
+            if (tag == 176)                                 # a feature report
+                feature = 1
+            if (tag == 116)
+                size = val
+            if (tag == 148)
+                count = val
+            i += 1 + len
+        }
+        exit (feature && int(size * count / 8) == 64) ? 0 : 1
+    }'

@@ -168,6 +168,7 @@ PxWindow {
             spacing: Theme.u * 3
             PxField {
                 id: replyField
+                spell: true
                 width: parent.width - send.width - Theme.u * 3
                 anchors.verticalCenter: parent.verticalCenter
                 placeholder: Notifs.replyHint(root.notification) || I18n.t("Ответ… (Enter — отправить)", "Reply… (Enter sends)")

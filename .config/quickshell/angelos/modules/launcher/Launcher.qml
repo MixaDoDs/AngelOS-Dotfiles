@@ -10,7 +10,8 @@ import qs.widgets
 // App launcher (Mod+Space): a big search field, results with the picked one's details beside
 // them, the keys along the bottom. Fuzzy search, frequent apps first, ">" runs a shell command,
 // files by name or type (FileSearch: "sex", ".jpeg") with a preview beside it; Ctrl+Enter shows
-// a found file in its folder.
+// a found file in its folder. "pw name" looks in the password manager (services/Vault): Enter
+// copies the password, Ctrl+Enter the login, Shift+Enter the one-time code.
 PanelWindow {
     id: win
 
@@ -49,6 +50,40 @@ PanelWindow {
     property int current: 0
     property int providerTick: 0   // bumped when a provider has fresh async results
     readonly property bool command: query.startsWith(">")
+    // "pw …": what follows the prefix, null when the query isn't for the password manager
+    readonly property var vaultQuery: command ? null : Vault.match(query)
+    readonly property bool vaultMode: vaultQuery !== null
+    onVaultModeChanged: {
+        if (vaultMode)
+            Vault.touch();
+        else
+            unlockFor = "";
+    }
+    // the manager whose master password is being typed (the pane over the results)
+    property string unlockFor: ""
+    function askPassword(id) {
+        unlockFor = id;
+        secret.text = "";
+        Qt.callLater(() => secret.focusField());
+    }
+    function leavePassword() {
+        unlockFor = "";
+        secret.text = "";
+        field.focusField();
+    }
+    Connections {
+        target: Vault
+        function onTickChanged() {
+            const b = win.unlockFor ? Vault.backend(win.unlockFor) : null;
+            if (b && b.state === "unlocked")
+                win.leavePassword();
+        }
+        // a manager that asks by itself could not (1Password without its app): ask here
+        function onWantedChanged() {
+            if (Vault.wanted && win.visible && win.vaultMode)
+                win.askPassword(Vault.wanted);
+        }
+    }
     readonly property var apps: DesktopEntries.applications.values.filter(a => !a.noDisplay)
 
     // plugin launcher providers (manifest "launcher"), instantiated once
@@ -100,8 +135,20 @@ PanelWindow {
     // unified rows: {app} for desktop entries, {provider, r} for plugin results
     readonly property var results: {
         providerTick;
+        Vault.tick;
         if (command)
             return [];
+        if (vaultMode)
+            return Vault.rows(vaultQuery).map(v => ({
+                        "builtin": "vault",
+                        "vault": v,
+                        "r": {
+                            "title": v.title,
+                            "subtitle": v.subtitle,
+                            "icon": v.icon
+                        },
+                        "s": v.s
+                    })).sort((x, y) => y.s - x.s);
         const fromProvider = (p, text, prefixed) => {
             let list = [];
             try {
@@ -128,6 +175,22 @@ PanelWindow {
             for (const p of providers)
                 if (p.global !== false)
                     rows = rows.concat(fromProvider(p, query.trim(), false));
+        // an open vault's logins among the rest, no "pw" needed (not on air: a masked name says nothing)
+        if (q.length >= 2 && Vault.enabled && Config.vault.everywhere !== false && Vault.items.length && !Vault.discreet)
+            for (const f of Vault.find(q, 3))
+                rows.push({
+                    "builtin": "vault",
+                    "vault": {
+                        "kind": "item",
+                        "item": f.it
+                    },
+                    "r": {
+                        "title": f.it.name,
+                        "subtitle": f.it.user,
+                        "icon": "lock"
+                    },
+                    "s": Math.min(65, f.s * 0.65)
+                });
         // the calculator on top (2+2, 10 km in mi, 100 usd in rub) and settings among the apps
         if (q) {
             const calc = Calc.evaluate(query);
@@ -143,7 +206,9 @@ PanelWindow {
                     "s": 1000
                 });
             if (Config.launcher.settings !== false && !calc) {
-                SettingsSearch.load();
+                // later: load() reads and sets the indexer's state — inside this binding that was
+                // a binding loop on `results` at the first query
+                Qt.callLater(SettingsSearch.load);
                 for (const d of SettingsSearch.search(query, 5))
                     rows.push({
                         "builtin": "setting",
@@ -193,9 +258,30 @@ PanelWindow {
             FileSearch.open(row.file);
             return;
         }
+        if (row.builtin === "vault") {
+            vaultAct(row.vault, "password");
+            return;
+        }
         const keep = row.provider.activate(row.r.id, row.r);
         if (keep !== true)
             Shell.launcherOpen = false;
+    }
+
+    // a row of the password manager: an entry's secret to the clipboard, a closed vault opened
+    // (its master password typed in the pane, or asked by the manager itself), the first set-up
+    function vaultAct(v, what) {
+        if (v.kind === "item") {
+            Vault.copy(v.item, what);
+            Shell.launcherOpen = false;
+        } else if (v.kind === "unlock") {
+            if (Vault.wantsPassword(v.backend))
+                askPassword(v.backend);
+            else
+                Vault.unlock(v.backend);
+        } else if (v.kind === "setup") {
+            Shell.launcherOpen = false;
+            Qt.callLater(() => Vault.openSettings());
+        }
     }
 
     function launch(app) {
@@ -212,6 +298,7 @@ PanelWindow {
     }
     readonly property var picked: results.length > 0 ? results[Math.min(current, results.length - 1)] : null
     readonly property var pickedFile: picked && picked.builtin === "file" ? picked.file : null
+    readonly property var pickedLogin: picked && picked.builtin === "vault" && picked.vault.kind === "item" ? picked.vault : null
     function accept() {
         if (command) {
             const cmd = query.slice(1).trim();
@@ -247,6 +334,8 @@ PanelWindow {
         field.text = Shell.launcherPrefill;
         Shell.launcherPrefill = "";
         current = 0;
+        unlockFor = "";
+        secret.text = "";
         field.focusField();
         pop.restart();
     }
@@ -263,6 +352,8 @@ PanelWindow {
             return I18n.t("настройка", "setting");
         if (row.builtin === "file")
             return I18n.t("файл", "file");
+        if (row.builtin === "vault")
+            return row.vault.kind === "item" ? I18n.t("пароль", "password") : I18n.t("хранилище", "vault");
         return row.provider && row.provider.prefix ? row.provider.prefix : I18n.t("плагин", "plugin");
     }
     function titleOf(row) {
@@ -276,7 +367,7 @@ PanelWindow {
         return (row.r && row.r.subtitle) || "";
     }
     // the mode the field is in: a chip at its right end
-    readonly property string mode: command ? I18n.t("команда sh", "sh command") : activeProvider ? activeProvider.prefix : /^\s*(\.\S+\s*)+$/.test(query) ? I18n.t("файлы", "files") : query.trim() ? I18n.t("поиск", "search") : I18n.t("частые", "frequent")
+    readonly property string mode: command ? I18n.t("команда sh", "sh command") : vaultMode ? I18n.t("пароли", "passwords") : activeProvider ? activeProvider.prefix : /^\s*(\.\S+\s*)+$/.test(query) ? I18n.t("файлы", "files") : query.trim() ? I18n.t("поиск", "search") : I18n.t("частые", "frequent")
 
     MouseArea {
         anchors.fill: parent
@@ -480,6 +571,8 @@ PanelWindow {
             width: parent.width - Theme.u * 16
             height: hints.y - y - Theme.u * 5
             readonly property bool split: width > Theme.u * 220
+            // the master password's pane stands here meanwhile
+            visible: win.unlockFor === ""
 
             PxBox {
                 id: listBox
@@ -733,7 +826,13 @@ PanelWindow {
                     spacing: Theme.u * 2
                     PxText {
                         kind: "tiny"
-                        text: "Enter — " + (!details.row ? "" : details.row.builtin === "calc" ? I18n.t("скопировать", "copy") : details.row.builtin === "setting" ? I18n.t("открыть в настройках", "open in Settings") : I18n.t("открыть", "open"))
+                        text: "Enter — " + (!details.row ? "" : details.row.builtin === "calc" ? I18n.t("скопировать", "copy") : details.row.builtin === "setting" ? I18n.t("открыть в настройках", "open in Settings") : win.pickedLogin ? I18n.t("пароль в буфер", "the password to the clipboard") : details.row.builtin === "vault" ? I18n.t("дальше", "go on") : I18n.t("открыть", "open"))
+                    }
+                    PxText {
+                        visible: !!win.pickedLogin
+                        kind: "tiny"
+                        dim: true
+                        text: I18n.t("Ctrl+Enter — логин · Shift+Enter — код 2FA", "Ctrl+Enter: the login · Shift+Enter: the 2FA code")
                     }
                     PxText {
                         visible: !!details.f
@@ -761,6 +860,74 @@ PanelWindow {
             }
         }
 
+        // the master password of a closed vault: its own field, always hearts, over the results
+        PxBox {
+            id: unlockPane
+            visible: win.unlockFor !== ""
+            x: body.x
+            y: body.y
+            width: body.width
+            height: body.height
+            color: Theme.panel
+            readonly property var manager: win.unlockFor ? Vault.backend(win.unlockFor) : null
+            // remembered under a PIN (Settings → Apps → Passwords): the PIN is asked, not the master password
+            readonly property bool pin: win.unlockFor !== "" && Vault.asks(win.unlockFor) === "pin"
+            MouseArea {
+                anchors.fill: parent
+            }
+            Column {
+                anchors.centerIn: parent
+                width: Math.min(parent.width - Theme.u * 30, Theme.u * 170)
+                spacing: Theme.u * 5
+                PxIcon {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    name: "lock"
+                    pixel: Theme.u * 3
+                }
+                PxText {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    kind: "title"
+                    text: (unlockPane.pin ? I18n.t("PIN для ", "The PIN for ") : I18n.t("Мастер-пароль ", "The master password of ")) + (unlockPane.manager ? unlockPane.manager.name : "")
+                }
+                PxText {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: text !== ""
+                    dim: true
+                    elide: Text.ElideMiddle
+                    text: unlockPane.manager ? Vault.mask(unlockPane.manager.account) : ""
+                }
+                PxField {
+                    id: secret
+                    width: parent.width
+                    password: true
+                    keepFocus: true
+                    icon: "lock"
+                    placeholder: unlockPane.pin ? I18n.t("PIN… (Enter — открыть)", "PIN… (Enter unlocks)") : I18n.t("пароль… (Enter — открыть)", "password… (Enter unlocks)")
+                    onAccepted: {
+                        if (text !== "" && !Vault.busy)
+                            Vault.unlock(win.unlockFor, text);
+                        text = "";
+                    }
+                    onKeyPressed: e => {
+                        if (e.key === Qt.Key_Escape) {
+                            win.leavePassword();
+                            e.accepted = true;
+                        }
+                    }
+                }
+                PxText {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                    kind: "tiny"
+                    color: Vault.error !== "" && !Vault.busy ? Theme.danger : Theme.textDim
+                    text: Vault.busy ? I18n.t("открываю…", "unlocking…") : Vault.error !== "" ? "✕ " + Vault.error : unlockPane.pin ? I18n.t("Пять неверных PIN подряд — и понадобится мастер-пароль. Esc — назад.", "Five wrong PINs in a row and the master password is needed. Esc goes back.") : I18n.t("Пароль уходит только в сам менеджер. Чтобы не вводить его каждый раз: Настройки → Пароли. Esc — назад.", "The password goes to the manager itself only. Not to type it each time: Settings → Passwords. Esc goes back.")
+                }
+            }
+        }
+
         // the keys
         Row {
             id: hints
@@ -768,7 +935,7 @@ PanelWindow {
             y: parent.height - height - Theme.u * 6
             spacing: Theme.u * 6
             Repeater {
-                model: [["↑↓", I18n.t("выбрать", "pick")], ["Enter", I18n.t("открыть", "open")], [">", I18n.t("команда", "command")]].concat(Config.launcher.calc !== false ? [["2+2", I18n.t("счёт", "maths")]] : []).concat(win.providers.filter(p => p.prefix).slice(0, 2).map(p => [p.prefix, ""])).concat([["Esc", I18n.t("закрыть", "close")]])
+                model: [["↑↓", I18n.t("выбрать", "pick")], ["Enter", I18n.t("открыть", "open")], [">", I18n.t("команда", "command")]].concat(Config.launcher.calc !== false ? [["2+2", I18n.t("счёт", "maths")]] : []).concat(Vault.enabled && Vault.installed.length ? [["pw", I18n.t("пароли", "passwords")]] : []).concat(win.providers.filter(p => p.prefix).slice(0, 2).map(p => [p.prefix, ""])).concat([["Esc", I18n.t("закрыть", "close")]])
                 Row {
                     id: hintRow
                     required property var modelData
@@ -800,7 +967,10 @@ PanelWindow {
         target: field
         function onKeyPressed(e) {
             const page = Math.max(1, Math.floor(list.height / (Theme.u * 17)) - 1);
-            if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & Qt.ControlModifier) && win.pickedFile) {
+            if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) && win.pickedLogin) {
+                win.vaultAct(win.pickedLogin, (e.modifiers & Qt.ControlModifier) ? "username" : "totp");
+                e.accepted = true;
+            } else if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & Qt.ControlModifier) && win.pickedFile) {
                 Shell.launcherOpen = false;
                 FileSearch.reveal(win.pickedFile);
                 e.accepted = true;

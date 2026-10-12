@@ -49,6 +49,29 @@
       ]
     },
     {
+      "id": "presets",
+      "ru": "Пресеты",
+      "en": "Presets",
+      "icon": "sparkle",
+      "tint": "#c77dff",
+      "hintRu": "готовые наборы настроек и свои",
+      "hintEn": "ready sets of settings and your own",
+      "pages": [
+        {
+          "id": "presets",
+          "ru": "Пресеты",
+          "en": "Presets",
+          "icon": "sparkle",
+          "hintRu": "готовые наборы настроек (спокойный, работа, лёгкий) и свои, сохранённые под именем",
+          "hintEn": "ready sets of settings (calm, work, light) and your own, saved under a name",
+          "blocks": [
+            "presets/ready",
+            "presets/own"
+          ]
+        }
+      ]
+    },
+    {
       "id": "system",
       "ru": "Система",
       "en": "System",
@@ -243,6 +266,43 @@
           ]
         },
         {
+          "id": "peripherals",
+          "ru": "Заряд устройств",
+          "en": "Device charge",
+          "icon": "ampoule",
+          "hintRu": "мышь, клавиатура, наушники — ампулами на панели",
+          "hintEn": "the mouse, the keyboard, the headphones as ampoules on the bar",
+          "blocks": [
+            "peripherals/devices",
+            "peripherals/look",
+            "peripherals/liquid"
+          ],
+          "more": [
+            "peripherals/alerts",
+            "peripherals/sources"
+          ]
+        },
+        {
+          "id": "driver",
+          "ru": "Драйвер устройств",
+          "en": "Device driver",
+          "icon": "chip",
+          "hintRu": "магнитные клавиатуры и мыши: ход клавиш вживую, Rapid Trigger",
+          "hintEn": "Hall-effect keyboards and mice: key travel live, Rapid Trigger",
+          "blocks": [
+            "driver/devices",
+            "driver/keyboard",
+            "driver/mouse"
+          ],
+          "more": [
+            "driver/mouseBackup",
+            "driver/support"
+          ],
+          "links": [
+            "peripherals"
+          ]
+        },
+        {
           "id": "mouse",
           "ru": "Мышь",
           "en": "Mouse",
@@ -257,6 +317,9 @@
             "lens",
             "shake",
             "cursor"
+          ],
+          "more": [
+            "mouse/games"
           ]
         },
         {
@@ -296,6 +359,19 @@
           "links": [
             "shortcuts",
             "voice"
+          ]
+        },
+        {
+          "id": "spell",
+          "ru": "Орфография",
+          "en": "Spelling",
+          "icon": "pen",
+          "hintRu": "подчёркивать ошибки, словари по языкам",
+          "hintEn": "underline mistakes, a dictionary per language",
+          "blocks": [
+            "spell/check",
+            "spell/installed",
+            "spell/download"
           ]
         },
         {
@@ -610,6 +686,7 @@
           "blocks": [
             "windows/window-decorations",
             "windows/cobweb",
+            "windows/floating",
             "windows/layout",
             "windows/@"
           ],
@@ -690,6 +767,49 @@
           ]
         },
         {
+          "id": "programs",
+          "ru": "Программы",
+          "en": "Programs",
+          "icon": "package",
+          "hintRu": "что установлено, удалить лишнее, очистка системы",
+          "hintEn": "what is installed, remove what you don't need, clean the system up",
+          "blocks": [
+            "programs/bloat",
+            "programs/installed",
+            "programs/cleanup"
+          ]
+        },
+        {
+          "id": "autostart",
+          "ru": "Автозапуск",
+          "en": "Autostart",
+          "icon": "bolt",
+          "hintRu": "программы, которые запускаются при входе",
+          "hintEn": "apps that start when you log in",
+          "blocks": [
+            "autostart/apps",
+            "autostart/add"
+          ],
+          "more": [
+            "autostart/system"
+          ]
+        },
+        {
+          "id": "vault",
+          "ru": "Пароли",
+          "en": "Passwords",
+          "icon": "lock",
+          "hintRu": "Bitwarden и 1Password в лаунчере",
+          "hintEn": "Bitwarden and 1Password in the launcher",
+          "blocks": [
+            "vault/managers",
+            "vault/launcher"
+          ],
+          "more": [
+            "vault/safety"
+          ]
+        },
+        {
           "id": "taskmanager",
           "ru": "Диспетчер задач",
           "en": "Task manager",
@@ -749,10 +869,11 @@
           "ru": "Стрим-режим",
           "en": "Stream mode",
           "icon": "camera",
-          "hintRu": "что прятать и глушить, пока идёт эфир",
-          "hintEn": "what to hide and mute while you're live",
+          "hintRu": "что прятать и глушить, пока идёт эфир; приватность",
+          "hintEn": "what to hide and mute while you're live; privacy",
           "blocks": [
-            "y2k/stream-mode"
+            "y2k/stream-mode",
+            "y2k/stream-privacy"
           ],
           "more": [
             "y2k/stream-mode-more"
@@ -1292,6 +1413,18 @@
             ]
           },
           {
+            "id": "presets",
+            "ru": "Пресеты",
+            "en": "Presets",
+            "icon": "sparkle",
+            "hintRu": "готовые наборы настроек и свои",
+            "hintEn": "ready sets of settings and your own",
+            "blocks": [
+              "presets/ready",
+              "presets/own"
+            ]
+          },
+          {
             "id": "updates",
             "ru": "Обновление ПО",
             "en": "Software Update",
@@ -1322,6 +1455,49 @@
             "more": [
               "defaults/files-nautilus",
               "system/task-manager"
+            ]
+          },
+          {
+            "id": "programs",
+            "ru": "Программы",
+            "en": "Programs",
+            "icon": "package",
+            "hintRu": "что установлено, удалить лишнее, очистка системы",
+            "hintEn": "what is installed, remove what you don't need, clean the system up",
+            "blocks": [
+              "programs/bloat",
+              "programs/installed",
+              "programs/cleanup"
+            ]
+          },
+          {
+            "id": "autostart",
+            "ru": "Автозапуск",
+            "en": "Autostart",
+            "icon": "bolt",
+            "hintRu": "программы, которые запускаются при входе",
+            "hintEn": "apps that start when you log in",
+            "blocks": [
+              "autostart/apps",
+              "autostart/add"
+            ],
+            "more": [
+              "autostart/system"
+            ]
+          },
+          {
+            "id": "vault",
+            "ru": "Пароли",
+            "en": "Passwords",
+            "icon": "lock",
+            "hintRu": "Bitwarden и 1Password в лаунчере",
+            "hintEn": "Bitwarden and 1Password in the launcher",
+            "blocks": [
+              "vault/managers",
+              "vault/launcher"
+            ],
+            "more": [
+              "vault/safety"
             ]
           },
           {
@@ -1505,6 +1681,7 @@
             "more": [
               "mac/windows",
               "windows/cobweb",
+              "windows/floating",
               "windows/layout",
               "windows/window-widths",
               "windows/window-animations",
@@ -1652,6 +1829,19 @@
             ]
           },
           {
+            "id": "spell",
+            "ru": "Орфография",
+            "en": "Spelling",
+            "icon": "pen",
+            "hintRu": "подчёркивать ошибки, словари по языкам",
+            "hintEn": "underline mistakes, a dictionary per language",
+            "blocks": [
+              "spell/check",
+              "spell/installed",
+              "spell/download"
+            ]
+          },
+          {
             "id": "shortcuts",
             "ru": "Сочетания клавиш",
             "en": "Keyboard shortcuts",
@@ -1700,6 +1890,43 @@
             ]
           },
           {
+            "id": "peripherals",
+            "ru": "Заряд устройств",
+            "en": "Device charge",
+            "icon": "ampoule",
+            "hintRu": "мышь, клавиатура, наушники — ампулами на панели",
+            "hintEn": "the mouse, the keyboard, the headphones as ampoules on the bar",
+            "blocks": [
+              "peripherals/devices",
+              "peripherals/look",
+              "peripherals/liquid"
+            ],
+            "more": [
+              "peripherals/alerts",
+              "peripherals/sources"
+            ]
+          },
+          {
+            "id": "driver",
+            "ru": "Драйвер устройств",
+            "en": "Device driver",
+            "icon": "chip",
+            "hintRu": "магнитные клавиатуры и мыши: ход клавиш вживую, Rapid Trigger",
+            "hintEn": "Hall-effect keyboards and mice: key travel live, Rapid Trigger",
+            "blocks": [
+              "driver/devices",
+              "driver/keyboard",
+              "driver/mouse"
+            ],
+            "more": [
+              "driver/mouseBackup",
+              "driver/support"
+            ],
+            "links": [
+              "peripherals"
+            ]
+          },
+          {
             "id": "gamepad",
             "ru": "Игровые контроллеры",
             "en": "Game controllers",
@@ -1729,10 +1956,11 @@
             "ru": "Стрим-режим",
             "en": "Stream mode",
             "icon": "camera",
-            "hintRu": "что прятать и глушить, пока идёт эфир",
-            "hintEn": "what to hide and mute while you're live",
+            "hintRu": "что прятать и глушить, пока идёт эфир; приватность",
+            "hintEn": "what to hide and mute while you're live; privacy",
             "blocks": [
-              "y2k/stream-mode"
+              "y2k/stream-mode",
+              "y2k/stream-privacy"
             ],
             "more": [
               "y2k/stream-mode-more"

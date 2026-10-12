@@ -62,7 +62,8 @@
 | `Mod+ESCAPE` | `toggle-keyboard-shortcuts-inhibit` |  |
 | `CTRL+ALT+Delete` | `quit` |  |
 | `Mod+Shift+P` | `power-off-monitors` |  |
-| `Mod+Shift+X` | `~/.local/bin/niri-cast-privacy` | Privacy: block Telegram Bitwarden Helium Discord |
+| `Mod+Shift+X` | `~/.local/bin/niri-cast-privacy` | Privacy: black out the listed apps on stream |
+| `Mod+Ctrl+Shift+X` | `~/.local/bin/niri-cast-privacy app toggle` | Privacy: hide / show this window's app |
 | `Mod+Alt+Y` | `angelos lyrics` | angelOS: лирика вкл/выкл |
 | `Mod+Alt+T` | `angelos theme toggle` | angelOS: светлая/тёмная |
 

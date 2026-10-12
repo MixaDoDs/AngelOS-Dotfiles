@@ -1,5 +1,5 @@
 [Unit]
-Description=polkit agent guard: Noctalia's agent, hyprpolkitagent as fallback
+Description=polkit agent guard: angelOS's agent, hyprpolkitagent as fallback
 ConditionEnvironment=XDG_CURRENT_DESKTOP=niri
 PartOf=graphical-session.target
 After=graphical-session.target

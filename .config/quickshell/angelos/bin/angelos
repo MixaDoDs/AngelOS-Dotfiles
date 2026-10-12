@@ -20,6 +20,8 @@
 #   editor (a window of the shell; web: the same as a page in a browser) and its MCP server
 #   angelos author status|fetch|login — the author's own tools (the chapter editor), only for
 #   the GitHub account with access to the author's private repository; gh keeps the login
+#   angelos rescue — the shell did not start: the reason from the log, another try, the way back
+#   to before the last update. Opens by itself in a terminal after five failed starts in a minute
 #   angelos setup — the setup wizard again (full screen, with Close); `angelos setup skip` — out of the
 #   first-run wizard at once, also from a text console (Ctrl+Alt+F3) when it is broken
 #   angelos keys [status] | pixel | macos | sync — the niri key profile of a theme (cfg/keybinds-*.kdl):
@@ -30,11 +32,31 @@
 #   line; angelos eventsNow — the same state right now, as JSON
 #   angelos awake on|off|toggle|status — stay awake: no idle screen, lock or sleep (also by itself
 #   while streaming or with a full-screen window: Settings → Lock → Stay awake)
+#   angelos privacy [toggle] | on | off | status | app [toggle|add|remove|forget] [APP_ID] — privacy on
+#   stream: the apps of a list go black in screencasts (Mod+Shift+X; the focused window's app into
+#   the list or out of it: Mod+Ctrl+Shift+X; Settings → Streaming → Stream mode)
 #   angelos brightness up|down|0…100 | kbdLight up|down|cycle — a laptop's backlight and keyboard light
 #   angelos laptop info | battery | eco on|off|auto | touchpad on|off|toggle | airplane | project … |
 #   lid close|open | tablet on|off | rotate … — the rest of a laptop (`angelos laptop help`)
+#   angelos peripherals [list | refresh] — the charge of the mouse, the keyboard, the headphones
+#   (the bar's ampoules; Settings → Devices → Device charge)
+#   angelos devices [list | info [ID] | dump [ID] | sniff [ID] | check FILE… | status] — the devices'
+#   driver: Hall-effect keyboards and mice (Settings → Devices → Device driver; docs/devices.md)
 #   angelos cobweb [status | grow [id] [minutes] | demo | clear [id|all] | qte [id]] — the cobwebs
 #   on windows (Settings → Windows → Cobwebs)
+#   angelos autostart [list] | add APP | add-command NAME COMMAND… | on|off ID | remove ID — what
+#   starts at login (~/.config/autostart; Settings → Apps → Autostart)
+#   angelos programs list | plan ITEM… | remove --events ITEM… | cleanup-status | cleanup --events
+#   orphans|cache|flatpak — installed programs, removing one, cleaning up (Settings → Apps → Programs)
+#   angelos preset [list] | show ID | apply ID | undo | save NAME | delete ID — presets of settings:
+#   the author's (author, calm, work, light) and your own (Settings → Presets)
+#   angelos vault [status] | install ID | login ID | unlock ID | lock | sync | find TEXT | open —
+#   password managers in the launcher (ID: bw, rbw, op; Settings → Apps → Passwords; `pw NAME`)
+#   angelos spell [status] | on | off | install CODE | remove CODE | learn WORD | forget WORD |
+#   check < TEXT | langs — spelling in notes and replies (Settings → Devices → Spelling)
+#   angelos apps [open] | status | check | skip — what the author added since this system was set up
+#   (apps, system packages, fish): a window with a tick each, installed right there — one admin
+#   password, no terminal
 #   angelos sddm [status] | build | install [--palette ngo|system] [--look L] | look L — the login
 #   screen (SDDM) in one of angelOS's looks (stream heaven retro hell quiet); install asks for the
 #   admin password (pkexec), `look` after that needs none
@@ -61,6 +83,17 @@ shell_env() {
   if [ "${QT_QPA_PLATFORMTHEME:-}" = qt6ct ]; then
     export ANGELOS_PRE_QT_QPA_PLATFORMTHEME=qt6ct QT_QPA_PLATFORMTHEME=gtk3
   fi
+  # Memory. Quickshell is linked with jemalloc, which gives every thread an arena of its own
+  # (64 on a 16-core machine for the ~35 threads the shell has) and keeps freed pages for 10 s:
+  # two arenas, pages back after a second (-140 MB measured, 2026-10-12). glibc's knobs
+  # (MALLOC_ARENA_MAX…) do nothing here. Apps get what the session had (Shell.childEnv).
+  export ANGELOS_PRE_MALLOC_CONF="${MALLOC_CONF:-}"
+  export MALLOC_CONF="${MALLOC_CONF:-narenas:2,dirty_decay_ms:1000,background_thread:true}"
+  # The Settings window is not built ahead and kept hidden (-136 MB; modules/LazyWindows): it
+  # is built when first opened. ANGELOS_SETTINGS_WARM=1 in the environment brings that back.
+  export ANGELOS_SETTINGS_WARM="${ANGELOS_SETTINGS_WARM:-0}"
+  # (QSG_RENDER_LOOP=basic would save another ~40 MB — one render thread — and draw every
+  # window at ~60 frames a second whatever the monitor: measured 138 → 63 on 144 Hz. Not set.)
   case "$mode" in
     vulkan) export QSG_RHI_BACKEND=vulkan ;;
     opengl) ;;
@@ -118,6 +151,46 @@ stop_strays() {
   wait
 }
 save_env() { python3 "$SHELL_DIR/scripts/session-env.py" "$1" "$RUN_DIR/session.env" 2>/dev/null; }
+
+# ---- a shell that cannot start ----
+# A broken update, Quickshell built against another Qt, a file cut short: systemd tries five
+# times in a minute (the unit's StartLimitBurst) and gives up, and the desk stays bare with
+# nothing that says why. The stop that uses up the last try opens a terminal with `angelos
+# rescue` (scripts/rescue.sh): the reason from the log, another try, the way back to before the
+# last update. Called from `reap` (ExecStopPost: systemd passes $SERVICE_RESULT). Off with
+# `echo off > ~/.config/angelos/rescue`.
+failed_start() {
+  [ "${SERVICE_RESULT:-success}" != success ] || return 0
+  [ "$(cat "$CONF_DIR/rescue" 2>/dev/null | tr -cd 'a-z')" != off ] || return 0
+  mkdir -p "$RUN_DIR" 2>/dev/null || return 0
+  now="$(date +%s)" n=0 keep=""
+  for t in $(cat "$RUN_DIR/failed-starts" 2>/dev/null) "$now"; do
+    case "$t" in *[!0-9]*|"") continue ;; esac
+    if [ $((now - t)) -le 60 ]; then keep="$keep$t " n=$((n + 1)); fi
+  done
+  printf '%s\n' "$keep" > "$RUN_DIR/failed-starts"
+  [ "$n" -ge 5 ] || return 0
+  : > "$RUN_DIR/failed-starts"
+  # one rescue window at a time
+  r="$(cat "$RUN_DIR/rescue.pid" 2>/dev/null | tr -cd '0-9')"
+  if [ -n "$r" ] && kill -0 "$r" 2>/dev/null; then return 0; fi
+  want="$(sed -n 's/.*"terminal": *"\([^"]*\)".*/\1/p' "$CONF_DIR/settings.json" 2>/dev/null | head -n 1)"
+  for term in "$want" kitty foot alacritty ghostty wezterm konsole gnome-terminal xterm; do
+    [ -n "$term" ] || continue
+    command -v "$term" >/dev/null 2>&1 || continue
+    case "${term##*/}" in
+      kitty|foot) set -- "$term" "$SHELL_DIR/bin/angelos" rescue ;;
+      wezterm) set -- "$term" start -- "$SHELL_DIR/bin/angelos" rescue ;;
+      gnome-terminal) set -- "$term" -- "$SHELL_DIR/bin/angelos" rescue ;;
+      *) set -- "$term" -e "$SHELL_DIR/bin/angelos" rescue ;;
+    esac
+    echo "angelOS: five failed starts in a minute, opening the rescue window ($term)" >&2
+    # niri starts it (the session's environment, outside this unit); without niri, by itself
+    niri msg action spawn -- "$@" >/dev/null 2>&1 || setsid -f "$@" >/dev/null 2>&1
+    return 0
+  done
+  echo "angelOS: five failed starts in a minute and no terminal for the rescue window; run: angelos rescue" >&2
+}
 
 case "$1" in
   ""|help|-h|--help) sed -n '2,16p' "$0"; exec qs -c angelos ipc show ;;
@@ -231,6 +304,7 @@ case "$1" in
     kill -TERM "$2" 2>/dev/null ;;
   # ExecStopPost: helpers left behind by a hard kill (their parent is gone)
   reap)
+    failed_start
     # programs left turned down by hell's circles (services/AppDuck) get their volume back
     python3 "$SHELL_DIR/scripts/duck-restore.py" 2>/dev/null
     cg="/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup)"
@@ -273,6 +347,8 @@ case "$1" in
       *) echo "angelos dotfiles status|admin|install-hook"; exit 2 ;;
     esac ;;
   report)  shift; exec python3 "$SHELL_DIR/scripts/report.py" "$@" ;;
+  # the shell did not start: why, another try, back to before the last update (scripts/rescue.sh)
+  rescue)  shift; exec bash "$SHELL_DIR/scripts/rescue.sh" "$@" ;;
   perf)    shift; exec python3 "$SHELL_DIR/scripts/perf.py" "$@" ;;
   # the circles' demons from the author's sheets (~/Pictures/angelos-sprites/<circle>/)
   sprites) shift; [ $# -gt 0 ] || set -- skins; exec python3 "$SHELL_DIR/scripts/sprite-rig.py" "$@" ;;
@@ -313,10 +389,9 @@ case "$1" in
     esac
     ;;
   scene)
-    # which parts of a wallpaper come alive: the scene editor (`angelos scene edit [picture]`, a window of the shell)
-    # and its MCP server for Claude (`angelos scene mcp`) — the author's tools (owner/)
-    ed="$SHELL_DIR/owner/scene-editor"
-    [ -d "$ed" ] || { echo "the scene editor is the author's tool, not part of angelOS (angelos author)" >&2; exit 1; }
+    # which parts of a wallpaper come alive: the scene editor (`angelos scene edit [picture]`, a window of the shell,
+    # scripts/scene-editor) and its MCP server for Claude (`angelos scene mcp`: the author's, owner/scene-editor)
+    ed="$SHELL_DIR/scripts/scene-editor"
     case "${2:-edit}" in
       edit|close|status)
         # the editor is a window of the shell (services/SceneEditor)
@@ -324,7 +399,8 @@ case "$1" in
         [ -n "$pic" ] && pic="$(realpath -- "$pic" 2>/dev/null || printf '%s' "$pic")"
         exec qs -c angelos ipc call angelos scene "${2:-edit}${pic:+ $pic}" ;;
       web)  shift; shift; exec python3 "$ed/scene-editor.py" "$@" ;;   # the same as a page in a browser window
-      mcp)  exec python3 "$ed/scene-mcp.py" ;;
+      mcp)  [ -f "$SHELL_DIR/owner/scene-editor/scene-mcp.py" ] || { echo "the scene's MCP server is the author's tool (angelos author)" >&2; exit 1; }
+            exec python3 "$SHELL_DIR/owner/scene-editor/scene-mcp.py" ;;
       *)    echo "usage: angelos scene edit [picture] | close | status | web [picture] | mcp" >&2; exit 2 ;;
     esac ;;
   novel)
@@ -340,6 +416,30 @@ case "$1" in
   motion) exec qs -c angelos ipc call angelos motion "${2:-status}" ;;
   laptop)  shift; exec qs -c angelos ipc call angelos laptop "$*" ;;
   cobweb)  shift; exec qs -c angelos ipc call angelos cobweb "$*" ;;
+  peripherals) shift; exec qs -c angelos ipc call angelos peripherals "${*:-list}" ;;
+  devices)
+    # the devices' driver: the shell's side (status) through IPC, the rest is the helper itself
+    shift
+    case "${1:-list}" in
+      status|lend|back|rt|mode|pair|unpair|restore|failed|key|pairs|mouse|state|open) exec qs -c angelos ipc call angelos devices "$*" ;;
+      *) exec python3 "$SHELL_DIR/scripts/devices.py" "$@" ;;
+    esac ;;
+  apps)    shift; exec qs -c angelos ipc call angelos apps "$*" ;;
+  preset|presets) shift; exec qs -c angelos ipc call angelos preset "$*" ;;
+  vault|passwords)
+    # the first sign-in and the CLI's install are a terminal's business (scripts/vault.py)
+    case "${2:-}" in
+      install|login) shift; exec python3 "$SHELL_DIR/scripts/vault.py" "$@" ;;
+    esac
+    shift; exec qs -c angelos ipc call angelos vault "$*" ;;
+  spell|spelling)
+    # `angelos spell check < text` works without the shell
+    case "${2:-}" in
+      check|langs) shift; exec python3 "$SHELL_DIR/scripts/spell.py" "$@" ;;
+    esac
+    shift; exec qs -c angelos ipc call angelos spell "$*" ;;
+  autostart) shift; exec python3 "$SHELL_DIR/scripts/autostart.py" "$@" ;;
+  programs) shift; exec python3 "$SHELL_DIR/scripts/programs.py" "$@" ;;
   updates) shift; exec python3 "$SHELL_DIR/scripts/updates-cli.py" "$@" ;;
   keys)
     case "${2:-status}" in
@@ -399,6 +499,9 @@ case "$1" in
       qs -c angelos ipc listen events "$sig" | sed -u "s/^/$sig /" &
     done
     wait ;;
+  privacy)
+    # the dotfiles' tool: it works without the shell too
+    shift; exec "$HOME/.local/bin/niri-cast-privacy" "$@" ;;
   eventsNow) exec qs -c angelos ipc call events now ;;
   *)       exec qs -c angelos ipc call angelos "$@" ;;
 esac

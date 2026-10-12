@@ -26,7 +26,7 @@ Singleton {
     readonly property var defaults: ({
             "left": ["start", "workspaces", "tasks"],
             "center": ["lyrics"],
-            "right": ["media", "tray", "layout", "wired", "wifi", "bluetooth", "battery", "volume", "bell", "clock"]
+            "right": ["media", "tray", "layout", "wired", "wifi", "bluetooth", "battery", "peripherals", "eq", "volume", "bell", "clock"]
         })
     readonly property var meta: ({
             "start": {
@@ -61,6 +61,11 @@ Singleton {
                 "label": I18n.t("Громкость", "Volume"),
                 "icon": "speaker"
             },
+            "eq": {
+                "label": I18n.t("Эквалайзер", "Equalizer"),
+                "icon": "music",
+                "before": "volume"
+            },
             "bell": {
                 "label": I18n.t("Уведомления", "Notifications"),
                 "icon": "bell"
@@ -87,6 +92,12 @@ Singleton {
                 "icon": "battery",
                 "before": "volume"
             },
+            // the mouse's, the keyboard's, the headphones' charge: hidden where none reports it
+            "peripherals": {
+                "label": I18n.t("Заряд устройств", "Device charge"),
+                "icon": "ampoule",
+                "before": "volume"
+            },
             "clock": {
                 "label": I18n.t("Часы", "Clock"),
                 "icon": "calendar"
@@ -97,6 +108,9 @@ Singleton {
     readonly property var hidden: (Config.bar.hidden || []).filter(id => valid(id))
 
     function valid(id) {
+        // the equalizer: not with a RØDECaster plugged in (services/Eq, `offered`)
+        if (id === "eq" && !Eq.offered)
+            return false;
         return id.startsWith("plugin:") ? pluginIds.includes(id) : !!meta[id];
     }
     function info(id) {
@@ -128,7 +142,7 @@ Singleton {
         // built-ins missing from an older saved layout at its end
         const custom = !!(cfg.left || cfg.center || cfg.right);
         const fresh = pluginIds.filter(id => !placed[id] && !hid.includes(id));
-        const missing = custom ? Object.keys(meta).filter(id => !placed[id] && !hid.includes(id)) : [];
+        const missing = custom ? Object.keys(meta).filter(id => valid(id) && !placed[id] && !hid.includes(id)) : [];
         out.right = fresh.concat(out.right);
         // a new built-in with a place of its own ("before") goes there, the rest to the end
         for (const id of missing) {

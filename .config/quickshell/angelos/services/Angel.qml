@@ -164,6 +164,18 @@ Singleton {
         }
     }
 
+    // ---- a device on the desk running low (services/Peripherals; Settings → Device charge) ----
+    Connections {
+        target: Peripherals
+        function onLowReached(device, level) {
+            if (!Config.peripherals.angel || root.batteryHush || root.transition)
+                return;
+            const set = root.demon ? Lines.peripherals.demon : Lines.peripherals.angel;
+            if (set[level])
+                root.say(root.line(set[level], "peripherals-" + level + root.demon).replace("%1", device.name));
+        }
+    }
+
     function say(msg, acts, ms, silent) {
         if (!shown || !msg)
             return;

@@ -257,11 +257,10 @@ def ts_key(ts):
 
 
 def shot_dir(sel, rects):
-    """<shots>/<App>/<MM.YYYY> by screenshot-sort: a clicked window's app, else the focused one."""
-    app = next((a for x, y, w, h, a in rects if (x, y, w, h) == tuple(sel)), None)
-    sorter = os.path.expanduser("~/.local/bin/screenshot-sort")
+    """<shots>/<2026-10 Октябрь> by angelOS's screenshot-sort.py (by month), else <shots>."""
+    sorter = os.path.expanduser("~/.config/quickshell/angelos/scripts/screenshot-sort.py")
     try:
-        out = subprocess.run([sorter, "dir"] + (["--app", app] if app is not None else []),
+        out = subprocess.run(["python3", sorter, "dir"],
                              capture_output=True, text=True, timeout=3).stdout.strip()
         if out and os.path.isdir(out):
             return out

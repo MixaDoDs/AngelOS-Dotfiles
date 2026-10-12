@@ -184,6 +184,38 @@ Singleton {
         apply();
     }
 
+    // the refresh rates a monitor has at the size it runs now, fastest first (one per whole
+    // hertz: 143.981 and 144.000 are the same choice to a person)
+    function ratesOf(name) {
+        const o = outputs[name];
+        const d = draft[name];
+        if (!o || !o.modes || !d || !d.mode)
+            return [];
+        const size = d.mode.split("@")[0];
+        const seen = {};
+        const out = [];
+        for (const m of o.modes.slice().sort((a, b) => b.refresh_rate - a.refresh_rate)) {
+            const hz = Math.round(m.refresh_rate / 1000);
+            if (m.width + "x" + m.height !== size || seen[hz])
+                continue;
+            seen[hz] = true;
+            out.push({
+                "hz": hz,
+                "mode": modeString(m)
+            });
+        }
+        return out;
+    }
+    function rateOf(name) {
+        const d = draft[name];
+        return d && d.mode ? Math.round(parseFloat(d.mode.split("@")[1] || "0")) : 0;
+    }
+    // a refresh rate right away; like a turn it comes back unless kept within 15 s
+    function setMode(name, mode) {
+        set(name, "mode", mode);
+        apply();
+    }
+
     function transformFromJson(t) {
         return ({
                 "Normal": "normal",

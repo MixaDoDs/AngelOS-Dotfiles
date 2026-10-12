@@ -11,6 +11,10 @@ import qs.widgets
 // ~/.config/angelos/notes/<uid>.md (any editor may change it: the widget follows the file).
 // A line "[ ] …" (or "- [ ] …") is a box to tick with a click, "[x] …" a ticked one, "# …" a
 // heading. Written in a little editor over the sticker: a click on its text (or right-click → Edit).
+// The editor is a window of its own over everything (layer Top, the keyboard its own while it is
+// open: the desktop's layer never gets the keyboard, so a popup of it could not be typed in). It
+// writes as you type; Enter after "[ ] …" starts the next box (on an empty box: ends the list),
+// Ctrl+Enter / Esc / a click outside close it.
 //   S / M / L: its width and how many lines show (the rest fades into "…")
 // The paper takes one of the theme's accents (right-click → Colour). In hell: scorched paper.
 // The text lives in DesktopWidgets.notes, so the face shows a tick the moment the input copy (the
@@ -217,85 +221,60 @@ Item {
                 editor.open();
         }
     }
-    PopupWindow {
+    readonly property alias editorState: editor
+    function commitSoon() {
+        autosave.restart();
+    }
+    QtObject {
         id: editor
+        property bool shown: false
+        property string draft: ""
         function open() {
-            area.text = root.text;
-            visible = true;
-            area.input.forceActiveFocus();
-            area.input.cursorPosition = area.text.length;
+            if (root.face)
+                return;
+            draft = root.text;
+            shown = true;
         }
         function done() {
-            if (area.text !== root.text)
-                root.save(area.text);
-            visible = false;
+            if (!shown)
+                return;
+            commit();
+            shown = false;
         }
-        onVisibleChanged: if (!visible && area.text !== root.text && area.text !== "")
-            root.save(area.text)
-        anchor.window: root.QsWindow.window
-        anchor.item: root
-        anchor.rect.x: 0
-        anchor.rect.y: 0
-        anchor.rect.width: 1
-        anchor.rect.height: 1
-        anchor.edges: Edges.Top | Edges.Left
-        anchor.gravity: Edges.Bottom | Edges.Right
-        anchor.adjustment: PopupAdjustment.Slide | PopupAdjustment.Flip
-        grabFocus: true
-        color: "transparent"
-        implicitWidth: sheet.width + Theme.u * 3
-        implicitHeight: sheet.height + Theme.u * 3
-        visible: false
-
-        PxBox {
-            id: sheet
-            width: Math.max(root.width, Theme.u * 170)
-            height: Theme.u * 120
-            color: root.paper
-            hell: Theme.hell
-            shadow: Config.appearance.shadows
-            focus: true
-            Keys.onEscapePressed: editor.done()
-            Column {
-                x: Theme.u * 4
-                y: Theme.u * 4
-                width: parent.width - Theme.u * 8
-                spacing: Theme.u * 3
-                PxTextArea {
-                    id: area
-                    width: parent.width
-                    height: sheet.height - Theme.u * 8 - buttons.height - Theme.u * 3
-                    placeholder: I18n.t("пиши… «[ ] » — пункт с галочкой", "write… “[ ] ” makes a box to tick")
-                    Keys.onEscapePressed: editor.done()
-                }
-                Row {
-                    id: buttons
-                    spacing: Theme.u * 2
-                    PxButton {
-                        compact: true
-                        hell: Theme.hell
-                        text: I18n.t("+ пункт", "+ item")
-                        icon: "check"
-                        onClicked: {
-                            const at = area.input.cursorPosition;
-                            const before = area.text.slice(0, at);
-                            const add = (before && !before.endsWith("\n") ? "\n" : "") + "[ ] ";
-                            area.text = before + add + area.text.slice(at);
-                            area.input.cursorPosition = at + add.length;
-                            area.input.forceActiveFocus();
-                        }
-                    }
-                    PxButton {
-                        compact: true
-                        hell: Theme.hell
-                        text: I18n.t("Готово", "Done")
-                        icon: "heart"
-                        accent: true
-                        onClicked: editor.done()
-                    }
-                }
-            }
+        function commit() {
+            if (draft !== root.text)
+                root.save(draft);
         }
-        RightClickGuard {}
+    }
+    // what is typed is kept a moment after the last key (a restart of the shell loses nothing)
+    Timer {
+        id: autosave
+        interval: 700
+        onTriggered: editor.commit()
+    }
+    // Enter after a box line: the next box; on an empty box line: the list ends there
+    function continueList(area) {
+        const pos = area.input.cursorPosition;
+        const txt = area.text;
+        const lineStart = txt.lastIndexOf("\n", pos - 1) + 1;
+        const line = txt.slice(lineStart, pos);
+        const m = line.match(/^(\s*(?:[-*]\s+)?)\[[ xX]\]\s?(.*)$/);
+        if (!m)
+            return false;
+        if (!m[2].trim() && txt.slice(pos).split("\n")[0].trim() === "") {
+            area.text = txt.slice(0, lineStart) + txt.slice(pos);
+            area.input.cursorPosition = lineStart;
+            return true;
+        }
+        const add = "\n" + m[1] + "[ ] ";
+        area.text = txt.slice(0, pos) + add + txt.slice(pos);
+        area.input.cursorPosition = pos + add.length;
+        return true;
+    }
+    LazyLoader {
+        active: editor.shown && !root.face
+        source: Qt.resolvedUrl("NoteEditor.qml")
+        onItemChanged: if (item)
+            item.note = root
     }
 }

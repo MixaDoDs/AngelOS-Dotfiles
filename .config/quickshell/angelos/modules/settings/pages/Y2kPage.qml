@@ -109,6 +109,113 @@ PxPage {
         }
     }
 
+    // privacy on stream (services/Privacy, the dotfiles' niri-cast-privacy): which apps are
+    // black in the screencast while the mode is on
+    PxGroup {
+        name: "stream-privacy"
+        width: parent.width
+        title: I18n.t("Приватность в эфире", "Privacy on stream")
+        icon: "eye"
+        SettingRow {
+            label: I18n.t("Сейчас", "Now")
+            hint: Privacy.error !== "" ? Privacy.error : Privacy.on ? (Privacy.hidden.length ? I18n.t("в записи и трансляции чёрные: ", "Black in recordings and on stream: ") + Privacy.hidden.map(a => a.name).join(", ") : I18n.t("включена, но в списке ничего не отмечено", "On, but nothing in the list is ticked")) : I18n.t("выключена: в эфире видно всё. Mod+Shift+X включает её с клавиатуры", "Off: the stream shows everything. Mod+Shift+X switches it from the keyboard")
+            PxButton {
+                icon: Privacy.on ? "close" : "eye"
+                accent: !Privacy.on
+                text: Privacy.on ? I18n.t("Выключить", "Switch off") : I18n.t("Включить", "Switch on")
+                onClicked: Privacy.set("toggle")
+            }
+        }
+        SettingRow {
+            label: I18n.t("Включать саму, когда OBS в эфире", "On by itself while OBS is live")
+            hint: I18n.t("включается с началом трансляции и возвращается как было, когда она кончится", "On when the stream starts, back to what it was when it ends")
+            PxToggle {
+                checked: Config.stream.privacyAuto
+                onToggled: c => Config.stream.privacyAuto = c
+            }
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Что скрывать: окна отмеченных программ в эфире закрашены чёрным, а у тебя на экране они как обычно. Mod+Ctrl+Shift+X добавляет в список программу окна в фокусе или убирает её.", "What to hide: the windows of the ticked apps are painted black on stream and stay as usual on your screen. Mod+Ctrl+Shift+X takes the focused window's app into the list or out of it.")
+        }
+        Repeater {
+            model: Privacy.apps
+            SettingRow {
+                id: hiddenApp
+                required property var modelData
+                label: modelData.name
+                hint: modelData.id
+                Row {
+                    spacing: Theme.u * 3
+                    AppIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        appId: hiddenApp.modelData.id
+                        size: Theme.u * 8
+                    }
+                    PxToggle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        checked: hiddenApp.modelData.on
+                        onToggled: c => Privacy.app(c ? "add" : "remove", hiddenApp.modelData.id)
+                    }
+                    PxButton {
+                        compact: true
+                        icon: "trash"
+                        text: I18n.t("Убрать", "Remove")
+                        onClicked: Privacy.app("forget", hiddenApp.modelData.id)
+                    }
+                }
+            }
+        }
+        SettingRow {
+            visible: Privacy.candidates.length > 0
+            label: I18n.t("Открыто сейчас", "Open right now")
+            hint: I18n.t("нажми на программу, чтобы скрывать и её", "Pick an app to hide it too")
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 2
+                Repeater {
+                    model: Privacy.candidates
+                    PxButton {
+                        required property var modelData
+                        compact: true
+                        icon: "plus"
+                        text: modelData.name
+                        onClicked: Privacy.app("add", modelData.id)
+                    }
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Другая программа", "Another app")
+            hint: I18n.t("её app-id, как в `niri msg windows`", "Its app-id, as `niri msg windows` shows it")
+            Row {
+                spacing: Theme.u * 3
+                PxField {
+                    id: privacyId
+                    width: Theme.u * 60
+                    placeholder: "org.example.App"
+                    kind: "mono"
+                    input.onAccepted: privacyAdd.clicked()
+                }
+                PxButton {
+                    id: privacyAdd
+                    compact: true
+                    icon: "plus"
+                    text: I18n.t("Добавить", "Add")
+                    onClicked: {
+                        const id = privacyId.text.trim();
+                        if (id === "")
+                            return;
+                        Privacy.app("add", id);
+                        privacyId.text = "";
+                    }
+                }
+            }
+        }
+    }
+
     // the angel on stream: on the streamed screen's taskbar, talking with the mic
     PxGroup {
         name: "stream-angel"

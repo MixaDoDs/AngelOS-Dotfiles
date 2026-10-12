@@ -32,72 +32,79 @@ PxButton {
     readonly property real gridHeight: Math.max(0, rows * (cellSize + cellGap) - cellGap)
     compact: true
     flat: true
-    icon: vertical ? ((BarLayout.side === "left") !== popup.visible ? "arrowRight" : "arrowLeft") : popup.visible === root.above ? "arrowDown" : "arrowUp"
-    checked: popup.visible
-    onClicked: popup.toggle()
+    icon: vertical ? ((BarLayout.side === "left") !== pop.visible ? "arrowRight" : "arrowLeft") : pop.visible === root.above ? "arrowDown" : "arrowUp"
+    checked: pop.visible
+    onClicked: pop.toggle()
 
-    BarPopup {
-        id: popup
+    // built when the pointer comes to the button, gone a while after it closed (LazyPopup)
+    LazyPopup {
+        id: pop
         panelId: "tray"
         anchorItem: root
-        above: root.above
-        title: I18n.t("Системный трей", "System tray")
-        icon: "layers"
-        contentWidth: Math.max(Theme.u * 80, root.columns * (root.cellSize + root.cellGap) - root.cellGap + Theme.u * 19)
-        contentHeight: Math.min(Theme.u * 130, Math.max(Theme.u * 26, root.gridHeight + Theme.u * 4))
-        Flickable {
-            id: viewport
-            anchors.fill: parent
-            contentWidth: width
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            contentHeight: root.gridHeight + Theme.u * 2
-            Grid {
-                id: grid
-                width: parent.width
-                columns: root.columns
-                spacing: root.cellGap
-                Repeater {
-                    model: SystemTray.items
-                    PxButton {
-                        id: cell
-                        required property var modelData
-                        width: root.cellSize
-                        height: width
-                        flat: true
-                        TintedImage {
-                            anchors.centerIn: parent
-                            size: root.iconSize
-                            source: cell.modelData.icon
-                            mode: cell.hovered ? "off" : Config.bar.trayTint
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: m => {
-                                if (m.button === Qt.MiddleButton)
-                                    cell.modelData.secondaryActivate();
-                                else if (m.button === Qt.RightButton || cell.modelData.onlyMenu) {
-                                    menu.handle = cell.modelData.hasMenu ? cell.modelData.menu : null;
-                                    menu.toggle();
-                                } else {
-                                    cell.modelData.activate();
-                                    popup.visible = false;
-                                }
+        warm: root.hovered
+        BarPopup {
+            id: popup
+            panelId: "tray"
+            anchorItem: root
+            above: root.above
+            title: I18n.t("Системный трей", "System tray")
+            icon: "layers"
+            contentWidth: Math.max(Theme.u * 80, root.columns * (root.cellSize + root.cellGap) - root.cellGap + Theme.u * 19)
+            contentHeight: Math.min(Theme.u * 130, Math.max(Theme.u * 26, root.gridHeight + Theme.u * 4))
+            Flickable {
+                id: viewport
+                anchors.fill: parent
+                contentWidth: width
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentHeight: root.gridHeight + Theme.u * 2
+                Grid {
+                    id: grid
+                    width: parent.width
+                    columns: root.columns
+                    spacing: root.cellGap
+                    Repeater {
+                        model: SystemTray.items
+                        PxButton {
+                            id: cell
+                            required property var modelData
+                            width: root.cellSize
+                            height: width
+                            flat: true
+                            TintedImage {
+                                anchors.centerIn: parent
+                                size: root.iconSize
+                                source: cell.modelData.icon
+                                mode: cell.hovered ? "off" : Config.bar.trayTint
                             }
-                            onWheel: w => cell.modelData.scroll(w.angleDelta.y, false)
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: m => {
+                                    if (m.button === Qt.MiddleButton)
+                                        cell.modelData.secondaryActivate();
+                                    else if (m.button === Qt.RightButton || cell.modelData.onlyMenu) {
+                                        menu.handle = cell.modelData.hasMenu ? cell.modelData.menu : null;
+                                        menu.toggle();
+                                    } else {
+                                        cell.modelData.activate();
+                                        popup.visible = false;
+                                    }
+                                }
+                                onWheel: w => cell.modelData.scroll(w.angleDelta.y, false)
+                            }
                         }
                     }
                 }
             }
-        }
-        PxText {
-            anchors.centerIn: parent
-            visible: SystemTray.items.values.length === 0
-            text: I18n.t("Трей пуст", "No tray apps")
-            dim: true
+            PxText {
+                anchors.centerIn: parent
+                visible: SystemTray.items.values.length === 0
+                text: I18n.t("Трей пуст", "No tray apps")
+                dim: true
+            }
         }
     }
     // Anchor menus to the bar button, which stays alive when overflow closes.

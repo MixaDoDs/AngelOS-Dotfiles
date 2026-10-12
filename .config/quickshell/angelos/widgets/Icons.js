@@ -186,6 +186,53 @@ const icons = {
         "#fffffffffff#",
         "#############"
     ],
+    // the devices whose charge the bar shows (services/Peripherals) and the ampoule itself
+    headphones: [
+        "..#####..",
+        ".#fffff#.",
+        "#f#####f#",
+        "#f#...#f#",
+        "###...###",
+        "#o#...#o#",
+        "#o#...#o#",
+        "#o#...#o#",
+        ".#.....#."
+    ],
+    phone: [
+        "#######",
+        "#fffff#",
+        "#xxxxx#",
+        "#xxxxx#",
+        "#xxxxx#",
+        "#xxxxx#",
+        "#xxxxx#",
+        "#fffff#",
+        "#ff#ff#",
+        "#######"
+    ],
+    pen: [
+        "......##.",
+        ".....#oo#",
+        "....#oo#.",
+        "...#ff#..",
+        "..#ff#...",
+        ".#ff#....",
+        "#wf#.....",
+        "#w#......",
+        "##......."
+    ],
+    ampoule: [
+        "..##..",
+        "..yy..",
+        ".#..#.",
+        "#....#",
+        "#....#",
+        "#xxxx#",
+        "#xxxx#",
+        "#oooo#",
+        "#oooo#",
+        ".####."
+    ],
     mouse: [
         "..###..",
         ".#o#f#.",
@@ -967,6 +1014,18 @@ const icons = {
         "#........",
         "#.......#",
         ".#.....#.",
+        "..#####.."
+    ],
+    // Caps Lock (the bar's mark, bar/parts/KbLayout): the key's arrow over its bar
+    caps: [
+        "....#....",
+        "...#o#...",
+        "..#ooo#..",
+        ".#ooooo#.",
+        "###ooo###",
+        "..#ooo#..",
+        "..#####..",
+        ".........",
         "..#####.."
     ],
     plane: [

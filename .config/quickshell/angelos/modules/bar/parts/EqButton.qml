@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import qs.config
 import qs.services
 import qs.widgets
@@ -15,22 +14,42 @@ Item {
     property bool above: true
     property bool barInk: false
     property bool vertical: false
-    property var levels: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    property var frequencies: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
-    property string preset: ""
-    property string error: ""
-    property bool ready: false
-    property bool active: false
-    property var spectrumLevels: []
+    readonly property var levels: Eq.levels
+    readonly property var frequencies: Eq.frequencies
+    readonly property string preset: Eq.preset
+    readonly property string error: Eq.error
+    readonly property bool ready: Eq.ready
+    readonly property bool active: Eq.active
+    readonly property var spectrumLevels: Eq.spectrumLevels
     property real pulseProgress: -1
-    readonly property bool spectrumLive: visible && !Motion.still && !Power.eco
-    readonly property string spectrumKey: Math.random().toString(36).slice(2, 10)
-    readonly property string spectrumConf: Quickshell.env("HOME") + "/.cache/angelos/cava-eq-" + spectrumKey + ".conf"
-    readonly property string spectrumFifo: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos-cava-eq-" + spectrumKey + ".fifo"
-    property string spectrumWritten: ""
-    property bool spectrumReady: false
-    property bool spectrumUnavailable: false
-    property double spectrumLastFrame: 0
+    // the bridge and the spectrum are shared by every bar: services/Eq
+    property bool watching: false
+    property bool viewing: false
+    // a face that is going away still hears that it is no longer visible: count it out once
+    property bool gone: false
+    function count() {
+        if (gone)
+            return;
+        if (watching !== visible) {
+            watching = visible;
+            Eq.watchers += watching ? 1 : -1;
+        }
+        // (the popup's own word: it calls this from its handler, before `pop.visible` follows)
+        const open = !!pop.item && pop.item.visible;
+        if (viewing !== open) {
+            viewing = open;
+            Eq.viewers += viewing ? 1 : -1;
+        }
+    }
+    onVisibleChanged: count()
+    Component.onCompleted: count()
+    Component.onDestruction: {
+        gone = true;
+        if (watching)
+            Eq.watchers--;
+        if (viewing)
+            Eq.viewers--;
+    }
     readonly property var choices: [
         { "id": "flat", "label": I18n.t("РОВНО", "FLAT") },
         { "id": "bass", "label": I18n.t("БАС", "BASS") },
@@ -45,53 +64,15 @@ Item {
     Accessible.name: I18n.t("Эквалайзер EasyEffects", "EasyEffects equalizer")
     Accessible.description: ready ? (active ? I18n.t("включён", "enabled") : I18n.t("выключен", "bypassed")) : error
     Accessible.focusable: true
-    Accessible.onPressAction: panel.toggle()
-    Keys.onReturnPressed: panel.toggle()
-    Keys.onSpacePressed: panel.toggle()
+    Accessible.onPressAction: pop.toggle()
+    Keys.onReturnPressed: pop.toggle()
+    Keys.onSpacePressed: pop.toggle()
 
-    function send(line) {
-        if (bridge.running) bridge.write(line + "\n");
-    }
-    function changeBand(index, gain) {
-        if (!ready || !active) return;
-        let next = levels.slice();
-        next[index] = gain;
-        levels = next;
-        send("set " + index + " " + gain);
-    }
     function triggerPulse() {
         if (Motion.still) return;
         sweep.stop();
         pulseProgress = 0;
         sweep.start();
-    }
-    function writeSpectrumConf() {
-        if (!spectrumReady || !spectrumLive || spectrumUnavailable) return;
-        const text = ["[general]", "bars = 10", "framerate = 20", "sensitivity = 70",
-                      "autosens = 1", "[input]", "method = fifo", "source = " + spectrumFifo,
-                      "sample_rate = 22050", "sample_bits = 16", "[output]", "method = raw",
-                      "raw_target = /dev/stdout", "data_format = ascii", "ascii_max_range = 100",
-                      "bar_delimiter = 59", "frame_delimiter = 10", "channels = mono",
-                      "[smoothing]", "noise_reduction = 60", ""].join("\n");
-        if (text === spectrumWritten) {
-            audio.running = true;
-        } else {
-            spectrumWritten = text;
-            spectrumFile.setText(text);
-        }
-    }
-    Component.onCompleted: {
-        spectrumReady = true;
-        writeSpectrumConf();
-    }
-    onSpectrumLiveChanged: {
-        if (spectrumLive) {
-            writeSpectrumConf();
-        } else {
-            audio.running = false;
-            spectrumRetry.stop();
-            spectrumLevels = [];
-        }
     }
     SequentialAnimation {
         id: sweep
@@ -105,89 +86,10 @@ Item {
         }
         ScriptAction { script: root.pulseProgress = -1 }
     }
-    FileView {
-        id: spectrumFile
-        path: root.spectrumConf
-        preload: false
-        atomicWrites: true
-        onSaved: audio.running = root.spectrumLive
-    }
-    Process {
-        id: audio
-        command: ["python3", Quickshell.shellDir + "/scripts/audio-tap.py", "run",
-                  "--conf", root.spectrumConf, "--fifo", root.spectrumFifo, ""]
-        property string lastLine: ""
-        property double startedAt: 0
-        onStarted: {
-            startedAt = Date.now();
-            root.spectrumLastFrame = startedAt;
-        }
-        stdout: SplitParser {
-            onRead: line => {
-                root.spectrumLastFrame = Date.now();
-                if (line === audio.lastLine) return;
-                audio.lastLine = line;
-                root.spectrumLevels = EqMotion.decodeSpectrum(line);
-            }
-        }
-        onExited: code => {
-            if (code === 127) {
-                root.spectrumUnavailable = true;
-            } else if (root.spectrumLive) {
-                spectrumRetry.interval = Date.now() - startedAt > 15000
-                    ? 2000 : Math.min(60000, spectrumRetry.interval * 2);
-                spectrumRetry.start();
-            }
-        }
-    }
-    Timer {
-        id: spectrumRetry
-        interval: 2000
-        onTriggered: audio.running = root.spectrumLive && !root.spectrumUnavailable
-    }
-    Timer {
-        interval: 2000
-        repeat: true
-        running: root.spectrumLive && !root.spectrumUnavailable
-        onTriggered: {
-            if (audio.running && Date.now() - root.spectrumLastFrame > 6000) {
-                audio.running = false;
-            } else if (!audio.running && !spectrumRetry.running && root.spectrumWritten !== "") {
-                audio.running = true;
-            }
-        }
-    }
-    Process {
-        id: bridge
-        running: true
-        command: ["python3", "-u", Quickshell.shellDir + "/scripts/eq-bridge.py"]
-        stdinEnabled: true
-        onStarted: write("status\n")
-        stdout: SplitParser {
-            onRead: line => {
-                let state;
-                try { state = JSON.parse(line); } catch (e) { return; }
-                root.ready = !!state.ready;
-                root.error = state.error || "";
-                if (state.ready) {
-                    root.levels = state.gains;
-                    root.frequencies = state.freqs;
-                    root.active = state.enabled;
-                    root.preset = state.preset || "";
-                }
-            }
-        }
-    }
-    Timer {
-        interval: 3000
-        repeat: true
-        running: panel.visible
-        onTriggered: root.send("status")
-    }
 
     PxBox {
         anchors.fill: parent
-        sunken: panel.visible
+        sunken: pop.visible
         hell: root.barInk
         color: root.barInk ? Theme.hellFace : Theme.face
     }
@@ -244,257 +146,345 @@ Item {
         }
     }
     MouseArea {
+        id: hot
         anchors.fill: parent
+        hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: panel.toggle()
+        onClicked: pop.toggle()
     }
 
-    BarPopup {
-        id: panel
-        anchorItem: root
-        above: root.above
-        title: I18n.exe("eq") + "  /  EasyEffects"
+    // built when the pointer comes to the button, gone a while after it closed (LazyPopup)
+    LazyPopup {
+        id: pop
         panelId: "equalizer"
-        icon: "music"
-        contentWidth: Theme.u * 236
-        contentHeight: Theme.u * 195
+        anchorItem: root
+        warm: hot.containsMouse
+        BarPopup {
+            id: panel
+            anchorItem: root
+            above: root.above
+            title: I18n.exe("eq") + "  /  EasyEffects"
+            panelId: "equalizer"
+            icon: "music"
+            contentWidth: Theme.u * 236
+            contentHeight: Theme.u * 264
+            onVisibleChanged: {
+                root.count();
+                if (visible) {
+                    Eq.send("status");
+                    Eq.send("sources");
+                }
+            }
 
-        Item {
-            anchors.fill: parent
-            Rectangle {
-                width: Theme.u * 2
-                height: Theme.u * 11
-                color: root.active ? Theme.accent : Theme.textDim
-            }
-            PxText {
-                x: Theme.u * 6
-                text: "OUT  /  10 BAND"
-                kind: "tiny"
-                color: Theme.textDim
-            }
-            PxButton {
-                anchors.right: parent.right
-                y: -Theme.u
-                compact: true
-                text: root.active ? I18n.t("● ВКЛ", "● ON") : I18n.t("○ ВЫКЛ", "○ OFF")
-                enabled: root.ready
-                checked: root.active
-                onClicked: root.send("toggle")
-            }
-            PxText {
-                x: 0
-                y: Theme.u * 15
-                width: parent.width
-                kind: "tiny"
-                color: root.ready ? Theme.textDim : Theme.danger
-                wrapMode: Text.WordWrap
-                text: root.ready
-                      ? I18n.t("ДВИГАЙ ПОЛОСЫ · ЗВУК МЕНЯЕТСЯ СРАЗУ", "DRAG BANDS · LIVE AUDIO")
-                      : root.error || I18n.t("ПОДКЛЮЧАЮСЬ К ЗВУКУ…", "CONNECTING TO AUDIO…")
-            }
-            PxButton {
-                visible: !root.ready
-                y: Theme.u * 33
-                compact: true
-                accent: true
-                text: I18n.t("ЗАПУСТИТЬ EQ", "START EQ")
-                onClicked: root.send("start")
-            }
-            Row {
-                id: presetRow
-                visible: root.ready
-                y: Theme.u * 33
-                width: parent.width
-                spacing: Theme.u * 2
-                Repeater {
-                    model: root.choices
-                    delegate: PxButton {
-                        required property var modelData
-                        width: (presetRow.width - presetRow.spacing * 4) / 5
-                        compact: true
-                        hpad: Theme.u * 3
-                        text: modelData.label
-                        checked: root.preset === modelData.id
-                        onClicked: {
-                            root.triggerPulse();
-                            root.send("preset " + modelData.id);
+            Item {
+                anchors.fill: parent
+                Rectangle {
+                    width: Theme.u * 2
+                    height: Theme.u * 11
+                    color: root.active ? Theme.accent : Theme.textDim
+                }
+                PxText {
+                    x: Theme.u * 6
+                    text: "OUT  /  10 BAND"
+                    kind: "tiny"
+                    color: Theme.textDim
+                }
+                PxButton {
+                    anchors.right: parent.right
+                    y: -Theme.u
+                    compact: true
+                    text: root.active ? I18n.t("● ВКЛ", "● ON") : I18n.t("○ ВЫКЛ", "○ OFF")
+                    enabled: root.ready
+                    checked: root.active
+                    onClicked: Eq.send("toggle")
+                }
+                PxText {
+                    x: 0
+                    y: Theme.u * 15
+                    width: parent.width
+                    kind: "tiny"
+                    color: root.ready ? Theme.textDim : Theme.danger
+                    wrapMode: Text.WordWrap
+                    text: Eq.routingError || root.error || (Eq.routeActive
+                          ? I18n.t("EQ: ", "EQ: ") + Eq.routedApp + " → " + (Eq.outputChoices.find(item => item.value === Eq.routedOutput)?.label || Eq.routedOutput)
+                          : I18n.t("ВЫБЕРИ ПРИЛОЖЕНИЕ И КАНАЛ", "SELECT APP AND CHANNEL"))
+                }
+                PxText {
+                    x: 0
+                    y: Theme.u * 29
+                    width: Theme.u * 20
+                    height: Theme.u * 14
+                    kind: "tiny"
+                    text: "APP"
+                    color: Theme.textDim
+                }
+                PxCombo {
+                    x: Theme.u * 20
+                    y: Theme.u * 27
+                    width: parent.width - Theme.u * 20
+                    height: Theme.u * 16
+                    model: Eq.sourceChoices
+                    currentValue: Eq.selectedSource
+                    placeholder: I18n.t("нет активного звука", "no active audio")
+                    onActivated: value => {
+                        Eq.selectedSource = value;
+                        Eq.routingError = "";
+                        if (!Eq.outputExplicit) {
+                            const preferred = Eq.defaultOutputFor(value);
+                            if (preferred) Eq.selectedOutput = preferred;
                         }
                     }
                 }
-            }
-            Rectangle {
-                id: display
-                y: Theme.u * 53
-                width: parent.width
-                height: Theme.u * 55
-                color: Theme.sunken
-                border.width: Theme.u
-                border.color: Theme.edge
-                Canvas {
-                    id: curve
-                    anchors.fill: parent
-                    anchors.margins: Theme.u * 6
-                    onPaint: {
-                        let ctx = getContext("2d");
-                        ctx.clearRect(0, 0, width, height);
-                        ctx.lineWidth = 1;
-                        ctx.strokeStyle = Theme.textDim;
-                        ctx.globalAlpha = 0.24;
-                        for (let row = 0; row < 5; row++) {
-                            let y = height * row / 4;
-                            ctx.globalAlpha = row === 2 ? 0.52 : 0.24;
-                            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
-                        }
-                        ctx.globalAlpha = 0.24;
-                        for (let i = 0; i < 10; i++) {
-                            let x = width * i / 9;
-                            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
-                        }
-                        ctx.fillStyle = Theme.accent2;
-                        ctx.globalAlpha = 0.43;
-                        for (let i = 0; i < 10; i++) {
-                            let amount = EqMotion.displayLevel(root.spectrumLevels[i] || 0);
-                            if (amount > 0) {
-                                let x = width * i / 9, h = amount * height * 0.7;
-                                ctx.fillRect(x - Theme.u * 2, height - h, Theme.u * 4, h);
+                PxText {
+                    x: 0
+                    y: Theme.u * 48
+                    width: Theme.u * 20
+                    height: Theme.u * 14
+                    kind: "tiny"
+                    text: Eq.rode ? "RØDE" : I18n.t("ВЫХОД", "OUT")
+                    color: Theme.textDim
+                }
+                PxCombo {
+                    x: Theme.u * 20
+                    y: Theme.u * 46
+                    width: parent.width - Theme.u * 20
+                    height: Theme.u * 16
+                    model: Eq.outputChoices
+                    currentValue: Eq.selectedOutput
+                    placeholder: I18n.t("канал недоступен", "channel unavailable")
+                    onActivated: value => {
+                        Eq.selectedOutput = value;
+                        Eq.outputExplicit = true;
+                        Eq.routingError = "";
+                    }
+                }
+                Row {
+                    y: Theme.u * 65
+                    spacing: Theme.u * 2
+                    PxButton {
+                        compact: true
+                        accent: true
+                        text: I18n.t("ПРИМЕНИТЬ EQ", "APPLY EQ")
+                        enabled: root.ready && !!Eq.selectedSource && !!Eq.selectedOutput
+                        onClicked: Eq.routeCommand("route")
+                    }
+                    PxButton {
+                        compact: true
+                        text: I18n.t("НАПРЯМУЮ", "DIRECT")
+                        enabled: !!Eq.selectedSource && !!Eq.selectedOutput
+                        onClicked: Eq.routeCommand("direct")
+                    }
+                    PxButton {
+                        visible: Eq.routeActive
+                        compact: true
+                        text: I18n.t("ВОЗВРАТ", "RESTORE")
+                        onClicked: Eq.releaseRoute()
+                    }
+                }
+                PxButton {
+                    visible: !root.ready
+                    y: Theme.u * 83
+                    compact: true
+                    accent: true
+                    text: I18n.t("ЗАПУСТИТЬ EQ", "START EQ")
+                    onClicked: Eq.send("start")
+                }
+                Row {
+                    id: presetRow
+                    visible: root.ready
+                    y: Theme.u * 83
+                    width: parent.width
+                    spacing: Theme.u * 2
+                    Repeater {
+                        model: root.choices
+                        delegate: PxButton {
+                            required property var modelData
+                            width: (presetRow.width - presetRow.spacing * 4) / 5
+                            compact: true
+                            hpad: Theme.u * 3
+                            text: modelData.label
+                            checked: root.preset === modelData.id
+                            onClicked: {
+                                root.triggerPulse();
+                                Eq.send("preset " + modelData.id);
                             }
                         }
-                        ctx.globalAlpha = 1;
-                        ctx.strokeStyle = root.active ? Theme.accent : Theme.textDim;
-                        ctx.fillStyle = ctx.strokeStyle;
-                        ctx.lineWidth = Math.max(1, Theme.u);
-                        ctx.beginPath();
-                        for (let i = 0; i < 10; i++) {
-                            let slider = bandRepeater.itemAt(i);
-                            let value = slider ? slider.shown : root.levels[i];
-                            let x = width * i / 9, y = height * (0.5 - value / 28);
-                            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                            ctx.fillRect(x - Theme.u, y - Theme.u, Theme.u * 2, Theme.u * 2);
-                        }
-                        ctx.stroke();
-                        ctx.fillStyle = Theme.accent;
-                        for (let i = 0; i < 10; i++) {
-                            let strength = EqMotion.pulseStrength(root.pulseProgress, i);
-                            if (strength < 0.02) continue;
-                            ctx.globalAlpha = strength * 0.9;
-                            let x = width * i / 9;
-                            ctx.fillRect(x - Theme.u * 3, 0, Theme.u * 6, height);
-                        }
-                        ctx.globalAlpha = 1;
-                    }
-                    Connections {
-                        target: root
-                        function onLevelsChanged() { curve.requestPaint(); }
-                        function onActiveChanged() { curve.requestPaint(); }
-                        function onSpectrumLevelsChanged() { if (panel.visible) curve.requestPaint(); }
-                        function onPulseProgressChanged() { curve.requestPaint(); }
                     }
                 }
-                PxText { x: Theme.u * 2; y: Theme.u; kind: "tiny"; text: "+12"; color: Theme.textDim }
-                PxText { x: Theme.u * 2; anchors.bottom: parent.bottom; kind: "tiny"; text: "−12"; color: Theme.textDim }
-            }
-            Row {
-                id: bands
-                y: Theme.u * 113
-                width: parent.width
-                height: Theme.u * 70
-                Repeater {
-                    id: bandRepeater
-                    model: 10
-                    delegate: Item {
-                        id: band
-                        required property int index
-                        width: bands.width / 10
-                        height: bands.height
-                        property real gain: root.levels[index] || 0
-                        property real shown: gain
-                        onGainChanged: if (!drag.pressed) shown = gain
-                        onShownChanged: curve.requestPaint()
-                        Behavior on shown {
-                            enabled: !drag.pressed && !Motion.still
-                            NumberAnimation { duration: Motion.ms(360); easing.type: Easing.OutCubic }
-                        }
-                        readonly property int freq: root.frequencies[index] || 0
-                        Accessible.role: Accessible.Slider
-                        Accessible.name: freq >= 1000 ? (freq / 1000) + " kHz" : freq + " Hz"
-                        Accessible.description: shown.toFixed(1) + " dB"
-                        Accessible.focusable: true
-                        activeFocusOnTab: true
-                        Accessible.onIncreaseAction: nudge(0.5)
-                        Accessible.onDecreaseAction: nudge(-0.5)
-                        function nudge(step) {
-                            shown = Math.max(-12, Math.min(12, shown + step));
-                            root.changeBand(index, shown);
-                        }
-                        Keys.onUpPressed: band.nudge(0.5)
-                        Keys.onDownPressed: band.nudge(-0.5)
-                        PxText {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            y: -Theme.u * 3
-                            kind: "tiny"
-                            text: (band.shown > 0 ? "+" : "") + band.shown.toFixed(0)
-                            color: root.active ? Theme.text : Theme.textDim
-                        }
-                        Rectangle {
-                            id: rail
-                            x: (parent.width - width) / 2
-                            y: Theme.u * 3
-                            width: Theme.u * 5
-                            height: Theme.u * 46
-                            color: Theme.sunken
-                            border.width: Theme.u
-                            border.color: Theme.edge
-                        }
-                        Rectangle {
-                            x: rail.x - Theme.u * 3
-                            y: rail.y + (12 - band.shown) * (rail.height - Theme.u * 5) / 24
-                            width: Theme.u * 11
-                            height: Theme.u * 5
-                            color: root.active ? Theme.accent : Theme.textDim
-                            border.width: 1
-                            border.color: Theme.edge
-                        }
-                        Rectangle {
-                            x: rail.x - Theme.u * 4
-                            y: rail.y - Theme.u
-                            width: Theme.u * 13
-                            height: rail.height + Theme.u * 2
-                            color: Theme.accent
-                            opacity: EqMotion.pulseStrength(root.pulseProgress, band.index) * 0.4
-                        }
-                        MouseArea {
-                            id: drag
-                            width: parent.width
-                            height: rail.height + Theme.u * 6
-                            enabled: root.ready && root.active
-                            cursorShape: Qt.SizeVerCursor
-                            function moveTo(mouseY) {
-                                let value = Math.max(-12, Math.min(12, Math.round((12 - (mouseY - rail.y) * 24 / rail.height) * 2) / 2));
-                                if (value !== band.shown) {
-                                    band.shown = value;
-                                    root.changeBand(band.index, value);
+                Rectangle {
+                    id: display
+                    y: Theme.u * 103
+                    width: parent.width
+                    height: Theme.u * 55
+                    color: Theme.sunken
+                    border.width: Theme.u
+                    border.color: Theme.edge
+                    Canvas {
+                        id: curve
+                        anchors.fill: parent
+                        anchors.margins: Theme.u * 6
+                        onPaint: {
+                            let ctx = getContext("2d");
+                            ctx.clearRect(0, 0, width, height);
+                            ctx.lineWidth = 1;
+                            ctx.strokeStyle = Theme.textDim;
+                            ctx.globalAlpha = 0.24;
+                            for (let row = 0; row < 5; row++) {
+                                let y = height * row / 4;
+                                ctx.globalAlpha = row === 2 ? 0.52 : 0.24;
+                                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+                            }
+                            ctx.globalAlpha = 0.24;
+                            for (let i = 0; i < 10; i++) {
+                                let x = width * i / 9;
+                                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+                            }
+                            ctx.fillStyle = Theme.accent2;
+                            ctx.globalAlpha = 0.43;
+                            for (let i = 0; i < 10; i++) {
+                                let amount = EqMotion.displayLevel(root.spectrumLevels[i] || 0);
+                                if (amount > 0) {
+                                    let x = width * i / 9, h = amount * height * 0.7;
+                                    ctx.fillRect(x - Theme.u * 2, height - h, Theme.u * 4, h);
                                 }
                             }
-                            onPressed: mouse => moveTo(mouse.y)
-                            onPositionChanged: mouse => { if (pressed) moveTo(mouse.y); }
-                            onWheel: wheel => band.nudge(wheel.angleDelta.y > 0 ? 0.5 : -0.5)
+                            ctx.globalAlpha = 1;
+                            ctx.strokeStyle = root.active ? Theme.accent : Theme.textDim;
+                            ctx.fillStyle = ctx.strokeStyle;
+                            ctx.lineWidth = Math.max(1, Theme.u);
+                            ctx.beginPath();
+                            for (let i = 0; i < 10; i++) {
+                                let slider = bandRepeater.itemAt(i);
+                                let value = slider ? slider.shown : root.levels[i];
+                                let x = width * i / 9, y = height * (0.5 - value / 28);
+                                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                                ctx.fillRect(x - Theme.u, y - Theme.u, Theme.u * 2, Theme.u * 2);
+                            }
+                            ctx.stroke();
+                            ctx.fillStyle = Theme.accent;
+                            for (let i = 0; i < 10; i++) {
+                                let strength = EqMotion.pulseStrength(root.pulseProgress, i);
+                                if (strength < 0.02) continue;
+                                ctx.globalAlpha = strength * 0.9;
+                                let x = width * i / 9;
+                                ctx.fillRect(x - Theme.u * 3, 0, Theme.u * 6, height);
+                            }
+                            ctx.globalAlpha = 1;
                         }
-                        PxText {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            y: Theme.u * 54
-                            kind: "tiny"
-                            text: band.freq >= 1000 ? (band.freq / 1000) + "k" : String(band.freq)
-                            color: Theme.textDim
+                        Connections {
+                            target: root
+                            function onLevelsChanged() { curve.requestPaint(); }
+                            function onActiveChanged() { curve.requestPaint(); }
+                            function onSpectrumLevelsChanged() { if (panel.visible) curve.requestPaint(); }
+                            function onPulseProgressChanged() { curve.requestPaint(); }
+                        }
+                    }
+                    PxText { x: Theme.u * 2; y: Theme.u; kind: "tiny"; text: "+12"; color: Theme.textDim }
+                    PxText { x: Theme.u * 2; anchors.bottom: parent.bottom; kind: "tiny"; text: "−12"; color: Theme.textDim }
+                }
+                Row {
+                    id: bands
+                    y: Theme.u * 163
+                    width: parent.width
+                    height: Theme.u * 70
+                    Repeater {
+                        id: bandRepeater
+                        model: 10
+                        delegate: Item {
+                            id: band
+                            required property int index
+                            width: bands.width / 10
+                            height: bands.height
+                            property real gain: root.levels[index] || 0
+                            property real shown: gain
+                            onGainChanged: if (!drag.pressed) shown = gain
+                            onShownChanged: curve.requestPaint()
+                            Behavior on shown {
+                                enabled: !drag.pressed && !Motion.still
+                                NumberAnimation { duration: Motion.ms(360); easing.type: Easing.OutCubic }
+                            }
+                            readonly property int freq: root.frequencies[index] || 0
+                            Accessible.role: Accessible.Slider
+                            Accessible.name: freq >= 1000 ? (freq / 1000) + " kHz" : freq + " Hz"
+                            Accessible.description: shown.toFixed(1) + " dB"
+                            Accessible.focusable: true
+                            activeFocusOnTab: true
+                            Accessible.onIncreaseAction: nudge(0.5)
+                            Accessible.onDecreaseAction: nudge(-0.5)
+                            function nudge(step) {
+                                shown = Math.max(-12, Math.min(12, shown + step));
+                                Eq.changeBand(index, shown);
+                            }
+                            Keys.onUpPressed: band.nudge(0.5)
+                            Keys.onDownPressed: band.nudge(-0.5)
+                            PxText {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                y: -Theme.u * 3
+                                kind: "tiny"
+                                text: (band.shown > 0 ? "+" : "") + band.shown.toFixed(0)
+                                color: root.active ? Theme.text : Theme.textDim
+                            }
+                            Rectangle {
+                                id: rail
+                                x: (parent.width - width) / 2
+                                y: Theme.u * 3
+                                width: Theme.u * 5
+                                height: Theme.u * 46
+                                color: Theme.sunken
+                                border.width: Theme.u
+                                border.color: Theme.edge
+                            }
+                            Rectangle {
+                                x: rail.x - Theme.u * 3
+                                y: rail.y + (12 - band.shown) * (rail.height - Theme.u * 5) / 24
+                                width: Theme.u * 11
+                                height: Theme.u * 5
+                                color: root.active ? Theme.accent : Theme.textDim
+                                border.width: 1
+                                border.color: Theme.edge
+                            }
+                            Rectangle {
+                                x: rail.x - Theme.u * 4
+                                y: rail.y - Theme.u
+                                width: Theme.u * 13
+                                height: rail.height + Theme.u * 2
+                                color: Theme.accent
+                                opacity: EqMotion.pulseStrength(root.pulseProgress, band.index) * 0.4
+                            }
+                            MouseArea {
+                                id: drag
+                                width: parent.width
+                                height: rail.height + Theme.u * 6
+                                enabled: root.ready && root.active
+                                cursorShape: Qt.SizeVerCursor
+                                function moveTo(mouseY) {
+                                    let value = Math.max(-12, Math.min(12, Math.round((12 - (mouseY - rail.y) * 24 / rail.height) * 2) / 2));
+                                    if (value !== band.shown) {
+                                        band.shown = value;
+                                        Eq.changeBand(band.index, value);
+                                    }
+                                }
+                                onPressed: mouse => moveTo(mouse.y)
+                                onPositionChanged: mouse => { if (pressed) moveTo(mouse.y); }
+                                onWheel: wheel => band.nudge(wheel.angleDelta.y > 0 ? 0.5 : -0.5)
+                            }
+                            PxText {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                y: Theme.u * 54
+                                kind: "tiny"
+                                text: band.freq >= 1000 ? (band.freq / 1000) + "k" : String(band.freq)
+                                color: Theme.textDim
+                            }
                         }
                     }
                 }
-            }
-            PxText {
-                anchors.right: parent.right
-                y: Theme.u * 184
-                kind: "tiny"
-                text: root.preset ? root.preset.toUpperCase() : I18n.t("СВОЙ ПРОФИЛЬ", "CUSTOM")
-                color: root.active ? Theme.accent : Theme.textDim
+                PxText {
+                    anchors.right: parent.right
+                    y: Theme.u * 234
+                    kind: "tiny"
+                    text: root.preset ? root.preset.toUpperCase() : I18n.t("СВОЙ ПРОФИЛЬ", "CUSTOM")
+                    color: root.active ? Theme.accent : Theme.textDim
+                }
             }
         }
     }

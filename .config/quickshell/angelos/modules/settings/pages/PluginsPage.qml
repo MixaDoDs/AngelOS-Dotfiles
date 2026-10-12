@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 import qs.services
 import qs.widgets
@@ -40,9 +41,41 @@ PxPage {
         if (Plugins.isCore(p))
             return I18n.t("часть angelOS", "part of angelOS");
         const o = CommunityPlugins.origin(p);
-        return o === "bundled" ? I18n.t("встроенный", "bundled") : o === "community" ? I18n.t("из каталога", "from the catalog") : I18n.t("свой", "your own");
+        return o === "bundled" ? I18n.t("встроенный", "bundled") : o === "community" ? I18n.t("из каталога", "from the catalog") : o === "github" ? "GitHub" : o === "zip" || o === "url" ? I18n.t("из zip", "from a zip") : I18n.t("свой", "your own");
     }
     Component.onCompleted: if (Quickshell.env("ANGELOS_TEST") !== "1" && !CommunityPlugins.entries.length) CommunityPlugins.refresh()
+    // not reviewed: the first press only asks (the warning turns red), the second installs
+    property string confirmSide: ""
+    function sideload(source) {
+        source = String(source || "").trim();
+        if (!source)
+            return;
+        if (confirmSide !== source) {
+            confirmSide = source;
+            sideReset.restart();
+            return;
+        }
+        confirmSide = "";
+        CommunityPlugins.sideload(source);
+    }
+    Timer {
+        id: sideReset
+        interval: 6000
+        onTriggered: page.confirmSide = ""
+    }
+    Process {
+        id: zipPicker
+        command: ["python3", Quickshell.shellDir + "/scripts/pick-file.py", "--remember", "plugin-zip", I18n.t("Плагин (.zip)", "Plugin (.zip)"), "Zip", "*.zip"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const f = text.trim().split("\n")[0];
+                if (f) {
+                    sideField.text = f;
+                    page.sideload(f);
+                }
+            }
+        }
+    }
     Timer {
         id: confirmReset
         interval: 4000
@@ -129,6 +162,42 @@ PxPage {
                 text: I18n.t("Опубликовать плагин", "Publish a plugin")
                 onClicked: Quickshell.execDetached(["xdg-open", "https://github.com/futureUnd1ground/angelos-community-registry/blob/main/CONTRIBUTING.md"])
             }
+        }
+        // outside the catalog: a .zip, a .zip link or a GitHub repository (community-plugins.py sideload)
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            text: I18n.t("Не из каталога: ссылка на GitHub-репозиторий или .zip", "Not from the catalog: a GitHub repository link or a .zip")
+        }
+        Flow {
+            width: parent.width
+            spacing: Theme.u * 3
+            PxField {
+                id: sideField
+                width: Math.min(parent.width, Theme.u * 200)
+                icon: "url"
+                placeholder: "https://github.com/автор/плагин"
+                onAccepted: page.sideload(text)
+            }
+            PxButton {
+                icon: "download"
+                text: page.confirmSide && page.confirmSide === sideField.text.trim() ? I18n.t("Точно поставить?", "Install anyway?") : I18n.t("Поставить", "Install")
+                enabled: !CommunityPlugins.busy && sideField.text.trim() !== ""
+                onClicked: page.sideload(sideField.text)
+            }
+            PxButton {
+                icon: "folder"
+                text: I18n.t("Выбрать .zip…", "Pick a .zip…")
+                enabled: !CommunityPlugins.busy && !zipPicker.running
+                onClicked: zipPicker.running = true
+            }
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            color: page.confirmSide ? Theme.danger : Theme.textDim
+            text: I18n.t("Такие плагины никто не проверял: они работают с твоими правами. Ставь только от тех, кому доверяешь. С GitHub берётся последний релиз (или свежий коммит), обновления проверяются вместе с каталогом.", "Nobody reviewed these: they run with your permissions. Install only from people you trust. GitHub gives the latest release (or the newest commit); updates are checked with the catalog.")
         }
         SettingRow {
             label: I18n.t("Проверять обновления раз в день", "Check for updates once a day")
@@ -248,7 +317,7 @@ PxPage {
                         }
                         PxText {
                             visible: card.canUpdate
-                            text: I18n.t("Доступна версия ", "Version available: ") + (card.entry ? card.entry.version : "")
+                            text: I18n.t("Доступна версия ", "Version available: ") + CommunityPlugins.updateVersion(card.modelData.id)
                             color: Theme.accent
                             kind: "tiny"
                         }

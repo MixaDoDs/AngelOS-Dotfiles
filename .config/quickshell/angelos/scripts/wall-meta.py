@@ -13,10 +13,20 @@ The size comes from the file itself (only its header is read), so a cut needs no
 in its name at all; a mark of shape (21x9, 3440x1440, vertical, wide; 4K, UHD) is taken off the
 name only when the picture has that shape, so "level-2-3.png" stays its own picture.
 
-  wall-meta.py [--cache FILE]   paths on stdin, one per line
-  -> JSON {path: {"w", "h", "time": "day" | "night" | "", "key", "name"}}
-     key: the same for every file of one wallpaper; name: its name for people
+The same picture twice is one wallpaper too: a copy in another folder, a release's
+picture shipped again with the next release. One of them is kept (a release's own, the newest
+release's first), the others say "dup": the kept one. A wallpaper whose copies all lie in one
+other wallpaper becomes that one, what only it had (a 41:9 cut) with it. Copies are found by
+the bytes (read only when two files are of one size); a release's picture saved anew elsewhere
+by its pixels (PNG of a release picture's size, needs PIL, a couple of seconds a run — the
+rest with the next ones).
+
+  wall-meta.py [--cache FILE] [--prefer DIR]   paths on stdin, one per line
+  -> JSON {path: {"w", "h", "time": "day" | "night" | "", "key", "name", "dup"?}}
+     key: the same for every file of one wallpaper; name: its name for people;
+     dup: the picture this file is a copy of (the lists show that one)
 """
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -124,9 +134,82 @@ def parse(path, w, h):
     return time, str(p.parent) + "/" + re.sub(r"\s+", "-", name.lower()), name
 
 
+def file_hash(path):
+    h = hashlib.blake2b(digest_size=16)
+    try:
+        with open(path, "rb") as f:
+            for block in iter(lambda: f.read(1 << 20), b""):
+                h.update(block)
+    except OSError:
+        return ""
+    return h.hexdigest()
+
+
+def pixel_hash(path):
+    """the picture's pixels, whatever the file was saved with; "" = cannot tell"""
+    try:
+        from PIL import Image
+        Image.MAX_IMAGE_PIXELS = None
+        with Image.open(path) as im:
+            return hashlib.blake2b(im.convert("RGBA").tobytes(), digest_size=16).hexdigest()
+    except Exception:
+        return ""
+
+
+def copies(out, hashes, pixels, prefer):
+    """marks the copies in out ("dup") and joins wallpapers that are one another's copies"""
+    def rank(path):
+        # a release's own picture first, the newest release's (03-… before 02-…); else by name
+        mine = bool(prefer) and path.startswith(prefer)
+        return (0, [-ord(c) for c in path]) if mine else (1, [ord(c) for c in path])
+
+    groups = {}
+    for path in out:
+        for kind, table in (("b", hashes), ("p", pixels)):
+            if table.get(path):
+                groups.setdefault((kind, out[path]["w"], out[path]["h"], table[path]), []).append(path)
+    keeper = {}                                # the bytes first: the pixels only add to them
+    for _, paths in sorted(groups.items()):
+        paths = sorted({keeper.get(p, p) for p in paths}, key=rank)
+        for p in paths[1:]:
+            keeper[p] = paths[0]
+            for q, k in keeper.items():
+                if k == p:
+                    keeper[q] = paths[0]
+    if not keeper:
+        return
+    # a wallpaper all of whose copies lie in one other wallpaper is that wallpaper
+    sets, target = {}, {}
+    for path, i in out.items():
+        sets.setdefault(i["key"], []).append(path)
+    for key, paths in sets.items():
+        same = [p for p in paths if p in keeper]
+        to = {out[keeper[p]]["key"] for p in same} - {key}
+        # (half of it at least: one stray copy does not make ten pictures somebody's variants)
+        if len(to) == 1 and 2 * len(same) >= len(paths):
+            target[key] = to.pop()
+    def root(key):
+        seen = []
+        while key in target:
+            if key in seen:                    # each other's copies: one of them, always the same
+                return min(seen)
+            seen.append(key)
+            key = target[key]
+        return key
+    names = {i["key"]: i["name"] for p, i in sorted(out.items(), key=lambda x: rank(x[0]), reverse=True)}
+    for path, i in out.items():
+        if path in keeper:
+            i["dup"] = keeper[path]
+        r = root(i["key"])
+        if r != i["key"]:
+            i["key"], i["name"] = r, names.get(r, i["name"])
+
+
 def main():
     args = sys.argv[1:]
     cache_file = Path(args[args.index("--cache") + 1]) if "--cache" in args else None
+    prefer = os.path.join(args[args.index("--prefer") + 1], "") if "--prefer" in args else ""
+    budget = float(os.environ.get("ANGELOS_WALL_PIXEL_SECONDS", "2"))
     cache = {}
     if cache_file:
         try:
@@ -149,9 +232,44 @@ def main():
         else:
             wh = size(path)
             w, h = wh if wh else (0, 0)
-        fresh[path] = stamp + [w, h]
+        # [mtime, size, w, h, the bytes' hash, the pixels' hash]: "" = not asked for yet
+        fresh[path] = stamp + [w, h] + (c[4:6] if c and c[:2] == stamp and len(c) >= 6 else ["", ""])
         time, key, name = parse(path, w, h)
         out[path] = {"w": w, "h": h, "time": time, "key": key, "name": name}
+    # the same bytes: only files of one size can be that
+    by_size = {}
+    for path, c in fresh.items():
+        by_size.setdefault(c[1], []).append(path)
+    for paths in by_size.values():
+        if len(paths) > 1:
+            for path in paths:
+                fresh[path][4] = fresh[path][4] or file_hash(path)
+    hashes = {path: c[4] for path, c in fresh.items() if c[4]}
+    # the same pixels in another file: a release's picture and PNGs of its very size
+    if prefer:
+        import time as clock
+        sizes = {(c[2], c[3]) for path, c in fresh.items() if path.startswith(prefer) and c[2]}
+        ask = [path for path, c in fresh.items() if (c[2], c[3]) in sizes and path.lower().endswith(".png")]
+        by_wh = {}
+        for path in ask:
+            by_wh.setdefault((fresh[path][2], fresh[path][3]), set()).add(hashes.get(path, path))
+        until = clock.monotonic() + budget
+        known = {c[4]: c[5] for c in fresh.values() if c[4] and c[5]}
+        for path in sorted(ask, key=lambda p: (not p.startswith(prefer), p)):
+            c = fresh[path]
+            # alone of its size, or every file of that size is the same file: nothing to compare
+            if c[5] or len(by_wh[(c[2], c[3])]) < 2:
+                continue
+            if c[4] in known:
+                c[5] = known[c[4]]
+                continue
+            if budget > 0 and clock.monotonic() > until:
+                break
+            c[5] = pixel_hash(path) or "-"
+            if c[4]:
+                known[c[4]] = c[5]
+    pixels = {path: c[5] for path, c in fresh.items() if c[5] not in ("", "-")}
+    copies(out, hashes, pixels, prefer)
     if cache_file and fresh != cache:
         try:
             cache_file.parent.mkdir(parents=True, exist_ok=True)

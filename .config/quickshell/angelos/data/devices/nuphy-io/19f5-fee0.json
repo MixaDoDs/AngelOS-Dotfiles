@@ -1,0 +1,940 @@
+{
+ "schema": 1,
+ "id": "nuphy-air60-he",
+ "name": "NuPhy Air60 HE",
+ "maker": "NuPhy",
+ "kind": "keyboard",
+ "family": "nuphy-io",
+ "usb": [
+  {
+   "vid": "19f5",
+   "pid": "fee0"
+  }
+ ],
+ "channel": {
+  "via": "usbfs",
+  "interface": 1,
+  "in": "0x82",
+  "out": "0x02"
+ },
+ "support": "described",
+ "checked": [],
+ "firmware": {
+  "writes": {
+   "min": 110,
+   "max": 139
+  },
+  "checked": []
+ },
+ "notes": {
+  "ru": "Служебный интерфейс 1 этой клавиатуры нельзя отдавать драйверу usbhid: при его опросе клавиатура сбрасывается и клавиши залипают. Оболочка забирает интерфейс через usbfs и только на время, пока открыта страница.",
+  "en": "The kernel's usbhid must stay off this keyboard's service interface 1: polled by it, the keyboard resets and keys stick. The shell claims the interface through usbfs, and only while the page is open."
+ },
+ "nuphy-io": {
+  "modes": [
+   "Gaming",
+   "Windows",
+   "Mac"
+  ],
+  "defaultLayer": 4,
+  "travelStep": 0.01,
+  "baseOffset": [
+   {
+    "min": 100,
+    "max": 109,
+    "offset": 8
+   }
+  ],
+  "rtCheck": [
+   {
+    "min": 100,
+    "max": 109,
+    "flag": 0
+   },
+   {
+    "min": 110,
+    "flag": 5
+   }
+  ]
+ },
+ "capabilities": {
+  "liveTravel": true,
+  "actuation": {
+   "min": 0.1,
+   "max": 3.3,
+   "step": 0.01
+  },
+  "rapidTrigger": {
+   "min": 0.01,
+   "max": 3.3,
+   "steps": [
+    0.01
+   ],
+   "continuous": true,
+   "split": true
+  },
+  "deadZones": {
+   "max": 1.28
+  },
+  "socd": {
+   "modes": [
+    "last",
+    "own",
+    "bond",
+    "neutral"
+   ]
+  },
+  "dks": true,
+  "modTap": true,
+  "toggle": true,
+  "remap": true,
+  "layers": true,
+  "macros": true,
+  "lighting": {
+   "main": [
+    {
+     "id": 1,
+     "ru": "Спектр",
+     "en": "Spectrum",
+     "noColor": true
+    },
+    {
+     "id": 3,
+     "ru": "Ровный",
+     "en": "Static"
+    },
+    {
+     "id": 2,
+     "ru": "Лестница",
+     "en": "Staircase"
+    },
+    {
+     "id": 4,
+     "ru": "Дыхание",
+     "en": "Breathing"
+    },
+    {
+     "id": 5,
+     "ru": "Сто цветов",
+     "en": "Hundred flowers",
+     "noColor": true
+    },
+    {
+     "id": 6,
+     "ru": "Волна",
+     "en": "Wave"
+    },
+    {
+     "id": 7,
+     "ru": "Волна вверх-вниз",
+     "en": "Up and down wave"
+    },
+    {
+     "id": 8,
+     "ru": "Фонтан",
+     "en": "Fountain"
+    },
+    {
+     "id": 9,
+     "ru": "Галактика",
+     "en": "Galaxy"
+    },
+    {
+     "id": 10,
+     "ru": "Вихрь",
+     "en": "Rotation"
+    },
+    {
+     "id": 11,
+     "ru": "Прилив",
+     "en": "Tide"
+    },
+    {
+     "id": 12,
+     "ru": "Морская волна",
+     "en": "Sea wave"
+    },
+    {
+     "id": 13,
+     "ru": "Рябь от нажатия",
+     "en": "Ripple"
+    },
+    {
+     "id": 14,
+     "ru": "Рябь постоянная",
+     "en": "Constant ripple"
+    },
+    {
+     "id": 15,
+     "ru": "Одна клавиша",
+     "en": "Single point"
+    },
+    {
+     "id": 16,
+     "ru": "Сетка",
+     "en": "Grid"
+    },
+    {
+     "id": 17,
+     "ru": "Пианино",
+     "en": "Piano"
+    },
+    {
+     "id": 18,
+     "ru": "Бегущий свет",
+     "en": "Flowing light"
+    },
+    {
+     "id": 19,
+     "ru": "Дождь",
+     "en": "Falling rain"
+    },
+    {
+     "id": 22,
+     "ru": "Полоса волны",
+     "en": "Wave band"
+    },
+    {
+     "id": 0,
+     "ru": "Своя раскладка цветов",
+     "en": "Custom",
+     "noColor": true
+    }
+   ],
+   "side": [
+    {
+     "id": 3,
+     "ru": "Дыхание",
+     "en": "Breathe"
+    },
+    {
+     "id": 0,
+     "ru": "Бегущий свет",
+     "en": "Flowing light"
+    },
+    {
+     "id": 1,
+     "ru": "Неон",
+     "en": "Neon"
+    },
+    {
+     "id": 2,
+     "ru": "Ровный",
+     "en": "Static"
+    }
+   ]
+  },
+  "calibration": true,
+  "profiles": true,
+  "pollingRate": {
+   "values": [
+    1000,
+    2000,
+    4000,
+    8000
+   ]
+  }
+ },
+ "switches": [
+  {
+   "id": 1,
+   "name": "Gateron Low-profile Magnetic Jade",
+   "travel": 3.3
+  },
+  {
+   "id": 2,
+   "name": "Gateron Low-profile Magnetic Jade Pro",
+   "travel": 3.3
+  }
+ ],
+ "layout": {
+  "keys": [
+   {
+    "m": 0,
+    "x": 0,
+    "y": 0,
+    "label": "Esc",
+    "default": [
+     16,
+     0,
+     41
+    ]
+   },
+   {
+    "m": 1,
+    "x": 1,
+    "y": 0,
+    "label": "1",
+    "default": [
+     16,
+     0,
+     30
+    ]
+   },
+   {
+    "m": 2,
+    "x": 2,
+    "y": 0,
+    "label": "2",
+    "default": [
+     16,
+     0,
+     31
+    ]
+   },
+   {
+    "m": 3,
+    "x": 3,
+    "y": 0,
+    "label": "3",
+    "default": [
+     16,
+     0,
+     32
+    ]
+   },
+   {
+    "m": 4,
+    "x": 4,
+    "y": 0,
+    "label": "4",
+    "default": [
+     16,
+     0,
+     33
+    ]
+   },
+   {
+    "m": 5,
+    "x": 5,
+    "y": 0,
+    "label": "5",
+    "default": [
+     16,
+     0,
+     34
+    ]
+   },
+   {
+    "m": 6,
+    "x": 6,
+    "y": 0,
+    "label": "6",
+    "default": [
+     16,
+     0,
+     35
+    ]
+   },
+   {
+    "m": 7,
+    "x": 7,
+    "y": 0,
+    "label": "7",
+    "default": [
+     16,
+     0,
+     36
+    ]
+   },
+   {
+    "m": 8,
+    "x": 8,
+    "y": 0,
+    "label": "8",
+    "default": [
+     16,
+     0,
+     37
+    ]
+   },
+   {
+    "m": 9,
+    "x": 9,
+    "y": 0,
+    "label": "9",
+    "default": [
+     16,
+     0,
+     38
+    ]
+   },
+   {
+    "m": 10,
+    "x": 10,
+    "y": 0,
+    "label": "0",
+    "default": [
+     16,
+     0,
+     39
+    ]
+   },
+   {
+    "m": 11,
+    "x": 11,
+    "y": 0,
+    "label": "-",
+    "default": [
+     16,
+     0,
+     45
+    ]
+   },
+   {
+    "m": 12,
+    "x": 12,
+    "y": 0,
+    "label": "=",
+    "default": [
+     16,
+     0,
+     46
+    ]
+   },
+   {
+    "m": 13,
+    "x": 13,
+    "y": 0,
+    "w": 2,
+    "label": "Backspace",
+    "default": [
+     16,
+     0,
+     42
+    ]
+   },
+   {
+    "m": 14,
+    "x": 0,
+    "y": 1,
+    "w": 1.5,
+    "label": "Tab",
+    "default": [
+     16,
+     0,
+     43
+    ]
+   },
+   {
+    "m": 15,
+    "x": 1.5,
+    "y": 1,
+    "label": "Q",
+    "default": [
+     16,
+     0,
+     20
+    ]
+   },
+   {
+    "m": 16,
+    "x": 2.5,
+    "y": 1,
+    "label": "W",
+    "default": [
+     16,
+     0,
+     26
+    ]
+   },
+   {
+    "m": 17,
+    "x": 3.5,
+    "y": 1,
+    "label": "E",
+    "default": [
+     16,
+     0,
+     8
+    ]
+   },
+   {
+    "m": 18,
+    "x": 4.5,
+    "y": 1,
+    "label": "R",
+    "default": [
+     16,
+     0,
+     21
+    ]
+   },
+   {
+    "m": 19,
+    "x": 5.5,
+    "y": 1,
+    "label": "T",
+    "default": [
+     16,
+     0,
+     23
+    ]
+   },
+   {
+    "m": 20,
+    "x": 6.5,
+    "y": 1,
+    "label": "Y",
+    "default": [
+     16,
+     0,
+     28
+    ]
+   },
+   {
+    "m": 21,
+    "x": 7.5,
+    "y": 1,
+    "label": "U",
+    "default": [
+     16,
+     0,
+     24
+    ]
+   },
+   {
+    "m": 22,
+    "x": 8.5,
+    "y": 1,
+    "label": "I",
+    "default": [
+     16,
+     0,
+     12
+    ]
+   },
+   {
+    "m": 23,
+    "x": 9.5,
+    "y": 1,
+    "label": "O",
+    "default": [
+     16,
+     0,
+     18
+    ]
+   },
+   {
+    "m": 24,
+    "x": 10.5,
+    "y": 1,
+    "label": "P",
+    "default": [
+     16,
+     0,
+     19
+    ]
+   },
+   {
+    "m": 25,
+    "x": 11.5,
+    "y": 1,
+    "label": "[",
+    "default": [
+     16,
+     0,
+     47
+    ]
+   },
+   {
+    "m": 26,
+    "x": 12.5,
+    "y": 1,
+    "label": "]",
+    "default": [
+     16,
+     0,
+     48
+    ]
+   },
+   {
+    "m": 27,
+    "x": 13.5,
+    "y": 1,
+    "w": 1.5,
+    "label": "\\",
+    "default": [
+     16,
+     0,
+     49
+    ]
+   },
+   {
+    "m": 28,
+    "x": 0,
+    "y": 2,
+    "w": 1.75,
+    "label": "Caps",
+    "default": [
+     16,
+     0,
+     57
+    ]
+   },
+   {
+    "m": 29,
+    "x": 1.75,
+    "y": 2,
+    "label": "A",
+    "default": [
+     16,
+     0,
+     4
+    ]
+   },
+   {
+    "m": 30,
+    "x": 2.75,
+    "y": 2,
+    "label": "S",
+    "default": [
+     16,
+     0,
+     22
+    ]
+   },
+   {
+    "m": 31,
+    "x": 3.75,
+    "y": 2,
+    "label": "D",
+    "default": [
+     16,
+     0,
+     7
+    ]
+   },
+   {
+    "m": 32,
+    "x": 4.75,
+    "y": 2,
+    "label": "F",
+    "default": [
+     16,
+     0,
+     9
+    ]
+   },
+   {
+    "m": 33,
+    "x": 5.75,
+    "y": 2,
+    "label": "G",
+    "default": [
+     16,
+     0,
+     10
+    ]
+   },
+   {
+    "m": 34,
+    "x": 6.75,
+    "y": 2,
+    "label": "H",
+    "default": [
+     16,
+     0,
+     11
+    ]
+   },
+   {
+    "m": 35,
+    "x": 7.75,
+    "y": 2,
+    "label": "J",
+    "default": [
+     16,
+     0,
+     13
+    ]
+   },
+   {
+    "m": 36,
+    "x": 8.75,
+    "y": 2,
+    "label": "K",
+    "default": [
+     16,
+     0,
+     14
+    ]
+   },
+   {
+    "m": 37,
+    "x": 9.75,
+    "y": 2,
+    "label": "L",
+    "default": [
+     16,
+     0,
+     15
+    ]
+   },
+   {
+    "m": 38,
+    "x": 10.75,
+    "y": 2,
+    "label": ";",
+    "default": [
+     16,
+     0,
+     51
+    ]
+   },
+   {
+    "m": 39,
+    "x": 11.75,
+    "y": 2,
+    "label": "'",
+    "default": [
+     16,
+     0,
+     52
+    ]
+   },
+   {
+    "m": 40,
+    "x": 12.75,
+    "y": 2,
+    "w": 2.25,
+    "label": "Enter",
+    "default": [
+     16,
+     0,
+     40
+    ]
+   },
+   {
+    "m": 41,
+    "x": 0,
+    "y": 3,
+    "w": 2.25,
+    "label": "Shift",
+    "default": [
+     16,
+     2,
+     0
+    ]
+   },
+   {
+    "m": 42,
+    "x": 2.25,
+    "y": 3,
+    "label": "Z",
+    "default": [
+     16,
+     0,
+     29
+    ]
+   },
+   {
+    "m": 43,
+    "x": 3.25,
+    "y": 3,
+    "label": "X",
+    "default": [
+     16,
+     0,
+     27
+    ]
+   },
+   {
+    "m": 44,
+    "x": 4.25,
+    "y": 3,
+    "label": "C",
+    "default": [
+     16,
+     0,
+     6
+    ]
+   },
+   {
+    "m": 45,
+    "x": 5.25,
+    "y": 3,
+    "label": "V",
+    "default": [
+     16,
+     0,
+     25
+    ]
+   },
+   {
+    "m": 46,
+    "x": 6.25,
+    "y": 3,
+    "label": "B",
+    "default": [
+     16,
+     0,
+     5
+    ]
+   },
+   {
+    "m": 47,
+    "x": 7.25,
+    "y": 3,
+    "label": "N",
+    "default": [
+     16,
+     0,
+     17
+    ]
+   },
+   {
+    "m": 48,
+    "x": 8.25,
+    "y": 3,
+    "label": "M",
+    "default": [
+     16,
+     0,
+     16
+    ]
+   },
+   {
+    "m": 49,
+    "x": 9.25,
+    "y": 3,
+    "label": ",",
+    "default": [
+     16,
+     0,
+     54
+    ]
+   },
+   {
+    "m": 50,
+    "x": 10.25,
+    "y": 3,
+    "label": ".",
+    "default": [
+     16,
+     0,
+     55
+    ]
+   },
+   {
+    "m": 51,
+    "x": 11.25,
+    "y": 3,
+    "label": "/",
+    "default": [
+     16,
+     0,
+     56
+    ]
+   },
+   {
+    "m": 52,
+    "x": 12.25,
+    "y": 3,
+    "w": 2.75,
+    "label": "Shift",
+    "default": [
+     16,
+     32,
+     0
+    ]
+   },
+   {
+    "m": 53,
+    "x": 0,
+    "y": 4,
+    "w": 1.25,
+    "label": "Ctrl",
+    "default": [
+     16,
+     1,
+     0
+    ]
+   },
+   {
+    "m": 54,
+    "x": 1.25,
+    "y": 4,
+    "w": 1.25,
+    "label": "Super",
+    "default": [
+     16,
+     8,
+     0
+    ]
+   },
+   {
+    "m": 55,
+    "x": 2.5,
+    "y": 4,
+    "w": 1.25,
+    "label": "Alt",
+    "default": [
+     16,
+     4,
+     0
+    ]
+   },
+   {
+    "m": 56,
+    "x": 3.75,
+    "y": 4,
+    "w": 6.25,
+    "label": "Space",
+    "default": [
+     16,
+     0,
+     44
+    ]
+   },
+   {
+    "m": 57,
+    "x": 10.0,
+    "y": 4,
+    "w": 1.25,
+    "label": "Alt",
+    "default": [
+     16,
+     64,
+     0
+    ]
+   },
+   {
+    "m": 58,
+    "x": 11.25,
+    "y": 4,
+    "w": 1.25,
+    "label": "Menu",
+    "default": [
+     16,
+     0,
+     101
+    ]
+   },
+   {
+    "m": 59,
+    "x": 12.5,
+    "y": 4,
+    "w": 1.25,
+    "label": "Ctrl",
+    "default": [
+     16,
+     16,
+     0
+    ]
+   },
+   {
+    "m": 60,
+    "x": 13.75,
+    "y": 4,
+    "w": 1.25,
+    "label": "Fn",
+    "default": [
+     240,
+     255,
+     5
+    ]
+   }
+  ]
+ }
+}

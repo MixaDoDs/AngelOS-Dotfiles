@@ -375,6 +375,12 @@ def picture(style, emblem_rows, emblem_pal, colors, hell, emblem=""):
     return text, W, H, {"layers": [layer(emblem_rows, emblem_pal, 0, x, 2, fx=motion("emblem", emblem_rows, colors, hell, emblem))], "texts": []}
 
 
+# short on purpose: fastfetch's own "1 day, 1 hour, 43 mins" and the per-manager package
+# list run past the terminal's edge, and a wrapped line tears the picture beside it
+UPTIME = "{?days}{days}d {?}{hours}h {minutes}m"
+PKGS = "{all}"
+
+
 def modules(style, colors, hell):
     accent, title = colors.get("accent", "#ff6fb0"), colors.get("accent2", "#c9b6ff")
     gold, dim = colors.get("accent3", "#ffe066"), colors.get("dim", "#9c8fa8")
@@ -411,17 +417,17 @@ def modules(style, colors, hell):
         head = "{#%s}%s AngelOS{#} {#%s}·{#} {user-name}@{host-name}" % (sgr(accent, True), "⛧" if hell else "♡", sgr(dim))
         return [{"type": "title", "format": head}] + circle + [
             {"type": "os", "key": "os", "format": "{pretty-name}"},
-            {"type": "uptime", "key": "up"},
+            {"type": "uptime", "key": "up", "format": UPTIME},
             {"type": "cpu", "key": key("cpu"), "format": "{name}"},
             {"type": "gpu", "key": key("gpu"), "format": "{name}"},
             {"type": "memory", "key": key("ram"), "format": "{used} / {total}"},
-            {"type": "packages", "key": "pkgs"},
+            {"type": "packages", "key": "pkgs", "format": PKGS},
             {"type": "command", "key": "gear", "text": gear("{#%s}{total}{#} · {count} %s" % (sgr(gold, True), tr(lang, "шт.", "pcs")), total=True, lang=lang)},
             {"type": "custom", "format": row},
         ]
 
     if style == "window":
-        bar = "─" * 26
+        bar = "─" * 15
         name = str(colors.get("windowTitle") or (hell or {}).get("windowTitle") or "AngelOS.exe")
         top = "{#%s}╭─{#} {#%s}%s %s{#} {#%s}%s ─ □ ✕{#}" % (sgr(accent), sgr(title, True), "⛧" if hell else "♡", name, sgr(accent), bar)
         side = "│ "
@@ -432,7 +438,7 @@ def modules(style, colors, hell):
             c["format"] = "{#%s}│{#} " % sgr(accent) + c["format"]
             mods.append(c)
         rows = [("os", "os", {"format": "{pretty-name}"}), ("kernel", "kernel", {"format": "{release}"}),
-                ("uptime", "uptime", {}), ("packages", "pkgs", {}),
+                ("uptime", "uptime", {"format": UPTIME}), ("packages", "pkgs", {"format": PKGS}),
                 ("cpu", key("cpu"), {"format": "{name}"}), ("gpu", key("gpu"), {"format": "{name}"}),
                 ("memory", key("ram"), {"format": "{used} / {total}"}),
                 ("disk", "disk", {"folders": "/", "format": "{size-used} / {size-total}"})]
@@ -445,13 +451,13 @@ def modules(style, colors, hell):
 
     if style == "angel":
         mods = ["title", "separator"] + circle + [
-            {"type": "os", "key": "os"},
+            {"type": "os", "key": "os", "format": "{pretty-name}"},
             {"type": "kernel", "key": "kernel", "format": "{release}"},
-            {"type": "uptime", "key": "uptime"},
-            {"type": "packages", "key": "packages"},
+            {"type": "uptime", "key": "uptime", "format": UPTIME},
+            {"type": "packages", "key": "packages", "format": PKGS},
             {"type": "wm", "key": "wm"},
             "break",
-            {"type": "cpu", "key": key("cpu")},
+            {"type": "cpu", "key": key("cpu"), "format": "{name}"},
             {"type": "gpu", "key": key("gpu"), "format": "{name}"},
             {"type": "memory", "key": key("ram"), "format": "{used} / {total}"},
             {"type": "disk", "key": "disk", "folders": "/", "format": "{size-used} / {size-total}"},
@@ -476,8 +482,8 @@ def modules(style, colors, hell):
                 {"type": "custom", "format": "{#%s}%s{#}" % (sgr(dim), "┄" * 34)}] + circle + [
             {"type": "os", "key": "os", "format": "{pretty-name}"},
             {"type": "kernel", "key": "kernel", "format": "{release}"},
-            {"type": "uptime", "key": "uptime"},
-            {"type": "packages", "key": "pkgs"},
+            {"type": "uptime", "key": "uptime", "format": UPTIME},
+            {"type": "packages", "key": "pkgs", "format": PKGS},
             {"type": "wm", "key": "wm"},
             {"type": "cpu", "key": key("cpu"), "format": "{name}"},
             {"type": "gpu", "key": key("gpu"), "format": "{name}"},
@@ -497,15 +503,15 @@ def modules(style, colors, hell):
                 ("gpu", "rtx_tyan" if not hell else "gpu_burner", "#ba68c8", {"format": "{name}"}),
                 ("memory", "ram_eater", "#81c784", {"format": "{used} / {total}"}),
                 ("os", "linux_enjoyer", "#ffb74d", {"format": "{pretty-name}"}),
-                ("uptime", "no_sleep_andy", "#f06292", {}),
-                ("packages", "pkg_hoarder", "#4db6ac", {}),
+                ("uptime", "no_sleep_andy", "#f06292", {"format": UPTIME}),
+                ("packages", "pkg_hoarder", "#4db6ac", {"format": PKGS}),
                 ("wm", "tiling_fan", "#9575cd", {"format": "{pretty-name}"})]
         head = "{#%s}{user-name}{#} {#%s}%s{#}" % (sgr(title, True), sgr(dim), tr(lang, "стримит с {host-name}", "streaming from {host-name}"))
         mods = [{"type": "title", "format": head}] + circle + [
-            {"type": "custom", "format": "{#%s}── %s %s{#}" % (sgr(dim), tr(lang, "чат", "chat"), "─" * 28)}]
+            {"type": "custom", "format": "{#%s}── %s %s{#}" % (sgr(dim), tr(lang, "чат", "chat"), "─" * 24)}]
         for kind, k, colour, extra in nick:
             mods.append({"type": kind, "key": k, "keyColor": sgr(colour, True), **extra})
-        mods.append({"type": "custom", "format": "{#%s}── %s %s{#}" % (sgr(dim), tr(lang, "суперчаты", "superchats"), "─" * 22)})
+        mods.append({"type": "custom", "format": "{#%s}── %s %s{#}" % (sgr(dim), tr(lang, "суперчаты", "superchats"), "─" * 18)})
         mods += [{"type": "command", "key": " ", "text": gear("{tier} {price} {#} {name}", nth=i, lang=lang)} for i in range(SLOTS)]
         mods.append({"type": "command", "key": " ",
                      "text": gear("{#%s}%s %s: {total}{#}" % (sgr(gold, True), "⛧" if hell else "♡", tr(lang, "донатов на сетап", "donated to the setup")),
@@ -528,8 +534,8 @@ def modules(style, colors, hell):
                  {"type": "gpu", "key": " ", "format": on + "GPU  {name:%d}" % (W - 5)},
                  {"type": "memory", "key": " ", "format": on + "RAM  {used} / {total}"},
                  {"type": "os", "key": " ", "format": on + "OS   {pretty-name:%d}" % (W - 5)},
-                 {"type": "uptime", "key": " ", "format": on + "UP   {?days}{days}d {?}{hours}h {minutes}m"},
-                 {"type": "packages", "key": " ", "format": on + "PKG  {all}"},
+                 {"type": "uptime", "key": " ", "format": on + "UP   " + UPTIME},
+                 {"type": "packages", "key": " ", "format": on + "PKG  " + PKGS},
                  line("-")]
         mods += [{"type": "command", "key": " ", "text": gear(on + "{name} {fill} " + bold + "{price}", nth=i, width=W, lang=lang)} for i in range(SLOTS)]
         mods += [line("="),
@@ -548,8 +554,8 @@ def modules(style, colors, hell):
     mods = [{"type": "title", "format": "{#%s}{user-name}{#}@{#%s}{host-name}{#}" % (sgr(title, True), sgr(title, True))}] + circle + [
         {"type": "os", "key": "os", "format": "{pretty-name}"},
         {"type": "kernel", "key": "kernel", "format": "{release}"},
-        {"type": "uptime", "key": "uptime"},
-        {"type": "packages", "key": "pkgs"},
+        {"type": "uptime", "key": "uptime", "format": UPTIME},
+        {"type": "packages", "key": "pkgs", "format": PKGS},
         {"type": "wm", "key": "wm"},
         {"type": "terminal", "key": "term"},
         {"type": "cpu", "key": key("cpu"), "format": "{name}"},

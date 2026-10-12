@@ -1,0 +1,112 @@
+{
+  "_comment": [
+    "«Лишнее» (Settings → Apps → Programs → Extras; scripts/programs.py bloat-status | bloat), like",
+    "Omarchy's «Remove preinstalls»: what the dotfiles' installer puts on a system that angelOS itself",
+    "never calls. A group's packages are shown when installed; \"ticked\": preselected. What the user",
+    "removed here goes into ~/.local/state/angelos/removed-packages.txt and install.sh never brings it",
+    "back (pacman_install, follow_system; apps-install.py's base packages). A package the user's",
+    "settings name (the terminal, the task manager, the file manager) stays, so does one something",
+    "else installed needs. \"catalog\": the installed apps of data/apps-catalog.json (the wizard's)."
+  ],
+  "groups": [
+    {
+      "id": "tools",
+      "ru": "Утилиты для терминала",
+      "en": "Terminal utilities",
+      "hintRu": "мелочи автора из packages/tools.txt — angelOS их не вызывает",
+      "hintEn": "the author's small tools from packages/tools.txt; angelOS never calls them",
+      "ticked": true,
+      "packages": {
+        "btop": ["монитор ресурсов (в «Диспетчере» останется другой)", "a resource monitor (the task manager falls back to another)"],
+        "glances": ["ещё один монитор ресурсов", "another resource monitor"],
+        "duf": ["место на дисках", "disk usage"],
+        "ncdu": ["что занимает место в папке", "what takes space in a folder"],
+        "lsd": ["цветной ls", "a colourful ls"],
+        "micro": ["текстовый редактор в терминале", "a terminal text editor"],
+        "plocate": ["быстрый поиск файлов (locate)", "fast file search (locate)"],
+        "pv": ["прогресс в конвейерах", "progress in pipes"],
+        "yt-dlp": ["скачивание видео", "video downloads"],
+        "unrar": ["распаковка .rar", ".rar extraction"],
+        "tealdeer": ["короткие man-страницы (tldr)", "short man pages (tldr)"]
+      }
+    },
+    {
+      "id": "apps",
+      "ru": "Мелкие программы",
+      "en": "Small apps",
+      "hintRu": "у angelOS для этого свои окна (звук, диспетчер) или они нужны редко",
+      "hintEn": "angelOS has its own windows for these (sound, task manager), or they are rarely needed",
+      "ticked": true,
+      "packages": {
+        "pavucontrol": ["микшер PulseAudio — в angelOS есть «Звук»", "PulseAudio mixer; angelOS has Sound"],
+        "helvum": ["провода PipeWire", "PipeWire patchbay"],
+        "mission-center": ["диспетчер задач", "a task manager"],
+        "meld": ["сравнение файлов", "file diff"],
+        "scrcpy": ["экран телефона на компьютере", "a phone's screen on the computer"],
+        "ark": ["архивы в KDE-стиле", "KDE's archive manager"]
+      }
+    },
+    {
+      "id": "spare",
+      "ru": "Запасные терминалы и лаунчер",
+      "en": "Spare terminals and a launcher",
+      "hintRu": "angelOS работает с kitty и своим «Пуском»; эти нужны только без angelOS",
+      "hintEn": "angelOS uses kitty and its own Start; these are for niri without angelOS",
+      "ticked": true,
+      "packages": {
+        "alacritty": ["терминал", "a terminal"],
+        "foot": ["терминал", "a terminal"],
+        "fuzzel": ["лаунчер (у angelOS свой)", "a launcher (angelOS has its own)"],
+        "nwg-displays": ["мониторы (у angelOS — Настройки → Экран)", "monitors (angelOS: Settings → Display)"]
+      }
+    },
+    {
+      "id": "nvim",
+      "ru": "Neovim с LazyVim",
+      "en": "Neovim with LazyVim",
+      "hintRu": "редактор автора; если ты им не пользуешься — не нужен",
+      "hintEn": "the author's editor; not needed if you don't use it",
+      "ticked": true,
+      "packages": {
+        "neovim": ["редактор", "the editor"],
+        "lazygit": ["git в терминале", "git in a terminal"],
+        "tree-sitter-cli": ["для подсветки в Neovim", "for Neovim's highlighting"]
+      }
+    },
+    {
+      "id": "viewers",
+      "ru": "Просмотр картинок и видео",
+      "en": "Picture and video viewers",
+      "hintRu": "без них картинки и видео будет нечем открыть — снимай, только если поставил свои",
+      "hintEn": "without them nothing opens pictures and videos; untick only if you have your own",
+      "ticked": false,
+      "packages": {
+        "eog": ["просмотр картинок", "picture viewer"],
+        "mpv": ["видеоплеер", "video player"]
+      }
+    },
+    {
+      "id": "cachyos",
+      "ru": "Пришло с CachyOS",
+      "en": "Came with CachyOS",
+      "hintRu": "окно приветствия и графические менеджеры CachyOS — не angelOS, но тоже лишнее",
+      "hintEn": "CachyOS's welcome window and GUI managers: not angelOS's, but extras too",
+      "ticked": false,
+      "packages": {
+        "cachyos-hello": ["окно приветствия", "the welcome window"],
+        "cachyos-kernel-manager": ["менеджер ядер", "the kernel manager"],
+        "cachyos-packageinstaller": ["установщик пакетов", "the package installer"],
+        "octopi": ["менеджер пакетов", "a package manager"]
+      }
+    },
+    {
+      "id": "catalog",
+      "ru": "Программы автора",
+      "en": "The author's apps",
+      "hintRu": "то, что ставил мастер настройки; ты их выбирал сам, поэтому не отмечены",
+      "hintEn": "what the setup wizard installed; you picked them, so they start unticked",
+      "ticked": false,
+      "catalog": true
+    }
+  ]
+}

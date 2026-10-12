@@ -1,0 +1,2 @@
+# angelOS: the USB bridge's own user; the only member of the group the keyboard's USB node goes to
+u angelos-usb - "angelOS USB bridge" - -

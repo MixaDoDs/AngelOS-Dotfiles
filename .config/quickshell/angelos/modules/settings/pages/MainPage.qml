@@ -58,7 +58,7 @@ PxPage {
         ] : [])
 
     // ---- the tiles: what you open most, then the usual places ----
-    readonly property var usual: ["wallpaper", "theme", "sound", "network", "bluetooth", "display", "keyboard", "taskbar"]
+    readonly property var usual: ["presets", "wallpaper", "theme", "sound", "network", "bluetooth", "display", "keyboard", "taskbar"]
     readonly property var tiles: {
         const v = page.view;
         if (!v || !v.frequent)

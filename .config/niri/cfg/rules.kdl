@@ -45,14 +45,6 @@ window-rule {
 // Inactive opacity dimming removed — with focus-follows-mouse it made
 // windows "shine" on hover (0.90 → 0.94). Keep uniform opacity.
 
-    // Floating Noctalia settings window.
-    window-rule {
-        match app-id="dev.noctalia.Noctalia"
-        open-floating true
-        default-column-width { fixed 1080; }
-        default-window-height { fixed 920; }
-    }
-
     // if you use steam you will probably like these
     window-rule {
         match app-id="steam"
@@ -64,19 +56,6 @@ window-rule {
        match app-id="steam" title=r#"^notificationtoasts_\d+_desktop$"#
        default-floating-position x=10 y=10 relative-to="bottom-right"
        open-focused false
-    }
-
-    layer-rule {
-        match namespace="^noctalia-wallpaper"
-        place-within-backdrop true
-    }
-
-    layer-rule {
-        match namespace="^noctalia-(bar-[^\"]+|notification|dock|panel|attached-panel|osd)$"
-        background-effect {
-          xray false
-          // blur false
-        }
     }
 
     // Liquid glass shader test window (LiquidIslandQS port, GLFW harness).

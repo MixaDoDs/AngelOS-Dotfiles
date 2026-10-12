@@ -26,12 +26,29 @@ Singleton {
         onExited: code => root.canRecord = code === 0
     }
 
+    // niri's own shots (Print, screenshot-window/-screen) land loose in the screenshots folder:
+    // scripts/screenshot-sort.py moves each into its month (<shots>/2026-10 Октябрь), and on its
+    // first run tidies the per-app folders of before into months too
+    property bool sorting: false        // set by the process (read before it exists: undefined)
+    Process {
+        id: sorter
+        running: true
+        onRunningChanged: root.sorting = running
+        command: ["python3", Quickshell.shellDir + "/scripts/screenshot-sort.py", "watch"]
+        onExited: sorterAgain.restart()
+    }
+    Timer {
+        id: sorterAgain
+        interval: 5000
+        onTriggered: sorter.running = true
+    }
+
     function screenshot() {
         Achievements.note("screenshot");
         launch(screenshotTool, "niri msg action screenshot");
     }
     function record() {
-        launch(recordTool, 'notify-send -a angelOS "niri-record-region не найден"');
+        launch(recordTool, 'notify-send -a angelOS "' + I18n.t("Запись экрана не установлена: нет niri-record-region", "Screen recording isn't installed: niri-record-region is missing") + '"');
     }
     // the Golden Gate skin's ⇧⌘3 / ⇧⌘4 / ⇧⌘5 menu (scripts/mac-screenshot.sh: screen | region |
     // window | record): a picture of the screen, of a part, of the focused window, a video

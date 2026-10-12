@@ -27,9 +27,9 @@ PxButton {
     flat: true
     icon: ""
     text: ""
-    checked: panel.visible
+    checked: pop.visible
     implicitWidth: hearts.width + (pct.visible ? pct.implicitWidth + Theme.u * 2 : 0) + (bolt.visible ? bolt.width + Theme.u * 2 : 0) + (hpad >= 0 ? hpad : Theme.u * 6)
-    onClicked: panel.toggle()
+    onClicked: pop.toggle()
     onRightClicked: Power.toggleEco()
 
     Row {
@@ -118,111 +118,118 @@ PxButton {
         }
     }
 
-    BarPopup {
-        id: panel
+    // built when the pointer comes to the button, gone a while after it closed (LazyPopup)
+    LazyPopup {
+        id: pop
         panelId: "battery"
         anchorItem: root
-        above: root.above
-        title: I18n.t("Батарея", "Battery")
-        icon: "battery"
-        contentWidth: Theme.u * 150
-        contentHeight: col.implicitHeight
-        Column {
-            id: col
-            width: parent.width
-            spacing: Theme.u * 4
-            Row {
+        warm: root.hovered
+        BarPopup {
+            id: panel
+            panelId: "battery"
+            anchorItem: root
+            above: root.above
+            title: I18n.t("Батарея", "Battery")
+            icon: "battery"
+            contentWidth: Theme.u * 150
+            contentHeight: col.implicitHeight
+            Column {
+                id: col
+                width: parent.width
                 spacing: Theme.u * 4
-                PxHearts {
-                    anchors.verticalCenter: parent.verticalCenter
-                    count: 10
-                    pixel: Theme.u
-                    value: Power.percent / 100
-                    icon: root.hell ? "coal" : "heart"
-                    fill: root.low ? Theme.danger : root.hell ? Theme.hellAccent : Theme.accent
+                Row {
+                    spacing: Theme.u * 4
+                    PxHearts {
+                        anchors.verticalCenter: parent.verticalCenter
+                        count: 10
+                        pixel: Theme.u
+                        value: Power.percent / 100
+                        icon: root.hell ? "coal" : "heart"
+                        fill: root.low ? Theme.danger : root.hell ? Theme.hellAccent : Theme.accent
+                    }
+                    PxText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Power.percent + " %"
+                        kind: "title"
+                    }
                 }
                 PxText {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Power.percent + " %"
-                    kind: "title"
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    text: Power.statusText
                 }
-            }
-            PxText {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: Power.statusText
-            }
-            PxText {
-                visible: Power.health > 0 || Power.cycles > 0
-                width: parent.width
-                wrapMode: Text.Wrap
-                kind: "tiny"
-                dim: true
-                text: [Power.health > 0 ? I18n.t("ёмкость " + Power.health + " % от новой", "capacity " + Power.health + "% of new") : "", Power.cycles > 0 ? I18n.t(Power.cycles + " циклов", Power.cycles + " cycles") : "", Power.watts > 0.5 ? Power.watts.toFixed(1) + I18n.t(" Вт", " W") : ""].filter(s => s).join(" · ")
-            }
-            PxSegmented {
-                visible: Power.profilesAvailable
-                width: parent.width
-                model: [
-                    {
-                        "label": I18n.t("Эконом", "Saver"),
-                        "value": "power-saver"
-                    },
-                    {
-                        "label": I18n.t("Баланс", "Balanced"),
-                        "value": "balanced"
-                    },
-                    {
-                        "label": I18n.t("Макс", "Max"),
-                        "value": "performance"
+                PxText {
+                    visible: Power.health > 0 || Power.cycles > 0
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    kind: "tiny"
+                    dim: true
+                    text: [Power.health > 0 ? I18n.t("ёмкость " + Power.health + " % от новой", "capacity " + Power.health + "% of new") : "", Power.cycles > 0 ? I18n.t(Power.cycles + " циклов", Power.cycles + " cycles") : "", Power.watts > 0.5 ? Power.watts.toFixed(1) + I18n.t(" Вт", " W") : ""].filter(s => s).join(" · ")
+                }
+                PxSegmented {
+                    visible: Power.profilesAvailable
+                    width: parent.width
+                    model: [
+                        {
+                            "label": I18n.t("Эконом", "Saver"),
+                            "value": "power-saver"
+                        },
+                        {
+                            "label": I18n.t("Баланс", "Balanced"),
+                            "value": "balanced"
+                        },
+                        {
+                            "label": I18n.t("Макс", "Max"),
+                            "value": "performance"
+                        }
+                    ]
+                    currentValue: Power.profile
+                    onActivated: v => Power.setProfile(v)
+                }
+                Row {
+                    spacing: Theme.u * 3
+                    PxIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: "leaf"
                     }
-                ]
-                currentValue: Power.profile
-                onActivated: v => Power.setProfile(v)
-            }
-            Row {
-                spacing: Theme.u * 3
-                PxIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    name: "leaf"
+                    PxToggle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: I18n.t("Режим экономии", "Eco mode") + (Power.eco && Config.power.eco === "auto" ? " · " + Power.ecoWhy : "")
+                        checked: Power.eco
+                        onToggled: Power.toggleEco()
+                    }
                 }
-                PxToggle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: I18n.t("Режим экономии", "Eco mode") + (Power.eco && Config.power.eco === "auto" ? " · " + Power.ecoWhy : "")
-                    checked: Power.eco
-                    onToggled: Power.toggleEco()
+                Row {
+                    visible: Laptop.limitSupported
+                    spacing: Theme.u * 3
+                    PxIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: "heartSmall"
+                        pixel: Theme.u * 2
+                    }
+                    PxToggle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: I18n.t("Заряжать до 80 %", "Charge to 80%")
+                        checked: Config.power.chargeLimit < 100
+                        onToggled: c => Config.power.chargeLimit = c ? 80 : 100
+                    }
                 }
-            }
-            Row {
-                visible: Laptop.limitSupported
-                spacing: Theme.u * 3
-                PxIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    name: "heartSmall"
-                    pixel: Theme.u * 2
+                PxText {
+                    visible: Laptop.limitStatus !== ""
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    kind: "tiny"
+                    color: Theme.danger
+                    text: Laptop.limitStatus === "nohelper" ? I18n.t("нужен помощник лимита: Настройки → Батарея", "the limit's helper is missing: Settings → Battery") : Laptop.limitStatus
                 }
-                PxToggle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: I18n.t("Заряжать до 80 %", "Charge to 80%")
-                    checked: Config.power.chargeLimit < 100
-                    onToggled: c => Config.power.chargeLimit = c ? 80 : 100
-                }
-            }
-            PxText {
-                visible: Laptop.limitStatus !== ""
-                width: parent.width
-                wrapMode: Text.Wrap
-                kind: "tiny"
-                color: Theme.danger
-                text: Laptop.limitStatus === "nohelper" ? I18n.t("нужен помощник лимита: Настройки → Батарея", "the limit's helper is missing: Settings → Battery") : Laptop.limitStatus
-            }
-            PxButton {
-                compact: true
-                icon: "gear"
-                text: I18n.t("Настройки батареи", "Battery settings")
-                onClicked: {
-                    panel.visible = false;
-                    Shell.openSettings("battery");
+                PxButton {
+                    compact: true
+                    icon: "gear"
+                    text: I18n.t("Настройки батареи", "Battery settings")
+                    onClicked: {
+                        panel.visible = false;
+                        Shell.openSettings("battery");
+                    }
                 }
             }
         }

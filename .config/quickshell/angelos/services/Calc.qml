@@ -20,6 +20,12 @@ Singleton {
     property string rateError: ""
     readonly property bool stale: !rates || Date.now() - fetchedAt > 12 * 3600 * 1000
     readonly property string cacheFile: Config.cacheDir + "/rates.json"
+    // where a lone sum goes ("100$"): the locale's currency (LC_MONETARY), else roubles for a
+    // Russian interface, dollars for an English one
+    readonly property string home: {
+        const c = Qt.locale().currencySymbol(Locale.CurrencyIsoCode);
+        return c && c !== "USD" && /^[A-Z]{3}$/.test(c) ? c : I18n.english ? "USD" : "RUB";
+    }
 
     // {kind: math|unit|money, title, copy, subtitle} or null when the text is not a sum
     function evaluate(text) {
@@ -30,10 +36,12 @@ Singleton {
             return null;
         const en = I18n.english;
         const enter = I18n.t("Enter — скопировать", "Enter to copy");
-        const m = Core.money(t, rates);
+        const m = Core.money(t, rates, home);
         if (m) {
+            // later, not inside the caller's binding (the launcher's results): fetchRates reads
+            // and sets `fetching`, which the answer below reads too — a binding loop
             if (stale)
-                fetchRates();
+                Qt.callLater(fetchRates);
             if (!rates || !rates[m.from] || !rates[m.to])
                 return {
                     "kind": "money",
@@ -44,11 +52,13 @@ Singleton {
             const v = m.amount / rates[m.from] * rates[m.to];
             const s = Core.format(Math.abs(v) >= 1 ? Math.round(v * 100) / 100 : Number(v.toPrecision(4)));
             const day = ratesTime ? Qt.formatDate(new Date(ratesTime * 1000), "d.MM.yyyy") : "";
+            const one = rates[m.to] / rates[m.from];
+            const unit = "1 " + m.from + " = " + Core.pretty(Core.format(one >= 1 ? Math.round(one * 100) / 100 : Number(one.toPrecision(4))), en) + " " + m.to;
             return {
                 "kind": "money",
                 "title": Core.pretty(Core.format(m.amount), en) + " " + m.from + " = " + Core.pretty(s, en) + " " + m.to,
                 "copy": s,
-                "subtitle": I18n.t("курс на ", "rate of ") + day + " · open.er-api.com · " + enter
+                "subtitle": (m.amount !== 1 ? unit + " · " : "") + I18n.t("курс на ", "rate of ") + day + " · open.er-api.com · " + enter
             };
         }
         const u = Core.convert(t);

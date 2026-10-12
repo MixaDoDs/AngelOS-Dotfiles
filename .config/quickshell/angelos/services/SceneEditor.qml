@@ -6,23 +6,27 @@ import Quickshell
 import Quickshell.Io
 import qs.config
 
-// The live wallpaper's scene editor — the author's only: a window of the shell where the layers
-// of a picture are painted (what is sky, water, a waterfall …: what moves there), effects are
-// switched off, the places of the rare events are put, and requests are handed to Claude.
-// Its code is not here: it lives in owner/scene-editor/ (never published) and comes with the
-// author's tools (scripts/author-tools.sh, services/Owner). A public install has no such folder:
-// this stub loads nothing and every way in stays shut.
-//   window   owner/scene-editor/SceneEditorWindow.qml (modules/LazyWindows), while `shown`
+// The live wallpaper's scene editor, for everyone: a window of the shell where the layers of a
+// picture are painted (what is sky, water, a waterfall …: what moves there), effects are switched
+// off and the places of the rare events are put. The scene goes next to the picture
+// (<name>.scene.json), or — for a picture angelOS ships or a folder that isn't the user's — into
+// ~/.local/share/angelos/scenes (scripts/scene-editor/scene_core.py; live-wall.py reads both).
+//   window   modules/sceneeditor/SceneEditorWindow.qml (modules/LazyWindows), while `shown`
+//   server   scripts/scene-editor/scene-editor.py (the window starts it)
 //   picture  what to open in it ("" — the picture on the focused screen)
+// The author's own extra: the «Claude» tab, requests handed to Claude over MCP
+// (owner/scene-editor/scene-mcp.py) — only where that is (`claude`).
 // `angelos scene edit [picture]`, «Пуск» → «Редактор живых обоев…», Settings → Wallpaper → Alive,
 // Dotfiles → «Анимация…» next to a release's picture.
 Singleton {
     id: root
 
-    readonly property string dir: Owner.dir + "/scene-editor"
-    readonly property string windowUrl: hasWindow ? "file://" + dir + "/SceneEditorWindow.qml" : ""
-    property bool hasWindow: false
-    readonly property bool allowed: hasWindow && (Owner.enabled || Shell.dev)
+    readonly property string dir: Quickshell.shellDir + "/scripts/scene-editor"
+    readonly property string windowUrl: "file://" + Quickshell.shellDir + "/modules/sceneeditor/SceneEditorWindow.qml"
+    readonly property bool hasWindow: true
+    readonly property bool allowed: true
+    // Claude's tab: the author's MCP server is there
+    property bool claude: false
     property bool open: false
     readonly property bool shown: open && allowed
     property string picture: ""
@@ -59,16 +63,16 @@ Singleton {
         return "usage: scene edit [picture] | close | status";
     }
 
-    // look again for owner/scene-editor (after the author's tools were fetched)
+    // look again for the author's MCP server (after the author's tools were fetched)
     function probe() {
-        windowProbe.running = false;
-        windowProbe.running = true;
+        mcpProbe.running = false;
+        mcpProbe.running = true;
     }
     Process {
-        id: windowProbe
+        id: mcpProbe
         running: true
-        command: ["test", "-f", root.dir + "/SceneEditorWindow.qml"]
-        onExited: code => root.hasWindow = code === 0
+        command: ["test", "-f", Owner.dir + "/scene-editor/scene-mcp.py"]
+        onExited: code => root.claude = code === 0 && (Owner.enabled || Shell.dev)
     }
     Connections {
         target: Owner
@@ -76,6 +80,9 @@ Singleton {
             root.probe();
         }
         function onHasDirChanged() {
+            root.probe();
+        }
+        function onEnabledChanged() {
             root.probe();
         }
     }

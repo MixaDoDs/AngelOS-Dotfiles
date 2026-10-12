@@ -29,11 +29,25 @@ Singleton {
             active = null;
         registered = registered.filter(p => p !== popup);
     }
+    // popups that are built when first asked for (modules/bar/LazyPopup): known by their id
+    // before that
+    property var lazy: []
+    function registerLazy(popup) {
+        lazy = lazy.concat([popup]);
+    }
+    function unregisterLazy(popup) {
+        lazy = lazy.filter(p => p !== popup);
+    }
     function showPanel(name, output) {
         const popup = registered.find(p => p.panelId === name && (!output || p.outputName === output));
-        if (popup)
+        if (popup) {
             toggle(popup);
-        return !!popup;
+            return true;
+        }
+        const later = lazy.find(p => p.panelId === name && (!output || p.outputName === output));
+        if (later)
+            later.toggle();
+        return !!later;
     }
 
     function toggle(popup) {

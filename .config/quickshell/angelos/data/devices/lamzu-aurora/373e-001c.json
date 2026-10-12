@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "id": "lamzu-maya-x",
+  "name": "LAMZU Maya X",
+  "maker": "LAMZU",
+  "kind": "mouse",
+  "family": "lamzu-aurora",
+  "usb": [
+    {
+      "vid": "373e",
+      "pid": "001c"
+    }
+  ],
+  "channel": {
+    "via": "hidraw"
+  },
+  "support": "described",
+  "checked": [],
+  "notes": {
+    "ru": "Мышь по кабелю: частота опроса до 1000 Гц.",
+    "en": "The mouse on its cable: polling up to 1000 Hz."
+  },
+  "capabilities": {
+    "pollingRate": {
+      "values": [
+        125,
+        250,
+        500,
+        1000
+      ]
+    },
+    "dpi": {
+      "min": 50,
+      "max": 30000,
+      "step": 50,
+      "stages": 5
+    },
+    "lod": {
+      "values": [
+        0.7,
+        1,
+        2
+      ]
+    },
+    "debounce": {
+      "min": 0,
+      "max": 15
+    },
+    "motionSync": true,
+    "angleSnap": true,
+    "rippleControl": true,
+    "sleep": {
+      "values": [
+        10,
+        30,
+        60,
+        300,
+        600,
+        1800
+      ]
+    },
+    "battery": true
+  }
+}

@@ -163,6 +163,17 @@ PxPage {
                 onToggled: c => Config.updates.autoCheck = c
             }
         }
+        // what the author added since this system was set up (services/AppsSync): its own window
+        SettingRow {
+            visible: AppsSync.count > 0 || AppsSync.running
+            label: I18n.t("Новое от автора", "New from the author")
+            hint: AppsSync.running ? I18n.t("ставится…", "installing…") : I18n.t("программы и пакеты, которых у тебя ещё нет: ", "apps and packages you don't have yet: ") + AppsSync.count
+            PxButton {
+                icon: "download"
+                text: I18n.t("Посмотреть", "Look")
+                onClicked: AppsSync.install()
+            }
+        }
     }
 
     // the last attempt went wrong: what, where its snapshot is, the way back

@@ -3,9 +3,20 @@
 Apps follow the theme; entry "telegram" of templates/templates.json).
 
   telegram-theme.py build PALETTE.json   write the theme for the palette (and realm)
-  telegram-theme.py apply                put the theme's path on the clipboard, for Telegram's
-                                         "Choose from file" (remembered as done)
+  telegram-theme.py apply                hand the theme to the running ones (see push), and put
+                                         its path on the clipboard for "Choose from file" where
+                                         that can't be done
+  telegram-theme.py push [--ask]         Freshgram (and any build with the local control socket):
+                                         apply the theme there by itself — build runs it too
   telegram-theme.py status               what is set up, as JSON
+
+Freshgram (and the Telegram builds with its "local automation") apply a theme from outside:
+"CTRL:theme-apply:<base64 path>;" on the single-instance socket (an abstract one,
+"@<md5 of its working dir>-<app name>"). The first time it asks the user, twice, whether to
+allow local automation; after that every new palette reaches it with nothing to click. So the
+theme goes there on every build when the app runs and isn't on it already — and the question is
+asked once a day at the most (--ask: now, from Settings), so a "no" doesn't come back on every
+theme change.
 
 Telegram keeps watching the theme file it has applied (QFileSystemWatcher in
 window_theme.cpp) and applies it again whenever the file changes. So the theme is applied
@@ -24,13 +35,16 @@ Telegram draws its own text fields with these keys (historyComposeArea*, inputBo
 activeLineFg, filterInput*); a box around its message field was never one of them but
 angelOS's Qt stylesheet (scripts/qt-theme.py), which now leaves Telegram's fields alone.
 """
+import base64
 import colorsys
 import io
 import json
 import re
 import shutil
+import socket
 import subprocess
 import sys
+import time
 import zipfile
 from pathlib import Path
 
@@ -225,6 +239,127 @@ def build(pal):
     return True
 
 
+# the apps with the single-instance socket of Telegram Desktop's kind; the ones without local
+# control just log an unknown command
+SOCKET = re.compile(r"^@([0-9a-f]{32})-(freshGram|Telegram|AyuGram\w*|64Gram|Kotatogram|exteraGram)$")
+ASK_EVERY = 24 * 3600
+
+
+def own_hashes():
+    """md5 of the folders an app of this home could keep its data in: the socket's name is the
+    md5 of its working dir, so only this user's own apps match — /proc/net/unix lists every
+    socket of the machine (a test's throw-away home must never reach the real Freshgram)"""
+    import hashlib
+    out = set()
+    for base in (HOME / ".local/share", *(HOME / ".var/app").glob("*/data")):
+        try:
+            dirs = [d for d in base.iterdir() if d.is_dir()]
+        except OSError:
+            continue
+        for d in dirs:
+            out.add(hashlib.md5(str(d.resolve()).encode()).hexdigest())
+    return out
+
+
+def sockets():
+    names, mine = [], own_hashes()
+    try:
+        for line in Path("/proc/net/unix").read_text().splitlines()[1:]:
+            parts = line.split()
+            m = SOCKET.match(parts[-1]) if len(parts) >= 8 else None
+            if m and m.group(1) in mine and parts[-1] not in names:
+                names.append(parts[-1])
+    except OSError:
+        pass
+    return names
+
+
+def control(name, command):
+    """one local-control command → its JSON answer (None: no answer, an older build)"""
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.settimeout(3)
+    try:
+        s.connect("\0" + name[1:])
+        s.sendall(("CTRL:" + command + ";").encode())
+        buf = b""
+        while not buf.endswith(b";"):
+            chunk = s.recv(65536)
+            if not chunk:
+                break
+            buf += chunk
+    except OSError:
+        return None
+    finally:
+        s.close()
+    m = re.search(rb"DATA:([A-Za-z0-9+/=]*);", buf)
+    if not m:
+        return None
+    try:
+        return json.loads(base64.b64decode(m.group(1)))
+    except ValueError:
+        return None
+
+
+def load_state():
+    try:
+        return json.loads(STATE.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_state(st):
+    BASE.mkdir(parents=True, exist_ok=True)
+    STATE.write_text(json.dumps(st) + "\n")
+
+
+def push(ask=False):
+    """the theme into every running app that takes it from outside; {app: what happened}"""
+    if not THEME.exists():
+        return {}
+    names = sockets()
+    if not names:
+        return {}
+    st = load_state()
+    before = json.dumps(st, sort_keys=True)
+    apps = st.setdefault("apps", {})
+    out = {}
+    for name in names:
+        app = name.split("-", 1)[1]
+        seen = apps.setdefault(app, {})
+        # its question about local automation: once a day at the most, unless asked from Settings
+        if not seen.get("allowed") and not ask and time.time() - seen.get("askedAt", 0) < ASK_EVERY:
+            out[app] = "waiting for the user's yes"
+            continue
+        now = control(name, "theme")
+        if now is None:
+            out[app] = "no local control"
+            seen["control"] = False
+            continue
+        seen["control"] = True
+        if not now.get("ok"):
+            # "local automation is disabled — confirm in the Telegram window": it asks the user now
+            seen["allowed"] = False
+            seen["askedAt"] = time.time()
+            out[app] = "asked the user to allow it"
+            continue
+        seen["allowed"] = True
+        if now.get("path") == str(THEME) or now.get("editing"):
+            out[app] = "on the theme already" if not now.get("editing") else "its theme editor is open"
+            continue
+        # once it had ours, another theme there is the user's pick: left alone until Settings asks
+        if seen.get("applied") and not ask:
+            out[app] = "another theme picked there: left alone"
+            continue
+        r = control(name, "theme-apply:" + base64.b64encode(str(THEME).encode()).decode())
+        ok = bool(r and r.get("ok"))
+        seen["applied"] = seen.get("applied") or ok
+        out[app] = "applied" if ok else "not applied: " + str((r or {}).get("error", "no answer"))
+    # only what changed is written (an update's restore puts every file back as it was)
+    if json.dumps(st, sort_keys=True) != before:
+        save_state(st)
+    return out
+
+
 def telegram_bin():
     for b in ("Telegram", "telegram-desktop"):
         if shutil.which(b):
@@ -235,24 +370,27 @@ def telegram_bin():
 
 
 def apply():
-    """Telegram has no way to apply a theme from outside — a file handed to it on the command
-    line is offered for sending to a chat — so the user picks it once in "Choose from file"."""
+    """The running apps with local control get the theme straight away (asking the user to
+    allow it, the first time); official Telegram has no way from outside — a file handed to it
+    on the command line is offered for sending to a chat — so its user picks it once in
+    "Choose from file": the path goes on the clipboard."""
     if not THEME.exists():
         print(json.dumps({"ok": False, "error": "no theme yet: change the palette once, or run build"}))
         return 1
+    pushed = push(ask=True)
     subprocess.run(["wl-copy", str(THEME)], capture_output=True)
-    BASE.mkdir(parents=True, exist_ok=True)
-    STATE.write_text(json.dumps({"asked": True}) + "\n")
-    print(json.dumps({"ok": True, "copied": str(THEME)}))
+    st = load_state()
+    st["asked"] = True
+    save_state(st)
+    print(json.dumps({"ok": True, "copied": str(THEME), "pushed": pushed}))
     return 0
 
 
 def status():
-    try:
-        asked = json.loads(STATE.read_text()).get("asked", False)
-    except (OSError, ValueError):
-        asked = False
+    st = load_state()
+    asked = st.get("asked", False)
     print(json.dumps({
+        "apps": st.get("apps", {}),
         "installed": telegram_bin() is not None,
         "running": subprocess.run(["pgrep", "-x", "Telegram"], capture_output=True).returncode == 0
         or subprocess.run(["pgrep", "-x", "telegram-deskto"], capture_output=True).returncode == 0,
@@ -267,9 +405,12 @@ def main():
     if len(a) == 2 and a[0] == "build":
         pal = json.loads(Path(a[1]).read_text())
         changed = build(pal)
-        print(json.dumps({"ok": True, "changed": changed, "realm": pal.get("realm", "heaven")}))
+        pushed = push()
+        print(json.dumps({"ok": True, "changed": changed, "realm": pal.get("realm", "heaven"), "pushed": pushed}))
     elif a == ["apply"]:
         sys.exit(apply())
+    elif a and a[0] == "push":
+        print(json.dumps(push(ask="--ask" in a)))
     elif a == ["status"]:
         status()
     else:

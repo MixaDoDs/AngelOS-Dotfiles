@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""sudo for the setup wizard's app install: the command goes to scripts/apps-root.py (started once
+with pkexec, ANGELOS_ROOT_SOCK) — paru gets it as its --sudo. Without that socket: plain sudo."""
+import json
+import os
+import socket
+import sys
+
+sock = os.environ.get("ANGELOS_ROOT_SOCK")
+if not sock:
+    os.execvp("sudo", ["sudo"] + sys.argv[1:])
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+try:
+    s.connect(sock)
+except OSError as e:
+    sys.exit(f"angelOS: the admin helper is gone ({e})")
+s.sendall((json.dumps({"argv": sys.argv[1:], "cwd": os.getcwd(), "lang": os.environ.get("LANG", "")}) + "\n").encode())
+tail = b""
+out = sys.stdout.buffer
+while True:
+    chunk = s.recv(65536)
+    if not chunk:
+        out.write(tail)
+        sys.exit(1)
+    buf = tail + chunk
+    i = buf.find(b"\0RC ")
+    if i >= 0:
+        if b"\n" not in buf[i:]:
+            tail = buf  # the exit code is still on its way
+            continue
+        body = buf[:i]
+        out.write(body[:-1] if body.endswith(b"\n") else body)
+        out.flush()
+        sys.exit(int(buf[i + 4:].split(b"\n")[0]))
+    # keep a few bytes back: the marker may be split between two reads
+    keep = 8 if len(buf) > 8 else len(buf)
+    out.write(buf[:len(buf) - keep])
+    out.flush()
+    tail = buf[len(buf) - keep:]

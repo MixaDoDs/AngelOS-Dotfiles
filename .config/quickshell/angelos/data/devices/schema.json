@@ -1,0 +1,498 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "angelOS device description",
+  "description": "One device of the devices' driver (docs/devices.md). `angelos devices check FILE` is the checker the shell itself uses; this schema is the same rules for editors.",
+  "type": "object",
+  "required": [
+    "schema",
+    "id",
+    "name",
+    "kind",
+    "family",
+    "usb",
+    "channel",
+    "support",
+    "capabilities"
+  ],
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,62}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "maker": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "keyboard",
+        "mouse"
+      ]
+    },
+    "family": {
+      "enum": [
+        "lamzu-aurora",
+        "nuphy-io"
+      ]
+    },
+    "usb": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "vid",
+          "pid"
+        ],
+        "properties": {
+          "vid": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{4}$"
+          },
+          "pid": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{4}$"
+          }
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "required": [
+        "via"
+      ],
+      "properties": {
+        "via": {
+          "enum": [
+            "hidraw",
+            "usbfs"
+          ]
+        },
+        "interface": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "in": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "out": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        }
+      }
+    },
+    "support": {
+      "enum": [
+        "verified",
+        "described",
+        "readonly"
+      ]
+    },
+    "checked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The capabilities checked on real hardware."
+    },
+    "firmware": {
+      "type": "object"
+    },
+    "notes": {
+      "type": "object",
+      "properties": {
+        "ru": {
+          "type": "string"
+        },
+        "en": {
+          "type": "string"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "liveTravel": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "actuation": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "min",
+                "max",
+                "step"
+              ],
+              "properties": {
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "step": {
+                  "type": "number"
+                }
+              }
+            }
+          ]
+        },
+        "rapidTrigger": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "min",
+                "max",
+                "steps"
+              ],
+              "properties": {
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "steps": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        },
+        "deadZones": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "max"
+              ],
+              "properties": {
+                "max": {
+                  "type": "number"
+                }
+              }
+            }
+          ]
+        },
+        "socd": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "modes"
+              ],
+              "properties": {
+                "modes": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        },
+        "dks": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "modTap": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "toggle": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "remap": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "layers": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "macros": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "lighting": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "pollingRate": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "values"
+              ],
+              "properties": {
+                "values": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        },
+        "calibration": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "profiles": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "dpi": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "min",
+                "max",
+                "step",
+                "stages"
+              ],
+              "properties": {
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "step": {
+                  "type": "number"
+                },
+                "stages": {
+                  "type": "number"
+                }
+              }
+            }
+          ]
+        },
+        "lod": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "values"
+              ],
+              "properties": {
+                "values": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        },
+        "debounce": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "min",
+                "max"
+              ],
+              "properties": {
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                }
+              }
+            }
+          ]
+        },
+        "motionSync": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "sleep": {
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "values"
+              ],
+              "properties": {
+                "values": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        },
+        "battery": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "angleSnap": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        },
+        "rippleControl": {
+          "type": [
+            "boolean",
+            "object"
+          ]
+        }
+      }
+    },
+    "switches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "travel"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "travel": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "required": [
+        "keys"
+      ],
+      "properties": {
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "m",
+              "x",
+              "y"
+            ],
+            "properties": {
+              "m": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 255,
+                "description": "The key's number in the protocol (its slot of the key matrix)."
+              },
+              "x": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 40
+              },
+              "y": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 40
+              },
+              "w": {
+                "type": "number",
+                "minimum": 0.25,
+                "maximum": 12
+              },
+              "h": {
+                "type": "number",
+                "minimum": 0.25,
+                "maximum": 12
+              },
+              "label": {
+                "type": "string"
+              },
+              "default": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "description": "The three bytes of the key's factory action."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

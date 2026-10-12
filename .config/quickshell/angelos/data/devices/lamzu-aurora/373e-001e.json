@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "id": "lamzu-maya-x-8k",
+  "name": "LAMZU Maya X (8K-донгл)",
+  "maker": "LAMZU",
+  "kind": "mouse",
+  "family": "lamzu-aurora",
+  "usb": [
+    {
+      "vid": "373e",
+      "pid": "001e"
+    }
+  ],
+  "channel": {
+    "via": "hidraw"
+  },
+  "support": "described",
+  "checked": [],
+  "notes": {
+    "ru": "Мышь через 8K-донгл. Пока мышь спит, отвечает один донгл: настройки появятся, когда её пошевелишь.",
+    "en": "The mouse through its 8K dongle. While the mouse sleeps the dongle alone answers: the settings show once you move it."
+  },
+  "capabilities": {
+    "pollingRate": {
+      "values": [
+        500,
+        1000,
+        2000,
+        4000,
+        8000
+      ]
+    },
+    "dpi": {
+      "min": 50,
+      "max": 30000,
+      "step": 50,
+      "stages": 5
+    },
+    "lod": {
+      "values": [
+        0.7,
+        1,
+        2
+      ]
+    },
+    "debounce": {
+      "min": 0,
+      "max": 15
+    },
+    "motionSync": true,
+    "angleSnap": true,
+    "rippleControl": true,
+    "sleep": {
+      "values": [
+        10,
+        30,
+        60,
+        300,
+        600,
+        1800
+      ]
+    },
+    "battery": true
+  }
+}

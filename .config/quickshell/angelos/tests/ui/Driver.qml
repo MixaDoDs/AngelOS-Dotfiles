@@ -84,6 +84,8 @@ Scope {
     property var setupSeen: []
     property int setupBack: -1
     property string setupShot: ""
+    property int setupInstall: 0
+    property bool setupInstallHeld: false
     function named(item, name) {
         // the first item under `item` with this PxGroup name
         if (!item)
@@ -334,6 +336,12 @@ Scope {
         }
         // the cava widget for real, over test-ui.sh's stand-in cava (it prints frames like
         // the real one): hidden and shown again it must come back (B4)
+        // the card of the author's new apps (modules/settings/AppsSyncCard.qml)
+        Loader {
+            id: appsStage
+            active: false
+            source: Quickshell.shellDir + "/modules/settings/AppsSyncCard.qml"
+        }
         Loader {
             id: cavaStage
             active: false
@@ -500,6 +508,13 @@ Scope {
                 root.bootTries++;
         }
     }
+    property string appsOffered: ""
+    property string appsTaken: ""
+    property string appsMid: ""
+    property bool appsShown: false
+    property bool appsHidden: false
+    property bool appsFailed: false
+    property bool appsDrawn: false
     property int paceRuns: 0
     property bool paceSlow: false
     property int undoSteps: 0
@@ -727,6 +742,9 @@ Scope {
         list.push(["windose", "home", "chosen"]);
         list.push(["stream", "home", "narrow"]);
         list.push([settingsSkins[0], "stars"]);
+        list.push([settingsSkins[0], "presets"]);
+        list.push([settingsSkins[0], "programs"]);
+        list.push([settingsSkins[0], "autostart"]);
         index = -1;
         phase = "settings-shots";
         nextSettingsShot();
@@ -1247,13 +1265,17 @@ Scope {
             if (barStage.status === Loader.Loading && Date.now() - started < 20000)
                 return;
             const b = barStage.item;
-            const ok = barStage.status === Loader.Ready && !!b && b.wifi.width > 0 && b.bt.width > 0 && b.wired.width > 0;
+            // their popups are built when first asked for (LazyPopup): ask, or what is inside
+            // is never checked
+            const lazy = PopupManager.lazy;
+            const built = lazy.filter(l => l.build()).length;
+            const ok = barStage.status === Loader.Ready && !!b && b.wifi.width > 0 && b.bt.width > 0 && b.wired.width > 0 && lazy.length >= 4 && built === lazy.length;
             // every tray density lays out; the sprites switch
             for (const d of ["compact", "airy", "spacious", "normal"])
                 Config.bar.trayDensity = d;
             for (const sp of ["star", "cd", "heart"])
                 Config.workspaces.sprite = sp;
-            report("bar-widgets", ok, ok ? "wifi, bluetooth, wired, tray, workspaces" : "status " + barStage.status);
+            report("bar-widgets", ok, ok ? "wifi, bluetooth, wired, tray, workspaces; popups built on demand " + built : "status " + barStage.status + ", popups built " + built + " of " + lazy.length);
             barStage.active = false;
             console.log("TEST-PAGE bar-vertical");
             viewNote = JSON.stringify([Config.bar.style, Config.bar.edge]);
@@ -2495,6 +2517,270 @@ Scope {
             Config.power.eco = ecoWas;
             Config.power.ecoSaverProfile = ecoProfileWas;
             cavaStage.active = false;
+            phase = "apps-sync";
+            return;
+        }
+        // the author's new apps after an update, in the shell's own window (services/AppsSync,
+        // modules/settings/AppsSyncPrompt.qml): fed with what is new and events, no process; its
+        // card drawn for real (the window that carries it needs a compositor)
+        if (phase === "apps-sync") {
+            AppsSync.simulate({
+                "apps": ["telegram"],
+                "suggest": ["discord"],
+                "packages": ["some-pkg"],
+                "fish": true
+            });
+            appsOffered = AppsSync.offer.map(x => x.id + (x.on ? "+" : "-")).join(" ");
+            appsShown = AppsSync.open && !AppsSync.running && !AppsSync.done;
+            AppsSync.toggle("pkg:some-pkg", false);
+            AppsSync.toggle("discord", true);
+            appsTaken = AppsSync.taken.join(" ");
+            appsStage.active = true;
+            started = Date.now();
+            phase = "apps-sync-pick";
+            return;
+        }
+        if (phase === "apps-sync-pick") {
+            if (Date.now() - started < 500)
+                return;
+            const card = appsStage.item;
+            appsDrawn = !!card && card.picking && card.height > card.titleHeight + Theme.u * 60;
+            if (shots && card)
+                card.grabToImage(r => r.saveToFile(shots + "/apps-sync-pick.png"));
+            started = Date.now();
+            phase = "apps-sync-go";
+            return;
+        }
+        if (phase === "apps-sync-go") {
+            if (shots && Date.now() - started < 300)
+                return;
+            AppsSync.simulate({
+                "apps": ["telegram"],
+                "suggest": [],
+                "packages": ["some-pkg"],
+                "fish": true
+            }, [{
+                    "ev": "plan",
+                    "items": []
+                }, {
+                    "ev": "auth"
+                }, {
+                    "ev": "item",
+                    "id": "fish",
+                    "state": "start"
+                }, {
+                    "ev": "item",
+                    "id": "fish",
+                    "state": "done"
+                }, {
+                    "ev": "item",
+                    "id": "pkg:some-pkg",
+                    "state": "start"
+                }]);
+            appsMid = AppsSync.items.map(x => x.id + ":" + x.state).join(" ");
+            // closed while it runs: the install goes on
+            AppsSync.close();
+            appsHidden = !AppsSync.open && AppsSync.running;
+            AppsSync.log = ["» installing Telegram (pacman)", "error: target not found: telegram-desktop"];
+            AppsSync.onEvent({"ev": "item", "id": "pkg:some-pkg", "state": "done"});
+            AppsSync.onEvent({"ev": "item", "id": "telegram", "state": "start"});
+            AppsSync.onEvent({"ev": "item", "id": "telegram", "state": "fail"});
+            AppsSync.onEvent({"ev": "done", "ok": ["fish", "pkg:some-pkg"], "failed": ["telegram"], "skipped": []});
+            appsFailed = AppsSync.done && !AppsSync.running && !AppsSync.allDone && AppsSync.failed.join() === "telegram" && AppsSync.count > 0;
+            started = Date.now();
+            phase = "apps-sync-run";
+            return;
+        }
+        if (phase === "apps-sync-run") {
+            if (Date.now() - started < 500)
+                return;
+            const card = appsStage.item;
+            appsDrawn = appsDrawn && !!card && !card.picking && card.settled === 3;
+            if (shots && card)
+                card.grabToImage(r => r.saveToFile(shots + "/apps-sync-failed.png"));
+            started = Date.now();
+            phase = "apps-sync-end";
+            return;
+        }
+        if (phase === "apps-sync-end") {
+            if (shots && Date.now() - started < 300)
+                return;
+            // «Ещё раз» ends well: nothing is left to offer
+            AppsSync.running = true;
+            AppsSync.done = false;
+            AppsSync.onEvent({"ev": "item", "id": "telegram", "state": "done"});
+            AppsSync.onEvent({"ev": "done", "ok": ["telegram"], "failed": [], "skipped": []});
+            const ended = AppsSync.allDone && AppsSync.count === 0;
+            AppsSync.close();
+            appsStage.active = false;
+            report("apps-sync", appsShown && appsDrawn && appsOffered === "telegram+ fish+ pkg:some-pkg+ discord-" && appsTaken === "telegram fish discord" && appsMid === "telegram:wait fish:done pkg:some-pkg:run" && appsHidden && appsFailed && ended && !AppsSync.open, "offered " + appsOffered + "; taken " + appsTaken + "; mid-run " + appsMid + "; hidden while running " + appsHidden + "; failure kept " + appsFailed + "; ends clean " + ended + "; the card drawn " + appsDrawn);
+            phase = "presets";
+            started = Date.now();
+            return;
+        }
+        // presets of settings (services/Presets, data/presets.json): the author's replace each
+        // other cleanly, the user's own brings everything back as it was saved, the last one
+        // applied is undone as a whole — and the run ends as it began
+        if (phase === "presets") {
+            if (Presets.builtin.length < 4 && Date.now() - started < 20000)
+                return;
+            const began = Presets.active;
+            const nLight = Presets.apply("light");
+            const light = Presets.active === "light" && Config.appearance.motion === "off" && !Config.appearance.blur && !Config.wallpaper.live;
+            Presets.apply("calm");
+            // what «Лёгкий» switched off and «Спокойный» doesn't name is back at its default
+            const calm = Presets.active === "calm" && Config.appearance.motion === "calm" && Config.appearance.blur && Config.wallpaper.live && !Config.y2k.jokes;
+            const barWas = Config.bar.style;
+            Config.bar.style = barWas === "top" ? "taskbar" : "top";
+            const id = Presets.save("  Мой стрим  ");
+            Presets.apply("author");
+            Config.bar.style = barWas;
+            const author = Presets.active === "author" && Config.y2k.jokes;
+            const differs = Presets.plan(id).length;
+            Presets.apply(id);
+            const mine = Presets.own.length === 1 && Presets.own[0].name === "Мой стрим" && Presets.active === "calm" && Config.bar.style !== barWas && Presets.plan(id).length === 0 && !("game.enabled" in Presets.own[0].set) && !("setup.complete" in Presets.own[0].set);
+            // the last one applied is undone as a whole: the author's again, the bar as it was
+            const undone = Presets.canUndo && Presets.undo() && Presets.active === "author" && Config.bar.style === barWas && !Presets.canUndo;
+            const gone = Presets.remove(id) && Presets.own.length === 0 && Presets.apply("nope") === -1;
+            // installed programs and autostart (services/Programs, services/Autostart): rows and
+            // events fed in, no pacman
+            const prow = [{
+                    "item": "pacman:office",
+                    "names": ["Writer", "Calc", "Draw", "Math"],
+                    "icon": "",
+                    "source": "pacman",
+                    "pkg": "office",
+                    "size": 5 * 1048576,
+                    "keep": "",
+                    "needed": [],
+                    "catalog": "office"
+                }, {
+                    "item": "pacman:toolkit",
+                    "names": ["Toolkit"],
+                    "icon": "",
+                    "source": "pacman",
+                    "pkg": "toolkit",
+                    "size": 2048,
+                    "keep": "",
+                    "needed": ["a", "b", "c", "d"],
+                    "catalog": ""
+                }];
+            Programs.simulate(prow, {
+                "remove": [{
+                        "name": "office",
+                        "size": 5 * 1048576
+                    }],
+                "size": 5 * 1048576,
+                "refused": ""
+            });
+            const asked = Programs.kind === "remove" && Programs.asked.length === 1 && !Programs.busy && !Programs.done && Programs.label(prow[0]) === "Writer, Calc, Draw…" && Programs.why(prow[0]) === "" && Programs.why(prow[1]).includes("a, b, c…");
+            Programs.simulate(prow, {
+                "remove": [],
+                "size": 0,
+                "refused": ""
+            }, [{
+                    "ev": "auth"
+                }, {
+                    "ev": "done",
+                    "ok": [],
+                    "failed": ["pacman:office"]
+                }]);
+            const pfailed = Programs.done && !Programs.running && Programs.failed.length === 1;
+            Programs.cancel();
+            const pclear = Programs.kind === "" && !Programs.done && Programs.asked.length === 0;
+            const sizes = [Programs.fmt(0), Programs.fmt(2048), Programs.fmt(5 * 1048576), Programs.fmt(3 * 1073741824)].join("|");
+            Autostart.entries = [{
+                    "id": "chat.desktop",
+                    "name": "Chat",
+                    "icon": "",
+                    "exec": "chat",
+                    "on": true,
+                    "source": "user",
+                    "system": false,
+                    "fits": true
+                }, {
+                    "id": "keyring.desktop",
+                    "name": "Keyring",
+                    "icon": "",
+                    "exec": "keyring",
+                    "on": true,
+                    "source": "system",
+                    "system": true,
+                    "fits": true
+                }, {
+                    "id": "gnome.desktop",
+                    "name": "Gnome",
+                    "icon": "",
+                    "exec": "g",
+                    "on": true,
+                    "source": "system",
+                    "system": true,
+                    "fits": false
+                }];
+            const auto = Autostart.mine.length === 1 && Autostart.system.length === 1 && Autostart.has("chat") && Autostart.has("chat.desktop") && !Autostart.has("nope");
+            Autostart.entries = [];
+            report("programs", asked && pfailed && pclear && sizes === "|2 КБ|5 МБ|3,0 ГБ" && auto, "a removal asked " + asked + ", a failure kept " + pfailed + ", cleared " + pclear + "; sizes " + sizes + "; autostart split " + auto);
+            report("presets", began === "author" && nLight === 10 && light && calm && author && differs > 0 && mine && undone && gone && Presets.ipc("list").includes('"active":"author"'), "starts as " + began + "; light " + light + " (" + nLight + " settings); calm after it " + calm + "; author " + author + "; mine " + mine + " (" + differs + " differed); undone " + undone + "; removed " + gone);
+            phase = "new-1012";
+            return;
+        }
+        if (phase === "new-1012") {
+            // the 2026-10-12 parts: Discord's widget in every state, the keys on screen and their
+            // silence for passwords, the «what's new» paper of a release
+            const stage = Qt.createQmlObject("import QtQuick; Item { width: 400; height: 300 }", win.contentItem);
+            const bad = [];
+            const dc = Qt.createComponent(Quickshell.shellDir + "/modules/desktop/widgets/DiscordWidget.qml");
+            let drawn = 0;
+            if (dc.status !== Component.Ready)
+                bad.push("DiscordWidget: " + dc.errorString().trim().split("\n")[0]);
+            else {
+                const people = [];
+                for (let n = 0; n < 12; n++)
+                    people.push({"id": String(n), "name": "user " + n, "avatar": "", "speaking": n === 1, "muted": n === 2, "deaf": n === 3});
+                for (const st of ["no-discord", "auth", "authorizing", "idle", "call"])
+                    for (const size of ["s", "m", "l"]) {
+                        DiscordVoice.state = st;
+                        DiscordVoice.users = st === "call" ? people : [];
+                        DiscordVoice.channel = st === "call" ? "Болталка" : "";
+                        const o = dc.createObject(stage, {"size": size, "screenName": "test"});
+                        if (o.implicitHeight > 0 && o.implicitWidth > 0)
+                            drawn++;
+                        if (st === "auth" && o.passive)
+                            bad.push("the connect button takes no click");
+                        o.destroy();
+                    }
+                DiscordVoice.state = "no-discord";
+                DiscordVoice.users = [];
+            }
+            const kc = Qt.createComponent(Quickshell.shellDir + "/modules/keycast/KeyCastOverlay.qml");
+            // offscreen there is no layer shell: a PanelWindow cannot be made, its errors still show
+            if (kc.status !== Component.Ready && !/No PanelWindow backend/.test(kc.errorString()))
+                bad.push("KeyCastOverlay: " + kc.errorString().trim().split("\n")[0]);
+            KeyCast.items = [];
+            KeyCast._add("Ctrl+C", "keys");
+            KeyCast._add("h", "text");
+            KeyCast._add("i", "text");
+            const typed = KeyCast.items.map(x => x.text).join("|");
+            KeyCast.secretFields += 1;
+            const hush = KeyCast.shellSecret && KeyCast.items.length === 0;
+            KeyCast.secretFields -= 1;
+            const pc = Qt.createComponent(Quickshell.shellDir + "/modules/desktop/ChangelogPaper.qml");
+            if (pc.status !== Component.Ready)
+                bad.push("ChangelogPaper: " + pc.errorString().trim().split("\n")[0]);
+            const rel = Updates.release, seen = Config.updates.paperSeen;
+            Updates.release = {"number": 99, "codename": "Test", "paper": true, "notes": ["one", "two"]};
+            Updates.paperForced = true;
+            const hung = Updates.paperShown && Updates.paperNotes.length === 2;
+            const paper = pc.status === Component.Ready ? pc.createObject(stage, {"width": 1280, "height": 720, "screenName": Shell.primaryName}) : null;
+            const paperDrawn = !!paper && paper.visible;
+            if (paper)
+                paper.destroy();
+            Updates.putPaperAway();
+            const away = !Updates.paperShown && Config.updates.paperSeen === 99;
+            Updates.release = rel;
+            Config.updates.paperSeen = seen;
+            stage.destroy();
+            report("new-1012", !bad.length && drawn === 15 && typed === "Ctrl+C|hi" && hush && hung && paperDrawn && away, bad.join("; ") + " discord drawn " + drawn + "/15; keys " + typed + ", quiet for a password " + hush + "; paper hung " + hung + ", drawn " + paperDrawn + ", put away " + away);
             phase = "rmb";
             return;
         }
@@ -2627,7 +2913,8 @@ Scope {
                 a.grabToImage(r => r.saveToFile(shots + "/setup-" + cur.id + ".png"));
                 return;
             }
-            setupSeen.push(cur.id + (ok ? "" : "✕"));
+            if (setupSeen[setupSeen.length - 1] !== cur.id + (ok ? "" : "✕"))
+                setupSeen.push(cur.id + (ok ? "" : "✕"));
             // Back once, from the second question
             if (ok && wizard.step === 1 && setupBack < 0) {
                 setupBack = 1;
@@ -2637,12 +2924,49 @@ Scope {
             }
             if (setupBack === 1 && wizard.step === 0)
                 setupBack = 2;
+            // the install inside the wizard (events fed in, no pkexec): Continue waits while it
+            // runs, the desktop stays held, a failure is named and the wizard still ends
+            if (ok && setupInstall === 0 && cur.id === "ready") {
+                setupInstall = 1;
+                wizard.simulateInstall([{
+                        "ev": "plan",
+                        "items": [
+                            {"id": "telegram", "ru": "Telegram", "en": "Telegram", "icon": "chat", "installed": false, "via": "pacman"},
+                            {"id": "firefox", "ru": "Firefox", "en": "Firefox", "icon": "search", "installed": true, "via": ""},
+                            {"id": "discord", "ru": "Discord", "en": "Discord", "icon": "chat", "installed": false, "via": "flatpak"},
+                            {"id": "steam", "ru": "Steam", "en": "Steam", "icon": "gamepad", "installed": false, "via": "pacman"}
+                        ]
+                    }, {"ev": "auth"}, {"ev": "item", "id": "telegram", "state": "start", "n": 0, "of": 3},
+                    {"ev": "item", "id": "telegram", "state": "done", "n": 1, "of": 3},
+                    {"ev": "item", "id": "discord", "state": "start", "n": 1, "of": 3}]);
+                started = Date.now();
+                return;
+            }
+            if (ok && setupInstall === 1 && cur.id === "install") {
+                wizard.next();
+                setupInstallHeld = wizard.cur.id === "install" && Shell.setupLocked;
+                wizard.onInstallEvent({"ev": "item", "id": "discord", "state": "done", "n": 2, "of": 3});
+                wizard.onInstallEvent({"ev": "item", "id": "steam", "state": "fail", "n": 3, "of": 3});
+                wizard.onInstallEvent({"ev": "done", "ok": ["telegram", "discord"], "failed": ["steam"], "skipped": []});
+                setupInstall = 2;
+                started = Date.now();
+                return;
+            }
+            if (setupInstall === 2) {
+                if (Date.now() - started < 700)
+                    return;
+                setupInstall = 3;
+                if (shots)
+                    a.grabToImage(r => r.saveToFile(shots + "/setup-install-done.png"));
+                return;
+            }
             if (!ok || wizard.step >= wizard.last) {
                 wizard.tipsAfter = false;
                 wizard.next();
                 const done = !Shell.setupOpen && !Shell.setupLocked && Config.setup.complete;
                 const back = Shell.settingsOpen;
-                report("setup-again", ok && done && back && setupBack === 2 && setupSeen.every(s => !s.endsWith("✕")), setupSeen.join(" → ") + "; back works " + (setupBack === 2) + "; finished " + done + "; Settings back " + back);
+                const inst = setupInstall === 3 && setupInstallHeld && wizard.installState.failed.join() === "steam";
+                report("setup-again", ok && done && back && inst && setupBack === 2 && setupSeen.every(s => !s.endsWith("✕")), setupSeen.join(" → ") + "; back works " + (setupBack === 2) + "; install held the desktop " + setupInstallHeld + ", named the failed one " + inst + "; finished " + done + "; Settings back " + back);
                 finish();
                 return;
             }

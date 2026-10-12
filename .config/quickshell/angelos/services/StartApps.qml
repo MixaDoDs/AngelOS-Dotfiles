@@ -99,7 +99,8 @@ Singleton {
         }
         // a sum is not a question about settings ("2*3" would match "Size")
         if (Config.launcher.settings !== false && !calc) {
-            SettingsSearch.load();
+            // later, not inside the caller's binding (see modules/launcher/Launcher.qml)
+            Qt.callLater(SettingsSearch.load);
             for (const r of SettingsSearch.search(q, 8))
                 rows.push({
                     "kind": "setting",

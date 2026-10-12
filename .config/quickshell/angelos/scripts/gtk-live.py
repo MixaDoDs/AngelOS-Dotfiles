@@ -25,8 +25,11 @@ Always (on or off): the pixel frames the palette CSS draws its buttons, fields a
 (templates/gtk3.css, gtk4.css → assets/frame-raised.svg, frame-sunken.svg next to each CSS):
 the outline in the palette's edge colour with stepped corners, and the bevel.
 """
+import hashlib
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -193,6 +196,40 @@ def interface_defaults():
                 gsettings("org.gnome.desktop.interface", "cursor-size", size)
 
 
+
+def version_gtk4():
+    """GTK 4 / libadwaita reads its user CSS once per app, but the pictures the CSS points at
+    only when a widget first needs them. With the same file names rewritten in place, a Nautilus
+    started before a theme change drew the old colours with the new frames — here and there, as
+    new kinds of widgets came up. So the GTK 4 pictures live in a folder named after their
+    content (assets/v-<hash>/) and the CSS points there: an app keeps its whole old look until it
+    starts again (services/NautilusSetup restarts Nautilus once none of its windows is open)."""
+    src = GTK4 / "assets"
+    files = sorted(f for f in src.glob("*.svg") if f.is_file())
+    if not files:
+        return
+    h = hashlib.sha1(b"".join(f.name.encode() + f.read_bytes() for f in files)).hexdigest()[:10]
+    dest = src / ("v-" + h)
+    if not dest.is_dir():
+        tmp = src / (".v-" + h + ".tmp")
+        shutil.rmtree(tmp, ignore_errors=True)
+        tmp.mkdir(parents=True)
+        for f in files:
+            shutil.copy2(f, tmp / f.name)
+        os.replace(tmp, dest)
+    os.utime(dest)
+    rx = re.compile(r"""url\(\s*(["']?)assets/(?:v-[0-9a-f]+/)?([\w.-]+\.svg)\1\s*\)""")
+    for css in (GTK4 / "angelos.css", GTK4 / "angelos-decor.css"):
+        if css.exists():
+            text = css.read_text()
+            fixed = rx.sub(lambda m: 'url("assets/v-%s/%s")' % (h, m.group(2)), text)
+            if fixed != text:
+                write(css, fixed)
+    # old looks: a few stay for apps still running in them
+    olds = sorted((d for d in src.glob("v-*") if d.is_dir() and d != dest), key=lambda d: d.stat().st_mtime, reverse=True)
+    for d in olds[6:]:
+        shutil.rmtree(d, ignore_errors=True)
+
 def main():
     pal = json.loads(Path(sys.argv[1]).read_text())
     interface_defaults()
@@ -214,6 +251,7 @@ def main():
         if current.startswith("angelOS-"):
             gsettings("org.gnome.desktop.interface", "gtk-theme", base)
         write(GTK4 / "angelos-decor.css", "/* angelOS window buttons: off */\n")
+        version_gtk4()
         if (GTK3 / "angelos.css").exists() and (GTK3 / "angelos.css").read_text() == STUB:
             print("gtk3 palette stub stays until the next render")
         print(json.dumps({"live": False, "theme": base if current.startswith("angelOS-") else current}))
@@ -222,6 +260,7 @@ def main():
     # GTK 4 / libadwaita: the decorations next to its user CSS
     write(GTK4 / "angelos-decor.css", render(decor4_tpl.read_text(), pal))
     assets(GTK4, pal)
+    version_gtk4()
 
     # GTK 3 (and Chromium's GTK mode): the live theme
     palette_css = (GTK3 / "angelos.css").read_text() if (GTK3 / "angelos.css").exists() else ""
@@ -232,6 +271,7 @@ def main():
     # inlined below the theme's own @import: an @import further down would be dropped
     palette4 = (GTK4 / "angelos.css").read_text() if (GTK4 / "angelos.css").exists() else ""
     palette4 = "\n".join(l for l in palette4.splitlines() if not l.lstrip().startswith("@import"))
+    palette4 = re.sub(r"assets/v-[0-9a-f]+/", "assets/", palette4)   # the theme's own assets/ are plain
     css4 = '@import url("file://%s/gtk-4.0/gtk.css");\n\n%s\n%s' % (base_dir, palette4, render(decor4_tpl.read_text(), pal))
     in_use = THEMES / current if current in ("angelOS-a", "angelOS-b") else None
     if palette_css and in_use and (in_use / "gtk-3.0/gtk.css").exists() and (in_use / "gtk-3.0/gtk.css").read_text() == css3:

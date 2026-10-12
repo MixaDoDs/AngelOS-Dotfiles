@@ -125,10 +125,18 @@ spinbutton:focus {
    nodes hung straight under a window (ui/gtk/gtk_color_mixers.cc), so these rules reach no real
    GTK app. Text selection — the address bar, fields, the page: adw-gtk3's quarter of the accent
    over the window colour is almost black on black there; ours is the accent itself, a softer one
-   in an unfocused window. Tabs: Helium paints the strip, every tab and the toolbar in one colour,
-   so only the titles can show which tab is open — the others' titles dim (headerbar label.title
-   is the inactive tab's text, the active one keeps the label colour). GTK 3 drops a rule with
-   :focus-within, so the selectors leave it out. */
+   in an unfocused window. GTK 3 drops a rule with :focus-within, so the selectors leave it out.
+   Their bar: Helium paints the tab strip, the open tab and the toolbar in the one colour it reads
+   as the window's, and fills no other tab (GtkUi answers SHOULD_FILL_BACKGROUND_TAB_COLOR with
+   0), so on the window colour itself the whole top of the browser was one dark slab. A real
+   widget always carries a text direction, Chromium's nodes never do: `:not(:dir(ltr)):not(:dir(rtl))`
+   is a window only it has. There the bar takes a colour the theme keeps for it (palette keys
+   browserBar and browserBarText: the title bars' colour unless Settings → Windows picks
+   another), and the address field stays the window colour — a field cut into the
+   bar. The frame colour (menubar with the system title bar, headerbar.header-bar with
+   Chromium's own) is what Helium gives the «+» button and, blended, a tab under the pointer:
+   a step lighter. The other tabs' titles dim (label.title under the frame node), the open
+   one keeps the bar's text colour. */
 window > textview.view > text > selection,
 window > textview.view > text > selection:focus {
     background-color: @accent_bg_color;
@@ -138,7 +146,29 @@ window > textview.view:backdrop > text:backdrop > selection:backdrop {
     background-color: mix(@accent_bg_color, @window_bg_color, 0.3);
     color: @window_fg_color;
 }
-window > headerbar.header-bar.titlebar > label.title,
-window > headerbar.header-bar.titlebar:backdrop > label.title {
-    color: mix(@window_fg_color, @window_bg_color, 0.5);
+window.background:not(:dir(ltr)):not(:dir(rtl)) {
+    background-color: {{browserBar}};
+}
+window.background:not(:dir(ltr)):not(:dir(rtl)) > label,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > button.flat.scale,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > button.flat.scale > image {
+    color: {{browserBarText}};
+}
+window.background:not(:dir(ltr)):not(:dir(rtl)) > label:disabled {
+    color: alpha({{browserBarText}}, 0.5);
+}
+window.background:not(:dir(ltr)):not(:dir(rtl)) > menubar,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > headerbar.header-bar.titlebar {
+    background-color: mix({{browserBar}}, {{browserBarText}}, 0.2);
+    background-image: none;
+}
+window.background:not(:dir(ltr)):not(:dir(rtl)) > menubar:backdrop,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > headerbar.header-bar.titlebar:backdrop {
+    background-color: mix({{browserBar}}, {{browserBarText}}, 0.1);
+}
+window.background:not(:dir(ltr)):not(:dir(rtl)) > menubar > label.title,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > menubar:backdrop > label.title,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > headerbar.header-bar.titlebar > label.title,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > headerbar.header-bar.titlebar:backdrop > label.title {
+    color: mix({{browserBarText}}, {{browserBar}}, 0.45);
 }

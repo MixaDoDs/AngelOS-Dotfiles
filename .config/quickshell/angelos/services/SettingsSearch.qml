@@ -91,6 +91,9 @@ Singleton {
             // the pages of the settings tree (modules/settings/tree.json)
             "account": ["аккаунт", "учётка", "учетная запись", "имя", "аватарка", "язык", "мастер", "подсказки", "восстановление", "бэкап", "account", "name", "avatar", "language", "wizard", "tips", "backup", "recovery"],
             "main": ["главная", "домой", "home", "start page"],
+            "programs": ["программы", "приложения", "установленные", "удалить программу", "удаление", "деинсталляция", "очистка", "мусор", "блоат", "bloat", "кэш", "освободить место", "сироты", "uninstall", "remove app", "installed", "clean up", "cache", "orphans", "disk space"],
+            "autostart": ["автозапуск", "автозагрузка", "при входе", "запуск при старте", "autostart", "startup apps", "login items", "start at login"],
+            "presets": ["пресет", "пресеты", "режим", "профиль", "набор настроек", "готовые настройки", "сохранить настройки", "сбросить", "как у автора", "слабый компьютер", "preset", "presets", "profile", "mode", "save settings", "reset"],
             "theme": ["тема", "цвет", "цвета", "палитра", "акцент", "оформление", "внешний вид", "скин", "windose", "golden gate", "macos", "theme", "color", "colour", "palette", "accent", "look", "appearance", "skin"],
             "fonts": ["шрифт", "текст", "размер текста", "буквы", "font", "text size", "typeface"],
             "wallpaper": ["обои", "фон", "картинка", "заставка стола", "wallpaper", "background", "picture", "image"],
@@ -114,6 +117,8 @@ Singleton {
             "network": ["сеть", "интернет", "вайфай", "кабель", "wifi", "network", "internet", "ethernet"],
             "bluetooth": ["блютуз", "беспроводные", "наушники", "bluetooth", "wireless"],
             "gamepad": ["геймпад", "джойстик", "контроллер", "gamepad", "controller", "joystick"],
+            "peripherals": ["заряд", "заряд мыши", "заряд наушников", "батарея мыши", "батарейка", "ампулы", "склянки", "беспроводная мышь", "донгл", "charge", "device charge", "mouse battery", "headset battery", "ampoules", "dongle"],
+            "driver": ["драйвер", "драйвер устройств", "магнитная клавиатура", "магнитка", "холл", "ход клавиш", "глубина нажатия", "точка срабатывания", "рапид триггер", "снап тап", "nuphy", "polling rate", "частота опроса", "hall effect", "rapid trigger", "snap tap", "socd", "actuation", "key travel", "device driver"],
             "defaults": ["по умолчанию", "браузер", "терминал", "редактор", "файловый менеджер", "default apps", "browser", "terminal", "editor", "file manager"],
             "taskmanager": ["диспетчер задач", "системный монитор", "btop", "htop", "task manager", "system monitor"],
             "notifications": ["уведомления", "не беспокоить", "notifications", "do not disturb", "dnd"],

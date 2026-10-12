@@ -155,9 +155,12 @@ progressbar progress {
    GTK app. Text selection — the address bar, fields, the page: adw-gtk3's quarter of the accent
    over the window colour is almost black on black there; ours is the accent itself, a softer one
    in an unfocused window. Tabs: Helium paints the strip, every tab and the toolbar in one colour,
-   so only the titles can show which tab is open — the others' titles dim (headerbar label.title
-   is the inactive tab's text, the active one keeps the label colour). GTK 3 drops a rule with
-   :focus-within, so the selectors leave it out. */
+   so only the titles can show which tab is open — the others' titles dim (label.title under
+   the frame node — menubar with the system title bar, headerbar.header-bar with Chromium's
+   own — is the inactive tab's text, the active one keeps the label colour); the frame colour
+   is the «+» button's and, blended, a tab's under the pointer. A real widget always carries a
+   text direction, Chromium's nodes never do: `:not(:dir(ltr)):not(:dir(rtl))` is a window only
+   it has. GTK 3 drops a rule with :focus-within, so the selectors leave it out. */
 window > textview.view > text > selection,
 window > textview.view > text > selection:focus {
     background-color: @accent_bg_color;
@@ -167,7 +170,18 @@ window > textview.view:backdrop > text:backdrop > selection:backdrop {
     background-color: mix(@accent_bg_color, @window_bg_color, 0.3);
     color: @window_fg_color;
 }
-window > headerbar.header-bar.titlebar > label.title,
-window > headerbar.header-bar.titlebar:backdrop > label.title {
+window.background:not(:dir(ltr)):not(:dir(rtl)) > menubar,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > headerbar.header-bar.titlebar {
+    background-color: mix(@window_bg_color, @window_fg_color, 0.14);
+    background-image: none;
+}
+window.background:not(:dir(ltr)):not(:dir(rtl)) > menubar:backdrop,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > headerbar.header-bar.titlebar:backdrop {
+    background-color: mix(@window_bg_color, @window_fg_color, 0.07);
+}
+window.background:not(:dir(ltr)):not(:dir(rtl)) > menubar > label.title,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > menubar:backdrop > label.title,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > headerbar.header-bar.titlebar > label.title,
+window.background:not(:dir(ltr)):not(:dir(rtl)) > headerbar.header-bar.titlebar:backdrop > label.title {
     color: mix(@window_fg_color, @window_bg_color, 0.5);
 }

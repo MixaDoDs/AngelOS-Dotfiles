@@ -23,57 +23,64 @@ PxButton {
     flat: true
     icon: "ethernet"
     opacity: up ? 1 : 0.55
-    checked: panel.visible
-    onClicked: panel.toggle()
+    checked: pop.visible
+    onClicked: pop.toggle()
 
-    BarPopup {
-        id: panel
+    // built when the pointer comes to the button, gone a while after it closed (LazyPopup)
+    LazyPopup {
+        id: pop
         panelId: "wired"
         anchorItem: root
-        above: root.above
-        title: I18n.exe("ethernet")
-        icon: "ethernet"
-        contentWidth: Theme.u * 130
-        contentHeight: col.implicitHeight
-        Column {
-            id: col
-            width: parent.width
-            spacing: Theme.u * 3
-            Row {
-                spacing: Theme.u * 4
-                PxIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    name: "ethernet"
-                    pixel: Theme.u * 2
-                    opacity: root.up ? 1 : 0.5
+        warm: root.hovered
+        BarPopup {
+            id: panel
+            panelId: "wired"
+            anchorItem: root
+            above: root.above
+            title: I18n.exe("ethernet")
+            icon: "ethernet"
+            contentWidth: Theme.u * 130
+            contentHeight: col.implicitHeight
+            Column {
+                id: col
+                width: parent.width
+                spacing: Theme.u * 3
+                Row {
+                    spacing: Theme.u * 4
+                    PxIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: "ethernet"
+                        pixel: Theme.u * 2
+                        opacity: root.up ? 1 : 0.5
+                    }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        PxText {
+                            font.bold: true
+                            text: !root.dev ? I18n.t("нет сетевой карты", "no wired adapter") : !root.linked ? I18n.t("кабель не подключён", "cable unplugged") : root.up ? I18n.t("подключено", "connected") : I18n.t("кабель есть, соединения нет", "cable in, not connected")
+                        }
+                        PxText {
+                            visible: root.up
+                            text: Wifi.connectivityText
+                            kind: "tiny"
+                            color: Wifi.online ? Theme.textDim : Theme.danger
+                        }
+                        PxText {
+                            visible: !!root.dev
+                            text: root.dev ? root.dev.name || "" : ""
+                            kind: "tiny"
+                            dim: true
+                        }
+                    }
                 }
-                Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    PxText {
-                        font.bold: true
-                        text: !root.dev ? I18n.t("нет сетевой карты", "no wired adapter") : !root.linked ? I18n.t("кабель не подключён", "cable unplugged") : root.up ? I18n.t("подключено", "connected") : I18n.t("кабель есть, соединения нет", "cable in, not connected")
+                PxButton {
+                    compact: true
+                    icon: "gear"
+                    text: I18n.t("Настройки сети", "Network settings")
+                    onClicked: {
+                        panel.visible = false;
+                        Shell.openSettings("network");
                     }
-                    PxText {
-                        visible: root.up
-                        text: Wifi.connectivityText
-                        kind: "tiny"
-                        color: Wifi.online ? Theme.textDim : Theme.danger
-                    }
-                    PxText {
-                        visible: !!root.dev
-                        text: root.dev ? root.dev.name || "" : ""
-                        kind: "tiny"
-                        dim: true
-                    }
-                }
-            }
-            PxButton {
-                compact: true
-                icon: "gear"
-                text: I18n.t("Настройки сети", "Network settings")
-                onClicked: {
-                    panel.visible = false;
-                    Shell.openSettings("network");
                 }
             }
         }

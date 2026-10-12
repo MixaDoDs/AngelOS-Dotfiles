@@ -7,6 +7,11 @@ No third-party Python dependencies.
   community-plugins.py update ID VERSION OLD         -> a newer version over OLD (a bundled plugin
                                                         gets a copy of its own that shadows it)
   community-plugins.py rollback ID                   -> the snapshot taken before the last update back
+  community-plugins.py sideload ZIP|URL              -> a plugin from a .zip file, a .zip link or a GitHub
+                                                        repository (not reviewed; over an installed
+                                                        copy: an update with a snapshot)
+  community-plugins.py sideload-check                -> the sideloaded ones; GitHub's: newer release/commit?
+  community-plugins.py sideload-update ID            -> a GitHub one to its latest release/commit
   community-plugins.py retire                        -> the old stand-alone Community Store plugin out
                                                         of the plugin folder (its job is angelOS's now)
 
@@ -28,6 +33,7 @@ import stat
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
@@ -189,6 +195,11 @@ def install(plugin_id, version, home=None, existing_version=None):
     data = _download(entry["source"], MAX_ARCHIVE, 60)
     if entry.get("sha256") and hashlib.sha256(data).hexdigest().lower() != entry["sha256"].lower():
         raise ValueError("Release SHA-256 does not match the reviewed registry digest")
+    return _place(data, plugin_id, version, home, existing_version)
+
+
+def _place(data, plugin_id, version, home=None, existing_version=None):
+    """the archive's plugin into ~/.config/angelos/plugins/<id>: a snapshot of the old one first"""
     plugins_dir = _home(home) / ".config/angelos/plugins"
     if plugins_dir.is_symlink():
         raise ValueError("Plugin directory is a symbolic link")
@@ -241,6 +252,142 @@ def install(plugin_id, version, home=None, existing_version=None):
         _prune(plugin_id, home)
     return {"id": plugin_id, "version": version, "updated": backup is not None,
             "snapshot": str(backup) if backup is not None else "", "loadDir": load_dir(plugin_id, destination, home)}
+
+
+# ---- outside the registry: a .zip of your own, or a GitHub repository (Settings → Plugins) ----
+# Not reviewed by anyone: the page says so before it installs. Where each one came from is kept in
+# ~/.local/state/angelos/plugin-sources.json, so a GitHub one can be updated: its latest release
+# (a .zip asset, else the release's source), or — a repository without releases — its default
+# branch's newest commit.
+GITHUB = re.compile(r"https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?"
+                    r"(?:/(?:tree|releases/tag)/([A-Za-z0-9_./-]+?))?/?")
+
+
+def _sources_file(home=None):
+    return _home(home) / ".local/state/angelos/plugin-sources.json"
+
+
+def sources(home=None):
+    try:
+        data = json.loads(_sources_file(home).read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _api(url):
+    return json.loads(_download(url, MAX_REGISTRY, 20).decode("utf-8"))
+
+
+def github_latest(url):
+    """(archive url, ref) of a GitHub repository link: ref is the release tag or the commit"""
+    m = GITHUB.fullmatch(url.strip())
+    if not m:
+        raise ValueError("Not a GitHub repository link: https://github.com/<owner>/<repo>")
+    owner, repo, ref = m.groups()
+    api = f"https://api.github.com/repos/{owner}/{repo}"
+    if ref:                                    # a tag or a branch named in the link: that one
+        return f"{api}/zipball/{urllib.parse.quote(ref)}", ref
+    try:
+        release = _api(api + "/releases/latest")
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        release = None
+    if isinstance(release, dict) and release.get("tag_name"):
+        asset = next((a for a in release.get("assets") or []
+                      if str(a.get("name", "")).endswith(".zip") and str(a.get("browser_download_url", "")).startswith("https://")), None)
+        return (asset["browser_download_url"] if asset else release["zipball_url"]), release["tag_name"]
+    branch = _api(api).get("default_branch") or "main"
+    sha = _api(f"{api}/commits/{urllib.parse.quote(branch)}")["sha"]
+    return f"{api}/zipball/{sha}", sha[:12]
+
+
+def _peek(data):
+    """the id and version an archive's manifest says (checked again when it is placed)"""
+    with tempfile.TemporaryDirectory(prefix="angelos-peek-") as temp:
+        manifests = []
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            for name in archive.namelist():
+                parts = PurePosixPath(name).parts
+                if parts and parts[-1] == "manifest.json" and len(parts) in (1, 2):
+                    manifests.append(name)
+            if len(manifests) != 1:
+                raise ValueError("Plugin archive must contain one top-level manifest.json")
+            manifest = json.loads(archive.read(manifests[0]).decode("utf-8"))
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("id"), str) or not PLUGIN_ID.fullmatch(manifest["id"]):
+        raise ValueError("Plugin manifest has no valid id")
+    if manifest["id"] in RETIRED:
+        raise ValueError("This plugin is built into angelOS now")
+    return manifest["id"], manifest.get("version")
+
+
+def sideload(source, home=None, expect_id=None):
+    """a plugin from a .zip file, an https .zip link or a GitHub repository link"""
+    source = source.strip()
+    ref = ""
+    if source.startswith("https://github.com/"):
+        kind = "github"
+        url, ref = github_latest(source)
+        data = _download(url, MAX_ARCHIVE, 60)
+    elif source.startswith("https://"):
+        kind = "url"
+        data = _download(source, MAX_ARCHIVE, 60)
+    else:
+        kind = "zip"
+        path = Path(source).expanduser()
+        if not path.is_file() or path.stat().st_size > MAX_ARCHIVE:
+            raise ValueError("No such .zip file, or it is larger than 64 MB")
+        data = path.read_bytes()
+    try:
+        plugin_id, version = _peek(data)
+    except zipfile.BadZipFile as exc:
+        raise ValueError("Not a .zip archive") from exc
+    if expect_id and plugin_id != expect_id:
+        raise ValueError(f"The new archive is another plugin ({plugin_id}), not {expect_id}")
+    # over an installed copy: an update with a snapshot (rollback works as for the catalog)
+    existing = None
+    current = _home(home) / ".config/angelos/plugins" / plugin_id / "manifest.json"
+    if current.is_file():
+        try:
+            existing = str(json.loads(current.read_text(encoding="utf-8")).get("version") or "0")
+        except (OSError, ValueError, AttributeError) as exc:
+            raise ValueError("Existing plugin has no valid manifest") from exc
+    elif _bundled_version(plugin_id) is not None:
+        existing = _bundled_version(plugin_id)
+    result = _place(data, plugin_id, version, home, existing)
+    known = sources(home)
+    known[plugin_id] = {"kind": kind, "source": source if kind != "zip" else str(Path(source).expanduser()),
+                        "ref": ref, "version": str(version or ""), "installed": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    _sources_file(home).parent.mkdir(parents=True, exist_ok=True)
+    _sources_file(home).write_text(json.dumps(known, ensure_ascii=False, indent=2), encoding="utf-8")
+    result.update({"source": known[plugin_id]["source"], "kind": kind, "ref": ref})
+    return result
+
+
+def sideload_check(home=None):
+    """the plugins from outside the registry; a GitHub one gets its latest ref and «update»"""
+    out = []
+    for plugin_id, src in sorted(sources(home).items()):
+        if not isinstance(src, dict) or not (_home(home) / ".config/angelos/plugins" / plugin_id).is_dir():
+            continue
+        row = {"id": plugin_id, "kind": src.get("kind", ""), "source": src.get("source", ""),
+               "ref": src.get("ref", ""), "version": src.get("version", ""), "latest": "", "update": False}
+        if row["kind"] == "github":
+            try:
+                row["latest"] = github_latest(row["source"])[1]
+                row["update"] = row["latest"] != row["ref"]
+            except (OSError, ValueError, KeyError) as exc:
+                row["error"] = str(exc)
+        out.append(row)
+    return out
+
+
+def sideload_update(plugin_id, home=None):
+    src = sources(home).get(plugin_id)
+    if not isinstance(src, dict) or src.get("kind") != "github":
+        raise ValueError("Only a plugin installed from GitHub updates itself")
+    return sideload(src["source"], home, expect_id=plugin_id)
 
 
 def rollback(plugin_id, home=None):
@@ -308,16 +455,23 @@ def main(args):
         print(json.dumps(install(args[1], args[2], existing_version=args[3]), ensure_ascii=False))
     elif len(args) == 2 and args[0] == "rollback":
         print(json.dumps(rollback(args[1]), ensure_ascii=False))
+    elif len(args) == 2 and args[0] == "sideload":
+        print(json.dumps(sideload(args[1]), ensure_ascii=False))
+    elif args == ["sideload-check"]:
+        print(json.dumps({"plugins": sideload_check()}, ensure_ascii=False))
+    elif len(args) == 2 and args[0] == "sideload-update":
+        print(json.dumps(sideload_update(args[1]), ensure_ascii=False))
     elif args == ["retire"]:
         print(json.dumps(retire(), ensure_ascii=False))
     else:
         raise ValueError("Usage: community-plugins.py list | install ID VERSION | update ID VERSION OLD_VERSION"
-                         " | rollback ID | retire")
+                         " | rollback ID | retire"
+                         " | sideload ZIP|URL | sideload-check | sideload-update ID")
 
 
 if __name__ == "__main__":
     try:
         main(sys.argv[1:])
-    except (OSError, ValueError, zipfile.BadZipFile, urllib.error.URLError) as exc:
+    except (OSError, ValueError, KeyError, zipfile.BadZipFile, urllib.error.URLError) as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1)

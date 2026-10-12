@@ -124,6 +124,57 @@ PxPage {
                 onActivated: v => Config.decor.gtkLayout = v
             }
         }
+        // the browsers' bar (templates/gtk3.css, palette key browserBar): Helium on its "GTK" theme
+        // paints the tab strip, the open tab and the toolbar in one colour — this one
+        SettingRow {
+            id: barRow
+            readonly property color shown: /^#[0-9a-f]{6}$/i.test(Config.decor.browserBar) ? Config.decor.browserBar : ThemeExport.browserBarAuto
+            function step(towards) {
+                Config.decor.browserBar = Theme.hex(Theme.mix(shown, towards, 0.12));
+            }
+            visible: !Angel.hellShown
+            label: I18n.t("Цвет панели браузера", "The browser's bar colour")
+            hint: I18n.t("панель Helium и Chromium и открытая вкладка. В режиме «GTK» меняется сразу; в теме с заметной вкладкой — при следующем запуске браузера. «Авто» — чуть ярче заголовков окон", "The bar of Helium and Chromium and the open tab. On the “GTK” theme it changes at once; in the theme with a visible tab, at the browser's next start. “Auto”: a step brighter than the title bars")
+            Row {
+                spacing: Theme.u * 3
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.u * 12
+                    height: Theme.u * 8
+                    color: barRow.shown
+                    border.width: Math.max(1, Theme.u / 2)
+                    border.color: Theme.edge
+                }
+                PxButton {
+                    compact: true
+                    icon: "sun"
+                    text: I18n.t("Светлее", "Lighter")
+                    onClicked: barRow.step("#ffffff")
+                }
+                PxButton {
+                    compact: true
+                    icon: "moon"
+                    text: I18n.t("Темнее", "Darker")
+                    onClicked: barRow.step("#000000")
+                }
+                PxField {
+                    width: Theme.u * 34
+                    kind: "mono"
+                    text: Config.decor.browserBar
+                    placeholder: Theme.hex(ThemeExport.browserBarAuto)
+                    onEdited: if (/^#[0-9a-f]{6}$/i.test(text) || text === "")
+                        Config.decor.browserBar = text
+                }
+                PxButton {
+                    visible: Config.decor.browserBar !== ""
+                    compact: true
+                    flat: true
+                    icon: "refresh"
+                    text: I18n.t("Авто", "Auto")
+                    onClicked: Config.decor.browserBar = ""
+                }
+            }
+        }
         // browsers (scripts/browser-theme.py): Helium and Chromium follow GTK live (their theme
         // "GTK") or read a theme extension at start; Firefox follows GTK by itself and gets the
         // palette from userChrome.css. Profiles change only by these buttons, with a copy and undo
@@ -147,6 +198,8 @@ PxPage {
                         s = I18n.t("запусти " + n + " один раз — профиля ещё нет", "Start " + n + " once: there's no profile yet");
                     else if (!chromium)
                         s = (b.static ? I18n.t("тема angelOS включена (userChrome.css): панели и вкладки в цветах рая или ада, Firefox читает их при запуске." + (b.running ? " Перезапусти Firefox, чтобы увидеть" : ""), "angelOS's theme is on (userChrome.css): toolbars and tabs in heaven's or hell's colours, read when Firefox starts." + (b.running ? " Restart Firefox to see it" : "")) : I18n.t("«Включить тему angelOS» — панели и вкладки Firefox в цветах рая или ада (userChrome.css в профиле, с копией и откатом; читается при запуске). Меню и кнопки окна и так следуют GTK на лету", "“Turn on angelOS's theme”: Firefox's toolbars and tabs in heaven's or hell's colours (userChrome.css in the profile, with a copy and undo; read at start). Menus and window buttons follow GTK live anyway")) + (b.live ? "" : I18n.t(". Сейчас у Firefox своя тема: чтобы он следовал GTK — about:addons → Темы → «Системная тема — авто»", ". Firefox has a theme of its own now: to follow GTK, about:addons → Themes → “System theme — auto”"));
+                    else if (b.tabs)
+                        s = I18n.t("тема angelOS с заметной вкладкой: открытая вкладка светлая, остальные тёмные. Цвета " + n + " читает при запуске" + (b.running && b.live ? " — появится после его перезапуска" : "") + "; цвет — строкой выше. «Следовать теме angelOS» вернёт смену на лету, но без выделения вкладки", "angelOS's theme with a visible tab: the open tab is light, the others dark. " + n + " reads the colours when it starts" + (b.running && b.live ? " — it shows after a restart" : "") + "; the colour is the row above. “Follow angelOS's theme” brings back live switching, without the tab standing out");
                     else if (b.live)
                         s = Angel.hellShown ? I18n.t("в режиме «GTK»: цвета и кнопки окна angelOS, рай и ад — сразу", "In GTK mode: angelOS colours and window buttons, heaven and hell at once") : I18n.t("в режиме «GTK»: цвета и кнопки окна angelOS — сразу", "In GTK mode: angelOS colours and window buttons at once");
                     else if (b.pending)
@@ -179,6 +232,16 @@ PxPage {
                             text: browserRow.chromium ? I18n.t("Следовать теме angelOS", "Follow angelOS's theme") : I18n.t("Включить тему angelOS", "Turn on angelOS's theme")
                             onClicked: browserAct.go(browserRow.b.id, "apply", "")
                         }
+                        // Helium on the GTK theme can't show which tab is open: the theme extension
+                        // can, loaded by a line in its flags file (browser-theme.py tabs)
+                        PxButton {
+                            visible: browserRow.chromium && !browserRow.asking && !browserRow.b.tabs
+                            compact: true
+                            accent: browserRow.b.live
+                            icon: "eye"
+                            text: I18n.t("Заметная открытая вкладка", "Make the open tab stand out")
+                            onClicked: browserAct.go(browserRow.b.id, "tabs", "")
+                        }
                         PxButton {
                             visible: browserRow.asking || (browserRow.chromium && browserRow.b.pending)
                             compact: true
@@ -203,7 +266,7 @@ PxPage {
                             onClicked: browserAct.ask = ""
                         }
                         PxButton {
-                            visible: !browserRow.asking && (browserRow.b.undo || (!browserRow.chromium && browserRow.b.static))
+                            visible: !browserRow.asking && (browserRow.b.undo || browserRow.b.tabs || (!browserRow.chromium && browserRow.b.static))
                             compact: true
                             flat: true
                             icon: "arrowLeft"
@@ -788,6 +851,20 @@ PxPage {
                 dim: true
                 width: Theme.u * 200
                 elide: Text.ElideMiddle
+            }
+        }
+    }
+    PxGroup {
+        name: "floating"
+        width: parent.width
+        title: I18n.t("Плавающие окна", "Floating windows")
+        icon: "window"
+        SettingRow {
+            label: I18n.t("Все окна плавающие", "Every window floats")
+            hint: I18n.t("окна открываются поверх друг друга и двигаются мышью, как в Windows, а не встают в колонки niri. Уже открытые тоже станут плавающими; выключишь — вернутся в колонки", "windows open over each other and move with the mouse, as on Windows, instead of niri's columns. The open ones float too; switch it off and they go back to the columns")
+            PxToggle {
+                checked: WindowConfig.floatAll
+                onToggled: c => WindowConfig.setFloatAll(c)
             }
         }
     }

@@ -1,0 +1,88 @@
+{
+  "_comment": [
+    "The author's presets of settings (services/Presets, Settings → Presets, `angelos preset`).",
+    "They share one list of settings: every key any of them names. A preset puts each key of that",
+    "list to its own value (\"set\") or, when it doesn't name it, to its default — so the presets",
+    "replace each other cleanly, and nothing outside the list is ever touched. Keys are",
+    "\"section.key\" of config/SettingsSchema.qml; never the shell's bookkeeping (Config.notUndoable:",
+    "the game being on is the user's own switch, not a preset's). \"points\": what it does, in words."
+  ],
+  "presets": [
+    {
+      "id": "author",
+      "icon": "heart",
+      "ru": "Как у автора",
+      "en": "As the author has it",
+      "hintRu": "angelOS из коробки: всё движется, светится и разговаривает",
+      "hintEn": "angelOS out of the box: everything moves, glows and talks",
+      "pointsRu": ["все анимации и эффекты", "живые обои с событиями", "ангел шутит и подсказывает", "паутина, блёстки, лирика на панели"],
+      "pointsEn": ["every animation and effect", "live wallpapers with their events", "the angel jokes and gives tips", "cobwebs, sparkles, lyrics on the bar"],
+      "set": {}
+    },
+    {
+      "id": "calm",
+      "icon": "moon",
+      "ru": "Спокойный",
+      "en": "Calm",
+      "hintRu": "то же самое, но без вспышек, тряски и внезапного",
+      "hintEn": "the same, without flashes, shaking and surprises",
+      "pointsRu": ["движение «спокойное»: без вспышек и тряски экрана", "ангел без шуток, буквы не дёргаются", "обои живые, но без внезапных событий", "без блёсток за курсором и фраз при смене стола"],
+      "pointsEn": ["motion “calm”: no flashes, no screen shaking", "the angel without jokes, her letters keep still", "wallpapers alive, without sudden events", "no sparkle trail, no phrases on a workspace switch"],
+      "set": {
+        "appearance.motion": "calm",
+        "y2k.jokes": false,
+        "y2k.textShake": "off",
+        "y2k.shake": false,
+        "y2k.cracks": "weak",
+        "y2k.heavenFx": false,
+        "y2k.sparkles": false,
+        "workspaces.phrases": false,
+        "wallpaper.liveEvents": false,
+        "desktop.menuToys": false
+      }
+    },
+    {
+      "id": "work",
+      "icon": "document",
+      "ru": "Работа",
+      "en": "Work",
+      "hintRu": "ничего не отвлекает: ангел молчит, панель без лирики",
+      "hintEn": "nothing distracts: the angel keeps quiet, no lyrics on the bar",
+      "pointsRu": ["ангел рядом, но без подсказок и шуток", "без лирики на панели и милых звуков", "без паутины на окнах и блёсток", "анимации и оформление остаются"],
+      "pointsEn": ["the angel stays, without tips and jokes", "no lyrics on the bar, no cute sounds", "no cobwebs on windows, no sparkles", "the animations and the look stay"],
+      "set": {
+        "y2k.helperTips": "off",
+        "y2k.jokes": false,
+        "y2k.sparkles": false,
+        "y2k.cuteSounds": false,
+        "lyrics.enabled": false,
+        "workspaces.phrases": false,
+        "windows.cobweb": false,
+        "wallpaper.liveEvents": false,
+        "desktop.menuToys": false
+      }
+    },
+    {
+      "id": "light",
+      "icon": "bolt",
+      "ru": "Лёгкий",
+      "en": "Light",
+      "hintRu": "для слабого компьютера и батареи: без анимаций и тяжёлых эффектов",
+      "hintEn": "for a weak computer and a battery: no animations, no heavy effects",
+      "pointsRu": ["анимации выключены: оболочка, niri", "без размытия и теней", "обои неподвижные, меняются без перехода", "экран блокировки без видео и пикселизации"],
+      "pointsEn": ["animations off: the shell, niri", "no blur, no shadows", "wallpapers still, changed without a transition", "the lock screen without video and pixelation"],
+      "set": {
+        "appearance.motion": "off",
+        "appearance.blur": false,
+        "appearance.shadows": false,
+        "wallpaper.live": false,
+        "wallpaper.transition": "none",
+        "y2k.sparkles": false,
+        "windows.cobweb": false,
+        "lock.pixelate": false,
+        "lock.replay": false,
+        "lyrics.typewriter": false
+      }
+    }
+  ]
+}

@@ -163,6 +163,8 @@ start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1
 start suite perf
 start suite leak
 start suite guard
+start suite eq
+start suite rescue
 wait
 
 # A shard or suite that failed in the crowd runs once more on its own, the rest being done:
@@ -177,7 +179,7 @@ for sh in "${SHARDS[@]}"; do
   rm -rf "${T:?}/$n"
   start driver "$n" "$from" "$until"
 done
-for s in scale lock theme search tour sddm perf leak guard; do
+for s in scale lock theme search tour sddm perf leak guard eq rescue; do
   [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" == 0 ]] && continue
   retried+=("$s")
   if [[ "$s" == sddm ]]; then start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1; else start suite "$s"; fi
@@ -239,6 +241,11 @@ result leak "memory: settings pages opened round after round leave nothing behin
 # the hang watchdog (tests/guard, no shell needed): it asks a healthy shell once a minute, not
 # every tick, and still aborts one that stopped answering
 result guard "hang watchdog: a healthy shell is left in peace, a busy, stuck or silent one is caught" "hang watchdog" 10
+# what keeps a user from losing everything or from an empty desk (tests/rescue): a settings.json
+# or save.json cut short comes back from its last good copy, a first start takes the system's
+# language, five failed starts open the rescue window
+result rescue "rescue: settings and save cut short come back, the first start's language, the window after five failed starts" "rescue" 20
+result eq "bar equalizer: one service for every bar, an app found in EasyEffects is taken over and given back" "bar equalizer" 15
 
 if ((fail)); then echo "» UI SELF-TEST FAILED"; exit 1; fi
 echo "» UI self-test passed ♡"

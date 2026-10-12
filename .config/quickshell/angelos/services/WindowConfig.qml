@@ -83,6 +83,28 @@ Singleton {
         for (const w of Niri.windows.filter(w => w.app_id === appId && !w.is_floating))
             Quickshell.execDetached(["niri", "msg", "action", "set-window-width", "--id", String(w.id), arg]);
     }
+    // Settings → Windows → Floating windows: every new window floats (a niri rule, ThemeExport;
+    // Golden Gate's own switch is Config.mac.floating), and the open ones follow right away.
+    // Off: the windows this floated go back to the columns; the ones floating before stay.
+    readonly property bool floatAll: GoldenGate.on ? Config.mac.floating : Config.windows.floatAll
+    property var _floatedByUs: []
+    function setFloatAll(on) {
+        if (GoldenGate.on)
+            Config.mac.floating = on;
+        else
+            Config.windows.floatAll = on;
+        if (on) {
+            const ids = Niri.windows.filter(w => !w.is_floating).map(w => w.id);
+            _floatedByUs = ids;
+            for (const id of ids)
+                Quickshell.execDetached(["niri", "msg", "action", "move-window-to-floating", "--id", String(id)]);
+        } else {
+            const open = Niri.windows.map(w => w.id);
+            for (const id of _floatedByUs.filter(i => open.includes(i)))
+                Quickshell.execDetached(["niri", "msg", "action", "move-window-to-tiling", "--id", String(id)]);
+            _floatedByUs = [];
+        }
+    }
     // write the task manager rule only when it differs from what is in the file
     property var _pendingTaskmgr: undefined
     function setTaskManager(spec) {

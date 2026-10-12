@@ -7,7 +7,7 @@ bringing in what the author adds later.
                                     hintEn, installed}]}]} for a picker (install.sh)
   apps-install.py tsv               the same for bash, fast (no "installed"): G<TAB>id<TAB>default(1|0)<TAB>en
                                     <TAB>ru<TAB>app,ids… and A<TAB>id<TAB>en<TAB>ru<TAB>hintEn<TAB>hintRu lines
-  apps-install.py install [--no-wait] [--browser ID] ID…
+  apps-install.py install [--no-wait] [--events] [--browser ID] ID…
                                     in a terminal (the wizard opens one when it ends; install.sh runs
                                     it itself): the distribution's packages with sudo pacman -Syu (a
                                     plain -S on an old package list fails halfway with 404s), the
@@ -16,7 +16,10 @@ bringing in what the author adds later.
                                     says which are not and why (exit 1 then); waits for Enter at
                                     the end unless --no-wait. Remembers the pick (see below).
                                     --browser: the wizard's «Which browser?» — made the default (Mod+B,
-                                    links) once it is there; auto: the first ticked one (install.sh)
+                                    links) once it is there; auto: the first ticked one (install.sh).
+                                    --events: the wizard's run, no terminal — the admin password once
+                                    through pkexec (scripts/apps-root.py), progress as lines
+                                    EV {"ev": plan|auth|step|item|done, …}
   apps-install.py pick [--browser ID] ID…
                                     remember the pick without installing anything (the browser that
                                     is there already becomes the default right away)
@@ -39,6 +42,14 @@ bringing in what the author adds later.
                                     in a terminal: shows the pending ones (all ticked), installs the
                                     ticked ones; everything shown counts as seen afterwards, so what
                                     the user left out (or removed later) is not offered again
+  apps-install.py sync --events [--repo DIR] [--take ID…]
+                                    the shell's own window (modules/settings/AppsSyncPrompt.qml), no
+                                    terminal: the picking is done there, --take names what was
+                                    ticked — catalog ids, pkg:NAME for a system package, fish (none
+                                    given: what a terminal would have ticked); one admin password
+                                    through pkexec, progress as EV lines like install --events.
+                                    Counts as seen once everything taken is there; after a failure
+                                    the window asks again or acks itself
   apps-install.py ack [--repo DIR]  the same without installing: "not needed"
 
 Each app: its pacman package(s) — on Arch Linux the author's repositories (CachyOS's and
@@ -69,6 +80,8 @@ from pathlib import Path
 CATALOG = Path(__file__).resolve().parents[1] / "data/apps-catalog.json"
 REPOS = Path(__file__).resolve().parent / "cachyos-repos.sh"
 DEFAULT_APPS = Path(__file__).resolve().parent / "default-apps.py"
+APPS_ROOT = Path(__file__).resolve().parent / "apps-root.py"
+APPS_SUDO = Path(__file__).resolve().parent / "apps-sudo"
 STATE = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "angelos/apps.json"
 # the base package lists of the dotfiles repository an update brings in (install.sh's full profile)
 BASE_LISTS = ("pacman.txt", "angelos.txt", "tools.txt", "fish.txt")
@@ -131,6 +144,9 @@ def can_aur(repos_coming=False):
 
 
 def installed(a):
+    if a.get("script") == "voxtype-install.sh":
+        models = Path.home() / ".local/share" / "voxtype" / "models"
+        return (Path.home() / ".local/bin/voxtype").is_file() and models.is_dir() and any(models.glob("*large-v3-turbo*"))
     pac, aur = pkgs(a, "pacman"), pkgs(a, "aur")
     gh = [(a.get("github") or {}).get("package")] if a.get("github") else []
     main = (pacman_installed(pac[:1]) or pacman_installed(aur[:1]) or pacman_installed(gh)
@@ -142,6 +158,8 @@ def resolve(a, repos_coming=False):
     """(installed, via); repos_coming: the author's repositories get added before installing"""
     if installed(a):
         return True, ""
+    if a.get("script"):
+        return False, "script"
     pac, aur, flat = pkgs(a, "pacman"), pkgs(a, "aur"), a.get("flatpak")
     has_flat = bool(flat) and bool(shutil.which("flatpak") or pacman_has("flatpak"))
     if a.get("prefer") == "flatpak" and has_flat:
@@ -235,7 +253,7 @@ def remember(ids):
 
 
 def base_packages(repo):
-    """the dotfiles repository's base package lists (noctalia only where it is installed)"""
+    """the dotfiles repository's base package lists"""
     out = []
     if not repo:
         return out
@@ -248,9 +266,12 @@ def base_packages(repo):
             line = line.split("#", 1)[0].strip()
             if line and line not in out:
                 out.append(line)
-    if "noctalia" in out and not pacman_installed(["noctalia"]):
-        out.remove("noctalia")
-    return out
+    # what the user removed as extras (Settings → Programs → Extras) is never offered again
+    try:
+        removed = set(l.strip() for l in (STATE.parent / "removed-packages.txt").read_text().splitlines())
+    except OSError:
+        removed = set()
+    return [p for p in out if p not in removed]
 
 
 def login_shell():
@@ -275,21 +296,24 @@ def fish_packages(repo):
 
 
 def make_fish_login(repo):
-    """the author's fish: its packages, then the login shell (sudo is fresh: no second password)"""
+    """the author's fish: its packages, then the login shell (sudo is fresh: no second password;
+    in the shell's window the admin helper does both, scripts/apps-root.py)"""
     want = fish_packages(repo)
     missing = [p for p in (run(["pacman", "-T", *want]).stdout.split() if shutil.which("pacman") else []) if pacman_has(p)]
+    helper = bool(os.environ.get("ANGELOS_ROOT_SOCK"))
     if missing:
         say("fish: " + " ".join(missing))
-        if subprocess.run(["sudo", "pacman", "-Syu", "--needed", *missing]).returncode:
+        if subprocess.run(root("pacman", "-Syu", "--needed", *(["--noconfirm"] if EVENTS else []), *missing)).returncode:
             return 1
-    fish = shutil.which("fish") or "/usr/bin/fish"
+    # the helper takes /usr/bin/fish only, and lists it in /etc/shells itself
+    fish = "/usr/bin/fish" if helper else shutil.which("fish") or "/usr/bin/fish"
     if not Path(fish).exists():
         return 1
     shells = Path("/etc/shells").read_text() if Path("/etc/shells").exists() else ""
-    if fish not in shells.split():
+    if fish not in shells.split() and not helper:
         subprocess.run(["sudo", "sh", "-c", f"echo {fish} >> /etc/shells"])
     user = pwd.getpwuid(os.getuid()).pw_name
-    rc = subprocess.run(["sudo", "chsh", "-s", fish, user]).returncode
+    rc = subprocess.run(root("chsh", "-s", fish, user)).returncode
     if rc == 0:
         say(t("fish — оболочка входа со следующего входа ♡ (открой новый терминал, чтобы увидеть сейчас)",
               "fish is your login shell from the next login ♡ (a new terminal shows it now)"))
@@ -356,6 +380,27 @@ def choose(labels, ticked=None):
     return [i for i in range(len(labels)) if (i in ticked) != (i in flip)]
 
 
+def sync_events(repo, take=None):
+    """sync for the shell's window: no picker (the window ticked: take), no terminal"""
+    p = pending(repo)
+    offered = p["apps"] + p["suggest"]
+    if take is None:
+        take = p["apps"] + ["pkg:" + n for n in p["packages"]] + (["fish"] if p["fish"] else [])
+    extra = []
+    if p["fish"] and "fish" in take:
+        extra.append({"id": "fish", "ru": "fish вместо bash", "en": "fish instead of bash", "icon": "terminal",
+                      "run": lambda: make_fish_login(repo) == 0})
+    for name in p["packages"]:
+        if "pkg:" + name in take:
+            extra.append({"id": "pkg:" + name, "ru": name, "en": name, "icon": "package",
+                          "run": lambda name=name: (subprocess.run(root("pacman", "-S", "--needed", "--noconfirm", name)),
+                                                    pacman_installed([name]))[1]})
+    rc = install([i for i in take if i in offered], wait=False, events=True, extra=extra)
+    if rc == 0:
+        ack(repo, offered)
+    return rc
+
+
 def sync(repo, wait=True):
     p = pending(repo)
     cat = apps()
@@ -410,14 +455,15 @@ def ensure_paru():
         return aur_helper()
     if pacman_has("paru"):
         say(t("ставлю paru (AUR) из репозиториев CachyOS", "installing paru (the AUR) from CachyOS's repositories"))
-        subprocess.run(["sudo", "pacman", "-S", "--needed", "--noconfirm", "paru"])
+        subprocess.run(root("pacman", "-S", "--needed", "--noconfirm", "paru"))
     return aur_helper()
 
 
 def aur_missing(names):
     """the names the AUR doesn't have (its RPC; offline: none, the helper finds out itself)"""
     import urllib.parse
-    import urllib.request
+    if not names:
+        return []
     try:
         q = "&".join("arg[]=" + urllib.parse.quote(n) for n in names)
         with urllib.request.urlopen("https://aur.archlinux.org/rpc/v5/info?" + q, timeout=15) as r:
@@ -481,7 +527,7 @@ def github_install(a):
         if not want or want.lower() != got:
             say(t("контрольная сумма не сошлась — не ставлю", "the checksum doesn't match: not installing"))
             return False
-        return subprocess.run(["sudo", "pacman", "-U", "--needed", "--noconfirm", str(dest)]).returncode == 0
+        return subprocess.run(root("pacman", "-U", "--needed", "--noconfirm", str(dest))).returncode == 0
 
 
 def desktop_of(a):
@@ -555,124 +601,187 @@ def set_browser(bid):
     return ok
 
 
-def batch(first, retry, names):
-    """One transaction, and when it fails, one by one: a single name the source doesn't have
-    (an AUR package that was renamed or removed) or one conflict used to cancel the whole list —
-    freshgram missing from the AUR took Proton-GE, spicetify, lrc_tty and Throne down with it."""
-    if subprocess.run(first + names).returncode == 0:
-        return True
-    if len(names) == 1:
-        return False
-    say(t("одним разом не вышло — ставлю по одной", "not in one go: one at a time"))
-    return all([subprocess.run(retry + [n]).returncode == 0 for n in names])
+def root(*cmd):
+    """a command as root: through the wizard's admin helper when it runs (one password for the
+    whole install, scripts/apps-root.py), else sudo in the terminal"""
+    return [str(APPS_SUDO) if os.environ.get("ANGELOS_ROOT_SOCK") else "sudo", *cmd]
 
 
-def install(ids, wait=True, browser=""):
-    cat = apps()
-    remember(ids)
-    # an app pacman can't give yet (Helium, qView, LocalSend: CachyOS's; Steam: multilib): the
-    # author's repositories first, as the installer adds them — then pacman has it
-    if arch_without_repos() and any(i in cat and not installed(cat[i]) and pkgs(cat[i], "pacman")
-                                    and not pacman_has(pkgs(cat[i], "pacman")[0]) for i in ids):
-        say(t("подключаю репозитории автора (CachyOS и multilib), чтобы всё ставилось через pacman",
-              "adding the author's repositories (CachyOS's and multilib), so everything installs with pacman"))
-        subprocess.run(["sudo", "bash", str(REPOS)])
-    pac, aur, flat, gh, skipped, have = [], [], [], [], [], []
-    for i in ids:
-        a = cat.get(i)
-        if not a:
-            continue
-        inst, via = resolve(a)
-        if inst:
-            have.append(t(a["ru"], a["en"]))
-            continue
-        if via == "pacman":
-            pac += pkgs(a, "pacman")
-        elif via == "aur":
-            aur += pkgs(a, "aur")
-        elif via == "flatpak":
-            flat.append(a["flatpak"])
-        elif via == "github":
-            gh.append(a)
-        else:
-            skipped.append(t(a["ru"], a["en"]))
-            continue
-        # what comes along (spicetify with Spotify): pacman's when it has it, else the AUR's
-        for p in pkgs(a, "extra"):
-            if not pacman_installed([p]):
-                (pac if pacman_has(p) else aur).append(p)
-    if have:
-        say(t("уже стоят: ", "installed already: ") + ", ".join(have))
-    if pac or aur or flat or gh:
-        say(t("angelOS ставит программы, которые ты выбрал ♡", "angelOS is installing the apps you picked ♡"))
-    failed = set()
-    if "steam" in pac:
-        pac = [d for d in vulkan_drivers() if not pacman_installed([d])] + pac
-    if pac:
-        say(t("из репозиториев: ", "from the repositories: ") + " ".join(pac))
-        if not batch(["sudo", "pacman", "-Syu", "--needed"], ["sudo", "pacman", "-S", "--needed", "--noconfirm"], pac):
-            failed.add("pacman")
-    if aur:
+EVENTS = False
+
+
+def ev(kind, **data):
+    """a line for the wizard's progress (--events): EV {"ev": kind, …}"""
+    if EVENTS:
+        print("EV " + json.dumps({"ev": kind} | data, ensure_ascii=False), flush=True)
+
+
+def start_root():
+    """pkexec once (the shell's polkit dialog): the admin helper for this run. (helper, None) when
+    it listens; (None, why) when the password was not given or there is no polkit"""
+    if os.geteuid() == 0:
+        return None, None
+    if not shutil.which("pkexec"):
+        return None, t("нет pkexec (polkit)", "no pkexec (polkit)")
+    d = tempfile.mkdtemp(prefix="angelos-root-")
+    sock = os.path.join(d, "sock")
+    # pkexec refuses to run when $SHELL is not in /etc/shells (a wrapper in ~/.local/bin)
+    p = subprocess.Popen(["pkexec", sys.executable, str(APPS_ROOT), str(os.getuid()), sock],
+                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+                         env=dict(os.environ, SHELL="/bin/sh"))
+    if (p.stdout.readline() or "").strip() != "READY":
+        rc = p.wait()
+        # 126 = the dialog was closed, 127 = not authorized / no polkit agent
+        return None, t("пароль не введён", "the password was not given") if rc in (126, 127) else f"pkexec {rc}"
+    os.environ["ANGELOS_ROOT_SOCK"] = sock
+    return p, None
+
+
+def stop_root(helper):
+    os.environ.pop("ANGELOS_ROOT_SOCK", None)
+    if helper:
+        try:
+            helper.stdin.close()
+            helper.wait(timeout=15)
+        except (OSError, subprocess.TimeoutExpired):
+            helper.kill()
+
+
+def install_one(a, via, aur_gone):
+    """one app from its source; the truth is installed() afterwards"""
+    if via == "pacman":
+        names = pkgs(a, "pacman")
+        if a["id"] == "steam":
+            names = [d for d in vulkan_drivers() if not pacman_installed([d])] + names
+        names += [p for p in pkgs(a, "extra") if not pacman_installed([p]) and pacman_has(p)]
+        subprocess.run(root("pacman", "-S", "--needed", "--noconfirm", *names))
+    elif via == "aur":
         helper = ensure_paru()
-        if helper:
-            # names the AUR doesn't have (any more) are "not found", not a failure of the rest
-            gone = aur_missing(aur)
-            for i in ids:
-                a = cat.get(i)
-                if a and set(pkgs(a, "aur")) & set(gone) and resolve(a)[1] == "aur":
-                    skipped.append(t(a["ru"], a["en"]))
-            aur = [n for n in aur if n not in gone]
-            if aur:
-                say(t(f"из AUR ({helper}): ", f"from the AUR ({helper}): ") + " ".join(aur))
-                if not batch([helper, "-S", "--needed", "--noconfirm"], [helper, "-S", "--needed", "--noconfirm"], aur):
-                    failed.add(helper)
-        else:
-            failed.add("paru")
-    if flat:
+        names = [n for n in pkgs(a, "aur") if n not in aur_gone]
+        if not helper or not names:
+            return
+        cmd = [helper, "-S", "--needed", "--noconfirm"]
+        if helper == "paru":
+            cmd += ["--skipreview"]
+        if os.environ.get("ANGELOS_ROOT_SOCK"):
+            cmd += ["--sudo", str(APPS_SUDO)]
+        subprocess.run(cmd + names)
+    elif via == "flatpak":
         if not shutil.which("flatpak"):
-            subprocess.run(["sudo", "pacman", "-S", "--needed", "--noconfirm", "flatpak"])
-        say(t("из Flathub: ", "from Flathub: ") + " ".join(flat))
+            subprocess.run(root("pacman", "-S", "--needed", "--noconfirm", "flatpak"))
         subprocess.run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
                         "https://dl.flathub.org/repo/flathub.flatpakrepo"])
-        fp = ["flatpak", "install", "--user", "-y", "--noninteractive", "flathub"]
-        if not batch(fp, fp, flat):
-            failed.add("flatpak")
-    for a in gh:
-        if not github_install(a):
-            failed.add("GitHub")
-    if "spotify" in ids:
-        spicetify()
-    # install.sh's picker has no «Which browser?»: the first ticked one, in the catalog's order
-    if browser == "auto":
-        browser = next((b for b in catalog().get("browsers", []) if b in ids), "")
-    set_browser(browser)
-    # what is there now, not what the package managers said: a picked app that is missing
-    # must not be reported as installed (its shortcut would lead nowhere)
-    done, missing = [], []
+        subprocess.run(["flatpak", "install", "--user", "-y", "--noninteractive", "flathub", a["flatpak"]])
+    elif via == "github":
+        github_install(a)
+    elif via == "script":
+        lang = "ru" if RU else "en"
+        subprocess.run(["bash", str(Path(__file__).resolve().parent / a["script"]), "all", lang])
+    # what comes along from the AUR (spicetify with Spotify)
+    more = [p for p in pkgs(a, "extra") if not pacman_installed([p]) and not pacman_has(p)]
+    if more and ensure_paru():
+        cmd = [aur_helper(), "-S", "--needed", "--noconfirm"]
+        if os.environ.get("ANGELOS_ROOT_SOCK"):
+            cmd += ["--sudo", str(APPS_SUDO)]
+        subprocess.run(cmd + more)
+
+
+def install(ids, wait=True, browser="", events=False, extra=()):
+    """One app at a time: each its own transaction, so one that fails (a renamed AUR package, a
+    conflict) never takes the others down, and the wizard can show how far it is. --events: the
+    wizard runs it without a terminal — the admin password through pkexec once, progress as EV
+    lines on stdout. extra: more to do in the same run, before the apps (sync_events: system
+    packages, fish) — [{id, ru, en, icon, run: () -> bool}]."""
+    global EVENTS
+    EVENTS = events
+    cat = apps()
+    remember(ids)
+    coming = arch_without_repos()
+    items = []
     for i in ids:
         a = cat.get(i)
-        if not a:
-            continue
-        name = t(a["ru"], a["en"])
-        if name not in have:
-            (done if installed(a) else missing).append(name)
+        if a:
+            inst, via = resolve(a, coming)
+            items.append((a, inst, via))
+    todo = [(a, via) for a, inst, via in items if not inst and via]
+    extra = list(extra)
+    ev("plan", items=[{"id": x["id"], "ru": x["ru"], "en": x["en"], "icon": x["icon"], "installed": False, "via": "system"}
+                      for x in extra] +
+                     [{"id": a["id"], "ru": a["ru"], "en": a["en"], "icon": a.get("icon", ""),
+                       "installed": inst, "via": via} for a, inst, via in items])
+    have = [t(a["ru"], a["en"]) for a, inst, _ in items if inst]
+    if have:
+        say(t("уже стоят: ", "installed already: ") + ", ".join(have))
+    helper = None
+    if events and (extra or any(v in ("pacman", "aur", "github") or not shutil.which("flatpak") for _, v in todo)):
+        ev("auth")
+        say(t("нужен пароль администратора — один раз на всю установку",
+              "the admin password, once for the whole install"))
+        helper, why = start_root()
+        if why:
+            say(why)
+            ev("done", ok=[], failed=[], skipped=[], auth=why)
+            return finish(2, wait)
+    try:
+        if todo:
+            say(t("angelOS ставит программы, которые ты выбрал ♡", "angelOS is installing the apps you picked ♡"))
+        # an app pacman can't give yet (Helium, qView, LocalSend: CachyOS's; Steam: multilib): the
+        # author's repositories first, as the installer adds them — then pacman has it
+        if coming and any(pkgs(a, "pacman") and not pacman_has(pkgs(a, "pacman")[0]) for a, _ in todo):
+            ev("step", text=t("подключаю репозитории автора", "adding the author's repositories"))
+            say(t("подключаю репозитории автора (CachyOS и multilib), чтобы всё ставилось через pacman",
+                  "adding the author's repositories (CachyOS's and multilib), so everything installs with pacman"))
+            subprocess.run(root("bash", str(REPOS)))
+        # the package lists and the system first: a plain -S on an old list fails halfway with 404s
+        if extra or any(v in ("pacman", "aur", "github") for _, v in todo):
+            ev("step", text=t("обновляю списки пакетов", "refreshing the package lists"))
+            subprocess.run(root("pacman", "-Syu", "--noconfirm"))
+        aur_gone = aur_missing([n for a, v in todo if v == "aur" for n in pkgs(a, "aur")])
+        total = len(extra) + len(todo)
+        for n, x in enumerate(extra):
+            ev("item", id=x["id"], state="start", n=n, of=total)
+            say(t(f"ставлю {x['ru']}", f"installing {x['en']}"))
+            x["ok"] = bool(x["run"]())
+            ev("item", id=x["id"], state="done" if x["ok"] else "fail", n=n + 1, of=total)
+        for n, (a, via) in enumerate(todo, len(extra)):
+            ev("item", id=a["id"], state="start", n=n, of=total)
+            say(t(f"ставлю {a['ru']} ({via})", f"installing {a['en']} ({via})"))
+            install_one(a, via, aur_gone)
+            ok = installed(a)
+            ev("item", id=a["id"], state="done" if ok else "fail", n=n + 1, of=total)
+        if any(a["id"] == "spotify" for a, _, _ in items):
+            spicetify()
+        # install.sh's picker has no «Which browser?»: the first ticked one, in the catalog's order
+        if browser == "auto":
+            browser = next((b for b in catalog().get("browsers", []) if b in ids), "")
+        set_browser(browser)
+    finally:
+        stop_root(helper)
+    # what is there now, not what the package managers said: a picked app that is missing
+    # must not be reported as installed (its shortcut would lead nowhere)
+    done = [t(a["ru"], a["en"]) for a, _ in todo if installed(a)]
+    missing = [a for a, _ in todo if not installed(a)]
+    nowhere = [t(a["ru"], a["en"]) for a, inst, via in items if not inst and not via]
+    lost = [x for x in extra if not x.get("ok")]
+    ev("done", ok=[x["id"] for x in extra if x.get("ok")] + [a["id"] for a, _ in todo if installed(a)],
+       failed=[x["id"] for x in lost] + [a["id"] for a in missing],
+       skipped=[a["id"] for a, inst, via in items if not inst and not via])
     if done:
         say(t("поставлены: ", "installed: ") + ", ".join(done))
     if missing:
-        nowhere = [m for m in missing if m in skipped]
-        broke = [m for m in missing if m not in skipped]
-        if broke:
-            say(t(f"\033[1;31mне поставились\033[0m: {', '.join(broke)} (ошибка {', '.join(sorted(failed)) or 'установки'} — смотри выше)",
-                  f"\033[1;31mnot installed\033[0m: {', '.join(broke)} ({', '.join(sorted(failed)) or 'install'} failed, see above)"))
-        if nowhere:
-            say(t(f"\033[1;31mне нашлись\033[0m ни в репозиториях, ни в AUR, ни во Flathub: {', '.join(nowhere)}",
-                  f"\033[1;31mnot found\033[0m in the repositories, the AUR or Flathub: {', '.join(nowhere)}"))
+        say(t(f"\033[1;31mне поставились\033[0m: {', '.join(t(a['ru'], a['en']) for a in missing)} (смотри выше)",
+              f"\033[1;31mnot installed\033[0m: {', '.join(t(a['ru'], a['en']) for a in missing)} (see above)"))
+    if nowhere:
+        say(t(f"\033[1;31mне нашлись\033[0m ни в репозиториях, ни в AUR, ни во Flathub: {', '.join(nowhere)}",
+              f"\033[1;31mnot found\033[0m in the repositories, the AUR or Flathub: {', '.join(nowhere)}"))
+    if (missing or nowhere) and not events:
         say(t("запустить снова: Настройки → Аккаунт → мастер", "again: Settings → Account → the wizard"))
-        notify("-u", "critical", "-i", "dialog-warning", t("Не все программы поставились", "Not every app installed"), ", ".join(missing))
-    elif done:
+        notify("-u", "critical", "-i", "dialog-warning", t("Не все программы поставились", "Not every app installed"),
+               ", ".join([t(a["ru"], a["en"]) for a in missing] + nowhere))
+    elif done and not events:
         say(t("готово ♡ — ", "done ♡ — ") + ", ".join(done))
         notify("-i", "system-software-install", t("Программы поставлены ♡", "Apps installed ♡"), ", ".join(done))
-    return finish(1 if missing else 0, wait)
+    return finish(1 if missing or nowhere or lost else 0, wait)
 
 
 def spicetify():
@@ -709,7 +818,9 @@ if __name__ == "__main__":
     elif cmd == "tsv":
         tsv()
     elif cmd == "install":
-        sys.exit(install(rest, wait, browser))
+        events = "--events" in rest
+        rest = [a for a in rest if a != "--events"]
+        sys.exit(install(rest, wait and not events, browser, events))
     elif cmd == "pick":
         remember(rest)
         if browser:
@@ -720,6 +831,9 @@ if __name__ == "__main__":
         sys.exit(0 if set_browser(rest[0]) else 1)
     elif cmd == "pending":
         print(json.dumps(pending(repo_arg(rest))))
+    elif cmd == "sync" and "--events" in rest:
+        take = rest[rest.index("--take") + 1:] if "--take" in rest else None
+        sys.exit(sync_events(repo_arg(rest), take))
     elif cmd == "sync":
         sys.exit(sync(repo_arg(rest), wait))
     elif cmd == "ack":

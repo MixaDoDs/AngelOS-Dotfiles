@@ -17,8 +17,8 @@ PxButton {
     compact: true
     icon: Audio.muted || Audio.volume <= 0.001 ? "speakerMute" : "speaker"
     text: showPercent ? Math.round(Audio.volume * 100) + "%" : ""
-    checked: mixer.visible
-    onClicked: mixer.toggle()
+    checked: pop.visible
+    onClicked: pop.toggle()
     onRightClicked: Audio.toggleMute()
 
     MouseArea {
@@ -27,9 +27,16 @@ PxButton {
         onWheel: w => Audio.step(w.angleDelta.y > 0 ? 0.02 : -0.02)
     }
 
-    MixerPanel {
-        id: mixer
+    // built when the pointer comes to the button, gone a while after it closed (LazyPopup)
+    LazyPopup {
+        id: pop
+        panelId: I18n.exe(I18n.t("звук", "audio"))
         anchorItem: root
-        above: root.above
+        warm: root.hovered
+        MixerPanel {
+            id: mixer
+            anchorItem: root
+            above: root.above
+        }
     }
 }

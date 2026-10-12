@@ -311,6 +311,11 @@ Singleton {
             e.QSG_RHI_BACKEND = _pre("QSG_RHI_BACKEND");
         e.ANGELOS_PRE_QT_PLUGIN_PATH = null;
         e.ANGELOS_PRE_QSG_RHI_BACKEND = null;
+        // the shell's jemalloc settings (bin/angelos) are for its own shape, not an app's
+        if (Quickshell.env("ANGELOS_PRE_MALLOC_CONF") != null)
+            e.MALLOC_CONF = _pre("MALLOC_CONF");
+        e.ANGELOS_PRE_MALLOC_CONF = null;
+        e.ANGELOS_SETTINGS_WARM = null;
         // Qt apps in angelOS's look (Settings → Appearance → Qt apps): qt6ct from now on,
         // not only after the next login (bin/angelos keeps the shell itself on gtk3)
         // off: what the session had — but never a GTK platform theme (GTK menus and dialogs in Qt
@@ -413,6 +418,37 @@ Singleton {
         if (base === "wezterm")
             return [t, "start"].concat(cls, ["--"], argv);
         return [t].concat(cls, ["-e"], argv);
+    }
+    // How far a package transaction is, from one line of its output (pacman/paru without a
+    // terminal, flatpak): 0…1, or -1 when the line says nothing. pacman prints its phases in
+    // order — the downloads, the checks, "installing x..." per package, the hooks "(2/5) …" — so
+    // the bar moves through them; `prev` is where it was (downloads creep towards the checks).
+    function stepOf(line, prev) {
+        const p = prev || 0;
+        let m = /^\s*(?:Installing|Updating|Uninstalling)\s+(\d+)\/(\d+)/.exec(line);  // flatpak
+        if (m)
+            return Math.max(p, (Number(m[1]) - 1) / Math.max(1, Number(m[2])));
+        if (/^:: Retrieving packages/.test(line))
+            return Math.max(p, 0.05);
+        if (/\bdownloading\.\.\.$|\bdownloaded\b/.test(line))
+            return Math.max(p, p + (0.45 - p) * 0.18);
+        if (/^checking keyring|^\(\d+\/\d+\) checking keys/.test(line))
+            return Math.max(p, 0.5);
+        if (/^checking package integrity|^loading package files|^checking for file conflicts|^checking available disk space/.test(line))
+            return Math.max(p, 0.56);
+        if (/^:: Processing package changes/.test(line))
+            return Math.max(p, 0.6);
+        if (/^(?:\(\s*\d+\/\d+\)\s+)?(?:installing|upgrading|reinstalling|downgrading|removing)\s+\S+/.test(line))
+            return Math.max(p, p + (0.92 - p) * 0.25);
+        if (/^:: Running post-transaction hooks/.test(line))
+            return Math.max(p, 0.92);
+        m = /^\(\s*(\d+)\/(\d+)\)\s/.exec(line);
+        if (m && p >= 0.92)
+            return Math.max(p, 0.92 + 0.08 * Number(m[1]) / Math.max(1, Number(m[2])));
+        m = /(\d{1,3})%\s*$/.exec(line);
+        if (m && p < 0.6)
+            return Math.max(p, 0.05 + 0.4 * Math.min(100, Number(m[1])) / 100);
+        return -1;
     }
     function terminal(cmd) {
         exec(terminalArgv(cmd ? ["sh", "-c", cmd] : []));

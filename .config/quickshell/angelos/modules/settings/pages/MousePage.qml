@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
@@ -56,6 +57,41 @@ PxPage {
             hint: InputConfig.focusFollowsMouse ? I18n.t("включено", "on") : I18n.t("выключено", "off")
             page: "windows"
             group: "layout"
+        }
+    }
+
+    // a fast mouse in games (.local/bin/mouse-coalesce, while niri-game-mode sees a game)
+    PxGroup {
+        name: "games"
+        title: I18n.t("Мышь в играх", "The mouse in games")
+        icon: "gamepad"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Частота в играх", "Rate in games")
+            hint: I18n.t("мышь на 4–8 кГц душит тяжёлую игру (Wine/Proton): камера дёргается и догоняет. В игре движение прореживается до этой частоты, клики идут сразу; на рабочем столе мышь как есть", "A 4–8 kHz mouse chokes a heavy game (Wine/Proton): the camera drags, then catches up. In a game the motion is thinned to this rate, clicks go through at once; on the desktop the mouse is as it is")
+            PxSegmented {
+                model: [
+                    {"label": I18n.t("как есть", "as is"), "value": 0},
+                    {"label": "1000", "value": 1000},
+                    {"label": "2000", "value": 2000},
+                    {"label": "4000", "value": 4000}
+                ]
+                currentValue: Config.gaming.mouseRate || 0
+                onActivated: v => {
+                    Config.gaming.mouseRate = v;
+                    if (v > 0)
+                        Quickshell.execDetached(["sh", "-c", 'python3 "$1" set mouse on >/dev/null; exit 0', "sh", Quickshell.shellDir + "/scripts/features.py"]);
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Какая мышь", "Which mouse")
+            hint: I18n.t("часть имени из /dev/input/by-id; пусто — первая USB-мышь (у клавиатур на эффекте Холла бывает свой «мышиный» вход)", "A part of its /dev/input/by-id name; empty: the first USB mouse (Hall-effect keyboards have a mouse input of their own)")
+            PxField {
+                text: Config.gaming.mouseDevice || ""
+                placeholder: I18n.t("первая мышь", "the first mouse")
+                onAccepted: Config.gaming.mouseDevice = text.trim()
+            }
         }
     }
 

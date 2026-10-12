@@ -168,6 +168,14 @@ PxPage {
             }
         }
         SettingRow {
+            label: I18n.t("Показывать Caps Lock", "Show Caps Lock")
+            hint: I18n.t("стрелка на панели рядом с раскладкой, пока он включён", "An arrow on the bar next to the layout while it is on")
+            PxToggle {
+                checked: Config.osd.caps
+                onToggled: c => Config.osd.caps = c
+            }
+        }
+        SettingRow {
             label: I18n.t("Сколько висит", "Display duration")
             PxSlider {
                 width: parent.width

@@ -211,16 +211,25 @@ Singleton {
     // ---- one wallpaper in several files (scripts/wall-meta.py) ----
     // ozero.png, ozero-night.png, ozero-21x9.png, ozero-9x16.png … (or Ozero/day.png, Ozero/night.png)
     // are one wallpaper: the settings and the wizard show it once, the shape is read from the files
-    property var meta: ({})                  // path -> {w, h, time: day | night | "", key, name}
+    // The same picture twice (a copy in another folder, a release's picture shipped again with
+    // the next one) is one wallpaper as well: the copy says `dup`, the lists leave it out, and
+    // a copy that was picked before still stands for its wallpaper
+    property var meta: ({})                  // path -> {w, h, time: day | night | "", key, name, dup?}
+    readonly property int copiesHidden: variantsOn ? images.filter(p => (meta[p] || {}).dup && images.includes(meta[p].dup)).length : 0
     readonly property bool variantsOn: Config.wallpaper.variants !== false
     readonly property var heavenSets: _group(images, meta)
     readonly property var hellSets: _group(hellImages, meta)
     // the wallpapers to offer: one entry per wallpaper (every file when variants are off)
     readonly property var heads: variantsOn ? (hellOn ? hellSets : heavenSets).heads : list
     function _group(paths, m) {
-        const byKey = {}, heads = [], members = {};
+        const byKey = {}, heads = [], members = {}, copies = [], here = new Set(paths);
         for (const p of paths) {
             const k = (m[p] || {}).key || p;
+            // a copy of a picture that is here too (not of one outside the list)
+            if ((m[p] || {}).dup && here.has(m[p].dup)) {
+                copies.push(p);
+                continue;
+            }
             if (!byKey[k]) {
                 byKey[k] = [];
                 heads.push(p);
@@ -231,6 +240,8 @@ Singleton {
             if (byKey[k].length > 1)
                 for (const p of byKey[k])
                     members[p] = byKey[k];
+        for (const p of copies)
+            members[p] = members[m[p].dup] || [m[p].dup];
         return {
             "heads": heads,
             "members": members
@@ -242,7 +253,10 @@ Singleton {
     function sameSet(a, b) {
         a = origin(a);
         b = origin(b);
-        return a === b || (!!a && !!b && members(a).includes(b));
+        if (a === b || !a || !b)
+            return a === b;
+        const other = members(b);
+        return members(a).some(p => other.includes(p));
     }
     function nameOf(path) {
         const i = meta[path];
@@ -309,7 +323,7 @@ Singleton {
     Process {
         id: metaReader
         property var paths: []
-        command: ["python3", Quickshell.shellDir + "/scripts/wall-meta.py", "--cache", Config.cacheDir + "/wall-meta.json"]
+        command: ["python3", Quickshell.shellDir + "/scripts/wall-meta.py", "--cache", Config.cacheDir + "/wall-meta.json", "--prefer", root.releasesDir]
         stdinEnabled: true
         onStarted: {
             write(paths.join("\n") + "\n");
@@ -331,7 +345,14 @@ Singleton {
         onTriggered: {
             if (metaReader.running)
                 return restart();
-            metaReader.paths = root.images.concat(root.hellImages);
+            // the releases' pictures too: the wallpaper folder may be another one
+            const rel = [];
+            for (const r of root.releases)
+                for (const w of r.walls)
+                    for (const f of [w.day, w.night])
+                        if (f && !root.images.includes(f))
+                            rel.push(f);
+            metaReader.paths = root.images.concat(root.hellImages, rel);
             metaReader.running = true;
         }
     }
@@ -345,6 +366,7 @@ Singleton {
     }
     onImagesChanged: metaTimer.restart()
     onHellImagesChanged: metaTimer.restart()
+    onReleasesChanged: metaTimer.restart()
 
     // ---- the wallpapers of angelOS's big releases ----
     // every big release brings its own (drawn by the author): Pictures/AngelOS/NN-name/ with a
@@ -353,6 +375,10 @@ Singleton {
     readonly property string releasesDir: Config.home + "/Pictures/AngelOS"
     property var releases: []          // newest first: {number, codename, date, dir, walls: [{name, day, night}], main}
     readonly property var latestRelease: releases.length ? releases[0] : null
+    // for the lists: a wallpaper shipped again with a later release is shown with that one only
+    readonly property var releasesShown: variantsOn ? releases.map(r => Object.assign({}, r, {
+                "walls": r.walls.filter(w => !(meta[w.day || w.night] || {}).dup)
+            })).filter(r => r.walls.length > 0) : releases
     function releaseWall() {
         return latestRelease ? latestRelease.main : "";
     }
