@@ -2,12 +2,11 @@ import QtQuick
 import qs.config
 import qs.services
 import qs.widgets
-import qs.modules.y2k
 
 // The first run's minute (SetupIntro) on one screen: the dark, an installer window that installs
 // something it should not (on the screen with the questions), «Привет» and «Я тут» typed out
-// above it, and at the bottom, small, the way out: space five times. SetupWake does the waking
-// up over all of it. Gone at the cut: the wizard is behind it.
+// above it, the ophanim behind it (SetupOphanim), and at the bottom, small, the way out: space
+// five times. SetupWake does the waking up over all of it. Gone at the cut: the wizard is behind it.
 Item {
     id: root
 
@@ -15,13 +14,14 @@ Item {
     property bool hosting: false
     property var here: null              // this screen and the one with the installer (the eye)
     property var host: null
+    property point pointer: Qt.point(-1, -1)    // on this screen, px (the eyes follow it)
     readonly property real t: intro ? intro.t : 0
     readonly property bool running: !!intro && intro.phase === "run"
     visible: !!intro && intro.holding
     // alone (after an update): it came with the update — the desktop darkens into it over two
     // seconds, the window is the update's, and something in it is not from the update
     readonly property bool update: !!intro && intro.alone
-    opacity: update ? (running ? Math.min(1, t / 2) : 0) : 1
+    opacity: update ? (running ? Math.min(1, t / 2) : intro.phase === "pre" ? 1 : 0) : 1
 
     Rectangle {
         anchors.fill: parent
@@ -66,85 +66,13 @@ Item {
         host: root.host
     }
 
-    // the ophanim, glimpsed first: four flashes of one film frame (1/25 s) over the minute, each
-    // at another edge, half out of sight, see-through (timeline `glimpses`; a whisper into each)
-    property int glimpseNext: 0
-    property var glimpseNow: null
-    onRunningChanged: {
-        glimpseNext = 0;
-        glimpseNow = null;
-    }
-    onTChanged: {
-        const list = intro ? intro.timeline.glimpses || [] : [];
-        if (!running || glimpseNext >= list.length || t < list[glimpseNext].t)
-            return;
-        while (glimpseNext < list.length && t >= list[glimpseNext].t)
-            glimpseNext++;
-        glimpseNow = list[glimpseNext - 1];
-        glimpseOff.restart();
-    }
-    Timer {
-        id: glimpseOff
-        interval: 40
-        onTriggered: root.glimpseNow = null
-    }
-    SpriteRig {
-        id: glimpse
-        readonly property var g: root.glimpseNow || ({
-                "x": 0,
-                "y": 0
-            })
-        who: "angel"
-        angelVariant: "ophanim"
-        px: Math.max(2, Math.floor(root.width * 0.3 / 179))
-        width: implicitWidth
-        height: implicitHeight
-        visible: root.hosting && root.running && !!root.glimpseNow
-        opacity: 0.8
-        // at the edge, 55 % of it in sight
-        x: g.x * (root.width - width * 0.1) - width * 0.45
-        y: g.y * (root.height - height * 0.1) - height * 0.45
-        tick: wings.n
-    }
-
-    // the ophanim for good: up from below near the end (a flash, a choir and a bell come with it:
-    // SetupWake, the sound), its golden eye watching to the end
-    SpriteRig {
-        id: ophanim
-        readonly property real moment: root.intro ? root.intro.timeline.ophanim || 50 : 50
-        readonly property bool up: root.hosting && root.running && root.t >= moment
-        who: "angel"
-        angelVariant: "ophanim"
-        px: Math.max(2, Math.floor(root.width * 0.7 / 179))
-        width: implicitWidth
-        height: implicitHeight
-        flutter: true
-        tick: wings.n
-        visible: up
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: root.height
-        onUpChanged: if (up) {
-            ophanimRise.restart();
-        } else {
-            ophanimRise.stop();
-            y = root.height;
-        }
-        YAnimator {
-            id: ophanimRise
-            target: ophanim
-            from: root.height
-            to: root.height - ophanim.height * 0.8
-            duration: 1400
-            easing.type: Easing.OutBack
-        }
-        Timer {
-            id: wings
-            property int n: 0
-            interval: 110
-            repeat: true
-            running: ophanim.up
-            onTriggered: n++
-        }
+    // the ophanim, behind the window all along: a shape in the dark, then lit (SetupOphanim)
+    SetupOphanim {
+        anchors.fill: parent
+        visible: root.hosting && root.running
+        intro: root.intro
+        running: root.hosting && root.running
+        pointer: root.pointer
     }
 
     PxBox {
@@ -263,5 +191,14 @@ Item {
                 }
             }
         }
+    }
+
+    // the minute before the minute, over all of this: 2002 (SetupPrequel)
+    SetupPrequel {
+        anchors.fill: parent
+        intro: root.intro
+        hosting: root.hosting
+        here: root.here
+        host: root.host
     }
 }

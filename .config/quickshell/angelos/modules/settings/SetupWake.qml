@@ -14,7 +14,8 @@ Item {
     property Item source: null
     // (not while its sound is being made: the installer shows as it is, then the eyes shut and open)
     // (alone it already blurs the desktop behind its question, and keeps that blur on through)
-    readonly property bool on: !!intro && !!source && (intro.phase === "ask" || intro.active && (intro.phase !== "bake" || alone))
+    // (nor over the minute before: that one is a recording of its own, SetupPrequel)
+    readonly property bool on: !!intro && !!source && intro.phase !== "pre" && (intro.phase === "ask" || intro.active && (intro.phase !== "bake" || alone))
     readonly property real askIn: intro ? intro.askIn : 0
     readonly property real askBlur: intro ? intro.askBlur : 1
     readonly property real t: intro ? intro.t : 0

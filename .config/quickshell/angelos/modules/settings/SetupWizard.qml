@@ -213,6 +213,7 @@ Scope {
                     hosting: cover.hosting
                     here: cover.modelData
                     host: flow.host
+                    pointer: introPointer.containsMouse ? Qt.point(introPointer.mouseX, introPointer.mouseY) : Qt.point(-1, -1)
                 }
             }
             SetupWake {
@@ -303,7 +304,7 @@ Scope {
             // the intro's way out: space five times
             Shortcut {
                 sequence: "Space"
-                enabled: cover.hosting && introCtl.phase === "run"
+                enabled: cover.hosting && (introCtl.phase === "run" || introCtl.phase === "pre")
                 onActivated: introCtl.press()
             }
             Shortcut {
@@ -319,6 +320,7 @@ Scope {
             RightClickGuard {}
             // no pointer at all while the intro plays (alone: until the desktop is back)
             MouseArea {
+                id: introPointer
                 anchors.fill: parent
                 visible: introCtl.active
                 hoverEnabled: true

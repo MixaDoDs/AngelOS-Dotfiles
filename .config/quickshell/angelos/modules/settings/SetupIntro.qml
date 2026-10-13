@@ -20,7 +20,9 @@ import qs.services
 // recordings, SOURCES.md: screams, fire, risers, booms, the plink, the tune) and a little
 // synthesis — once, ~16 s, while the installer already shows as it is; yours in
 // ~/.local/share/angelos/sounds/intro-own/ play instead. The pictures follow its timeline.json;
-// the ophanim rises from below at its moment (SetupIntroScreen). Music already playing (MPRIS)
+// the ophanim is behind the installer all along, lit at its moment (SetupOphanim). Before the
+// minute, another: the night of 31.12.2002 (phase "pre", SetupPrequel), no way out of it for its
+// first half; space five times there goes on to the minute. Music already playing (MPRIS)
 // fades out and pauses — not a game's.
 // This is the controller (one for all the screens); SetupIntroScreen draws the installer and the
 // words, SetupWake the waking up over each screen.
@@ -42,17 +44,26 @@ Scope {
     readonly property string env: Quickshell.env("ANGELOS_SETUP_INTRO") || ""
     readonly property bool wanted: env !== "0" && !Motion.still && (Shell.setupFirstRun || Shell.setupIntroOnce || Shell.introOpen || env === "1")
     readonly property bool alone: Shell.introOpen && !Shell.setupOpen
-    // "" → (alone: ask, the question) → bake (the sounds being made) → run (the minute) →
-    // reveal (the cut, fading off) → done
+    // "" → (alone: ask, the question) → bake (the sounds being made) → pre (the minute before:
+    // 2002, SetupPrequel) → run (the minute) → reveal (the cut, fading off) → done
     property string phase: ""
     readonly property bool asking: phase === "ask"
     // the question's blur and dark: in over 0.6 s, kept into the minute (SetupWake, SetupWizard)
     property real askIn: 0
     readonly property real askBlur: 6
     readonly property real askDim: 0.45
-    readonly property bool active: phase === "bake" || phase === "run" || phase === "reveal"
-    readonly property bool holding: phase === "bake" || phase === "run"
+    readonly property bool active: phase === "bake" || phase === "pre" || phase === "run" || phase === "reveal"
+    readonly property bool holding: phase === "bake" || phase === "pre" || phase === "run"
     property real t: 0                       // s into the minute
+    // the minute before it: the night of 31.12.2002 (SetupPrequel draws it)
+    property real pre: 0                     // s into that one
+    // its moments come with its sound (scripts/intro-sounds.py: PRE); none — no such minute
+    readonly property var preBeats: timeline.pre || ({
+            "length": 0,
+            "hint": 0
+        })
+    // ANGELOS_SETUP_INTRO_FROM=40: those minutes from their 40th second (looking at a part of it)
+    readonly property real preFrom: Math.max(0, Math.min(preBeats.length, Number(Quickshell.env("ANGELOS_SETUP_INTRO_FROM") || 0)))
     property real reveal: 0                  // 0 → 1 after the cut
     property var timeline: ({})
     readonly property real length: timeline.length || 60
@@ -146,6 +157,10 @@ Scope {
         askFade.stop();
         askIn = 0;
         clock.stop();
+        preClock.stop();
+        preStart.stop();
+        before.stop();
+        pre = 0;
         revealing.stop();
         intro.stop();
         phase = "";
@@ -167,7 +182,7 @@ Scope {
     // …and whatever happens, never holds it much longer than the minute (nor when it never starts)
     Timer {
         id: watchdog
-        interval: (root.length + 20) * 1000
+        interval: (root.preBeats.length + root.length + 20) * 1000
         onTriggered: if (Shell.introOpen && !Shell.setupOpen) {
             console.warn("setup intro: still holding the desktop after", interval / 1000, "s — let go");
             Shell.introOpen = false;
@@ -183,7 +198,9 @@ Scope {
     }
     // alone, Esc is a way out at once too (space five times still works)
     function skip() {
-        if (phase === "run")
+        if (phase === "pre")
+            toRun();
+        else if (phase === "run")
             cut();
     }
 
@@ -257,7 +274,7 @@ Scope {
     // a slow machine: the wizard rather than a long wait
     Timer {
         id: bakeTimeout
-        interval: 30000
+        interval: 90000
         onTriggered: if (root.phase === "bake") {
             bake.running = false;
             root.phase = "done";
@@ -279,7 +296,15 @@ Scope {
             intro.source = root.fileUrl(root.timeline.files.intro);
             plink.source = root.fileUrl(root.timeline.files.plink);
             music.source = root.fileUrl(root.timeline.files.doki);
-            intro.play();
+            root.phase = "pre";
+            root.duck();
+            if (root.timeline.files.prequel) {
+                before.source = root.fileUrl(root.timeline.files.prequel);
+                before.play();
+                preStart.restart();
+            } else {
+                preClock.restart();
+            }
         }
     }
     function fileUrl(p) {
@@ -292,19 +317,63 @@ Scope {
         audioOutput: AudioOutput {
             volume: root.volume
         }
-        onPlaybackStateChanged: if (playbackState === MediaPlayer.PlayingState && root.phase === "bake") {
+        onPlaybackStateChanged: if (playbackState === MediaPlayer.PlayingState && root.phase === "pre") {
             root.phase = "run";
-            root.duck();
             clock.restart();
         }
         onMediaStatusChanged: if (mediaStatus === MediaPlayer.EndOfMedia && root.phase === "run")
             root.cut()
         onErrorOccurred: (error, message) => {
             console.warn("setup intro:", message);
-            if (root.phase === "bake")
+            if (root.phase === "bake" || root.phase === "pre")
                 root.phase = "done";
         }
     }
+    // ---- the minute before: its clock starts with its sound (or without it, if that never
+    // comes); by the wall clock; at its end the minute's sound starts ----
+    MediaPlayer {
+        id: before
+        audioOutput: AudioOutput {
+            volume: root.volume
+        }
+        onPlaybackStateChanged: if (playbackState === MediaPlayer.PlayingState && root.phase === "pre" && !preClock.running) {
+            preStart.stop();
+            if (root.preFrom > 0)
+                position = root.preFrom * 1000;
+            preClock.restart();
+        }
+    }
+    Timer {
+        id: preStart
+        interval: 1500
+        onTriggered: if (root.phase === "pre" && !preClock.running)
+            preClock.restart()
+    }
+    FrameAnimation {
+        id: preClock
+        property double t0: 0
+        function restart() {
+            t0 = Date.now() - root.preFrom * 1000;
+            root.pre = root.preFrom;
+            start();
+        }
+        onTriggered: {
+            root.pre = Math.min(root.preBeats.length, (Date.now() - t0) / 1000);
+            if (root.pre >= root.preBeats.length)
+                root.toRun();
+        }
+    }
+    function toRun() {
+        if (phase !== "pre")
+            return;
+        preClock.stop();
+        preStart.stop();
+        before.stop();
+        pre = preBeats.length;
+        presses = 0;
+        intro.play();
+    }
+
     // by the wall clock, every frame (an animation's own clock fell 4 s behind in a minute,
     // the sound would have ended long before the cut); the sound's end cuts, this only if it
     // never comes
@@ -333,12 +402,17 @@ Scope {
     }
 
     // ---- skipping: space five times ----
+    // (from the minute before: on to the minute, and only once its hint is up)
     function press() {
-        if (phase !== "run")
+        if (phase !== "run" && !(phase === "pre" && pre >= preBeats.hint))
             return;
         presses++;
         pressesReset.restart();
-        if (presses >= pressesToSkip)
+        if (presses < pressesToSkip)
+            return;
+        if (phase === "pre")
+            toRun();
+        else
             cut();
     }
     Timer {
