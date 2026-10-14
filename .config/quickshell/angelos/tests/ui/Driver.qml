@@ -554,7 +554,15 @@ Scope {
     function finish() {
         tick.stop();
         console.log("TEST DONE " + failures);
-        Qt.callLater(Qt.quit);
+        quitLater.start();
+    }
+    // quit once the last change's timers are through (ThemeExport's 500 ms debounce after the
+    // game's last palette): a timer destroyed while it runs re-runs the bindings reading it
+    // with the engine half gone — "Unable to assign [undefined] to bool" in the log
+    Timer {
+        id: quitLater
+        interval: 700
+        onTriggered: Qt.quit()
     }
 
     // the pages pass: each settings skin, then Golden Gate's own tree (macPass)
