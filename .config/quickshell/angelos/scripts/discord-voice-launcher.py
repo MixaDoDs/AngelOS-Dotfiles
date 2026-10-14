@@ -7,9 +7,11 @@
 Keeps the original desktop Exec, including Flatpak forwarding and URL placeholders.
 No client profile or vendor package is modified. Changes survive package updates.
 """
+import configparser
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 
@@ -42,7 +44,14 @@ def enable(source, port=9234):
         if line.startswith('['):
             in_entry = line == '[Desktop Entry]'
         if line.startswith('Exec='):
-            line = 'Exec=' + quoted(sys.executable) + ' ' + quoted(SELF) + ' launch -- ' + line[5:]
+            if in_entry:
+                # Resolve the vendor command at every launch: an updater can move
+                # an AppImage or replace its desktop Exec after setup.
+                forwarded = '%F' if '%F' in line or '%f' in line else '%U'
+                line = ('Exec=' + quoted(sys.executable) + ' ' + quoted(SELF)
+                        + ' launch-source ' + quoted(source) + ' -- ' + forwarded)
+            else:
+                line = 'Exec=' + quoted(sys.executable) + ' ' + quoted(SELF) + ' launch -- ' + line[5:]
         if line.startswith(('TryExec=', 'DBusActivatable=')):
             continue
         output.append(line)
@@ -71,6 +80,29 @@ def launch(command):
     return subprocess.call(command)
 
 
+def launch_source(source, arguments):
+    source = Path(source)
+    entry = configparser.ConfigParser(interpolation=None, strict=False)
+    entry.read(source)
+    desktop = entry['Desktop Entry']
+    command = []
+    for word in shlex.split(desktop['Exec']):
+        if word in ('%U', '%F'):
+            command.extend(arguments)
+        elif word in ('%u', '%f'):
+            command.extend(arguments[:1])
+        elif word == '%i':
+            if desktop.get('Icon'):
+                command.extend(['--icon', desktop['Icon']])
+        elif word == '%c':
+            command.append(desktop.get('Name', 'Discord'))
+        elif word == '%k':
+            command.append(str(source))
+        elif word not in ('%d', '%D', '%n', '%N', '%v', '%m'):
+            command.append(word.replace('%%', '%'))
+    return launch(command)
+
+
 def disable(name):
     if Path(name).name != name:
         raise ValueError('expected a desktop file name')
@@ -85,11 +117,13 @@ if __name__ == '__main__':
         args = sys.argv[1:]
         if args[:1] == ['enable'] and len(args) in (2, 3):
             print(enable(args[1], args[2] if len(args) == 3 else 9234))
+        elif args[:1] == ['launch-source'] and len(args) >= 3 and args[2] == '--':
+            sys.exit(launch_source(args[1], args[3:]))
         elif args[:2] == ['launch', '--']:
             sys.exit(launch(args[2:]))
         elif args[:1] == ['disable'] and len(args) == 2:
             disable(args[1])
         else:
             sys.exit(__doc__)
-    except (OSError, ValueError, KeyError) as exc:
+    except (OSError, ValueError, KeyError, configparser.Error) as exc:
         sys.exit(str(exc))

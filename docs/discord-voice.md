@@ -23,7 +23,8 @@ vesktop --remote-debugging-address=127.0.0.1 --remote-debugging-port=9234
 ```
 
 For a persistent app-menu launch, enable a user desktop override. This keeps the
-vendor's original command and URL forwarding while adding the debugging flags:
+vendor's command and URL forwarding while adding the debugging flags. The vendor
+`Exec` is re-read each time, so a changed executable path is picked up automatically:
 
 ```sh
 python3 ~/.config/quickshell/angelos/scripts/discord-voice-launcher.py enable \
@@ -44,6 +45,24 @@ environment or put `{"port": 9234}` in
 `$XDG_RUNTIME_DIR/angelos-discord-voice.json`. The environment takes precedence,
 followed by the runtime file, then the persistent config. Use a free port and the
 same number in the client and reader settings.
+
+### Vesktop auto-updates
+
+For Flatpak installations, the app ID and exported desktop path stay stable when
+Flatpak replaces the application. The user launcher and port configuration remain
+outside that installation. The reader reconnects after the client's debugging
+connection disappears, and discovers stores again after Discord/Vencord reloads.
+No application bundle, ASAR or bundled Vencord file is patched.
+
+AppImage's internal updater is different: electron-updater can spawn the new image
+with an empty argument list, losing the debugging switches. A changed vendor `Exec`
+is picked up on the next menu launch, but the bridge does not control or restart
+the updater's new process. If it restarted without DevTools, quit and reopen it
+from the menu. This is not a guarantee of uninterrupted AppImage auto-restart support.
+
+Sources: [Vesktop updater](https://github.com/Vencord/Vesktop/blob/main/src/main/updater.ts),
+[electron-updater AppImage restart](https://github.com/electron-userland/electron-builder/blob/master/packages/electron-updater/src/AppImageUpdater.ts).
+
 
 The shell-side reader is part of this change and will be installed by AngelOS
 updates that include it. Updating to an older AngelOS revision that predates this

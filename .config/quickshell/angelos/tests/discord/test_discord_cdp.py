@@ -109,6 +109,9 @@ class Bridge(unittest.TestCase):
                 source.write_text('[Desktop Entry]\nName=New Vesktop\nExec=vesktop %U\n')
                 self.assertEqual(target.read_text(), before)
                 with patch.object(launcher.subprocess, 'call', return_value=0) as call:
+                    launcher.launch_source(source, ['discord://channel/123'])
+                    self.assertEqual(call.call_args.args[0][:2], ['vesktop', 'discord://channel/123'])
+                with patch.object(launcher.subprocess, 'call', return_value=0) as call:
                     launcher.launch(['flatpak', 'run', 'dev.vencord.Vesktop', '@@u', '@@'])
                     command = call.call_args.args[0]
                     self.assertIn('--remote-debugging-port=9234', command)
