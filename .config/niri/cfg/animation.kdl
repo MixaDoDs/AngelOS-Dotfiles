@@ -1,6 +1,7 @@
     animations {
-        // Softer, slower settle. A little spring, no snap.
-        slowdown 1.2
+        // A little spring, no snap; at niri's own pace (1.2 stretched every animation by a
+        // fifth: a workspace switch 276 ms instead of 230)
+        slowdown 1.0
 
         workspace-switch {
             duration-ms 230

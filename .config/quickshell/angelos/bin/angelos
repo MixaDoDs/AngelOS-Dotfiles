@@ -89,9 +89,18 @@ shell_env() {
   # (MALLOC_ARENA_MAX…) do nothing here. Apps get what the session had (Shell.childEnv).
   export ANGELOS_PRE_MALLOC_CONF="${MALLOC_CONF:-}"
   export MALLOC_CONF="${MALLOC_CONF:-narenas:2,dirty_decay_ms:1000,background_thread:true}"
-  # The Settings window is not built ahead and kept hidden (-136 MB; modules/LazyWindows): it
-  # is built when first opened. ANGELOS_SETTINGS_WARM=1 in the environment brings that back.
-  export ANGELOS_SETTINGS_WARM="${ANGELOS_SETTINGS_WARM:-0}"
+  # The Settings window is built ahead and kept hidden (modules/LazyWindows) only with 16 GB of
+  # memory or more (~136 MB, opens at once); with less it is built when first opened, and the
+  # eco mode drops it anyway. ANGELOS_SETTINGS_WARM=1 / =0 in the environment decides instead.
+  if [ -z "${ANGELOS_SETTINGS_WARM:-}" ]; then
+    # MemTotal of a 16 GB machine is a little under 16 GiB: 15 GiB and up counts
+    if [ "$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || echo 0)" -ge 15728640 ] 2>/dev/null; then
+      ANGELOS_SETTINGS_WARM=1
+    else
+      ANGELOS_SETTINGS_WARM=0
+    fi
+  fi
+  export ANGELOS_SETTINGS_WARM
   # (QSG_RENDER_LOOP=basic would save another ~40 MB — one render thread — and draw every
   # window at ~60 frames a second whatever the monitor: measured 138 → 63 on 144 Hz. Not set.)
   case "$mode" in
