@@ -160,6 +160,7 @@ Singleton {
                 }
                 root.hits = out;
                 root.answered = proc.question;
+                root.listThumbs();
             }
         }
         onExited: if (root.asked && !root.same(root.asked, root.answered))
@@ -216,16 +217,45 @@ Singleton {
         return "file://" + encodeURI(path).replace(/#/g, "%23").replace(/\?/g, "%3F");
     }
     // the pictures to try for a thumbnail, best first: the freedesktop cache (Nautilus filled
-    // it), then the picture itself (images only)
+    // it), then the picture itself (images only). Only what the cache holds (`cached`): a guess
+    // per size was a failed load and a warning for every file without one — 1362 in a day of
+    // searching — and Nautilus 45+ writes x-large/xx-large only, which were never tried
+    readonly property var thumbSizes: ["large", "x-large", "normal", "xx-large"]
     function thumbs(h) {
         if (!h || h.isDir)
             return [];
-        const key = Qt.md5(uri(h.path));
+        const key = Qt.md5(uri(h.path)) + ".png";
         const cache = Config.home + "/.cache/thumbnails/";
-        const out = ["file://" + cache + "large/" + key + ".png", "file://" + cache + "normal/" + key + ".png"];
+        const out = [];
+        for (const d of thumbSizes)
+            if (cached[d + "/" + key])
+                out.push("file://" + cache + d + "/" + key);
         if (h.kind === "image")
             out.push(uri(h.path));
         return out;
+    }
+    // the cache's file names ("x-large/<md5>.png": true), listed again when an answer comes and
+    // the list is older than 5 s — new thumbnails show up on the next search
+    property var cached: ({})
+    property double cachedAt: 0
+    function listThumbs() {
+        if (!preview || thumbList.running || Date.now() - cachedAt < 5000)
+            return;
+        cachedAt = Date.now();
+        thumbList.running = true;
+    }
+    Process {
+        id: thumbList
+        command: ["sh", "-c", "cd \"$1\" 2>/dev/null && find " + root.thumbSizes.join(" ") + " -maxdepth 1 -name '*.png' 2>/dev/null", "sh", Config.home + "/.cache/thumbnails"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const s = {};
+                for (const line of text.split("\n"))
+                    if (line)
+                        s[line] = true;
+                root.cached = s;
+            }
+        }
     }
     function previewable(h) {
         return !!h && preview && (h.kind === "image" || h.kind === "video" || h.kind === "pdf");

@@ -31,7 +31,6 @@ ShaderEffect {
         return i && i.mask ? "file://" + i.mask : "";
     }
     onPathChanged: LiveWalls.request(path)
-    Component.onCompleted: LiveWalls.request(path)
 
     property real fade: ready ? 1 : 0
     Behavior on fade {
@@ -50,13 +49,32 @@ ShaderEffect {
     // Config.wallpaper.liveFps: 12 / 24 / 60 a second, or 0 — every frame of the screen. On a
     // laptop's battery never more than 24: the scene shares its window with the desktop widgets,
     // so «Monitor» on a 144 Hz laptop redrew the wallpaper and every widget 144 times a second,
-    // whatever was open over them (a sixth of a core and the GPU busy all day, #60)
-    readonly property int fps: Power.discharging && (Config.wallpaper.liveFps <= 0 || Config.wallpaper.liveFps > 24) ? 24 : Config.wallpaper.liveFps
-    Timer {
-        interval: Math.round(1000 / Math.max(1, root.fps))
-        repeat: true
-        running: root.fps > 0 && root.running
-        onTriggered: root.time += interval / 1000
+    // whatever was open over them (a sixth of a core and the GPU busy all day, #60) — the cap is
+    // DeskClock.sceneFps, so on battery «Monitor» runs on the clock at 24 too.
+    readonly property int fps: DeskClock.sceneFps
+    // The timed ones tick on the desk's one clock (services/DeskClock), with a live music
+    // spectrum in the same window at least its 30 (on battery 24 for both): one frame a tick
+    // for both, not one for each
+    readonly property bool timed: fps > 0 && running
+    property bool counted: false
+    onTimedChanged: count(timed)
+    Component.onCompleted: {
+        LiveWalls.request(path);
+        count(timed);
+    }
+    Component.onDestruction: count(false)
+    function count(on) {
+        if (on === counted)
+            return;
+        counted = on;
+        DeskClock.walls += on ? 1 : -1;
+    }
+    Connections {
+        target: DeskClock
+        enabled: root.timed
+        function onTick(dt) {
+            root.time += dt;
+        }
     }
     FrameAnimation {
         running: root.fps <= 0 && root.running
