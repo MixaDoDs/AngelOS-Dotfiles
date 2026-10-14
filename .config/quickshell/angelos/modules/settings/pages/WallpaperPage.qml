@@ -738,7 +738,7 @@ PxPage {
         SettingRow {
             visible: Config.wallpaper.live
             label: I18n.t("Кадров в секунду", "Frames per second")
-            hint: I18n.t("меньше — пиксельнее и легче для видеокарты; «Монитор» — каждый кадр экрана", "fewer: more pixel-like and lighter on the GPU; Monitor: every frame of the screen")
+            hint: I18n.t("меньше — пиксельнее и легче для компьютера; «Монитор» — каждый кадр экрана: на 144 Гц это 144 перерисовки обоев и виджетов в секунду, в 6 раз тяжелее 24. На батарее — не больше 24", "fewer: more pixel-like and lighter on the computer; Monitor: every frame of the screen — on 144 Hz that is 144 redraws of the wallpaper and widgets a second, six times the work of 24. On battery, 24 at most")
             PxSegmented {
                 model: [12, 24, 60, 0].map(v => ({
                             "label": v ? String(v) : I18n.t("Монитор", "Monitor"),

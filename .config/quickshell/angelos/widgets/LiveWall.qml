@@ -45,15 +45,19 @@ ShaderEffect {
     readonly property bool running: visible && !Shell.hiddenScreen(screenName)
 
     property real time: 0
-    // Config.wallpaper.liveFps: 12 / 24 / 60 a second, or 0 — every frame of the screen
+    // Config.wallpaper.liveFps: 12 / 24 / 60 a second, or 0 — every frame of the screen. On a
+    // laptop's battery never more than 24: the scene shares its window with the desktop widgets,
+    // so «Monitor» on a 144 Hz laptop redrew the wallpaper and every widget 144 times a second,
+    // whatever was open over them (a sixth of a core and the GPU busy all day, #60)
+    readonly property int fps: Power.discharging && (Config.wallpaper.liveFps <= 0 || Config.wallpaper.liveFps > 24) ? 24 : Config.wallpaper.liveFps
     Timer {
-        interval: Math.round(1000 / Math.max(1, Config.wallpaper.liveFps))
+        interval: Math.round(1000 / Math.max(1, root.fps))
         repeat: true
-        running: Config.wallpaper.liveFps > 0 && root.running
+        running: root.fps > 0 && root.running
         onTriggered: root.time += interval / 1000
     }
     FrameAnimation {
-        running: Config.wallpaper.liveFps <= 0 && root.running
+        running: root.fps <= 0 && root.running
         onTriggered: root.time += Math.min(frameTime, 0.1)
     }
 
