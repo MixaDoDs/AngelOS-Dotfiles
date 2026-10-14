@@ -10,6 +10,11 @@ nothing external, the fonts embedded as subset WOFF2, every effect a hard-edged 
   docs/readme/footage/divider.svg              a strip of tracking noise, 1280×28
   docs/readme/footage/end[.ru].svg             NO SIGNAL, end of tape, 1280×360
   docs/readme/footage/stamp-evidence[.ru].svg  a red rubber stamp, 360×120
+  docs/readme/footage/cobweb-tl.svg, -tr.svg   corner webs for the text, transparent, 220×220
+  docs/readme/footage/spider.svg               a pixel spider on its thread, transparent, 90×300
+  docs/readme/footage/cobweb-divider.svg       a sagging strand with a dead fly, transparent, 1280×40
+
+The cards gather dust: each tape's corner web is denser than the one before.
 
 Fonts: Cozette Vector Bold (MIT) for the OSD, Pixeloid Sans Bold (OFL) for the title and the
 stamp, Caveat (OFL, pinned at wght 700) for the marker on the cassette labels.
@@ -20,6 +25,7 @@ import argparse
 import base64
 import functools
 import io
+import math
 import random
 import re
 from html import escape, unescape
@@ -39,21 +45,23 @@ FALLBACK = {"osd": "monospace", "title": "monospace", "hand": "cursive,monospace
 BG, PINK, CYAN, PURPLE, LPINK, GREEN = "#241432", "#ff5cad", "#4fe3ff", "#b36bff", "#ffb3d9", "#57e3a2"
 WHITE, BLACK, BLUE, BLUE_SH, RED = "#f6f2ff", "#000", "#0033cc", "#00175c", "#ff2638"
 PAPER, INK, MARKER = "#efe7d2", "#22163a", "#d8327e"
+WEB, WEB_DARK, DUST = "#a39abb", "#5b5566", "#b9aecb"   # cobweb on the CRT; WEB_DARK outlines
+GREY = "#8a8494"   # the transparent pieces: reads on white and on #0d1117
 W = 1280
 
 TAPES = [  # n, date, time, en, ru
     ("01", "20.12.2002", "23:41", "the note", "записка"),
     ("02", "21.12.2002", "14:05", "two faces", "два лица"),
     ("03", "22.12.2002", "02:17", "the wallpaper breathes", "обои дышат"),
-    ("04", "22.12.2002", "19:30", "i right-clicked", "я нажал правой"),
-    ("05", "23.12.2002", "11:52", "everything is a setting", "всё настраивается"),
+    ("04", "22.12.2002", "19:30", "i right-clicked", "я нажала правой"),
+    ("05", "23.12.2002", "11:52", "everything can be changed", "всё можно поменять"),
     ("06", "24.12.2002", "21:08", "windows on a strip", "окна на ленте"),
     ("07", "25.12.2002", "16:44", "goldengate.app", "goldengate.app"),
     ("08", "26.12.2002", "03:33", "someone in the corner", "кто-то в углу"),
     ("09", "27.12.2002", "20:20", "other people's things", "чужие вещи"),
     ("10", "28.12.2002", "09:15", "it looks after itself", "оно следит за собой"),
     ("11", "30.12.2002", "22:47", "what it runs on", "на чём оно живёт"),
-    ("12", "31.12.2002", "23:58", "it is all here", "здесь всё"),
+    ("12", "31.12.2002", "23:58", "save yourself", "сохрани себя"),
     ("keys", "--.--.----", "--:--", "taped under the keyboard", "приклеено под клавиатурой"),
 ]
 
@@ -244,6 +252,83 @@ def flicker(svg, w, h, period, stops):
     return f'<rect class="{cls}" width="{w}" height="{h}" fill="#fff" opacity="0"/>'
 
 
+# ---- cobwebs ----------------------------------------------------------------------------
+
+def strands(rnd, anchor, fan, r, d):
+    """one web: spokes fanning from `anchor` (degrees, 0 = +x, 90 = +y; y points down) and
+    cross-threads sagging toward it; density d 0..1 → more spokes, more rings, fewer gaps"""
+    ax, ay = anchor
+    nsp = 3 + round(d * 5)
+    spokes = [(math.radians(fan[0] + (fan[1] - fan[0]) * (i + rnd.uniform(.25, .75)) / nsp),
+               r * rnd.uniform(.72, 1.0)) for i in range(nsp)]
+    at = lambda a, ln, f: (ax + f * ln * math.cos(a), ay + f * ln * math.sin(a))
+    lines = [[(ax, ay), at(a, ln, 1)] for a, ln in spokes]
+    rings = 1 + round(d * 6)
+    for k in range(rings):
+        f = (k + 1) / (rings + 1) * rnd.uniform(.9, 1.08)
+        for (a, la), (b, lb) in zip(spokes, spokes[1:]):
+            if rnd.random() < .45 * (1 - d) + .08:      # a broken thread
+                continue
+            p, q = at(a, la, f), at(b, lb, f)
+            lines.append([p, (ax + ((p[0] + q[0]) / 2 - ax) * .92, ay + ((p[1] + q[1]) / 2 - ay) * .92), q])
+    return lines
+
+
+def cobweb(svg, rnd, parts, cell=2, color=WEB, outline=None, mirror=None, dust=0, glint=True):
+    """webs (anchor, fan, r, d) as hard `cell`-px strokes snapped to the cell grid (crispEdges);
+    `mirror` = canvas width to flip it into the right corner; a glint pixel runs out along the
+    longest spoke every 8 s"""
+    snap = lambda v: math.floor(v / cell) * cell + cell / 2
+    lines = [ln for part in parts for ln in strands(rnd, *part)]
+    d = "".join("M" + "L".join(f"{n(snap(x))} {n(snap(y))}" for x, y in ln) for ln in lines)
+    stroke = (f'fill="none" stroke-linejoin="bevel" stroke-linecap="square" shape-rendering="crispEdges"')
+    out = []
+    if outline:
+        out.append(f'<path d="{d}" stroke="{outline}" stroke-width="{cell * 2}" {stroke}/>')
+    out.append(f'<path d="{d}" stroke="{color}" stroke-width="{cell}" {stroke}/>')
+    knots = [ln[1] for ln in lines if len(ln) == 3]
+    if dust and knots:
+        specks_d = "".join(f"M{n(snap(x) - cell / 2)} {n(snap(y) - cell / 2)}h{s}v{s}h-{s}z"
+                           for x, y in rnd.sample(knots, min(dust, len(knots)))
+                           for s in [cell * rnd.choice((1, 2, 2))])
+        out.append(f'<path d="{specks_d}" fill="{outline or DUST}" shape-rendering="crispEdges"/>')
+    if glint:
+        (x0, y0), (x1, y1) = max(lines[:3 + round(parts[0][3] * 5)],
+                                 key=lambda ln: math.dist(*ln))
+        x0, y0, x1, y1 = (snap(v) - cell / 2 for v in (x0, y0, x1, y1))
+        steps = max(1, round(max(abs(x1 - x0), abs(y1 - y0)) / cell))
+        on, run = svg.anim("opacity", [(0, "1"), (18, "0")], 8), svg.uid("g")
+        svg.css.append(f".{run}{{animation:{run} 8s linear infinite}}@keyframes {run}{{"
+                       f"0%{{transform:translate({n(x0)}px,{n(y0)}px);animation-timing-function:steps({steps},end)}}"
+                       f"18%{{transform:translate({n(x1)}px,{n(y1)}px)}}100%{{transform:translate({n(x1)}px,{n(y1)}px)}}}}")
+        out.append(f'<g class="{on}" opacity="0"><rect class="{run}" width="{cell}" height="{cell}" fill="#f4efff" '
+                   f'shape-rendering="crispEdges"/></g>')
+    flip = f' transform="translate({mirror},0) scale(-1,1)"' if mirror else ""
+    return f'<g{flip}>{"".join(out)}</g>'
+
+
+def pixel_art(rows, colors, x, y, k):
+    """rows of chars → one crisp path per colour, each art pixel k×k"""
+    out = []
+    for ch, color in colors.items():
+        d = "".join(f"M{x + i * k} {y + j * k}h{k}v{k}h-{k}z" for j, row in enumerate(rows)
+                    for i, c in enumerate(row) if c == ch)
+        if d:
+            out.append(f'<path d="{d}" fill="{color}"/>')
+    return f'<g shape-rendering="crispEdges">{"".join(out)}</g>'
+
+
+def outlined(rows, body="b"):
+    """add an 'o' outline pixel around the `body` cells (4-neighbours that are empty)"""
+    g = [list("." + r + ".") for r in ["." * len(rows[0])] + rows + ["." * len(rows[0])]]
+    for j in range(len(g)):
+        for i in range(len(g[0])):
+            if g[j][i] == "." and any(0 <= j + dj < len(g) and 0 <= i + di < len(g[0]) and g[j + dj][i + di] in body
+                                      for dj, di in ((0, 1), (1, 0), (0, -1), (-1, 0))):
+                g[j][i] = "o"
+    return ["".join(r) for r in g]
+
+
 # ---- the pieces --------------------------------------------------------------------------
 
 def header(lang):
@@ -293,6 +378,7 @@ def header(lang):
     # the deck's own OSD stays put
     b.append(osd(56, 84, "▶ PLAY", 39))
     b.append(osd(56, 500, "SP  ·  CH 03  ·  TRACKING ◂ ▸", 26, WHITE))
+    b.append(cobweb(s, rnd, [((0, 0), (4, 86), 72, .35)], dust=3))   # on the glass, not on the tape
     b.append(band(s, rnd, W, h, 128, 6, h + 40))
     b.append(scanlines(s, W, h))
     b.append(flicker(s, W, h, 3.3, [(0, "0"), (12, ".035"), (13.5, "0"), (47, ".02"), (48, "0"), (77, ".05"), (78.2, "0")]))
@@ -400,6 +486,13 @@ def tape(num, date, time, en, ru, lang):
                  f'{osd(56, 52, "CH 03", 26, WHITE, BLUE_SH)}</g>')
     else:
         b.append(band(s, rnd, W, h, 240, 6 + rnd.randrange(4), h + 4, active=0.4))
+    # the web grows tape by tape; it keeps right of x 1236 / above y 44, clear of the OSD
+    d = .5 if keys else (i - 1) / 11
+    parts = [((0, 0), (4, 86), 46 if keys else 26 + (i - 1) * 36 / 11, d)]
+    if last:   # spreading down the right edge
+        parts += [((0, 62), (-60, 80), 38, .8), ((0, 108), (-70, 70), 40, .9), ((0, 160), (-75, 60), 38, .85),
+                  ((0, 40), (88, 92), 156, 0)]
+    b.append(cobweb(s, rnd, parts, mirror=W, dust=i // 2 + (6 if last else 0)))
     b.append(scanlines(s, W, h))
     b.append(flicker(s, W, h, 2.6 + (i % 4) * 0.4,
                      [(0, "0"), (20, ".04"), (22, "0"), (61, ".025"), (62.5, "0")]))
@@ -457,6 +550,7 @@ def end(lang):
                   f'<path d="{dashes(rnd, 0, 0, 150, 90, 50, 30, (1, 2))}" fill="#000"/></pattern>')
     b.append(f'<rect class="{nz}" width="{W}" height="{h}" fill="url(#snow)" opacity="0"/>')
     b.append(osd(640 - cw(39) * len(stop) / 2, 318, stop, 39, WHITE, BLUE_SH))
+    b.append(cobweb(s, rnd, [((0, 0), (3, 87), 220, .9)], mirror=W, dust=10))
     b.append(scanlines(s, W, h, ".22"))
     return s.render()
 
@@ -485,12 +579,75 @@ def stamp(lang):
     return s.render()
 
 
+def cobweb_corner(side):
+    rnd = random.Random("cobweb")    # one web, mirrored: tl and tr are twins
+    s = Svg(220, 220, "cobweb", "a cobweb in the corner")
+    s.body.append(cobweb(s, rnd, [((0, 0), (3, 87), 212, .85)], color=GREY, outline=WEB_DARK, dust=8,
+                         mirror=220 if side == "tr" else None))
+    return s.render()
+
+
+SPIDER = ["x..x.x..x",
+          ".x.ebe.x.",
+          "..xbbbx..",
+          "xxxbdbxxx",
+          "..xbdbx..",
+          ".x.bbb.x.",
+          "x..x.x..x"]
+
+
+def spider():
+    w, h, k = 90, 300, 3
+    s = Svg(w, h, "spider", "a small pixel spider going up and down its thread")
+    x, art = 33, outlined(SPIDER, "bde")       # art is 11×9 with the outline; the body starts at +k
+    # one 14 s loop in 3 px steps: halfway → bottom, wait, → top, wait, → halfway
+    mid, low, top = 141, 267, 18
+    seg = [(0, mid, low), (22.8, low, low), (27.8, low, top), (72.8, top, top), (77.8, top, mid)]
+    frames = "".join(f"{n(p)}%{{transform:translate(0,{a}px);animation-timing-function:steps({max(1, abs(b - a) // k)},end)}}"
+                     for p, a, b in seg) + f"100%{{transform:translate(0,{mid}px)}}"
+    s.css.append(f".sp{{animation:sp 14s linear infinite}}@keyframes sp{{{frames}}}")
+    s.body.append(f'<g class="sp" transform="translate(0,{mid})">'
+                  f'<rect x="{x + 4 * k + 1}" y="-{h}" width="1" height="{h + k}" fill="{GREY}" shape-rendering="crispEdges"/>'
+                  f'{pixel_art(art, {"o": WEB_DARK, "x": GREY, "b": GREY, "d": WEB_DARK, "e": PINK}, x - k, -k, k)}</g>')
+    return s.render()
+
+
+FLY = [".w...w.",
+       "wwbbbww",
+       ".bbbbb.",
+       "..bbb..",
+       ".x.x.x."]
+
+
+def cobweb_divider():
+    rnd = random.Random("cobweb-divider")
+    w, h, cell = W, 40, 2
+    s = Svg(w, h, "a cobweb strand", "a sagging cobweb strand with a dead fly caught in it")
+    sag = lambda x: 6 + 22 * (1 - (2 * x / w - 1) ** 2)
+    snap = lambda v: math.floor(v / cell) * cell + cell / 2
+    d = "M" + "L".join(f"{n(snap(x))} {n(snap(sag(x)))}" for x in list(range(0, w, 32)) + [w - 1])
+    stroke = 'fill="none" stroke-linejoin="bevel" shape-rendering="crispEdges"'
+    out = [f'<path d="{d}" stroke="{WEB_DARK}" stroke-width="{cell * 2}" {stroke}/>',
+           f'<path d="{d}" stroke="{GREY}" stroke-width="{cell}" {stroke}/>']
+    for kx in (296, 742, 1018):           # knots
+        out.append(pixel_art(outlined(["bb", "bb"]), {"o": WEB_DARK, "b": GREY},
+                             snap(kx) - cell / 2 - 2 * cell, snap(sag(kx)) - cell / 2 - 2 * cell, cell))
+    fx = 866                              # the fly, on a short thread under the strand
+    fy = math.floor(sag(fx) / cell) * cell + cell
+    out.append(f'<rect x="{fx}" y="{fy}" width="{cell}" height="{2 * cell}" fill="{GREY}" shape-rendering="crispEdges"/>')
+    out.append(pixel_art(outlined(FLY, "bw"), {"o": WEB_DARK, "w": "#cfc9d9", "b": "#3e3846", "x": WEB_DARK},
+                         fx - 4 * cell, fy + cell, cell))
+    s.body += out
+    return s.render()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(ROOT / "docs/readme/footage"))
     out = Path(ap.parse_args().out)
     out.mkdir(parents=True, exist_ok=True)
-    files = {"divider.svg": divider()}
+    files = {"divider.svg": divider(), "cobweb-tl.svg": cobweb_corner("tl"), "cobweb-tr.svg": cobweb_corner("tr"),
+             "spider.svg": spider(), "cobweb-divider.svg": cobweb_divider()}
     for lang, sfx in (("en", ""), ("ru", ".ru")):
         files[f"header{sfx}.svg"] = header(lang)
         files[f"end{sfx}.svg"] = end(lang)

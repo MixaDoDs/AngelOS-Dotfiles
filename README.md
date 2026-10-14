@@ -13,49 +13,51 @@
 
 </div>
 
+<img src="docs/readme/footage/cobweb-tl.svg" width="110" align="left" alt="">
+
 ```text
 CASE ............. #0031-12
-RECOVERED ........ 01.01.2003, 04:12, from a flat on the fourth floor
-ITEMS ............ 1 × desktop tower, smoke damage to the case, drive intact
-                   1 × camcorder, tape still inside
-                   1 × CD-R, marker on the label: "SAVE YOURSELF"
-                   1 × scrap of lined paper, three lines on it
-                   12 × VHS-C tapes, numbered by hand
-CONDITION ........ the drive still boots
+ADDRESS .......... flat 14, fourth floor
+EVENT ............ fire, overnight into 01.01.2003
+DEAD ............. 1. occupant of the flat. lived alone
+SEIZED ........... desktop tower: case melted, drive intact
+                   camcorder, 12 VHS-C tapes, labelled by hand
+                   CD-R, in marker: "SAVE YOURSELF"
+                   letter, 12 sheets, no address, never sent
+CONDITION ........ drive boots. last save: 23:59:59
 ```
 
-<img src="docs/readme/footage/stamp-evidence.svg" width="260" align="right" alt="A red rubber stamp: EVIDENCE · DO NOT ERASE">
+<img src="docs/readme/footage/stamp-evidence.svg" width="240" align="right" alt="A red rubber stamp: EVIDENCE · DO NOT ERASE">
 
-> **ARCHIVIST'S NOTE.** What follows is the tapes in the order they were numbered, transcribed by us, with stills
-> pulled from the drive. The camcorder's clock was never set, so every timecode says December 2002; ignore it. We
-> left the transcripts as they are. Where the tape is damaged it says so. Where something was blacked out, it was
-> blacked out before it reached us.
+> **DETECTIVE.** The letter was under the keyboard. It is reproduced below in full, sheet by sheet, each next to the
+> tape from the same day. The tapes are dated December 2002. The system on the drive was built in 2026. We cannot
+> explain this and have stopped trying.
 >
-> The drive boots into a desktop for **CachyOS / Arch** on [**niri**](https://github.com/YaLTeR/niri), with a shell
-> written on [**Quickshell**](https://quickshell.org). We copied it here, all of it, so you can run it yourself.
-> We did. It is fine. Mostly.
+> The drive boots into a desktop for **CachyOS / Arch** on [**niri**](https://github.com/YaLTeR/niri) with a shell
+> on [**Quickshell**](https://quickshell.org). We copied all of it here. We ran it. There is nothing wrong with it.
+> Under each sheet is an envelope with an inventory of what it can do. The sheet itself is hers.
 
-<img src="docs/screenshots/pixel-dark.png" width="100%" alt="Still from the drive, at night: the Win98-style taskbar with pixel hearts, the clock, system monitor and music widgets, a terminal with fastfetch, and the release wallpaper with a ring in the sky over the water">
+<img src="docs/screenshots/pixel-dark.png" width="100%" alt="Still from the drive, at night: the Win98-style taskbar with pixel hearts, the clock, system monitor and music widgets, a terminal with fastfetch, the wallpaper with a ring in the sky over the water">
 
-<sub>▶ <b>STILL 00</b> · the drive, first boot after recovery · nobody had touched the settings</sub>
+<sub>▶ <b>STILL 00</b> · the drive, first power-on after seizure · nobody had touched the settings</sub>
 
 > [!NOTE]
-> Every still and clip on this page was re-shot by us on a clean install, in a nested niri session with a throw-away
+> Every still and clip on this page was re-shot by us on a clean install, in a nested niri session with an empty
 > home: user `angel`, nobody's notifications, nobody's chats. In a nested session niri uses `Alt` as `Mod`; on real
 > hardware `Mod` is **Super / Windows** (⌘ in the macOS look), and that is what the key tables say.
 
 <div align="center">
 
-**TAPE INDEX**
+**INVENTORY**
 
-| | label on the sticker | | | label on the sticker |
+| | | | | |
 | :-: | --- | --- | :-: | --- |
 | [01](#tape-01) | *the note* · install | | [07](#tape-07) | *goldengate.app* · the macOS look |
 | [02](#tape-02) | *two faces* · Pixel or macOS | | [08](#tape-08) | *someone in the corner* · the game |
 | [03](#tape-03) | *the wallpaper breathes* | | [09](#tape-09) | *other people's things* · plugins |
-| [04](#tape-04) | *i right-clicked* · menus, widgets | | [10](#tape-10) | *it looks after itself* · updates, reports |
-| [05](#tape-05) | *everything is a setting* | | [11](#tape-11) | *what it runs on* · hardware |
-| [06](#tape-06) | *windows on a strip* · niri, terminal | | [12](#tape-12) | *it is all here* · the repository |
+| [04](#tape-04) | *i right-clicked* · menus, widgets | | [10](#tape-10) | *it looks after itself* · updates |
+| [05](#tape-05) | *everything can be changed* · settings | | [11](#tape-11) | *what it runs on* · hardware |
+| [06](#tape-06) | *windows on a strip* · niri, terminal | | [12](#tape-12) | *save yourself* · the repository |
 | | | | [▤](#tape-keys) | *taped under the keyboard* · keys |
 
 </div>
@@ -65,18 +67,21 @@ CONDITION ........ the drive still boots
 <a id="tape-01"></a>
 <img src="docs/readme/footage/tape-01.svg" width="100%" alt="TAPE 01 of 12. Label: the note. 20.12.2002, 23:41">
 
-`[00:00:00]` *Black. The lens cap comes off. A desk lamp, a keyboard, a scrap of lined paper being flattened with the
-side of a hand.*
+<sub><i>sheet 1 · 20 december</i></sub>
 
-`[00:00:06]` **VOICE (behind the camera):** "Three lines. Somebody on the forum said three lines and it asks the rest."
+to whoever finds this.
+
+i got dumped on saturday. over the phone. ten days till new year, and i'm sitting here writing a letter to someone who isn't there.
+well. to you.
+
+someone on the forum gave me a disc and a scrap of paper. three lines. they said it asks the rest by itself. i typed them into the terminal,
+because there was nothing else to do.
 
 <div align="center">
-<img src="docs/readme/install-note.png" width="640" alt="EVIDENCE: a torn scrap of lined paper: git clone the repository, cd into it, run install.sh. One command, it asks the rest.">
+<img src="docs/readme/install-note.png" width="560" alt="EVIDENCE: a torn scrap of lined paper: git clone the repository, cd into it, run install.sh. One command, it asks the rest.">
 
-<sub>▶ <b>EVIDENCE 01-A</b> · the scrap of paper, as found under the keyboard</sub>
+<sub>▶ <b>EVIDENCE 01-A</b> · the scrap of paper, as it lay under the keyboard</sub>
 </div>
-
-`[00:00:14]` *The camera tilts down to the terminal. He types it in.*
 
 ```bash
 git clone https://github.com/MixaDoDs/AngelOS-Dotfiles.git
@@ -84,17 +89,25 @@ cd AngelOS-Dotfiles
 ./install.sh
 ```
 
-`[00:00:31]` *The terminal turns pastel. A stream starts in it: pixel frames, menus ticked with the space bar, a
-progress bar made of hearts, a little chat in the corner that comments on what is going on.*
-([gum](https://github.com/charmbracelet/gum) draws it.)
+it asked what i like. what's easier for me. which wallpaper. nobody's asked me anything like that in a long time. i answered
+honestly.
 
 ![The installer: profile, look, apps, layouts and the hearts progress bar](docs/demo/installer.gif)
 
-<sub>▶ <b>01 · 00:00:31 – 00:02:50</b> · the installer, recorded off the monitor</sub>
+then i logged in and the screen said it was finishing the install. there was a minute i don't remember. then a quiet tune.
+then little circles walked me around the screen and showed me where everything was. like the first day at a new school, except nobody's looking.
 
-`[00:01:02]` **VOICE:** "It's asking me things." *He reads them out one by one. We wrote down what he answered.*
+![The interface tips circling the start button, the workspaces and the clock](docs/demo/tips.gif)
 
-| `[01:02]` it asked | what was on the screen |
+<details>
+<summary>✉ <b>inventory, sheet 1</b> · install</summary>
+
+<br>
+
+The installer draws a stream right in the terminal ([gum](https://github.com/charmbracelet/gum)): pixel frames, menus
+ticked with the space bar, a progress bar made of hearts, a chat that comments on what is going on. It asks nine things:
+
+| Question | Options |
 | --- | --- |
 | Profile | `full` (the whole look) or `tech` (niri config and the helper tools only) |
 | Shell | angelOS (default) or none |
@@ -106,40 +119,44 @@ progress bar made of hearts, a little chat in the corner that comments on what i
 | Extras | voice input (Voxtype + a Whisper model), the SDDM login screen, the everyday tools |
 | Keyboard | layouts, which one is on after login, the switch shortcut |
 
-`[00:02:50]` *The chat in the terminal says it backed everything up first* (`name.bak.YYYYMMDD-HHMMSS`), *ran*
-`niri validate`, *and tells him what to do next.* **VOICE:** "Can I run it again?" *It says yes, that is safe.*
+Everything it replaces is backed up first (`name.bak.YYYYMMDD-HHMMSS`), then `niri validate` runs. Safe to run again.
+Without questions: `INTERACTIVE=0` with the answers as environment variables (`PROFILE`, `ANGELOS_THEME`, `MAC_KEYS`,
+`KB_LAYOUTS`, `INSTALL_APPS` and the rest, listed at the top of `install.sh`).
 
-> **ARCHIVIST.** There is a second way in that does not ask anything: `INTERACTIVE=0` with the answers as environment
-> variables (`PROFILE`, `ANGELOS_THEME`, `MAC_KEYS`, `KB_LAYOUTS`, `INSTALL_APPS` and the rest, listed at the top of
-> `install.sh`). We used it for the re-shoots.
+After the first login, a setup wizard: language, where you are coming from (Windows, a Mac, another Linux, nothing), the
+game or just a desktop, the main screen, layouts, mouse, light or dark, a wallpaper, how much should move; then the tips.
+Settings → Account replays both. If the wizard hangs: `angelos setup skip` from a text console.
 
-`[00:03:15]` *He logs in. The screen says it is finishing the install.*
-
-`[00:03:19]` ░░░░░░░░ **TAPE DAMAGED** ░░░░░░░░ *about a minute is unreadable.* *On the frames we could recover:
-something comes up from under the bottom edge of the screen. Then a cute little tune.* █████████████████
-
-`[00:04:22]` *A setup wizard, as if nothing had happened. Language. Where he is coming from: Windows, a Mac, another
-Linux, nothing. The game or just a desktop. Which screen is the main one, layouts, mouse, light or dark, a
-wallpaper, how much should move. Then pixel circles walk him around the screen and say what each thing is.*
-
-![The interface tips circling the start button, the workspaces and the clock](docs/demo/tips.gif)
-
-<sub>▶ <b>01 · 00:04:22</b> · the tips. Settings → Account replays them, and the wizard</sub>
-
-> **ARCHIVIST.** If the wizard ever hangs, `angelos setup skip` from a text console lets the desktop go at once.
+</details>
 
 <img src="docs/readme/footage/divider.svg" width="100%" alt="">
 
 <a id="tape-02"></a>
 <img src="docs/readme/footage/tape-02.svg" width="100%" alt="TAPE 02 of 12. Label: two faces. 21.12.2002, 14:05">
 
-`[00:00:00]` *Daylight through the blinds. Same desk.* **VOICE:** "Yesterday it asked Pixel or macOS. I said pixel.
-Let's see the other one."
+<sub><i>sheet 2 · 21 december</i></sub>
 
-`[00:00:08]` *Settings → Appearance. One click. The whole desktop changes face. Another click and it comes back,
-and so does everything the look changed outside the shell: GTK, Qt, the cursor, niri's keys.*
+it has two faces. a pixel one and one like a mac. one click and everything's different: windows, sounds, cursor, keys.
+and then back, like nothing happened.
 
-| `[00:00:08]` | **Pixel** (angelOS) | **macOS** (Golden Gate) |
+i can't do that.
+
+<img src="docs/screenshots/pixel-light.png" width="49%" alt="Still: the Pixel look by day, bubblegum palette, the Start menu open, the ophanim wallpaper from the first release"> <img src="docs/screenshots/macos-light.png" width="49%" alt="Still: the macOS look by day, the menu bar, the Dock, the Lake wallpaper">
+
+in the pixel one the words of whatever's playing run along the bar. line by line, like subtitles. i put on our song.
+it knew all the words. i turned it off.
+
+![The Pixel desktop: workspaces, windows, light and dark, the palettes](docs/demo/pixel-desktop.gif)
+
+<details>
+<summary>✉ <b>inventory, sheet 2</b> · two looks</summary>
+
+<br>
+
+Settings → Appearance switches the look at any time; everything the look changed outside the shell (GTK, Qt, the
+cursor, niri's keys) comes back when you leave it.
+
+| | **Pixel** (angelOS) | **macOS** (Golden Gate) |
 | --- | --- | --- |
 | Panel | a Win98 taskbar: pixel-heart workspaces, window buttons, the **current lyric line** in the middle | a menu bar: the app's own menus, Control Center, Spotlight, the date |
 | Apps | Start menu + launcher | a **Dock** with magnification, minimized windows, Downloads and Trash |
@@ -149,177 +166,187 @@ and so does everything the look changed outside the shell: GTK, Qt, the cursor, 
 | Keys | angelOS's (`Mod`+`Space`, `Mod`+`Q`…) | optional **⌘ keys**: ⌘Q ⌘W ⌘M ⌘Space ⌘Tab, tiling on `Super`+`Alt` |
 | Font, cursor | pixel fonts, pixel cursors | Inter, the `macOS` cursor |
 
-<img src="docs/screenshots/pixel-light.png" width="49%" alt="Still: the Pixel look by day, bubblegum palette, the Start menu open, the ophanim wallpaper from the first release"> <img src="docs/screenshots/macos-light.png" width="49%" alt="Still: the macOS look by day, the menu bar, the Dock, the Lake wallpaper">
+Lyrics are synced, from [lrclib.net](https://lrclib.net) over MPRIS. Palettes: `bubblegum`, `overdose`, `cyber angel`,
+Gruvbox, Rosé Pine, Catppuccin, or colours pulled out of the wallpaper.
 
-<sub>▶ <b>STILLS 02-A, 02-B</b> · pixel.exe ✧ goldengate.app, one click apart</sub>
-
-`[00:01:40]` *Music starts somewhere off-camera. The pixel bar types out the line that is being sung, like a stream
-caption, and the old line slides up.* **VOICE:** "It knows the words."
-
-> **ARCHIVIST.** Synced lyrics from [lrclib.net](https://lrclib.net) over MPRIS. Palettes on the tape: `bubblegum`,
-> `overdose`, `cyber angel`, Gruvbox, Rosé Pine, Catppuccin, or colours pulled out of the wallpaper.
-
-![The Pixel desktop: workspaces, windows, light and dark, the flavours](docs/demo/pixel-desktop.gif)
-
-<sub>▶ <b>02 · 00:02:05</b> · the flavours, one after another</sub>
+</details>
 
 <img src="docs/readme/footage/divider.svg" width="100%" alt="">
 
 <a id="tape-03"></a>
 <img src="docs/readme/footage/tape-03.svg" width="100%" alt="TAPE 03 of 12. Label: the wallpaper breathes. 22.12.2002, 02:17">
 
-`[00:00:00]` *The room is dark. Only the monitor. The camera is very close to the screen, you can see the pixels.*
+<sub><i>sheet 3 · 22 december, night</i></sub>
 
-`[00:00:11]` **VOICE (whispering):** "Watch the water."
+two in the morning. third night i can't sleep.
 
-`[00:00:15]` *The picture stays a picture, but parts of it move. Stars twinkle, one falls. The water ripples and
-reflects them. A glint runs along the ring in the sky. A pebble drops off the cliff and rings spread on the water.*
+the wallpaper breathes. really. the stars blink, sometimes one falls. the water ripples and reflects them. light runs
+along the ring in the sky. a pebble drops off the cliff and rings spread over the water. i look at the water and make the
+same wish on every star.
 
 ![The wallpaper at night: stars, ripples on the water, a glint running over the ring, rings on the water](docs/demo/live-wall.gif)
 
-<sub>▶ <b>03 · 00:00:15</b> · nothing was edited. it does this by itself</sub>
+if you open a window full screen, the water stops. it only breathes when someone's looking at it.
 
-`[00:01:10]` *He opens a window over it, full screen. Closes it. The water had stopped while it was covered.*
-**VOICE:** "It holds its breath when you're not looking."
-
-> **ARCHIVIST.** The shell looks at the picture and finds the sky, the water, the clouds, the thing in the sky, and
-> moves only those; it goes still under a full-screen window and costs almost nothing. *Settings → Wallpaper →
-> Alive* switches the layers one by one. A picture can carry a hint next to it (`picture.scene.json`: which part is
-> sky, which is water, where the ring is); pictures without one get the automatic look.
-
-`[00:02:30]` *He scrolls through a folder: `~/Pictures/AngelOS/`. Every release came with its own wallpapers, drawn
-for it, each in a day and a night version. The shell picks day or night by the theme and the shape by the monitor:
-16:9, 21:9, or 9:16 when the screen is turned on its side.*
+like me.
 
 <div align="center">
 <img src="docs/readme/release-01-angel.png" width="100%" alt="Release 01 Angel: Feathers, Lake, Ophanim, Wires; day over night">
 <img src="docs/readme/release-02-archangel.png" width="75%" alt="Release 02 Archangel: Dead, Life, Numb; day over night">
 <img src="docs/readme/release-03-uriel-beta.png" width="66%" alt="Release 03 Uriel (Beta): the edge of the world, in 16:9, 9:16 and 21:9; day over night">
 
-<sub>▶ <b>EVIDENCE 03-A</b> · contents of <code>~/Pictures/AngelOS/</code>, releases 01 Angel · 02 Archangel · 03 Uriel (Beta), day over night</sub>
+<sub>▶ <b>EVIDENCE 03-A</b> · contents of <code>~/Pictures/AngelOS/</code>: 01 Angel · 02 Archangel · 03 Uriel (Beta), day over night</sub>
 </div>
 
-`[00:03:02]` `Mod`+`Shift`+`Return`. *A picker: one picture for every screen, one per monitor, one per workspace.
-Changing it plays a pixel mosaic with a dither. Only when the picture changes; switching workspaces stays instant.*
-
 ![The pixel mosaic transition between the wallpapers of the three releases](docs/demo/wallpaper.gif)
+
+<details>
+<summary>✉ <b>inventory, sheet 3</b> · live wallpaper</summary>
+
+<br>
+
+The shell looks at the picture and finds the sky, the water, the clouds, the thing in the sky, and moves only those;
+under a full-screen window it goes still and costs almost nothing. *Settings → Wallpaper → Alive* switches the layers one
+by one. A picture can carry a hint next to it (`picture.scene.json`: which part is sky, which is water, where the ring
+is); without one it gets the automatic look.
+
+Every release comes with its own wallpapers, drawn for it, in a day and a night version. The shell picks day or night
+by the theme and the shape by the monitor: 16:9, 21:9, or 9:16 when the screen is turned on its side. The installer puts
+them in `~/Pictures/AngelOS/`. `Mod`+`Shift`+`Return` opens the picker: one picture for every screen, one per monitor or
+one per workspace. Changing it plays a pixel mosaic with a dither, only when the picture changes.
+
+</details>
 
 <img src="docs/readme/footage/divider.svg" width="100%" alt="">
 
 <a id="tape-04"></a>
 <img src="docs/readme/footage/tape-04.svg" width="100%" alt="TAPE 04 of 12. Label: i right-clicked. 22.12.2002, 19:30">
 
-`[00:00:00]` **VOICE:** "Okay. Right-click on the desktop."
+<sub><i>sheet 4 · 22 december</i></sub>
 
-`[00:00:03]` *A menu. He closes it, changes something in the settings, right-clicks again. A different menu. He does
-it again. And again.*
+i right-clicked on the desktop. a menu. changed it in the settings — a different menu. a ring around the mouse. a bubble. wings.
+a harp.
 
 ![The right-click menu in its six looks: list, radial, Y2K bubble, tiles, wings, harp](docs/demo/menu-styles.gif)
 
-<sub>▶ <b>04 · 00:00:03 – 00:01:20</b> · list · ring · Y2K bubble · Control Center tiles · wings · harp</sub>
+the settings say there are six. i counted in the files. seven.
 
-`[00:01:21]` **VOICE (counting on fingers):** "Six." *Pause.* "The settings page says six. The file has seven."
+i opened the seventh one once. i won't again.
 
-`[00:01:25]` ░░░░ *the seventh one is on the tape for eleven frames. We are not printing them.* ░░░░
+> **DETECTIVE.** The seventh menu is on tape 04, eleven frames. We are not printing them.
 
-> **ARCHIVIST.** Whatever it looks like, the menu holds the same things: quick actions on top, **View ▸** (widgets,
-> edit mode, snap to grid), **New ▸** (note, screenshot, recording), **Open ▸** (folders), display settings,
-> personalisation, *Open in Terminal*, and **Show more options ▸** for what the plugins add. What is in it, in what
-> order, your own items: *Settings → Right-click menu*.
+i put a clock and a little player on the wallpaper. now there's someone on the desktop. a clock, at least.
 
 ![The Windows 11-style menu adding a widget to the desktop](docs/demo/menu.gif)
 
-<sub>▶ <b>04 · 00:02:40</b> · he puts a widget on the wallpaper</sub>
+<details>
+<summary>✉ <b>inventory, sheet 4</b> · menus and widgets</summary>
 
-`[00:02:40]` *Little windows on the wallpaper: `clock.exe`, `sysmon.exe` (CPU, GPU, RAM, VRAM, net), `cava.exe`,
-`music.exe`. He drags one by its title bar. Double-clicks the title: edit mode. Around each one a pixel window, a
-plate, or nothing.*
+<br>
+
+Whatever the menu looks like, it holds the same things: quick actions on top, **View ▸** (widgets, edit mode, snap to
+grid), **New ▸** (note, screenshot, recording), **Open ▸** (folders), display settings, personalisation, *Open in
+Terminal*, and **Show more options ▸** for what the plugins add. What is in it, in what order, your own items:
+*Settings → Right-click menu*.
+
+Widgets (`clock.exe`, `sysmon.exe` with CPU/GPU/RAM/VRAM/net, `cava.exe`, `music.exe` and the plugins' own) live on the
+wallpaper and are dragged by the title bar; double-click the title for edit mode. Around each one: a pixel window, a
+plate, or nothing.
+
+</details>
 
 <img src="docs/readme/footage/divider.svg" width="100%" alt="">
 
 <a id="tape-05"></a>
-<img src="docs/readme/footage/tape-05.svg" width="100%" alt="TAPE 05 of 12. Label: everything is a setting. 23.12.2002, 11:52">
+<img src="docs/readme/footage/tape-05.svg" width="100%" alt="TAPE 05 of 12. Label: everything can be changed. 23.12.2002, 11:52">
 
-`[00:00:00]` *Most of this tape is the screen, filmed slowly, page after page. He talks over it like he is making a
-list so he stops being surprised.* We kept the list.
+<img src="docs/readme/footage/cobweb-tr.svg" width="120" align="right" alt="">
+
+<sub><i>sheet 5 · 23 december</i></sub>
+
+you can change everything here. the bar, the corners, fonts, sounds. how the workspaces switch — thirteen ways, i tried
+all of them. the lock screen. the login screen. even what the settings window itself looks like.
+
+everything can be changed. except that he won't call.
 
 ![Settings: appearance, the bar layout, widgets, window widths, default apps](docs/demo/settings.gif)
 
-<sub>▶ <b>05 · 00:00:00 – 00:14:51</b> · Settings, every page</sub>
+there's a cobweb here too. if you don't touch a window for a long time, a cobweb grows on it. i left one window open with his photo.
+by evening it was all cobweb.
+
+i didn't wipe it off.
 
 <details>
-<summary><b>▶ TRANSCRIPT 05 · 00:00:20 – 00:14:51</b> <sub>(his list, word for word)</sub></summary>
+<summary>✉ <b>inventory, sheet 5</b> · what can be changed</summary>
 
 <br>
 
-- `[00:00:20]` "**The bar.** Six shapes: a taskbar, a top bar, an island, a dock, capsules, *windose*. Any edge of
-  the screen. You drag things around on it."
-- `[00:02:11]` "**Settings itself** has four faces. Windows 11, a macOS sidebar, a Win98 Control Panel, Properties
-  tabs." *(`angelos settingsView …`)* "It has search. It understands synonyms. It remembers what I searched."
-- `[00:03:40]` "**Alt+Tab**, three styles: angelOS, NGO, Y2K. Or niri's own with live previews."
-- `[00:04:02]` "**Switching workspaces**, thirteen animations." *He reads them:* soft, dash, spring, snap, zoom,
-  card, wipe, fade, dissolve, glitch, CRT, realm, instant. "And a popup that says `workspace_N.exe`. And hearts."
-- `[00:05:30]` "**The login screen**, five looks, a live preview, the same wallpaper as the desktop. **The lock
-  screen**, two: a stream with a chat, or a gate in the sky."
-- `[00:06:48]` "**fastfetch**, seven styles." *compact, angel, helper, receipt, stream, window, mini.* "Each one
-  has its own sigil."
-- `[00:07:30]` "**Fonts** by preset, pixel or not. **Cursors** pixel or `macOS`. **Sounds** in packs, Y2K,
-  Overdose, macOS; on every click or never; quieter under music."
-- `[00:09:12]` "**Windows:** width presets, a width per app, where new ones open." *Pause.* "And a cobweb grows on
-  a window you haven't touched for hours. I didn't believe that one. Look." *He doesn't show it. The tape cuts.*
-- `[00:11:05]` "**Display:** drag the screens around. The exact refresh rates niri lists, rotation, scale. Saved,
-  so they're still there after a reboot."
-- `[00:13:40]` "Every time it changes niri's config it makes a backup, runs `niri validate`, and puts it back if
-  niri says no. The browsers follow the theme too." *(Helium and Chromium through GTK, Firefox through
-  `userChrome.css`.)*
+- **The bar:** six shapes (a taskbar, a top bar, an island, a dock, capsules, *windose*), any edge of the screen, the
+  layout by dragging.
+- **Settings itself:** four faces (Windows 11, a macOS sidebar, a Win98 Control Panel, Properties tabs;
+  `angelos settingsView …`), search with synonyms and history.
+- **Alt+Tab:** three styles (angelOS, NGO, Y2K) or niri's own with live previews.
+- **Switching workspaces:** thirteen animations — soft, dash, spring, snap, zoom, card, wipe, fade, dissolve, glitch,
+  CRT, realm, instant; a `workspace_N.exe` popup and a row of hearts.
+- **The login screen** (SDDM): five looks, a live preview, the same wallpaper as the desktop. **The lock screen:** two —
+  a stream with a chat, or a gate in the sky.
+- **fastfetch:** seven styles (compact, angel, helper, receipt, stream, window, mini), each with its own sigil.
+- **Fonts** by preset, pixel or not. **Cursors** pixel or `macOS`. **Sounds** in packs (Y2K, Overdose, macOS), on
+  every event or never, quieter under music.
+- **Windows:** width presets, a width per app, where new ones open; a cobweb on a window nobody has touched for hours.
+- **Display:** drag the screens around; the exact refresh rates niri lists, rotation, scale — they survive a reboot.
+- Every change to niri's config is backed up, checked with `niri validate` and put back if niri says no. The browsers
+  follow the theme (Helium and Chromium through GTK, Firefox through `userChrome.css`).
 
 </details>
 
 <img src="docs/screenshots/sddm-login.png" width="100%" alt="Still: the login screen in the pixel look, with the desktop's wallpaper">
 
-<sub>▶ <b>STILL 05-A</b> · the login screen, as he left it</sub>
+<sub>▶ <b>STILL 05-A</b> · the login screen, as she left it</sub>
 
 <img src="docs/readme/footage/divider.svg" width="100%" alt="">
 
 <a id="tape-06"></a>
 <img src="docs/readme/footage/tape-06.svg" width="100%" alt="TAPE 06 of 12. Label: windows on a strip. 24.12.2002, 21:08">
 
-`[00:00:00]` **VOICE:** "The windows don't overlap. They stand in columns. On a strip. It goes on forever to the
-right."
+<sub><i>sheet 6 · 24 december</i></sub>
 
-`[00:00:09]` *He opens one window after another; each new one opens to the right and the view scrolls after the
-focus. He resizes a column, centres it, stacks two, turns them into tabs, pops one out floating.*
-**VOICE:** "I thought I'd hate this." *Long pause.* "I don't."
+the windows here don't overlap. they stand in a row, on a strip, and the strip goes on to the right forever. i opened window
+after window and kept scrolling right until it felt like i was going somewhere far away from this room.
 
 ![Scrollable tiling](docs/demo/tiling.gif)
 
-`[00:01:30]` `Mod`+`Tab`. *The camera pulls back and so does the screen: every workspace at once.*
+if you press `Mod`+`Tab` you see all the workspaces at once. all of them empty except one.
 
 ![The overview of every workspace](docs/demo/overview.gif)
 
-`[00:02:15]` `Mod`+`Space`. *A launcher. Fuzzy search that learns what he opens. He types `web` and a search,
-`plugins` and the catalog, `claude` and Claude Code, `>` and a shell command.*
+christmas eve. people laughing through the wall.
+
+the terminal says hello with a logo now. it's the first thing anyone's said to me today.
 
 ![The launcher: apps, a web search, a shell command](docs/demo/launcher.gif)
 
-`[00:03:01]` **VOICE:** "I forgot the key." `Mod`+`Shift`+`Esc`. *niri's overlay; every bind with a readable name.*
-
-![The hotkey overlay](docs/demo/hotkeys.gif)
-
-`[00:03:40]` *The terminal. It came dressed.*
-
-> **ARCHIVIST.** **fish** with the pure prompt, fastfetch with the angelOS logo as the greeting, eza, fzf, done,
-> autopair (on CachyOS this is `cachyos-fish-config`; on Arch the same comes from `packages/fish.txt` and fisher).
-> **kitty**, **foot** and **Alacritty** wear the palette, so do **btop** and **fastfetch**. **Neovim** with
-> [LazyVim](https://lazyvim.github.io) goes in only where `~/.config/nvim` is empty; an existing config is never
-> touched. `n` opens it; `angelos …` is on the `PATH`.
-
 <details>
-<summary><b>▶ EVIDENCE 06-A</b> · <code>ls ~/.local/bin</code>, as found</summary>
+<summary>✉ <b>inventory, sheet 6</b> · niri, launcher, terminal, tools</summary>
 
 <br>
 
-| tool | what it does |
+niri: windows are columns on an endless horizontal strip; new ones open to the right, the view follows the focus;
+columns change width, centre, stack, turn into tabs or floating windows. `Mod`+`Tab` is the overview of every
+workspace.
+
+`Mod`+`Space` is the launcher: fuzzy search that learns what you open; `web …` for the web and your own sites,
+`plugins …` for the catalog, `claude …` for Claude Code, `> command` for anything in `sh`. Forgot a key:
+`Mod`+`Shift`+`Esc` shows niri's overlay, every bind with a readable name.
+
+![The hotkey overlay](docs/demo/hotkeys.gif)
+
+**fish** with the pure prompt, fastfetch with the angelOS logo as the greeting, eza, fzf, done, autopair (on CachyOS this
+is `cachyos-fish-config`; on Arch the same comes from `packages/fish.txt` and fisher). **kitty**, **foot** and
+**Alacritty** wear the palette, so do **btop** and **fastfetch**. **Neovim** with [LazyVim](https://lazyvim.github.io)
+goes in only where `~/.config/nvim` is empty; an existing config is never touched. `n` opens it; `angelos …` is on the `PATH`.
+
+| tool in `~/.local/bin` | what it does |
 | --- | --- |
 | `niri-screenshot-region` | a region, with pixel "gravity ropes" |
 | `niri-record-region` | toggle a recording to `~/Videos` |
@@ -329,94 +356,91 @@ focus. He resizes a column, centres it, stacks two, turns them into tabs, pops o
 | `polkit-agent-guard` | a password dialog always comes |
 | `voxtype-indicator` | dictation |
 
-Plain Bash and Python, all of them.
-
 </details>
 
-<img src="docs/readme/footage/divider.svg" width="100%" alt="">
+<img src="docs/readme/footage/cobweb-divider.svg" width="100%" alt="">
 
 <a id="tape-07"></a>
 <img src="docs/readme/footage/tape-07.svg" width="100%" alt="TAPE 07 of 12. Label: goldengate.app. 25.12.2002, 16:44">
 
-`[00:00:00]` *Christmas. Somebody else's voice in the next room, a TV. He has switched to the other face and is
-showing it to the camera like a product.* **VOICE (mock announcer):** "macOS twenty-seven. *Golden Gate.*"
+<sub><i>sheet 7 · 25 december</i></sub>
+
+christmas. i switched it to the mac one and spent the whole evening pretending i had an expensive computer and everything was fine.
+a glass dock, smooth windows, sounds like in an ad.
 
 <img src="docs/screenshots/macos-dark.png" width="100%" alt="Still: the macOS look at night, the menu bar, Control Center open, the Dock, the Numb wallpaper with an eclipse">
 
-<sub>▶ <b>STILL 07-A</b> · drawn from screenshots and Apple's guidelines, not from memory, and without a single file of Apple's</sub>
+you can minimize a window into the dock and it lies there as a little picture. i minimized everything. it got empty and pretty.
 
-`[00:00:40]` *He points at things with a pen. We transcribed what he points at.*
-
-- **`[00:00:40]` The menu bar.** 24 pt on top of every screen. On the left the angelOS emblem (About, Settings,
-  Force Quit, Sleep, Restart, Shut Down, Lock, Log Out), the app's name in bold and **its own menus**: Qt apps over
-  dbusmenu, GTK 3 through `appmenu-gtk-module`, GtkApplication actions, and a standard set built from the app's own
-  shortcuts for the rest. "Nothing in the menus is dead. I checked." On the right: sound, layout, Wi-Fi and
-  Bluetooth when there are any, the tray, Spotlight, **Control Center**, the date. `Ctrl`+`F2` walks the menus.
-- **`[00:02:12]` The Dock.** A Liquid Glass slab: pinned apps, *Applications*, recent ones after a divider,
-  **minimized windows**, Downloads, Trash. A dot under running apps, a right-click menu with windows and `.desktop`
-  actions, **magnification** like on a Mac (the icon under the pointer grows, its neighbours follow a cosine, the Dock
-  widens both ways so the icon stays under the pointer), auto-hide. Icons from
-  [MacTahoe](https://github.com/vinceliuice/MacTahoe-icon-theme) (GPL-3.0, pinned release, sha256-checked).
-- **`[00:03:30]` Minimize.** **VOICE:** "niri can't minimize. It throws the request away." *He clicks the yellow
-  light. The window shrinks into the Dock as a snapshot.* "This one can." *(A hidden workspace. The yellow light,
-  Window → Minimize, `⌘M`, or `angelos macMinimize`; back with a click on the snapshot, the icon, Alt+Tab or the
-  overview.)*
-- **`[00:04:15]` Spotlight** (`⌘Space`): a dark glass capsule for apps, files, actions, the clipboard. **Control
-  Center** in the macOS layout: Wi-Fi, Bluetooth, *Now Playing*, Screen Recording, Mission Control, Lock, Dark Mode,
-  Screenshot, Do Not Disturb, Display and Sound. The date opens the **Notification Center**.
-- **`[00:05:02]` Liquid Glass.** *The camera goes right up to the edge of the Dock.* Three layers: niri 26.04's
-  blur and saturation under the glass, a tint from clear to tinted, and a lens edge (a dark rim, a highlight
-  stronger towards the light, a thin band of gathered light with a touch of colour split) drawn by
-  [`shaders/liquid_glass.frag`](.config/quickshell/angelos/shaders/liquid_glass.frag). *Reduce transparency*
-  makes it solid.
-- **`[00:05:50]` Sounds.** *He plugs a USB stick in and out, three times, for the sound.* Notification, error, the
-  volume pop, the shutter, emptying the Trash, USB in and out, charger, lock, log-in; synthesised by
-  `scripts/mac-sounds.py`, CC0. Files with the same names in `~/.local/share/angelos/sounds/macos/` replace them.
+the glass only shows a reflection. i'm not in it.
 
 ![The menu bar: an app's menus, Control Center, the Notification Center](docs/demo/macos-menubar.gif)
+
+<details>
+<summary>✉ <b>inventory, sheet 7</b> · the macOS look (Golden Gate)</summary>
+
+<br>
+
+The whole desktop as macOS 27 *Golden Gate*, drawn from screenshots and Apple's guidelines, not from memory, and without a
+single file of Apple's. Pick it in the installer, in the wizard (*"Coming from a Mac?"*), in Settings → Appearance, or with `angelos settingsSkin goldengate`.
+
+- **The menu bar.** 24 pt on top of every screen. On the left the angelOS emblem (About, Settings, Force Quit, Sleep,
+  Restart, Shut Down, Lock, Log Out), the app's name in bold and **its own menus**: Qt over dbusmenu, GTK 3 through
+  `appmenu-gtk-module`, GtkApplication actions, and for the rest a standard set built from the app's own shortcuts.
+  Nothing in the menus is dead. On the right: sound, layout, Wi-Fi and Bluetooth, the tray, Spotlight, **Control
+  Center**, the date. `Ctrl`+`F2` walks the menus.
+- **The Dock.** A Liquid Glass slab: pinned apps, *Applications*, recent ones, **minimized windows**, Downloads, Trash.
+  A dot under running apps, a right-click menu with windows and `.desktop` actions, **magnification** like on a Mac,
+  auto-hide. Icons from [MacTahoe](https://github.com/vinceliuice/MacTahoe-icon-theme) (GPL-3.0, pinned release,
+  sha256-checked).
+- **Minimize.** niri can't minimize; angelOS can: the window goes to a hidden workspace and **its snapshot lands on the
+  right of the Dock**. The yellow light, *Window → Minimize*, `⌘M`, or `angelos macMinimize`; back with a click on the
+  snapshot, the icon, Alt+Tab or the overview.
+- **Spotlight** (`⌘Space`): apps, files, actions, the clipboard. **Control Center** in the macOS layout. The date
+  opens the **Notification Center**.
+- **Liquid Glass**: niri 26.04's blur and saturation under the glass, a tint from clear to tinted, and a lens edge
+  drawn by [`shaders/liquid_glass.frag`](.config/quickshell/angelos/shaders/liquid_glass.frag). *Reduce
+  transparency* makes it solid.
+- **Sounds** synthesised by `scripts/mac-sounds.py`, CC0; files with the same names in
+  `~/.local/share/angelos/sounds/macos/` replace them.
 
 ![The Dock: a right-click menu, minimizing a window and bringing it back](docs/demo/macos-dock.gif)
 
 ![Spotlight and Control Center](docs/demo/macos-spotlight.gif)
 
-> **ARCHIVIST.** We went through the drive for anything of Apple's. There is nothing. An angelOS emblem instead of the
-> apple, **Inter** (SIL OFL) instead of SF Pro, Lucide icons, MacTahoe Dock icons (GPL-3.0), the `macOS` cursor
-> from [ful1e5/apple_cursor](https://github.com/ful1e5/apple_cursor) (GPL-3.0), synthesised sounds, drawn
-> wallpapers. MacTahoe, Inter and the cursor are downloaded the first time the look is turned on, under their own
-> licenses. Pick it in the installer, in the wizard (*"Coming from a Mac?"*), in Settings → Appearance, or with
-> `angelos settingsSkin goldengate`.
+**Not Apple's:** an angelOS emblem instead of the apple, **Inter** (SIL OFL) instead of SF Pro, Lucide icons, MacTahoe
+(GPL-3.0), the `macOS` cursor from [ful1e5/apple_cursor](https://github.com/ful1e5/apple_cursor) (GPL-3.0),
+synthesised sounds, drawn wallpapers. MacTahoe, Inter and the cursor are downloaded the first time the look is turned
+on, under their own licenses.
 
-<img src="docs/readme/footage/divider.svg" width="100%" alt="">
+</details>
+
+<img src="docs/readme/footage/cobweb-divider.svg" width="100%" alt="">
 
 <a id="tape-08"></a>
 <img src="docs/readme/footage/tape-08.svg" width="100%" alt="TAPE 08 of 12. Label: someone in the corner. 26.12.2002, 03:33">
 
-`[00:00:00]` *Night. The camera is on a pile of books, pointed at the bottom right corner of the screen. He is not
-in the shot. He is whispering.*
+<img src="docs/readme/footage/spider.svg" width="60" align="right" alt="">
 
-`[00:00:05]` **VOICE:** "She's been there since the first login. Sitting on the bar."
+<sub><i>sheet 8 · 26 december, 03:33</i></sub>
 
-`[00:00:12]` *A small pixel figure sits on the edge of the taskbar, legs over the side.*
+there's someone in the corner.
 
-`[00:00:40]` **VOICE:** "She talks. Not often. Not about nothing. She noticed when I opened six windows in a row.
-She noticed I'd been at the screen four hours." *Pause.* "There are achievements. Chests. She has a diary. It has
-a key, and I had to earn the key, and she minds" *[inaudible]* "...if I read it while she's around."
+she sits on the bar, bottom right, legs over the edge. ever since the first login. she doesn't talk much, and never for nothing. she noticed
+i opened six windows in a row. she noticed i hadn't got up in four hours. she told me to drink some water.
 
-<img src="docs/screenshots/intro.png" width="100%" alt="Still from the damaged minute of tape 01: the screen split red and blue at the edges, something rising from below">
+that's more than anyone's said to me all week.
 
-<sub>▶ <b>STILL 01-X</b> · the one frame we could recover from the damaged minute on tape 01</sub>
+<img src="docs/screenshots/intro.png" width="100%" alt="Still from the minute she does not remember: the screen split red and blue at the edges, something rising from below">
 
-`[00:02:10]` *A disc spins up somewhere in the tower. A chime. Her lines come out in a little Undertale-style voice.*
+<sub>▶ <b>STILL 01-X</b> · the one frame we could recover from that minute on tape 01</sub>
 
-`[00:02:30]` **VOICE:** "The lock screen can be a stream. With a chat that answers you. There's a mode for
-streaming where she sits in the frame and reads the chat."
+she has a diary. with a lock. i earned the key. she doesn't like it when you read it while she's there. i get it.
 
-`[00:03:33]` █████████████████████████████████████████████████████████████
-`[00:03:41]` ██████ **VOICE:** "...there's a floor under this one." ███████████████████████
-`[00:04:02]` █████████████████████████████████████████████████████████████
+she said there's another floor under this one. i didn't ask what's down there. ██████████████████████████████████
 
 > [!IMPORTANT]
-> **ARCHIVIST.** Before we let anyone run the drive, we read the code. This is what we can say for sure:
+> **DETECTIVE.** Before we let anyone run the drive, we read the code. This is what we can say for sure:
 > **it may scare you, but it never harms.** It does not touch your files, sends nothing anywhere, and never reads
 > your windows, browser or chats. The lock screen, the power menu, volume, notifications and polkit always work,
 > whatever is going on. Everything that flashes, shakes or gets loud has a *calm* switch.
@@ -427,118 +451,158 @@ streaming where she sits in the frame and reads the chat."
 > - **Motion:** `angelos motion full|calm|off`. *Calm*: no flashes, no shaking, no sudden loud sounds. *Off*: no
 >   animations at all.
 > - **Progress** lives in `~/.config/angelos/save.json`. Updates never touch it.
->
-> About the lower floor we will only say that the Dock and the menu bar know about it too.
 
-<img src="docs/readme/footage/divider.svg" width="100%" alt="">
+<details>
+<summary>✉ <b>inventory, sheet 8</b> · the game</summary>
+
+<br>
+
+The angel on the bar talks rarely and to the point; there are achievements, chests, and her diary with a key you have
+to earn. Y2K sounds: a disc spins up at boot, a chime, her lines in an Undertale-style voice. The lock screen can be an
+NGO stream with a chat that answers. In stream mode she sits in the frame and reads the chat. About the lower floor we
+will only say that the Dock and the menu bar know about it too.
+
+</details>
+
+<img src="docs/readme/footage/cobweb-divider.svg" width="100%" alt="">
 
 <a id="tape-09"></a>
 <img src="docs/readme/footage/tape-09.svg" width="100%" alt="TAPE 09 of 12. Label: other people's things. 27.12.2002, 20:20">
 
-`[00:00:00]` **VOICE:** "Other people write things for it."
+<sub><i>sheet 9 · 27 december</i></sub>
 
-`[00:00:04]` *Settings → Plugins. A catalog: the approved entries of the
-[angelOS community registry](https://github.com/futureUnd1ground/angelos-community-registry) next to what is already
-installed. Install, update, **roll back**. He installs one. A widget appears on the desktop.*
+other people write things for it. i put their things on from the catalog: a cat for the bar, a little osu to the music, a warm light for
+the evening.
 
 ![Community Plugins: the catalog, installing a plugin, its widget on the desktop](docs/demo/plugins.gif)
 
-<sub>▶ <b>09 · 00:00:04</b> · the catalog. <code>plugins …</code> in the launcher opens the same</sub>
+the cat sleeps when the computer is calm and runs when it's struggling. today it ran all day.
 
-> **ARCHIVIST.** A plugin is a folder with a `manifest.json`. It can add right-click items, bar and desktop widgets,
-> launcher providers, a settings page and a background service; the guide is
-> [`docs/PLUGINS.md`](.config/quickshell/angelos/docs/PLUGINS.md). Updates are checked once a day; before each one
-> the installed copy becomes a snapshot, and a plugin that does not load goes back to it by itself.
-> With *Developer mode* on, **Plugin Studio** asks what the plugin should do, asks its questions back, writes themed
-> QML with your own OpenAI or Anthropic key, shows the files and checks them before you install
-> ([guide](.config/quickshell/angelos/docs/PLUGIN_STUDIO.md)).
+strangers made me a cat. my own people didn't even write.
 
-| `[00:01:50]` already on the drive | what he said about it |
+<details>
+<summary>✉ <b>inventory, sheet 9</b> · plugins</summary>
+
+<br>
+
+A plugin is a folder with a `manifest.json`: right-click items, bar and desktop widgets, launcher providers, a settings
+page, a background service. The guide is [`docs/PLUGINS.md`](.config/quickshell/angelos/docs/PLUGINS.md).
+
+**Community Plugins:** a catalog in *Settings → Plugins* (and `plugins …` in the launcher): the approved entries of the
+[angelOS community registry](https://github.com/futureUnd1ground/angelos-community-registry) next to what is installed:
+install, update, **roll back**. Updates are checked once a day; before each one the installed copy becomes a snapshot,
+and a plugin that does not load goes back to it by itself. With *Developer mode* on, **Plugin Studio** asks what the
+plugin should do, writes themed QML with your own OpenAI or Anthropic key, shows the files and checks them before you
+install ([guide](.config/quickshell/angelos/docs/PLUGIN_STUDIO.md)).
+
+| Built in | What it does |
 | --- | --- |
-| `cat` | "A cat on the bar. It's asleep. Now it's walking. Now it runs, because the CPU is busy." |
+| `cat` | a pixel cat on the bar: asleep, walking or running with the CPU load |
 | `speedtest` | an internet speed test with a pixel speedometer and a history |
 | `web-search` | `web …` in the launcher: search engines and favourite sites |
 | `claude-companion` | what is left of your Claude plan, live Claude Code sessions, `claude …` in the launcher |
 | `codex-companion` | the same for OpenAI Codex: 5-hour and weekly windows, today's tokens, live sessions |
-| `osu-mini` | "There's osu in it." On the beat: pixel hearts, combos, ranks (`osu` in the launcher) |
+| `osu-mini` | a mini osu to the beat: pixel hearts, combos, ranks (`osu` in the launcher) |
 | `nightlight` | a warm screen in the evening through `wlsunset` |
 | `stream-stats` | `stats.exe`: stress = CPU, darkness = RAM, love = uptime |
 | `quick-actions` | extra right-click items |
 
-<img src="docs/readme/footage/divider.svg" width="100%" alt="">
+</details>
+
+<img src="docs/readme/footage/cobweb-divider.svg" width="100%" alt="">
 
 <a id="tape-10"></a>
 <img src="docs/readme/footage/tape-10.svg" width="100%" alt="TAPE 10 of 12. Label: it looks after itself. 28.12.2002, 09:15">
 
-`[00:00:00]` *Morning. Coffee on the desk.* **VOICE:** "It updated overnight. Well. It asked first."
+<img src="docs/readme/footage/cobweb-tr.svg" width="120" align="right" alt="">
 
-`[00:00:07]` *Settings → Updates. What is new, the last run, a button.*
+<sub><i>sheet 10 · 28 december</i></sub>
+
+it looks after itself. last night it asked if it could update. before that it saved everything the way it was, so it could be
+put back. if something goes wrong there's a button at the bottom: "restore the state before the update".
 
 <img src="docs/screenshots/updates.png" width="100%" alt="Still: Settings → Updates, what is new, the last run, the restore button">
 
-<sub>▶ <b>STILL 10-A</b> · if something goes wrong, the button at the bottom says <i>Restore the state before the update</i></sub>
+i looked at that button for a long time.
 
-> **ARCHIVIST.** It checks the repository it was installed from and, on a click, runs `git pull` and the installer
-> without packages. Before anything changes, every file the installer may write is copied to
-> `~/.local/state/angelos/backups/<date>-update/`. An update counts only when the installer, the niri wiring and
-> `niri validate` all pass; otherwise the page offers the restore. A running angelOS asks whether to restart now or
-> later; windows stay open. From a terminal: `git pull && ./install.sh`.
+the things i changed myself, it doesn't touch. my lines stay mine. somewhere, at least.
 
-`[00:01:20]` **VOICE:** "I changed some things. It didn't overwrite them." *He reads off the screen:*
+<details>
+<summary>✉ <b>inventory, sheet 10</b> · updates and reports</summary>
 
-- a config he never changed follows the author on every update;
-- one he changed gets the author's changes merged in, and where both changed the same lines, his stay (the old file
-  next to it as `*.bak.<date>`); shortcuts merge key by key;
-- files angelOS generates stay his, the new versions parked in `~/.local/state/angelos/kept-updates/`;
-- his own lines go in `~/.config/fish/user.fish` and `~/.config/niri/cfg/user.kdl`, read last, never touched;
-- after an update it *offers* the apps the author added to the groups he took. It never installs or removes
-  anything by itself.
+<br>
 
-`[00:02:45]` *Settings → About → Report a problem.* **VOICE:** "If it breaks, this packs one archive."
+*Settings → Updates* checks the repository everything was installed from and, on a click, runs `git pull` and the
+installer without packages. Before that, every file the installer may write is copied to
+`~/.local/state/angelos/backups/<date>-update/`. An update counts only when the installer, the niri wiring and
+`niri validate` all pass; otherwise the page offers the restore. A running angelOS asks whether to restart now or
+later; windows stay open. From a terminal: `git pull && ./install.sh`.
+
+A config you never changed follows the author; one you changed gets the author's changes merged in, and where both
+changed the same lines, yours stay (the old file next to it as `*.bak.<date>`); shortcuts merge key by key. Files
+angelOS generates stay yours, the new versions parked in `~/.local/state/angelos/kept-updates/`. Your own lines go in
+`~/.config/fish/user.fish` and `~/.config/niri/cfg/user.kdl`, read last, never touched. Apps the author added to your
+groups are only *offered*; it never installs or removes anything by itself.
 
 <img src="docs/screenshots/report.png" width="100%" alt="Still: Settings → About, this computer, the angelOS version, report a problem">
 
-> **ARCHIVIST.** `angelos report` does the same from a terminal: versions (angelOS, Quickshell, Qt, niri, kernel,
-> GPU), the service state and restarts, what it costs, the log, the last crash reports, the niri config check,
-> plugins and settings, with the personal bits taken out (the home path and user name become `~` and `<user>`;
-> launcher history, workspace names and free texts are left out). **Nothing is sent anywhere.** The archive lands in
-> `~/` with a link to a new issue, and you decide what to attach. A watchdog restarts the shell if it stops answering
-> for fifteen seconds and keeps the crash report. The login screen keeps a backup of the previous theme. The
-> installer never overwrites `monitor.kdl`.
+*Settings → About → Report a problem* (or `angelos report`) packs one archive: versions (angelOS, Quickshell, Qt,
+niri, kernel, GPU), the service state and restarts, the log, the last crash reports, the niri config check, plugins
+and settings, with the personal bits taken out (the home path and user name become `~` and `<user>`; launcher history,
+workspace names and free texts are left out). **Nothing is sent anywhere.** A watchdog restarts the shell if it stops
+answering for fifteen seconds. The login screen keeps a backup of the previous theme. The installer never overwrites
+`monitor.kdl`.
 
-<img src="docs/readme/footage/divider.svg" width="100%" alt="">
+</details>
+
+<img src="docs/readme/footage/cobweb-divider.svg" width="100%" alt="">
 
 <a id="tape-11"></a>
 <img src="docs/readme/footage/tape-11.svg" width="100%" alt="TAPE 11 of 12. Label: what it runs on. 30.12.2002, 22:47">
 
-`[00:00:00]` *There is no tape for the 29th. This one is short and hurried. He films the back of the tower, the
-cables, a laptop on the bed, a second monitor turned on its side, a gamepad.* **VOICE:** "Will it run on yours?
-Probably. Listen."
+<sub><i>sheet 11 · 30 december</i></sub>
 
-| `[00:00:20]` | |
+i didn't write on the twenty-ninth.
+
+it'll run on almost anyone's computer. on a laptop, on two monitors, on a monitor turned on its side. in russian and
+in english. it reminds you about breaks and water. it fits itself around everyone.
+
+i filmed all the cables, all the screens, everything in the room. just in case. so something would be left.
+
+<details>
+<summary>✉ <b>inventory, sheet 11</b> · what it runs on</summary>
+
+<br>
+
+| | |
 | --- | --- |
-| **System** | CachyOS or Arch Linux. The installer appends only the `[cachyos]` repository where it is missing; Arch's own packages win. Steam's driver prompt no longer drags in anything exotic. |
+| **System** | CachyOS or Arch Linux. The installer appends only the `[cachyos]` repository where it is missing; Arch's own packages win. |
 | **GPU** | NVIDIA and AMD. The system monitor reads both; the Qt fixes for NVIDIA are in. |
-| **Laptop** | battery and charge limit, eco mode, brightness and keyboard-light keys, touchpad direction and acceleration; in the wizard and in Settings, and only shown on a laptop. |
+| **Laptop** | battery and charge limit, eco mode, brightness and keyboard-light keys, touchpad direction and acceleration; in the wizard and in Settings, and only on a laptop. |
 | **Monitors** | any number, any refresh rate (the exact one niri lists, so 144 Hz stays 144 Hz after a reboot), scale, rotation, portrait screens with 9:16 wallpapers, ultrawides with 21:9. Named by *Make Model Serial*, so a renamed connector still matches. |
 | **Keyboards** | any layouts and the switch shortcut you choose; they also pick the dictation language and the OCR packs. ⌘ keys for people from a Mac, GTK window buttons for people from Windows. |
-| **Languages** | English and Russian: the installer, the wizard, the shell, and her. |
+| **Languages** | Russian and English: the installer, the wizard, the shell, and her. |
 | **Browsers** | Helium, Firefox, Chromium, Brave, Zen, LibreWolf, Vivaldi or Chrome; the wizard asks, `Mod`+`B` opens the default. |
 | **Access** | UI size, motion, contrast, a lens (`Mod`+`Alt`+`=`), voice dictation, shake-to-find-the-cursor. Screen time, breaks, water: she does the reminding. |
-| **Gamepads** | the shell knows yours, its buttons and axes. |
-| **Streaming** | an OBS-aware stream mode, `niri-cast-privacy` for chats and password managers, a game mode that drops effects while a game covers the screen. |
+| **Gamepads** | the shell knows your controller, its buttons and axes. |
+| **Streaming** | an OBS-aware stream mode, `niri-cast-privacy` for chats and password managers, a game mode with no effects while a game covers the screen. |
 
-`[00:02:58]` **VOICE:** "Tomorrow's the last one. I'll film all of it. Every file."
+</details>
 
-<img src="docs/readme/footage/divider.svg" width="100%" alt="">
+<img src="docs/readme/footage/cobweb-divider.svg" width="100%" alt="">
 
 <a id="tape-12"></a>
-<img src="docs/readme/footage/tape-12.svg" width="100%" alt="TAPE 12 of 12, damaged. Label: it is all here. 31.12.2002, 23:58. The counter reaches 23:59:59 and the picture cuts to NO SIGNAL">
+<img src="docs/readme/footage/tape-12.svg" width="100%" alt="TAPE 12 of 12, damaged. Label: save yourself. 31.12.2002, 23:58. The counter reaches 23:59:59 and the picture cuts to NO SIGNAL">
 
-`[00:00:00]` *New Year's Eve. Fireworks somewhere far away, through the window. The camera pans slowly over a file
-manager, folder by folder. He sounds happy.*
+<img src="docs/readme/footage/cobweb-tl.svg" width="120" align="left" alt="">
+<img src="docs/readme/footage/spider.svg" width="60" align="right" alt="">
 
-`[00:00:10]` **VOICE:** "It's all here. All of it. MIT. The dotfiles, the shell, the wallpapers."
+<sub><i>sheet 12 · 31 december</i></sub>
+
+new year's eve. i'm alone. fireworks outside, and the neighbours' chimes strike ten seconds before mine.
+
+it's all here. really, all of it. it's lying open, anyone can take it. no passwords, no one else's secrets. only mine, and
+there isn't much of mine in here.
 
 ```text
 .config/quickshell/angelos/  angelOS: the shell, both looks, plugins, templates, docs
@@ -555,35 +619,47 @@ scripts/demo/                the stand the stills and clips on this page were sh
 docs/                        the stills and clips of this page
 ```
 
-`[00:00:58]` **VOICE:** "No passwords in it. No keys, no tokens, no browser stuff, no cookies, no history. There's a
-check that fails if one ever gets in." *(`scripts/check.sh`, the same one GitHub runs; `scripts/ci-local.sh` runs it
-in an `archlinux` container.)* "My settings stay mine." *(`~/.config/angelos`.)*
+something smells burnt. the computer's probably overheating. it's always warm.
 
-`[00:01:20]` **VOICE:** "If something's wrong, open an issue. Attach the report. Pull requests too."
+if you're reading this, i saved myself. the disc says "save yourself". so i did.
 
-`[00:01:31]` *The smell is mentioned for the first time.* **VOICE (away from the mic):** "...is that the
-computer?" *[laughs]* "It's fine. It's always warm."
+don't turn it off, okay?
 
-`[00:01:40]` ░░░░░░░░░░░░░░░░ *He saves something.* ░░░░░░░░░░░░░░░░
+— a.
 
-`[00:01:41]` **NO SIGNAL**
+<p align="center"><code>23:59:59 ░░░░░░░░░░░░░░░░ NO SIGNAL</code></p>
 
-> **ARCHIVIST.** License: MIT, all of it, see [`LICENSE`](LICENSE), © 2026 MixaDoDs. Parts made by others keep their
-> own licenses, listed in [`THIRD-PARTY.md`](THIRD-PARTY.md).
+> **DETECTIVE.** When the fire brigade arrived, the computer in flat 14 was on. The last write on the drive is a game
+> save, 23:59:59. We have not turned it off.
 
-<img src="docs/readme/footage/divider.svg" width="100%" alt="">
+<details>
+<summary>✉ <b>inventory, sheet 12</b> · license, checks</summary>
+
+<br>
+
+MIT, all of it: the dotfiles, the shell, the wallpapers. See [`LICENSE`](LICENSE), © 2026 MixaDoDs. Parts made by
+others keep their own licenses, listed in [`THIRD-PARTY.md`](THIRD-PARTY.md). The repository holds no credentials, API
+keys, tokens, browser profiles, cookies, history, caches, keyrings or app state, and `scripts/check.sh` fails if one
+ever gets in. Your angelOS settings (`~/.config/angelos`) stay yours.
+
+`scripts/check.sh` runs the whole check locally (the same one GitHub runs, in an `archlinux` container through
+`scripts/ci-local.sh`). Issues and pull requests are welcome; `angelos report` is a good first attachment.
+
+</details>
+
+<img src="docs/readme/footage/cobweb-divider.svg" width="100%" alt="">
 
 <a id="tape-keys"></a>
 <img src="docs/readme/footage/tape-keys.svg" width="100%" alt="APPENDIX. Label: taped under the keyboard">
 
-> **ARCHIVIST.** Found when we turned the keyboard over: a folded sheet, taped down, in the same handwriting as the
-> scrap of paper. Each look has its own key profile: [`keybinds.kdl`](.config/niri/cfg/keybinds.kdl) only picks one,
+> **DETECTIVE.** Another sheet was taped under the keyboard, in the same handwriting. Not a letter: keys. To remember
+> them, apparently. Each look has its own profile: [`keybinds.kdl`](.config/niri/cfg/keybinds.kdl) only picks one,
 > [`keybinds-common.kdl`](.config/niri/cfg/keybinds-common.kdl) (both looks) plus
 > [`keybinds-pixel.kdl`](.config/niri/cfg/keybinds-pixel.kdl) or [`keybinds-macos.kdl`](.config/niri/cfg/keybinds-macos.kdl).
 > Settings → Keyboard edits the one in front.
 
 <details>
-<summary><b>▤ SHEET 1</b> · both looks</summary>
+<summary><b>▤ NOTE 1</b> · both looks</summary>
 
 | Keys | Action |
 | --- | --- |
@@ -613,7 +689,7 @@ Media and volume keys go to `angelos …` (a small OSD shows the level) and keep
 </details>
 
 <details>
-<summary><b>▤ SHEET 2</b> · Pixel</summary>
+<summary><b>▤ NOTE 2</b> · Pixel</summary>
 
 | Keys | Action |
 | --- | --- |
@@ -637,7 +713,7 @@ Media and volume keys go to `angelos …` (a small OSD shows the level) and keep
 </details>
 
 <details>
-<summary><b>▤ SHEET 3</b> · macOS (⌘ = Super)</summary>
+<summary><b>▤ NOTE 3</b> · macOS (⌘ = Super)</summary>
 
 The ⌘ keys are optional: the installer asks (`MAC_KEYS=1|0`), and *Settings → Appearance → Golden Gate*
 turns them on or off. Without them the macOS look keeps the pixel keys.
@@ -667,7 +743,7 @@ Inside apps, their own shortcuts stay theirs (<kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd
 </details>
 
 <details>
-<summary><b>▤ SHEET 4</b> · the login screen (SDDM), when it misbehaves</summary>
+<summary><b>▤ NOTE 4</b> · the login screen (SDDM), when it misbehaves</summary>
 
 | Symptom | Fix |
 | --- | --- |
@@ -679,6 +755,7 @@ Inside apps, their own shortcuts stay theirs (<kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd
 Preview the theme without logging out: `sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/angelos`.
 
 </details>
+
 
 <img src="docs/readme/footage/end.svg" width="100%" alt="A blue VHS NO SIGNAL screen; for a moment it flickers back to a frame with the words: she says hi. Then: STOP · END OF TAPE">
 
