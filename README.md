@@ -18,25 +18,19 @@
 ```text
 CASE ............. #0031-12
 ADDRESS .......... flat 14, fourth floor
-CALL ............. 01.01.2003, 00:14
-OCCUPANT ......... aged 22. lived alone
+CALL ............. 01.01.2003, 00:14. neighbours: smell of burning
+OCCUPANT ......... aged 22. lived alone. expelled from university
 SEIZED ........... desktop tower: case melted, drive intact
-                   camcorder, 12 VHS-C tapes, labelled by hand
-                   CD-R, in marker: "SAVE YOURSELF"
-                   letter, 12 sheets, no address, never sent
-                   electric kettle, faulty
-CONDITION ........ drive boots. last save: 23:59:59
+                   disc "SAVE YOURSELF", logo: a wheel with eyes
+                   glasses, wired, cheap
+                   ashtray
+                   VHS-C tapes, 12 pcs., labelled by hand
+CONDITION ........ drive reads. last save: 31.12.2002 23:59:59
 ```
 
 <img src="docs/readme/footage/stamp-evidence.svg" width="240" align="right" alt="A red rubber stamp: EVIDENCE · DO NOT ERASE">
 
-> **DETECTIVE.** The letter was under the keyboard. It is reproduced below in full, sheet by sheet, each next to the
-> tape from the same day. The tapes are dated December 2002. The system on the drive was built in 2026. We cannot
-> explain this and have stopped trying.
->
-> The drive boots into a desktop for **CachyOS / Arch** on [**niri**](https://github.com/YaLTeR/niri) with a shell
-> on [**Quickshell**](https://quickshell.org). We copied all of it here. We ran it. There is nothing wrong with it.
-> Under each sheet is an envelope with an inventory of what it can do. The sheet itself is hers.
+> **DETECTIVE.** The tapes were under the desk in a tin biscuit box. The labels are about the drive; the footage is about her. On the drive is a desktop for **CachyOS / Arch** on [**niri**](https://github.com/YaLTeR/niri) with a shell on [**Quickshell**](https://quickshell.org). Build date: 2026. This is impossible. We have put all of it here. Someone is sitting in the corner of the panel. Identity not established.
 
 <img src="docs/screenshots/pixel-dark.png" width="100%" alt="Still from the drive, at night: the Win98-style taskbar with pixel hearts, the clock, system monitor and music widgets, a terminal with fastfetch, the wallpaper with a ring in the sky over the water">
 
@@ -68,17 +62,17 @@ CONDITION ........ drive boots. last save: 23:59:59
 <a id="tape-01"></a>
 <img src="docs/readme/footage/tape-01.svg" width="100%" alt="TAPE 01 of 12. Label: the note. 20.12.2002, 23:41">
 
-<sub><i>sheet 1 · 20 december</i></sub>
+> **▶ RECORDING** · 20.12.2002 23:41\
+> it's his camera, he forgot it. let it record, since its owner's gone.\
+> got dumped. by text. in translit, so it'd fit in one. **thrifty**.\
+> ***holds a scrap of paper up to the lens*** ten-day plan, three lines: don't call. don't call. buy cigarettes.\
+> already failed the first two.
 
-to anyone.
-
-got dumped today. over the phone, from his mobile, the one that always has three roubles on it. so he spent his last three roubles
-on me. **generous**, fucking hell.
-
-ten days or so till new year. not putting up a tree. last year we put it up together.
-
-at a forum meetup somebody shoved a disc and a scrap of paper at me. three lines, "it asks the rest by itself". sounds like him, except he never asked
-shit. typed it into the terminal. nothing better to do anyway.
+**◉ NOW**\
+oh, a new one. hi. i'm the tour guide here. make up a name for me yourself, don't ask about the old one.\
+here's the scrap of paper, three lines, type them into the terminal. then it asks the rest by itself: dark or light, which wallpaper, where you're coming from. answer honestly, it won't rush you.\
+then there'll be a minute you won't remember. i've got one like that too. then the wizard and the tips.\
+don't listen to the recording up there. it's not mine. well, it is. let's skip it.
 
 <div align="center">
 <img src="docs/readme/install-note.png" width="560" alt="EVIDENCE: a torn scrap of lined paper: git clone the repository, cd into it, run install.sh. One command, it asks the rest.">
@@ -92,21 +86,12 @@ cd AngelOS-Dotfiles
 ./install.sh
 ```
 
-it asked questions. dark or light, which wallpaper, **where i'm coming from**. where from, where from. from uni. kicked out in
-october, haven't told mum yet. *let's skip that.*
-
-answered honestly. it waited till i'd finished typing. didn't interrupt. **not used to that**.
-
 ![The installer: profile, look, apps, layouts and the hearts progress bar](docs/demo/installer.gif)
-
-then i logged in and the screen said it was finishing the install. there was a minute i don't remember. then a tune, cute enough
-to make you sick. then little circles walked me round the screen like a guide in a museum where i'm the only visitor. no
-queue, at least.
 
 ![The interface tips circling the start button, the workspaces and the clock](docs/demo/tips.gif)
 
 <details>
-<summary>✉ <b>inventory, sheet 1</b> · install</summary>
+<summary>✉ <b>inventory, tape 1</b> · install</summary>
 
 <br>
 
@@ -140,23 +125,22 @@ Settings → Account replays both. If the wizard hangs: `angelos setup skip` fro
 <a id="tape-02"></a>
 <img src="docs/readme/footage/tape-02.svg" width="100%" alt="TAPE 02 of 12. Label: two faces. 21.12.2002, 14:05">
 
-<sub><i>sheet 2 · 21 december</i></sub>
+> **▶ RECORDING** · 21.12.2002 14:05\
+> woke up in my jeans. on ICQ he's "away". from me, apparently.\
+> to mum i'm "studying", on the forum i'm witty, with him i was… ***waves a hand*** anyway, the switch sticks.\
+> Zemfira on repeat. "Iskala", twentieth time or so.
 
-this thing has two faces. one pixel, the other like a mac, which i've only ever seen in a magazine. one click and
-everything's different: windows, sounds, cursor. then back, like nothing happened.
-
-i can do that too, by the way. one face at uni, another at home, a third with him. **miss two-face**, ha-ha. except my
-switch sticks.
+**◉ NOW**\
+the desktop has two faces: **Pixel** and **macOS**. one click in the settings and everything's different: windows, sounds, cursor, keys. switch back and it's like nothing happened.\
+in the pixel one the words of whatever's playing run along the panel. put something on.\
+just not Zemfira. why? because.
 
 <img src="docs/screenshots/pixel-light.png" width="49%" alt="Still: the Pixel look by day, bubblegum palette, the Start menu open, the ophanim wallpaper from the first release"> <img src="docs/screenshots/macos-light.png" width="49%" alt="Still: the macOS look by day, the menu bar, the Dock, the Lake wallpaper">
-
-in the pixel one the words of whatever's playing run along the bar. put on Zemfira — it knows the words. i sang along, the woman
-downstairs started banging on the radiator. she bangs on the radiator, i turn it up two notches. a dialogue.
 
 ![The Pixel desktop: workspaces, windows, light and dark, the palettes](docs/demo/pixel-desktop.gif)
 
 <details>
-<summary>✉ <b>inventory, sheet 2</b> · two looks</summary>
+<summary>✉ <b>inventory, tape 2</b> · two looks</summary>
 
 <br>
 
@@ -183,19 +167,19 @@ Gruvbox, Rosé Pine, Catppuccin, or colours pulled out of the wallpaper.
 <a id="tape-03"></a>
 <img src="docs/readme/footage/tape-03.svg" width="100%" alt="TAPE 03 of 12. Label: the wallpaper breathes. 22.12.2002, 02:17">
 
-<sub><i>sheet 3 · 22 december, night</i></sub>
+> **▶ RECORDING** · 22.12.2002 02:17\
+> two a.m. the internet's cheaper at night. the modem's screaming like it's being murdered.\
+> someone in the yard is trying out firecrackers. too early, idiots, ten more days.\
+> turned the light off. at least something's moving on the screen.
 
-two a.m. not sleeping, because i slept all day. the internet's cheaper at night, that's my whole vampire thing.
-
-the wallpaper here is alive. stars blink, sometimes one falls. the water ripples. light runs round the ring in the sky. a
-pebble drops off the cliff and rings go out over the water. i don't wish on stars, i'm a grown-up. wished once. *okay, twice.*
+**◉ NOW**\
+the wallpaper here is alive. stars blink, the water ripples, light runs round the ring in the sky. maximise a window and it all freezes. only breathes when someone's looking. **sounds familiar**.\
+every release has its own wallpapers, one set for day, another for night. the night ones are better, the stars fa…\
+***a bang outside***\
+has it started?\
+…right. releases. there are three. scroll.
 
 ![The wallpaper at night: stars, ripples on the water, a glint running over the ring, rings on the water](docs/demo/live-wall.gif)
-
-if you open a window full screen, the water freezes. only breathes when someone's looking. sulking. fine, sit there then.
-
-the kettle clicked and didn't switch off. again. it doesn't switch itself off, you have to catch it. ***caught it.*** third month
-i've been catching it. need to buy a new one.
 
 <div align="center">
 <img src="docs/readme/release-01-angel.png" width="100%" alt="Release 01 Angel: Feathers, Lake, Ophanim, Wires; day over night">
@@ -207,8 +191,10 @@ i've been catching it. need to buy a new one.
 
 ![The pixel mosaic transition between the wallpapers of the three releases](docs/demo/wallpaper.gif)
 
+<sub><b>DETECTIVE.</b> There is an ashtray in shot on tape 03. The butts are stubbed out down to the filter, every one. Tidy.</sub>
+
 <details>
-<summary>✉ <b>inventory, sheet 3</b> · live wallpaper</summary>
+<summary>✉ <b>inventory, tape 3</b> · live wallpaper</summary>
 
 <br>
 
@@ -229,27 +215,24 @@ one per workspace. Changing it plays a pixel mosaic with a dither, only when the
 <a id="tape-04"></a>
 <img src="docs/readme/footage/tape-04.svg" width="100%" alt="TAPE 04 of 12. Label: i right-clicked. 22.12.2002, 19:30">
 
-<sub><i>sheet 4 · 22 december</i></sub>
+> **▶ RECORDING** · 22.12.2002 19:30\
+> the forum lot want me at a meetup, they're giving away some disc. **not going**.\
+> right-clicked his photo. "delete". *are you sure you want to…* no, fuck, i'm not sure. ***clicks "yes"***\
+> opened the recycle bin. ***pause*** restored it. **idiot**. ***pulls on a boot***
 
-right-clicked. a menu. changed it in the settings — another one. a ring around the mouse. a bubble. wings. **a harp**. whose
-idea was a harp.
+**◉ NOW**\
+right-click the desktop. the menu comes in six kinds, pick any. there's a sev̷enth in the files. it's mine, don't touch it yet.\
+you can throw widgets on the desktop: a clock, a player, a system monitor.\
+just don't hang photos. ***quickly*** just a tip.
 
 ![The right-click menu in its six looks: list, radial, Y2K bubble, tiles, wings, harp](docs/demo/menu-styles.gif)
 
-the settings say there are six. i counted in the files. seven.
-
-i opened the s̷e̷v̷e̷n̷t̷h̷. let's skip this bit, okay?
-
-okay.
-
-> **DETECTIVE.** The seventh menu is on tape 04, eleven frames. We are not printing them.
-
-put a clock and a player on the wallpaper. the desktop's crowded now. by my standards.
-
 ![The Windows 11-style menu adding a widget to the desktop](docs/demo/menu.gif)
 
+<sub><b>DETECTIVE.</b> The seventh menu exists. We are not printing it.</sub>
+
 <details>
-<summary>✉ <b>inventory, sheet 4</b> · menus and widgets</summary>
+<summary>✉ <b>inventory, tape 4</b> · menus and widgets</summary>
 
 <br>
 
@@ -271,23 +254,19 @@ plate, or nothing.
 
 <img src="docs/readme/footage/cobweb-tr.svg" width="120" align="right" alt="">
 
-<sub><i>sheet 5 · 23 december</i></sub>
+> **▶ RECORDING** · 23.12.2002 11:52\
+> head like a bucket. brought back from the meetup: a disc, glasses on a wire and somebody else's lighter.\
+> the cover says "save yourself", the disc has a wheel with eyes. ***spins the disc*** an ad for a cult.\
+> i'll install it later. mineral water first.
 
-you can change everything here. the bar, the corners, fonts, sounds, thirteen ways to switch workspaces. went through all
-thirteen and only then noticed i'd been sitting like this for four hours. **productive**.
-
-everything can be changed. well, almost. called him from the landline, long-distance, dialling the 8 first, like an idiot. he hung up.
-again. hung up. ***receiver slammed down.*** hate it hate it hate it. and the long-distance bill's coming anyway. fucking sick of it.
+**◉ NOW**\
+settings. everything changes: the panel, fonts, sounds, the login and lock screens, thirteen animations for switching workspaces. i went through all thirteen. the whole fucking evening, gone.\
+if you don't touch a window for a long time, a cobweb grows on it. i've got one hanging since two thousand and tw… since the day before yesterday. doesn't matter.
 
 ![Settings: appearance, the bar layout, widgets, window widths, default apps](docs/demo/settings.gif)
 
-and here a window you leave alone for long grows a cobweb. left the scanned photo open, the one of us on the roof. by evening
-it was all cobweb.
-
-didn't wipe it. let it grow over, that's where he belongs.
-
 <details>
-<summary>✉ <b>inventory, sheet 5</b> · what can be changed</summary>
+<summary>✉ <b>inventory, tape 5</b> · what can be changed</summary>
 
 <br>
 
@@ -319,25 +298,23 @@ didn't wipe it. let it grow over, that's where he belongs.
 <a id="tape-06"></a>
 <img src="docs/readme/footage/tape-06.svg" width="100%" alt="TAPE 06 of 12. Label: windows on a strip. 24.12.2002, 21:08">
 
-<sub><i>sheet 6 · 24 december</i></sub>
+> **▶ RECORDING** · 24.12.2002 21:08\
+> the catholics have christmas eve, i have instant noodles.\
+> three monitors, all fat, all humming. ICQ on one, the forum on the second, his photo on the third.\
+> didn't open it. **didn't open it**, i said.
 
-the windows here don't overlap, they stand in a row and the strip goes on to the right forever. opened about thirty and
-scrolled till it got funny. like my life: all neat, all in order, and not one of them closed.
+**◉ NOW**\
+this is niri. windows don't climb on top of each other, they line up on an endless strip and you scroll it sideways. lost? `Mod`+`Tab`, the overview, everything from above. `Mod`+`Space` opens the launcher, it remembers what you run. there's a terminal too, don't piss yourself.\
+you've got one monitor? that's fucked. i had three. fat ones.
 
 ![Scrollable tiling](docs/demo/tiling.gif)
 
-`Mod`+`Tab` shows all the workspaces at once. like the view from a roof. *not that one, a different one.*
-
 ![The overview of every workspace](docs/demo/overview.gif)
-
-the twenty-fourth. catholic christmas on the telly, pelmeni for me. people laughing through the wall, they've got guests.
-
-the terminal says hi to me with a logo. hi, hi. you're the first today, congrats.
 
 ![The launcher: apps, a web search, a shell command](docs/demo/launcher.gif)
 
 <details>
-<summary>✉ <b>inventory, sheet 6</b> · niri, launcher, terminal, tools</summary>
+<summary>✉ <b>inventory, tape 6</b> · niri, launcher, terminal, tools</summary>
 
 <br>
 
@@ -373,22 +350,22 @@ goes in only where `~/.config/nvim` is empty; an existing config is never touche
 <a id="tape-07"></a>
 <img src="docs/readme/footage/tape-07.svg" width="100%" alt="TAPE 07 of 12. Label: goldengate.app. 25.12.2002, 16:44">
 
-<sub><i>sheet 7 · 25 december</i></sub>
+> **▶ RECORDING** · 25.12.2002 16:44\
+> new mac in the magazine. buttons like boiled sweets, windows drain down like into a funnel. costs three of my computers and a kidney.\
+> cut it out, stuck it on the monitor. **what have i come to**.
 
-switched it to the mac. spent the whole evening pretending i'm a designer paid in dollars, with an iBook. glass dock, smooth
-windows, sounds like in an ad.
+**◉ NOW**\
+the macOS look. the dock's at the bottom, icons swell under the mouse. minimise a window and it rides into the dock as a little picture. the glass on the panels is real. well, a shader, but pretty.\
+***sniffs*** you don't have anything… no? okay. never mind. the dock, i was saying.
 
 <img src="docs/screenshots/macos-dark.png" width="100%" alt="Still: the macOS look at night, the menu bar, Control Center open, the Dock, the Numb wallpaper with an eclipse">
 
-windows minimize into the dock as little pictures. i minimized everything, ICQ too. nice and clean. ICQ isn't blinking down
-there. fine, don't blink, you bastard.
-
-put make-up on, by the way. just because. for my reflection in the glass.
-
 ![The menu bar: an app's menus, Control Center, the Notification Center](docs/demo/macos-menubar.gif)
 
+<sub><b>DETECTIVE.</b> "goldengate.app" is written on the tape in her handwriting. No program by that name existed in 2002. We checked twice.</sub>
+
 <details>
-<summary>✉ <b>inventory, sheet 7</b> · the macOS look (Golden Gate)</summary>
+<summary>✉ <b>inventory, tape 7</b> · the macOS look (Golden Gate)</summary>
 
 <br>
 
@@ -433,25 +410,18 @@ on, under their own licenses.
 
 <img src="docs/readme/footage/spider.svg" width="60" align="right" alt="">
 
-<sub><i>sheet 8 · 26 december, 03:33</i></sub>
+> **▶ RECORDING** · 26.12.2002 03:33\
+> can't sleep. someone's sitting in the corner of the room. turned the light on: a jacket on a chair. turned it off: sitting there again.\
+> ***cackles*** look at the state of me. on ICQ all the flowers are red.
 
-there's someone in the corner.
+**◉ NOW**\
+and that's me. there, in the corner of the panel, legs dangling. i talk rarely and to the point: six windows in a row, four hours without getting up — i'll notice. **a game**, sure. chests, achievements and my diary, you'll earn the key.\
+what's under this floor? there's someone down there. ***pause*** can we just forget it for today?\
+listen. how do you see me? fine, tell me later.
 
-sits on the bar, bottom right, legs dangling. since the first login. talks rarely and to the point. noticed i opened
-six windows in a row. noticed i hadn't got up in four hours. told me to drink some water.
+<img src="docs/screenshots/intro.png" width="100%" alt="Still from the minute you won't remember: the screen split red and blue at the edges, something rising from below">
 
-i drank it. look at me, getting raised by a taskbar.
-
-<img src="docs/screenshots/intro.png" width="100%" alt="Still from the minute she does not remember: the screen split red and blue at the edges, something rising from below">
-
-<sub>▶ <b>STILL 01-X</b> · the one frame we could recover from that minute on tape 01</sub>
-
-she's got a diary with a lock. i earned the key. no reading it in front of her, she gets mad. respect, i had one just like it in
-ninth grade.
-
-she said there's another floor under this one. i asked what's down there. she said: "let's skip it".
-
-well, there you go. that's what i tell everyone.
+<sub>▶ <b>STILL 01-X</b> · that minute you won't remember. taken off the drive</sub>
 
 > [!IMPORTANT]
 > **DETECTIVE.** Before we let anyone run the drive, we read the code. This is what we can say for sure:
@@ -467,7 +437,7 @@ well, there you go. that's what i tell everyone.
 > - **Progress** lives in `~/.config/angelos/save.json`. Updates never touch it.
 
 <details>
-<summary>✉ <b>inventory, sheet 8</b> · the game</summary>
+<summary>✉ <b>inventory, tape 8</b> · the game</summary>
 
 <br>
 
@@ -483,20 +453,18 @@ will only say that the Dock and the menu bar know about it too.
 <a id="tape-09"></a>
 <img src="docs/readme/footage/tape-09.svg" width="100%" alt="TAPE 09 of 12. Label: other people's things. 27.12.2002, 20:20">
 
-<sub><i>sheet 9 · 27 december</i></sub>
+> **▶ RECORDING** · 27.12.2002 20:20\
+> three people wrote today. mum: "how's uni". a guy from the forum sent a sheep that walks around on the windows. **him**: nothing.\
+> the sheep's walking. at least someone's got a job.
 
-other people write things for it. got a cat for the bar from the catalog, a little game to play along to music, a warm light for
-the evening.
+**◉ NOW**\
+plugins. other people write them, you install them from the catalog. the cat on the panel sleeps when the computer's chilled and tears around when it's struggling. mini-osu to music. a night light so your eyes don't melt.\
+get the cat. it's funny and doesn't ask shit about uni.
 
 ![Community Plugins: the catalog, installing a plugin, its widget on the desktop](docs/demo/plugins.gif)
 
-the cat sleeps when the computer's chilled and tears around when it's struggling. tore around all day today, while i lay there. division of labour.
-
-the cat was made for me by some guy with a nickname made of numbers. my own people wrote one thing all week: "you ok?". i said "fine". what,
-write "like shit" on ICQ and then spend an hour explaining?
-
 <details>
-<summary>✉ <b>inventory, sheet 9</b> · plugins</summary>
+<summary>✉ <b>inventory, tape 9</b> · plugins</summary>
 
 <br>
 
@@ -531,19 +499,19 @@ install ([guide](.config/quickshell/angelos/docs/PLUGIN_STUDIO.md)).
 
 <img src="docs/readme/footage/cobweb-tr.svg" width="120" align="right" alt="">
 
-<sub><i>sheet 10 · 28 december</i></sub>
+> **▶ RECORDING** · 28.12.2002 09:15\
+> morning. ***shows a strand of hair*** the box said "ripe cherry". came out boiled beetroot.\
+> **looking after myself**. what the hell difference does it make.
 
-last night it asked if it could update. **polite**. before that it saved everything the way it was. if something goes
-wrong, there's a button at the bottom: "restore the state before the update".
+**◉ NOW**\
+updates. settings check by themselves whether there's something new and pull it in on a click. before that they copy everything, so there's a button at the bottom: "restore the state before the update". **restore**. press it, and it's how it was.\
+something broke — "report a problem" packs an archive with nothing personal in it and sends it nowhere by itself.\
+listen, what year is it now? ***looks at the clock on the panel*** yes, i can see it. i was just asking.
 
 <img src="docs/screenshots/updates.png" width="100%" alt="Still: Settings → Updates, what is new, the last run, the restore button">
 
-looked at the button and cracked up. could use one of those for june, before exams. and for friday, before the call.
-
-the things i changed myself, it doesn't touch. my lines are mine. ***patted the monitor.*** good boy.
-
 <details>
-<summary>✉ <b>inventory, sheet 10</b> · updates and reports</summary>
+<summary>✉ <b>inventory, tape 10</b> · updates and reports</summary>
 
 <br>
 
@@ -575,17 +543,18 @@ answering for fifteen seconds. The login screen keeps a backup of the previous t
 <a id="tape-11"></a>
 <img src="docs/readme/footage/tape-11.svg" width="100%" alt="TAPE 11 of 12. Label: what it runs on. 30.12.2002, 22:47">
 
-<sub><i>sheet 11 · 30 december</i></sub>
+> **▶ RECORDING** · 30.12.2002 22:47\
+> bought champagne and tangerines. for one, yes. the disc's for tomorrow.\
+> the monitors heat the room better than the radiator. there's a mountain in the ashtray. i'll empty it next year. ***laughs***
 
-didn't write on the twenty-ninth. a shift, then a club, then i don't remember. *i do. let's skip it.*
+**◉ NOW**\
+hardware. i live on laptops and desktops, as many monitors as you like, each set up its own way. russian and english, layouts, a big interface, a magnifier, voice dictation.\
+and i remind you about water. ***sternly*** when did you last drink something? go pour some. i'll wait, i'm not going any… go, i said, for fuck's sake.
 
-it goes on anyone's machine: a laptop, two monitors, a monitor on its side, russian, english. fits itself around everyone.
-good for it, it'll go far.
-
-filmed the whole room on dad's camcorder: cables, screens, wallpaper, the kettle. right over my graduation. ***whatever.***
+<sub><b>DETECTIVE.</b> We tested the glasses. The sound in them is loud; you cannot hear the room. There is a microphone.</sub>
 
 <details>
-<summary>✉ <b>inventory, sheet 11</b> · what it runs on</summary>
+<summary>✉ <b>inventory, tape 11</b> · what it runs on</summary>
 
 <br>
 
@@ -612,14 +581,21 @@ filmed the whole room on dad's camcorder: cables, screens, wallpaper, the kettle
 <img src="docs/readme/footage/cobweb-tl.svg" width="120" align="left" alt="">
 <img src="docs/readme/footage/spider.svg" width="60" align="right" alt="">
 
-<sub><i>sheet 12 · 31 december</i></sub>
+> **▶ RECORDING** · 31.12.2002 23:58\
+> ***in the glasses, washing a pill down with champagne*** happy almost new year, camera. can't see a thing, can see everything. **fun**, damn. turned the mobile face down, let him text himself.\
+> ***behind her, in the ashtray, a cigarette is smouldering***\
+> something smells. the computer's heating up, poor thing, i've been running it for three hours. ***crackling*** oh, it's burning in the game too. pretty.\
+> hang on, i'll just save and…\
+> *[recording cuts off]*
 
-new year. alone. my choice, for the record. got invited to two places: he'll be at one, and at the other they'll ask about
-him.
+<p align="center"><code>23:59:59 ░░░░░░░░░░░░░░░░ NO SIGNAL</code></p>
 
-the chimes are already going through the wall, and my computer says 23:59:50. they always get everything first.
-
-it's all lying open here, help yourself. no passwords, no one else's secrets. just mine. well, what there is.
+**◉ NOW**\
+that's it. this is the whole house, and it's open: take it, copy it. MIT, no passwords, no one else's secrets. just mine. well, what's left.\
+don't play the last tape. i haven't seen it either.\
+***a bang outside***\
+***says nothing***\
+let me tell you about the keys instead.
 
 ```text
 .config/quickshell/angelos/  angelOS: the shell, both looks, plugins, templates, docs
@@ -636,21 +612,10 @@ scripts/demo/                the stand the stills and clips on this page were sh
 docs/                        the stills and clips of this page
 ```
 
-put the kettle on. let it click.
-
-marker on the disc: "save yourself". so dramatic, ugh. saved the game, we'll see about the rest.
-
-happy new year, anyone.
-
-— a.
-
-<p align="center"><code>23:59:59 ░░░░░░░░░░░░░░░░ NO SIGNAL</code></p>
-
-> **DETECTIVE.** When the fire brigade arrived, the computer in flat 14 was running. Power to the flat was cut at the
-> fuse box at 00:20. The computer did not shut down. The last write on the drive is a game save, 23:59:59.
+<sub><b>DETECTIVE.</b> One butt in the ashtray, not stubbed out. Case closed. There is no one to return the drive to. We set the system clock to 2003. It keeps going back.</sub>
 
 <details>
-<summary>✉ <b>inventory, sheet 12</b> · license, checks</summary>
+<summary>✉ <b>inventory, tape 12</b> · license, checks</summary>
 
 <br>
 
@@ -669,11 +634,9 @@ ever gets in. Your angelOS settings (`~/.config/angelos`) stay yours.
 <a id="tape-keys"></a>
 <img src="docs/readme/footage/tape-keys.svg" width="100%" alt="APPENDIX. Label: taped under the keyboard">
 
-> **DETECTIVE.** Another sheet was taped under the keyboard, in the same handwriting. Not a letter: keys. To remember
-> them, apparently. Each look has its own profile: [`keybinds.kdl`](.config/niri/cfg/keybinds.kdl) only picks one,
-> [`keybinds-common.kdl`](.config/niri/cfg/keybinds-common.kdl) (both looks) plus
-> [`keybinds-pixel.kdl`](.config/niri/cfg/keybinds-pixel.kdl) or [`keybinds-macos.kdl`](.config/niri/cfg/keybinds-macos.kdl).
-> Settings → Keyboard edits the one in front.
+> **DETECTIVE.** Taped to the underside of the keyboard; the paper did not burn. I have quit smoking. Not because of this case.
+>
+> Each look has its own profile: [`keybinds.kdl`](.config/niri/cfg/keybinds.kdl) only picks one, [`keybinds-common.kdl`](.config/niri/cfg/keybinds-common.kdl) (both looks) plus [`keybinds-pixel.kdl`](.config/niri/cfg/keybinds-pixel.kdl) or [`keybinds-macos.kdl`](.config/niri/cfg/keybinds-macos.kdl). Settings → Keyboard edits the one in front.
 
 <details>
 <summary><b>▤ NOTE 1</b> · both looks</summary>
