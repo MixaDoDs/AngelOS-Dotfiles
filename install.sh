@@ -67,6 +67,8 @@
 #   INSTALL_WALLPAPERS=0|1         older switch: 0 = no packs, 1 = all packs
 #   ENABLE_SERVICES=0|1            enable the systemd user services
 #   INTRO_SOUNDS=1|0               mix the first run's intro sound now, in the background
+#   MINIMIZE_HOOK=1|0              the windows' own minimize buttons reach angelOS
+#                                  (extras/minimize-hook: an LD_PRELOAD library, needs gcc)
 #   INSTALL_FLATPAK=0|1            (older switch, ignored: OBS and Blender are in the apps' catalog)
 #   INSTALL_TOOLS=1|0              small everyday tools from packages/tools.txt (fish, btop,
 #                                  ripgrep, yt-dlp, pavucontrol…; asked interactively, default 1;
@@ -135,6 +137,7 @@ INSTALL_VOXTYPE="${INSTALL_VOXTYPE:-1}"
 DOWNLOAD_VOXTYPE_MODEL="${DOWNLOAD_VOXTYPE_MODEL:-1}"
 INSTALL_WALLPAPERS="${INSTALL_WALLPAPERS:-1}"
 INTRO_SOUNDS="${INTRO_SOUNDS:-1}"
+MINIMIZE_HOOK="${MINIMIZE_HOOK:-1}"
 WALLPAPERS_REPO="${WALLPAPERS_REPO:-https://github.com/MixaDoDs/PixelStreetArt_Wallpapers}"
 # folder|pictures|MB|English|Russian — folders of WALLPAPERS_REPO, copied to ~/Pictures/<folder>
 WALLPAPER_LIST=(
@@ -1853,6 +1856,66 @@ install_shell() {
   fi
 }
 
+# The windows' own minimize buttons (GTK's yellow light, Qt's, Firefox's): niri ignores
+# xdg_toplevel.set_minimized, so extras/minimize-hook (an LD_PRELOAD library) hands it to angelOS
+# (services/Minimize.qml) — without it the Golden Gate skin's yellow light did nothing (#56).
+# Built here for everyone, as extras/minimize-hook/install.sh does it: the library, angelos.service's
+# drop-in, cfg/angelos-minimize.kdl and its include in niri's config.kdl (the manifest isn't told:
+# the next update merges config.kdl, the include stays as the user's line; carry_includes keeps it
+# when the file is replaced). Rebuilt only when the source changed, put in place by rename (running
+# apps keep the old one mapped). MINIMIZE_HOOK=0, or `extras/minimize-hook/install.sh --remove`
+# (minimize-hook.off), leaves it out. No compiler: a warning, nothing else.
+install_minimize_hook() {
+  [[ "$DESKTOP_SHELL" == angelos && "$MINIMIZE_HOOK" == 1 ]] || return 0
+  [[ -e "$HOME_DIR/.config/angelos/minimize-hook.off" ]] && return 0
+  local src="$ROOT/.config/quickshell/angelos/extras/minimize-hook" out="$HOME_DIR/.local/lib/angelos"
+  local built d pre kdl="$HOME_DIR/.config/niri/cfg/angelos-minimize.kdl" cfg="$HOME_DIR/.config/niri/config.kdl"
+  local dropin="$HOME_DIR/.config/systemd/user/angelos.service.d/50-minimize-hook.conf" inc
+  [[ -f "$src/angelos-minimize.c" ]] || return 0
+  if ! command -v cc >/dev/null 2>&1; then
+    warn "$(_ "no C compiler (gcc): the windows' own minimize buttons won't work (⌘M and the Dock do)" \
+              "нет компилятора C (gcc): кнопки «свернуть» в окнах не заработают (⌘M и Dock работают)")"
+    return 0
+  fi
+  built="$(mktemp -d)"; TMP_DIRS+=("$built")
+  if ! sh "$src/build.sh" "$built" >/dev/null 2>&1; then
+    warn "$(_ 'the minimize hook did not build (extras/minimize-hook/build.sh)' \
+              'перехват сворачивания не собрался (extras/minimize-hook/build.sh)')"
+    return 0
+  fi
+  for d in lib lib32; do
+    [[ -f "$built/$d/libangelos-minimize.so" ]] || continue
+    cmp -s "$built/$d/libangelos-minimize.so" "$out/$d/libangelos-minimize.so" 2>/dev/null && continue
+    mkdir -p -- "$out/$d"
+    cp -- "$built/$d/libangelos-minimize.so" "$out/$d/.libangelos-minimize.so.new"
+    mv -f -- "$out/$d/.libangelos-minimize.so.new" "$out/$d/libangelos-minimize.so"
+  done
+  # ld.so's own $LIB (lib / lib32): a 32-bit game gets the 32-bit build
+  pre="$out/\$LIB/libangelos-minimize.so"
+  mkdir -p -- "${dropin%/*}" "${kdl%/*}"
+  cat >"$dropin" <<UNIT
+# angelOS minimize hook (extras/minimize-hook): the windows' own minimize buttons go to angelOS.
+# \$LIB is ld.so's (lib / lib32): systemd doesn't expand \$ in Environment=.
+[Service]
+Environment="LD_PRELOAD=$pre"
+UNIT
+  cat >"$kdl" <<KDL
+// angelOS minimize hook (extras/minimize-hook): apps niri starts get the preload.
+environment {
+    LD_PRELOAD "$pre"
+}
+KDL
+  if [[ -f "$cfg" ]] && ! grep -q 'angelos-minimize\.kdl' "$cfg"; then
+    # a copy (backup() moves the file away) — not of the author's own just put there, and one
+    # already made by this run is the older one
+    [[ -e "$cfg.bak.$STAMP" || "$(sum_of "$cfg")" == "${NEW_SUM[.config/niri/config.kdl]:-}" ]] ||
+      cp -p -- "$cfg" "$cfg.bak.$STAMP"
+    inc="$(mktemp)"; TMP_FILES+=("$inc")
+    printf 'include "./cfg/angelos-minimize.kdl"\n' >"$inc"
+    carry_includes "$inc" "$cfg"
+  fi
+}
+
 # fish as the login shell (FISH_DEFAULT): fish installed by this run is added to /etc/shells
 # and made the login shell; one that was there before is left as it is unless asked for.
 # SYSROOT (tests): /etc/shells under it and a log line instead of chsh.
@@ -2106,6 +2169,7 @@ STEPS=(
   "quickshell_check|Quickshell version|версия Quickshell"
   "install_configs|configs|конфиги"
   "install_shell|angelOS|angelOS"
+  "install_minimize_hook|the windows' minimize button|кнопка «свернуть» у окон"
   "install_assets|fonts, icons, wallpapers|шрифты, значки, обои"
   "install_voxtype|Voxtype|Voxtype"
   "install_voxtype_model|the Whisper model|модель Whisper"

@@ -335,6 +335,20 @@ inst_default() {
       niri validate -c "$WORK/default/.config/niri/config.kdl" >/dev/null 2>&1 &&
         pass "installer: installed config validates" || fail "installer: installed config validates"
     fi
+    # the windows' own minimize buttons, for everyone (#56): the hook built and wired once
+    if command -v cc >/dev/null 2>&1; then
+      if [[ -f "$WORK/default/.local/lib/angelos/lib/libangelos-minimize.so" &&
+            -f "$WORK/default/.config/systemd/user/angelos.service.d/50-minimize-hook.conf" ]] &&
+         grep -qF 'LD_PRELOAD "'"$WORK/default"'/.local/lib/angelos/$LIB/libangelos-minimize.so"' "$WORK/default/.config/niri/cfg/angelos-minimize.kdl" 2>/dev/null &&
+         [[ "$(grep -cxF 'include "./cfg/angelos-minimize.kdl"' "$WORK/default/.config/niri/config.kdl")" == 1 ]] &&
+         awk '/angelos-minimize\.kdl/{m=NR} /cfg\/user\.kdl/{u=NR} END{exit !(m && u && m < u)}' "$WORK/default/.config/niri/config.kdl"; then
+        pass "installer: the minimize hook is built and wired (before the user's own user.kdl)"
+      else
+        fail "installer: the minimize hook is built and wired (before the user's own user.kdl)"
+      fi
+    else
+      skip "installer: the minimize hook (no C compiler)"
+    fi
     # Updating the owner's installation must not disable publishing.
     printf 'remote=fixture\n' > "$WORK/default/.config/angelos/owner"
     printf '{"setup":{"complete":true}}\n' > "$WORK/default/.config/angelos/settings.json"
