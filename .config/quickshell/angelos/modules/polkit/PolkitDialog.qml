@@ -30,12 +30,16 @@ Scope {
     onRegisteredChanged: Shell.polkitRegistered = registered
     // a password asked: the keys on screen keep quiet (services/KeyCast)
     readonly property bool asking: !!agent && agent.isActive && !!flow
-    onAskingChanged: KeyCast.polkitOpen = asking
+    onAskingChanged: {
+        KeyCast.polkitOpen = asking;
+        Shell.polkitAsking = asking;
+    }
 
     PanelWindow {
         id: win
 
-        screen: Shell.focusedScreen
+        // over the setup wizard: on the screen its questions (and the keyboard) are on
+        screen: Shell.setupLocked && Shell.setupHost ? Shell.setupHost : Shell.focusedScreen
         visible: !!root.agent && root.agent.isActive && !!root.flow
         anchors {
             top: true

@@ -32,6 +32,20 @@ Scope {
         id: introCtl
     }
 
+    // ---- the admin password (#62): pkexec asks through a polkit agent while the covers hold the
+    // keyboard. The shell's own dialog comes up over them (modules/polkit: same overlay, on the
+    // host screen) — and the covers let the keyboard go until it is answered: niri hands exclusive
+    // focus to the oldest overlay that asks for it, so otherwise the keys stay with the questions.
+    // Another agent holds the session (polkit-gnome, hyprpolkitagent…): its window is an ordinary
+    // one, under any overlay — the covers step down below the windows while the install waits.
+    readonly property bool foreignAuth: flow.installState.authWait && !Shell.polkitRegistered
+    readonly property bool keysAway: Shell.polkitAsking || foreignAuth
+    Binding {
+        target: Shell
+        property: "setupHost"
+        value: Shell.setupLocked ? flow.host : null
+    }
+
     // ---- every screen covered, the questions on one of them ----
     Variants {
         model: Shell.setupLocked ? Shell.screens : []
@@ -54,10 +68,11 @@ Scope {
             exclusionMode: ExclusionMode.Ignore
             color: Theme.desk
             WlrLayershell.namespace: "angelos-setup"
-            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.layer: root.foreignAuth ? WlrLayer.Bottom : WlrLayer.Overlay
             // takes input: the wizard holds the desktop until it is done (or closed, opened again);
-            // the keys go to the questions (dev runs sit next to a live session: on demand)
-            WlrLayershell.keyboardFocus: hosting ? (Shell.dev ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive) : WlrKeyboardFocus.None
+            // the keys go to the questions (dev runs sit next to a live session: on demand) —
+            // except while a password is asked (root.keysAway)
+            WlrLayershell.keyboardFocus: hosting && !root.keysAway ? (Shell.dev ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive) : WlrKeyboardFocus.None
 
             // niri's own keys wait too (Mod+T would open a terminal nobody sees under the
             // cover). Mod+Escape (toggle-keyboard-shortcuts-inhibit) switches the inhibitor
@@ -68,7 +83,7 @@ Scope {
                 property bool seen: false
                 property bool rearming: false
                 window: cover
-                enabled: cover.hosting && !Shell.dev && !rearming
+                enabled: cover.hosting && !Shell.dev && !rearming && !root.keysAway
                 onActiveChanged: {
                     if (active)
                         seen = true;

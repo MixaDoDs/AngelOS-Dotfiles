@@ -317,11 +317,13 @@ Scope {
         property int of: 0
         property var failed: []
         property string auth: ""        // why it never started (the password was not given…)
+        property bool authWait: false   // pkexec is up: the password is being asked right now
         property var log: []
         property real sub: 0            // how far the app now going is (pacman's "(3/12) installing …")
     }
     readonly property alias installState: setupInstall
     function onInstallEvent(e) {
+        setupInstall.authWait = e.ev === "auth";
         if (e.ev === "plan") {
             setupInstall.items = e.items.map(x => Object.assign({}, x, {
                     "state": x.installed ? "done" : "wait"
@@ -370,6 +372,7 @@ Scope {
             }
         }
         onExited: (code, status) => {
+            setupInstall.authWait = false;
             if (!setupInstall.done) {
                 setupInstall.done = true;
                 setupInstall.running = false;
@@ -399,6 +402,10 @@ Scope {
                 "state": "wait"
             };
         });
+        // the shell's own password dialog, if it lost the session's slot to nobody (an agent that
+        // was there at login and quit since): asked for again before pkexec looks for one (#62)
+        if (!Shell.polkitRegistered && Shell.polkitReregister)
+            Shell.polkitReregister();
         installProc.command = ["python3", Quickshell.shellDir + "/scripts/apps-install.py", "install", "--events", "--no-wait", "--browser", browser].concat(ids);
         installProc.running = true;
     }

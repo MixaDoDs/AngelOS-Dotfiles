@@ -77,6 +77,11 @@ Singleton {
     property string lockPreviewDemo: ""      // the preview types this in by itself a moment after it opens
     property var polkitReregister: null
     property bool polkitRegistered: false
+    // the shell's password dialog is up (modules/polkit/PolkitDialog): a full-screen layer that
+    // holds the keyboard (the setup wizard) lets go while it asks — niri gives exclusive focus to
+    // the oldest such layer, so the dialog on top would show but never get the keys (#62)
+    property bool polkitAsking: false
+    property var setupHost: null              // the screen the setup wizard asks on (SetupWizard)
     readonly property bool dev: Quickshell.env("ANGELOS_DEV") === "1"
     // niri sends "angelOS [dev]" windows to the non-stream monitor (cfg/rules.kdl)
     readonly property string appTitle: dev ? "angelOS [dev]" : "angelOS"
