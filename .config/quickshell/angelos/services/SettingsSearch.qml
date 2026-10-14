@@ -374,12 +374,15 @@ Singleton {
     // a laptop): rebuilt on every step, a switch froze the shell for seconds, on a laptop past
     // the guard's 15 s — it aborted the shell, and the switch was lost with it (#57, #64)
     property var docs: []
-    readonly property bool settling: docsSettle.running      // `docs` behind its inputs (tests wait)
+    // `docs` behind its inputs (tests wait) — set by the timer itself, not bound to it: a binding
+    // read the timer half torn down when the shell quit and printed «Unable to assign [undefined]»
+    property bool settling: false
     on_DocsNowChanged: docsSettle.restart()
     Component.onCompleted: docs = _docsNow
     Timer {
         id: docsSettle
         interval: 50
+        onRunningChanged: root.settling = running
         onTriggered: {
             root.docs = root._docsNow;
             if (root._got)
