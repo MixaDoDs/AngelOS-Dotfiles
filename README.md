@@ -620,7 +620,8 @@ docs/                        the stills and clips of this page
 <br>
 
 MIT, all of it: the dotfiles, the shell, the wallpapers. See [`LICENSE`](LICENSE), © 2026 MixaDoDs. Parts made by
-others keep their own licenses, listed in [`THIRD-PARTY.md`](THIRD-PARTY.md). The repository holds no credentials, API
+others keep their own licenses, listed in [`THIRD-PARTY.md`](THIRD-PARTY.md), and so does how release 5 «2002»'s
+wallpapers were made: with an image model, from the author's prompts, cleaned up by hand. The repository holds no credentials, API
 keys, tokens, browser profiles, cookies, history, caches, keyrings or app state, and `scripts/check.sh` fails if one
 ever gets in. Your angelOS settings (`~/.config/angelos`) stay yours.
 
