@@ -204,6 +204,15 @@ Singleton {
                 "page": id,
                 "to": ""
             };
+        // a category's own page in the Windows 11 look ("cat:<id>") is a place of the tree too:
+        // in hell the Golden Gate tree is shown in that look (the grimoire, a circle's dress), and
+        // its categories fell through to the fallback below — every click on one opened
+        // Appearance (#59)
+        if (String(id).startsWith("cat:") && categories.some(c => c.id === id.slice(4)))
+            return {
+                "page": id,
+                "to": ""
+            };
         const l = (tree.legacy || {})[id];
         if (l)
             return {

@@ -579,6 +579,11 @@ Scope {
                 macPass = true;
                 startPages(false);
             } else {
+                // in hell the Golden Gate tree is shown in the Windows 11 look: its categories'
+                // own pages ("cat:<id>") are places of the tree, not the fallback (#59)
+                const cats = SettingsTree.categories.filter(c => c.pages.length > 1).map(c => "cat:" + c.id);
+                const lost = cats.filter(id => SettingsTree.resolve(id).page !== id);
+                report("mac-categories", SettingsTree.mac && cats.length > 0 && lost.length === 0, cats.length + " categories" + (lost.length ? ", lead elsewhere: " + lost.join(", ") : ""));
                 macPass = false;
                 settingsSkinIndex = 0;
                 Config.settingsUi.skin = "classic";
