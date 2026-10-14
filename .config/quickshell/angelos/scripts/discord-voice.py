@@ -303,6 +303,8 @@ class Session:
         asked = self.waiting.pop(msg.get("nonce"), None) if msg.get("nonce") else None
         if cmd == "DISPATCH":
             if evt == "READY":
+                if (data.get("user") or {}).get("id") == "1045800378228281345":
+                    raise ConnectionError("This client's arRPC supports Rich Presence only; enable the angelOS voice bridge")
                 token = self.load()
                 if token:
                     self.cmd("AUTHENTICATE", {"access_token": token})
@@ -406,10 +408,34 @@ def connect():
     return None
 
 
+def cdp_reader():
+    # Optional fallback for Vesktop/Equibop/Legcord and other Electron clients:
+    # arRPC only implements Rich Presence, not Discord's voice RPC.
+    import importlib.util
+    path = Path(__file__).with_name("discord-voice-cdp.py")
+    if not path.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("angelos_discord_voice_cdp", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.connect()
+
+
 def main():
     voice = Voice(out=lambda s: print(s, flush=True))
     voice.emit()
     while True:
+        reader = cdp_reader()
+        if reader:
+            try:
+                if reader.run(voice, sys.stdin) == "bye":
+                    return 0
+            except (OSError, ValueError, RuntimeError) as exc:
+                voice.set("no-discord", str(exc))
+            finally:
+                reader.close()
+            time.sleep(1)
+            continue
         ws = connect()
         if not ws:
             voice.set("no-discord")

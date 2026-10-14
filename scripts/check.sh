@@ -947,6 +947,7 @@ job sideload py_test sideload plugins/test_sideload.py "plugins outside the cata
 job calc py_test calc calc/test_calc.py "launcher currencies: a lone 100 USD, 10к рублей, курс доллара, units and maths left alone" 77
 job keycast py_test keycast keycast/test_keycast.py "keys on screen: shortcuts, typing only when asked, nothing while a password is typed"
 job discord-voice py_test discord-voice discord/test_discord_voice.py "Discord call widget: token and its renewal, who is in the call, speaking (stand-in Discord)"
+job discord-cdp py_test discord-cdp discord/test_discord_cdp.py "Discord alternative clients: DevTools boundaries, call stores and arRPC regression"
 timed audio-tap py_test audio-tap audio/test_audio_tap.py "cava's audio tap: no hangs (stand-ins for cava and pw-record)"
 # the Golden Gate menu bar's helper: menus found by the window's pid, on a private bus (77 = no gi / dbus)
 timed appmenu py_test appmenu appmenu/test_appmenu.py "global menu: Qt, GTK, appmenu-gtk-module and X11 menus found by pid, clicks reach the app" 77
