@@ -379,6 +379,57 @@ def picture(style, emblem_rows, emblem_pal, colors, hell, emblem=""):
 # list run past the terminal's edge, and a wrapped line tears the picture beside it
 UPTIME = "{?days}{days}d {?}{hours}h {minutes}m"
 PKGS = "{all}"
+# the same goes for the processor and the video card: fastfetch keeps Intel's
+# "12th Gen Intel(R) Core(TM) i5-12400F" (36 columns), and with the picture and a key of the
+# circle ("cpu · ожидание") the line ran past an 80-column terminal (#63)
+NAME_MAX = 24
+
+
+def short_cpu(cpuinfo="/proc/cpuinfo", limit=NAME_MAX):
+    """(format, name): the processor's model without the marketing ("Intel Core i5-12400F",
+    "AMD Ryzen 7 5800H") and the format that shows it; fastfetch's own {name}, cut to `limit`,
+    where /proc/cpuinfo has no model name (ARM)"""
+    raw = ""
+    try:
+        with open(cpuinfo, errors="replace") as f:
+            for line in f:
+                if line.startswith("model name"):
+                    raw = line.split(":", 1)[1].strip()
+                    break
+    except OSError:
+        pass
+    s = re.sub(r"\s*\((?:R|TM|tm|r)\)", "", raw)
+    s = re.sub(r"^\d+(?:st|nd|rd|th)\s+Gen\s+", "", s, flags=re.I)
+    s = re.sub(r"\s+(?:CPU\s+)?@.*$", "", s)
+    s = re.sub(r"\s+with\s+Radeon.*$", "", s, flags=re.I)
+    s = re.sub(r"\s+\d+-Core\s+Processor.*$|\s+Processor$|\s+CPU$", "", s, flags=re.I)
+    # braces are fastfetch's placeholders
+    s = re.sub(r"\s+", " ", s.replace("{", "(").replace("}", ")")).strip()
+    if not s:
+        return "{name:%d}" % limit, ""
+    # what fastfetch's own {name} shows (it drops these itself): when that's already the short
+    # name the config keeps the placeholder, so a config written here says nothing of this machine
+    # (the dotfiles ship the author's)
+    own = re.sub(r"\s+(?:CPU|Processor|\d+-Core|with Radeon Graphics)\b", "", raw.split("@")[0])
+    if re.sub(r"\s+", " ", own).strip() == s:
+        return "{name:%d}" % limit, s
+    return fit_name(s, limit), s
+
+
+def fit_name(fmt, room):
+    """CPU or GPU cut to `room` columns: fastfetch's {name:N}, or our literal with an ellipsis"""
+    if "{" in fmt:
+        return re.sub(r"\{name:(\d+)\}", lambda m: "{name:%d}" % min(int(m.group(1)), room), fmt)
+    # the maker goes first, the model stays: "Intel Core i5-12400F" → "Core i5-12400F" → "i5-12400F"
+    words = fmt.split(" ")
+    while len(" ".join(words)) > room and len(words) > 1:
+        words.pop(0)
+    fmt = " ".join(words)
+    return fmt if len(fmt) <= room else fmt[:room - 1].rstrip() + "…"
+
+
+CPU, CPU_NAME = short_cpu()
+GPU = "{name:%d}" % NAME_MAX
 
 
 def modules(style, colors, hell):
@@ -418,8 +469,8 @@ def modules(style, colors, hell):
         return [{"type": "title", "format": head}] + circle + [
             {"type": "os", "key": "os", "format": "{pretty-name}"},
             {"type": "uptime", "key": "up", "format": UPTIME},
-            {"type": "cpu", "key": key("cpu"), "format": "{name}"},
-            {"type": "gpu", "key": key("gpu"), "format": "{name}"},
+            {"type": "cpu", "key": key("cpu"), "format": CPU},
+            {"type": "gpu", "key": key("gpu"), "format": GPU},
             {"type": "memory", "key": key("ram"), "format": "{used} / {total}"},
             {"type": "packages", "key": "pkgs", "format": PKGS},
             {"type": "command", "key": "gear", "text": gear("{#%s}{total}{#} · {count} %s" % (sgr(gold, True), tr(lang, "шт.", "pcs")), total=True, lang=lang)},
@@ -439,7 +490,7 @@ def modules(style, colors, hell):
             mods.append(c)
         rows = [("os", "os", {"format": "{pretty-name}"}), ("kernel", "kernel", {"format": "{release}"}),
                 ("uptime", "uptime", {"format": UPTIME}), ("packages", "pkgs", {"format": PKGS}),
-                ("cpu", key("cpu"), {"format": "{name}"}), ("gpu", key("gpu"), {"format": "{name}"}),
+                ("cpu", key("cpu"), {"format": CPU}), ("gpu", key("gpu"), {"format": GPU}),
                 ("memory", key("ram"), {"format": "{used} / {total}"}),
                 ("disk", "disk", {"folders": "/", "format": "{size-used} / {size-total}"})]
         for kind, k, extra in rows:
@@ -457,8 +508,8 @@ def modules(style, colors, hell):
             {"type": "packages", "key": "packages", "format": PKGS},
             {"type": "wm", "key": "wm"},
             "break",
-            {"type": "cpu", "key": key("cpu"), "format": "{name}"},
-            {"type": "gpu", "key": key("gpu"), "format": "{name}"},
+            {"type": "cpu", "key": key("cpu"), "format": CPU},
+            {"type": "gpu", "key": key("gpu"), "format": GPU},
             {"type": "memory", "key": key("ram"), "format": "{used} / {total}"},
             {"type": "disk", "key": "disk", "folders": "/", "format": "{size-used} / {size-total}"},
             "break",
@@ -478,15 +529,17 @@ def modules(style, colors, hell):
         hello = tr(lang, "привет, ", "hi, ") if not hell else tr(lang, "ну здравствуй, ", "well hello, ")
         rest = tr(lang, "вот что у нас тут:", "here's what we've got:") if not hell else tr(lang, "посмотрим, что у тебя:", "let's see what you've got:")
         mods = ["break",
-                {"type": "title", "format": "{#%s}◀ %s{user-name}! %s{#} {#%s}%s{#}" % (sgr(accent, True), hello, "⛧" if hell else "♡", sgr(dim), rest)},
+                {"type": "title", "format": "{#%s}◀ %s{user-name}! %s{#}" % (sgr(accent, True), hello, "⛧" if hell else "♡")},
+                # on a line of its own: with a long name or the demon's hello the line ran past 80 columns (#63)
+                {"type": "custom", "format": "{#%s}  %s{#}" % (sgr(dim), rest)},
                 {"type": "custom", "format": "{#%s}%s{#}" % (sgr(dim), "┄" * 34)}] + circle + [
             {"type": "os", "key": "os", "format": "{pretty-name}"},
             {"type": "kernel", "key": "kernel", "format": "{release}"},
             {"type": "uptime", "key": "uptime", "format": UPTIME},
             {"type": "packages", "key": "pkgs", "format": PKGS},
             {"type": "wm", "key": "wm"},
-            {"type": "cpu", "key": key("cpu"), "format": "{name}"},
-            {"type": "gpu", "key": key("gpu"), "format": "{name}"},
+            {"type": "cpu", "key": key("cpu"), "format": CPU},
+            {"type": "gpu", "key": key("gpu"), "format": GPU},
             {"type": "memory", "key": key("ram"), "format": "{used} / {total}"},
             {"type": "custom", "format": "{#%s}%s{#}" % (sgr(dim), "┄" * 34)}]
         keyw = max(len(m["key"]) for m in mods if isinstance(m, dict) and m.get("key")) + 2
@@ -499,8 +552,8 @@ def modules(style, colors, hell):
 
     if style == "stream":
         # the readings as the chat, the gear as superchats
-        nick = [("cpu", "cpu_enjoyer", "#4fc3f7", {"format": "{name}"}),
-                ("gpu", "rtx_tyan" if not hell else "gpu_burner", "#ba68c8", {"format": "{name}"}),
+        nick = [("cpu", "cpu_enjoyer", "#4fc3f7", {"format": CPU}),
+                ("gpu", "rtx_tyan" if not hell else "gpu_burner", "#ba68c8", {"format": GPU}),
                 ("memory", "ram_eater", "#81c784", {"format": "{used} / {total}"}),
                 ("os", "linux_enjoyer", "#ffb74d", {"format": "{pretty-name}"}),
                 ("uptime", "no_sleep_andy", "#f06292", {"format": UPTIME}),
@@ -530,7 +583,7 @@ def modules(style, colors, hell):
         if hell and hell.get("roman"):
             mods.append({"type": "custom", "format": on + "%s %s · %s" % (hell.get("circleWord", "Circle"), hell["roman"], str(hell.get("name", ""))[:W - 10])})
         mods += [line("-"),
-                 {"type": "cpu", "key": " ", "format": on + "CPU  {name:%d}" % (W - 5)},
+                 {"type": "cpu", "key": " ", "format": on + "CPU  " + fit_name(CPU, W - 5)},
                  {"type": "gpu", "key": " ", "format": on + "GPU  {name:%d}" % (W - 5)},
                  {"type": "memory", "key": " ", "format": on + "RAM  {used} / {total}"},
                  {"type": "os", "key": " ", "format": on + "OS   {pretty-name:%d}" % (W - 5)},
@@ -558,8 +611,8 @@ def modules(style, colors, hell):
         {"type": "packages", "key": "pkgs", "format": PKGS},
         {"type": "wm", "key": "wm"},
         {"type": "terminal", "key": "term"},
-        {"type": "cpu", "key": key("cpu"), "format": "{name}"},
-        {"type": "gpu", "key": key("gpu"), "format": "{name}"},
+        {"type": "cpu", "key": key("cpu"), "format": CPU},
+        {"type": "gpu", "key": key("gpu"), "format": GPU},
         {"type": "memory", "key": key("ram"), "format": "{used} / {total}"}]
     keyw = max(len(m["key"]) for m in mods if m.get("key")) + 2
     return mods + gear_rows(keyw) + [{"type": "custom", "format": row}]
@@ -579,17 +632,30 @@ def config(style, colors, logo, hell=None):
     cfg = {"$schema": "https://github.com/fastfetch-cli/fastfetch/raw/master/doc/json_schema.json"}
     if logo:
         path, w, h = logo
-        pad = {"top": 1 if style not in ("window", "receipt", "stream") else 0, "left": 1, "right": 3}
+        # (the window's frame is a gap of its own: two columns, so a circle's long keys still fit 80)
+        pad = {"top": 1 if style not in ("window", "receipt", "stream") else 0, "left": 1, "right": 2 if style == "window" else 3}
         if style == "receipt":
             pad["right"] = 0        # the text goes onto the paper (the logo puts the cursor there)
         cfg["logo"] = {"type": "file-raw", "source": str(path), "width": w, "height": h, "padding": pad}
     else:
         cfg["logo"] = {"type": "none"}
     sep = {"angel": " ⛧ " if hell else " ♡ ", "stream": ": "}.get(style, "  ")
-    disp = {"separator": sep, "color": {"keys": sgr(accent), "title": sgr(title), "separator": sgr(dim)}}
+    # sizes with one decimal: "755.0 GiB / 927.5 GiB" (#63)
+    disp = {"separator": sep, "color": {"keys": sgr(accent), "title": sgr(title), "separator": sgr(dim)}, "size": {"ndigits": 1}}
     if keyw:
         disp["key"] = {"width": keyw}
     cfg["display"] = disp
+    # the processor and the video card get what's left of an 80-column terminal beside the
+    # picture and the key: a wrapped line tears the picture in two (#63)
+    left = 0
+    if logo:
+        left = logo[1] + pad["left"] + pad["right"]
+    for m in mods:
+        if isinstance(m, dict) and m.get("type") in ("cpu", "gpu") and m.get("format") in (CPU, GPU):
+            room = max(12, 80 - left - (keyw or len(m.get("key", "")) + len(sep)))
+            # (fastfetch would cut the tail off a placeholder: the model goes first, so ours)
+            long = m["format"] == CPU and CPU_NAME and len(CPU_NAME) > room
+            m["format"] = fit_name(CPU_NAME if long else m["format"], room)
     cfg["modules"] = mods
     return cfg
 
