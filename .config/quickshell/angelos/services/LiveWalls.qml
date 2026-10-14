@@ -13,8 +13,8 @@ import qs.config
 // it shows the scene upside down), a waterfall streams down, the picture's own lights twinkle.
 // Per picture the finding can be corrected: Config.wallpaper.liveOverrides[path] =
 // {sky: "auto"|"on"|"off", water: "auto"|"on"|"off", axis: 0..1 (the waterline)}.
-// `angelos liveWall status|on|off|analyze|glint|pebble|gust|eye|rings` (the events: that one now,
-// on every screen whose scene has it)
+// `angelos liveWall status|on|off|analyze|glint|pebble|gust|eye|rings|blink` (the events: that one
+// now, on every screen whose scene has it)
 Singleton {
     id: root
 
@@ -24,7 +24,7 @@ Singleton {
     property int version: 0
 
     readonly property bool on: Config.wallpaper.live && !Motion.still
-    // a rare event now (widgets/LiveWall): 1 glint, 2 pebble, 3 gust, 4 eye, 5 rings
+    // a rare event now (widgets/LiveWall): 1 glint, 2 pebble, 3 gust, 4 eye, 5 rings, 6 blink
     signal poke(int kind)
 
     // what is known about a picture: null while it is being looked at
@@ -119,7 +119,8 @@ Singleton {
             "water": hasWater,
             "lights": i.lights || 0,
             "glints": hasWater ? i.glints || 0 : 0,
-            "alive": (hasSky && night >= 0.3) || hasWater || (i.lights || 0) > 0
+            // the author's hints (snow, a garland, screens…) live in any picture, even a room's
+            "alive": (hasSky && night >= 0.3) || hasWater || (i.lights || 0) > 0 || !!i.extras
         };
     }
     // one line for Settings and `angelos liveWall status`
@@ -147,6 +148,8 @@ Singleton {
             parts.push(I18n.t("огоньков: ", "lights: ") + e.lights);
         if (e.glints)
             parts.push(I18n.t("бликов на воде: ", "glints on the water: ") + e.glints);
+        if (i.extras)
+            parts.push(I18n.t("эффекты автора: ", "the author's effects: ") + Object.keys(i.extras).join(", "));
         return parts.length ? parts.join(" · ") : I18n.t("ничего живого не нашлось", "nothing alive found");
     }
 }

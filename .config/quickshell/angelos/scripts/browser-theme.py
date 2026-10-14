@@ -268,6 +268,28 @@ def running(b):
     return bool(main_pids(b))
 
 
+def started_at(pid):
+    """When the process started, as Unix time (/proc: clock ticks since boot, btime: boot)."""
+    try:
+        ticks = int(Path("/proc/%d/stat" % pid).read_text().rsplit(")", 1)[1].split()[19])
+        btime = next(int(l.split()[1]) for l in open("/proc/stat") if l.startswith("btime"))
+    except (OSError, ValueError, IndexError, StopIteration):
+        return None
+    return btime + ticks / os.sysconf("SC_CLK_TCK")
+
+
+def stale(b):
+    """Open with old colours: its theme file (read at start) was rewritten after it started —
+    a theme switch (light/dark, heaven/hell) that shows only after a restart."""
+    f = THEME / "manifest.json" if b["kind"] == "chromium" else FF_CSS
+    pids = main_pids(b)
+    start = started_at(pids[0]) if pids else None
+    try:
+        return start is not None and f.stat().st_mtime > start + 2      # btime is whole seconds
+    except OSError:
+        return False
+
+
 def close_gently(b, timeout=30):
     """SIGTERM: Chromium ends the session as at logout — tabs saved, Preferences written.
     Returns how it was started (its flags, not the pages it was given), or None if it stayed."""
@@ -657,7 +679,7 @@ def status():
             continue
         s = chromium_status(b) if b["kind"] == "chromium" else firefox_status(b)
         s.update({"id": bid, "name": b["name"], "kind": b["kind"], "installed": True,
-                  "running": running(b), "undo": load_undo(bid, profile_dir(b)) is not None,
+                  "running": running(b), "stale": stale(b), "undo": load_undo(bid, profile_dir(b)) is not None,
                   "pending": subprocess.run(["systemctl", "--user", "is-active", "--quiet", waiter_unit(bid)],
                                             capture_output=True).returncode == 0})
         out.append(s)

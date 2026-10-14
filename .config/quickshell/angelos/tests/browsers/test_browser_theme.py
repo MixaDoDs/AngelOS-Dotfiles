@@ -157,6 +157,17 @@ class BrowserTheme(unittest.TestCase):
         self.assertEqual(self.prefs(self.other), PREFS)
         self.assertEqual(self.prefs(self.default), PREFS)
 
+    def test_stale_when_the_theme_changed_after_the_start(self):
+        theme = self.home / ".local/share/angelos/helium/theme/manifest.json"
+        theme.parent.mkdir(parents=True)
+        theme.write_text("{}")
+        os.utime(theme, (time.time() - 60, time.time() - 60))      # built before the start
+        self.start(self.prof)
+        self.assertFalse(self.helium_status()["stale"])
+        os.utime(theme, (time.time() + 10, time.time() + 10))      # a theme switch while it is open
+        s = self.helium_status()
+        self.assertTrue(s["running"] and s["stale"], s)
+
     def test_a_stale_lock_is_not_a_running_browser(self):
         # after a crash the lock stays: a dead pid, or a pid reused by something else
         for target in ("%s-%d" % (__import__("socket").gethostname(), 2 ** 22 + 7), "%s-%d" % (__import__("socket").gethostname(), os.getpid())):

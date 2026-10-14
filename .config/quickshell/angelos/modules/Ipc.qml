@@ -1005,7 +1005,7 @@ IpcHandler {
             Wallpapers.setForOutput(screen, path);
         return "ok";
     }
-    // half-alive wallpapers: `angelos liveWall status|on|off|analyze` (what the focused screen's
+    // half-alive wallpapers: `angelos liveWall status|on|off|analyze|<event>` (what the focused screen's
     // picture has; analyze looks at it again)
     function liveWall(cmd: string): string {
         const scr = Shell.focusedScreen ? Shell.focusedScreen.name : (Shell.screens[0] ? Shell.screens[0].name : "");
@@ -1023,10 +1023,10 @@ IpcHandler {
                 LiveWalls.reanalyze(p);
             return "ok " + p;
         }
-        else if (["glint", "pebble", "gust", "eye", "rings"].includes(cmd))
-            LiveWalls.poke(["glint", "pebble", "gust", "eye", "rings"].indexOf(cmd) + 1);
+        else if (["glint", "pebble", "gust", "eye", "rings", "blink"].includes(cmd))
+            LiveWalls.poke(["glint", "pebble", "gust", "eye", "rings", "blink"].indexOf(cmd) + 1);
         else if (cmd && cmd !== "status")
-            return "usage: liveWall status|on|off|analyze|reload <path>|glint|pebble|gust|eye|rings";
+            return "usage: liveWall status|on|off|analyze|reload <path>|glint|pebble|gust|eye|rings|blink";
         return (Config.wallpaper.live ? "on" : "off") + "  " + path + "\n" + LiveWalls.describe(path) + "\n" + JSON.stringify(LiveWalls.effective(path));
     }
     // pixel wallpapers: `angelos pixelWall status|on|off|size N|colors N|dither N` (any picture

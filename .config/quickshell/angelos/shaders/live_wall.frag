@@ -2,8 +2,9 @@
 // Half-alive wallpaper (widgets/LiveWall): the picture as it is, and a scene in it that lives
 // quietly, from the mask scripts/live-wall.py made of it — r the layer of every art pixel
 // (×32: 1 sky, 2 cloud, 3 a ring or another thing in the sky, 4 still water, 5 falling water,
-// 6 land), g a place within it (the water's depth, a fall's way down, the place round a ring),
-// b the picture's own bright points (lights in the sky, glints on the water). Everything sits
+// 6 land, 7 outdoors where only snow falls; the low bits: 1…3 a garland's bulb of that group,
+// 4…6 a CRT screen), g a place within it (the water's depth, a fall's way down, the place round
+// a ring), b the picture's own bright points (lights in the sky, glints on the water). Everything sits
 // on the art's pixel grid (`grid`: one art pixel and its offset, in the picture's pixels) and is
 // scaled by `strength` (0 = the picture). Nothing flickers fast: the eye is left alone.
 //
@@ -19,6 +20,10 @@
 //   3 a gust of wind ripples across the water
 //   4 an eye opens in a cloud, looks, closes  5 small rings spread on open water
 //   (4 and 5: Uriel's — the Ophanim, wheels full of eyes, are near, just out of the picture)
+//   6 the eye the picture's author pointed at blinks (its own clock: 90 s and more apart)
+// What the author's hints add (release 2002; all 0 for older pictures, nothing of it runs):
+// snow over the sky and outdoors, far fireworks on a night sky's dark, a garland's bulbs taking
+// turns, CRT glass breathing, a thread of smoke
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 
@@ -45,6 +50,12 @@ layout(std140, binding = 0) uniform buf {
     vec2 resolution;     // the item, px
     vec2 imgSize;        // the picture, px
     vec4 grid;           // xy one art pixel, zw the grid's offset (picture px)
+    vec4 lid;            // the eye that blinks (event 6): centre xy, radii zw, the picture's 0 … 1
+    vec4 fireworks;      // where a far firework may open (x0 y0 x1 y1, the picture's 0 … 1); 0: none
+    vec4 fireworks2;     // a second such place (the first again when there is one only)
+    vec4 smoke;          // xy where the smoke starts (0 … 1), z how high it rises (art px), w 1: on
+    float snow;          // 0 none … 1 thick: flakes over every layer but nothing (0)
+    float calm;          // 1: Motion.calm — gentler bulbs, no band crawling down the screens
 };
 layout(binding = 1) uniform sampler2D source;   // the picture as shown (cropped to the item)
 layout(binding = 2) uniform sampler2D mask;     // in the picture's own uv
@@ -55,6 +66,7 @@ const float THING = 3.0;
 const float WATER = 4.0;
 const float FALL = 5.0;
 const float LAND = 6.0;
+const float OUT = 7.0;     // outdoors where nothing else lives: snow falls over it
 
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -209,12 +221,90 @@ vec2 pebbleAt(vec2 start, float age, float k) {
     return start + vec2(floor(drift * age + 0.5), floor(0.5 * g * age * age + 0.5));
 }
 
+// snow: three sheets of flakes, far to near, one art pixel each, falling (and drifting with the
+// wind) a whole art pixel at a time; one flake to a block of a sheet, like newStars
+float snowAt(vec2 c) {
+    float a = 0.0;
+    for (int k = 0; k < 3; k++) {
+        float fk = float(k);
+        float slot = 13.0 - 3.0 * fk;                // a flake in 13, 10, 7 art pixels square
+        float speed = 2.0 + 1.5 * fk;                // art pixels a second: the near fall faster
+        vec2 q = c - floor(vec2(0.3 * speed * time, speed * time) + 0.5);
+        vec2 s = floor(q / slot);
+        if (hash(s * 1.3 + fk * 7.7 + seed) > snow)
+            continue;
+        vec2 h = hash2(s + fk * 19.7 + seed);
+        // it sways an art pixel to each side over seconds (it stays in its block: 1 … slot-2, ±1)
+        float sway = floor(1.2 * sin(time * (0.5 + 0.4 * h.y) + h.x * 6.283) + 0.5);
+        vec2 at = s * slot + 1.0 + floor(h * (slot - 2.0)) + vec2(sway, 0.0);
+        if (all(equal(q, at)))
+            a = max(a, 0.55 + 0.2 * fk);
+    }
+    return a;
+}
+
+// a firework far away, in `area`: one clock of `P` seconds; in a slot, one chance in 2.5, a small
+// ring of dots (10…14 of them, 5…9 art pixels out) opens on the dark of the sky, droops, goes out
+// dot by dot. It comes up over a quarter of a second (no flash), and the whole of it is a few dots
+vec3 firework(vec2 c, float P, float salt, vec4 area) {
+    float n = floor(time / P);
+    vec2 r1 = hash2(vec2(n, seed + salt));
+    if (r1.x > 0.4)
+        return vec3(0.0);
+    float dur = 2.2;
+    float a = (time - n * P - r1.y * (P - dur)) / dur;
+    if (a < 0.0 || a > 1.0)
+        return vec3(0.0);
+    vec2 r2 = hash2(vec2(n + 0.37, seed + salt + 4.0));
+    vec2 o = cellOf(mix(area.xy, area.zw, r2));
+    float R = 5.0 + 4.0 * fract(r1.x * 13.7);
+    vec2 d = c - o - vec2(0.0, floor(3.0 * a * a + 0.5));    // the dots droop
+    if (any(greaterThan(abs(d), vec2(R + 1.0))) || (d.x == 0.0 && d.y == 0.0))
+        return vec3(0.0);
+    vec2 ou = cellUv(o);
+    if (layerAt(ou) != SKY || lum(pictureAt(ou)) > 0.3 || texture(mask, ou).b > 0.0)
+        return vec3(0.0);
+    float rad = R * (1.0 - (1.0 - a) * (1.0 - a));            // fast out, slowing
+    float N = 10.0 + 2.0 * floor(r2.x * 2.99);
+    float rot = r2.y * 6.283;
+    float k = floor((atan(d.y, d.x) - rot) / 6.283 * N + 0.5);
+    float th = rot + k * 6.283 / N;
+    vec2 dir = vec2(cos(th), sin(th));
+    float hit = all(equal(d, floor(dir * rad + 0.5))) ? 1.0 : all(equal(d, floor(dir * rad * 0.55 + 0.5))) ? 0.45 : 0.0;
+    if (a > 0.6 && hash(vec2(k, n + salt)) < (a - 0.6) * 2.5)
+        hit = 0.0;
+    float env = smoothstep(0.0, 0.12, a) * (1.0 - smoothstep(0.45, 1.0, a));
+    // the release's colours: pink, soft gold, turquoise, coral (no const arrays: GL 1.20)
+    float p = fract(r1.x * 7.1 + r2.y * 3.3);
+    vec3 tint = p < 0.25 ? vec3(1.0, 0.5, 0.69) : p < 0.5 ? vec3(1.0, 0.91, 0.66) : p < 0.75 ? vec3(0.37, 0.78, 0.75) : vec3(1.0, 0.35, 0.43);
+    return tint * hit * env;
+}
+
+// a thread of smoke from `smoke.xy`: one art pixel wide (two near the top), swaying more the
+// higher it gets, broken into wisps that drift up; fainter as it rises. 0 … 1
+float smokeAt(vec2 c) {
+    vec2 s = cellOf(smoke.xy);
+    float up = s.y - c.y;
+    if (up < 0.0 || up >= smoke.z || abs(c.x - s.x) > 8.0)
+        return 0.0;
+    float h = up / smoke.z;
+    float sway = (0.4 + 3.5 * h * h) * sin(up * 0.22 - time * 1.1) + 2.0 * h * (noise(vec2(up * 0.08 - time * 0.25, seed)) - 0.5);
+    float dx = c.x - (s.x + floor(sway + 0.5));
+    if (!(dx == 0.0 || (h > 0.6 && dx == 1.0)))
+        return 0.0;
+    float wisp = floor(smoothstep(0.3, 0.65, noise(vec2(c.x * 0.3, (up - time * 4.0) * 0.18) + seed)) * 3.0) / 3.0;
+    return (1.0 - h) * (0.35 + 0.65 * wisp);
+}
+
 void main() {
     vec2 iu = toImg(qt_TexCoord0);
     vec2 c = cellOf(iu);
     vec2 cu = cellUv(c);
     float lay = layerAt(cu);
     vec4 m = texture(mask, cu);
+    // what a hint marked here (R's low bits: 0 in older masks): 1…3 a bulb, 4…6 a screen
+    float r8 = floor(m.r * 255.0 + 0.5);
+    float code = r8 - 32.0 * floor(r8 / 32.0 + 0.5);
     vec2 at = iu;
     float gate = smoothstep(0.3, 0.7, night);
 
@@ -250,7 +340,7 @@ void main() {
     }
 
     // the shadows of clouds drift over what is under the sky, in three steps of shade
-    if (lay >= WATER) {
+    if (lay >= WATER && lay < OUT) {
         float n = noise(c * vec2(0.022, 0.06) + vec2(time * 0.035, time * 0.006) + seed);
         float shade = floor(smoothstep(0.5, 0.85, n) * 3.0) / 3.0;
         col.rgb *= 1.0 - shade * strength * mix(0.2, 0.1, night);
@@ -262,7 +352,8 @@ void main() {
         col.rgb *= 1.0 + m.b * strength * (0.5 * pulse - 0.18);
     }
     // the sky's own lights (stars, windows) glimmer, slowly
-    if (lay == SKY && lights > 0.5 && m.b > 0.0) {
+    // (a bulb in the sky has its own rhythm, below)
+    if (lay == SKY && lights > 0.5 && m.b > 0.0 && code < 0.5) {
         vec2 b = floor(c / 4.0);
         float f = sin(time * (0.3 + 0.5 * hash(b + 1.0)) + hash(b) * 6.283);
         col.rgb *= 1.0 + m.b * strength * (0.3 * f - 0.08);
@@ -334,6 +425,56 @@ void main() {
             if (rk > 0.0 && rk < 16.0 && abs(r - rk) < 0.75)
                 col.rgb += strength * fade * (1.0 - 0.6 * rk / 16.0) * (0.42 - 0.1 * float(k)) * light * (0.6 + 0.8 * l);
         }
+    }
+    // a garland: three groups of bulbs take turns, each swelling and dimming over 4.5 s (an old
+    // chaser, smooth, never on/off)
+    if (code > 0.5 && code < 3.5)
+        col.rgb *= 1.0 + strength * (calm > 0.5 ? 0.18 : 0.35) * sin(time * 1.396 - code * 2.094);
+    // a CRT's glass breathes a few per cent, slowly; a dim band two pixels high crawls down it
+    if (code > 3.5 && code < 6.5) {
+        float k = code - 4.0;
+        float breath = 0.03 * sin(time * (0.9 + 0.3 * k) + k * 2.1) + 0.02 * (2.0 * noise(vec2(time * 0.5, k * 7.0)) - 1.0);
+        float band = calm > 0.5 ? 0.0 : (mod(c.y - floor(time * 3.0) + k * 13.0, 46.0) < 2.0 ? 0.06 : 0.0);
+        col.rgb *= 1.0 + strength * (breath - band);
+    }
+    // the smoke of a cigarette, a cup, a chimney
+    if (smoke.w > 0.5) {
+        float a = smokeAt(c);
+        if (a > 0.0)
+            col.rgb = mix(col.rgb, mix(vec3(0.78, 0.76, 0.88), vec3(0.55, 0.52, 0.68), night), strength * 0.5 * a);
+    }
+    // far fireworks: two clocks, so never more than two at once, on the dark of a night sky only
+    if (fireworks.z > fireworks.x && gate > 0.0 && lay == SKY) {
+        vec4 area2 = fireworks2.z > fireworks2.x ? fireworks2 : fireworks;
+        vec3 fw = firework(c, 9.0, 0.0, fireworks) + firework(c, 14.0, 31.0, area2);
+        col.rgb += fw * 0.45 * strength * gate * (1.0 - smoothstep(0.3, 0.45, l));
+    }
+    // the eye blinks (event 6): the upper lid comes down over 0.4 s, the lower one up a little,
+    // and they part over half a second; the lid is the colour just over the eye, its edge darker
+    if (event > 5.5 && event < 6.5) {
+        vec2 e = cellOf(lid.xy);
+        vec2 r = max(vec2(2.0), floor(lid.zw * imgSize / grid.xy + 0.5));
+        vec2 d = c - e;
+        float qx = d.x / r.x;
+        float span = r.y * sqrt(max(0.0, 1.0 - qx * qx));
+        float shut = smoothstep(0.0, 0.4, eventAge) * (1.0 - smoothstep(0.55, 1.05, eventAge));
+        if (abs(qx) <= 1.0 && abs(d.y) <= span && shut > 0.02) {
+            float yu = floor(-span + 1.3 * span * shut + 0.5);
+            float yl = floor(span - 0.75 * span * shut + 0.5);
+            if (d.y < yu || d.y > yl) {
+                // one colour for the whole lid (taken per column it came out striped)
+                vec3 skin = pictureAt(cellUv(e - vec2(0.0, r.y + 1.0)));
+                vec3 lidc = (d.y == yu - 1.0 || d.y == yl + 1.0) ? skin * 0.55 : skin * 0.9;
+                col.rgb = mix(col.rgb, lidc, clamp(strength * 2.0, 0.0, 1.0));
+            }
+        }
+    }
+    // snow last, in front of everything but nothing (a room's walls are 0: none there; its
+    // window, painted sky or outdoors, shows it)
+    if (snow > 0.0 && lay > 0.5) {
+        float a = snowAt(c);
+        if (a > 0.0)
+            col.rgb = mix(col.rgb, mix(vec3(0.91, 0.89, 0.94), vec3(0.72, 0.69, 0.82), 0.6 * night), a * strength);
     }
     fragColor = vec4(clamp(col.rgb, 0.0, 1.0), 1.0) * qt_Opacity;
 }

@@ -532,7 +532,7 @@ JsonAdapter {
         property int quietTo: 8
         property bool boot: true            // CD-ROM style loading screen once per login
         property var bootScreens: []        // empty = every screen
-        property string soundPack: "y2k"    // y2k (synthesised here) | overdose (NEEDY GIRL OVERDOSE sounds, downloaded on first use)
+        property string soundPack: "y2k"    // y2k (synthesised here) | overdose (NEEDY GIRL OVERDOSE sounds, downloaded on first use) | pc2k («Нулевые», data/sounds/pc2k)
         property bool cuteSounds: true      // overdose pack: little sounds on cute actions (Start, toggles, screenshots…)
         // angel ↔ demon (services/Angel): who lives in the corner
         property string character: "angel"  // angel | demon

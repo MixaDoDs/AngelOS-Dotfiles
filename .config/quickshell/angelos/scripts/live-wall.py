@@ -9,7 +9,10 @@ layer per art pixel
 
     R  the layer, ×32: 1 sky (stars come out, a star falls), 2 a cloud, 3 a thing in the sky (a
        ring, a moon: a glint runs over it), 4 still water (a lake, a sea), 5 falling water,
-       6 land under an open horizon (rocks, a shore: clouds' shadows pass over it); 0 nothing
+       6 land under an open horizon (rocks, a shore: clouds' shadows pass over it), 7 outdoors
+       where nothing else lives (painted only: snow falls over it); 0 nothing. The low bits
+       (R mod 32, 0 in every older mask) say what a hint put there: 1…3 a garland's bulb of
+       group 0…2, 4…6 a CRT screen (its number mod 3)
     G  within the layer: the water's depth from its line 0…1, a fall's way down from its top,
        the place round a ring 0…1
     B  small bright points already in the picture: in the sky lights (stars, lit windows)
@@ -32,10 +35,17 @@ Hints the author ships next to a picture (<name>.scene.json) say what a look can
                                           water, glint, pebble, gust, eye, rings (widgets/LiveWall)
     "night": 0…1, "axis": 0…1, "mirror"   how dark the sky is (stars from 0.5), the waterline,
                                           whether the water shows the scene upside down
+    "snow": 0…1                           how thick snow falls over the sky and outdoors
+    "fireworks": [[x0, y0, x1, y1], …]    up to two places where a far firework may open (night)
+    "bulbs": [[x, y, r, group], …]        a garland's bulbs: centre 0…1, r in art pixels, group 0…2
+    "screens": [[x0, y0, x1, y1], …]      CRT screens: their glass breathes
+    "smoke": [x, y, height]               a thread of smoke rising from x, y, height art pixels
+    "blink": [cx, cy, rx, ry]             an eye that blinks now and then (0…1)
 
 The JSON: {mask, size: [w, h] of the picture, grid: [cell w, cell h, offset x, offset y] of one
 art pixel in the picture's pixels (cell 1 = a photo), pixelArt, sky: {found, night, area},
-water: {found, axis, mirror, area, falls}, lights, glints, scene: {outdoor, rims, objects}}.
+water: {found, axis, mirror, area, falls}, lights, glints, scene: {outdoor, rims, objects}}; and,
+only when the hints have them, extras: {snow, fireworks, smoke, blink, bulbs: n, screens: n}.
 rims are where a pebble may break off (land over a fall or the dark), eyes where an eye may
 open deep in a cloud; picture 0…1. axis is the waterline (0 top … 1 bottom);
 mirror = the water shows the scene upside down, so the sky's stars are drawn there too.
@@ -67,7 +77,7 @@ import numpy as np
 from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = None
-VERSION = 13
+VERSION = 14
 MAX_W = 960          # the mask is never wider than this
 
 
@@ -407,10 +417,10 @@ def mirror_axis(L, unit):
     return best_a, best
 
 
-L_SKY, L_CLOUD, L_THING, L_WATER, L_FALL, L_LAND = 1, 2, 3, 4, 5, 6
+L_SKY, L_CLOUD, L_THING, L_WATER, L_FALL, L_LAND, L_OUT = 1, 2, 3, 4, 5, 6, 7
 # the painted layers' colours (hints "paint"; the scene editor draws with these): layer → RGB
 PAINT = {0: (40, 40, 48), L_SKY: (74, 108, 255), L_CLOUD: (255, 143, 200), L_THING: (255, 210, 74),
-         L_WATER: (40, 220, 190), L_FALL: (220, 80, 220), L_LAND: (150, 110, 60)}
+         L_WATER: (40, 220, 190), L_FALL: (220, 80, 220), L_LAND: (150, 110, 60), L_OUT: (200, 236, 255)}
 
 
 def paint_of(hints, w, h):
@@ -449,6 +459,78 @@ def points_of(hints, key):
         except (TypeError, ValueError, IndexError):
             pass
     return out
+
+
+def numbers(v, n):
+    """v as a list of n floats, or None (missing, short, not numbers)."""
+    try:
+        out = [float(x) for x in v[:n]]
+    except (TypeError, ValueError):
+        return None
+    return out if len(out) == n else None
+
+
+def rects_of(hints, key, most):
+    """[[x0, y0, x1, y1], …] in 0…1 (ordered, empty ones dropped), at most `most`; a single
+    flat rect is taken too."""
+    v = hints.get(key)
+    if not isinstance(v, list):
+        return []
+    if v and not isinstance(v[0], list):
+        v = [v]
+    out = []
+    for q in v:
+        r = numbers(q, 4)
+        if r is None:
+            continue
+        x0, y0, x1, y1 = (min(1.0, max(0.0, x)) for x in r)
+        x0, x1, y0, y1 = min(x0, x1), max(x0, x1), min(y0, y1), max(y0, y1)
+        if x1 > x0 and y1 > y0:
+            out.append([round(x0, 4), round(y0, 4), round(x1, 4), round(y1, 4)])
+    return out[:most]
+
+
+def extras_of(hints, w, h):
+    """The 2002 hints: (codes (h, w) uint8 for R's low bits, the JSON's extras or None)."""
+    codes = np.zeros((h, w), dtype=np.uint8)
+    ex = {}
+    snow = hints.get("snow")
+    if isinstance(snow, (int, float)) and snow > 0:
+        ex["snow"] = round(min(1.0, float(snow)), 3)
+    fw = rects_of(hints, "fireworks", 2)
+    if fw:
+        ex["fireworks"] = fw
+    # the screens first: a bulb over a screen's edge stays a bulb
+    screens = rects_of(hints, "screens", 64)
+    for i, (x0, y0, x1, y1) in enumerate(screens):
+        codes[int(round(y0 * h)):max(int(round(y1 * h)), int(round(y0 * h)) + 1),
+              int(round(x0 * w)):max(int(round(x1 * w)), int(round(x0 * w)) + 1)] = 4 + i % 3
+    if screens:
+        ex["screens"] = len(screens)
+    # a bulb: the cells within r art pixels of the cell its centre is in (round on the grid; r ≥ 1:
+    # at least a plus); shortcut: r counts mask cells, which are art pixels unless the art was
+    # wider than MAX_W
+    ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
+    n = 0
+    bulbs = hints.get("bulbs")
+    for q in bulbs if isinstance(bulbs, list) else []:
+        b = numbers(q, 4)
+        if b is None:
+            continue
+        r = min(10.0, max(1.0, b[2]))
+        disc = (xs - np.floor(b[0] * w)) ** 2 + (ys - np.floor(b[1] * h)) ** 2 <= r * r
+        if disc.any():
+            codes[disc] = 1 + int(min(2, max(0, b[3])))
+            n += 1
+    if n:
+        ex["bulbs"] = n
+    s = numbers(hints.get("smoke") or [], 3)
+    if s is not None and s[2] >= 1:
+        ex["smoke"] = [round(min(1.0, max(0.0, s[0])), 4), round(min(1.0, max(0.0, s[1])), 4), int(min(200, s[2]))]
+    e = numbers(hints.get("blink") or [], 4)
+    if e is not None and e[2] > 0 and e[3] > 0:
+        ex["blink"] = [round(min(1.0, max(0.0, x)), 4) for x in e]
+    return codes, ex or None
 
 
 def hints_of(path):
@@ -874,7 +956,12 @@ def analyze(path, debug=None, hints=None):
     effects = {k: bool(v) for k, v in (hints.get("effects") or {}).items() if isinstance(v, bool)}
     # no alpha: Qt premultiplies it, and a zero would wipe the other three
     rgb = np.stack([layer.astype(np.float32) * 32 / 255, param, np.maximum(lights, glints)], -1)
-    mask = Image.fromarray((np.clip(rgb, 0, 1) * 255).astype(np.uint8), "RGB")
+    px = (np.clip(rgb, 0, 1) * 255).astype(np.uint8)
+    # what the 2002 hints put in a cell rides in R's low bits: the layer reads the same
+    codes, extras = extras_of(hints, w, h)
+    marked = codes > 0
+    px[..., 0][marked] = layer[marked] * 32 + codes[marked]
+    mask = Image.fromarray(px, "RGB")
     info = {
         "version": VERSION,
         "size": list(size),
@@ -891,6 +978,8 @@ def analyze(path, debug=None, hints=None):
         "effects": effects,
         "painted": bool(painted.any()),
     }
+    if extras:
+        info["extras"] = extras
     if debug:
         dim = A * 0.35 * 255
 

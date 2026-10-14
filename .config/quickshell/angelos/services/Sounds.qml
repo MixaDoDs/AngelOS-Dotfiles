@@ -6,10 +6,13 @@ import Quickshell.Io
 import Quickshell.Services.UPower
 import qs.config
 
-// angelOS sounds, Settings → Y2K → Sounds. Two packs:
+// angelOS sounds, Settings → Y2K → Sounds. Three packs:
 //   y2k       synthesised by scripts/y2k-sounds.py into ~/.local/share/angelos/sounds/y2k
 //   overdose  NEEDY GIRL OVERDOSE (Windose) sounds, fetched on first use by
 //             scripts/sound-pack.py into …/sounds/overdose
+//   pc2k      «Нулевые», a home PC of 2002: shipped in data/sounds/pc2k (scripts/pc2k-sounds.py,
+//             synthesised tones + CC0 recordings), yours of the same name in …/sounds/pc2k first
+// A pack without a file for an event (and every effect below) plays the Y2K one.
 // Events: startup notify error click shutdown angel wallpaper, a USB device plugged in
 // or out (usbIn usbOut: scripts/usb-watch.py, a hub's burst plays once), the "cute" ones
 // (open toggle screenshot volume windowClose — Config.y2k.cuteSounds), the
@@ -140,7 +143,8 @@ Singleton {
     readonly property string packVersion: "12"
     readonly property string base: Config.home + "/.local/share/angelos/sounds"
     readonly property string dir: base + "/y2k"
-    readonly property string pack: Config.y2k.soundPack === "overdose" ? "overdose" : "y2k"
+    readonly property string pack: ["overdose", "pc2k"].includes(Config.y2k.soundPack) ? Config.y2k.soundPack : "y2k"
+    readonly property var pc2kDirs: [base + "/pc2k", Quickshell.shellDir + "/data/sounds/pc2k"]
     property bool ready: false               // the synthesised pack is complete
     property bool overdoseReady: false
     property string overdoseError: ""
@@ -344,17 +348,22 @@ Singleton {
         const overdose = pack === "overdose" && !effects.includes(id);
         if (overdose && !overdoseReady && !fetch.running && !checkOverdose.running)
             fetch.running = true;
-        const first = overdose ? base + "/overdose" : dir;
+        const first = overdose ? base + "/overdose" : pack === "pc2k" && !effects.includes(id) ? pc2kDirs[1] : dir;
         sounded(name);
         if (_out(vol, _packPaths(id)))
             return;
         Quickshell.execDetached(["sh", "-c", 'f="$1/$3.ogg"; [ -f "$f" ] || f="$2/$3.ogg"; [ -f "$f" ] || f="$2/$3.wav"; exec pw-play --volume "$4" "$f"', "sh", first, dir, id, vol]);
     }
 
-    // where a pack sound may be: the Windose file first when that pack is picked, the synthesised one
+    // where a pack sound may be: the picked pack's file first (Windose, or «Нулевые»: yours, then
+    // the shipped one), the synthesised one
     function _packPaths(id) {
         const own = [dir + "/" + id + ".ogg", dir + "/" + id + ".wav"];
-        return pack === "overdose" && !effects.includes(id) ? [base + "/overdose/" + id + ".ogg"].concat(own) : own;
+        if (effects.includes(id))
+            return own;
+        if (pack === "pc2k")
+            return pc2kDirs.map(d => d + "/" + id + ".ogg").concat(own);
+        return pack === "overdose" ? [base + "/overdose/" + id + ".ogg"].concat(own) : own;
     }
 
     // the pack must be there before something plays it without _play() (the pips)

@@ -47,6 +47,7 @@ LAYERS = [
     (LW.L_WATER, "water", "Вода", "рябь, блики, отражение, круги"),
     (LW.L_FALL, "fall", "Водопад", "струи бегут вниз"),
     (LW.L_LAND, "land", "Земля", "по ней идут тени облаков"),
+    (LW.L_OUT, "out", "Улица", "больше ничего не живёт; идёт снег, если он задан"),
 ]
 LAYER_BY_KEY = {k: i for i, k, *_ in LAYERS}
 LAYER_KEY = {i: k for i, k, *_ in LAYERS}

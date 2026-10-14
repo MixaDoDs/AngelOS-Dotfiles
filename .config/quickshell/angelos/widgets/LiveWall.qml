@@ -11,7 +11,9 @@ import qs.services
 // Every 12–35 s one rare event (shaders/live_wall.frag): a glint over a ring in the sky, a
 // pebble off the edge, a gust over the water, an eye opening in a cloud (night), rings on open
 // water — what the scene has; with music playing it waits for the
-// next kick of the bass (services/LiveBeat).
+// next kick of the bass (services/LiveBeat). An eye the author pointed at ("blink") blinks on
+// its own slow clock. The author's other hints (snow, fireworks, a garland, CRT screens, smoke:
+// info.extras) are drawn all the time; Motion.calm keeps the fireworks off and the rest gentler.
 ShaderEffect {
     id: root
 
@@ -83,7 +85,7 @@ ShaderEffect {
             k.push(5);
         return k;
     }
-    readonly property var lengths: [0, 5, 3, 6, 6, 6]
+    readonly property var lengths: [0, 5, 3, 6, 6, 6, 1.2]
     property int last: 0
     property real event: 0
     property real eventStart: 0
@@ -95,7 +97,9 @@ ShaderEffect {
         event = 0
     function begin(want) {
         asked = false;
-        if (!running || kinds.length === 0 || (want && !kinds.includes(want)))
+        // the blink (6) is never one of the random ones: its own clock, below
+        const can = want === 6 ? !!extras.blink : kinds.length > 0 && (!want || kinds.includes(want));
+        if (!running || !can)
             return;
         const pool = kinds.length > 1 ? kinds.filter(k => k !== last) : kinds;
         const k = want || pool[Math.floor(Math.random() * pool.length)];
@@ -132,6 +136,18 @@ ShaderEffect {
         }
     }
 
+    // the eye blinks rarely: 90–180 s apart, and not over another event
+    Timer {
+        interval: 90000 + Math.random() * 90000
+        repeat: true
+        running: root.running && !!root.extras.blink && Config.wallpaper.liveEvents
+        onTriggered: {
+            interval = 90000 + Math.random() * 90000;
+            if (root.event === 0)
+                root.begin(6);
+        }
+    }
+
     Image {
         id: maskImg
         source: root.maskUrl
@@ -143,6 +159,7 @@ ShaderEffect {
     }
 
     readonly property var info: LiveWalls.info(path) || ({})
+    readonly property var extras: info.extras || ({})
     property var source: picture
     property var mask: maskImg
     property real strength: Config.wallpaper.liveStrength / 100 * fade
@@ -160,5 +177,16 @@ ShaderEffect {
     property size resolution: Qt.size(width, height)
     property size imgSize: info.size ? Qt.size(info.size[0], info.size[1]) : Qt.size(width, height)
     property vector4d grid: info.grid ? Qt.vector4d(info.grid[0], info.grid[1], info.grid[2], info.grid[3]) : Qt.vector4d(1, 1, 0, 0)
+    // the author's hints (all 0 when there are none: the shader skips them)
+    function rect(r) {
+        return r ? Qt.vector4d(r[0], r[1], r[2], r[3]) : Qt.vector4d(0, 0, 0, 0);
+    }
+    property vector4d lid: rect(extras.blink)
+    // fireworks are flashes, however dim: none in calm
+    property vector4d fireworks: Motion.calm ? rect(null) : rect((extras.fireworks || [])[0])
+    property vector4d fireworks2: Motion.calm ? rect(null) : rect((extras.fireworks || [])[1])
+    property vector4d smoke: extras.smoke ? Qt.vector4d(extras.smoke[0], extras.smoke[1], extras.smoke[2], 1) : Qt.vector4d(0, 0, 0, 0)
+    property real snow: extras.snow || 0
+    property real calm: Motion.calm ? 1 : 0
     fragmentShader: Qt.resolvedUrl("../shaders/live_wall.frag.qsb")
 }

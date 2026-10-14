@@ -183,7 +183,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Набор", "Sound pack")
-            hint: I18n.t("новые звуки (клавиши, столы, блокировка) в Overdose берутся из Y2K", "The newer ones (keys, desks, the lock) come from Y2K in Overdose")
+            hint: Config.y2k.soundPack === "pc2k" ? I18n.t("домашний ПК 2002 года: мышь с шариком, дисковод, CD-привод, мыльница, винчестер, писк спикера", "A home PC of 2002: a ball mouse, the floppy drive, the CD tray, a disposable camera, the hard disk, the PC speaker") : I18n.t("новые звуки (клавиши, столы, блокировка) в Overdose берутся из Y2K", "The newer ones (keys, desks, the lock) come from Y2K in Overdose")
             PxSegmented {
                 model: [
                     {
@@ -193,6 +193,10 @@ PxPage {
                     {
                         "label": "Overdose ♡",
                         "value": "overdose"
+                    },
+                    {
+                        "label": I18n.t("Нулевые", "2000s PC"),
+                        "value": "pc2k"
                     }
                 ]
                 currentValue: Config.y2k.soundPack

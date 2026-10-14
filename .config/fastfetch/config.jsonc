@@ -17,31 +17,34 @@
   "display": {
     "separator": ": ",
     "color": {
-      "keys": "38;2;255;179;224",
-      "title": "38;2;179;224;255",
-      "separator": "38;2;203;196;224"
+      "keys": "38;2;89;125;179",
+      "title": "38;2;145;168;204",
+      "separator": "38;2;180;181;183"
+    },
+    "size": {
+      "ndigits": 1
     }
   },
   "modules": [
     {
       "type": "title",
-      "format": "{#1;38;2;179;224;255}{user-name}{#} {#38;2;203;196;224}стримит с {host-name}{#}"
+      "format": "{#1;38;2;145;168;204}{user-name}{#} {#38;2;180;181;183}стримит с {host-name}{#}"
     },
     {
       "type": "custom",
-      "format": "{#38;2;203;196;224}── чат ────────────────────────{#}"
+      "format": "{#38;2;180;181;183}── чат ────────────────────────{#}"
     },
     {
       "type": "cpu",
       "key": "cpu_enjoyer",
       "keyColor": "1;38;2;79;195;247",
-      "format": "{name}"
+      "format": "{name:19}"
     },
     {
       "type": "gpu",
       "key": "rtx_tyan",
       "keyColor": "1;38;2;186;104;200",
-      "format": "{name}"
+      "format": "{name:22}"
     },
     {
       "type": "memory",
@@ -75,7 +78,7 @@
     },
     {
       "type": "custom",
-      "format": "{#38;2;203;196;224}── суперчаты ──────────────────{#}"
+      "format": "{#38;2;180;181;183}── суперчаты ──────────────────{#}"
     },
     {
       "type": "command",
@@ -100,7 +103,7 @@
     {
       "type": "command",
       "key": " ",
-      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{#1;38;2;225;219;146}♡ донатов на сетап: {total}{#}' --lang ru --total --zero"
+      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{#1;38;2;211;197;126}♡ донатов на сетап: {total}{#}' --lang ru --total --zero"
     }
   ]
 }

@@ -199,13 +199,13 @@ PxPage {
                     else if (!chromium)
                         s = (b.static ? I18n.t("тема angelOS включена (userChrome.css): панели и вкладки в цветах рая или ада, Firefox читает их при запуске." + (b.running ? " Перезапусти Firefox, чтобы увидеть" : ""), "angelOS's theme is on (userChrome.css): toolbars and tabs in heaven's or hell's colours, read when Firefox starts." + (b.running ? " Restart Firefox to see it" : "")) : I18n.t("«Включить тему angelOS» — панели и вкладки Firefox в цветах рая или ада (userChrome.css в профиле, с копией и откатом; читается при запуске). Меню и кнопки окна и так следуют GTK на лету", "“Turn on angelOS's theme”: Firefox's toolbars and tabs in heaven's or hell's colours (userChrome.css in the profile, with a copy and undo; read at start). Menus and window buttons follow GTK live anyway")) + (b.live ? "" : I18n.t(". Сейчас у Firefox своя тема: чтобы он следовал GTK — about:addons → Темы → «Системная тема — авто»", ". Firefox has a theme of its own now: to follow GTK, about:addons → Themes → “System theme — auto”"));
                     else if (b.tabs)
-                        s = I18n.t("тема angelOS с заметной вкладкой: открытая вкладка светлая, остальные тёмные. Цвета " + n + " читает при запуске" + (b.running && b.live ? " — появится после его перезапуска" : "") + "; цвет — строкой выше. «Следовать теме angelOS» вернёт смену на лету, но без выделения вкладки", "angelOS's theme with a visible tab: the open tab is light, the others dark. " + n + " reads the colours when it starts" + (b.running && b.live ? " — it shows after a restart" : "") + "; the colour is the row above. “Follow angelOS's theme” brings back live switching, without the tab standing out");
+                        s = I18n.t("тема angelOS с заметной вкладкой: открытая вкладка светлая, остальные тёмные. Цвета " + n + " читает при запуске" + (b.stale ? " — тема сменилась, " + n + " ещё в старых цветах: новые будут, когда закроешь и откроешь его (или «Перезапустить сейчас»)" : "") + "; цвет — строкой выше. «Следовать теме angelOS» вернёт смену на лету, но без выделения вкладки", "angelOS's theme with a visible tab: the open tab is light, the others dark. " + n + " reads the colours when it starts" + (b.stale ? " — the theme changed, " + n + " still has the old colours: the new ones come when you close and open it (or “Restart now”)" : "") + "; the colour is the row above. “Follow angelOS's theme” brings back live switching, without the tab standing out");
                     else if (b.live)
                         s = Angel.hellShown ? I18n.t("в режиме «GTK»: цвета и кнопки окна angelOS, рай и ад — сразу", "In GTK mode: angelOS colours and window buttons, heaven and hell at once") : I18n.t("в режиме «GTK»: цвета и кнопки окна angelOS — сразу", "In GTK mode: angelOS colours and window buttons at once");
                     else if (b.pending)
                         s = I18n.t("включу, как закроешь " + n + ". Или «Перезапустить сейчас» — вкладки вернутся", "On as soon as you close " + n + ". Or “Restart now”: the tabs come back");
                     else if (b.static)
-                        s = I18n.t("тема-расширение angelOS загружена: цвета подхватываются при каждом запуске. Чтобы рай и ад менялись на лету — «Следовать теме angelOS»", "The angelOS theme extension is loaded: its colours apply each time it starts. For heaven and hell to switch live: “Follow angelOS's theme”");
+                        s = I18n.t("тема-расширение angelOS загружена: цвета подхватываются при каждом запуске." + (b.stale ? " Тема сменилась — перезапусти " + n + ", чтобы увидеть." : "") + " Чтобы рай и ад менялись на лету — «Следовать теме angelOS»", "The angelOS theme extension is loaded: its colours apply each time it starts." + (b.stale ? " The theme changed: restart " + n + " to see it." : "") + " For heaven and hell to switch live: “Follow angelOS's theme”");
                     else
                         s = I18n.t("«Следовать теме angelOS» — " + n + " меняет цвета вместе с системой (его тема «GTK»; профиль правлю только по кнопке, с копией и откатом). Или тема-расширение: " + (b.id === "helium" ? "helium" : "chrome") + "://extensions → Режим разработчика → «Загрузить распакованное» → папка ниже (цвета обновляются при запуске)", "“Follow angelOS's theme”: " + n + " changes colours with the system (its “GTK” theme; I edit the profile only by this button, with a copy and undo). Or the theme extension: " + (b.id === "helium" ? "helium" : "chrome") + "://extensions → Developer mode → “Load unpacked” → the folder below (colours refresh at start)");
                     return failed ? s + I18n.t(". Не вышло: ", ". Didn't work: ") + failed : s;
@@ -243,12 +243,13 @@ PxPage {
                             onClicked: browserAct.go(browserRow.b.id, "tabs", "")
                         }
                         PxButton {
-                            visible: browserRow.asking || (browserRow.chromium && browserRow.b.pending)
+                            // also the look "tabs" with old colours (b.stale): the restart takes the new ones
+                            visible: browserRow.asking || (browserRow.chromium && (browserRow.b.pending || (browserRow.b.tabs && browserRow.b.stale)))
                             compact: true
                             accent: true
                             icon: "refresh"
                             text: I18n.t("Перезапустить сейчас", "Restart now")
-                            onClicked: browserAct.go(browserRow.b.id, browserRow.asking ? browserAct.askVerb : "apply", "restart")
+                            onClicked: browserAct.go(browserRow.b.id, browserRow.asking ? browserAct.askVerb : browserRow.b.pending ? "apply" : "tabs", "restart")
                         }
                         PxButton {
                             visible: browserRow.asking
@@ -300,6 +301,13 @@ PxPage {
                         }
                     }
                 }
+            }
+        }
+        // a theme switch rewrites the theme files: ask again whether an open browser has old colours
+        Connections {
+            target: ThemeExport
+            function onRenderedChanged() {
+                browserStatus.running = true;
             }
         }
         Process {
