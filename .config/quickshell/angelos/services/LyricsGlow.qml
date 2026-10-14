@@ -4,6 +4,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Pipewire
 import qs.config
 
 // How bright the lyric line on the bar is (Lyrics → Brightness follows the volume):
@@ -13,6 +14,10 @@ import qs.config
 //          main mix and a multitrack source on the same console it reads the multitrack
 //          instead: the player's own track against the mix, the mic a track of its own,
 //          so talking over the music doesn't dim the line
+//          With rode-fader-follow running (a user service of the RØDECaster Duo's PipeWire
+//          setup: it solves the same least squares and sets the Music fader's gain as the
+//          volume of the rcp_duo_fader2_src source) that volume is read instead — no second
+//          20-channel capture solving it again (5–6 % of a core while music plays)
 //   level  everyone else: how loud the player really plays — its own output after its
 //          slider in the mixer, plus the master volume; the quiet parts of a song are
 //          dimmer too (fast up, slow down)
@@ -72,7 +77,43 @@ Singleton {
     property string _readingFor: ""          // which mode the reading belongs to
     readonly property bool measuring: probe.running
 
-    readonly property bool wanted: Config.lyrics.enabled && effective !== "off" && Lyrics.hasLyrics && Lyrics.playing && !Lyrics.unseen && streamSerial !== "" && (effective !== "rode" || !!mixNode)
+    // ---- the fader the console's follower already reads (see the top) ----
+    property bool followerActive: false
+    Process {
+        id: follower
+        command: ["systemctl", "--user", "is-active", "--quiet", "rode-fader-follow.service"]
+        onExited: code => root.followerActive = code === 0
+    }
+    // asked when the console comes and whenever the music starts: one systemctl, not a poll
+    function askFollower() {
+        if (rodePresent && !follower.running)
+            follower.running = true;
+    }
+    onRodePresentChanged: askFollower()
+    Connections {
+        target: Lyrics
+        function onPlayingChanged() {
+            if (Lyrics.playing)
+                root.askFollower();
+        }
+    }
+    // the Music fader (AUX4/5): only for the main mix or that very track
+    readonly property var faderNode: followerActive && (tap === "main" || tap === "aux45") ? Audio.sources.find(n => n.name === "rcp_duo_fader2_src") || null : null
+    PwObjectTracker {
+        objects: root.faderNode ? [root.faderNode] : []
+    }
+    readonly property bool fromFader: effective === "rode" && !!faderNode && !!faderNode.audio
+    // the node's volume is on the mixer's cubic scale (93 % = 0.80 of the sound = −1.9 dB, as pactl says)
+    readonly property real faderDb: fromFader ? (faderNode.audio.muted ? -90 : Math.max(-90, 60 * Math.log(Math.max(1e-6, faderNode.audio.volume)) / Math.LN10)) : NaN
+    onFaderDbChanged: {
+        if (!fromFader || isNaN(faderDb))
+            return;
+        _readingFor = "rode";
+        db = faderDb;
+        track = "AUX4/5";
+    }
+
+    readonly property bool wanted: Config.lyrics.enabled && effective !== "off" && Lyrics.hasLyrics && Lyrics.playing && !Lyrics.unseen && streamSerial !== "" && (effective !== "rode" || !!mixNode) && !fromFader
     readonly property real floor: Math.max(0.3, Math.min(1, (Config.lyrics.glowFloor || 30) / 100))
     // 0…1 between the calibrated ends
     readonly property real frac: {
