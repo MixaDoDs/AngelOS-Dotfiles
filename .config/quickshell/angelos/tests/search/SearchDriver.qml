@@ -51,7 +51,7 @@ Scope {
         running: true
         onTriggered: {
             // the owner's debug core (if any) loads a moment after the start
-            if (!SettingsSearch.loaded || !SettingsSearch.docs.length || Date.now() - root.started < 3000) {
+            if (!SettingsSearch.loaded || SettingsSearch.settling || !SettingsSearch.docs.length || Date.now() - root.started < 3000) {
                 SettingsSearch.load();
                 if (Date.now() - root.started < 60000)
                     return;
@@ -98,8 +98,47 @@ Scope {
                 console.log("TEST q:" + row.q.replace(/ /g, "_") + " " + (ok ? "PASS" : "FAIL") + (ok ? "" : (missing.length ? " not in the first " + top + ": " + missing.join(", ") : "") + (extra.length ? " must not be there: " + extra.join(", ") : "") + " — got " + res.slice(0, Math.max(top, 4)).map(r => root.label(r)).join(" | ")));
             }
             console.log("TEST search-time " + (worst <= 60 ? "PASS" : "FAIL") + " " + rows.length + " queries, avg " + (total / Math.max(1, rows.length)).toFixed(1) + " ms, worst " + worst + " ms");
-            console.log("TEST DONE " + fails);
-            Qt.quit();
+            root.fails = fails;
+            switches.start();
+        }
+    }
+    // A language and a skin switch rebuild the index once each, a beat later — not once per
+    // step of the switch, right inside it: 4–9 rebuilds in a row froze the shell for seconds,
+    // on a laptop past the guard's 15 s, which aborted it and the switch was lost (#57, #64)
+    property int fails: 0
+    property int rebuilds: 0
+    property var switchReport: []
+    Connections {
+        target: SettingsSearch
+        function onIndexChanged() {
+            root.rebuilds++;
+        }
+    }
+    Timer {
+        id: switches
+        interval: 1500
+        repeat: true
+        property int step: 0
+        readonly property var plan: [["language", () => Config.appearance.language = "en"], ["skin", () => Config.settingsUi.skin = "goldengate"], ["language back", () => Config.appearance.language = "ru"], ["skin back", () => Config.settingsUi.skin = "classic"]]
+        onTriggered: {
+            if (step > 0) {
+                const [name, , ms] = plan[step - 1].concat([root.switchReport[step - 1]]);
+                const ok = root.rebuilds <= 1 && SettingsSearch.docs.length > 0;
+                if (!ok)
+                    root.fails++;
+                console.log("TEST switch:" + name.replace(/ /g, "_") + " " + (ok ? "PASS" : "FAIL") + " " + root.rebuilds + " index rebuilds, the switch itself " + ms + " ms");
+            }
+            if (step >= plan.length) {
+                stop();
+                console.log("TEST DONE " + root.fails);
+                Qt.quit();
+                return;
+            }
+            root.rebuilds = 0;
+            const t0 = Date.now();
+            plan[step][1]();
+            root.switchReport.push(Date.now() - t0);
+            step++;
         }
     }
 }

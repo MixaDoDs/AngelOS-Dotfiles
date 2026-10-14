@@ -13,13 +13,15 @@ Singleton {
     id: root
 
     property var entries: []
+    // the index is in: its entries are in `docs` (they settle a beat after they come, below)
     property bool loaded: false
+    property bool _got: false
     property string _raw: ""
     // Once. Start's and the launcher's result bindings call this on every keystroke,
     // and a new index re-runs them: reindexing from there looped forever (python +
     // JSON ~4 times a second, the shell at 90 % CPU) while a query sat in a closed Start.
     function load() {
-        if (!loaded)
+        if (!_got)
             reload();
     }
     // a fresh index (the settings window, when it opens); the same text changes nothing
@@ -74,12 +76,13 @@ Singleton {
         command: ["python3", Quickshell.shellDir + "/scripts/settings-index.py"]
         stdout: StdioCollector {
             onStreamFinished: {
-                if (root.loaded && text === root._raw)
+                if (root._got && text === root._raw)
                     return;
                 try {
                     root.entries = JSON.parse(text);
                     root._raw = text;
-                    root.loaded = true;
+                    root._got = true;
+                    docsSettle.restart();
                 } catch (e) {}
             }
         }
@@ -334,6 +337,10 @@ Singleton {
 
     // ---- entries with their searchable fields, rebuilt when the index or pages change ----
     property var pageInfo: ({})       // id -> {label, icon} from the settings sidebar
+    // the same pages written again change nothing below: the settings view writes a new object
+    // on every step of a language or skin switch, the entries read them through their text
+    readonly property string _pageInfoText: JSON.stringify(pageInfo)
+    readonly property var _pages: JSON.parse(_pageInfoText)
     // hell's own groups and rows ("page|Russian title"): their pages hide them while the
     // angel is here (Angel.hellShown), so the search does too …
     readonly property var hellOnly: ["cursor|Курсор в аду", "y2k|Демоница", "y2k|ПКМ в аду", "y2k|Настройки в аду", "y2k|Виджеты в аду", "y2k|Курсор в аду", "y2k|Какой ад на обоях", "y2k|Трещины на экране", "y2k|Alt+Tab в аду", "y2k|Терминал в аду", "y2k|Приложения в аду", "y2k|Лирика в аду", "y2k|Колесо Ада", "y2k|Панель в аду", "y2k|Ад"]
@@ -360,7 +367,26 @@ Singleton {
             });
         return e;
     }
-    readonly property var docs: {
+    // The entries as their inputs say now — re-run whenever one of those changes (a language or
+    // skin switch changes the pages, the tree and the language one after another, 4–9 times in
+    // one go) — and `docs`, the same taken over once a beat later. The index, the concepts and
+    // the completions below are built from `docs` (~0.2 s together here, several times that on
+    // a laptop): rebuilt on every step, a switch froze the shell for seconds, on a laptop past
+    // the guard's 15 s — it aborted the shell, and the switch was lost with it (#57, #64)
+    property var docs: []
+    readonly property bool settling: docsSettle.running      // `docs` behind its inputs (tests wait)
+    on_DocsNowChanged: docsSettle.restart()
+    Component.onCompleted: docs = _docsNow
+    Timer {
+        id: docsSettle
+        interval: 50
+        onTriggered: {
+            root.docs = root._docsNow;
+            if (root._got)
+                root.loaded = true;
+        }
+    }
+    readonly property var _docsNow: {
         const lang = I18n.english ? "en" : "ru", other = I18n.english ? "ru" : "en";
         const heaven = !Angel.hellShown;
         const out = [];
@@ -378,7 +404,7 @@ Singleton {
             // the page of the tree it is on now (services/SettingsTree): a group by its name, a
             // page file by where its groups went (its old heading stays a word to find it by)
             const page = e.kind === "page" ? SettingsTree.resolve(e.page).page : SettingsTree.pageOfGroup(e.page, e.name || "");
-            const info = pageInfo[page];
+            const info = _pages[page];
             if (!info)
                 continue;   // hidden (owner/developer) or unknown pages
             const title = e.kind === "page" ? info.label : (e[lang] || e[other]);
@@ -410,22 +436,22 @@ Singleton {
             });
         }
         // pages without an index entry (plugins): name only
-        for (const id in pageInfo)
+        for (const id in _pages)
             if (!seenPages[id])
                 out.push({
                     "page": id,
                     "kind": "page",
-                    "title": pageInfo[id].label,
+                    "title": _pages[id].label,
                     "target": "",
                     "crumb": "",
                     "hint": "",
-                    "icon": pageInfo[id].icon,
-                    "primary": words(pageInfo[id].label.split(" › ").slice(-1)[0]),
+                    "icon": _pages[id].icon,
+                    "primary": words(_pages[id].label.split(" › ").slice(-1)[0]),
                     "other": [],
                     "aliasNames": (aliases[id] || []).map(a => norm(a)),
                     "alias": words((aliases[id] || []).join(" ")),
                     "secondary": [],
-                    "context": words(pageInfo[id].label.split(" › ").slice(0, -1).join(" ")),
+                    "context": words(_pages[id].label.split(" › ").slice(0, -1).join(" ")),
                     "keyTitle": "",
                     "keyGroup": ""
                 });
@@ -438,34 +464,43 @@ Singleton {
     // entries come from the posting lists. Field weights: name 3, alias 2.6, other
     // language 2.5, description 1.3, group 1 (an entry keeps its best field).
     readonly property var index: {
-        const vocab = [], ids = {}, post = [];      // post[id] = [entry, weight, entry, weight, …]
-        function add(w, d, weight, seen) {
+        const vocab = [], post = [];      // post[id] = [entry, weight, entry, weight, …]
+        // the entry a word was last added for (and where) in two lists: entries come in order,
+        // so that is all "already in this entry" needs. Not a fresh {} per entry keyed by word
+        // id: V4 keeps small integer keys as a dense array, so each of ~700 entries grew one up
+        // to its highest word id (~5000) — the rebuild took 4× as long and churned the heap
+        // (#57). Not a Map either: V4's Map looks keys up one by one (15× slower here)
+        const ids = {}, lastDoc = [], lastAt = [];
+        function add(w, d, weight) {
             let id = ids[w];
             if (id === undefined) {
                 id = ids[w] = vocab.length;
                 vocab.push(w);
                 post.push([]);
+                lastDoc.push(-1);
+                lastAt.push(0);
             }
-            const at = seen[id];
-            if (at === undefined) {
-                seen[id] = post[id].length;
-                post[id].push(d, weight);
-            } else if (post[id][at + 1] < weight) {
-                post[id][at + 1] = weight;
+            const p = post[id];
+            if (lastDoc[id] !== d) {
+                lastDoc[id] = d;
+                lastAt[id] = p.length;
+                p.push(d, weight);
+            } else if (p[lastAt[id] + 1] < weight) {
+                p[lastAt[id] + 1] = weight;
             }
         }
         for (let d = 0; d < docs.length; d++) {
-            const doc = docs[d], seen = {};
+            const doc = docs[d];
             for (const w of doc.context)
-                add(w, d, 1, seen);
+                add(w, d, 1);
             for (const w of doc.secondary)
-                add(w, d, 1.3, seen);
+                add(w, d, 1.3);
             for (const w of doc.other)
-                add(w, d, 2.5, seen);
+                add(w, d, 2.5);
             for (const w of doc.alias)
-                add(w, d, 2.6, seen);
+                add(w, d, 2.6);
             for (const w of doc.primary)
-                add(w, d, 3, seen);
+                add(w, d, 3);
         }
         const byFirst = {}, byStem = {};
         for (let i = 0; i < vocab.length; i++) {
@@ -635,7 +670,6 @@ Singleton {
     // ---- concepts: each with its tied entries [doc, weight, …], rebuilt with the docs ----
     readonly property var concepts: {
         const out = [];
-        const lang = I18n.english ? "en" : "ru";
         for (const c of conceptData.concepts || []) {
             const names = (c.names || []).map(x => norm(x)).filter(x => x);
             const links = [], seen = {};
@@ -667,7 +701,11 @@ Singleton {
             }
             out.push({
                 "id": c.id,
-                "label": c.label ? c.label[lang] || c.label.ru : c.id,
+                // both languages: the one shown is picked when found (a language switch
+                // rebuilds this once, with the entries, not once more before them)
+                "label": c.label || {
+                    "ru": c.id
+                },
                 "names": names,
                 "stems": names.map(x => x.includes(" ") ? "" : stem(x)),
                 "links": links
@@ -786,7 +824,7 @@ Singleton {
                     const d = c.links[j], s = c.links[j + 1] * q * k;
                     if (s > best[d]) {
                         if (best[d] < floor)
-                            related[d] = c.label;
+                            related[d] = c.label[I18n.english ? "en" : "ru"] || c.label.ru || c.id;
                         best[d] = s;
                     }
                 }

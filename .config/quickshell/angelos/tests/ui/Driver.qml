@@ -908,7 +908,7 @@ Scope {
             return;
         }
         if (phase === "search") {
-            if (!SettingsSearch.loaded) {
+            if (!SettingsSearch.loaded || SettingsSearch.settling) {
                 SettingsSearch.load();
                 if (Date.now() - started < 15000)
                     return;

@@ -36,12 +36,17 @@ Singleton {
     // "Show the laptop's settings", 2026-10-09). Only the settings ask this: what really runs on
     // a laptop goes by isLaptop, hasLid… themselves.
     readonly property bool preview: Config.developer.enabled && Config.developer.showLaptop
+    // has() reads flags only: a flag tells its readers when it really changes, `info` on every
+    // battery refresh (each plug, every ten minutes) — and every settings group and the
+    // settings search asking has() were rebuilt with it (#57)
+    readonly property bool _hasBatteries: batteries.length > 0
+    readonly property bool _fprintTool: !!info.fprintTool
     function has(what) {
         if (preview)
             return true;
         switch (what) {
         case "battery":
-            return Power.hasBattery || batteries.length > 0;
+            return Power.hasBattery || _hasBatteries;
         case "touchpad":
             return hasTouchpad;
         case "laptop":
@@ -53,7 +58,7 @@ Singleton {
         case "tablet":
             return convertible;
         case "fingerprint":       // a reader (a USB one on a desktop too), or a laptop's fprintd
-            return fprintReader || (isLaptop && !!info.fprintTool);
+            return fprintReader || (isLaptop && _fprintTool);
         }
         return true;
     }
