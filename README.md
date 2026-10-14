@@ -646,7 +646,7 @@ ever gets in. Your angelOS settings (`~/.config/angelos`) stay yours.
 | <kbd>Mod</kbd>+<kbd>T</kbd> | Terminal (kitty) |
 | <kbd>Mod</kbd>+<kbd>B</kbd> | Default browser |
 | <kbd>Mod</kbd>+<kbd>E</kbd> | Files (Nautilus) |
-| <kbd>Mod</kbd>+<kbd>V</kbd> | Clipboard history |
+| <kbd>Mod</kbd>+<kbd>V</kbd> | Clipboard history (Enter pastes into the window you were in, Shift+Enter only copies) |
 | <kbd>Mod</kbd>+<kbd>S</kbd> / <kbd>Mod</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> | Settings |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> | Wallpaper picker |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Q</kbd> | Power menu |

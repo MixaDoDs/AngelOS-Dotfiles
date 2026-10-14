@@ -861,6 +861,19 @@ check_vault_ui() {
     sed 's/^/    /' "$WORK/vault-ui.log"; fail "passwords and spelling: tests/vault/run.sh (exit $rc)"
   fi
 }
+# Win+V pastes into the window the history was opened over, offscreen (tests/clipboard/run.sh):
+# the Clipboard service against a stand-in wl-copy and wtype (issue #61)
+check_clipboard_ui() {
+  local rc=0 shell="$ROOT/.config/quickshell/angelos"
+  bash "$shell/tests/clipboard/run.sh" "$shell" >"$WORK/clipboard-ui.log" 2>&1 || rc=$?
+  if ((rc == 0)); then
+    pass "$(sed -n 's/^  ✓ //p' "$WORK/clipboard-ui.log" | tail -1)"
+  elif ((rc == 77)) && [[ "${REQUIRE_UI:-0}" != 1 ]]; then
+    skip "Win+V pastes (quickshell is not installed)"
+  else
+    sed 's/^/    /' "$WORK/clipboard-ui.log"; fail "Win+V pastes: tests/clipboard/run.sh (exit $rc)"
+  fi
+}
 # the way a user meets it: installed from older commits, their own old script updating to
 # this tree, then the new one once more (scripts/test-update-old.sh; issue #36 among them)
 check_updates_old() {
@@ -986,6 +999,7 @@ timed privacy py_test privacy privacy/test_privacy.py "privacy on stream: the mo
 timed vault py_test vault vault/test_vault.py "passwords: Bitwarden (bw, rbw) and 1Password states, unlocking, the list without a secret in it, the copy marked sensitive and wiped (stand-in managers and clipboard)"
 timed spell py_test spell spell/test_spell.py "spelling: what is underlined and where, what is left alone, own words, dictionaries installed and removed (made-up dictionaries, no network)" 77
 timed vault-ui check_vault_ui
+timed clipboard-ui check_clipboard_ui
 timed autostart py_test autostart setup/test_autostart.py "autostart: an app or a command added, switched and removed; a system entry only ever switched off by an override"
 timed programs py_test programs setup/test_programs.py "programs: a removal planned first (what goes along, what refuses), done with one password; the clean-up of orphans and the cache"
 timed setup-apps py_test setup-apps setup/test_apps_install.py "setup wizard's install: one password (the admin helper runs pacman only), progress per app, failures named"

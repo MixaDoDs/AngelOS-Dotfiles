@@ -258,6 +258,7 @@ JsonAdapter {
         property bool settings: true        // Start search and the launcher find settings too, mixed with apps by relevance
         property bool files: true           // …and files by name or type ("sex", ".jpeg", ".картинки"), services/FileSearch
         property bool filePreview: true     // thumbnails of pictures and videos in those results, Spotlight's preview
+        property bool clipboardPaste: true  // Win+V: the picked entry is pasted into the window you were in, not only copied (services/Clipboard, issue #61)
     }
 
     // password managers: Bitwarden (bw, rbw) and 1Password (op) in the launcher, services/Vault

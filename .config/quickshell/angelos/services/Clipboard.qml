@@ -78,10 +78,57 @@ Singleton {
     }
 
     function copy(entry) {
+        copier.pasteTo = null;
         if (copier.running)
             copier.running = false;
         copier.pending = normalize(entry);
         copier.running = true;
+    }
+
+    // Win+V pastes, as on Windows (issue #61): putting the entry back into the clipboard alone
+    // looked like nothing happened. aim() remembers the window that has the keyboard as the
+    // history opens; paste() copies the entry and, once the history is gone and that window has
+    // the keyboard again, presses Ctrl+V there (Ctrl+Shift+V in a terminal) with wtype. No window
+    // (an empty desktop), Shift+Enter or the setting off: only copied.
+    property var target: null     // {id, app_id}
+    readonly property bool pastes: Config.launcher.clipboardPaste !== false
+    function aim() {
+        const w = Niri.focusedWindow;
+        target = w ? {
+            "id": w.id,
+            "app_id": String(w.app_id || "")
+        } : null;
+    }
+    function paste(entry) {
+        const to = pastes ? target : null;
+        copy(entry);
+        copier.pasteTo = to;
+    }
+    readonly property var terminalIds: /kitty|alacritty|foot|wezterm|ghostty|konsole|terminal|console|ptyxis|tilix|terminator|xterm|urxvt|rio|blackbox/i
+    function pasteKeys(appId) {
+        return terminalIds.test(appId) ? ["wtype", "-M", "ctrl", "-M", "shift", "-k", "v", "-m", "shift", "-m", "ctrl"] : ["wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl"];
+    }
+    Timer {
+        id: pasteWait
+        property var to: null
+        property int tries: 0
+        interval: 60
+        repeat: true
+        onTriggered: {
+            tries++;
+            // the history's surface has to be gone and the keyboard back in the window
+            const back = !Shell.clipboardOpen && tries >= 2 && (!Niri.ready || Niri.focusedWindowId === to.id);
+            if (back) {
+                stop();
+                paster.command = root.pasteKeys(to.app_id);
+                paster.running = true;
+            } else if (tries > 15) {
+                stop();
+            }
+        }
+    }
+    Process {
+        id: paster
     }
 
     function remove(entry) {
@@ -140,6 +187,7 @@ Singleton {
     Process {
         id: copier
         property var pending: ({})
+        property var pasteTo: null
         command: ["python3", root.helper, "copy"]
         stdinEnabled: true
         onStarted: {
@@ -147,7 +195,16 @@ Singleton {
             pending = ({});
             stdinEnabled = false;
         }
-        onExited: stdinEnabled = true
+        onExited: code => {
+            stdinEnabled = true;
+            const to = pasteTo;
+            pasteTo = null;
+            if (code === 0 && to) {
+                pasteWait.to = to;
+                pasteWait.tries = 0;
+                pasteWait.restart();
+            }
+        }
     }
 
     Timer {

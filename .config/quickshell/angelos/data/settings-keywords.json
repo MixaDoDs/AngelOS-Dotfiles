@@ -66,6 +66,16 @@
     "screenshot",
     "clipboard"
   ],
+  "keyboard/clipboard": [
+    "буфер обмена",
+    "история буфера",
+    "win+v",
+    "вставка",
+    "вставить",
+    "clipboard",
+    "clipboard history",
+    "paste"
+  ],
   "capture/recording": [
     "запись экрана",
     "видео",

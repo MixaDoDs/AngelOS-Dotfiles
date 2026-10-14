@@ -8,7 +8,8 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// Clipboard history (Mod+V): type to filter, Enter copies, Delete removes,
+// Clipboard history (Mod+V): type to filter, Enter or a click pastes into the window you were in
+// (Shift+Enter only copies, services/Clipboard), Delete removes,
 // Ctrl+D or the star keeps an entry in Favourites (never dropped or cleared by "Clear").
 PanelWindow {
     id: win
@@ -121,8 +122,11 @@ PanelWindow {
         return parts.join(" · ");
     }
 
-    function pick(entry) {
-        Clipboard.copy(entry);
+    function pick(entry, copyOnly) {
+        if (copyOnly)
+            Clipboard.copy(entry);
+        else
+            Clipboard.paste(entry);
         Shell.clipboardOpen = false;
     }
 
@@ -135,6 +139,7 @@ PanelWindow {
     onVisibleChanged: if (visible)
         opened()
     function opened() {
+        Clipboard.aim();
         query = "";
         current = 0;
         kind = "all";
@@ -182,6 +187,10 @@ PanelWindow {
             onKeyPressed: e => {
                 if (e.key === Qt.Key_Escape) {
                     Shell.clipboardOpen = false;
+                    e.accepted = true;
+                } else if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & Qt.ShiftModifier)) {
+                    if (win.count)
+                        win.pick(win.entryAt(win.current), true);
                     e.accepted = true;
                 } else if (e.key === Qt.Key_D && (e.modifiers & Qt.ControlModifier) && win.count) {
                     Clipboard.toggleFav(win.entryAt(win.current));
@@ -369,7 +378,7 @@ PanelWindow {
                         PxText {
                             visible: item.sel
                             width: parent.width
-                            text: I18n.t("Enter — вставить в буфер", "Enter — copy back")
+                            text: Clipboard.pastes ? I18n.t("Enter — вставить, Shift+Enter — только скопировать", "Enter: paste, Shift+Enter: copy only") : I18n.t("Enter — скопировать", "Enter: copy")
                             kind: "tiny"
                             wrapMode: Text.Wrap
                             color: item.sel ? Theme.selectText : Theme.textDim
@@ -392,7 +401,7 @@ PanelWindow {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: win.pick(item.entry)
+                        onClicked: mouse => win.pick(item.entry, !!(mouse.modifiers & Qt.ShiftModifier))
                     }
                     // ★ keeps it: shown on favourites, and on the row under the mouse or the selection
                     Item {

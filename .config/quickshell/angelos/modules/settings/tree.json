@@ -346,10 +346,11 @@
           "ru": "Клавиатура",
           "en": "Keyboard",
           "icon": "keyboard",
-          "hintRu": "раскладки и их переключение, повтор клавиш",
-          "hintEn": "layouts and switching them, key repeat",
+          "hintRu": "раскладки и их переключение, буфер обмена, повтор клавиш",
+          "hintEn": "layouts and switching them, the clipboard, key repeat",
           "blocks": [
             "keyboard/keyboard-layouts",
+            "keyboard/clipboard",
             "keyboard/@"
           ],
           "more": [

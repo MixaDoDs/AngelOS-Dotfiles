@@ -83,6 +83,23 @@ PxPage {
         }
     }
 
+    // Win+V (services/Clipboard, issue #61)
+    PxGroup {
+        name: "clipboard"
+        title: I18n.t("Буфер обмена", "Clipboard")
+        icon: "package"
+        width: parent.width
+
+        SettingRow {
+            label: I18n.t("Win+V вставляет", "Win+V pastes")
+            hint: I18n.t("выбранное в истории буфера сразу вставляется в окно, где ты работаешь (Ctrl+V, в терминале Ctrl+Shift+V); выключено — только копируется, вставка — вручную. Shift+Enter всегда только копирует", "the entry picked in the clipboard history goes straight into the window you were in (Ctrl+V, Ctrl+Shift+V in a terminal); off: it is only copied and you paste it yourself. Shift+Enter always only copies")
+            PxToggle {
+                checked: Config.launcher.clipboardPaste !== false
+                onToggled: c => Config.launcher.clipboardPaste = c
+            }
+        }
+    }
+
     PxGroup {
         name: "key-repeat"
         title: I18n.t("Повтор клавиш", "Key repeat")
