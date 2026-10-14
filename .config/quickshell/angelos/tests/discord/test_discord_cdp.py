@@ -124,6 +124,58 @@ class Bridge(unittest.TestCase):
                 launcher.disable(source.name)
                 self.assertIn('custom-launcher', target.read_text())
 
+    def test_aur_flags_are_idempotent_and_preserve_unrelated_options(self):
+        original = '# My Wayland options\n--ozone-platform=wayland\n--enable-features=WebRTCPipeWireCapturer\n'
+        updated = launcher.flags_text(original, 9234)
+        self.assertEqual(launcher.flags_text(updated, 9234), updated)
+        self.assertEqual(launcher.flags_text(updated), original)
+        changed = launcher.flags_text(updated, 9235)
+        self.assertNotIn('--remote-debugging-port=9234', changed)
+        self.assertIn('--remote-debugging-port=9235', changed)
+        self.assertIn(original, changed)
+        with self.assertRaisesRegex(ValueError, 'refusing'):
+            launcher.flags_text('--remote-debugging-port=9999\n', 9234)
+        with self.assertRaisesRegex(ValueError, 'malformed'):
+            launcher.flags_text(launcher.FLAGS_BEGIN + '\n', 9234)
+
+    def test_aur_cli_and_desktop_keep_flags_after_package_upgrade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / 'usr/share/applications/vesktop.desktop'
+            source.parent.mkdir(parents=True)
+            source.write_text('[Desktop Entry]\nName=Vesktop\nExec=vesktop %U\n')
+            config = root / 'config/angelos/discord-voice.json'
+            flags = root / 'config/vesktop-flags.conf'
+            flags.parent.mkdir()
+            flags.write_text('--ozone-platform=wayland\n')
+            # Stand-in for AUR's shell launcher: exactly its flags-file/argv flow.
+            binary = root / 'usr/bin/vesktop'
+            binary.parent.mkdir(parents=True)
+            wrapper = '#!/bin/sh\nflags=$(grep -v "^#" "$XDG_CONFIG_HOME/vesktop-flags.conf")\nprintf "%s\\n" $flags "$@"\n'
+            binary.write_text(wrapper)
+            binary.chmod(0o755)
+            with patch.multiple(launcher, APPS=root / 'user/applications', CONFIG=config,
+                                SELF=root / 'user/launcher.py', FLAGS=flags), patch.object(launcher, 'native_desktop', return_value=source):
+                target = launcher.enable_aur(9234)
+                self.assertTrue(target.exists())
+                before = flags.read_text()
+                # yay replaces the package wrapper and desktop entry, not user config.
+                binary.write_text(wrapper + '# upgraded package\n')
+                source.write_text('[Desktop Entry]\nName=Vesktop upgraded\nExec=vesktop --start-minimized %U\n')
+                env = dict(os.environ, XDG_CONFIG_HOME=str(flags.parent))
+                result = subprocess.run([str(binary), 'discord://channel/123'], env=env,
+                                        capture_output=True, text=True, check=True)
+                self.assertIn('--remote-debugging-port=9234', result.stdout.splitlines())
+                self.assertIn('--ozone-platform=wayland', result.stdout.splitlines())
+                self.assertIn('discord://channel/123', result.stdout.splitlines())
+                self.assertEqual(flags.read_text(), before)
+                with patch.object(launcher.subprocess, 'call', return_value=0) as call:
+                    launcher.launch_source(source, ['discord://channel/123'])
+                    self.assertEqual(call.call_args.args[0][:3], ['vesktop', '--start-minimized', 'discord://channel/123'])
+                launcher.disable_aur()
+                self.assertEqual(flags.read_text(), '--ozone-platform=wayland\n')
+                self.assertFalse(target.exists())
+
     @unittest.skipUnless(shutil.which('node'), 'Node.js is needed for stand-in Discord stores')
     def test_snapshots_across_client_apis(self):
         snapshot = (SCRIPTS / 'discord-voice-snapshot.js').read_text()

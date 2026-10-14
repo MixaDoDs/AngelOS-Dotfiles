@@ -3,6 +3,8 @@
 
   discord-voice-launcher.py enable /path/to/client.desktop [PORT]
   discord-voice-launcher.py disable desktop-file-name.desktop
+  discord-voice-launcher.py enable-aur [PORT]
+  discord-voice-launcher.py disable-aur
 
 Keeps the original desktop Exec, including Flatpak forwarding and URL placeholders.
 No client profile or vendor package is modified. Changes survive package updates.
@@ -10,6 +12,7 @@ No client profile or vendor package is modified. Changes survive package updates
 import configparser
 import json
 import os
+import re
 from pathlib import Path
 import shlex
 import subprocess
@@ -20,6 +23,9 @@ DATA = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share'))
 APPS = DATA / 'applications'
 SELF = DATA / 'angelos/discord-voice/launcher.py'
 MARK = 'X-AngelOS-DiscordVoice=true'
+FLAGS = CONFIG.parent.parent / 'vesktop-flags.conf'
+FLAGS_BEGIN = '# BEGIN angelOS Discord voice'
+FLAGS_END = '# END angelOS Discord voice'
 
 
 def quoted(text):
@@ -103,6 +109,53 @@ def launch_source(source, arguments):
     return launch(command)
 
 
+def native_desktop():
+    directories = os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
+    for directory in directories:
+        source = Path(directory) / 'applications/vesktop.desktop'
+        if source.is_file():
+            return source
+    raise ValueError('native Vesktop desktop file not found; install vesktop-bin or vesktop-git first')
+
+
+def flags_text(original, port=None):
+    if original.count(FLAGS_BEGIN) != original.count(FLAGS_END) or original.count(FLAGS_BEGIN) > 1:
+        raise ValueError('malformed angelOS block in vesktop-flags.conf')
+    pattern = r'(?m)^' + re.escape(FLAGS_BEGIN) + r'\n.*?^' + re.escape(FLAGS_END) + r'(?:\n|$)'
+    clean = re.sub(pattern, '', original, flags=re.DOTALL)
+    if port is None:
+        return clean
+    port = int(port)
+    if not 1 <= port <= 65535:
+        raise ValueError('port must be between 1 and 65535')
+    if any('--remote-debugging-' in line for line in clean.splitlines() if not line.lstrip().startswith('#')):
+        raise ValueError('existing custom debugging flags in vesktop-flags.conf; refusing to override them')
+    separator = '' if not clean or clean.endswith('\n') else '\n'
+    return (clean + separator + FLAGS_BEGIN + '\n--remote-debugging-address=127.0.0.1\n'
+            + '--remote-debugging-port=' + str(port) + '\n' + FLAGS_END + '\n')
+
+
+def enable_aur(port=9234):
+    # AUR wrappers read this user file for CLI, autostart and desktop launches.
+    # It is outside /usr and /opt, so yay/pacman upgrades leave it intact.
+    source = native_desktop()
+    original = FLAGS.read_text() if FLAGS.exists() else ''
+    updated = flags_text(original, port)
+    target = enable(source, port)
+    FLAGS.parent.mkdir(parents=True, exist_ok=True)
+    FLAGS.write_text(updated)
+    return target
+
+
+def disable_aur():
+    if FLAGS.exists():
+        original = FLAGS.read_text()
+        updated = flags_text(original)
+        if updated != original:
+            FLAGS.write_text(updated)
+    disable('vesktop.desktop')
+
+
 def disable(name):
     if Path(name).name != name:
         raise ValueError('expected a desktop file name')
@@ -115,7 +168,11 @@ def disable(name):
 if __name__ == '__main__':
     try:
         args = sys.argv[1:]
-        if args[:1] == ['enable'] and len(args) in (2, 3):
+        if args[:1] == ['enable-aur'] and len(args) in (1, 2):
+            print(enable_aur(args[1] if len(args) == 2 else 9234))
+        elif args == ['disable-aur']:
+            disable_aur()
+        elif args[:1] == ['enable'] and len(args) in (2, 3):
             print(enable(args[1], args[2] if len(args) == 3 else 9234))
         elif args[:1] == ['launch-source'] and len(args) >= 3 and args[2] == '--':
             sys.exit(launch_source(args[1], args[3:]))

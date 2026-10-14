@@ -46,6 +46,39 @@ environment or put `{"port": 9234}` in
 followed by the runtime file, then the persistent config. Use a free port and the
 same number in the client and reader settings.
 
+### Native Arch / CachyOS installation through yay
+
+For `vesktop-bin` or `vesktop-git`, quit Vesktop and run once:
+
+```sh
+python3 ~/.config/quickshell/angelos/scripts/discord-voice-launcher.py enable-aur 9234
+angelos reload
+```
+
+Then start `vesktop` normally. This discovers the system `vesktop.desktop`, creates
+the same user menu override, and adds a marked block to
+`$XDG_CONFIG_HOME/vesktop-flags.conf` (default `~/.config/vesktop-flags.conf`). Both
+AUR package launchers read that file. Consequently CLI and autostart launches also
+receive the bridge flags, and `yay -Syu`/pacman package replacements leave them
+intact. Enabling again updates the marked block without duplicating it. Existing
+Wayland, PipeWire and other flags remain intact; conflicting custom debugging
+flags are reported rather than overwritten. Files under `/usr` and `/opt` are not
+modified. Restart Vesktop after upgrading to reconnect to the new application.
+
+Remove the managed flags and menu override with:
+
+```sh
+python3 ~/.local/share/angelos/discord-voice/launcher.py disable-aur
+```
+
+This keeps other flags and the shared bridge port configuration. Remove that
+configuration separately if no enabled client needs it. This setup does not
+install another Vesktop package or replace an existing Flatpak installation.
+
+Verified packaging sources:
+[AUR vesktop-bin wrapper](https://aur.archlinux.org/cgit/aur.git/tree/vesktop.sh?h=vesktop-bin),
+[AUR vesktop-git wrapper](https://aur.archlinux.org/cgit/aur.git/tree/vesktop.sh?h=vesktop-git).
+
 ### Vesktop auto-updates
 
 For Flatpak installations, the app ID and exported desktop path stay stable when
@@ -93,6 +126,8 @@ python3 .config/quickshell/angelos/tests/discord/test_discord_cdp.py
 ```
 
 The second command tests endpoint restrictions, configuration, call snapshots,
-command validation, and the arRPC regression. Snapshot tests use Node.js when
+command validation, the arRPC regression, and native AUR package replacement with
+preserved CLI/desktop flags. Native package tests use stand-in launchers; no AUR
+package was installed into the test machine. Snapshot tests use Node.js when
 available. Live verification was performed with Vesktop Flatpak; the other client
 adapters are tested with stand-in stores, not installed clients.
