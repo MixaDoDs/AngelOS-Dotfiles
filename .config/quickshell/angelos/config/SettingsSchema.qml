@@ -168,6 +168,12 @@ JsonAdapter {
         property bool cobwebInside: true    // the web over the window itself (off: only the bar's buttons)
         property bool cobwebBar: true       // a small web and spider on the window's button in the bar / Dock
         property string cobwebSpeed: "normal" // fast (10 min → 1 h) | normal (30 min → 4 h) | slow (2 h → a day)
+        property string cobwebStyle: "silk" // the cocoon's look: silk (procedural mesh) | classic (the original dotted grid)
+        // silk mesh tuning (services/CobwebWeb buildCocoon, preview in Settings → Windows → Cobwebs)
+        property real cobwebDensity: 1   // strand layers (0.5–3.5): more layers only append
+        property real cobwebBundles: 0   // long edge-to-edge bands (0–1.4)
+        property real cobwebBridges: 1   // ties between neighbouring strands (0–2.5)
+        property real cobwebGravity: 1   // thread sag (0–2.5)
     }
 
     property JsonObject alttab: JsonObject {

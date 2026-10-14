@@ -9,8 +9,9 @@ import "CobwebWeb.js" as Web
 import "CobwebLayout.js" as Lay
 
 // Cobwebs (Settings → Windows → Cobwebs): a window nobody has moved for a while gets a spider.
-// It starts in the corners and works inwards — corner webs, drapes along the edges, then it
-// winds the whole window up in a cocoon (services/CobwebWeb.js) — first threads after 30
+// It starts in the corners and works inwards — corner webs, drapes along the edges, then a
+// cocoon: silk mesh or the classic dotted grid (cocoon style setting,
+// services/CobwebWeb.js) — first threads after 30
 // minutes, the whole window after 4 hours (Config.windows.cobwebSpeed). The clock is the real one, kept in
 // ~/.local/state/angelos/cobweb.json, so a night asleep counts: in the morning the browser can
 // be under it all. Using a window doesn't stop the spider; moving it does: a drag shakes the
@@ -56,6 +57,7 @@ Singleton {
 
     signal woven(int id, int from, int to)          // new steps, live (not caught up after sleep)
     signal broke(int id, string thread)
+    signal brokeLoose(int id, string thread)      // no anchor left: falls free, fades fast
     signal fled(int id)                             // the spider runs off behind the window
     signal returned(int id)
     signal cleared(int id, string why)              // touch | qte | sweep
@@ -72,9 +74,28 @@ Singleton {
         if (!w || !w.w0)
             return [];
         if (!_steps[id])
-            _steps[id] = Web.generate(w.seed, w.w0, w.h0);
+            _steps[id] = Web.generate(w.seed, w.w0, w.h0, cocoonOpts());
         return _steps[id];
     }
+    // cocoon mesh tuning (Settings → Windows → Cobwebs): style silk|classic, silk
+    // tuner values; missing = silk defaults. Dew is off (it cost more than it showed).
+    function cocoonOpts() {
+        const num = (v, d) => (v === undefined || v === null || isNaN(Number(v)) ? d : Number(v));
+        const style = Config.windows.cobwebStyle === "classic" ? "classic" : "silk";
+        return {
+            "style": style,
+            "density": num(Config.windows.cobwebDensity, 1),
+            "bundles": num(Config.windows.cobwebBundles, 0),
+            "bridges": num(Config.windows.cobwebBridges, 1),
+            "gravity": num(Config.windows.cobwebGravity, 1),
+            "dew": 0
+        };
+    }
+    function cocoonStyle() {
+        return cocoonOpts().style;
+    }
+    // real windows never follow the tuner sliders: the mesh regenerates only in the
+    // staggered demo queue above (Settings → "Show me now"), never on a Config write
     function due(id) {
         const w = webs[id];
         return w ? Web.stepsDue(w.age, steps(id).length, t0, t1) : 0;
@@ -308,15 +329,50 @@ Singleton {
 
     // ---- what happens to it ----
     // the pointer touched a thread: "break" | "flee" | "none"
+    // a bridge never hangs alone: breaking an anchor line breaks the ties on it too
+    property double _lastSnap: 0
     function touch(id, thread) {
         const w = webs[id];
         if (!w || w.broken[thread])
             return "none";
         if (Math.random() < breakChance) {
             w.broken[thread] = true;
+            // nothing rigid left floating: the whole strand the cut segment belongs to
+            // goes (its other segments have a free end now), and so do the ties on it.
+            // The cut segment hangs from the cut; the rest falls free and fades fast.
+            const st = steps(id);
+            let anchor = undefined;
+            for (const s of st) {
+                for (const t of s.threads)
+                    if (t.id === thread) {
+                        anchor = t.strand;
+                        break;
+                    }
+                if (anchor !== undefined)
+                    break;
+            }
+            const loose = [];
+            if (anchor !== undefined)
+                for (const s of st)
+                    for (const t of s.threads) {
+                        if (t.id === thread || w.broken[t.id])
+                            continue;
+                        if (t.strand === anchor || (t.tie && (t.tie[0] === anchor || t.tie[1] === anchor))) {
+                            w.broken[t.id] = true;
+                            loose.push(t.id);
+                        }
+                    }
             rev++;
             broke(id, thread);
-            Sounds.play("webSnap");
+            for (const f of loose)
+                brokeLoose(id, f);
+            // brushing through a web breaks many threads a second: one snap sound
+            // per 150 ms, not one per thread
+            const t = Date.now();
+            if (t - _lastSnap > 150) {
+                _lastSnap = t;
+                Sounds.play("webSnap");
+            }
             if (alive(id) === 0)
                 clear(id, "touch");
             _save.restart();
@@ -379,15 +435,41 @@ Singleton {
         return true;
     }
     // Settings → "Show me now": the windows in view get an hour and a half of web (one with web
-    // already: an hour more)
+    // already: an hour more). One window per tick: regenerating and painting a whole mesh
+    // takes tens of ms, and all of them at once would freeze the shell for seconds.
+    // Each tick also drops that window's cached mesh, so it regrows with the committed
+    // tuner opts — the only path that changes real windows (sliders touch the preview only).
+    property var _demoQ: []
     function demo() {
-        let n = 0;
+        const q = [];
         for (const name in rects)
             if (!hiddenOn(name))
                 for (const r of rects[name])
-                    if (r.active && grow(r.id, due(r.id) ? 60 : 90))
-                        n++;
-        return n;
+                    if (r.active)
+                        q.push(r.id);
+        _demoQ = q;
+        if (q.length)
+            demoTick();
+        return q.length;
+    }
+    Timer {
+        id: demoTimer
+        interval: 150
+        repeat: true
+        running: root._demoQ.length > 0
+        onTriggered: root.demoTick()
+    }
+    function demoTick() {
+        const q = _demoQ.slice();
+        const id = q.shift();
+        _demoQ = q;
+        if (id === undefined)
+            return;
+        if (!webs[id])
+            return;
+        delete _steps[id];
+        rev++;
+        grow(id, due(id) ? 60 : 90);
     }
     function clearAll() {
         for (const id in webs)

@@ -129,6 +129,7 @@ Variants {
                 rect: (Cobweb.rev, win.rectFor(modelData))
                 shown: win.visible
                 wsPos: win.wsPos
+                sliding: win.wsMoving
                 screenH: win.height
                 onHitsChanged: later.restart()
                 onMovingChanged: later.restart()

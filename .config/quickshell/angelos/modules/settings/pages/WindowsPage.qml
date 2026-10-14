@@ -4,6 +4,7 @@ import Quickshell.Io
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.cobweb
 
 PxPage {
     id: page
@@ -615,6 +616,94 @@ PxPage {
                 onActivated: v => Config.windows.cobwebSpeed = v
             }
         }
+        SettingRow {
+            visible: Config.windows.cobweb
+            label: I18n.t("Вид кокона", "Cocoon look")
+            hint: I18n.t("превью всегда показывает выбранный вид. Шёлк на высоких значениях может нагружать систему.", "The preview always shows the picked look. Silk may load the system at high values")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Стандартный", "Classic"),
+                        "value": "classic"
+                    },
+                    {
+                        "label": I18n.t("Шёлк", "Silk"),
+                        "value": "silk"
+                    }
+                ]
+                currentValue: cocoonPreview.effectiveStyle
+                onActivated: v => cocoonPreview.setLive("style", v)
+            }
+        }
+        CobwebPreview {
+            id: cocoonPreview
+            visible: Config.windows.cobweb
+            width: parent.width
+        }
+        SettingRow {
+            visible: Config.windows.cobweb && cocoonPreview.effectiveStyle === "silk"
+            label: I18n.t("Густота", "Density")
+            hint: I18n.t("слои нитей: больше слоёв только доплетает новое", "Strand layers: more layers only append")
+            PxSlider {
+                width: parent.width
+                from: 0.5
+                to: 3.5
+                stepSize: 0.1
+                decimals: 1
+                suffix: "×"
+                value: Config.windows.cobwebDensity
+                onMoved: v => cocoonPreview.setLive("density", v)
+                onReleased: v => cocoonPreview.setLive("density", v)
+            }
+        }
+        SettingRow {
+            visible: Config.windows.cobweb && cocoonPreview.effectiveStyle === "silk"
+            label: I18n.t("Длинные пучки", "Long bands")
+            hint: I18n.t("пучки нитей от края до края", "Bands of strands, edge to edge")
+            PxSlider {
+                width: parent.width
+                from: 0
+                to: 1.4
+                stepSize: 0.35
+                decimals: 2
+                suffix: "×"
+                value: Config.windows.cobwebBundles
+                onMoved: v => cocoonPreview.setLive("bundles", v)
+                onReleased: v => cocoonPreview.setLive("bundles", v)
+            }
+        }
+        SettingRow {
+            visible: Config.windows.cobweb && cocoonPreview.effectiveStyle === "silk"
+            label: I18n.t("Перемычки", "Bridges")
+            hint: I18n.t("короткие связи между соседними нитями", "Short ties between neighbouring strands")
+            PxSlider {
+                width: parent.width
+                from: 0
+                to: 2.5
+                stepSize: 0.05
+                decimals: 2
+                suffix: "×"
+                value: Config.windows.cobwebBridges
+                onMoved: v => cocoonPreview.setLive("bridges", v)
+                onReleased: v => cocoonPreview.setLive("bridges", v)
+            }
+        }
+        SettingRow {
+            visible: Config.windows.cobweb && cocoonPreview.effectiveStyle === "silk"
+            label: I18n.t("Провисание", "Sag")
+            hint: I18n.t("насколько нити висят под своим весом", "How much the threads hang")
+            PxSlider {
+                width: parent.width
+                from: 0
+                to: 2.5
+                stepSize: 0.05
+                decimals: 2
+                suffix: "×"
+                value: Config.windows.cobwebGravity
+                onMoved: v => cocoonPreview.setLive("gravity", v)
+                onReleased: v => cocoonPreview.setLive("gravity", v)
+            }
+        }
         Row {
             visible: Config.windows.cobweb
             spacing: Theme.u * 3
@@ -623,7 +712,12 @@ PxPage {
                 icon: "play"
                 text: I18n.t("Показать сейчас", "Show me now")
                 enabled: Cobweb.enabled
-                onClicked: Cobweb.demo()
+                onClicked: {
+                    // the only path that changes real windows: commit the staged tuner
+                    // values, then regrow the visible webs one by one with them
+                    cocoonPreview.commitLive();
+                    Cobweb.demo();
+                }
             }
             PxButton {
                 compact: true
