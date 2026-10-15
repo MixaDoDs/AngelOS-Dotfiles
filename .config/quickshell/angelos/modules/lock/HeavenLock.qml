@@ -1245,6 +1245,10 @@ Item {
     }
     Connections {
         target: root.lockScope
+        function onRelayKey(text, key) {
+            if (root.primary)
+                field.feed(text, key);
+        }
         function onDemo(text) {
             if (!root.primary)
                 return;

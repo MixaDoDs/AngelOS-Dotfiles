@@ -48,6 +48,23 @@ Item {
     function focusField() {
         input.forceActiveFocus();
     }
+    // a key typed on another screen (Lock.relayKey): as if typed here
+    function feed(text, key) {
+        if (root.busy) {
+            root.hurried();
+            return;
+        }
+        if (input.readOnly)
+            return;
+        if (key === Qt.Key_Return || key === Qt.Key_Enter)
+            input.accepted();
+        else if (key === Qt.Key_Backspace)
+            input.remove(Math.max(0, input.text.length - 1), input.text.length);
+        else if (key === Qt.Key_Escape)
+            clear();
+        else if (text !== "" && text.charCodeAt(0) >= 32 && text.charCodeAt(0) !== 127)
+            input.insert(input.text.length, text);
+    }
     function clear() {
         last = 0;
         combo = 0;

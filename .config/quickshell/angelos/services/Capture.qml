@@ -43,9 +43,38 @@ Singleton {
         onTriggered: sorter.running = true
     }
 
-    function screenshot() {
+    // the screenshot is the overlay now (services/CircleSearch: areas, words, search, save);
+    // Settings → Screenshots → «Classic region selection» keeps the old selector. Called from
+    // menus and panels: the overlay grabs the screen once they have gone (wait)
+    function screenshot(screen) {
         Achievements.note("screenshot");
-        launch(screenshotTool, "niri msg action screenshot");
+        if (Config.capture.classic)
+            launch(screenshotTool, "niri msg action screenshot");
+        else
+            CircleSearch.start(screen || "", 0.3);
+    }
+    // the overlay's picked part (rect: {x, y, w, h} in frame pixels, null: the whole frame) kept
+    // as the old tool kept it (scripts/capture_save.py): the month folder, the clipboard, the
+    // notification with its buttons. opts: {copy, save, open} override the settings
+    function saveShot(framePath, rect, opts) {
+        const o = opts || {};
+        const args = ["python3", Quickshell.shellPath("scripts/capture_save.py"), "save", framePath];
+        if (rect)
+            args.push("--rect", [rect.x, rect.y, rect.w, rect.h].map(Math.round).join(","));
+        if (o.copy !== undefined)
+            args.push(o.copy ? "--copy" : "--no-copy");
+        if (o.save === false)
+            args.push("--no-save");
+        if (o.open)
+            args.push("--open");
+        Quickshell.execDetached(args);
+    }
+    // only the picture on the clipboard, nothing saved
+    function copyShot(framePath, rect) {
+        const args = ["python3", Quickshell.shellPath("scripts/capture_save.py"), "copy", framePath];
+        if (rect)
+            args.push("--rect", [rect.x, rect.y, rect.w, rect.h].map(Math.round).join(","));
+        Quickshell.execDetached(args);
     }
     function record() {
         launch(recordTool, 'notify-send -a angelOS "' + I18n.t("Запись экрана не установлена: нет niri-record-region", "Screen recording isn't installed: niri-record-region is missing") + '"');

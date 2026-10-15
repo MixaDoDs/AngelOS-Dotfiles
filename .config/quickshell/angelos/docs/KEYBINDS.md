@@ -24,7 +24,7 @@
 | `Mod+S` | `angelos settings appearance` | angelOS: настройки |
 | `Mod+Alt+S` | `angelos settings appearance` | angelOS: настройки |
 | `Mod+Shift+Q` | `angelos session` | angelOS: выключение |
-| `Mod+E` | `nautilus` | File Manager: Nautilus |
+| `Mod+E` | `angelos files` | File Manager (the default one: Strata; Settings → Default apps) |
 | `XF86AudioRaiseVolume` | `angelos volumeUp` |  |
 | `XF86AudioLowerVolume` | `angelos volumeDown` |  |
 | `XF86AudioMute` | `angelos mute` |  |
@@ -55,7 +55,8 @@
 | `Mod+CTRL+Shift+WheelScrollDown` | `move-column-right` |  |
 | `Mod+CTRL+Shift+WheelScrollUp` | `move-column-left` |  |
 | `Mod+V` | `angelos clipboard` | angelOS: буфер обмена |
-| `Mod+Shift+S` | `~/.local/bin/niri-screenshot-region` | Screenshot: region → Screenshots (ropes) |
+| `Mod+Shift+S` | `angelos capture` (нет оболочки → `niri-screenshot-region`) | Скриншот: экран замирает — окно/картинка/текст, сохранить, найти, перевести |
+| `Print` | `angelos capture` (как Mod+Shift+S) | Скриншот |
 | `Mod+Shift+V` | `~/.local/bin/voxtype record toggle` | Voice: toggle dictation |
 | `CTRL+Shift+2` | `screenshot-screen` |  |
 | `CTRL+Shift+3` | `screenshot-window` |  |
@@ -137,7 +138,6 @@
 | `Mod+Shift+F` | `maximize-column` |  |
 | `Mod+W` | `toggle-column-tabbed-display` |  |
 | `Mod+M` | `maximize-window-to-edges` |  |
-| `Mod+Shift+T` | `~/.local/bin/niri-ocr` | OCR: region to clipboard |
 | `Mod+O` | `angelos ws prev` | Previous workspace |
 
 ## macOS (Golden Gate)
@@ -209,7 +209,6 @@
 | `Mod+Alt+Shift+F` | `maximize-column` | Развернуть колонку |
 | `Mod+Alt+W` | `toggle-column-tabbed-display` | Колонка вкладками |
 | `Mod+Alt+M` | `maximize-window-to-edges` | Развернуть окно до краёв |
-| `Mod+Shift+T` | `~/.local/bin/niri-ocr-region` | OCR: region to clipboard (stone) |
 | `Mod+Z` | `qs -c angelos ipc call magnifier toggle` | Лупа (плагин) |
 | `Mod+Q` | `angelos macQuit` | Mac: завершить программу |
 | `Mod+W` | `close-window` | Mac: закрыть окно |

@@ -301,6 +301,7 @@ PanelWindow {
         }
         // the rarity's light inside the open chest
         Rectangle {
+            id: rarityGlow
             visible: win.phase !== "idle" && win.phase !== "shake"
             x: 9 * win.px
             y: 27 * win.px
@@ -308,7 +309,7 @@ PanelWindow {
             height: 4 * win.px
             color: win.glowColor
             SequentialAnimation on opacity {
-                running: parent.visible && !Motion.still
+                running: rarityGlow.visible && !Motion.still
                 loops: Animation.Infinite
                 NumberAnimation {
                     to: 0.55

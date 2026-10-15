@@ -325,7 +325,7 @@ const demonApps = [
     ["kitty|foot|alacritty|wezterm|konsole|terminal|ghostty", [["Терминал. Аккуратнее: rm -rf — это не защитное заклинание.", "Terminal. Careful: rm -rf is not a protection spell."], ["Чёрное окно с мигающим курсором. Почти как мой внутренний мир.", "A black window with a blinking cursor. Basically my inner world."]]],
     ["code|codium|zed|nvim|neovide|jetbrains|idea|pycharm|kate", [["Кодить собрался? Я рядом. Когда упадёт — засмеюсь первой.", "Coding? I'll be right here. First to laugh when it crashes."]]],
     ["spotify|tidal|deezer|rhythmbox|strawberry|amberol", [["Музыка — хорошо. Включи что-нибудь, под что приятно гореть.", "Music, good. Play something worth burning to."]]],
-    ["nautilus|thunar|dolphin|nemo|files", [["Файлы… Ищешь что-то? Или прячешь?", "Files… looking for something? Or hiding it?"]]],
+    ["nautilus|strata|thunar|dolphin|nemo|files", [["Файлы… Ищешь что-то? Или прячешь?", "Files… looking for something? Or hiding it?"]]],
     ["resolve|kdenlive|blender|krita|gimp|inkscape|affinity|aseprite", [["Творчество? Ох. Покажи потом. Буду критиковать, но честно.", "Making something? Oh. Show me later. I'll criticise, but honestly."]]],
     ["mpv|vlc|celluloid|haruna|jellyfin|stremio", [["Кино? Только не про ангелов, умоляю.", "A film? Nothing with angels, I beg you."]]]
 ];

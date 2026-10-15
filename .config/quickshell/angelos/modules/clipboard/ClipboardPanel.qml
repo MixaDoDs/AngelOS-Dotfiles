@@ -7,10 +7,12 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import "../../services/Links.js" as Links
 
 // Clipboard history (Mod+V): type to filter, Enter or a click pastes into the window you were in
 // (Shift+Enter only copies, services/Clipboard), Delete removes,
 // Ctrl+D or the star keeps an entry in Favourites (never dropped or cleared by "Clear").
+// An entry with a link opens it in the mini island: the ↗ beside the star, or Ctrl+O.
 PanelWindow {
     id: win
 
@@ -122,6 +124,20 @@ PanelWindow {
         return parts.join(" · ");
     }
 
+    // the first web link of a text entry (a long one is looked at only at its start)
+    function linkOf(entry) {
+        if (!entry || entry.kind === "image")
+            return "";
+        const l = Links.scan(String(entry.text || "").slice(0, 2000)).find(x => x.kind === "url");
+        return l ? l.url : "";
+    }
+    function openLink(entry) {
+        const u = linkOf(entry);
+        if (!u)
+            return;
+        Island.open(u);
+        Shell.clipboardOpen = false;
+    }
     function pick(entry, copyOnly) {
         if (copyOnly)
             Clipboard.copy(entry);
@@ -191,6 +207,9 @@ PanelWindow {
                 } else if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & Qt.ShiftModifier)) {
                     if (win.count)
                         win.pick(win.entryAt(win.current), true);
+                    e.accepted = true;
+                } else if (e.key === Qt.Key_O && (e.modifiers & Qt.ControlModifier) && win.count) {
+                    win.openLink(win.entryAt(win.current));
                     e.accepted = true;
                 } else if (e.key === Qt.Key_D && (e.modifiers & Qt.ControlModifier) && win.count) {
                     Clipboard.toggleFav(win.entryAt(win.current));
@@ -303,6 +322,7 @@ PanelWindow {
                     required property int index
                     readonly property bool sel: index === win.current
                     readonly property bool isImage: item.entry.kind === "image"
+                    readonly property string link: win.linkOf(item.entry)
                     width: list.width
                     height: isImage ? (sel ? Theme.u * 70 : Theme.u * 44) : txt.implicitHeight + Theme.u * 6
                     color: sel ? Theme.select : m.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.12) : "transparent"
@@ -388,7 +408,7 @@ PanelWindow {
                         id: txt
                         visible: !item.isImage
                         x: Theme.u * 4
-                        width: parent.width - Theme.u * 8 - star.width
+                        width: parent.width - Theme.u * 8 - star.width - (item.link ? linkBtn.width : 0)
                         anchors.verticalCenter: parent ? parent.verticalCenter : undefined
                         text: String(item.entry.text || "").replace(/\s+/g, " ").slice(0, 300)
                         maximumLineCount: 2
@@ -402,6 +422,29 @@ PanelWindow {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: mouse => win.pick(item.entry, !!(mouse.modifiers & Qt.ShiftModifier))
+                    }
+                    // ↗ opens its link in the mini island: on the row under the mouse or the selection
+                    Item {
+                        id: linkBtn
+                        anchors.right: star.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Theme.u * 12
+                        height: Theme.u * 12
+                        visible: !!item.link && (m.containsMouse || openMouse.containsMouse || starMouse.containsMouse || item.sel)
+                        PxIcon {
+                            anchors.centerIn: parent
+                            name: "window"
+                            ink: item.sel ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
+                            scale: openMouse.containsMouse ? 1.2 : 1
+                        }
+                        MouseArea {
+                            id: openMouse
+                            anchors.fill: parent
+                            anchors.margins: -Theme.u
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: win.openLink(item.entry)
+                        }
                     }
                     // ★ keeps it: shown on favourites, and on the row under the mouse or the selection
                     Item {

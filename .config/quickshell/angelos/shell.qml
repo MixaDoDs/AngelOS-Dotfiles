@@ -26,6 +26,10 @@ import qs.modules.alttab
 import qs.modules.cursor
 import qs.modules.cobweb
 import qs.modules.lens
+import qs.modules.circle
+import qs.modules.quickshare
+import qs.modules.quicklook
+import qs.modules.island
 import qs.modules.novel
 import qs.modules.diary
 import qs.modules.mac
@@ -51,12 +55,14 @@ ShellRoot {
     Lock {}
     PolkitDialog {}
     UpdatePrompt {}
+    MainScreenPrompt {}
     AppsSyncPrompt {}
     SetupWizard {}
     TourOverlay {}
     PluginHost {}
     AngelHelper {}
     StreamerCast {}
+    PrivacyCast {}
     NovelHost {}
     HeavenRays {}
     AchievementToast {}
@@ -68,6 +74,10 @@ ShellRoot {
     ShakeCursor {}
     CobwebOverlay {}
     LensOverlay {}
+    CircleOverlay {}
+    ShareSheet {}
+    QuickLookWindow {}
+    IslandProbe {}
     Ipc {}
     IpcEvents {}
     // Launcher, ClipboardPanel, SessionMenu, SettingsWindow, the author's GameDebugWindow: built on demand
@@ -126,6 +136,7 @@ ShellRoot {
         MetaTap.status; // Meta tap → Start menu
         Idle.active; // idle-minutes watcher
         NautilusSetup.status; // first run: Nautilus defaults + mediafix
+        StrataSetup.status; // Strata (the file manager): angelOS's menu items + theme, once it is there
         Outputs.monitorFile; // monitors nobody picked a mode for: their full refresh rate, not niri's 60 Hz
         PluginStudio.loaded; // make the worker available to dynamically loaded pages
         Updates.state; // daily update check (Settings → Updates)

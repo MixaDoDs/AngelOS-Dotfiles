@@ -33,6 +33,19 @@ while IFS= read -r f; do
 done < <(grep -rlE '^\s*(PanelWindow|FloatingWindow|PopupWindow)\s*\{' --include='*.qml' "$DIR" | grep -v '/tests/')
 ((fail)) || ok "every window has a RightClickGuard"
 
+# Quickshell.Io's types need their import: one file without it and the whole shell does not
+# load (2026-10-15: PrivacyCast's FileView); the stands below leave top-level parts of
+# shell.qml out, so only this sees it
+io_fail=0
+while IFS= read -r f; do
+  grep -q '^import Quickshell\.Io' "$f" || { bad "${f#"$DIR"/} uses Quickshell.Io types without \`import Quickshell.Io\`"; io_fail=1; }
+done < <(grep -rlE '^\s*(FileView|Process|StdioCollector|SplitParser|SocketServer|IpcHandler|Socket|JsonAdapter)\s*\{' --include='*.qml' "$DIR" | grep -v -e '/tests/' -e '\.bak')
+((io_fail)) || ok "Quickshell.Io types come with their import"
+
+# the screenshot keys in the key templates: Mod+Shift+S and Print → angelos capture (the old
+# region tool when no shell answers), Mod+Shift+T bound nowhere (tests/keys)
+if out=$(python3 "$DIR/tests/keys/test_capture_keys.py" "$DIR" 2>&1); then ok "${out#  ✓ }"; else while IFS= read -r l; do bad "${l#  ✕ }"; done <<<"$out"; fi
+
 # a full-screen overlay takes every click under it unless it has an input mask: effects
 # (the shake cursor, B3) must let input through; the ones that are meant to take it
 # say why with a "// takes input:" line
@@ -164,7 +177,15 @@ start suite perf
 start suite leak
 start suite guard
 start suite eq
+start suite desk
 start suite rescue
+start suite quickshare
+start suite links
+start suite circle
+start suite capture
+start suite capture_regions
+start suite island
+start suite keys
 wait
 
 # A shard or suite that failed in the crowd runs once more on its own, the rest being done:
@@ -179,7 +200,7 @@ for sh in "${SHARDS[@]}"; do
   rm -rf "${T:?}/$n"
   start driver "$n" "$from" "$until"
 done
-for s in scale lock theme search tour sddm perf leak guard eq rescue; do
+for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare links circle capture capture_regions island keys; do
   [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" == 0 ]] && continue
   retried+=("$s")
   if [[ "$s" == sddm ]]; then start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1; else start suite "$s"; fi
@@ -245,7 +266,21 @@ result guard "hang watchdog: a healthy shell is left in peace, a busy, stuck or 
 # or save.json cut short comes back from its last good copy, a first start takes the system's
 # language, five failed starts open the rescue window
 result rescue "rescue: settings and save cut short come back, the first start's language, the window after five failed starts" "rescue" 20
+# Quick Share (tests/quickshare, no shell needed): two daemons on loopback in a namespace of their own
+result quickshare "Quick Share: text, a file byte for byte, a folder, a refusal, receive off" "Quick Share" 15
+# links found in text (tests/links, node): Circle's chips, the clipboard's «open», notifications' links
+result links "links: addresses with and without https, mail, phones; not file names, versions or sentences" "links" 10
 result eq "bar equalizer: one service for every bar, an app found in EasyEffects is taken over and given back" "bar equalizer" 15
+# the desk's one clock (tests/desk): the spectrum keeps its blocks and moves on the clock of the
+# live wallpaper, LiveBeat hears a spectrum instead of a cava of its own, thumbnails only from the cache
+result desk "desk clock: spectrum blocks kept, bars on the scene's tick, LiveBeat from the spectrum, cached thumbnails" "desk clock" 15
+# the screenshot (tests/circle, keys, capture, capture_regions, island): the overlay, its keys,
+# saving, the areas it finds and the island search it opens
+result circle "screenshot overlay: areas, words, picks, keys, bar → Capture/Island/QuickShare; OCR reads both themes, no junk off pictures" "screenshot overlay" 20
+result keys "screenshot keys: IPC capture/captureOn/circle, classic, old \"circle\" menu entry" "screenshot keys" 15
+result capture "screenshot saving: the part pixel-exact, month folder, clipboard, notification" "screenshot saving" 15
+result capture_regions "screenshot areas: windows, pictures side by side, text blocks, cards, shadows, edges to the pixel, < 400 ms" "screenshot areas" 10
+result island "island search: search and Lens in the island, ↗ hands the current page to the browser, browser when off" "island search" 15
 
 if ((fail)); then echo "» UI SELF-TEST FAILED"; exit 1; fi
 echo "» UI self-test passed ♡"

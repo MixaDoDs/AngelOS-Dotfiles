@@ -31,7 +31,19 @@ Rectangle {
     readonly property string look: looks[conf("look", "stream")] ? conf("look", "stream") : "stream"
     // the login is on the primary screen; the others get the look's second screen
     // (theme.conf role=login|cam pins it: a preview of one or the other)
-    property bool primary: conf("role", "") === "cam" ? false : conf("role", "") === "login" ? true : typeof primaryScreen === "undefined" ? true : !!primaryScreen
+    // The main screen picked in angelOS (`angelos sddm primary`: walls/theme.conf.user) wins over
+    // X's own pick, found by the monitor's serial, then its name, then the output name (X's
+    // names are not niri's): exactly one screen must answer, or SDDM's primaryScreen decides
+    function matches(s, key, want) {
+        return want !== "" && !!s && String(s[key] || "") === want;
+    }
+    function pickedBy(key, want) {
+        const all = Qt.application.screens || [];
+        const hits = all.filter(s => matches(s, key, want));
+        return hits.length === 1 ? hits[0] : null;
+    }
+    readonly property var picked: pickedBy("serialNumber", conf("primarySerial", "")) || pickedBy("model", conf("primaryModel", "")) || pickedBy("name", conf("primary", ""))
+    property bool primary: conf("role", "") === "cam" ? false : conf("role", "") === "login" ? true : picked ? picked.name === Screen.name : typeof primaryScreen === "undefined" ? true : !!primaryScreen
     readonly property int u: view.item ? view.item.u : 1
 
     Loader {

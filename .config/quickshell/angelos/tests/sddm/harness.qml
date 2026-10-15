@@ -110,6 +110,11 @@ ShellRoot {
                     config[m[1]] = m[2];
             }
         }
+        // the main screen (`angelos sddm primary`)
+        property string primary
+        property string primaryMake
+        property string primaryModel
+        property string primarySerial
         property string desk
         property string face
         property string faceAlt

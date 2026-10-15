@@ -57,7 +57,11 @@ multilib, scripts/cachyos-repos.sh) go in first when pacman doesn't have it yet 
 package(s) when pacman has none, its Flathub id when neither. "prefer": "flatpak" puts Flathub
 first (the author has Discord, OBS, Blender and EasyEffects from there). "github": a package the
 app's authors publish in their own GitHub release (Freshgram): the latest release's .pacman file,
-checked against its SHA256SUMS, installed with pacman -U.
+checked against its SHA256SUMS, installed with pacman -U; or, with "archive" (Strata), the release's
+tar.gz for this machine, checked against its .sha256, installed per user as the app's own installer
+does (~/.local/bin, its .desktop and icon in ~/.local/share), so its in-app updater keeps it current;
+"deps": the pacman packages it needs. "defaultFor": a default-apps category (files) the app takes
+once it is installed, when the default there is still the stock one (Nautilus) or missing.
 
 The pick lives in ~/.local/state/angelos/apps.json: {"apps": [ids picked], "known": [catalog ids
 seen], "knownBase": [base packages seen]}. A group counts as taken when one of its apps was
@@ -68,11 +72,13 @@ pick is the catalog's apps that are installed.
 import json
 import os
 import pwd
+import re
 import hashlib
 import importlib.util
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import urllib.request
 from pathlib import Path
@@ -143,7 +149,16 @@ def can_aur(repos_coming=False):
     return bool(aur_helper()) or pacman_has("paru") or repos_coming
 
 
+def archive_bin(a):
+    """an app from a release archive (github.archive): the binary it puts in ~/.local/bin"""
+    g = a.get("github") or {}
+    return Path.home() / ".local/bin" / g["bin"] if g.get("archive") else None
+
+
 def installed(a):
+    if archive_bin(a):
+        # its own installer's copy counts too, and a package of it (strata-bin, once in the AUR)
+        return archive_bin(a).is_file() or pacman_installed(a["github"].get("packages", [])[:1])
     if a.get("script") == "voxtype-install.sh":
         models = Path.home() / ".local/share" / "voxtype" / "models"
         return (Path.home() / ".local/bin/voxtype").is_file() and models.is_dir() and any(models.glob("*large-v3-turbo*"))
@@ -504,6 +519,8 @@ def github_install(a):
     """the latest release's package, its checksum checked, through pacman -U (pacman pulls the
     dependencies from the repositories)"""
     g = a["github"]
+    if g.get("archive"):
+        return archive_install(a)
     base = f"https://github.com/{g['repo']}/releases/latest/download/"
     say(t(f"с GitHub ({g['repo']}): ", f"from GitHub ({g['repo']}): ") + g["asset"])
     with tempfile.TemporaryDirectory(prefix="angelos-app-") as tmp:
@@ -530,8 +547,89 @@ def github_install(a):
         return subprocess.run(root("pacman", "-U", "--needed", "--noconfirm", str(dest))).returncode == 0
 
 
+ARCH_TARGETS = {"x86_64": "x86_64-unknown-linux-gnu", "aarch64": "aarch64-unknown-linux-gnu"}
+
+
+def fetch(url, dest):
+    if shutil.which("curl"):  # tens of MB: with curl's progress bar
+        if subprocess.run(["curl", "-fL", "--retry", "2", "--progress-bar", "-o", str(dest), url]).returncode != 0:
+            raise OSError(url)
+    else:
+        with urllib.request.urlopen(url, timeout=60) as r, open(dest, "wb") as f:
+            shutil.copyfileobj(r, f, 1 << 20)
+
+
+def archive_install(a):
+    """the latest release's tar.gz for this machine (Strata), checked against its .sha256: the
+    libraries it needs from pacman, then the binary into ~/.local/bin and its .desktop and icon
+    into ~/.local/share — where the app's own installer puts them, so its updater keeps it current"""
+    g = a["github"]
+    target = ARCH_TARGETS.get(os.uname().machine)
+    if not target:
+        say(t(f"для {os.uname().machine} у {g['repo']} нет сборки", f"{g['repo']} has no build for {os.uname().machine}"))
+        return False
+    missing = [p for p in g.get("deps", []) if not pacman_installed([p])]
+    if missing:
+        subprocess.run(root("pacman", "-S", "--needed", "--noconfirm", *missing))
+    try:
+        with urllib.request.urlopen(f"https://api.github.com/repos/{g['repo']}/releases/latest", timeout=30) as r:
+            assets = {x["name"]: x["browser_download_url"] for x in json.load(r).get("assets", [])}
+    except (OSError, ValueError) as e:
+        say(t(f"GitHub не ответил: {e}", f"GitHub didn't answer: {e}"))
+        return False
+    name = next((n for n in assets if n.startswith(g["archive"] + "-") and n.endswith(f"-{target}.tar.gz")), "")
+    if not name or name + ".sha256" not in assets:
+        say(t(f"в релизе {g['repo']} нет архива для {target}", f"{g['repo']}'s release has no archive for {target}"))
+        return False
+    say(t(f"с GitHub ({g['repo']}): ", f"from GitHub ({g['repo']}): ") + name)
+    with tempfile.TemporaryDirectory(prefix="angelos-app-") as tmp:
+        dest = Path(tmp) / name
+        try:
+            with urllib.request.urlopen(assets[name + ".sha256"], timeout=30) as r:
+                want = (r.read().decode().split() or [""])[0].lower()
+            fetch(assets[name], dest)
+        except OSError as e:
+            say(t(f"не скачалось: {e}", f"download failed: {e}"))
+            return False
+        if not want or hashlib.sha256(dest.read_bytes()).hexdigest() != want:
+            say(t("контрольная сумма не сошлась — не ставлю", "the checksum doesn't match: not installing"))
+            return False
+        out = Path(tmp) / "x"
+        try:
+            with tarfile.open(dest) as tf:
+                tf.extractall(out, filter="data")
+        except (OSError, tarfile.TarError) as e:
+            say(t(f"архив не распаковался: {e}", f"the archive didn't unpack: {e}"))
+            return False
+        found = [p for p in out.rglob(g["bin"]) if p.is_file()]
+        if not found:
+            say(t(f"в архиве нет {g['bin']}", f"no {g['bin']} in the archive"))
+            return False
+        top, data = found[0].parent, Path.home() / ".local/share"
+        binary = archive_bin(a)
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        new = binary.with_name(f".{binary.name}.angelos-new")
+        shutil.copyfile(found[0], new)
+        new.chmod(0o755)
+        new.replace(binary)  # never a half-written binary, even under a running copy
+        for f in top.glob("*.desktop"):
+            text = re.sub(rf"(?m)^Exec=(?:/usr/bin/)?{re.escape(g['bin'])}(?=\s|$)", f"Exec={binary}", f.read_text())
+            (data / "applications").mkdir(parents=True, exist_ok=True)
+            (data / "applications" / f.name).write_text(text)
+        for f in top.glob("*.svg"):
+            icons = data / "icons/hicolor/scalable/apps"
+            icons.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(f, icons / f.name)
+        run(["update-desktop-database", str(data / "applications")])
+        run(["gtk-update-icon-cache", "-qtf", str(data / "icons/hicolor")])
+    return binary.is_file()
+
+
 def desktop_of(a):
     """the .desktop id an installed app opens with (its package's file, or its Flathub id)"""
+    g = a.get("github") or {}
+    if g.get("archive") and installed(a):
+        return g["desktop"]
     names = pkgs(a, "pacman") + pkgs(a, "aur") + ([a["github"]["package"]] if a.get("github") else [])
     for name in names:
         if not pacman_installed([name]):
@@ -579,6 +677,22 @@ def browsers():
                     "hintEn": "installed", "icon": "search", "installed": True, "via": ""})
     cur = da.configured("x-scheme-handler/https") or da.query("x-scheme-handler/https")
     print(json.dumps({"current": ids_of.get(cur, ""), "list": out}, ensure_ascii=False))
+
+
+def claim_defaults(items):
+    """an app with "defaultFor" (Strata: files) takes that category once it is there — unless the
+    user already chose something other than the stock one (Nautilus)"""
+    da = None
+    for a, _, _ in items:
+        key = a.get("defaultFor")
+        if not key or not installed(a):
+            continue
+        da = da or default_apps()
+        cur, did = da.configured(da.CATEGORIES[key]["mimes"][0]), desktop_of(a)
+        if not did or cur == did or (cur and cur not in a.get("replaces", []) and da.desktop_file(cur)):
+            continue
+        if subprocess.run([sys.executable, str(DEFAULT_APPS), "set", key, did], stdout=subprocess.DEVNULL).returncode == 0:
+            say(t(f"по умолчанию ({key}): {did}", f"default ({key}): {did}"))
 
 
 def set_browser(bid):
@@ -755,6 +869,7 @@ def install(ids, wait=True, browser="", events=False, extra=()):
         if browser == "auto":
             browser = next((b for b in catalog().get("browsers", []) if b in ids), "")
         set_browser(browser)
+        claim_defaults(items)
     finally:
         stop_root(helper)
     # what is there now, not what the package managers said: a picked app that is missing

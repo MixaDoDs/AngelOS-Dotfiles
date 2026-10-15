@@ -37,7 +37,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Главный экран", "Main screen")
-            hint: Angel.hellShown ? I18n.t("здесь живут виджеты, ангел (и трещины демоницы, лучи, тряска), заставка и сайдбар; niri фокусирует его при входе. «Авто» — самый широкий экран", "Home of the widgets, the angel (and the demon's cracks, the rays, the quake), the idle screen and the sidebar; niri focuses it at login. “Auto” is the widest screen") : I18n.t("здесь живут виджеты, ангел (и её лучи, тряска), заставка и сайдбар; niri фокусирует его при входе. «Авто» — самый широкий экран", "Home of the widgets, the angel (and her rays, the quake), the idle screen and the sidebar; niri focuses it at login. “Auto” is the widest screen")
+            hint: Angel.hellShown ? I18n.t("здесь живут виджеты, ангел (и трещины демоницы, лучи, тряска), заставка и сайдбар; здесь же пароль и курсор на экране входа и блокировке; niri фокусирует его при входе. «Авто» — самый широкий экран", "Home of the widgets, the angel (and the demon's cracks, the rays, the quake), the idle screen and the sidebar; the password field and the pointer of the login and the lock are here; niri focuses it at login. “Auto” is the widest screen") : I18n.t("здесь живут виджеты, ангел (и её лучи, тряска), заставка и сайдбар; здесь же пароль и курсор на экране входа и блокировке; niri фокусирует его при входе. «Авто» — самый широкий экран", "Home of the widgets, the angel (and her rays, the quake), the idle screen and the sidebar; the password field and the pointer of the login and the lock are here; niri focuses it at login. “Auto” is the widest screen")
             Flow {
                 width: parent.width
                 spacing: Theme.u * 2

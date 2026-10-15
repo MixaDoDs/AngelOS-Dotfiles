@@ -14,7 +14,8 @@ Singleton {
     id: root
 
     readonly property bool wanted: Config.ready && (Config.discord.crew || DesktopWidgets.widgets.some(w => w.type === "discord")) && Quickshell.env("ANGELOS_TEST") !== "1"
-    property string state: "no-discord"      // no-discord | auth | authorizing | idle | call
+    // rpc-only: Vesktop & co. (arRPC: Rich Presence, no calls) without the opt-in DevTools bridge
+    property string state: "no-discord"      // no-discord | auth | authorizing | idle | call | rpc-only
     property string channel: ""
     property var users: []                   // [{id, name, avatar, speaking, muted, deaf, me, quiet, volume}]
     property string error: ""

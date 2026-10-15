@@ -680,12 +680,14 @@ PxPage {
                 Row {
                     spacing: Theme.u * 3
                     PxButton {
-                        visible: !!Devices.error && (Devices.error.code === "denied" || Devices.error.code === "deaf")
+                        readonly property bool kernel: !!Devices.error && Devices.heldByKernel(Devices.error.id)
+                        visible: !!Devices.error && (Devices.error.code === "denied" || Devices.error.code === "deaf" || kernel)
                         compact: true
                         accent: true
                         icon: "lock"
                         enabled: !Devices.granting
-                        text: Devices.error && Devices.error.code === "deaf" ? I18n.t("Обновить мост", "Update the bridge") : I18n.t("Разрешить", "Allow")
+                        // the bridge's installer also lets go a service interface usbhid holds
+                        text: kernel ? I18n.t("Освободить", "Free it") : Devices.error && Devices.error.code === "deaf" ? I18n.t("Обновить мост", "Update the bridge") : I18n.t("Разрешить", "Allow")
                         onClicked: Devices.grant()
                     }
                     PxButton {
@@ -985,7 +987,7 @@ PxPage {
                 id: gauge
                 width: parent.width
                 travel: page.travel
-                cap: page.shownKey >= 0 ? board.caps[page.shownKey] || null : null
+                cap: page.shownKey >= 0 && board.capsVersion >= 0 ? board.caps[page.shownKey] || null : null
             }
             PxText {
                 visible: page.tab === "test"
@@ -1389,7 +1391,7 @@ PxPage {
                 Column {
                     id: zoneCol
                     required property var modelData
-                    readonly property var lt: page.kb && page.kb.modes[page.kb.mode] ? page.kb.modes[page.kb.mode].light[modelData.zone] : null
+                    readonly property var lt: page.kb && page.kb.modes[page.modeIndex] ? page.kb.modes[page.modeIndex].light[modelData.zone] : null
                     readonly property var effects: (page.capOf("lighting")[modelData.zone] || []).map(e => ({
                                 "label": I18n.t(e.ru, e.en),
                                 "value": e.id
@@ -1405,7 +1407,8 @@ PxPage {
                             const c = String(values.color).toLowerCase();
                             Config.peripherals.keyboardColors = [c].concat((Config.peripherals.keyboardColors || []).filter(x => x !== c)).slice(0, 12);
                         }
-                        Devices.setLight(page.kb.mode, zoneCol.modelData.zone, values);
+                        // into the mode picked on the Modes tab (the keyboard's own one by default)
+                        Devices.setLight(page.modeIndex, zoneCol.modelData.zone, values);
                     }
                     width: parent.width
                     spacing: Theme.u * 2
@@ -1721,15 +1724,26 @@ PxPage {
                         text: I18n.t("Засыпать", "Sleep")
                     }
                     PxSpin {
-                        enabled: Devices.canWrite && !Devices.working && !!page.modeData && page.modeData.sleep
+                        id: sleepSpin
+                        property int want: 0
+                        enabled: Devices.canWrite && !!page.modeData && page.modeData.sleep
                         from: 1
                         to: 120
                         stepSize: 1
                         suffix: I18n.t(" мин", " min")
                         value: page.modeData ? page.modeData.sleepMinutes : 0
-                        onMoved: v => Devices.setMode(page.modeIndex, {
-                                "sleepMinutes": v
-                            })
+                        // one write when the clicking stops, not a write and a read-back a step
+                        onMoved: v => {
+                            want = v;
+                            sleepWrite.restart();
+                        }
+                        Timer {
+                            id: sleepWrite
+                            interval: 600
+                            onTriggered: Devices.setMode(page.modeIndex, {
+                                    "sleepMinutes": sleepSpin.want
+                                })
+                        }
                     }
                 }
             }

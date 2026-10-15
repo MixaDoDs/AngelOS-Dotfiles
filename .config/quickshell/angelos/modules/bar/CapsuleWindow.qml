@@ -31,7 +31,7 @@ PanelWindow {
     }
     implicitHeight: drop + capHeight + Theme.u * 3
     exclusionMode: Shell.dev ? ExclusionMode.Ignore : ExclusionMode.Normal
-    exclusiveZone: implicitHeight
+    exclusiveZone: Shell.dev ? 0 : implicitHeight
     color: "transparent"
     WlrLayershell.namespace: "angelos-bar"
     WlrLayershell.layer: WlrLayer.Top

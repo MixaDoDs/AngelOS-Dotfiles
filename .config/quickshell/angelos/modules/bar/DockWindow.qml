@@ -26,7 +26,7 @@ PanelWindow {
     mask: Region {
         item: box
     }
-    exclusiveZone: dockHeight + gap
+    exclusiveZone: Shell.dev ? 0 : dockHeight + gap
     exclusionMode: Shell.dev ? ExclusionMode.Ignore : ExclusionMode.Normal
     color: "transparent"
     WlrLayershell.namespace: "angelos-bar"

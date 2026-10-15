@@ -81,6 +81,18 @@ RULES = '''
         default-column-width { fixed 1040; }
         default-window-height { fixed 740; }
     }
+    // the mini island (scripts/island): a small browser in a corner
+    window-rule {
+        match title="^angelOS · Остров"
+        open-floating true
+        default-column-width { fixed 460; }
+        default-window-height { fixed 720; }
+        default-floating-position x=24 y=24 relative-to="bottom-right"
+        geometry-corner-radius 16
+        clip-to-geometry true
+        border { off; }
+        focus-ring { off; }
+    }
     // ─── /angelOS ───
 '''
 

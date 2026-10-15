@@ -32,14 +32,48 @@ Item {
     readonly property bool paused: Shell.hiddenScreen(screenName) || Power.eco
     readonly property bool live: visible && face && !paused
     onLiveChanged: {
+        count(live);
         if (!live) {
             restart.stop();
             restart.interval = 2000;
             proc.running = false;
             levels = [];
+            pending = null;
             proc.lastLine = "";
         } else {
             writeConf();
+        }
+    }
+    // the bars move on the desk's one clock (services/DeskClock), with the live wallpaper of the
+    // same window: cava's newest frame waits in `pending` for the next tick — on a clock of its
+    // own the window drew a frame for the scene and another for the bars
+    property var pending: null
+    property bool counted: false
+    function count(on) {
+        if (on === counted)
+            return;
+        counted = on;
+        DeskClock.spectra += on ? 1 : -1;
+        feed();
+    }
+    // what everything plays: LiveBeat hears its kicks here instead of a cava of its own
+    readonly property bool feedsBeat: source === ""
+    property bool fed: false
+    function feed() {
+        const want = counted && feedsBeat;
+        if (want === fed)
+            return;
+        fed = want;
+        LiveBeat.feeders += want ? 1 : -1;
+    }
+    onFeedsBeatChanged: feed()
+    Component.onDestruction: count(false)
+    Connections {
+        target: DeskClock
+        enabled: root.pending !== null
+        function onTick() {
+            root.levels = root.pending;
+            root.pending = null;
         }
     }
     readonly property int bars: widget && widget.settings && widget.settings.bars ? widget.settings.bars : 32
@@ -83,6 +117,7 @@ Item {
     }
     Component.onCompleted: {
         ready = true;
+        count(live);
         writeConf();
     }
     onBarsChanged: writeConf()
@@ -108,7 +143,10 @@ Item {
                 if (line === proc.lastLine)
                     return;
                 proc.lastLine = line;
-                root.levels = line.split(";").filter(s => s !== "").map(n => parseInt(n) / 100);
+                const v = line.split(";").filter(s => s !== "").map(n => parseInt(n) / 100);
+                root.pending = v;
+                if (root.feedsBeat)
+                    LiveBeat.feed(v[0] || 0);
             }
         }
         onExited: code => {
@@ -218,21 +256,25 @@ Item {
                     height: root.block
                     color: Theme.hell ? Qt.alpha(Theme.hellBlood, 0.35) : Qt.alpha(Theme.accent2, 0.25)
                 }
-                // stacked pixel blocks, pink at the bottom fading to cyan at the top
+                // stacked pixel blocks, pink at the bottom fading to cyan at the top. `rows` blocks
+                // made once, the lit ones shown: a Repeater over the count destroyed and made
+                // every block of a bar again each time its level moved — 30 times a second
                 Column {
                     id: stack
-                    readonly property int count: Math.round(bar.v * root.rows)
+                    readonly property int count: Math.min(root.rows, Math.round(bar.v * root.rows))
                     anchors.bottom: parent.bottom
                     spacing: root.blockGap
                     Repeater {
-                        model: stack.count
+                        model: root.mac ? 0 : root.rows
                         Rectangle {
                             required property int index
-                            // the Column stacks downwards: the first block is the top one
-                            readonly property int level: stack.count - 1 - index
+                            // the Column stacks downwards and skips the hidden: the first lit
+                            // block is the top one, `index` as it was counted from the top
+                            readonly property int lit: index - (root.rows - stack.count)
+                            visible: lit >= 0
                             width: bar.width
                             height: root.block
-                            color: !Theme.hell ? Theme.mix(Theme.accent2, Theme.accent, (index + 1) / root.rows) : index === 0 && stack.count > root.rows * 0.65 ? Theme.hellAccent : Theme.hellBlood
+                            color: !Theme.hell ? Theme.mix(Theme.accent2, Theme.accent, (lit + 1) / root.rows) : lit === 0 && stack.count > root.rows * 0.65 ? Theme.hellAccent : Theme.hellBlood
                         }
                     }
                 }

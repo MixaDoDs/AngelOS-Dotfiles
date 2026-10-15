@@ -1,5 +1,5 @@
 {
-  "_comment": "The apps angelOS installs: install.sh's picker and the setup wizard's «Who are you?» and «Apps» steps (scripts/apps-install.py). Groups: all of a default group is ticked; «Как у автора» = what the author has. pacman/aur: a package or a list (the first one says whether it is installed); onArch: pacman names that only work on CachyOS (built against its zlib-ng: on Arch they would swap zlib), with Arch's packages instead; extra: packages that come along (pacman's, else the AUR's — spicetify with Spotify); the distribution's package first, else the AUR (paru, from CachyOS's repositories), else Flathub (per user); prefer: flatpak = Flathub first, as the author has it; github: a package from the app's own GitHub release ({repo, asset: the .pacman file, sums: its SHA256SUMS, package: the name pacman knows}), checked and installed with pacman -U. browsers: the wizard's «Which browser?» step — the one picked opens on Mod+B and links; the «browsers» group holds only what «Как у автора» installs. An update installs apps added later to a group the user took (never removes). script: installed by one of angelOS's scripts (voice input: scripts/voxtype-install.sh all), no password.",
+  "_comment": "The apps angelOS installs: install.sh's picker and the setup wizard's «Who are you?» and «Apps» steps (scripts/apps-install.py). Groups: all of a default group is ticked; «Как у автора» = what the author has. pacman/aur: a package or a list (the first one says whether it is installed); onArch: pacman names that only work on CachyOS (built against its zlib-ng: on Arch they would swap zlib), with Arch's packages instead; extra: packages that come along (pacman's, else the AUR's — spicetify with Spotify); the distribution's package first, else the AUR (paru, from CachyOS's repositories), else Flathub (per user); prefer: flatpak = Flathub first, as the author has it; github: a package from the app's own GitHub release (or, with archive, its per-user tar.gz: Strata; deps = pacman packages it needs) ({repo, asset: the .pacman file, sums: its SHA256SUMS, package: the name pacman knows}), checked and installed with pacman -U. browsers: the wizard's «Which browser?» step — the one picked opens on Mod+B and links; the «browsers» group holds only what «Как у автора» installs. An update installs apps added later to a group the user took (never removes). script: installed by one of angelOS's scripts (voice input: scripts/voxtype-install.sh all), no password. defaultFor: a default-apps category (files) the app takes once installed, while the default there is one of replaces (the stock Nautilus) or missing.",
   "browsers": [
     "helium",
     "firefox",
@@ -110,6 +110,7 @@
       "icon": "sparkle",
       "default": true,
       "apps": [
+        "strata",
         "obsidian",
         "bitwarden",
         "qbittorrent",
@@ -497,6 +498,42 @@
       "pacman": "base-devel"
     },
     {
+      "id": "strata",
+      "ru": "Strata",
+      "en": "Strata",
+      "hintRu": "файлы: колонки, превью на пробел, быстрый поиск",
+      "hintEn": "files: columns, Space previews, fast search",
+      "icon": "folder",
+      "github": {
+        "repo": "lgse/strata",
+        "archive": "strata",
+        "bin": "strata",
+        "desktop": "io.github.lgse.Strata.desktop",
+        "packages": [
+          "strata-bin",
+          "strata-rc-bin"
+        ],
+        "deps": [
+          "bubblewrap",
+          "ffmpeg",
+          "ffmpegthumbnailer",
+          "fontconfig",
+          "gstreamer",
+          "gst-libav",
+          "gst-plugins-base",
+          "gst-plugins-good",
+          "gtk4",
+          "gtksourceview5",
+          "gvfs",
+          "poppler-glib"
+        ]
+      },
+      "defaultFor": "files",
+      "replaces": [
+        "org.gnome.Nautilus.desktop"
+      ]
+    },
+    {
       "id": "obsidian",
       "ru": "Obsidian",
       "en": "Obsidian",
@@ -659,7 +696,8 @@
         "discord",
         "steam",
         "spotify",
-        "mpv"
+        "mpv",
+        "strata"
       ]
     },
     {
@@ -675,7 +713,8 @@
         "obsidian",
         "thunderbird",
         "bitwarden",
-        "code"
+        "code",
+        "strata"
       ]
     },
     {
@@ -690,7 +729,8 @@
         "steam",
         "discord",
         "spotify",
-        "mpv"
+        "mpv",
+        "strata"
       ]
     },
     {
@@ -707,7 +747,8 @@
         "gimp",
         "inkscape",
         "kdenlive",
-        "obs"
+        "obs",
+        "strata"
       ]
     }
   ]

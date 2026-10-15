@@ -241,8 +241,28 @@ class NuphySession:
             by_action.setdefault(tuple(entry), k["m"])
             if "default" in k and tuple(k["default"]) != tuple(entry):
                 mismatch.append({"m": k["m"], "label": k.get("label", ""), "file": list(k["default"]), "device": list(entry)})
-        self.by_action = by_action
         mode = base["mode"] if 0 <= base["mode"] < np.MODES else 0
+        # the reports name a key by its factory action in the mode the keyboard is in: the
+        # modes' factory layers differ (Fn in Gaming, Super/Alt swapped in Mac), so that mode's
+        # layer first, the description's layer for the keys it leaves out
+        mode_layer = mode * np.LAYERS_PER_MODE
+        if mode_layer != layer:
+            try:
+                own, _ = np.parse_matrix(self.read_region(np.CMD["GetDefaultKeyMatrix"], mode_layer * np.MATRIX_SIZE, np.MATRIX_SIZE))
+                first = {}
+                for k in self.desc["layout"]["keys"]:
+                    if k["m"] < len(own) and tuple(own[k["m"]]) != (0, 0, 0):
+                        first.setdefault(tuple(own[k["m"]]), k["m"])
+                for a, m in by_action.items():
+                    if m not in first.values():
+                        first.setdefault(a, m)
+                by_action = first
+            except np.ProtocolError:
+                pass
+            except DeviceError as e:
+                if e.code in ("gone", "deaf"):
+                    raise
+        self.by_action = by_action
         rt = self.read_keys_rt(mode)
         pairs, _ = self.read_pairs(mode)
         actions, factory_layer = self.read_layer(mode, self.layer)

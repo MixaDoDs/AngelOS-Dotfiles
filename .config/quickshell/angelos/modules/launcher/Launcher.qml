@@ -49,6 +49,9 @@ PanelWindow {
     property string query: ""
     property int current: 0
     property int providerTick: 0   // bumped when a provider has fresh async results
+    function bumpProviders() {
+        providerTick++;
+    }
     readonly property bool command: query.startsWith(">")
     // "pw …": what follows the prefix, null when the query isn't for the password manager
     readonly property var vaultQuery: command ? null : Vault.match(query)
@@ -101,7 +104,9 @@ PanelWindow {
                     item.plugin = Plugins.context(modelData);
                 item.pluginId = modelData.id;
                 if (item.changed)
-                    item.changed.connect(() => win.providerTick++);
+                    // later: a provider that says "changed" from inside its query() (in the
+                    // middle of the results binding) made a binding loop on `results`
+                    item.changed.connect(() => Qt.callLater(win.bumpProviders));
                 win.providers = win.providers.filter(p => p.pluginId !== modelData.id).concat([item]);
             }
         }
@@ -838,7 +843,7 @@ PanelWindow {
                         visible: !!details.f
                         kind: "tiny"
                         dim: true
-                        text: I18n.t("Ctrl+Enter — показать в папке", "Ctrl+Enter shows it in its folder")
+                        text: I18n.t("Ctrl+Enter — показать в папке · Shift+Пробел — просмотр", "Ctrl+Enter shows it in its folder · Shift+Space: a quick look")
                     }
                 }
                 // nothing picked: the angel waits
@@ -973,6 +978,10 @@ PanelWindow {
             } else if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & Qt.ControlModifier) && win.pickedFile) {
                 Shell.launcherOpen = false;
                 FileSearch.reveal(win.pickedFile);
+                e.accepted = true;
+            } else if (e.key === Qt.Key_Space && (e.modifiers & Qt.ShiftModifier) && win.pickedFile) {
+                // Quick Look, as Space in Nautilus (a bare Space still types: queries have words)
+                QuickLook.show(win.pickedFile.path, false);
                 e.accepted = true;
             } else if (e.key === Qt.Key_Escape) {
                 if (input.text !== "") {

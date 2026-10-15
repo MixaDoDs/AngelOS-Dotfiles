@@ -125,6 +125,117 @@ PxPage {
                 onToggled: v => Config.capture.shotOpen = v
             }
         }
+        SettingRow {
+            label: I18n.t("Классический выбор области", "Classic region selection")
+            hint: I18n.t("клавиша скриншота открывает старый выбор рамкой (скины ниже), без поиска, текста и автовыделения", "the screenshot key opens the old frame selector (the skins below), no search, text or smart areas")
+            PxToggle {
+                checked: Config.capture.classic
+                onToggled: v => Config.capture.classic = v
+            }
+        }
+    }
+    PxGroup {
+        name: "circle"
+        title: I18n.t("Обвести и найти", "Circle to search")
+        icon: "search"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Как вызвать", "How to open")
+            hint: I18n.t("Mod+Shift+S или Print: экран замирает, выберите область, окно или текст — сохранить, скопировать, перевести, найти", "Mod+Shift+S or Print: the screen freezes, pick a part, a window or text — save, copy, translate, search")
+            PxButton {
+                text: I18n.t("Попробовать", "Try it")
+                icon: "search"
+                onClicked: CircleSearch.start("")
+            }
+        }
+        SettingRow {
+            label: I18n.t("Искать в", "Search with")
+            PxCombo {
+                model: ["google", "duckduckgo", "yandex", "ecosia", "bing", "brave", "mojeek"].map(id => ({
+                            "value": id,
+                            "label": {
+                                "google": "Google",
+                                "duckduckgo": "DuckDuckGo",
+                                "yandex": I18n.t("Яндекс", "Yandex"),
+                                "ecosia": "Ecosia",
+                                "bing": "Bing",
+                                "brave": "Brave",
+                                "mojeek": "Mojeek"
+                            }[id]
+                        }))
+                currentValue: Config.circle.engine
+                onActivated: v => Config.circle.engine = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Переводить на", "Translate into")
+            hint: I18n.t("«сам» — русский текст на английский, остальное на русский", "“auto”: Russian into English, the rest into Russian")
+            PxCombo {
+                model: [
+                    {
+                        "value": "auto",
+                        "label": I18n.t("сам", "auto")
+                    },
+                    {
+                        "value": "ru",
+                        "label": I18n.t("русский", "Russian")
+                    },
+                    {
+                        "value": "en",
+                        "label": I18n.t("английский", "English")
+                    },
+                    {
+                        "value": "uk",
+                        "label": I18n.t("украинский", "Ukrainian")
+                    },
+                    {
+                        "value": "de",
+                        "label": I18n.t("немецкий", "German")
+                    },
+                    {
+                        "value": "ja",
+                        "label": I18n.t("японский", "Japanese")
+                    }
+                ]
+                currentValue: Config.circle.translateTo
+                onActivated: v => Config.circle.translateTo = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Подсвечивать слова сразу", "Outline the words at once")
+            hint: I18n.t("Live Text: весь экран читается при открытии, по строке можно просто нажать", "Live Text: the whole screen is read when it opens, click a line to pick it")
+            PxToggle {
+                checked: Config.circle.liveText
+                onToggled: v => Config.circle.liveText = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Ссылки — в мини-остров", "Links into the mini island")
+            hint: I18n.t("ссылка из Circle, буфера или уведомления открывается в маленьком окне в углу: убрать в любой край, клики насквозь (Mod+Alt+I), на весь экран. Выключено — в браузере", "a link from Circle, the clipboard or a notification opens in a small window in the corner: tuck it into any edge, clicks through it (Mod+Alt+I), full screen. Off: in the browser")
+            PxToggle {
+                checked: Config.island.enabled
+                onToggled: v => Config.island.enabled = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Кнопка «Найти картинкой»", "“Search the picture” button")
+            hint: I18n.t("отправляет обведённый кусок в Google Lens", "sends the circled piece to Google Lens")
+            PxToggle {
+                checked: Config.circle.lens
+                onToggled: v => Config.circle.lens = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Чему научился", "What it has learned")
+            hint: I18n.t("как вы поправляете рамки, сколько текста берёте, какие области отпускаете, какие слова исправляете — по приложениям; если не уверен, спрашивает после снимка", "how you fix frames, how much text you take, which areas you let go of, which words you correct — per app; when unsure it asks after the shot")
+            PxButton {
+                readonly property int n: CircleSearch.learnedCount
+                text: n ? I18n.t("Забыть (" + n + ")", "Forget (" + n + ")") : I18n.t("Пока ничего", "Nothing yet")
+                enabled: n > 0
+                icon: "trash"
+                onClicked: CircleSearch.forget()
+            }
+        }
     }
     PxGroup {
         name: "shots-more"

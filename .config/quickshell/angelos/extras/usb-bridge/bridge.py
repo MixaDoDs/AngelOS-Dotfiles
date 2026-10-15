@@ -142,6 +142,12 @@ FILTERS = {"nuphy-io": filter_nuphy_io}
 
 # ---- one connection ------------------------------------------------------------------------
 
+def log(text):
+    # to the journal: only as the service (started by systemd itself), quiet in the tests
+    if os.getppid() == 1:
+        print(text, file=sys.stderr, flush=True)
+
+
 def say(sock, obj):
     try:
         sock.send(b"J" + json.dumps(obj).encode())
@@ -176,6 +182,8 @@ class Keeper:
         self.client = None
         self.bad = 0
         self.deaf = False
+        self.why = None                             # the last reason it could not be taken (journal)
+        self.dropped = 0
         self.lock = threading.Lock()
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self.run, daemon=True)
@@ -204,7 +212,17 @@ class Keeper:
                 try:
                     self.channel = self.opener(self.key, self.entry)
                     self.bad, self.deaf = 0, False
-                except usbfs.UsbError:
+                    if self.why is not None:
+                        log("%s: taken (was %s)" % (self.key, self.why))
+                    else:
+                        log("%s: taken" % self.key)
+                    self.why = None
+                except usbfs.UsbError as e:
+                    if e.code != self.why:
+                        # said once a change, not every second: "busy" here is usually the kernel's
+                        # usbhid on the service interface (the udev rule unbinds it)
+                        log("%s: cannot take it: %s (%s)" % (self.key, e.code, e))
+                        self.why = e.code
                     self.stop.wait(1.0)             # not plugged in (or busy): look again in a second
                     continue
             try:
@@ -215,6 +233,8 @@ class Keeper:
                     # gone: unplugged, or the kernel reset it (a suspend): the client is told
                     # and let go, and the device is taken again when it is back
                     self._drop()
+                    log("%s: lost: %s (%s)" % (self.key, code, e))
+                    self.why = code
                     self.kick({"error": code, "message": str(e)})
                     self.stop.wait(0.5)
                     continue
@@ -233,7 +253,11 @@ class Keeper:
                     c = self.client
                 if c is not None:
                     try:
-                        c.send(b"P" + packet)
+                        # never wait for a slow client: the keeper must go on reading the USB
+                        # side, or the channel dies as if nobody read it
+                        c.send(b"P" + packet, socket.MSG_DONTWAIT)
+                    except BlockingIOError:
+                        self.dropped += 1
                     except OSError:
                         self.detach(c)
 
@@ -253,13 +277,16 @@ class Keeper:
             except OSError:
                 pass
 
-    def attach(self, sock):
-        """None, or why this client cannot have the device now."""
+    def attach(self, sock, hello=None):
+        """None, or why this client cannot have the device now. `hello` is said before the
+        first packet can reach the client (the client takes the first message as the answer)."""
         with self.lock:
             if self.channel is None:
                 return "gone"
             if self.client is not None:
                 return "busy"
+            if hello is not None:
+                say(sock, hello)
             self.client = sock
         if self.deaf:
             say(sock, {"deaf": True})
@@ -321,7 +348,7 @@ def serve(sock, allow, opener=open_device, uids=seated_uids, peer=peer_uid, keep
         if keeper is None:
             say(sock, {"error": "unknown", "message": "not a device of the bridge's list"})
             return 1
-    why = keeper.attach(sock)
+    why = keeper.attach(sock, {"ok": True, "family": entry["family"]})
     if why:
         say(sock, {"error": why, "message": "the device is not connected" if why == "gone" else "another program has the device now"})
         if own:
@@ -329,7 +356,6 @@ def serve(sock, allow, opener=open_device, uids=seated_uids, peer=peer_uid, keep
         return 1
     check = FILTERS[entry["family"]]
     try:
-        say(sock, {"ok": True, "family": entry["family"]})
         while True:
             try:
                 msg = sock.recv(4096)

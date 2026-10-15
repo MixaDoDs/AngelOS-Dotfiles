@@ -67,6 +67,10 @@ Scope {
         signal typed(int length, bool added)
         signal demo(string text)
         signal captureNow
+        signal relayKey(string text, int key)
+        readonly property string lockMain: "TEST-1"
+        readonly property string shownMain: "TEST-1"
+        property int relayFrom: 0
         function submit(pw) {
             if (wantFail || pw === "") {
                 fails++;
@@ -183,6 +187,17 @@ Scope {
                     const f = root.find(lock.item, "heartPassword");
                     report("long-password", !!f && f.count >= 36 && f.fits, f ? f.count + " typed, caret " + Math.round(f.caretX) + " of " + Math.round(f.width) : "no field");
                     root.shot("ngo-long");
+                }], [1200, () => {
+                    // keys typed on another screen reach this screen's field (Lock.relayKey)
+                    const f = root.find(lock.item, "heartPassword");
+                    scope.relayFrom = f ? f.count : -1;
+                    scope.relayKey("q", Qt.Key_Q);
+                    scope.relayKey("w", Qt.Key_W);
+                    scope.relayKey("", Qt.Key_Backspace);
+                }], [300, () => {
+                    const f = root.find(lock.item, "heartPassword");
+                    report("relay-keys", !!f && f.count === scope.relayFrom + 1, f ? scope.relayFrom + " → " + f.count : "no field");
+                    f.clear();
                 }], [900, () => {
                     // on air for a minute: the replay comes
                     scope.lockedAt = Date.now() - 60000;

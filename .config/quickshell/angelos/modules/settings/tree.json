@@ -202,7 +202,8 @@
           "hintEn": "screenshots, recording, where they go",
           "blocks": [
             "capture/shots",
-            "capture/recording"
+            "capture/recording",
+            "capture/circle"
           ],
           "more": [
             "capture/shots-more",
@@ -428,6 +429,18 @@
           "blocks": [
             "network"
           ]
+        },
+        {
+          "id": "quickshare",
+          "ru": "Отправить рядом",
+          "en": "Quick Share",
+          "icon": "plane",
+          "hintRu": "как AirDrop: файлы на телефон и обратно (LocalSend)",
+          "hintEn": "like AirDrop: files to a phone and back (LocalSend)",
+          "blocks": [
+            "quickShare/receive",
+            "quickShare/trusted"
+          ]
         }
       ]
     },
@@ -538,6 +551,7 @@
             "lock/lock-rewards",
             "lock/login-screen",
             "lock/idle-screen",
+            "lock/idle-aod",
             "y2k/loading-screen"
           ],
           "links": [
@@ -761,11 +775,24 @@
           "hintEn": "browser, files, terminal and more",
           "blocks": [
             "defaults/defaults",
+            "defaults/files-strata",
             "system/programs",
             "defaults/@"
           ],
           "more": [
             "defaults/files-nautilus"
+          ]
+        },
+        {
+          "id": "care",
+          "ru": "Обслуживание",
+          "en": "Maintenance",
+          "icon": "sparkle",
+          "hintRu": "проверить компьютер и убрать безопасное",
+          "hintEn": "check the computer and clean what is safe",
+          "blocks": [
+            "care/main",
+            "care/clean"
           ]
         },
         {
@@ -1309,6 +1336,18 @@
             ]
           },
           {
+            "id": "quickshare",
+            "ru": "Отправить рядом",
+            "en": "Quick Share",
+            "icon": "plane",
+            "hintRu": "как AirDrop: файлы на телефон и обратно (LocalSend)",
+            "hintEn": "like AirDrop: files to a phone and back (LocalSend)",
+            "blocks": [
+              "quickShare/receive",
+              "quickShare/trusted"
+            ]
+          },
+          {
             "id": "bluetooth",
             "ru": "Bluetooth",
             "en": "Bluetooth",
@@ -1451,12 +1490,25 @@
             "hintEn": "browser, files, terminal, task manager",
             "blocks": [
               "defaults/defaults",
+              "defaults/files-strata",
               "system/programs",
               "defaults/@"
             ],
             "more": [
               "defaults/files-nautilus",
               "system/task-manager"
+            ]
+          },
+          {
+            "id": "care",
+            "ru": "Обслуживание",
+            "en": "Maintenance",
+            "icon": "sparkle",
+            "hintRu": "проверить компьютер и убрать безопасное",
+            "hintEn": "check the computer and clean what is safe",
+            "blocks": [
+              "care/main",
+              "care/clean"
             ]
           },
           {
@@ -1511,7 +1563,8 @@
             "hintEn": "screenshots, recording, where they go",
             "blocks": [
               "capture/shots",
-              "capture/recording"
+              "capture/recording",
+              "capture/circle"
             ],
             "more": [
               "capture/shots-more",
@@ -1800,6 +1853,7 @@
               "lock/lock-rewards",
               "lock/login-screen",
               "lock/idle-screen",
+              "lock/idle-aod",
               "y2k/loading-screen"
             ]
           }

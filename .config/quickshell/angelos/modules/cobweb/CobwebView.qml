@@ -125,7 +125,10 @@ Item {
             duration: Motion.ms(260)
         }
     }
-    opacity: settled ? 1 : 0
+    // riding along: while the window (or its desk) travels, a dense silk mesh dips and
+    // comes back on arrival; the classic web rides along in full, as it always did
+    property bool sliding: false
+    opacity: settled ? ((moving || sliding) && look === "silk" ? 0.25 : 1) : 0
     visible: opacity > 0
     Behavior on opacity {
         NumberAnimation {
@@ -147,11 +150,14 @@ Item {
 
     // ---- the web as the service has it ----
     readonly property var steps: (Cobweb.rev, Cobweb.steps(winId))
+    // the look its steps were built in (classic | silk): the haze, the fades and the hit
+    // sampling follow the web itself, not the setting it may since have left
+    readonly property string look: (Cobweb.rev, Cobweb.lookOf(winId))
     readonly property int due: (Cobweb.rev, Cobweb.due(winId))
     readonly property var broken: (Cobweb.rev, (Cobweb.web(winId) || {}).broken || ({}))
     readonly property bool here: (Cobweb.rev, Cobweb.now, Cobweb.spiderHere(winId))
 
-    property var shapes: []                 // per step: [{id, s, pts, dew}] (pts: the curve at rest)
+    property var shapes: []                 // per step: [{id, kind, strand, tie, s, pts, dew}] (pts: the curve at rest)
     property var phases: []                 // per step: corner | drape | cocoon
     function rebuild() {
         const out = [];
@@ -161,6 +167,9 @@ Item {
                 const sh = Web.restShape(t, aw, ah);
                 return {
                     "id": t.id,
+                    "kind": t.kind,
+                    "strand": t.strand,
+                    "tie": t.tie || null,
                     "s": sh,
                     "pts": Web.curvePoints(sh),
                     "wrap": t.kind === "wrap",
@@ -168,6 +177,17 @@ Item {
                 };
             }));
         shapes = out;
+    }
+    // alpha per thread. Classic: the frame in full, the cocoon's windings at half (as it
+    // always was). Silk, like the preview: frame bright, strands near-full, ties and bands softer
+    function fadeOf(t) {
+        if (look !== "silk")
+            return t.wrap ? 0.5 : 1;
+        if (t.kind === "strand")
+            return 0.92;
+        if (t.kind === "cross" || t.kind === "bridge" || t.wrap)
+            return 0.6;
+        return 1;
     }
     onStepsChanged: {
         rebuild();
@@ -194,9 +214,19 @@ Item {
         hitsLater.restart();
         wake();
     }
-    // what the pointer can touch changes with these (hitsLater); what is drawn too (paint)
+    // what the pointer can touch changes with these (hitsLater); what is drawn too.
+    // Breaks come in bursts while brushing: coalesce the repaints (a full still-layer
+    // repaint uploads the whole canvas), the 120 ms hits timer already coalesces hits.
+    Timer {
+        id: paintSoonT
+        interval: 50
+        onTriggered: view.paint()
+    }
+    function paintSoon() {
+        paintSoonT.restart();
+    }
     onBrokenChanged: {
-        paint();
+        paintSoon();
         hitsLater.restart();
     }
     // a step woven goes over to the still layer; one torn off by a swipe leaves it
@@ -555,6 +585,11 @@ Item {
             ctx.stroke();
         }
     }
+    // polylines grouped by fade ({fade: [pts…]}), the brightest first: one stroke pair per fade
+    function strokeFades(ctx, by) {
+        for (const f of Object.keys(by).map(Number).sort((a, b) => b - a))
+            stroke(ctx, by[f], f);
+    }
     // the threads at rest that are there to see
     function restingThreads() {
         const out = [];
@@ -577,7 +612,7 @@ Item {
         antialiasing: false
         renderTarget: Canvas.Image
     }
-    // how far the cocoon is wound (0…1): its silk haze thickens over the window
+    // how far the classic cocoon is wound (0…1): its silk haze thickens over the window
     function cocooned() {
         const todo = pending();
         let all = 0, done = 0;
@@ -606,33 +641,38 @@ Item {
             onPaint: {
                 const ctx = getContext("2d");
                 ctx.reset();
-                // the haze: a sparse pixel dither of silk, thickest at the edges, closer as the
-                // cocoon closes; the middle stays readable
-                const c = view.cocooned(), W = view.aw, H = view.ah, S = Math.min(W, H);
-                const silk = Qt.rgba(0.93, 0.91, 0.98, 0.45);
-                // a frame of the dither from inset a to inset b
-                const rim = (a, b, pattern) => {
-                    a = Math.round(a);
-                    b = Math.round(b);
-                    if (b <= a || 2 * b >= S)
-                        return;
-                    ctx.fillStyle = ctx.createPattern(silk, pattern);
-                    ctx.fillRect(a, a, W - 2 * a, b - a);
-                    ctx.fillRect(a, H - b, W - 2 * a, b - a);
-                    ctx.fillRect(a, b, b - a, H - 2 * b);
-                    ctx.fillRect(W - b, b, b - a, H - 2 * b);
-                };
-                if (c > 0.25)
-                    rim(c > 0.45 ? S * 0.05 : 0, S * (0.08 + 0.08 * c), Qt.Dense7Pattern);
-                if (c > 0.45)
-                    rim(c > 0.75 ? S * 0.02 : 0, S * 0.05, Qt.Dense6Pattern);
-                if (c > 0.75)
-                    rim(0, S * 0.02, Qt.Dense5Pattern);
+                // classic look: the dotted silk haze, thickest at the edges, closing as
+                // the cocoon winds up; the middle stays readable
+                if (view.look !== "silk") {
+                    const c = view.cocooned(), W = view.aw, H = view.ah, S = Math.min(W, H);
+                    const silk = Qt.rgba(0.93, 0.91, 0.98, 0.45);
+                    // a frame of the dither from inset a to inset b
+                    const rim = (a, b, pattern) => {
+                        a = Math.round(a);
+                        b = Math.round(b);
+                        if (b <= a || 2 * b >= S)
+                            return;
+                        ctx.fillStyle = ctx.createPattern(silk, pattern);
+                        ctx.fillRect(a, a, W - 2 * a, b - a);
+                        ctx.fillRect(a, H - b, W - 2 * a, b - a);
+                        ctx.fillRect(a, b, b - a, H - 2 * b);
+                        ctx.fillRect(W - b, b, b - a, H - 2 * b);
+                    };
+                    if (c > 0.25)
+                        rim(c > 0.45 ? S * 0.05 : 0, S * (0.08 + 0.08 * c), Qt.Dense7Pattern);
+                    if (c > 0.45)
+                        rim(c > 0.75 ? S * 0.02 : 0, S * 0.05, Qt.Dense6Pattern);
+                    if (c > 0.75)
+                        rim(0, S * 0.02, Qt.Dense5Pattern);
+                }
                 ctx.lineWidth = 1;
                 const list = view.restingThreads().filter(t => !view.wob[t.id]);
-                // the frame of the web brighter, the cocoon's windings softer
-                view.stroke(ctx, list.filter(t => !t.wrap).map(t => t.pts), 1);
-                view.stroke(ctx, list.filter(t => t.wrap).map(t => t.pts), 0.5);
+                // the frame of the web brighter, the cocoon's windings softer (fadeOf)
+                const by = {};
+                for (const t of list)
+                    (by[view.fadeOf(t)] = by[view.fadeOf(t)] || []).push(t.pts);
+                view.strokeFades(ctx, by);
+                // dew on the corner webs' rings: a pixel and its shadow
                 for (const t of list)
                     if (t.dew) {
                         const m = Web.bezier(t.s, 0.5);
@@ -651,11 +691,12 @@ Item {
                 ctx.reset();
                 ctx.lineWidth = 1;
                 const todo = view.pending();
-                const polys = [], wraps = [];
+                const by = {};
+                const put = (t, pts) => (by[view.fadeOf(t)] = by[view.fadeOf(t)] || []).push(pts);
                 for (const id in view.wob) {
                     const t = view.shape(id);
                     if (t && !view.broken[id] && !view.hidden[id] && !todo[t.id.split(".")[0]])
-                        (t.wrap ? wraps : polys).push(Web.curvePoints(t.s, view.wob[id]));
+                        put(t, Web.curvePoints(t.s, view.wob[id]));
                 }
                 // the step being woven: as far as the spider has got
                 const w = view.weave;
@@ -663,11 +704,11 @@ Item {
                     const st = view.shapes[w.step];
                     for (let j = 0; j <= w.ti && j < st.length; j++)
                         if (!view.broken[st[j].id])
-                            (st[j].wrap ? wraps : polys).push(j < w.ti ? st[j].pts : Web.curvePoints(st[j].s, view.wob[st[j].id], view.spider.mode === "weave" ? w.t : 0));
+                            put(st[j], j < w.ti ? st[j].pts : Web.curvePoints(st[j].s, view.wob[st[j].id], view.spider.mode === "weave" ? w.t : 0));
                 }
                 // the dragline it comes down on
                 if (view.spider.mode === "drop")
-                    polys.push([
+                    (by[1] = by[1] || []).push([
                         {
                             "x": view.spider.sx,
                             "y": 0
@@ -677,8 +718,7 @@ Item {
                             "y": view.spider.y
                         }
                     ]);
-                view.stroke(ctx, polys, 1);
-                view.stroke(ctx, wraps, 0.5);
+                view.strokeFades(ctx, by);
                 for (const pc of view.pieces)
                     view.stroke(ctx, [pc.pts], Web.pieceFade(pc));
             }
@@ -744,7 +784,9 @@ Item {
     readonly property int topFree: Math.ceil(Theme.u * 18 / u / cell) * cell
     function computeHits() {
         const g = Web.hitGrid(aw, ah, cell);
-        const now = Date.now(), step = cell / 2, top = topFree;
+        // a silk mesh holds 3–4× the threads: a mark every 3/4 cell there (two thirds the
+        // marks), the classic web keeps its half-cell step
+        const now = Date.now(), step = look === "silk" ? cell * 0.75 : cell / 2, top = topFree;
         for (const t of restingThreads()) {
             if (cooling[t.id] > now)
                 continue;
@@ -762,7 +804,9 @@ Item {
         grid = g;
         updateHits();
     }
-    // the cells in screen px — only on the desk in view, never under a floating window
+    // the cells in screen px — only on the desk in view, never under a floating window.
+    // No cap: every thread stays touchable (tall windows hold 100+ cells; cutting the
+    // list would silently kill the pointer on the lower mesh).
     function updateHits() {
         const g = grid;
         const out = [];
@@ -817,7 +861,7 @@ Item {
         const res = Cobweb.touch(winId, best.t.id);
         if (res !== "break")
             kick(best.t.id, (Math.random() - 0.5) * 140, 60 + Math.random() * 60);
-        paint();
+        paintSoon();
     }
     Timer {
         id: coolEnd
@@ -843,7 +887,19 @@ Item {
             const t = view.shape(thread);
             if (t) {
                 const at = view.lastTouch ? view.lastTouch.t : 0.5;
-                view.pieces = view.pieces.concat(Web.breakAt(t.s, view.wob[thread], at));
+                // capped: a brushing burst must not pile up endless hanging halves
+                view.pieces = view.pieces.concat(Web.breakAt(t.s, view.wob[thread], at)).slice(-160);
+                view.wake();
+            }
+        }
+        // the strand's other segments and its ties: no anchor left, so they fall
+        // free and fade instead of hanging around as sticks
+        function onBrokeLoose(id, thread) {
+            if (id !== view.winId)
+                return;
+            const t = view.shape(thread);
+            if (t) {
+                view.pieces = view.pieces.concat(Web.breakLoose(t.s, view.wob[thread])).slice(-160);
                 view.wake();
             }
         }
@@ -894,6 +950,21 @@ Item {
             const h = Object.assign({}, view.hidden);
             for (const t of pick)
                 h[t.id] = true;
+            // ties die with their anchors here too: hide the picked strands' sibling
+            // segments and the bridges hanging on them — nothing stays floating
+            const deadSi = {};
+            for (const t of pick)
+                if (t.strand !== undefined)
+                    deadSi[t.strand] = true;
+            const gone = pick.slice();
+            for (const t of list) {
+                if (h[t.id])
+                    continue;
+                if ((t.strand !== undefined && deadSi[t.strand]) || (t.tie && (deadSi[t.tie[0]] || deadSi[t.tie[1]]))) {
+                    h[t.id] = true;
+                    gone.push(t);
+                }
+            }
             view.hidden = h;
             const v = {
                 "left": [-260, -30],
@@ -901,7 +972,7 @@ Item {
                 "up": [0, -280],
                 "down": [0, 200]
             }[dir];
-            view.throwOff(pick, v[0], v[1]);
+            view.throwOff(gone, v[0], v[1]);
             for (const t of list)
                 view.kick(t.id, v[0] * 0.3, v[1] * 0.3);
         }

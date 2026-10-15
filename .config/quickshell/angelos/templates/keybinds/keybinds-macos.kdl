@@ -103,7 +103,7 @@ binds {
     Mod+Alt+M                           hotkey-overlay-title="Развернуть окно до краёв" { maximize-window-to-edges; }
 
     // ─── Screenshots (Win+Shift+S style) ───
-    Mod+Shift+T                         hotkey-overlay-title="OCR: region to clipboard (stone)" { spawn "@HOME@/.local/bin/niri-ocr-region"; }
+    Mod+Alt+I                           repeat=false hotkey-overlay-title="angelOS: остров — клики насквозь вкл/выкл" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos islandThrough"; }
     Mod+Z                               hotkey-overlay-title="Лупа (плагин)" { spawn "qs" "-c" "angelos" "ipc" "call" "magnifier" "toggle"; }
 
     // Use this when a fullscreen app blocks your keybinds.

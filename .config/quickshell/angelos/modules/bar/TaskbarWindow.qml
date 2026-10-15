@@ -70,8 +70,11 @@ PanelWindow {
     }
     implicitHeight: vertical ? 0 : thick
     implicitWidth: vertical ? thick : 0
-    exclusionMode: Shell.dev || autoHide ? ExclusionMode.Ignore : ExclusionMode.Normal
-    exclusiveZone: thick
+    // Auto keeps the bar's depth from windows (implicitHeight, upright implicitWidth). No
+    // `exclusiveZone` here: in Quickshell writing it switches exclusionMode back to Normal, so
+    // `exclusiveZone: thick` undid Ignore on every start and auto-hide still kept the strip —
+    // maximized windows stopped above it and the wallpaper showed there (#72)
+    exclusionMode: Shell.dev || autoHide ? ExclusionMode.Ignore : ExclusionMode.Auto
     mask: Region {
         item: hot
     }

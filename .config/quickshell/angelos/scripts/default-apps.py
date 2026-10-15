@@ -7,6 +7,12 @@
                                           dotfiles' mimeapps.list names the author's Helium) gives
                                           way to an installed browser first, "" when there is none
   default-apps.py open-browser         -> start it (Mod+B): Helium with its own profile, else `gio launch`
+  default-apps.py open-files [DIR]     -> the default file manager on DIR (Mod+E, `angelos files`; home)
+
+The file manager also answers «show in folder» (org.freedesktop.FileManager1, browsers and GTK
+apps): one that ships no D-Bus service of its own (Strata, installed per user) gets angelOS's in
+~/.local/share/dbus-1/services when it becomes the default; another default moves that file into
+the backup, and the system's provider (Nautilus) answers again.
 
 Writes through `xdg-mime default` (~/.config/mimeapps.list); the terminal also goes
 to ~/.config/xdg-terminals.list. mimeapps.list is copied into a fresh backup folder first.
@@ -24,7 +30,7 @@ CATEGORIES = {
     "browser": {"mimes": ["x-scheme-handler/http", "x-scheme-handler/https", "text/html",
                           "x-scheme-handler/about", "x-scheme-handler/unknown"], "cat": "WebBrowser"},
     "editor": {"mimes": ["text/plain"], "cat": "TextEditor"},
-    "files": {"mimes": ["inode/directory"], "cat": "FileManager"},
+    "files": {"mimes": ["inode/directory", "inode/mount-point", "x-directory/normal"], "cat": "FileManager"},
     "terminal": {"mimes": [], "cat": "TerminalEmulator"},
     "image": {"mimes": ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "image/svg+xml"], "cat": "Viewer"},
     "video": {"mimes": ["video/mp4", "video/x-matroska", "video/webm", "video/quicktime", "video/x-msvideo"], "cat": "Video"},
@@ -36,6 +42,9 @@ CATEGORIES = {
 HOME = Path.home()
 RU = (os.environ.get("ANGELOS_LANG") or os.environ.get("LANG", "ru")).startswith("ru")
 # who takes over when the default browser isn't installed: the catalog's browsers first
+# file managers whose «show in folder» angelOS sets up per user: desktop id -> its service's argument
+FILE_MANAGER1 = {"io.github.lgse.Strata.desktop": "--gapplication-service"}
+DBUS_SERVICES = Path(os.environ.get("XDG_DATA_HOME") or HOME / ".local/share") / "dbus-1/services"
 BROWSERS = ["helium.desktop", "firefox.desktop", "org.mozilla.firefox.desktop", "chromium.desktop",
             "brave-browser.desktop", "com.brave.Browser.desktop", "google-chrome.desktop"]
 
@@ -180,6 +189,53 @@ def open_browser():
     os.execvp("gio", ["gio", "launch", str(path)])
 
 
+def desktop_exec(did):
+    """the program a .desktop entry starts (its Exec's first word)"""
+    path = desktop_file(did)
+    cp = configparser.ConfigParser(interpolation=None, strict=False)
+    try:
+        cp.read(path, encoding="utf-8")
+        return (cp["Desktop Entry"].get("Exec", "").split() or [""])[0]
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def file_manager1(did, b):
+    """«show in folder» follows the file manager: our per-user service for one that needs it, and
+    any per-user FileManager1 service of another moved into the backup b (two in one folder: D-Bus
+    picks one at random)"""
+    DBUS_SERVICES.mkdir(parents=True, exist_ok=True)
+    ours = None
+    if did in FILE_MANAGER1:
+        exe = desktop_exec(did)
+        if exe and Path(exe).is_absolute() and Path(exe).is_file():
+            ours = DBUS_SERVICES / (did[:-len(".desktop")] + ".FileManager1.service")
+            text = f"[D-BUS Service]\nName=org.freedesktop.FileManager1\nExec={exe} {FILE_MANAGER1[did]}\n"
+            if not ours.exists() or ours.read_text() != text:
+                ours.write_text(text)
+    for f in DBUS_SERVICES.glob("*.service"):
+        if f == ours:
+            continue
+        try:
+            named = "\nName=org.freedesktop.FileManager1" in "\n" + f.read_text()
+        except OSError:
+            continue
+        if named:
+            shutil.move(str(f), b / f.name)
+
+
+def open_files(folder):
+    folder = os.path.abspath(os.path.expanduser(folder or "~"))
+    did = configured("inode/directory") or query("inode/directory")
+    path = desktop_file(did) if did else None
+    if path:
+        os.execvp("gio", ["gio", "launch", str(path), folder])
+    for fm in ("strata", "nautilus", "thunar", "dolphin", "nemo", "pcmanfm-qt", "pcmanfm"):
+        if shutil.which(fm):
+            os.execvp(fm, [fm, folder])
+    os.execvp("xdg-open", ["xdg-open", folder])
+
+
 def backup():
     src = HOME / ".config/mimeapps.list"
     base = HOME / ".local/state/angelos/backups" / (time.strftime("%Y%m%d-%H%M%S") + "-default-apps")
@@ -209,6 +265,8 @@ def set_default(key, did, quiet=False):
         subprocess.run(["xdg-mime", "default", did] + CATEGORIES[key]["mimes"], check=True)
         if key == "browser":
             subprocess.run(["xdg-settings", "set", "default-web-browser", did], stderr=subprocess.DEVNULL)
+        elif key == "files":
+            file_manager1(did, b)
     if not quiet:
         print(f"ok · {did} · backup {b}")
 
@@ -222,5 +280,7 @@ if __name__ == "__main__":
         print(ensure_browser())
     elif sys.argv[1:] == ["open-browser"]:
         open_browser()
+    elif sys.argv[1:2] == ["open-files"] and len(sys.argv) <= 3:
+        open_files(sys.argv[2] if len(sys.argv) == 3 else "")
     else:
         raise SystemExit(__doc__)

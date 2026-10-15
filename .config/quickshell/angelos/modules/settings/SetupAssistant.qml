@@ -1875,8 +1875,7 @@ Item {
                 Repeater {
                     model: [
                         ["eye", I18n.t("Приватность на стриме", "Privacy on stream"), "Mod+Shift+X", I18n.t("мессенджеры, пароли, браузер — чёрные в эфире, у тебя живые. Список свой: Mod+Ctrl+Shift+X на окне или Настройки → Стрим-режим", "Messengers, passwords, the browser go black on stream, stay live for you. The list is yours: Mod+Ctrl+Shift+X on a window, or Settings → Stream mode"), "privacy"],
-                        ["document", I18n.t("Текст с экрана", "Text off the screen"), "Mod+Shift+T", I18n.t("выдели область — текст в буфере (OCR)", "pick a region: its text is in the clipboard (OCR)"), "ocr"],
-                        ["camera", I18n.t("Скриншот области", "Region screenshot"), "Mod+Shift+S", I18n.t("в Изображения/Screenshots", "into Pictures/Screenshots"), "shot"],
+                        ["camera", I18n.t("Скриншот", "Screenshot"), "Mod+Shift+S", I18n.t("экран замирает: кликни окно или картинку, обведи, выдели текст — сохранить, найти, перевести", "the screen freezes: click a window or a picture, circle, pick the text — save, search, translate"), "circle"],
                         ["play", I18n.t("Запись области", "Region recording"), "Mod+Shift+R", I18n.t("ещё раз — стоп, в Видео", "again to stop; into Videos"), "record"]
                     ]
                     PxBox {

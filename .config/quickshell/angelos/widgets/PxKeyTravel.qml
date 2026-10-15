@@ -27,7 +27,8 @@ Item {
     property var marked: ({})           // "m" -> true: changed from the factory (a dot in the corner)
     property var dimmed: ({})           // "m" -> true: the legend is not the key's own (an Fn layer's empty key)
     property var lit: ({})              // "m" -> true: held down right now, by the system's own key events
-    property bool showTravel: true      // the fill of how deep each key is
+    property bool showTravel: true      // the fill of how deep each key is, with the actuation marks
+    property bool showDepth: true       // without showTravel: the fill alone, quieter (the editing tabs)
     property int lastKey: -1            // the key that went down last
     property int downCount: 0           // keys held past their actuation point right now
     signal picked(int m, int modifiers)
@@ -42,6 +43,7 @@ Item {
 
     // the keys' items by matrix number, and where each one is drawn now (mm)
     property var caps: ({})
+    property int capsVersion: 0         // caps is filled in place: this tells bindings it changed
     property var shown: ({})
     property bool settled: true
 
@@ -142,7 +144,16 @@ Item {
             y: Math.round(modelData.y * root.cell)
             width: Math.round((modelData.w || 1) * root.cell) - root.gap
             height: Math.round((modelData.h || 1) * root.cell) - root.gap
-            Component.onCompleted: root.caps[m] = cap
+            Component.onCompleted: {
+                root.caps[m] = cap;
+                root.capsVersion++;
+            }
+            Component.onDestruction: {
+                if (root.caps[m] === cap) {
+                    delete root.caps[m];
+                    root.capsVersion++;
+                }
+            }
             Component.onDestruction: delete root.caps[m]
 
             readonly property int well: box.height - box.inset * 2
@@ -162,14 +173,14 @@ Item {
                 edgeColor: cap.held ? Theme.ok : cap.chosen ? Theme.accent : Theme.edge
                 // how deep the key is: the cap fills from the top down, as the key goes
                 Rectangle {
-                    visible: root.showTravel
+                    visible: root.showTravel || root.showDepth
                     width: parent.width
                     height: cap.fillH
-                    color: cap.down ? Theme.accent : Theme.mix(Theme.face, Theme.accent, 0.42)
+                    color: !root.showTravel ? Theme.mix(Theme.face, Theme.accent, 0.3) : cap.down ? Theme.accent : Theme.mix(Theme.face, Theme.accent, 0.42)
                 }
                 // the fill's lower edge, a row of art pixels brighter: the surface that moves
                 Rectangle {
-                    visible: root.showTravel && cap.fillH > Theme.u
+                    visible: (root.showTravel || root.showDepth) && cap.fillH > Theme.u
                     y: cap.fillH - Theme.u
                     width: parent.width
                     height: Theme.u

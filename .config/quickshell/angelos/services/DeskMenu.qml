@@ -114,7 +114,13 @@ Singleton {
                 "icon": "palette"
             },
             "screenshot": {
-                "label": I18n.t("Скриншот области", "Region screenshot"),
+                "label": I18n.t("Скриншот", "Screenshot"),
+                "short": I18n.t("Скриншот", "Screenshot"),
+                "icon": "image"
+            },
+            // Circle to Search went into the screenshot: an old menu's "circle" is the screenshot
+            "circle": {
+                "label": I18n.t("Скриншот", "Screenshot"),
                 "short": I18n.t("Скриншот", "Screenshot"),
                 "icon": "image"
             },
@@ -215,9 +221,18 @@ Singleton {
     function known(id) {
         return !!entry(id);
     }
-    // the configured layout, unknown ids dropped
-    readonly property var quick: (Config.desktop.menuQuick || []).filter(id => known(id) && id !== "sep").slice(0, 6)
-    readonly property var items: (Config.desktop.menuItems || []).filter(id => known(id))
+    // the configured layout, unknown ids dropped; an old "circle" is the screenshot (once)
+    function canon(list) {
+        const out = [];
+        for (const raw of list || []) {
+            const id = raw === "circle" ? "screenshot" : raw;
+            if (id === "sep" || !out.includes(id))
+                out.push(id);
+        }
+        return out;
+    }
+    readonly property var quick: canon(Config.desktop.menuQuick).filter(id => known(id) && id !== "sep").slice(0, 6)
+    readonly property var items: canon(Config.desktop.menuItems).filter(id => known(id))
 
     function wsIdx(screen) {
         const ws = Niri.activeWorkspace(screen);
@@ -243,8 +258,10 @@ Singleton {
             return Shell.openSettings("monitor");
         case "personalize":
             return Shell.openSettings("appearance");
+        // the screenshot is the frozen screen to pick and search ("circle": its old menu entry)
         case "screenshot":
-            return Capture.screenshot();
+        case "circle":
+            return Capture.screenshot(screen);
         case "record":
             return Capture.record();
         case "clipboard":

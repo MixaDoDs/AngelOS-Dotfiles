@@ -5,7 +5,7 @@ as OBS's Discord StreamKit overlay and discover-overlay do: StreamKit's client i
 exchange (streamkit.discord.com). No app of your own, no keys; the first time Discord asks you
 once to allow it. Prints one JSON line per change:
 
-  {"state": "no-discord" | "auth" | "authorizing" | "idle" | "call",
+  {"state": "no-discord" | "auth" | "authorizing" | "idle" | "call" | "rpc-only",
    "channel": "General", "users": [{"id", "name", "avatar": "/path.png" | "", "speaking",
    "muted", "deaf", "me", "quiet", "volume"}], "error": ""}
 
@@ -16,6 +16,8 @@ has no server mute or kick: only what is here.
 
 stdin: "auth" — ask Discord for the permission (the widget's button), "forget" — drop the token,
 "quiet <id> 0|1" and "volume <id> <0–200>" — that person for you alone.
+"rpc-only": a client with arRPC (Vesktop, Equibop, Legcord) — Rich Presence only, no calls; the
+optional DevTools bridge (discord-voice-cdp.py, docs/discord-voice.md) reads its call instead.
 The token is kept in ~/.local/state/angelos/discord-rpc.json (0600), the avatars in
 ~/.cache/angelos/discord-avatars/.
 
@@ -42,6 +44,13 @@ PORTS = range(6463, 6473)
 HOME = Path.home()
 TOKEN_FILE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "angelos/discord-rpc.json"
 AVATARS = Path(os.environ.get("XDG_CACHE_HOME", HOME / ".cache")) / "angelos/discord-avatars"
+# arRPC (Vesktop, Equibop, Legcord…) answers READY with this stand-in user and has no voice RPC:
+# no AUTHORIZE ever comes back, so the widget says «rpc-only» instead of waiting for it
+ARRPC_USER = "1045800378228281345"
+
+
+class RichPresenceOnly(ConnectionError):
+    pass
 
 
 # ---- a WebSocket client, just enough for Discord's local RPC (text frames, ping/pong, close) ----
@@ -303,6 +312,8 @@ class Session:
         asked = self.waiting.pop(msg.get("nonce"), None) if msg.get("nonce") else None
         if cmd == "DISPATCH":
             if evt == "READY":
+                if (data.get("user") or {}).get("id") == ARRPC_USER:
+                    raise RichPresenceOnly("This client's arRPC supports Rich Presence only; enable the angelOS voice bridge")
                 token = self.load()
                 if token:
                     self.cmd("AUTHENTICATE", {"access_token": token})
@@ -406,10 +417,44 @@ def connect():
     return None
 
 
+_cdp = []
+
+
+def cdp_reader():
+    # Optional fallback for Vesktop/Equibop/Legcord and other Electron clients:
+    # arRPC only implements Rich Presence, not Discord's voice RPC. Opt-in only: the
+    # reader connects to nothing unless a DevTools port was set (docs/discord-voice.md).
+    if not _cdp:
+        import importlib.util
+        path = Path(__file__).with_name("discord-voice-cdp.py")
+        module = None
+        if path.is_file():
+            try:
+                spec = importlib.util.spec_from_file_location("angelos_discord_voice_cdp", path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+            except Exception as exc:          # a broken bridge must not take the RPC path down with it
+                print(f"discord-voice: bridge: {exc}", file=sys.stderr, flush=True)
+                module = None
+        _cdp.append(module)
+    return _cdp[0].connect() if _cdp[0] else None
+
+
 def main():
     voice = Voice(out=lambda s: print(s, flush=True))
     voice.emit()
     while True:
+        reader = cdp_reader()
+        if reader:
+            try:
+                if reader.run(voice, sys.stdin) == "bye":
+                    return 0
+            except (OSError, ValueError, RuntimeError) as exc:
+                voice.set("no-discord", str(exc))
+            finally:
+                reader.close()
+            time.sleep(1)
+            continue
         ws = connect()
         if not ws:
             voice.set("no-discord")
@@ -417,13 +462,24 @@ def main():
             if r and not sys.stdin.readline():
                 return 0
             continue
+        rpc_only = False
         try:
             if Session(ws, voice, sys.stdin).run() == "bye":
                 return 0
+        except RichPresenceOnly as exc:
+            # Vesktop & co. are running but tell nothing about calls: say so, and look for the
+            # bridge again in a while rather than reconnecting to arRPC every few seconds
+            voice.set("rpc-only", str(exc))
+            rpc_only = True
         except (OSError, ConnectionError, ValueError) as exc:
             voice.set("no-discord", str(exc))
         finally:
             ws.close()
+        if rpc_only:
+            r, _, _ = select.select([sys.stdin], [], [], 10)
+            if r and not sys.stdin.readline():
+                return 0
+            continue
         time.sleep(3)
 
 

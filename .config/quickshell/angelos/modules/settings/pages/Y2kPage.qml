@@ -134,11 +134,19 @@ PxPage {
                 onToggled: c => Config.stream.privacyAuto = c
             }
         }
+        SettingRow {
+            label: I18n.t("Плашка «Privacy ON» для зрителей", "«Privacy ON» plate for the viewers")
+            hint: I18n.t("вместо чёрного прямоугольника зрители видят плашку на месте окна. Один раз в OBS: Источник → «Захват окна (PipeWire)» → «angelOS · Privacy для OBS», поставить над захватом экрана и растянуть на весь экран. У тебя на экране её не видно", "Instead of a black box the viewers see a plate where the window is. Once in OBS: Source → “Window Capture (PipeWire)” → “angelOS · Privacy для OBS”, put it above the screen capture, stretched over the whole screen. You don't see it on your screen")
+            PxToggle {
+                checked: Config.stream.privacyPlates
+                onToggled: c => Config.stream.privacyPlates = c
+            }
+        }
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Что скрывать: окна отмеченных программ в эфире закрашены чёрным, а у тебя на экране они как обычно. Mod+Ctrl+Shift+X добавляет в список программу окна в фокусе или убирает её.", "What to hide: the windows of the ticked apps are painted black on stream and stay as usual on your screen. Mod+Ctrl+Shift+X takes the focused window's app into the list or out of it.")
+            text: I18n.t("Что скрывать: окна отмеченных программ в эфире закрыты плашкой «Privacy ON» (или чёрным, если плашки нет в OBS), а у тебя на экране они как обычно. Mod+Ctrl+Shift+X добавляет в список программу окна в фокусе или убирает её; Mod+Ctrl+X показывает её в эфире, пока не нажмёшь ещё раз.", "What to hide: the windows of the ticked apps are covered with a «Privacy ON» plate on stream (black when the plate is not in OBS) and stay as usual on your screen. Mod+Ctrl+Shift+X takes the focused window's app into the list or out of it; Mod+Ctrl+X shows it on stream until you press it again.")
         }
         Repeater {
             model: Privacy.apps
@@ -158,6 +166,15 @@ PxPage {
                         anchors.verticalCenter: parent.verticalCenter
                         checked: hiddenApp.modelData.on
                         onToggled: c => Privacy.app(c ? "add" : "remove", hiddenApp.modelData.id)
+                    }
+                    // on stream for now, until pressed again (Mod+Ctrl+X for the focused window)
+                    PxButton {
+                        visible: Privacy.on && hiddenApp.modelData.on
+                        compact: true
+                        accent: Privacy.isShown(hiddenApp.modelData.id)
+                        icon: "eye"
+                        text: Privacy.isShown(hiddenApp.modelData.id) ? I18n.t("Скрыть снова", "Hide again") : I18n.t("Показать сейчас", "Show now")
+                        onClicked: Privacy.show("toggle", hiddenApp.modelData.id)
                     }
                     PxButton {
                         compact: true

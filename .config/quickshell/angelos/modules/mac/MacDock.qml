@@ -328,7 +328,7 @@ PanelWindow {
     anchors.top: vertical
     implicitWidth: vertical ? thick : modelData.width
     implicitHeight: vertical ? modelData.height : thick
-    exclusiveZone: autohide ? 0 : slabH + margin
+    exclusiveZone: Shell.dev || autohide ? 0 : slabH + margin
     // services/Minimize works out where a tiled window stands from the zone the Dock keeps
     onExclusiveZoneChanged: Minimize.dockZone[screenName] = exclusiveZone
     onDockSideChanged: Minimize.dockEdge[screenName] = dockSide

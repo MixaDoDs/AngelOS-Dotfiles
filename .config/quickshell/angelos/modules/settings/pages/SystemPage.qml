@@ -753,7 +753,7 @@ PxPage {
         // the calm mode is one of the three motion levels now (config/Motion, C4): one place
         SettingRow {
             label: I18n.t("Спокойный режим", "Calm mode")
-            hint: I18n.t("теперь в «Тема и цвета → Движение»: полное, спокойное (без вспышек, тряски и резких звуков) или выключено. Сейчас: ", "Now in Theme and colours → Motion: full, calm (no flashes, shaking or sudden loud sounds) or off. Now: ") + ({
+            hint: I18n.t("теперь в «Спецвозможности → Меньше движения»: полное, спокойное (без вспышек, тряски и резких звуков) или выключено. Сейчас: ", "Now in Accessibility → Reduce motion: full, calm (no flashes, shaking or sudden loud sounds) or off. Now: ") + ({
                     "full": I18n.t("полное", "full"),
                     "calm": I18n.t("спокойное", "calm"),
                     "off": I18n.t("выключено", "off")
@@ -761,7 +761,7 @@ PxPage {
             PxButton {
                 icon: "sparkle"
                 text: I18n.t("Открыть", "Open")
-                onClicked: Shell.settingsGo(systemPage, "appearance")
+                onClicked: Shell.settingsGo(systemPage, "motion")
             }
         }
         SettingRow {

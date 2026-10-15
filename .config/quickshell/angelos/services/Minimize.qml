@@ -101,8 +101,13 @@ Singleton {
         active: GoldenGate.on
         path: root.socketPath
         handler: Socket {
+            id: app
             parser: SplitParser {
-                onRead: line => root.fromApp(line)
+                // the hook sends one line and closes; hanging up first keeps that out of the log (#78)
+                onRead: line => {
+                    app.connected = false;
+                    root.fromApp(line);
+                }
             }
         }
     }

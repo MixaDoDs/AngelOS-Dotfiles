@@ -44,6 +44,22 @@ apply() {
         # the devices plugged in now get their group without a replug
         udevadm trigger --subsystem-match=usb --action=change 2>/dev/null || true
     fi
+    free_ifaces
+}
+# a service interface usbhid took before the rule existed (or at boot, from the initramfs)
+# is let go now, not at the next replug
+free_ifaces() {
+    live || return 0
+    py ifaces | while read -r vid pid num; do
+        for i in /sys/bus/usb/drivers/usbhid/*:*; do
+            [ -e "$i" ] || continue
+            dev="$(dirname "$(readlink -f "$i")")"
+            [ "$(cat "$dev/idVendor" 2>/dev/null)" = "$vid" ] &&
+            [ "$(cat "$dev/idProduct" 2>/dev/null)" = "$pid" ] &&
+            [ "$(cat "$i/bInterfaceNumber" 2>/dev/null)" = "$num" ] || continue
+            printf %s "$(basename "$i")" > /sys/bus/usb/drivers/usbhid/unbind 2>/dev/null || true
+        done
+    done
 }
 if [ "${1:-}" = --remove ]; then
     if live && command -v systemctl >/dev/null 2>&1; then

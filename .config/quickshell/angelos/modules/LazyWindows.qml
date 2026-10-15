@@ -87,8 +87,8 @@ Scope {
     // first-run wizard or a stream (the build is a second of CPU); asked again until it fits.
     // Not in the eco mode either (services/Power): the kept window is ~100 MB a machine that
     // saves has better uses for — it goes when eco comes, and opens as any other window does.
-    // Since 2026-10-12 off unless asked for: bin/angelos starts the shell with
-    // ANGELOS_SETTINGS_WARM=0 (the window is ~136 MB of the shell's memory); =1 keeps it built.
+    // Only with 16 GB of memory or more: bin/angelos starts the shell with
+    // ANGELOS_SETTINGS_WARM=1 there and =0 below (the window is ~136 MB of the shell's memory).
     Connections {
         target: Power
         function onEcoChanged() {

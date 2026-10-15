@@ -275,9 +275,9 @@ PopupWindow {
             "run": () => DesktopActions.newText()
         },
         {
-            "label": I18n.t("Скриншот области", "Region screenshot"),
+            "label": I18n.t("Скриншот", "Screenshot"),
             "icon": "image",
-            "run": () => Capture.screenshot()
+            "run": () => Capture.screenshot(root.screenName)
         },
         {
             "label": I18n.t("Запись области экрана", "Region recording"),

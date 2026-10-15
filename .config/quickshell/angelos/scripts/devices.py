@@ -112,7 +112,7 @@ def scan():
                 via = "bridge" if bridge.available() else "usbfs"
                 # "usbfs" on the interface is no kernel driver: somebody (this shell's page,
                 # another `angelos devices`) holds it right now
-                held = driver == "usbfs"
+                held = driver == "usbfs" and via != "bridge"
                 acc = "busy" if driver and not held else "ok" if via == "bridge" else usbfs.access(dev["node"])
                 connected.append(dict(public(d), id=d["id"] + ("#%d" % (n + 1) if n else ""), base=d["id"], access=acc, via=via,
                                       fake=False, node=dev["node"], usbVersion=dev["version"], driver=driver or "",
@@ -162,6 +162,7 @@ def emit(obj):
 
 def serve():
     session, sid, streaming = None, "", False
+    kept = False                                # the device is read by the bridge all the time
     stamp, seen = None, None
     last_frame = 0.0
     connected, descs = [], []
@@ -204,7 +205,7 @@ def serve():
         nonlocal stamp, seen, connected, descs
         s = registry.stamp()
         c, known, broken = scan()
-        key = json.dumps([[d["id"], d["access"], d.get("via", "")] for d in c])
+        key = json.dumps([[d["id"], d["access"], d.get("via", ""), d.get("node", ""), d.get("driver", "")] for d in c])
         if not force and s == stamp and key == seen:
             return
         stamp, seen, connected = s, key, c
@@ -245,8 +246,11 @@ def serve():
                         drop()
                     elif cmd == "stream":
                         streaming = bool(msg.get("on")) and session is not None
-                        if session and session.state and hasattr(session, "set_upload") and not session.why_readonly and bool(session.state["upload"]) != streaming:
-                            # the keyboard reports travel only while somebody watches it here
+                        if session and session.state and hasattr(session, "set_upload") and not session.why_readonly and bool(session.state["upload"]) != streaming \
+                                and (streaming or not kept):
+                            # the keyboard reports travel only while somebody watches it here. Through
+                            # the bridge it is read all the time anyway: once on, it stays on (no
+                            # write each time the page is left)
                             want = streaming
                             change("upload", lambda: session.set_upload(want))
                         if session and streaming:
@@ -298,13 +302,19 @@ def serve():
                             session = open_session(dev, descs, writes=True)
                             sid = dev["id"]
                             session.load(lambda n, of: emit({"t": "progress", "id": sid, "n": n, "of": of}))
+                            kept = dev.get("via") == "bridge"
                             if not session.why_readonly:
                                 # the first time ever: everything as it is now, into a file
                                 session.ensure_backup(lambda n, of: emit({"t": "progress", "id": sid, "n": n, "of": of, "what": "backup"}))
-                                if session.state.get("upload") and hasattr(session, "set_upload"):
+                                if session.state.get("upload") and hasattr(session, "set_upload") and not kept:
                                     # left on by somebody (the maker's site, a shell that fell): off
-                                    # until a picture of the keyboard asks for it
-                                    session.set_upload(False)
+                                    # until a picture of the keyboard asks for it. Never a reason
+                                    # not to open the device
+                                    try:
+                                        session.set_upload(False)
+                                    except DeviceError as e:
+                                        if e.code in ("gone", "deaf"):
+                                            raise
                             tell()
                         except DeviceError as e:
                             emit(dict(message(e.code, str(e)), t="error", id=dev["id"]))
@@ -316,6 +326,14 @@ def serve():
                         emit({"t": "gone", "id": sid})
                         drop()
                         break
+                    if ev["type"] == "func" and session.state and session.state.get("modes"):
+                        # light / sleep / Win lock changed with keys on the keyboard
+                        cur = session.state["modes"][session.state["mode"]]
+                        changed = {k: ev[k] for k in ("lockWin", "sleepMinutes", "sleep") if k in cur and cur[k] != ev[k]}
+                        if changed:
+                            cur.update(changed)
+                            tell()
+                        continue
                     if ev["type"] == "state" and session.state and ev["mode"] != session.state["mode"] and 0 <= ev["mode"] < np.MODES:
                         # the mode was switched on the keyboard: its keys' settings are another set
                         try:
@@ -369,7 +387,9 @@ def borrow(dev):
     """A page of the shell holds the device: ask the shell to let it go for a while."""
     import shutil
     import subprocess
-    if not dev or not dev.get("held") or not shutil.which("qs"):
+    # through the bridge sysfs cannot tell whether the page has it (the bridge holds it all the
+    # time): ask anyway, the shell lets go only what it holds
+    if not dev or not (dev.get("held") or dev.get("via") == "bridge") or not shutil.which("qs"):
         return False
     try:
         r = subprocess.run(["qs", "-c", "angelos", "ipc", "call", "angelos", "devices", "lend 30"], capture_output=True, text=True, timeout=5)

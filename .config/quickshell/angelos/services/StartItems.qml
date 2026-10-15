@@ -82,6 +82,11 @@ Singleton {
             "run": () => Shell.openSettings("network")
         },
         {
+            "label": I18n.t("Обслуживание", "Maintenance"),
+            "icon": "sparkle",
+            "run": () => Care.open()
+        },
+        {
             "label": "Y2K ✧",
             "icon": "sparkle",
             "run": () => Shell.openSettings("y2k")

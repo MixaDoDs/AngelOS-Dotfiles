@@ -54,6 +54,9 @@ def status():
                   "model": any(models.glob("*large-v3-turbo*")) if models.is_dir() else False},
         "privacy": {"installed": have("niri-cast-privacy"), "enabled": True},
         "ocr": {"installed": have("niri-ocr") and bool(shutil.which("tesseract")), "enabled": True},
+        # Circle to Search (scripts/circle.py): reading needs tesseract, translating needs trans
+        "circle": {"installed": bool(shutil.which("tesseract") and shutil.which("grim")), "enabled": True,
+                   "translate": bool(shutil.which("trans"))},
         "shot": {"installed": have("niri-screenshot-region"), "enabled": True},
         "record": {"installed": have("niri-record-region") and bool(shutil.which("wf-recorder")), "enabled": True},
     }

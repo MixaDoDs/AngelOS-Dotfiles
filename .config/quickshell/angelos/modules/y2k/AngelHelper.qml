@@ -25,17 +25,51 @@ import "DemonSpriteMini.js" as DemonMini
 // Settings → Y2K → The angel on stream (Ctrl + wheel on her too); clicks, the menu and
 // the throw into hell work as always.
 Scope {
+    id: root
+
+    // Her window lost with its screen comes back (#71, #75). niri closes a layer surface
+    // whose output goes away (sleep, a monitor that drops off as it powers down, a cable),
+    // and Quickshell keeps such a window hidden for good, also once it moves to another
+    // screen or the output is back: she talked on, unseen. A window that went away by
+    // itself is made anew a moment later (the outputs settle first), on the screen she is
+    // on by then; again and again it waits longer (2× each time, up to 30 s) until one stays.
+    property bool rebuilding: false
+    property int revivals: 0
+    Timer {
+        id: revive
+        interval: Math.min(30000, 400 * Math.pow(2, root.revivals))
+        onTriggered: {
+            if (!loader.active || !loader.item || loader.item.visible)
+                return;
+            root.revivals++;
+            root.rebuilding = true;
+            Qt.callLater(() => root.rebuilding = false);
+        }
+    }
+
     // created only while she is wanted (no binding on the window's own visible:
     // Quickshell re-applies it when the screen changes, which loops)
     LazyLoader {
+        id: loader
         // hidden from you by Mod+Alt+A while OBS runs (StreamAngel.hidden): only her window
-        // for OBS draws her (StreamerCast)
-        active: Angel.shown && !Shell.bootOpen && !Shell.bootCover && !!Angel.screen && !StreamAngel.hidden
+        // for OBS draws her (StreamerCast). With no output at all Qt stands a placeholder
+        // screen in, with no name: niri closes a window on it at once (#75)
+        active: Angel.shown && !Shell.bootOpen && !Shell.bootCover && !!Angel.screen && Angel.screenName !== "" && !StreamAngel.hidden && !root.rebuilding
 
         PanelWindow {
             id: win
 
             screen: Angel.screen
+            // closed by the compositor (or hidden for a moment while Quickshell moves it to
+            // another screen: then it is back before the timer looks)
+            onVisibleChanged: if (!visible)
+                revive.restart()
+            // shown for a while: the next loss is revived quickly again
+            Timer {
+                running: win.visible && root.revivals > 0
+                interval: 10000
+                onTriggered: root.revivals = 0
+            }
             // on stream: the bar is her desk. The window keeps out of the bar's exclusive
             // zone, so with no gap under it she sits on the bar's top edge (on the
             // screen's bottom edge when the bar is at the top or a side)
@@ -64,7 +98,17 @@ Scope {
             implicitWidth: Math.min(availableWidth, Math.max(Theme.u * 160, sprite.width + spritePadding))
             // room above her for the one coming down from the sky, or while she is held
             readonly property int headroom: (Angel.transition ? Theme.u * 70 : grab.held ? Theme.u * 30 : Novel.wantsClick ? Theme.u * 16 : 0) + liftRoom
-            implicitHeight: body.height + headroom
+            // the window doesn't change its height under the pointer (#76): anchored to the
+            // bottom, a new height moves its surface's top, and until niri has placed the new
+            // size the pointer's coordinates are off by the change — held, she jerked away from
+            // the cursor (a jump down could even read as a fling into hell). So the room for
+            // the swap, her held lift and a short line of hers is always there, and while she is
+            // pressed or held the window doesn't shrink either (the menu closing as she is
+            // picked up). The empty space is transparent and outside the input mask below:
+            // clicks go through it to the windows under it.
+            readonly property real restHeight: Math.min(screen.height * 0.95, sprite.height + Theme.u * 4 + Theme.u * 70 + Theme.u * 80)
+            property real keptHeight: 0
+            implicitHeight: Math.max(restHeight, body.height + headroom, keptHeight)
             // on stream over fullscreen games too, as OBS sees the screen
             WlrLayershell.layer: win.streamer ? WlrLayer.Overlay : WlrLayer.Top
             WlrLayershell.namespace: "angelos-angel"
@@ -856,6 +900,9 @@ Scope {
                         cursorShape: dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
                         property bool dragging: false
                         readonly property bool held: dragging || spring.running
+                        // the window keeps its height from the press until she is back (#76)
+                        readonly property bool holding: pressed || held
+                        onHoldingChanged: win.keptHeight = holding ? win.implicitHeight : 0
                         property real dx: 0
                         property real dy: 0
                         property point start

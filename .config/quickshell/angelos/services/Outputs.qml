@@ -22,6 +22,13 @@ Singleton {
             return;
         primary.command = ["python3", Quickshell.shellDir + "/scripts/primary-output.py", "set", name];
         primary.running = true;
+        // the login (SDDM) puts its password field and the pointer there too: walls/ of the
+        // installed theme is the user's, no password (a theme not installed says so and is left)
+        loginPrimary.command = ["python3", Quickshell.shellDir + "/scripts/sddm-theme.py", "primary", name];
+        loginPrimary.running = true;
+    }
+    Process {
+        id: loginPrimary
     }
     Process {
         id: primary

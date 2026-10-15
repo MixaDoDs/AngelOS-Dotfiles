@@ -36,14 +36,30 @@ class BridgeChannel:
             s.settimeout(3)
             s.connect(self.path)
             s.send(b"J" + json.dumps({"open": self.key}).encode())
-            answer = s.recv(4096)
+            # an older bridge can let a packet of the device (or a "deaf" note) in before its
+            # answer: those are not the answer
+            reply, deaf = {}, False
+            for _ in range(64):
+                answer = s.recv(4096)
+                if answer[:1] != b"J":
+                    if not answer:
+                        break
+                    continue
+                try:
+                    reply = json.loads(answer[1:])
+                except ValueError:
+                    reply = {}
+                    break
+                if "deaf" in reply and "ok" not in reply and "error" not in reply:
+                    deaf = bool(reply["deaf"])
+                    reply = {}
+                    continue
+                break
         except (OSError, socket.timeout) as e:
             s.close()
             raise UsbError("denied", "the USB bridge does not answer: %s" % e) from None
-        try:
-            reply = json.loads(answer[1:]) if answer[:1] == b"J" else {}
-        except ValueError:
-            reply = {}
+        if deaf and reply.get("ok"):
+            self.deaf = True
         if not reply.get("ok"):
             s.close()
             raise UsbError(str(reply.get("error") or "io"), str(reply.get("message") or "the USB bridge refused"))

@@ -175,6 +175,8 @@ BarPopup {
                                     width: parent.width
                                     text: Notifs.safeMarkup(h.modelData.body)
                                     textFormat: Text.StyledText
+                                    linkColor: Theme.accent2
+                                    onLinkActivated: l => Notifs.openLink(l)
                                     wrapMode: Text.Wrap
                                     maximumLineCount: 3
                                     elide: Text.ElideRight

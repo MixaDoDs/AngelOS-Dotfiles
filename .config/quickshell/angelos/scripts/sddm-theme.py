@@ -22,6 +22,11 @@
   sddm-theme.py look LOOK [--palette ngo|system]
       the installed theme takes this look (and these colours) from now on: written into
       walls/theme.conf.user, no password; prints JSON {"set": bool}
+  sddm-theme.py primary [NAME]
+      the screen the password field and the pointer start on (NAME, a niri output; default:
+      Settings → Monitor → Main screen), with its monitor's name and serial so X (whose
+      names differ) finds it: written into walls/theme.conf.user, no password; the theme's
+      xsetup.sh (SDDM's [X11] DisplayCommand) makes it X's primary and puts the pointer there
   sddm-theme.py status
       prints JSON: {"installed": bool, "current": theme or "", "sddm": bool, "walls": bool,
       "look": the installed look, "user": theme.conf.user is in place}
@@ -65,6 +70,29 @@ def settings():
         return json.loads((CONFIG / "settings.json").read_text())
     except (OSError, ValueError):
         return {}
+
+
+def niri_outputs():
+    try:
+        r = subprocess.run(["niri", "msg", "--json", "outputs"], capture_output=True, text=True, timeout=5)
+        out = json.loads(r.stdout) if r.returncode == 0 else {}
+        return out if isinstance(out, dict) else {}
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return {}
+
+
+SAFE = re.compile(r"[^\w .,()+/&'-]")
+
+
+def primary_keys(name=None, outs=None):
+    """walls/theme.conf.user's keys for the main screen: {} when none is picked."""
+    name = name if name is not None else ((settings().get("system") or {}).get("primaryScreen") or "")
+    name = SAFE.sub("", str(name))[:40]
+    if not name:
+        return {}
+    o = (outs if outs is not None else niri_outputs()).get(name) or {}
+    clean = lambda v: SAFE.sub("", str(v or ""))[:80] if v not in (None, "None") else ""
+    return {"primary": name, "primaryMake": clean(o.get("make")), "primaryModel": clean(o.get("model")), "primarySerial": clean(o.get("serial"))}
 
 
 def system_palette():
@@ -210,12 +238,19 @@ def build(out: Path, wallpaper, palette_name, tall=None, look="stream"):
     put_walls(walls, wp if wp and wp.is_file() else None, Path(tall) if tall else None)
     (out / "theme.conf").write_text(conf_lines(conf))
     # what angelOS changes later without a password: the look and the colours
-    user_conf(walls, look, pal, palette_name)
+    user_conf(walls, look, pal, palette_name, primary_keys())
     return {"out": str(out), "fonts": found, "background": conf.get("background", ""), "palette": palette_name, "look": conf["look"]}
 
 
-def user_conf(walls: Path, look, pal, palette_name):
+PRIMARY_KEYS = ("primary", "primaryMake", "primaryModel", "primarySerial")
+
+
+def user_conf(walls: Path, look, pal, palette_name, primary=None):
     conf = {**pal, "palette": palette_name, "look": look if look in LOOKS else "stream"}
+    # the main screen stays what it was unless it is given
+    old = read_conf(walls / "theme.conf.user")
+    keep = primary if primary is not None else {k: old[k] for k in PRIMARY_KEYS if old.get(k)}
+    conf.update({k: v for k, v in keep.items() if v})
     tmp = walls / ".theme.conf.user.tmp"
     tmp.write_text(conf_lines(conf))
     os.chmod(tmp, 0o644)
@@ -305,7 +340,10 @@ ln -sfn walls/theme.conf.user "$target.new/theme.conf.user"
 [ ! -d "$target" ] || mv "$target" "$(dirname "$target")/.angelos.bak.$stamp-$$"
 mv "$target.new" "$target"
 mkdir -p "$(dirname "$confd")"
-printf '[Theme]\nCurrent=angelos\nCursorTheme=capitaine-cursors\n' > "$confd"
+chmod 0755 "$target/xsetup.sh" "$target/xsetup.py" 2>/dev/null || true
+# [X11] DisplayCommand: the theme's xsetup.sh runs the system's own Xsetup first, then puts the
+# main screen first and the pointer on it (people did not see where to type the password)
+printf '[Theme]\nCurrent=angelos\nCursorTheme=capitaine-cursors\n\n[X11]\nDisplayCommand=/usr/share/sddm/themes/angelos/xsetup.sh\n' > "$confd"
 # SDDM reads EVERY file of sddm.conf.d in alphabetical order, not only *.conf, and the last
 # Current= wins. So backups never go in there: the old zz-pixelstreetart.conf.bak.<stamp> next to
 # it sorted last and put pixel-cyberpunk back on every boot. Backups: /etc/angelos-sddm-backups.
@@ -352,8 +390,8 @@ def install(out: Path, prefix: str = "", replace: bool = False):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["build", "install", "status", "walls", "look", "fingerprint"])
-    ap.add_argument("look_name", nargs="?", choices=LOOKS)
+    ap.add_argument("cmd", choices=["build", "install", "status", "walls", "look", "primary", "fingerprint"])
+    ap.add_argument("look_name", nargs="?")
     ap.add_argument("--wallpaper")
     ap.add_argument("--tall", help="the picture for portrait screens (default: --wallpaper)")
     ap.add_argument("--palette", choices=["system", "ngo"], default=None)
@@ -372,9 +410,26 @@ def main():
                           "walls": walls.is_dir() and os.access(walls, os.W_OK),
                           "look": installed.get("look", "stream") if (TARGET / "Main.qml").is_file() else "",
                           "palette": installed.get("palette", "ngo"),
+                          "primary": installed.get("primary", ""),
+                          "xsetup": (TARGET / "xsetup.sh").is_file(),
                           "user": (TARGET / "theme.conf.user").is_symlink() and (TARGET / "HeavenLook.qml").is_file()}))
         return
+    if a.cmd == "primary":
+        walls = TARGET / "walls"
+        if not (TARGET / "theme.conf.user").is_symlink() or not os.access(walls, os.W_OK):
+            print(json.dumps({"set": False, "reason": "the theme is not installed (or predates walls/): install it again"}))
+            return
+        now = read_conf(walls / "theme.conf.user")
+        name = now.get("palette") or "ngo"
+        pal = system_palette() if name == "system" else dict(NGO)
+        keys = primary_keys(a.look_name)
+        user_conf(walls, now.get("look") or "stream", pal, name, keys)
+        print(json.dumps({"set": True, **keys, "xsetup": (TARGET / "xsetup.sh").is_file()}))
+        return
     if a.cmd == "look":
+        if a.look_name not in LOOKS:
+            print(json.dumps({"set": False, "reason": "no such look"}))
+            return
         walls = TARGET / "walls"
         if not a.look_name or not (TARGET / "theme.conf.user").is_symlink() or not os.access(walls, os.W_OK):
             # installed before the looks: `install --look` once

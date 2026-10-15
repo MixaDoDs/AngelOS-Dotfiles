@@ -5,6 +5,7 @@
 #   angelos theme light|dark|auto|toggle | wallpaper <path|random> | bar taskbar|top|island
 #   angelos startMenu | sidebar | idle | lockPreview | fontPreset arcade|soft|block|angelos
 #   angelos browser — the default browser (Mod+B; Settings → Default apps), an installed one when it isn't
+#   angelos files [DIR] — the default file manager (Mod+E; Settings → Default apps: Strata), on DIR or home
 #   angelos ws <n|up|down|prev> | alttab next|prev|cancel|apps|appsback|appwin|appwinback | lens in|out|close|toggle | start | restart | stop | run | status | log | report | sprites | switch angelos|noctalia
 #   angelOS is also a game played over your desktop (an angel, a demon, a story that follows
 #   your choices). Out of it at once, any time: `angelos game off` or Mod+Ctrl+Shift+Escape;
@@ -89,9 +90,18 @@ shell_env() {
   # (MALLOC_ARENA_MAX…) do nothing here. Apps get what the session had (Shell.childEnv).
   export ANGELOS_PRE_MALLOC_CONF="${MALLOC_CONF:-}"
   export MALLOC_CONF="${MALLOC_CONF:-narenas:2,dirty_decay_ms:1000,background_thread:true}"
-  # The Settings window is not built ahead and kept hidden (-136 MB; modules/LazyWindows): it
-  # is built when first opened. ANGELOS_SETTINGS_WARM=1 in the environment brings that back.
-  export ANGELOS_SETTINGS_WARM="${ANGELOS_SETTINGS_WARM:-0}"
+  # The Settings window is built ahead and kept hidden (modules/LazyWindows) only with 16 GB of
+  # memory or more (~136 MB, opens at once); with less it is built when first opened, and the
+  # eco mode drops it anyway. ANGELOS_SETTINGS_WARM=1 / =0 in the environment decides instead.
+  if [ -z "${ANGELOS_SETTINGS_WARM:-}" ]; then
+    # MemTotal of a 16 GB machine is a little under 16 GiB: 15 GiB and up counts
+    if [ "$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || echo 0)" -ge 15728640 ] 2>/dev/null; then
+      ANGELOS_SETTINGS_WARM=1
+    else
+      ANGELOS_SETTINGS_WARM=0
+    fi
+  fi
+  export ANGELOS_SETTINGS_WARM
   # (QSG_RENDER_LOOP=basic would save another ~40 MB — one render thread — and draw every
   # window at ~60 frames a second whatever the monitor: measured 138 → 63 on 144 Hz. Not set.)
   case "$mode" in
@@ -315,9 +325,12 @@ case "$1" in
       # the shell's own long-running helpers (night light, the sleep watch and its
       # inhibitor, the guard, usb-watch's udevadm); anything else in here is left alone
       case "$cmd" in
-        *"$SHELL_DIR/scripts/"*|*"$SHELL_DIR/plugins/"*|cava\ *angelos*|*/cava\ *angelos*|*"$SHELL_DIR/bin/angelos guard "*|\
+        *"$SHELL_DIR/scripts/"*|*"$SHELL_DIR/plugins/"*|cava\ *angelos*|*/cava\ *angelos*|\
         wlsunset\ *|*/wlsunset\ *|*"gdbus monitor --system --dest org.freedesktop.login1"*|*systemd-inhibit\ *--who=angelOS*|\
         "udevadm monitor --udev --subsystem-match=usb/usb_device --property "*) kill "$p" 2>/dev/null ;;
+        # the guard's `sleep` would outlive it in the cgroup (KillMode=process, #70): stopped, it
+        # can't start the next one while its children go, then the TERM lands as it continues
+        *"$SHELL_DIR/bin/angelos guard "*) kill -STOP "$p" 2>/dev/null; pkill -P "$p" 2>/dev/null; kill "$p" 2>/dev/null; kill -CONT "$p" 2>/dev/null ;;
       esac
     done ;;
   status)
@@ -356,6 +369,7 @@ case "$1" in
   sddm)    shift; [ $# -gt 0 ] || set -- status; exec python3 "$SHELL_DIR/scripts/sddm-theme.py" "$@" ;;
   settings) exec qs -c angelos ipc call angelos settings "${2:-}" ;;
   browser) exec python3 "$SHELL_DIR/scripts/default-apps.py" open-browser ;;
+  files)   shift; exec python3 "$SHELL_DIR/scripts/default-apps.py" open-files "$@" ;;
   setup)
     [ $# -eq 1 ] && exec qs -c angelos ipc call angelos setup
     shift
@@ -488,6 +502,24 @@ case "$1" in
       exit 0
     fi
     exec qs -c angelos ipc call angelos lens "$what" ;;
+  share)
+    # Quick Share: `angelos share <files…>` / `angelos share --text "…"` — the sheet with LocalSend devices nearby
+    shift
+    if [ "${1:-}" = "--text" ]; then shift; exec qs -c angelos ipc call angelos shareText "$*"; fi
+    list=""
+    for f in "$@"; do p="$(realpath -- "$f" 2>/dev/null)" && list="$list$p
+"; done
+    exec qs -c angelos ipc call angelos share "$list" ;;
+  quicklook)
+    # Quick Look: `angelos quicklook <file>`
+    exec qs -c angelos ipc call angelos quicklook "$(realpath -- "${2:-.}")" ;;
+  circle)
+    # the old name of `capture` (the screenshot overlay); a shell started before it existed: the old OCR
+    out="$(qs -c angelos ipc call angelos circle 2>&1)"
+    case "$out" in
+      *"not found"*|*"No running"*|*"no running"*) exec "$HOME/.local/bin/niri-ocr" ;;
+    esac
+    exit 0 ;;
   events)
     # follow angelOS: one line per event (stream, awake, realm, character, circle, locked,
     # idle, theme, dnd, angelSaid); a signal name narrows it; `angelos eventsNow` = the state now

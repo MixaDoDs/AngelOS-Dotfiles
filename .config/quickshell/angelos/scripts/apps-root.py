@@ -6,7 +6,7 @@ polkit dialog) for the whole run instead of a terminal asking sudo's.
 
 Listens on SOCKET (in a directory UID owns, mode 0700) for that user's requests — scripts/apps-sudo
 sends them: pacman's own commands (paru's too, through --sudo), the author's repositories
-(scripts/cachyos-repos.sh) and that user's login shell made fish (chsh -s /usr/bin/fish USER; the
+(scripts/cachyos-repos.sh), Maintenance's few fixed commands (care_command) and that user's login shell made fish (chsh -s /usr/bin/fish USER; the
 new apps after an update offer it). Nothing else runs. Each request is one JSON line {"argv": [...]};
 the answer is the command's output, then a line "\\0RC <exit code>". Prints READY once listening,
 and ends when its stdin closes (scripts/apps-install.py, which started it, is done or gone).
@@ -14,6 +14,7 @@ and ends when its stdin closes (scripts/apps-install.py, which started it, is do
 import json
 import os
 import pwd
+import re
 import selectors
 import socket
 import stat
@@ -46,6 +47,21 @@ def list_fish():
             f.write(("" if not text or text.endswith("\n") else "\n") + FISH + "\n")
 
 
+def care_command(argv):
+    """scripts/care.py's root steps, each in one fixed form: the package cache (paccache), the
+    journal shortened, old crash dumps, a disk's SMART health"""
+    name = os.path.basename(argv[0])
+    if name == "paccache" and argv[1:] in (["-rk2"], ["-ruk0"]):
+        return ["/usr/bin/paccache"] + argv[1:]
+    if name == "journalctl" and len(argv) == 2 and re.fullmatch(r"--vacuum-size=\d{2,5}M", argv[1]):
+        return ["/usr/bin/journalctl", argv[1]]
+    if name == "find" and argv[1:] == ["/var/lib/systemd/coredump", "-type", "f", "-mtime", "+7", "-delete"]:
+        return ["/usr/bin/find"] + argv[1:]
+    if name == "smartctl" and len(argv) == 4 and argv[1:3] == ["-H", "-j"] and re.fullmatch(r"/dev/(sd[a-z]+|nvme\d+n\d+|vd[a-z]+)", argv[3]):
+        return ["/usr/bin/smartctl", "-H", "-j", argv[3]]
+    return None
+
+
 def allowed(argv, uid=None):
     """the command to run for a request, None when it isn't one of ours"""
     # paru's sudo flags before the command; `sudo -v` / `sudo true` only keep a ticket alive
@@ -59,6 +75,10 @@ def allowed(argv, uid=None):
         return [PACMAN] + argv[1:]
     if argv[0] in ("bash", "/bin/bash", "/usr/bin/bash") and len(argv) == 2 and Path(argv[1]).resolve() == REPOS:
         return ["/usr/bin/bash", str(REPOS)]
+    # Maintenance (scripts/care.py): these exact forms only
+    care = care_command(argv)
+    if care is not None:
+        return care
     # the asking user's own login shell, fish and nothing else
     if os.path.basename(argv[0]) == "chsh" and uid is not None and len(argv) == 4 and argv[1:3] == ["-s", FISH]:
         try:

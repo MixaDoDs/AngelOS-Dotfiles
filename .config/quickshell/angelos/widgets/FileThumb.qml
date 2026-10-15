@@ -22,7 +22,9 @@ Item {
         fillMode: root.crop ? Image.PreserveAspectCrop : Image.PreserveAspectFit
         sourceSize: Qt.size(root.decode, root.decode)
         source: root.attempt < root.candidates.length ? root.candidates[root.attempt] : ""
-        onStatusChanged: if (status === Image.Error)
-            root.attempt++
+        onStatusChanged: if (status === Image.Error) {
+            FileSearch.miss(String(source));
+            root.attempt++;
+        }
     }
 }

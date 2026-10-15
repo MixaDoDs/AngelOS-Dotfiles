@@ -79,6 +79,17 @@ PxWindow {
             "act": () => Bt.setEnabled(!Bt.enabled)
         },
         {
+            // Quick Share (LocalSend devices nearby): the radar, files dropped or picked there
+            "id": "quickshare",
+            "show": Config.quickshare.enabled,
+            "icon": "plane",
+            "label": I18n.t("Отправить рядом", "Quick Share"),
+            "act": () => {
+                Sidebar.open = false;
+                QuickShare.share([], "");
+            }
+        },
+        {
             "id": "lyrics",
             "icon": "mic",
             "label": I18n.t("Лирика", "Lyrics"),

@@ -89,6 +89,20 @@ window-rule {
         open-floating true
     }
 
+    // angelOS's privacy plates for OBS (modules/y2k/PrivacyCast): «Privacy ON» where a hidden
+    // window is, for the viewers alone. Unseen on the screens (a window cast takes it as drawn),
+    // floating, never taking the focus
+    window-rule {
+        match app-id=r#"^org\.quickshell$"# title="^angelOS · Privacy для OBS$"
+        opacity 0.0
+        open-focused false
+        open-floating true
+        default-floating-position x=0 y=0 relative-to="bottom-left"
+        border { off; }
+        focus-ring { off; }
+        shadow { off; }
+    }
+
     // Photoshop (Wine via xwayland-satellite): no rounded clip so the canvas
     // isn't cut, main window tiled full width instead of floating.
     window-rule {
@@ -131,5 +145,22 @@ window-rule {
         open-on-output "HDMI-A-1"
         open-focused false
         block-out-from "screencast"
+    }
+    // the mini island (scripts/island): a small browser in a corner
+    window-rule {
+        match title="^angelOS · Остров"
+        open-floating true
+        default-column-width { fixed 460; }
+        default-window-height { fixed 720; }
+        default-floating-position x=24 y=24 relative-to="bottom-right"
+        geometry-corner-radius 16
+        clip-to-geometry true
+        border { off; }
+        focus-ring { off; }
+    }
+    window-rule {
+        match title=r#"^angelOS · Остров \[dev\]"#
+        open-on-output "HDMI-A-1"
+        open-focused false
     }
     // ─── /angelOS ───

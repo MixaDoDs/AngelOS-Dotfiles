@@ -30,8 +30,14 @@ class Privacy(unittest.TestCase):
 
     def run_tool(self, *args, ok=True):
         # no desktop entries but the HOME's own: an app's name must not depend on this machine
-        env = {"HOME": str(self.home), "PATH": os.environ["PATH"], "ANGELOS_TEST": "1", "LANG": "C",
-               "XDG_DATA_DIRS": str(self.home / "nothing")}
+        # a notify-send of our own first in PATH: the tool must never call it (no words on screen)
+        fake = self.home / "bin"
+        if not fake.is_dir():
+            fake.mkdir()
+            (fake / "notify-send").write_text("#!/bin/sh\necho \"$*\" >> %s/notified\n" % self.home)
+            (fake / "notify-send").chmod(0o755)
+        env = {"HOME": str(self.home), "PATH": str(fake) + os.pathsep + os.environ["PATH"], "ANGELOS_TEST": "1", "LANG": "C",
+               "XDG_DATA_DIRS": str(self.home / "nothing"), "XDG_RUNTIME_DIR": str(self.home / "rt")}
         r = subprocess.run([sys.executable, str(TOOL), *args], capture_output=True, text=True, env=env)
         if ok:
             self.assertEqual(r.returncode, 0, r.stderr)
@@ -55,6 +61,31 @@ class Privacy(unittest.TestCase):
         self.run_tool("toggle")
         self.assertEqual(self.rules.read_text(), "// privacy block-out off (Mod+Shift+X)\n")
         self.assertFalse(self.status()["on"])
+
+    def test_show_for_a_moment(self):
+        self.run_tool("on")
+        self.run_tool("show", "toggle", "helium")
+        self.assertNotIn("^helium$", self.hidden())
+        self.assertIn("^discord$", self.hidden())
+        self.assertEqual(self.status()["shown"], ["helium"])
+        # the list itself is not changed: helium is still hidden by the mode
+        self.assertTrue({a["id"]: a for a in self.status()["apps"]}["helium"]["on"])
+        self.run_tool("show", "toggle", "helium")
+        self.assertIn("^helium$", self.hidden())
+        # shown, then the mode switched: hidden again
+        self.run_tool("show", "on", "discord")
+        self.assertNotIn("^discord$", self.hidden())
+        self.run_tool("off")
+        self.run_tool("on")
+        self.assertIn("^discord$", self.hidden())
+        self.assertEqual(self.status()["shown"], [])
+
+    def test_nothing_is_said_on_screen(self):
+        self.run_tool("on")
+        self.run_tool("app", "add", "org.keepassxc.KeePassXC")
+        self.run_tool("show", "on", "helium")
+        self.run_tool("off")
+        self.assertFalse((self.home / "notified").exists())
 
     def test_on_and_off_are_not_toggles(self):
         self.run_tool("on")

@@ -193,8 +193,8 @@ Singleton {
     // The main screen (Settings → Monitor → Main screen): the desktop widgets, the angel
     // and her cracks, rays and quake, the idle screen and the sidebar live there. Not
     // picked, or not connected: the widest screen — the main landscape monitor next to
-    // portrait side screens. The lock keeps its password box where the focus is: that
-    // is where niri sends the keys.
+    // portrait side screens. The lock's password box is there too (Config.lock.passwordOn
+    // "main"; keys typed on another screen are handed over to it).
     readonly property var widestScreen: screens.reduce((best, s) => !best || s.width > best.width ? s : best, null)
     readonly property var primaryScreen: screenByName(Config.system.primaryScreen) || widestScreen
     readonly property string primaryName: primaryScreen ? primaryScreen.name : ""

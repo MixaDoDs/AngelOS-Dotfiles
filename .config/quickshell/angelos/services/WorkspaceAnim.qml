@@ -309,6 +309,13 @@ Singleton {
         path: root.socketPath
         handler: Socket {
             id: client
+            // one line, one answer, and the shell hangs up itself: when `socat` closed first,
+            // Quickshell logged each keypress as a socket error (PeerClosedError, #78)
+            function reply(text) {
+                write(text + "\n");
+                flush();
+                connected = false;
+            }
             parser: SplitParser {
                 onRead: line => {
                     const m = line.trim().match(/^ws ([0-9]{1,2}|up|down|prev)$/);
@@ -318,15 +325,13 @@ Singleton {
                     // the lens at the pointer, too (services/Lens)
                     const l = line.trim().match(/^lens (in|out|close|toggle|refresh)$/);
                     if (l) {
-                        client.write("ok\n");
-                        client.flush();
+                        client.reply("ok");
                         Lens.cmd(l[1], "");
                         return;
                     }
                     const mac = !!a && /^app/.test(a[1]);
                     const ok = !!m || !!a && (AltTab.ours || mac);
-                    client.write(ok ? "ok\n" : "err\n");
-                    client.flush();
+                    client.reply(ok ? "ok" : "err");
                     if (m)
                         root.go(m[1]);
                     else if (ok && a[1] === "cancel")

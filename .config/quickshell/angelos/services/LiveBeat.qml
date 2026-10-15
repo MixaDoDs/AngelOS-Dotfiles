@@ -9,6 +9,9 @@ import Quickshell.Io
 // waits for the next kick of the bass instead of coming at a random moment. Only listens
 // while someone waits — cava (through scripts/audio-tap.py, what everything plays) runs for
 // a few seconds and stops; with no beat in 4 s, or no cava, the waiting ones go anyway.
+// A music spectrum on the desk that hears what everything plays (MusicSpectrum, `feeders`)
+// already runs that cava: its bass bar is listened to instead — no python, cava and pw-record
+// started and stopped for every event (5 a minute with two screens).
 //   LiveBeat.next(cb)
 Singleton {
     id: root
@@ -17,12 +20,16 @@ Singleton {
     readonly property string conf: Quickshell.env("HOME") + "/.cache/angelos/cava-livebeat.conf"
     readonly property string fifo: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos-cava-livebeat.fifo"
 
+    property int feeders: 0
+    readonly property bool listening: proc.running     // its own cava (the self-test asks)
     function next(cb) {
+        const idle = waiting.length === 0;
         waiting = waiting.concat([cb]);
-        if (!proc.running) {
-            frames = 0;
-            avg = 0;
-            prev = 0;
+        if (feeders > 0) {
+            if (idle)
+                learn();
+        } else if (!proc.running) {
+            learn();
             // the same text again: FileView writes nothing and says no `saved`
             if (written === confText) {
                 proc.running = true;
@@ -32,6 +39,24 @@ Singleton {
             }
         }
         giveUp.restart();
+    }
+    function learn() {
+        frames = 0;
+        avg = 0;
+        prev = 0;
+    }
+    // a spectrum's lowest bar, 0…1 at its 30 frames a second (the own cava: 0…1000 at 60)
+    function feed(v) {
+        if (waiting.length && !proc.running)
+            hear(v * 1000, 6);
+    }
+    function hear(b, learning) {
+        frames++;
+        const kick = frames > learning && b > 120 && b > avg * 1.45 && b - prev > 60;
+        avg = avg * 0.9 + b * 0.1;
+        prev = b;
+        if (kick && waiting.length)
+            _fire();
     }
     function _fire() {
         const w = waiting;
@@ -61,15 +86,7 @@ Singleton {
         id: proc
         command: ["python3", Quickshell.shellDir + "/scripts/audio-tap.py", "run", "--conf", root.conf, "--fifo", root.fifo, ""]
         stdout: SplitParser {
-            onRead: line => {
-                const b = parseInt(line.split(";")[0]) || 0;
-                root.frames++;
-                const kick = root.frames > 12 && b > 120 && b > root.avg * 1.45 && b - root.prev > 60;
-                root.avg = root.avg * 0.9 + b * 0.1;
-                root.prev = b;
-                if (kick && root.waiting.length)
-                    root._fire();
-            }
+            onRead: line => root.hear(parseInt(line.split(";")[0]) || 0, 12)
         }
         onExited: if (root.waiting.length)
             root._fire()

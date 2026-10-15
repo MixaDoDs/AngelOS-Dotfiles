@@ -168,6 +168,13 @@ JsonAdapter {
         property bool cobwebInside: true    // the web over the window itself (off: only the bar's buttons)
         property bool cobwebBar: true       // a small web and spider on the window's button in the bar / Dock
         property string cobwebSpeed: "normal" // fast (10 min → 1 h) | normal (30 min → 4 h) | slow (2 h → a day)
+        property string cobwebStyle: "classic" // the cocoon's look: classic (the dotted grid it always had) | silk (procedural mesh)
+        // silk mesh tuning (services/CobwebWeb buildCocoon, preview in Settings → Windows → Cobwebs;
+        // the ranges are clamped in services/Cobweb tunerRange)
+        property real cobwebDensity: 1   // strand layers (0.5–2): more layers only append
+        property real cobwebBundles: 0   // long edge-to-edge bands (0–1.4)
+        property real cobwebBridges: 1   // ties between neighbouring strands (0–2)
+        property real cobwebGravity: 1   // thread sag (0–2.5)
     }
 
     property JsonObject alttab: JsonObject {
@@ -309,6 +316,7 @@ JsonAdapter {
         property bool stream: false         // NGO stream overlay: LIVE badge, viewers, cute chat
         property string streamTitle: ""      // "" = "angel is on a break" 
         property string style: "ngo"        // ngo (the NGO stream) | heaven (a game's login screen at heaven's gate)
+        property string passwordOn: "main"  // main (Settings → Monitor → Main screen; keys typed on any screen reach it) | focus (where niri's focus is)
         property real size: 1.5             // the login window: ×1 … ×2, kept to whole screen pixels
         property string unlockFx: "auto"    // auto (the look's own) | heart | pixels | crt | gate | glitch | none
         property bool replay: true          // the stream shows a random video, blurred beyond reading…
@@ -335,6 +343,13 @@ JsonAdapter {
         property string colors: "accent"    // accent | mono | rainbow
         property bool clock: true
         property bool allScreens: true
+        // Always On Display (modules/idle/AodFace): the screens that are not the main one show the
+        // time, music, notifications and the devices' charge on black instead of the art
+        property bool aod: true
+        property bool aodMusic: true
+        property bool aodNotifications: true
+        property bool aodDevices: true
+        property bool aodAngel: true
         // services/Awake: no idle screen, lock, screens off or sleep while…
         property bool awakeStream: true     // …stream mode is on
         property bool awakeFullscreen: true // …a window fills a whole screen (video, game)
@@ -358,6 +373,7 @@ JsonAdapter {
         property bool shotCursor: false     // the pointer on the picture
         property bool shotCopy: true        // copied to the clipboard as well
         property bool shotOpen: false       // opened in the image viewer after
+        property bool classic: false        // the screenshot key opens the old region selector, not the overlay
         property string recordDir: ""       // "" = ~/Videos
         property int recordFps: 60
         property string recordAudio: "none" // none | system (what you hear) | mic | both
@@ -385,7 +401,7 @@ JsonAdapter {
 
     property JsonObject system: JsonObject {
         property string terminal: "kitty"
-        property string fileManager: "nautilus"
+        property string fileManager: ""     // the Start menu's «Files»; "" = the default one (xdg-open: Strata)
         property string monitor: "auto"
         property string monitorProgram: ""
         property bool monitorInTerminal: false
@@ -395,8 +411,10 @@ JsonAdapter {
         property int monitorHeight: 760
         property string monitorPlace: "center" // center | corner (bottom-right, next to the tray)
         property bool nautilusDefaults: false // angelOS Nautilus extensions + prefs applied once
+        property bool strataDefaults: false // angelOS items in Strata's menu + its theme applied once (services/StrataSetup)
         property string qsWarned: ""        // the outdated Quickshell version already warned about (services/QsVersion)
         property string primaryScreen: ""   // the main screen (widgets, the angel, the lock…); "" = the widest
+        property bool primaryAsked: false   // asked once (MainScreenPrompt) where the main screen is, or it was picked already
         property var screenTune: ({})       // Monitor → Brightness and colour: {output: {brightness 0.3–1 (gamma), saturation −1…1 (NVIDIA vibrance)}} (services/ScreenTune)
     }
 
@@ -629,6 +647,34 @@ JsonAdapter {
         property string name: ""            // how she calls you ({name}); "" = the login name
     }
 
+    // Quick Share: LocalSend's protocol without the app (services/QuickShare, scripts/quickshare.py)
+    property JsonObject quickshare: JsonObject {
+        property bool enabled: true         // be seen by and find LocalSend devices on this network
+        property string alias: ""           // how others see this computer; "" = "angelOS <hostname>"
+        property string receive: "ask"      // ask (everyone, with a question) | trusted (only trusted, no question) | off
+        property string dir: ""             // "" = ~/Downloads/LocalSend
+        property var trusted: []            // [{fp, alias}] — their files come without a question
+        property string pin: ""             // asked from senders when set
+    }
+
+    // Quick Look: Space on a file in Nautilus (services/QuickLook, scripts/quicklook.py)
+    property JsonObject quicklook: JsonObject {
+        property bool enabled: true         // answer Nautilus's Space (the name GNOME's sushi uses)
+    }
+
+    // the mini island (services/Island, scripts/island): links open in a small browser of its own
+    property JsonObject island: JsonObject {
+        property bool enabled: true         // links from Circle, the clipboard, notifications open there (else the browser)
+    }
+
+    // the screenshot = Circle to Search / Live Text (services/CircleSearch, Mod+Shift+S / Print; Settings → Screenshots)
+    property JsonObject circle: JsonObject {
+        property string engine: "google"    // plugins/web-search/Engines.js: google | duckduckgo | yandex | ecosia | bing | brave | mojeek
+        property string translateTo: "auto" // auto (Cyrillic → en, else → ru) | ru | en | uk | de | ja | …
+        property bool liveText: true        // read the whole screen at once and outline the words
+        property bool lens: true            // the "search the picture" button (Google Lens)
+    }
+
     // the lens at the pointer (services/Lens, Settings → Keyboard and mouse → Lens)
     property JsonObject lens: JsonObject {
         property string mode: "live"        // live: a glass beside the pointer, frame by frame (extras/lens-live) | snapshot: on the pointer, a picture of the screen
@@ -654,6 +700,7 @@ JsonAdapter {
         property bool castHinted: false     // the angel told once that OBS can take her onto the stream (StreamMode.hintCast)
         // privacy on stream (services/Privacy): the mode on by itself while OBS is live
         property bool privacyAuto: false
+        property bool privacyPlates: true   // a «Privacy ON» plate over each hidden window, for the viewers alone (modules/y2k/PrivacyCast: OBS's window capture)
         property bool privacySet: false     // …and it was the stream that switched it on (off again when the stream ends)
         // the angel on stream (services/StreamAngel, modules/y2k/AngelHelper): she sits on the
         // streamed screen's taskbar (its bottom edge when the bar is elsewhere) and talks with the mic

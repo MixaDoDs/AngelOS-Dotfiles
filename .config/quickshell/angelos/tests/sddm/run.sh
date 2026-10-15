@@ -52,5 +52,8 @@ if command -v sddm-greeter-qt6 >/dev/null && journalctl -n0 -q 2>/dev/null; then
   elif [[ -n "$gerr" ]]; then echo "  ✕ sddm-greeter-qt6:"; printf '%s\n' "$gerr" | sed 's/^/      /'; fail=1
   else echo "  ✓ sddm-greeter-qt6 loads the theme"; fi
 fi
+# the main screen at the login: X's primary + the pointer (xsetup.py, a stand-in xrandr)
+if python3 "$DIR/tests/sddm/test_xsetup.py" >"$T/xsetup.log" 2>&1; then echo "  ✓ xsetup: main screen by EDID, pointer on it"
+else echo "  ✕ xsetup:"; tail -15 "$T/xsetup.log" | sed 's/^/      /'; fail=1; fi
 ((fail == 0)) && echo "  SDDM theme: loads, types, fails, logs in — no errors"
 exit "$fail"

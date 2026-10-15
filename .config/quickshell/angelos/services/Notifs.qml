@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
 import qs.config
+import "Links.js" as Links
 
 // Notification daemon. `popups` drives on-screen cards, `history` feeds the calendar panel.
 Singleton {
@@ -110,9 +111,9 @@ Singleton {
     }
 
     // Notification bodies may carry markup. Keep a small whitelist: no images or
-    // other remote fetches, links only to http(s)/mailto.
+    // other remote fetches, links only to http(s)/mailto; bare addresses become links (services/Links.js).
     function safeMarkup(text) {
-        return String(text || "").replace(/<\s*(script|style|iframe|object)\b[\s\S]*?<\/\s*\1\s*>/gi, "").replace(/<(\/?)([a-z][a-z0-9]*)(\s[^>]*|\/)?>/gi, (m, close, name, attrs) => {
+        return Links.linkify(String(text || "").replace(/<\s*(script|style|iframe|object)\b[\s\S]*?<\/\s*\1\s*>/gi, "").replace(/<(\/?)([a-z][a-z0-9]*)(\s[^>]*|\/)?>/gi, (m, close, name, attrs) => {
             name = name.toLowerCase();
             if (["b", "i", "u", "br", "em", "strong", "p"].includes(name))
                 return "<" + close + name + ">";
@@ -123,10 +124,13 @@ Singleton {
                 return /^(https?:|mailto:)/i.test(href) ? "<a href=\"" + href.replace(/"/g, "&quot;") + "\">" : "<a>";
             }
             return "";
-        });
+        }));
     }
+    // a web link into the mini island, mail to its app
     function openLink(url) {
-        if (/^(https?:|mailto:)/i.test(url))
+        if (/^https?:/i.test(url))
+            Island.open(url);
+        else if (/^mailto:/i.test(url))
             Qt.openUrlExternally(url);
     }
 

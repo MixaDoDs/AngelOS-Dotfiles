@@ -188,6 +188,18 @@ Singleton {
         });
     }
     function profile(what, arg) {
+        // saving and deleting a profile only read the keyboard: a read-only one too
+        if (what !== "load" && state) {
+            failed = null;
+            working = true;
+            say({
+                "cmd": "profile",
+                "do": what,
+                "name": what === "save" ? arg : "",
+                "file": what === "save" ? "" : arg
+            });
+            return;
+        }
         ask({
             "cmd": "profile",
             "do": what,
@@ -400,14 +412,29 @@ Singleton {
                 root.streaming = false;
                 root.moving = false;
                 root.depth = [];
+                // back by itself once it is there again (a replug, a new polling rate, a
+                // suspend): the device list may not change at all in between
+                reopen.restart();
             }
             break;
+        }
+    }
+    Timer {
+        id: reopen
+        interval: 1500
+        onTriggered: {
+            if (root.wanted && !root.state && !root.loading)
+                root.rescan();
         }
     }
 
     // ---- words ----
     function supportLabel(s) {
         return s === "verified" ? I18n.t("проверено на железе", "checked on hardware") : s === "readonly" ? I18n.t("только чтение", "read-only") : I18n.t("по описанию, не проверено", "by the description, not checked");
+    }
+    function heldByKernel(id) {
+        const d = devices.find(x => x.id === id);
+        return !!d && d.access === "busy" && d.driver === "usbhid";
     }
     function errorText(e) {
         if (!e)
@@ -416,6 +443,8 @@ Singleton {
         case "denied":
             return I18n.t("Система не даёт открыть служебный канал устройства.", "The system won't let the device's service channel be opened.");
         case "busy":
+            if (root.heldByKernel(e.id))
+                return I18n.t("Служебный канал клавиатуры занял драйвер ядра usbhid (так бывает после загрузки: он берёт его раньше, чем срабатывает правило angelOS). Нажми «Освободить» — понадобится пароль, один раз; глубина нажатия появится сразу.", "The kernel's usbhid driver took the keyboard's service channel (it happens at boot: it takes it before angelOS's rule runs). Press \"Free it\": a password, once; the key travel shows at once.");
             return I18n.t("Служебный интерфейс занят: его держит драйвер ядра или другая программа (например, `angelos devices` в терминале). Оболочка его не отнимает.", "The service interface is taken: a kernel driver or another program holds it (`angelos devices` in a terminal, say). The shell does not take it away.");
         case "gone":
             return I18n.t("Устройство отключено.", "The device is not connected.");
@@ -605,7 +634,10 @@ Singleton {
             if (!wanted)
                 return "the page is not open";
             close();
-            open(words[1] || "");
+            const id = words[1] || currentId || (devices.length ? devices[0].id : "");
+            if (id === "")
+                return "no device";
+            open(id);
             return "opening";
         }
         if (cmd === "pairs")

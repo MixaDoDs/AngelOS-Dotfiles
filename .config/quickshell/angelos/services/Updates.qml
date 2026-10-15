@@ -556,4 +556,18 @@ Singleton {
         running: true
         onTriggered: qtCheck.running = true
     }
+
+    // the shell's, niri's and the bridge's log, a file a finished day (the journal keeps only a
+    // day or so): ~/.local/state/angelos/logs, scripts/log-archive.py; files are only added
+    Timer {
+        interval: 3 * 3600 * 1000
+        repeat: true
+        triggeredOnStart: true
+        running: !Shell.dev && !Quickshell.env("ANGELOS_TEST")
+        onTriggered: logKeep.running = true
+    }
+    Process {
+        id: logKeep
+        command: ["python3", Quickshell.shellDir + "/scripts/log-archive.py"]
+    }
 }

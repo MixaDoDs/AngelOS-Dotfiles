@@ -137,6 +137,7 @@ PxPage {
                 : DiscordVoice.state === "no-discord" ? I18n.t("Discord не запущен", "Discord is not running")
                 : DiscordVoice.state === "auth" ? (DiscordVoice.error || I18n.t("Discord ещё не разрешил — нажми «Подключить»", "Discord has not allowed it yet — press Connect"))
                 : DiscordVoice.state === "authorizing" ? I18n.t("Подтверди в окне Discord…", "Allow it in Discord's window…")
+                : DiscordVoice.state === "rpc-only" ? I18n.t("Этот клиент (Vesktop, Equibop…) не отдаёт звонок по RPC — нужен мост DevTools: docs/discord-voice.md", "This client (Vesktop, Equibop…) does not share calls over RPC — it needs the DevTools bridge: docs/discord-voice.md")
                 : DiscordVoice.state === "call" ? I18n.t("В звонке: ", "In the call: ") + DiscordVoice.users.length
                 : I18n.t("Появятся, когда зайдёшь в голосовой канал", "They come when you join a voice channel")
             Row {

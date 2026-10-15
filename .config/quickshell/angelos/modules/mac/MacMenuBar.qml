@@ -34,7 +34,7 @@ PanelWindow {
         right: true
     }
     implicitHeight: h
-    exclusiveZone: h
+    exclusiveZone: Shell.dev ? 0 : h
     exclusionMode: Shell.dev ? ExclusionMode.Ignore : ExclusionMode.Normal
     color: "transparent"
     WlrLayershell.namespace: "angelos-macbar"

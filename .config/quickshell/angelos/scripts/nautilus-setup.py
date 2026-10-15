@@ -35,7 +35,7 @@ DATA = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
 EXTENSIONS = DATA / "nautilus-python/extensions"
 BACKUPS = Path.home() / ".local/state/angelos/backups"
-OURS = ("angelos_open_terminal.py", "angelos_mediafix.py")
+OURS = ("angelos_open_terminal.py", "angelos_mediafix.py", "angelos_share.py")
 # earlier stand-alone versions of the same menu items (dotfiles / mediafix install.sh)
 LEGACY = {"open_in_kitty.py": "class OpenInKitty", "mediafix.py": "class MediafixNautilus"}
 # the author's Nautilus preferences, shipped as angelOS defaults

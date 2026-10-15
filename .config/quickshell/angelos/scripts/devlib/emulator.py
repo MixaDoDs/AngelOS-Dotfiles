@@ -152,7 +152,9 @@ class NuphyEmu:
         return bytes(out)
 
     def key_packet(self, m, travel):
-        entry = self.mem[np.CMD["GetDefaultKeyMatrix"]][int(self.desc.get("nuphy-io", {}).get("defaultLayer", 4)) * np.MATRIX_SIZE + 3 * m:][:3]
+        # the key's factory action in the mode the keyboard is in (the modes' layers differ)
+        layer = self.mem[np.CMD["GetBase"]][0] * np.LAYERS_PER_MODE
+        entry = self.mem[np.CMD["GetDefaultKeyMatrix"]][layer * np.MATRIX_SIZE + 3 * m:][:3]
         p = bytearray(np.PACKET)
         p[0] = np.REPORT_KEY_STATUS
         p[1:4] = entry

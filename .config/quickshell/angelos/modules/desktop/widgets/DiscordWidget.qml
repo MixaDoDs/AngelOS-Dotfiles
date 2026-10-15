@@ -64,6 +64,7 @@ Item {
             text: DiscordVoice.state === "no-discord" ? I18n.t("Discord не запущен", "Discord is not running")
                 : DiscordVoice.state === "auth" ? I18n.t("Покажу, кто в звонке, — Discord один раз спросит разрешение", "I'll show who is in the call — Discord asks once to allow it")
                 : DiscordVoice.state === "authorizing" ? I18n.t("Подтверди в окне Discord…", "Allow it in Discord's window…")
+                : DiscordVoice.state === "rpc-only" ? I18n.t("Этот клиент (Vesktop, Equibop…) не отдаёт звонок по RPC — нужен мост DevTools: docs/discord-voice.md", "This client (Vesktop, Equibop…) does not share calls over RPC — it needs the DevTools bridge: docs/discord-voice.md")
                 : I18n.t("Не в звонке", "Not in a call")
         }
         PxText {

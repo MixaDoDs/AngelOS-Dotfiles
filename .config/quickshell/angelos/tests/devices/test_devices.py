@@ -284,6 +284,26 @@ class Session(unittest.TestCase):
         self.assertEqual(s.take_depth(), [])
         self.assertEqual(s.all_depth(), [3, 3.3, 17, 3.3])
 
+    def test_travel_follows_the_modes_own_layer(self):
+        # in the Mac mode the factory layer has two keys swapped: the report names the key by
+        # the action of the mode it is in, so the depth must land on the key that was pressed
+        emu = emulator.NuphyEmu(air60(), "press:3", mode=2)
+        mx = emu.mem[np.CMD["GetDefaultKeyMatrix"]]
+        at = 8 * np.MATRIX_SIZE
+        a, b = mx[at + 9:at + 12], mx[at + 51:at + 54]
+        mx[at + 9:at + 12], mx[at + 51:at + 54] = b, a
+        s = NuphySession(air60(), emu)
+        s.open()
+        self.addCleanup(s.close)
+        s.load()
+        deadline = time.monotonic() + 2
+        got = {}
+        while time.monotonic() < deadline and not got:
+            k = s.take_depth()
+            got.update(zip(k[0::2], k[1::2]))
+            time.sleep(0.01)
+        self.assertEqual(got, {3: 3.3})
+
     def test_no_travel_when_upload_is_off(self):
         s, _ = self.open("press:3", upload=False)
         st = s.load()
@@ -981,6 +1001,56 @@ class Bridge(unittest.TestCase):
         s.open()
         self.addCleanup(s.close)
         self.assertEqual(s.load()["firmware"]["version"], "114")
+
+    def test_the_answer_comes_before_any_packet(self):
+        # a keyboard reporting all the time (every key sends one): the client's first message
+        # from the bridge is always its answer, never a packet that slipped in before it
+        import socket
+        import threading
+        entry = {"interface": 1, "in": 0x82, "out": 0x02, "family": "nuphy-io"}
+        emu = emulator.NuphyEmu(air60(), "wave")
+        keeper = self.b.Keeper("19f5:fee0", entry, opener=lambda k, e: emu.open()).start()
+        self.addCleanup(keeper.close)
+        deadline = time.monotonic() + 3
+        while not keeper.channel:
+            self.assertLess(time.monotonic(), deadline)
+            time.sleep(0.02)
+        tmp = tempfile.mkdtemp()
+        path = os.path.join(tmp, "b.sock")
+        srv = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+        srv.bind(path)
+        srv.listen(4)
+        self.addCleanup(lambda: (srv.close(), os.remove(path), os.rmdir(tmp)))
+
+        def run():
+            while True:
+                try:
+                    conn, _ = srv.accept()
+                except OSError:
+                    return
+                threading.Thread(target=lambda c=conn: (self.b.serve(c, {"19f5:fee0": entry}, uids=lambda: {os.getuid()}, keepers={"19f5:fee0": keeper}), c.close()), daemon=True).start()
+        threading.Thread(target=run, daemon=True).start()
+        for _ in range(15):
+            c = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+            c.settimeout(3)
+            c.connect(path)
+            c.send(b'J{"open": "19f5:fee0"}')
+            first = c.recv(4096)
+            self.assertEqual(first[:1], b"J")
+            self.assertTrue(json.loads(first[1:])["ok"])
+            c.close()
+            deadline = time.monotonic() + 2
+            while keeper.client is not None:
+                self.assertLess(time.monotonic(), deadline)
+                time.sleep(0.01)
+
+    def test_the_rule_also_runs_at_boot(self):
+        # coldplug after the initramfs replays "add", never "bind": the rule must take both
+        gen = ROOT / "extras/usb-bridge/gen.py"
+        rule = subprocess.run([sys.executable, "-I", str(gen), str(ROOT / "data/devices"), "rule"], capture_output=True, text=True).stdout
+        self.assertIn('ACTION=="add|bind", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", DRIVER=="usbhid"', rule)
+        ifaces = subprocess.run([sys.executable, "-I", str(gen), str(ROOT / "data/devices"), "ifaces"], capture_output=True, text=True).stdout
+        self.assertIn("19f5 fee0 01", ifaces.splitlines())
 
     def test_who_sits_at_the_seat(self):
         with tempfile.TemporaryDirectory() as tmp:

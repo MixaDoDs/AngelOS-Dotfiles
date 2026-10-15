@@ -55,6 +55,12 @@ PxBox {
             "hint": Config.system.terminal || "kitty",
             "icon": "terminal",
             "act": () => Shell.terminal()
+        },
+        {
+            "text": I18n.t("Обслуживание", "Maintenance"),
+            "hint": I18n.t("проверить и почистить", "check and clean up"),
+            "icon": "sparkle",
+            "act": () => Care.open()
         }
     ]
 
@@ -184,7 +190,7 @@ PxBox {
                 visible: root.prefs.labels
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
-                text: tile.modelData.name
+                text: tile.modelData.name || ""
                 kind: "tiny"
                 elide: Text.ElideRight
                 maximumLineCount: 1

@@ -29,6 +29,13 @@ Singleton {
     function _isCast(w) {
         return w.app_id === "org.quickshell" && w.title === castTitle;
     }
+    // the same for the privacy plates' window (modules/y2k/PrivacyCast)
+    readonly property string plateTitle: "angelOS · Privacy для OBS"
+    property int plateWindowId: -1
+    property int plateWindowWs: -1
+    function _isPlate(w) {
+        return w.app_id === "org.quickshell" && w.title === plateTitle;
+    }
     property var windows: []
     property int focusedWindowId: -1
     // A title alone changes many times a second (a terminal's spinner, a player's track):
@@ -340,8 +347,11 @@ Singleton {
                 const cast = d.windows.find(w => root._isCast(w));
                 castWindowId = cast ? cast.id : -1;
                 castWindowWs = cast ? cast.workspace_id : -1;
+                const plate = d.windows.find(w => root._isPlate(w));
+                plateWindowId = plate ? plate.id : -1;
+                plateWindowWs = plate ? plate.workspace_id : -1;
             }
-            windows = d.windows.filter(w => !root._isCast(w)).map(w => _keepWorkspace(w, windows.find(o => o.id === w.id)));
+            windows = d.windows.filter(w => !root._isCast(w) && !root._isPlate(w)).map(w => _keepWorkspace(w, windows.find(o => o.id === w.id)));
             {
                 const f = d.windows.find(w => w.is_focused);
                 focusedWindowId = f ? f.id : -1;
@@ -351,6 +361,11 @@ Singleton {
             if (_isCast(d.window) || d.window.id === castWindowId) {
                 castWindowId = d.window.id;
                 castWindowWs = d.window.workspace_id;
+                break;
+            }
+            if (_isPlate(d.window) || d.window.id === plateWindowId) {
+                plateWindowId = d.window.id;
+                plateWindowWs = d.window.workspace_id;
                 break;
             }
             {
@@ -383,6 +398,10 @@ Singleton {
             if (d.id === castWindowId) {
                 castWindowId = -1;
                 castWindowWs = -1;
+            }
+            if (d.id === plateWindowId) {
+                plateWindowId = -1;
+                plateWindowWs = -1;
             }
             windows = windows.filter(w => w.id !== d.id);
             if (ready)

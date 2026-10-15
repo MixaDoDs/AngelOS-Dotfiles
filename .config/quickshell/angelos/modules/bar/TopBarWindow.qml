@@ -26,7 +26,7 @@ PanelWindow {
     }
     implicitHeight: barHeight + headroom
     exclusionMode: Shell.dev ? ExclusionMode.Ignore : ExclusionMode.Normal
-    exclusiveZone: barHeight
+    exclusiveZone: Shell.dev ? 0 : barHeight
     mask: Region {
         item: strip
     }

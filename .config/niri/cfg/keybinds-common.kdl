@@ -9,7 +9,7 @@ binds {
     Mod+Alt+S                           hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
     Mod+Shift+Q                         hotkey-overlay-title="angelOS: выключение" { spawn-sh "qs -c angelos ipc call angelos session"; }
     Mod+Shift+K                         repeat=false hotkey-overlay-title="angelOS: показ нажатых клавиш" { spawn-sh "qs -c angelos ipc call angelos keycast"; }
-    Mod+E                               hotkey-overlay-title="File Manager: Nautilus" { spawn "nautilus"; }
+    Mod+E                               hotkey-overlay-title="File Manager" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos files"; }
     XF86AudioRaiseVolume                allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos volumeUp"; }
     XF86AudioLowerVolume                allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos volumeDown"; }
     XF86AudioMute                       allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos mute"; }
@@ -41,7 +41,8 @@ binds {
     Mod+CTRL+Shift+WheelScrollUp        { move-column-left; }
     Mod+V                               hotkey-overlay-title="angelOS: буфер обмена" { spawn-sh "qs -c angelos ipc call angelos clipboard"; }
     Mod+Shift+C                         repeat=false hotkey-overlay-title="angelOS: пипетка (цвет с экрана)" { spawn-sh "qs -c angelos ipc call angelos pickColor"; }
-    Mod+Shift+S                         repeat=false hotkey-overlay-title="Screenshot: region → Screenshots (ropes)" { spawn "@HOME@/.local/bin/niri-screenshot-region"; }
+    Mod+Shift+S                         repeat=false hotkey-overlay-title="angelOS: скриншот — выделить, найти, текст, перевод" { spawn-sh "~/.config/quickshell/angelos/bin/angelos capture 2>&1 | grep -q . && exec ~/.local/bin/niri-screenshot-region"; }
+    Print                               repeat=false hotkey-overlay-title="angelOS: скриншот — выделить, найти, текст, перевод" { spawn-sh "~/.config/quickshell/angelos/bin/angelos capture 2>&1 | grep -q . && exec ~/.local/bin/niri-screenshot-region"; }
     Mod+Shift+V                         repeat=false hotkey-overlay-title="Voice: toggle dictation" { spawn "@HOME@/.local/bin/voxtype" "record" "toggle"; }
     CTRL+Shift+2                        { screenshot-screen; }
     CTRL+Shift+3                        { screenshot-window; }
@@ -50,6 +51,7 @@ binds {
     Mod+Shift+P                         { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
     Mod+Shift+X                         repeat=false allow-inhibiting=false hotkey-overlay-title="Privacy: black out the listed apps on stream" { spawn "@HOME@/.local/bin/niri-cast-privacy"; }
     Mod+Ctrl+Shift+X                    repeat=false allow-inhibiting=false hotkey-overlay-title="Privacy: hide / show this window's app" { spawn "@HOME@/.local/bin/niri-cast-privacy" "app" "toggle"; }
+    Mod+Ctrl+X                          repeat=false allow-inhibiting=false hotkey-overlay-title="Privacy: show this window's app on stream now / hide it again" { spawn "@HOME@/.local/bin/niri-cast-privacy" "show" "toggle"; }
     Mod+Alt+Y                           hotkey-overlay-title="angelOS: лирика вкл/выкл" { spawn-sh "qs -c angelos ipc call angelos lyrics"; }
     Mod+Alt+T                           hotkey-overlay-title="angelOS: светлая/тёмная" { spawn-sh "qs -c angelos ipc call angelos theme toggle"; }
 }

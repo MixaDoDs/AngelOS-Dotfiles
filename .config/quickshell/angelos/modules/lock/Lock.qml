@@ -33,6 +33,22 @@ Scope {
     signal typed(int length, bool added)
     signal demo(string text)               // the preview types this in by itself
     signal captureNow                      // every screen: a picture of yourself, please
+    // a key typed on a screen without the password box: the box takes it (the main screen's)
+    signal relayKey(string text, int key)
+
+    // where the password box is: the main screen (Settings → Monitor; people did not see where
+    // to type when it followed niri's focus, which goes where the pointer is), or niri's focus
+    function passwordScreen(list) {
+        const names = list.map(s => s.name);
+        if (names.length <= 1)
+            return names[0] || "";
+        if (Config.lock.passwordOn !== "focus" && names.includes(Shell.primaryName))
+            return Shell.primaryName;
+        const f = Shell.focusedScreen;
+        return f && names.includes(f.name) ? f.name : names[0];
+    }
+    readonly property string lockMain: passwordScreen(Quickshell.screens)
+    readonly property string shownMain: passwordScreen(Shell.screens)
 
     function submit(pw) {
         if (busy)
@@ -374,7 +390,7 @@ Scope {
             LockScreen {
                 anchors.fill: parent
                 screenName: surface.screen ? surface.screen.name : ""
-                primary: surface.screen === Shell.focusedScreen || Quickshell.screens.length === 1
+                primary: !!surface.screen && surface.screen.name === root.lockMain
                 lockScope: root
             }
 
@@ -405,7 +421,7 @@ Scope {
             LockScreen {
                 anchors.fill: parent
                 screenName: previewWin.modelData.name
-                primary: previewWin.modelData === Shell.focusedScreen || Shell.screens.length === 1
+                primary: previewWin.modelData.name === root.shownMain
                 lockScope: root
                 preview: true
             }
@@ -440,7 +456,7 @@ Scope {
                 shot: grab ? grab.url : ""
                 style: root.fx
                 origin: root.origins[revealWin.modelData.name] || Qt.point(0.5, 0.5)
-                primary: revealWin.modelData === Shell.focusedScreen || Shell.screens.length === 1
+                primary: revealWin.modelData.name === (root.previewing ? root.shownMain : root.lockMain)
                 go: root.revealGo
             }
 

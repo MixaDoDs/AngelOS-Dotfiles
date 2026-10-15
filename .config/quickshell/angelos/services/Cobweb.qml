@@ -9,8 +9,9 @@ import "CobwebWeb.js" as Web
 import "CobwebLayout.js" as Lay
 
 // Cobwebs (Settings → Windows → Cobwebs): a window nobody has moved for a while gets a spider.
-// It starts in the corners and works inwards — corner webs, drapes along the edges, then it
-// winds the whole window up in a cocoon (services/CobwebWeb.js) — first threads after 30
+// It starts in the corners and works inwards — corner webs, drapes along the edges, then a
+// cocoon: silk mesh or the classic dotted grid (cocoon style setting,
+// services/CobwebWeb.js) — first threads after 30
 // minutes, the whole window after 4 hours (Config.windows.cobwebSpeed). The clock is the real one, kept in
 // ~/.local/state/angelos/cobweb.json, so a night asleep counts: in the morning the browser can
 // be under it all. Using a window doesn't stop the spider; moving it does: a drag shakes the
@@ -52,10 +53,12 @@ Singleton {
     property int rev: 0
     property var webs: ({})                         // id -> {seed, w0, h0, age, at, broken, away, hold}
     property var _steps: ({})                       // id -> generated steps (from seed, w0, h0)
+    property var _looks: ({})                       // id -> the cocoon look its steps were built in
     property double now: Date.now()
 
     signal woven(int id, int from, int to)          // new steps, live (not caught up after sleep)
     signal broke(int id, string thread)
+    signal brokeLoose(int id, string thread)      // no anchor left: falls free, fades fast
     signal fled(int id)                             // the spider runs off behind the window
     signal returned(int id)
     signal cleared(int id, string why)              // touch | qte | sweep
@@ -71,10 +74,58 @@ Singleton {
         const w = webs[id];
         if (!w || !w.w0)
             return [];
-        if (!_steps[id])
-            _steps[id] = Web.generate(w.seed, w.w0, w.h0);
+        if (!_steps[id]) {
+            const o = cocoonOpts();
+            _steps[id] = Web.generate(w.seed, w.w0, w.h0, o);
+            _looks[id] = o.style;
+            // torn threads are kept by id ("step.thread"): built in another look or tuning
+            // the ids name other threads, so the tears don't carry over (an old web without
+            // `look` was built in the classic one)
+            const look = o.style === "silk" ? ["silk", o.density, o.bundles, o.bridges, o.gravity].join(",") : "classic";
+            if ((w.look || "classic") !== look)
+                w.broken = {};
+            w.look = look;
+        }
         return _steps[id];
     }
+    // the look this window's web was built in: a web keeps it until it is built anew
+    // (a restart, "Show me now", a new web), so the view never puts the classic haze over
+    // a silk mesh or the other way round right after the setting changes
+    function lookOf(id) {
+        steps(id);
+        return _looks[id] || cocoonStyle();
+    }
+    // cocoon mesh tuning (Settings → Windows → Cobwebs): look classic|silk, silk tuner
+    // values; missing = classic (the original look, the default). The ranges are the safe
+    // ones: the mesh is built on the GUI thread and painted every frame something swings
+    // (a full-screen silk web is ~500 threads at 1×, ~1600 at 2.5× — too heavy for it).
+    readonly property var tunerRange: ({
+            "density": [0.5, 2, 1],
+            "bundles": [0, 1.4, 0],
+            "bridges": [0, 2, 1],
+            "gravity": [0, 2.5, 1]
+        })
+    function tuned(part, v) {
+        const r = tunerRange[part];
+        const n = Number(v);
+        return v === undefined || v === null || v === "" || !isFinite(n) ? r[2] : Math.max(r[0], Math.min(r[1], n));
+    }
+    function cocoonOpts() {
+        return {
+            "style": Config.windows.cobwebStyle === "silk" ? "silk" : "classic",
+            "density": tuned("density", Config.windows.cobwebDensity),
+            "bundles": tuned("bundles", Config.windows.cobwebBundles),
+            "bridges": tuned("bridges", Config.windows.cobwebBridges),
+            "gravity": tuned("gravity", Config.windows.cobwebGravity),
+            "dew": 0
+        };
+    }
+    function cocoonStyle() {
+        return Config.windows.cobwebStyle === "silk" ? "silk" : "classic";
+    }
+    // real windows don't follow the settings live: a web is built once and cached; the
+    // new look and tuner reach a window when its web is built anew — "Show me now" (the
+    // staggered queue below), the next start, or a new web
     function due(id) {
         const w = webs[id];
         return w ? Web.stepsDue(w.age, steps(id).length, t0, t1) : 0;
@@ -164,6 +215,7 @@ Singleton {
             if (!seen[id]) {
                 delete next[id];
                 delete _steps[id];
+                delete _looks[id];
                 delete _movedAt[id];
                 delete _lastShake[id];
                 changed = true;
@@ -308,15 +360,50 @@ Singleton {
 
     // ---- what happens to it ----
     // the pointer touched a thread: "break" | "flee" | "none"
+    // a bridge never hangs alone: breaking an anchor line breaks the ties on it too
+    property double _lastSnap: 0
     function touch(id, thread) {
         const w = webs[id];
         if (!w || w.broken[thread])
             return "none";
         if (Math.random() < breakChance) {
             w.broken[thread] = true;
+            // nothing rigid left floating: the whole strand the cut segment belongs to
+            // goes (its other segments have a free end now), and so do the ties on it.
+            // The cut segment hangs from the cut; the rest falls free and fades fast.
+            const st = steps(id);
+            let anchor = undefined;
+            for (const s of st) {
+                for (const t of s.threads)
+                    if (t.id === thread) {
+                        anchor = t.strand;
+                        break;
+                    }
+                if (anchor !== undefined)
+                    break;
+            }
+            const loose = [];
+            if (anchor !== undefined)
+                for (const s of st)
+                    for (const t of s.threads) {
+                        if (t.id === thread || w.broken[t.id])
+                            continue;
+                        if (t.strand === anchor || (t.tie && (t.tie[0] === anchor || t.tie[1] === anchor))) {
+                            w.broken[t.id] = true;
+                            loose.push(t.id);
+                        }
+                    }
             rev++;
             broke(id, thread);
-            Sounds.play("webSnap");
+            for (const f of loose)
+                brokeLoose(id, f);
+            // brushing through a web breaks many threads a second: one snap sound
+            // per 150 ms, not one per thread
+            const t = Date.now();
+            if (t - _lastSnap > 150) {
+                _lastSnap = t;
+                Sounds.play("webSnap");
+            }
             if (alive(id) === 0)
                 clear(id, "touch");
             _save.restart();
@@ -379,15 +466,42 @@ Singleton {
         return true;
     }
     // Settings → "Show me now": the windows in view get an hour and a half of web (one with web
-    // already: an hour more)
+    // already: an hour more). One window per tick: building and painting a silk mesh takes
+    // tens of ms, all of them at once would freeze the shell. Each tick also drops that
+    // window's cached mesh, so it regrows in the current look and tuner values.
+    property var _demoQ: []
     function demo() {
-        let n = 0;
+        const q = [];
         for (const name in rects)
             if (!hiddenOn(name))
                 for (const r of rects[name])
-                    if (r.active && grow(r.id, due(r.id) ? 60 : 90))
-                        n++;
-        return n;
+                    if (r.active && webs[r.id] && webs[r.id].w0 && q.indexOf(r.id) < 0)
+                        q.push(r.id);
+        _demoQ = q;
+        demoTimer.stop();
+        if (q.length)
+            demoTick();
+        return q.length;
+    }
+    // single-shot, restarted after each window: the shell gets 150 ms of its own between
+    // two builds however long one takes (a repeating timer would fire again at once)
+    Timer {
+        id: demoTimer
+        interval: 150
+        onTriggered: root.demoTick()
+    }
+    function demoTick() {
+        const q = _demoQ.slice();
+        const id = q.shift();
+        _demoQ = q;
+        if (id !== undefined && webs[id]) {
+            delete _steps[id];
+            delete _looks[id];
+            rev++;
+            grow(id, due(id) ? 60 : 90);
+        }
+        if (_demoQ.length)
+            demoTimer.restart();
     }
     function clearAll() {
         for (const id in webs)
@@ -671,8 +785,17 @@ Singleton {
     }
 
     // ---- keeping it ----
-    // niri numbers windows anew each session: the saved webs belong to this niri only
-    readonly property string session: Quickshell.env("NIRI_SOCKET") || ""
+    // niri numbers windows anew each session: the saved webs belong to this niri only. The
+    // socket's name alone isn't enough — it carries niri's pid, and a boot comes up the same
+    // way each time, so the pid (and the name) repeats after a reboot and the new window 2
+    // inherited the old window 2's web (#79). The kernel's boot id tells the boots apart.
+    FileView {
+        id: bootId
+        path: "/proc/sys/kernel/random/boot_id"
+        blockLoading: true
+        printErrors: false
+    }
+    readonly property string session: (Quickshell.env("NIRI_SOCKET") || "") + ":" + bootId.text().trim()
     readonly property string file: Config.stateDir + "/cobweb.json"
     property bool _loaded: false
     AsyncFile {
@@ -701,12 +824,14 @@ Singleton {
                     "age": Number(w.age) || 0,
                     "at": Number(w.at) || Date.now(),
                     "broken": w.broken || {},
+                    "look": typeof w.look === "string" ? w.look : "classic",
                     "away": Number(w.away) || 0,
                     "hold": Number(w.hold) || 0
                 };
             }
         webs = out;
         _steps = ({});
+        _looks = ({});
         _loaded = true;
         rev++;
         _sync();

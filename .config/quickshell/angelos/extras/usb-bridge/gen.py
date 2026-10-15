@@ -2,7 +2,7 @@
 """What install.sh puts into the system for the USB bridge, worked out from the device
 descriptions angelOS ships (data/devices): the bridge's list of devices and the udev rule.
 Only the shipped descriptions count: a file in a user's own folder never widens what root
-installs.   gen.py DATA_DIR allow | rule"""
+installs.   gen.py DATA_DIR allow | rule | ifaces"""
 import json
 import sys
 from pathlib import Path
@@ -52,10 +52,16 @@ def rule(devs):
         lines.append("")
         lines.append("# %s:%s %s, service interface %d" % (d["vid"], d["pid"], safe, d["interface"]))
         lines.append('ACTION!="remove", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="%s", ATTR{idProduct}=="%s", GROUP="angelos-usb"' % (d["vid"], d["pid"]))
-        lines.append('ACTION=="bind", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", DRIVER=="usbhid", ATTRS{idVendor}=="%s", ATTRS{idProduct}=="%s", ATTR{bInterfaceNumber}=="%02x", RUN+="/bin/sh -c \'echo -n %%k > /sys/bus/usb/drivers/usbhid/unbind\'"' % (d["vid"], d["pid"], d["interface"]))
+        # "add" too: at boot the initramfs binds usbhid before these rules exist, and the
+        # coldplug that replays the events afterwards sends "add", never "bind"
+        lines.append('ACTION=="add|bind", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", DRIVER=="usbhid", ATTRS{idVendor}=="%s", ATTRS{idProduct}=="%s", ATTR{bInterfaceNumber}=="%02x", RUN+="/bin/sh -c \'echo -n %%k > /sys/bus/usb/drivers/usbhid/unbind\'"' % (d["vid"], d["pid"], d["interface"]))
     return "\n".join(lines) + "\n"
 
 
 if __name__ == "__main__":
     devs = devices(sys.argv[1])
-    sys.stdout.write(allow(devs) if sys.argv[2] == "allow" else rule(devs))
+    if sys.argv[2] == "ifaces":
+        # "vid pid interface" a line: what install.sh frees from usbhid right away
+        sys.stdout.write("".join("%s %s %02x\n" % (d["vid"], d["pid"], d["interface"]) for d in devs))
+    else:
+        sys.stdout.write(allow(devs) if sys.argv[2] == "allow" else rule(devs))

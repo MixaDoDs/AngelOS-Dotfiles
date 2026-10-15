@@ -42,6 +42,25 @@ PxPage {
             }
         }
         SettingRow {
+            visible: Quickshell.screens.length > 1
+            label: I18n.t("Где вводить пароль", "Where the password goes")
+            hint: I18n.t("«На главном» — всегда на главном экране (Монитор → Главный экран), а набранное на другом экране всё равно попадает в поле; «Где фокус» — там, где курсор", "Main screen: always on the main screen (Monitor → Main screen), and what is typed on another screen still reaches the box; Focus: where the pointer is")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("На главном", "Main screen"),
+                        "value": "main"
+                    },
+                    {
+                        "label": I18n.t("Где фокус", "Focus"),
+                        "value": "focus"
+                    }
+                ]
+                currentValue: Config.lock.passwordOn === "focus" ? "focus" : "main"
+                onActivated: v => Config.lock.passwordOn = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Размер окна входа", "Login window size")
             hint: I18n.t("крупнее остальной оболочки; пиксели остаются целыми", "bigger than the rest of the shell; the pixels stay whole")
             PxSegmented {
@@ -806,6 +825,61 @@ PxPage {
                 text: I18n.t("Вернуть логотип", "Restore logo")
                 icon: "refresh"
                 onClicked: Config.idle.text = ""
+            }
+        }
+    }
+    PxGroup {
+        name: "idle-aod"
+        title: I18n.t("Always On Display на других экранах", "Always On Display on the other screens")
+        icon: "clock"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Вместо заставки — AOD", "AOD instead of the screensaver")
+            hint: I18n.t("на всех экранах, кроме основного и стримового: время, музыка, уведомления на чёрном, тускло и почти неподвижно", "on every screen but the main and the streamed one: time, music, notifications on black, dim and almost still")
+            PxToggle {
+                checked: Config.idle.aod
+                onToggled: c => Config.idle.aod = c
+            }
+        }
+        SettingRow {
+            enabled: Config.idle.aod
+            label: I18n.t("Что играет", "What's playing")
+            PxToggle {
+                checked: Config.idle.aodMusic
+                onToggled: c => Config.idle.aodMusic = c
+            }
+        }
+        SettingRow {
+            enabled: Config.idle.aod
+            label: I18n.t("Непрочитанные уведомления", "Unread notifications")
+            PxToggle {
+                checked: Config.idle.aodNotifications
+                onToggled: c => Config.idle.aodNotifications = c
+            }
+        }
+        SettingRow {
+            enabled: Config.idle.aod
+            label: I18n.t("Заряд устройств", "Device charge")
+            PxToggle {
+                checked: Config.idle.aodDevices
+                onToggled: c => Config.idle.aodDevices = c
+            }
+        }
+        SettingRow {
+            enabled: Config.idle.aod
+            label: I18n.t("Спящий ангел", "The angel asleep")
+            PxToggle {
+                checked: Config.idle.aodAngel
+                onToggled: c => Config.idle.aodAngel = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("Посмотреть", "Try it")
+            hint: I18n.t("включает заставку; мышь или клавиша — выйти", "starts the screensaver; the mouse or a key ends it")
+            PxButton {
+                text: I18n.t("Показать", "Show")
+                icon: "clock"
+                onClicked: Idle.start()
             }
         }
     }

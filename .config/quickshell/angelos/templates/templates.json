@@ -17,6 +17,8 @@
     "writes": ["~/.local/share/angelos/helium/theme/manifest.json", "~/.local/share/angelos/browsers/firefox/angelos-theme.css"] },
   { "id": "telegram",  "name": "Telegram: тема рай/ад (на лету)", "command": "python3 {{shellDir}}/scripts/telegram-theme.py build {{paletteFile}}",
     "writes": ["~/.local/share/angelos/telegram/angelOS.tdesktop-theme"] },
+  { "id": "strata",    "name": "Strata: тема рай/ад (файлы, на лету)", "command": "python3 {{shellDir}}/scripts/strata-theme.py build {{paletteFile}}",
+    "writes": ["~/.config/strata/themes/angelos.toml"] },
   { "id": "steam",     "name": "Steam: тема рай/ад (Millennium, на лету)", "command": "python3 {{shellDir}}/scripts/steam-theme.py build {{paletteFile}}",
     "writes": ["~/.local/share/angelos/steam/angelOS/{skin.json,angelos.css,angelos.js,colors.json,colors.css,webkit.css,.angelos}",
                "~/.local/share/Steam/millennium/themes/angelOS/{skin.json,angelos.css,angelos.js,colors.json,colors.css,webkit.css,.angelos}",

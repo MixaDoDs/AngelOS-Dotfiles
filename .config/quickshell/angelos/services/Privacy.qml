@@ -9,8 +9,10 @@ import qs.config
 // live on the screens (niri's block-out-from "screencast"). The dotfiles' tool
 // ~/.local/bin/niri-cast-privacy owns both files — the list (~/.config/angelos/privacy.json)
 // and niri's rule (cfg/privacy-block.kdl) — and works without the shell: Mod+Shift+X switches
-// the mode, Mod+Ctrl+Shift+X takes the focused window's app into the list or out of it. This
-// only reads the files and asks the tool to change them.
+// the mode, Mod+Ctrl+Shift+X takes the focused window's app into the list or out of it,
+// Mod+Ctrl+X shows the focused app on stream for as long as the owner wants (`show`, not saved).
+// Nothing is said on the screen when it switches (the owner's wish). This only reads the files
+// and asks the tool to change them; the plates viewers see over hidden windows: PrivacyCast.
 // Settings → Streaming → Stream mode → Privacy on stream; `angelos privacy …`.
 Singleton {
     id: root
@@ -18,6 +20,7 @@ Singleton {
     readonly property string tool: Config.home + "/.local/bin/niri-cast-privacy"
     readonly property string listPath: Config.dir + "/privacy.json"
     readonly property string rulePath: Config.home + "/.config/niri/cfg/privacy-block.kdl"
+    readonly property string shownPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos/privacy-shown.json"
     // the tool's list when it has written none yet (its DEFAULT)
     readonly property var defaults: [
         {"id": "org.telegram.desktop", "name": "Telegram", "on": true},
@@ -31,6 +34,9 @@ Singleton {
     property var apps: defaults              // [{id, name, on}]
     property string error: ""
     readonly property var hidden: apps.filter(a => a.on)
+    property var shown: []                   // app-ids shown on stream for now (`show`)
+    // what viewers see black now
+    readonly property var hiddenNow: on ? hidden.filter(a => !shown.includes(a.id)) : []
     // apps of the windows open now that the list doesn't have: offered in Settings
     readonly property var candidates: {
         const known = new Set(apps.map(a => a.id));
@@ -45,9 +51,6 @@ Singleton {
         }
         return out.sort((a, b) => a.name.localeCompare(b.name));
     }
-    // the OSD's word when a notification would not be seen (Do not disturb — a stream)
-    signal flag(string icon, string text)
-
     function has(id) {
         return hidden.some(a => a.id === id);
     }
@@ -58,6 +61,13 @@ Singleton {
     // add | remove | toggle | forget; no id: the focused window's app
     function app(action, id) {
         run(id ? ["app", action, id] : ["app", action]);
+    }
+    // toggle | on | off | clear: a hidden app on stream for now; no id: the focused window's
+    function show(action, id) {
+        run(id ? ["show", action, id] : ["show", action]);
+    }
+    function isShown(id) {
+        return shown.includes(id);
     }
 
     property var _queue: []
@@ -80,7 +90,6 @@ Singleton {
     }
     Process {
         id: tool_
-        // the tool's own notification says what happened; under Do not disturb the OSD does
         environment: ({"ANGELOS_LANG": I18n.english ? "en" : "ru"})
         stderr: StdioCollector {
             onStreamFinished: if (text.trim())
@@ -104,6 +113,21 @@ Singleton {
         }
         onLoadFailed: root.apps = root.defaults
     }
+    FileView {
+        path: root.shownPath
+        printErrors: false
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                const ids = JSON.parse(text()).shown;
+                root.shown = Array.isArray(ids) ? ids.filter(i => typeof i === "string") : [];
+            } catch (e) {
+                root.shown = [];
+            }
+        }
+        onLoadFailed: root.shown = []
+    }
     property bool _ruleRead: false
     FileView {
         path: root.rulePath
@@ -117,14 +141,11 @@ Singleton {
         onLoadFailed: root._seen(false)
     }
     function _seen(now) {
-        const changed = _ruleRead && now !== on;
         const first = !_ruleRead;
         on = now;
         _ruleRead = true;
         if (first)
             _sync();
-        if (changed && Config.notifications.dnd)
-            flag("eye", now ? I18n.t("приватность вкл", "privacy on") : I18n.t("приватность выкл", "privacy off"));
     }
 
     // with the stream: on when OBS goes live, back to what it was when the stream ends

@@ -126,10 +126,13 @@ IpcHandler {
             Privacy.set(cmd);
         else if (cmd === "app")
             Privacy.app("toggle", "");
+        else if (cmd === "show")
+            Privacy.show("toggle", "");
         else if (cmd !== "status" && cmd !== "")
-            return "on | off | toggle | app | status";
+            return "on | off | toggle | app | show | status";
         return JSON.stringify({
             "on": Privacy.on,
+            "shown": Privacy.shown,
             "auto": Config.stream.privacyAuto,
             "apps": Privacy.apps
         });
@@ -493,6 +496,59 @@ IpcHandler {
     // the eyedropper: a click anywhere, the colour's hex into the clipboard (services/ColorPicker)
     function pickColor(): void {
         ColorPicker.pick();
+    }
+    // the screenshot (Mod+Shift+S, Print): the frozen screen to pick, read, search, save —
+    // the focused screen, or a named one; circle/circleOn are its old names
+    function capture(): void {
+        captureOn("");
+    }
+    function captureOn(screen: string): void {
+        if (Shell.setupLocked)
+            return;
+        // Settings → Screenshots → «Classic region selection»: the old selector (services/Capture)
+        // the key again while the overlay is up closes it (as Circle's did)
+        if (Config.capture.classic)
+            Capture.screenshot(screen);
+        else
+            CircleSearch.toggle(screen);
+    }
+    function circle(): void {
+        captureOn("");
+    }
+    // Quick Share (LocalSend devices nearby): files one per line, or a text
+    function share(paths: string): void {
+        if (Shell.setupLocked)
+            return;
+        QuickShare.share(paths.split("\n").filter(p => p !== ""), "");
+    }
+    function shareText(text: string): void {
+        if (Shell.setupLocked)
+            return;
+        QuickShare.share([], text);
+    }
+    // Quick Look: a look at a file without opening it (Space in Nautilus calls it by itself)
+    function quicklook(path: string): void {
+        if (Shell.setupLocked)
+            return;
+        QuickLook.show(path, false);
+    }
+    // the mini island: a page in a small window of its own; clicks through it on and off
+    function island(url: string): void {
+        if (Shell.setupLocked)
+            return;
+        Island.open(url);
+    }
+    function islandThrough(): void {
+        Island.setThrough(!Island.through);
+    }
+    // «Обслуживание»: the page, and a fresh look at the computer
+    function care(): void {
+        if (Shell.setupLocked)
+            return;
+        Care.open();
+    }
+    function circleOn(screen: string): void {
+        captureOn(screen);
     }
     // toggle a desktop widget: angelos widget clock DP-1 (types: clock sysmon music picture note disks plugin:<id>)
     function widget(type: string, screen: string): string {

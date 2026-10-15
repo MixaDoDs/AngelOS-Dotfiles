@@ -34,7 +34,7 @@ Singleton {
         })
     onPlayerChanged: _followed.player = player
     readonly property var musicApps: /spotify|yandex|vk ?music|vkmusic|deezer|tidal|apple ?music|cider|amberol|rhythmbox|elisa|strawberry|clementine|audacious|lollypop|quodlibet|cmus|mpd|ncspot|spotube|feishin|sonixd|supersonic|youtube.?music|ytmusic|soundcloud|nuclear|harmonoid|tauon|g4music|gapless|euphonica|musikcube|deadbeef|foobar|museeks|kew|termusic|plexamp|jellyfin|navidrome|psst|sayonara|mpv|vlc|celluloid|haruna/i
-    readonly property var notMusic: /telegram|discord|zoom|skype|teams|whatsapp|signal|slack|element|obs|kdeconnect|gsconnect|steam|nautilus|gwenview|loupe/i
+    readonly property var notMusic: /telegram|discord|zoom|skype|teams|whatsapp|signal|slack|element|obs|kdeconnect|gsconnect|steam|nautilus|strata|gwenview|loupe/i
     function playerScore(p, pref) {
         const id = (p.identity || "") + " " + (p.desktopEntry || "") + " " + (p.dbusName || "");
         let s = 0;

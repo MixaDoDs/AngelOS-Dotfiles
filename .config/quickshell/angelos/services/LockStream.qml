@@ -216,7 +216,7 @@ Singleton {
             return "browser";
         if (/spotify|music|yandex|deezer|tidal|rhythmbox|strawberry|mpv|vlc|celluloid/.test(s))
             return "media";
-        if (/nautilus|thunar|dolphin|files/.test(s))
+        if (/nautilus|strata|thunar|dolphin|files/.test(s))
             return "files";
         if (/blender|krita|gimp|aseprite|inkscape|resolve|kdenlive/.test(s))
             return "art";
