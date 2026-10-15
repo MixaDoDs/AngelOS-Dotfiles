@@ -1,0 +1,145 @@
+# Discord call widgets with alternative clients
+
+The Discord widget and DiscordCrew share `scripts/discord-voice.py`. Official Discord
+(Stable, PTB, Canary, including installations with Vencord or BetterDiscord) uses its
+local voice RPC and the existing StreamKit authorization flow.
+
+Vesktop and other clients using arRPC expose Rich Presence, which does **not** provide
+the authenticated voice RPC. The optional DevTools reader instead reads the current
+call from Discord's in-memory stores. It supports Vencord/Equicord's Webpack API,
+BetterDiscord's store API, and Discord's Webpack module cache as a fallback. This
+covers Electron clients using the Discord web app, including Vesktop, Equibop and
+Legcord. Native clients with their own UI and stores are not covered by this bridge.
+
+Without the bridge such a client shows in the widget and in Settings → Widgets as
+«This client does not share calls over RPC» (state `rpc-only`) instead of waiting forever
+for Discord's «allow» window.
+
+> **Read this before enabling it.** A DevTools port gives *any* program running as you —
+> including Flatpak apps with network access, which share your loopback — full control of the
+> logged-in client: it can read your Discord account token, read and send messages, and act as
+> you. Nothing asks for permission. Turn it on only if you trust everything you run, keep it on
+> 127.0.0.1, and never add `--remote-allow-origins`. angelOS never turns it on by itself: the
+> reader only connects when you set a port as described below.
+
+## Enable the optional bridge
+
+Quit the client, then start it with a loopback debugging port. For example:
+
+```sh
+flatpak run dev.vencord.Vesktop \
+  --remote-debugging-address=127.0.0.1 --remote-debugging-port=9234
+# Native example (use your client's executable):
+vesktop --remote-debugging-address=127.0.0.1 --remote-debugging-port=9234
+```
+
+For a persistent app-menu launch, enable a user desktop override. This keeps the
+vendor's command and URL forwarding while adding the debugging flags. The vendor
+`Exec` is re-read each time, so a changed executable path is picked up automatically:
+
+```sh
+python3 ~/.config/quickshell/angelos/scripts/discord-voice-launcher.py enable \
+  /var/lib/flatpak/exports/share/applications/dev.vencord.Vesktop.desktop 9234
+```
+
+The shell needs no restart: the widget looks for the port again within about ten seconds.
+
+For a native client, pass its desktop file from `/usr/share/applications/` instead.
+The launcher refuses to overwrite an existing custom user entry. The wrapper is
+stored in `$XDG_DATA_HOME/angelos/discord-voice/` and the selected port in
+`$XDG_CONFIG_HOME/angelos/discord-voice.json` (defaults: `~/.local/share` and
+`~/.config`). Package updates do not replace these user files. Enable the bridge
+once, then use the normal application menu after each login. Close a running client
+before opening it from the new entry, so Electron accepts the debugging flags.
+
+For temporary use, set `ANGELOS_DISCORD_CDP_PORT=9234` in the shell process's
+environment or put `{"port": 9234}` in
+`$XDG_RUNTIME_DIR/angelos-discord-voice.json`. The environment takes precedence,
+followed by the runtime file, then the persistent config. Use a free port and the
+same number in the client and reader settings.
+
+### Native Arch / CachyOS installation through yay
+
+For `vesktop-bin` or `vesktop-git`, quit Vesktop and run once:
+
+```sh
+python3 ~/.config/quickshell/angelos/scripts/discord-voice-launcher.py enable-aur 9234
+```
+
+Then start `vesktop` normally. This discovers the system `vesktop.desktop`, creates
+the same user menu override, and adds a marked block to
+`$XDG_CONFIG_HOME/vesktop-flags.conf` (default `~/.config/vesktop-flags.conf`). Both
+AUR package launchers read that file. Consequently CLI and autostart launches also
+receive the bridge flags, and `yay -Syu`/pacman package replacements leave them
+intact. Enabling again updates the marked block without duplicating it. Existing
+Wayland, PipeWire and other flags remain intact; conflicting custom debugging
+flags are reported rather than overwritten. Files under `/usr` and `/opt` are not
+modified. Restart Vesktop after upgrading to reconnect to the new application.
+
+Remove the managed flags and menu override with:
+
+```sh
+python3 ~/.local/share/angelos/discord-voice/launcher.py disable-aur
+```
+
+This keeps other flags. The shared port configuration is removed together with the
+last menu override the launcher made. This setup does not
+install another Vesktop package or replace an existing Flatpak installation.
+
+Verified packaging sources:
+[AUR vesktop-bin wrapper](https://aur.archlinux.org/cgit/aur.git/tree/vesktop.sh?h=vesktop-bin),
+[AUR vesktop-git wrapper](https://aur.archlinux.org/cgit/aur.git/tree/vesktop.sh?h=vesktop-git).
+
+### Vesktop auto-updates
+
+For Flatpak installations, the app ID and exported desktop path stay stable when
+Flatpak replaces the application. The user launcher and port configuration remain
+outside that installation. The reader reconnects after the client's debugging
+connection disappears, and discovers stores again after Discord/Vencord reloads.
+No application bundle, ASAR or bundled Vencord file is patched.
+
+AppImage's internal updater is different: electron-updater can spawn the new image
+with an empty argument list, losing the debugging switches. A changed vendor `Exec`
+is picked up on the next menu launch, but the bridge does not control or restart
+the updater's new process. If it restarted without DevTools, quit and reopen it
+from the menu. This is not a guarantee of uninterrupted AppImage auto-restart support.
+
+Sources: [Vesktop updater](https://github.com/Vencord/Vesktop/blob/main/src/main/updater.ts),
+[electron-updater AppImage restart](https://github.com/electron-userland/electron-builder/blob/master/packages/electron-updater/src/AppImageUpdater.ts).
+
+
+The shell-side reader is part of this change and will be installed by AngelOS
+updates that include it. Updating to an older AngelOS revision that predates this
+change can replace `discord-voice.py` and remove its bridge hook; the persistent
+launcher settings alone cannot add missing support to that older shell.
+
+Once more: while the port is open, any local process can take over this client, account
+token and messages included (see the warning at the top). Keep it on loopback; do not use
+`--remote-allow-origins=*` or expose the port to the network. The bridge itself reads only
+call state and avatar hashes, and uses the client's own actions for local mute/volume. It does
+not read account tokens or chats. Only exact Discord HTTPS hostnames and local debugging
+WebSockets are accepted, and what the page answers is checked before the widget uses it.
+
+To disable a menu override:
+
+```sh
+python3 ~/.local/share/angelos/discord-voice/launcher.py disable dev.vencord.Vesktop.desktop
+```
+
+The port configuration goes with the last managed override. Remove any runtime or
+environment override you set by hand, then restart the client without the debugging flags.
+Ordinary Discord RPC continues to work without this opt-in.
+
+## Validation
+
+```sh
+python3 .config/quickshell/angelos/tests/discord/test_discord_voice.py
+python3 .config/quickshell/angelos/tests/discord/test_discord_cdp.py
+```
+
+The second command tests endpoint restrictions, configuration, call snapshots,
+command validation, the arRPC regression, and native AUR package replacement with
+preserved CLI/desktop flags. Native package tests use stand-in launchers; no AUR
+package was installed into the test machine. Snapshot tests use Node.js when
+available. Live verification was performed with Vesktop Flatpak; the other client
+adapters are tested with stand-in stores, not installed clients.
