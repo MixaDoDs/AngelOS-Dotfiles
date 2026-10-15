@@ -35,6 +35,8 @@ cliphist
 tesseract
 # More OCR languages are added by install.sh from your keyboard layouts.
 tesseract-data-eng
+# Circle to Search: translating what was circled
+translate-shell
 python
 python-cairo
 python-gobject

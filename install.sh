@@ -51,6 +51,8 @@
 #   VOXTYPE_LANGUAGE=ru            dictation language (default: derived from KB_LAYOUTS)
 #   INSTALL_SDDM=1|0               SDDM login screen with the angelOS theme
 #                                  (default 1, or 0 together with SKIP_PACKAGES=1)
+#   MAIN_SCREEN=DP-1               the main screen (a niri output): the login's password field and
+#                                  the pointer, the lock (asked with two screens or more)
 #   DEVICE_ACCESS=1|0              let the user at the seat read the charge of wireless mice from
 #                                  their dongles: a udev rule that opens only the maker's interface
 #                                  without input (extras/hid-access; default 1, or 0 together with
@@ -113,7 +115,7 @@ VOXTYPE_FORCE="${VOXTYPE_FORCE:-0}"
 is_set() { [[ -n "${!1+x}" ]]; }
 for v in DOTFILES_MODE DESKTOP_SHELL NOCTALIA KB_LAYOUTS KB_TOGGLE INSTALL_VOXTYPE DOWNLOAD_VOXTYPE_MODEL \
          INSTALL_WALLPAPERS WALLPAPER_PACKS INSTALL_SDDM DEVICE_ACCESS ANGELOS_GAME GITHUB_LOGIN \
-         INSTALL_FLATPAK INSTALL_TOOLS ANGELOS_THEME MAC_KEYS FISH_DEFAULT INSTALL_APPS APPS; do
+         INSTALL_FLATPAK INSTALL_TOOLS ANGELOS_THEME MAC_KEYS FISH_DEFAULT INSTALL_APPS APPS MAIN_SCREEN; do
   is_set "$v" && declare -r "GIVEN_$v=1"
 done
 given() { local n="GIVEN_$1"; [[ -n "${!n:-}" ]]; }
@@ -612,6 +614,7 @@ ask_profile() {
                     'Поставить экран входа SDDM с темой angelOS?')" "$( ((INSTALL_SDDM)) && echo y || echo n)" \
       && INSTALL_SDDM=1 || INSTALL_SDDM=0
   fi
+  choose_main_screen
   if ! given INSTALL_TOOLS && [[ "$SKIP_PACKAGES" != 1 && -s "$ROOT/packages/tools.txt" ]]; then
     local tools
     tools="$(grep -Ev '^[[:space:]]*(#|$)' "$ROOT/packages/tools.txt" | head -8 | paste -sd',' - | sed 's/,/, /g')…"
@@ -623,6 +626,51 @@ ask_profile() {
   tui_section "$(_ 'Ready to go live' 'Готовы к эфиру')" \
     "$(_ "profile $m · shell ${DESKTOP_SHELL} · theme ${ANGELOS_THEME} · the layouts come next" \
          "профиль $m · оболочка ${DESKTOP_SHELL} · тема ${ANGELOS_THEME} · дальше — раскладки")"
+}
+
+# ── The main screen ───────────────────────────────────────────────────────────
+
+# With two screens or more: which one is the main one. The login (SDDM) puts its password field
+# and the pointer there, so does the lock, the widgets and the angel live there
+# (settings.json system.primaryScreen; Settings → Monitor → Main screen later). Asked only
+# inside niri, which knows the screens; elsewhere the setup wizard asks. MAIN_SCREEN=DP-1 says
+# it without asking.
+choose_main_screen() {
+  given MAIN_SCREEN && return 0
+  command -v niri >/dev/null 2>&1 && [[ -n "${NIRI_SOCKET:-}" ]] || return 0
+  local lines=() names=() labels=() cur="" def=1 i answer
+  cur="$(python3 -c 'import json,sys
+try: print((json.load(open(sys.argv[1])).get("system") or {}).get("primaryScreen") or "")
+except Exception: print("")' "$HOME_DIR/.config/angelos/settings.json" 2>/dev/null)"
+  mapfile -t lines < <(niri msg --json outputs 2>/dev/null | python3 -c 'import json, sys
+try: d = json.load(sys.stdin)
+except Exception: d = {}
+rows = []
+for name, o in d.items():
+    m = o.get("current_mode")
+    mode = (o.get("modes") or [])[m] if isinstance(m, int) and m < len(o.get("modes") or []) else {}
+    w, h = mode.get("width", 0), mode.get("height", 0)
+    t = (o.get("logical") or {}).get("transform", "Normal")
+    if t in ("90", "270", "Flipped90", "Flipped270"):
+        w, h = h, w
+    who = " ".join(x for x in (o.get("make"), o.get("model")) if x and x != "Unknown")
+    rows.append((-w * h, name, "%s  %dx%d  %s" % (name, w, h, who)))
+for _, name, label in sorted(rows):
+    print(name + "\t" + label)')
+  ((${#lines[@]} > 1)) || return 0
+  for i in "${!lines[@]}"; do
+    names+=("${lines[i]%%$'\t'*}")
+    labels+=("${lines[i]#*$'\t'}")
+    [[ "${names[i]}" == "$cur" ]] && def=$((i + 1))
+  done
+  tui_section "$(_ 'The main screen' 'Главный экран')" \
+    "$(_ 'The login screen puts its password field and the pointer there, the lock too.' 'Там при входе будут поле пароля и курсор, и на блокировке тоже.')" \
+    "$(_ 'Later: Settings → Monitor → Main screen.' 'Потом: Настройки → Монитор → Главный экран.')"
+  answer="$(ui_choose "$(_ 'Which screen is the main one?' 'Какой экран главный?')" "$def" "${labels[@]}")"
+  [[ "$answer" =~ ^[0-9]+$ ]] && ((answer >= 1 && answer <= ${#names[@]})) || answer="$def"
+  MAIN_SCREEN="${names[answer - 1]}"
+  # shellcheck disable=SC2034  # read through given()
+  GIVEN_MAIN_SCREEN=1
 }
 
 # ── The author's apps (full profile) ─────────────────────────────────────────
@@ -1794,13 +1842,17 @@ apply_setup_answers() {
   fi
   local theme=""
   given ANGELOS_THEME && theme="$ANGELOS_THEME"
-  [[ -n "$game" || -n "${KB_ASKED:-}" || -n "$theme" || -n "$LANG_ASKED" ]] || return 0
+  local screen=""
+  given MAIN_SCREEN && screen="$MAIN_SCREEN"
+  [[ -z "$screen" || "$screen" =~ ^[A-Za-z0-9._-]{1,40}$ ]] || die "MAIN_SCREEN must be an output name, like DP-1"
+  [[ -n "$game" || -n "${KB_ASKED:-}" || -n "$theme" || -n "$LANG_ASKED" || -n "$screen" ]] || return 0
   local f="$HOME_DIR/.config/angelos/settings.json"
   mkdir -p -- "${f%/*}"
-  python3 - "$f" "$game" "${KB_ASKED:-}" "$theme" "$MAC_KEYS" "${LANG_ASKED:+$UI}" <<'PY' || warn "$(_ 'Could not write the answers into settings.json' 'Не удалось записать ответы в settings.json')"
+  python3 - "$f" "$game" "${KB_ASKED:-}" "$theme" "$MAC_KEYS" "${LANG_ASKED:+$UI}" "$screen" <<'PY' || warn "$(_ 'Could not write the answers into settings.json' 'Не удалось записать ответы в settings.json')"
 import json, os, sys, tempfile
 path, game, kb, theme, mac_keys = sys.argv[1], sys.argv[2], sys.argv[3] == "1", sys.argv[4], sys.argv[5] == "1"
 lang = sys.argv[6]
+screen = sys.argv[7]
 d = {}
 if os.path.exists(path):
     with open(path) as f:
@@ -1822,6 +1874,9 @@ if theme:
 # the language picked in the installer, until the wizard is done (later it is Settings → Account)
 if lang in ("ru", "en") and not d.get("setup", {}).get("complete"):
     d.setdefault("appearance", {})["language"] = lang
+# the main screen: the login's password field and pointer, the lock, the widgets
+if screen:
+    d.setdefault("system", {})["primaryScreen"] = screen
 if json.dumps(d, sort_keys=True) == before:
     sys.exit(0)
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".settings-")

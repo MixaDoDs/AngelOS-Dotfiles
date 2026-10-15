@@ -9,6 +9,8 @@ appmenu-gtk-module
 # the angel's voice and the harp menu's strings (QtMultimedia SoundEffect)
 qt6-multimedia
 qt6-multimedia-ffmpeg
+# the mini island (links in a small browser window: scripts/island, qml6 + QtWebEngine)
+qt6-webengine
 # optional NVIDIA/Qt EGL threaded-render-loop build
 cmake
 gcc
