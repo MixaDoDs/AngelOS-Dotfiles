@@ -524,6 +524,39 @@ inst_hid() {
   fi
 }
 
+inst_vencord() {
+  # Discord + Vencord: the guard, its units and pacman's hooks land in a fake CachyOS root (a
+  # Discord of pacman's there gets patched); on Arch nothing; a config-only run leaves it alone
+  local vroot="$WORK/venc-root" archroot="$WORK/venc-arch"
+  if [[ ! -f "$ROOT/.config/quickshell/angelos/extras/vencord/install.sh" ]]; then
+    skip "installer: Discord + Vencord (no extras/vencord in this tree)"
+    return 0
+  fi
+  mkdir -p "$vroot/etc" "$vroot/opt/discord/resources" "$archroot/etc"
+  printf 'ID=cachyos\n' >"$vroot/etc/os-release"
+  printf 'ID=arch\n' >"$archroot/etc/os-release"
+  head -c 100000 /dev/urandom >"$vroot/opt/discord/resources/app.asar"
+  if install_case venc VENCORD=1 SYSROOT="$vroot" ANGELOS_VENCORD_URL="file://$WORK/no-such-release" &&
+     [[ -x "$vroot/usr/local/libexec/angelos-vencord" && -f "$vroot/etc/pacman.d/hooks/angelos-vencord.hook" &&
+        -f "$vroot/etc/systemd/system/angelos-vencord.path" && -f "$vroot/opt/discord/resources/_app.asar" ]] &&
+     grep -q angelOS "$vroot/opt/discord/resources/app.asar"; then
+    pass "installer: VENCORD=1 on CachyOS — the guard, its units and pacman's hooks; Discord patched"
+  else
+    fail "installer: VENCORD=1 on CachyOS"; sed 's/^/    /' "$WORK/venc.log" | tail -20
+  fi
+  if install_case vencarch VENCORD=1 SYSROOT="$archroot" && [[ ! -e "$archroot/usr" && ! -e "$archroot/etc/pacman.d" ]]; then
+    pass "installer: VENCORD=1 on Arch Linux does nothing (CachyOS only)"
+  else
+    fail "installer: VENCORD=1 on Arch Linux"
+  fi
+  rm -rf -- "$vroot/usr" "$vroot/etc/pacman.d" "$vroot/etc/systemd"
+  if install_case venckeep SYSROOT="$vroot" && [[ ! -e "$vroot/usr" && ! -e "$vroot/etc/pacman.d" ]]; then
+    pass "installer: a config-only run installs no Vencord guard unless asked (VENCORD)"
+  else
+    fail "installer: a config-only run left Discord alone"
+  fi
+}
+
 inst_fish() {
   # fish as the login shell: /etc/shells and chsh land in a fake system root (no real chsh)
   if command -v fish >/dev/null 2>&1; then
@@ -975,6 +1008,7 @@ job calc py_test calc calc/test_calc.py "launcher currencies: a lone 100 USD, 10
 job keycast py_test keycast keycast/test_keycast.py "keys on screen: shortcuts, typing only when asked, nothing while a password is typed"
 job discord-voice py_test discord-voice discord/test_discord_voice.py "Discord call widget: token and its renewal, who is in the call, speaking (stand-in Discord)"
 job discord-cdp py_test discord-cdp discord/test_discord_cdp.py "Discord alternative clients: DevTools boundaries, call stores and arRPC regression"
+job vencord py_test vencord vencord/test_vencord.py "Discord + Vencord: patched again after an update (pacman, Flatpak's hard links), others' left alone, CachyOS only, the loader (throw-away root)"
 timed audio-tap py_test audio-tap audio/test_audio_tap.py "cava's audio tap: no hangs (stand-ins for cava and pw-record)"
 # the Golden Gate menu bar's helper: menus found by the window's pid, on a private bus (77 = no gi / dbus)
 timed appmenu py_test appmenu appmenu/test_appmenu.py "global menu: Qt, GTK, appmenu-gtk-module and X11 menus found by pid, clicks reach the app" 77
@@ -1008,7 +1042,7 @@ job author-tools check_author_tools
 job self-update check_self_update
 job shellcheck check_shellcheck
 if [[ "${SKIP_INSTALL_TEST:-0}" != 1 ]]; then
-  for c in layouts macos mackeys0 pixel hid fish single tech noshell voice sddm bad foreignniri; do
+  for c in layouts macos mackeys0 pixel hid vencord fish single tech noshell voice sddm bad foreignniri; do
     job "installer-$c" "inst_$c"
   done
   for c in ubuntu eos force arch alarm; do

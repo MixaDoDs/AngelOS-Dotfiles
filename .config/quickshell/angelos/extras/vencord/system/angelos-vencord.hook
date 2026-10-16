@@ -1,0 +1,13 @@
+# angelOS: pacman's Discord gets a clean app.asar with every update: Vencord back in
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Path
+Target = opt/discord/resources/app.asar
+Target = opt/discord-ptb/resources/app.asar
+Target = opt/discord-canary/resources/app.asar
+
+[Action]
+Description = angelOS: Vencord into Discord...
+When = PostTransaction
+Exec = /usr/local/libexec/angelos-vencord patch

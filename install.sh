@@ -57,6 +57,10 @@
 #                                  their dongles: a udev rule that opens only the maker's interface
 #                                  without input (extras/hid-access; default 1, or 0 together with
 #                                  SKIP_PACKAGES=1)
+#   VENCORD=1|0                    CachyOS only: Discord always with Vencord — put in again by itself
+#                                  after every update of Discord (pacman's or Flatpak's), for every
+#                                  user of this computer (extras/vencord; default 1, or 0 together
+#                                  with SKIP_PACKAGES=1)
 #   SKIP_PACKAGES=0|1              skip `pacman -Syu`
 #   INSTALL_VOXTYPE=0|1            voice input binary (checksum-verified download)
 #   DOWNLOAD_VOXTYPE_MODEL=0|1     Whisper large-v3-turbo model (~1.6 GB)
@@ -114,7 +118,7 @@ VOXTYPE_FORCE="${VOXTYPE_FORCE:-0}"
 # asks about the rest.
 is_set() { [[ -n "${!1+x}" ]]; }
 for v in DOTFILES_MODE DESKTOP_SHELL NOCTALIA KB_LAYOUTS KB_TOGGLE INSTALL_VOXTYPE DOWNLOAD_VOXTYPE_MODEL \
-         INSTALL_WALLPAPERS WALLPAPER_PACKS INSTALL_SDDM DEVICE_ACCESS ANGELOS_GAME GITHUB_LOGIN \
+         INSTALL_WALLPAPERS WALLPAPER_PACKS INSTALL_SDDM DEVICE_ACCESS VENCORD ANGELOS_GAME GITHUB_LOGIN \
          INSTALL_FLATPAK INSTALL_TOOLS ANGELOS_THEME MAC_KEYS FISH_DEFAULT INSTALL_APPS APPS MAIN_SCREEN; do
   is_set "$v" && declare -r "GIVEN_$v=1"
 done
@@ -160,6 +164,8 @@ INSTALL_SDDM="${INSTALL_SDDM:-1}"
 [[ "$SKIP_PACKAGES" == 1 ]] && ! given INSTALL_TOOLS && INSTALL_TOOLS=0
 DEVICE_ACCESS="${DEVICE_ACCESS:-1}"
 [[ "$SKIP_PACKAGES" == 1 ]] && ! given DEVICE_ACCESS && DEVICE_ACCESS=0
+VENCORD="${VENCORD:-1}"
+[[ "$SKIP_PACKAGES" == 1 ]] && ! given VENCORD && VENCORD=0
 KB_LAYOUTS="${KB_LAYOUTS:-us,ru}"
 KB_TOGGLE="${KB_TOGGLE:-alt_shift}"
 KB_VARIANT="${KB_VARIANT:-}"
@@ -1571,6 +1577,42 @@ device_access() {
           "заряд устройств: донгл мыши можно спрашивать — только служебный интерфейс и только пользователю за этим компьютером")"
 }
 
+# ── Discord with Vencord ─────────────────────────────────────────────────────
+
+# CachyOS only. Every update of Discord brings a clean app.asar back, and Vencord is gone until
+# someone runs its installer again. extras/vencord puts it in again by itself, for every user:
+# pacman's hook after an update of its Discord, a path unit on the Flatpak's folder and a timer
+# (root, copied there by its install.sh), and each user's units for their own Vencord, which is
+# downloaded when it is missing (~/.config/Vencord/dist; Vencord updates it itself after that).
+VENCORD_SETUP="$ROOT/.config/quickshell/angelos/extras/vencord/install.sh"
+cachyos_here() { grep -Eqx 'ID="?cachyos"?' "$SYSROOT/etc/os-release" 2>/dev/null; }
+# missing | old | ok, "" when this checkout has no such thing; ok on another system than CachyOS
+vencord_state() {
+  [[ "$DESKTOP_SHELL" == angelos && -f "$VENCORD_SETUP" ]] || return 0
+  ANGELOS_SYSROOT="$SYSROOT" sh "$VENCORD_SETUP" --status 2>/dev/null || true
+}
+vencord_guard() {
+  [[ "$VENCORD" == 1 ]] || return 0
+  local state
+  state="$(vencord_state)"
+  [[ -n "$state" && "$state" != ok ]] || return 0
+  if [[ -n "$SYSROOT" ]]; then
+    ANGELOS_SYSROOT="$SYSROOT" sh "$VENCORD_SETUP" >/dev/null
+  elif ((EUID == 0)); then
+    sh "$VENCORD_SETUP" >/dev/null
+  elif command -v sudo >/dev/null 2>&1 && { [[ -t 0 ]] || sudo -n true 2>/dev/null; }; then
+    sudo sh "$VENCORD_SETUP" >/dev/null
+  else
+    false
+  fi || {
+    warn "$(_ "Discord + Vencord: the system's part was not installed (no admin password here) — the next update tries again" \
+             "Discord + Vencord: системная часть не поставлена (здесь не спросить пароль администратора) — следующее обновление попробует снова")"
+    return 0
+  }
+  say "$(_ "Discord + Vencord: put in again by itself after every update of Discord" \
+          "Discord + Vencord: после каждого обновления Discord Vencord встаёт обратно сам")"
+}
+
 # ── SDDM login screen ────────────────────────────────────────────────────────
 
 SDDM_THEME=angelos
@@ -1707,6 +1749,8 @@ install_sddm() {
 #     Another theme the user picked stays
 #   - the udev rule for the devices' charge (device_access above), missing or changed by the
 #     author; DEVICE_ACCESS=0 leaves it out
+#   - Discord with Vencord (vencord_guard above, CachyOS only), missing or changed by the
+#     author; VENCORD=0 leaves it out
 # Only for the real home of this user (never a test's or a chroot's) and never on the author's
 # own machine. FOLLOW_SYSTEM=0 skips it.
 FOLLOW_SYSTEM="${FOLLOW_SYSTEM:-1}"
@@ -1715,7 +1759,7 @@ follow_system() {
   [[ "$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)" == "$HOME_DIR" ]] || return 0
   command -v pacman >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 || return 0
   local sddm_py="$ROOT/.config/quickshell/angelos/scripts/sddm-theme.py" sddm_src="$ROOT/.config/quickshell/angelos/extras/sddm/angelos"
-  local pkgs=() fish="" theme="" applied="" built="" root_sddm="" stamp="$STATE_DIR/sddm-theme.sha256" hash cur look="" pal="" hid=""
+  local pkgs=() fish="" theme="" applied="" built="" root_sddm="" stamp="$STATE_DIR/sddm-theme.sha256" hash cur look="" pal="" hid="" venc=""
   local -a lists=(pacman.txt angelos.txt tools.txt fish.txt)
   command -v sddm >/dev/null 2>&1 && lists+=(sddm.txt)
   # base packages missing here that the repositories have
@@ -1744,7 +1788,10 @@ PY
   if ! { given DEVICE_ACCESS && [[ "$DEVICE_ACCESS" == 0 ]]; }; then
     case "$(hid_access_state)" in missing|old) hid="$HID_ACCESS" ;; esac
   fi
-  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid" ]] || return 0
+  if ! { given VENCORD && [[ "$VENCORD" == 0 ]]; }; then
+    case "$(vencord_state)" in missing|old) venc="$VENCORD_SETUP" ;; esac
+  fi
+  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid$venc" ]] || return 0
 
   if [[ -n "$theme" ]]; then
     local -a opts=()
@@ -1758,8 +1805,8 @@ PY
       theme=""
     fi
   fi
-  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid" ]] || return 0
-  say "$(_ "As the author has it:" "Как у автора:")${pkgs[*]:+ $(_ "packages" "пакеты") ${pkgs[*]};}${fish:+ $(_ "fish instead of bash;" "fish вместо bash;")}${theme:+ $(_ "the angelOS login screen;" "экран входа angelOS;")}${hid:+ $(_ "the devices' charge (a mouse's dongle: its service interface only)" "заряд устройств (донгл мыши: только служебный интерфейс)")} — $(_ "the admin password" "пароль администратора")"
+  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid$venc" ]] || return 0
+  say "$(_ "As the author has it:" "Как у автора:")${pkgs[*]:+ $(_ "packages" "пакеты") ${pkgs[*]};}${fish:+ $(_ "fish instead of bash;" "fish вместо bash;")}${theme:+ $(_ "the angelOS login screen;" "экран входа angelOS;")}${hid:+ $(_ "the devices' charge (a mouse's dongle: its service interface only)" "заряд устройств (донгл мыши: только служебный интерфейс)")}${venc:+ $(_ "Discord always with Vencord;" "Discord всегда с Vencord;")} — $(_ "the admin password" "пароль администратора")"
 
   local -a root=()
   if ((EUID == 0)); then root=()
@@ -1772,7 +1819,7 @@ PY
   fi
   # shellcheck disable=SC2016  # the root script's own variables
   if "${root[@]}" sh -c '
-    pkgs="$1"; user="$2"; fish="$3"; src="$4"; sddm="$5"; uid="$6"; hid="$7"; rc=0
+    pkgs="$1"; user="$2"; fish="$3"; src="$4"; sddm="$5"; uid="$6"; hid="$7"; venc="$8"; rc=0
     if [ -n "$pkgs" ]; then
       # shellcheck disable=SC2086
       pacman -Syu --needed --noconfirm $pkgs || rc=1
@@ -1787,7 +1834,10 @@ PY
     if [ -n "$hid" ]; then
       sh "$hid" >/dev/null || rc=1
     fi
-    exit $rc' sh "${pkgs[*]}" "$(id -un)" "$fish" "${theme:+$built/angelos}" "$root_sddm" "$(id -u)" "$hid" </dev/null; then
+    if [ -n "$venc" ]; then
+      sh "$venc" >/dev/null || rc=1
+    fi
+    exit $rc' sh "${pkgs[*]}" "$(id -un)" "$fish" "${theme:+$built/angelos}" "$root_sddm" "$(id -u)" "$hid" "$venc" </dev/null; then
     applied=1
     say "$(_ "the system is as the author has it ♡" "система как у автора ♡")${fish:+ $(_ "(fish from the next login)" "(fish — со следующего входа)")}"
   else
@@ -1825,6 +1875,11 @@ enable_services() {
     { systemctl --user enable polkit-agent-guard.service || true; }
   if [[ -x "$HOME_DIR/.local/bin/voxtype" ]]; then
     systemctl --user enable voxtype.service voxtype-indicator.service || true
+  fi
+  # Discord with Vencord: this user's own Vencord (downloaded now when it is missing) and their Flatpak
+  if [[ "$VENCORD" == 1 && "$DESKTOP_SHELL" == angelos ]] && cachyos_here &&
+     [[ -f "$HOME_DIR/.config/systemd/user/angelos-vencord.service" ]]; then
+    systemctl --user enable --now angelos-vencord.timer angelos-vencord.path || true
   fi
 }
 
@@ -2213,6 +2268,7 @@ esac
 [[ "$MAC_KEYS" == 0 || "$MAC_KEYS" == 1 ]] || die "MAC_KEYS must be 0 or 1"
 [[ "$INSTALL_APPS" == 0 || "$INSTALL_APPS" == 1 ]] || die "INSTALL_APPS must be 0 or 1"
 [[ "$DEVICE_ACCESS" == 0 || "$DEVICE_ACCESS" == 1 ]] || die "DEVICE_ACCESS must be 0 or 1"
+[[ "$VENCORD" == 0 || "$VENCORD" == 1 ]] || die "VENCORD must be 0 or 1"
 [[ "$CACHYOS_REPOS" == 0 || "$CACHYOS_REPOS" == 1 ]] || die "CACHYOS_REPOS must be 0 or 1"
 # APPS given alone means "these ones, please"
 given APPS && ! given INSTALL_APPS && [[ "${APPS,,}" != none ]] && INSTALL_APPS=1
@@ -2232,6 +2288,7 @@ STEPS=(
   "setup_fish_shell|fish|fish"
   "install_sddm|the login screen|экран входа"
   "device_access|the devices' charge|заряд устройств"
+  "vencord_guard|Discord + Vencord|Discord + Vencord"
   "follow_system|as the author has it: packages, fish, the login screen|как у автора: пакеты, fish, экран входа"
   "enable_services|user services|user-сервисы"
   "validate|niri validate|niri validate"

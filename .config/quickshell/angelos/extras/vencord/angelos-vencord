@@ -1,0 +1,265 @@
+#!/usr/bin/env python3
+"""angelOS: Discord always with Vencord (CachyOS only). An update of Discord brings a clean
+app.asar back; this puts Vencord in again, by itself:
+
+  angelos-vencord status   JSON: every Discord found here and its state, and this user's Vencord
+  angelos-vencord patch    root: the system's Discords (pacman's /opt/discord*, system Flatpak).
+                           A user: their own Vencord (~/.config/Vencord/dist, downloaded when it
+                           is missing), the Flatpak Discord let in to it, their Flatpak Discords
+  angelos-vencord forget   root, pacman's hook before a Discord is removed: the paths of its
+                           app.asar on stdin; the original we put aside (_app.asar) goes with it
+
+Patching is what Vencord's own installer does: app.asar → _app.asar (a rename: Flatpak's files
+are hard links into its repository and must never be written over), and a new app.asar that
+loads Vencord. Ours is one for every user: it loads the Vencord of whoever starts Discord
+(~/.config/Vencord/dist/patcher.js), and without one — not downloaded yet, or a Flatpak not let
+in to it — the plain Discord starts, never a broken one. A Discord patched by someone else
+(Vencord's installer, Equicord, OpenAsar under Vencord) is left as it is. Vencord updates its
+dist itself; this only brings it when it is missing.
+
+Started by pacman's hook (/etc/pacman.d/hooks/angelos-vencord.hook), by a path unit on the
+Flatpak's deploy folder and by a timer, both as root and as the user (extras/vencord/install.sh,
+~/.config/systemd/user/angelos-vencord.*). On other systems than CachyOS it does nothing.
+ANGELOS_SYSROOT=dir: the system's folders under dir (tests); ANGELOS_VENCORD_URL: where the
+dist files are downloaded from (tests).
+"""
+import glob
+import json
+import os
+import shutil
+import struct
+import subprocess
+import sys
+import tempfile
+import urllib.request
+
+ROOT = os.environ.get("ANGELOS_SYSROOT", "")
+HOME = os.path.expanduser("~")
+DIST = os.path.join(HOME, ".config/Vencord/dist")
+URL = os.environ.get("ANGELOS_VENCORD_URL", "https://github.com/Vendicated/Vencord/releases/download/devbuild")
+FILES = ["patcher.js", "preload.js", "renderer.js", "renderer.css",
+         "patcher.js.LEGAL.txt", "renderer.js.LEGAL.txt"]
+FLATPAKS = ["com.discordapp.Discord", "com.discordapp.DiscordCanary"]
+MARK = "angelOS"
+# Vencord of whoever starts it; the plain Discord without one (what Vencord's patcher.js does
+# to start the original, too)
+SHIM = (
+    "// angelOS (angelos-vencord): Vencord of whoever starts Discord; without it, plain Discord\n"
+    'const p=require("path"),f=require("fs"),v=p.join(require("os").homedir(),".config","Vencord","dist","patcher.js");\n'
+    'if(f.existsSync(v))require(v);else{const a=p.join(__dirname,"..","_app.asar"),'
+    'm=p.join(a,require(p.join(a,"package.json")).main);'
+    'require.main.filename=m;require("electron").app.setAppPath(a);require(m)}\n'
+)
+PACKAGE = '{"name":"discord","main":"index.js"}'
+
+
+def cachyos():
+    try:
+        with open(ROOT + "/etc/os-release") as f:
+            return any(line.strip() in ("ID=cachyos", 'ID="cachyos"') for line in f)
+    except OSError:
+        return False
+
+
+def asar(files):
+    """an asar archive of {name: text}: a pickled JSON header, then the files one after another"""
+    head, body, off = {}, b"", 0
+    for name, text in files.items():
+        data = text.encode()
+        head[name] = {"size": len(data), "offset": str(off)}
+        body += data
+        off += len(data)
+    js = json.dumps({"files": head}, separators=(",", ":")).encode()
+    pad = -len(js) % 4
+    return struct.pack("<IIII", 4, len(js) + pad + 8, len(js) + pad + 4, len(js)) + js + b"\0" * pad + body
+
+
+def asar_index(path):
+    """index.js of a small asar (a loader like ours or Vencord's installer's), or None"""
+    try:
+        if os.path.getsize(path) > 65536:
+            return None
+        with open(path, "rb") as f:
+            raw = f.read()
+        size, = struct.unpack_from("<I", raw, 12)
+        head = json.loads(raw[16:16 + size])
+        start = 16 + size + (-size % 4)
+        ent = head["files"]["index.js"]
+        off = start + int(ent["offset"])
+        return raw[off:off + ent["size"]].decode("utf-8", "replace")
+    except (OSError, ValueError, KeyError, struct.error, TypeError):
+        return None
+
+
+def state(res):
+    """ours | patched (someone else's Vencord or Equicord) | clean | broken (a loader, no original)"""
+    app, orig = os.path.join(res, "app.asar"), os.path.join(res, "_app.asar")
+    idx = asar_index(app)
+    if idx is None or not any(k in idx for k in ("patcher.js", "Vencord", "vencord", "Equicord", MARK)):
+        return "clean"
+    if not os.path.exists(orig):
+        return "broken"
+    return "ours" if MARK in idx else "patched"
+
+
+def system_discords():
+    found = []
+    for name in ("discord", "discord-ptb", "discord-canary"):
+        res = f"{ROOT}/opt/{name}/resources"
+        if os.path.isfile(res + "/app.asar"):
+            found.append({"path": res, "kind": "pacman"})
+    found += flatpak_discords(f"{ROOT}/var/lib/flatpak", "flatpak")
+    return found
+
+
+def flatpak_discords(base, kind):
+    found = []
+    for app in FLATPAKS:
+        for active in sorted(glob.glob(f"{base}/app/{app}/*/*/active")):
+            for asar_path in sorted(glob.glob(os.path.join(os.path.realpath(active), "files/*/resources/app.asar"))):
+                found.append({"path": os.path.dirname(asar_path), "kind": kind, "app": app})
+    return found
+
+
+def user_discords():
+    return flatpak_discords(os.path.join(HOME, ".local/share/flatpak"), "flatpak-user")
+
+
+def patch(res):
+    """app.asar → _app.asar, our loader in its place. An original that came back over our
+    loader (pacman's upgrade writes a new app.asar; the _app.asar next to it is the old one)
+    replaces the old original."""
+    st = state(res)
+    if st != "clean":
+        return st
+    app, orig = os.path.join(res, "app.asar"), os.path.join(res, "_app.asar")
+    fd, tmp = tempfile.mkstemp(dir=res, prefix=".app.asar-")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(asar({"index.js": SHIM, "package.json": PACKAGE}))
+        os.chmod(tmp, os.stat(app).st_mode & 0o777 | 0o444)
+        os.replace(app, orig)
+        os.replace(tmp, app)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+    return "patched-now"
+
+
+def dist_ok():
+    return os.path.isfile(os.path.join(DIST, "patcher.js"))
+
+
+def fetch_dist():
+    """Vencord's files from its release, into ~/.config/Vencord/dist (whole, or not at all)"""
+    parent = os.path.dirname(DIST)
+    os.makedirs(parent, exist_ok=True)
+    new = tempfile.mkdtemp(dir=parent, prefix=".dist-")
+    try:
+        for name in FILES:
+            with urllib.request.urlopen(f"{URL}/{name}", timeout=60) as r, open(os.path.join(new, name), "wb") as f:
+                shutil.copyfileobj(r, f)
+        # no package.json above it may say "type": "module" to these CommonJS files
+        with open(os.path.join(new, "package.json"), "w") as f:
+            f.write("{}")
+        os.chmod(new, 0o755)
+        if os.path.lexists(DIST):
+            old = tempfile.mkdtemp(dir=parent, prefix=".dist-old-")
+            os.replace(DIST, os.path.join(old, "dist"))
+            os.replace(new, DIST)
+            shutil.rmtree(old, ignore_errors=True)
+        else:
+            os.replace(new, DIST)
+    except BaseException:
+        shutil.rmtree(new, ignore_errors=True)
+        raise
+
+
+def flatpak_override(app):
+    """the Flatpak Discord sees this user's Vencord (rw: Vencord updates itself there)"""
+    path = os.path.join(HOME, ".local/share/flatpak/overrides", app)
+    try:
+        with open(path) as f:
+            if "xdg-config/Vencord/dist" in f.read():
+                return True
+    except OSError:
+        pass
+    if not shutil.which("flatpak"):
+        return False
+    return subprocess.run(["flatpak", "override", "--user", "--filesystem=xdg-config/Vencord/dist", app],
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+
+
+def cmd_status():
+    clients = [dict(c, state=state(c["path"])) for c in system_discords() + user_discords()]
+    print(json.dumps({"cachyos": cachyos(), "dist": dist_ok(), "clients": clients,
+                      "root": os.path.isfile(ROOT + "/usr/local/libexec/angelos-vencord")}, indent=1))
+    return 0
+
+
+def cmd_patch():
+    if not cachyos():
+        print("not CachyOS: nothing to do")
+        return 0
+    rc = 0
+    root = os.geteuid() == 0
+    # root: the system's Discords; a user: their own Vencord and Discords (a test root: both)
+    mine = system_discords() if root or ROOT else []
+    # no Discord here at all: no Vencord downloaded for it (the timer looks again later)
+    if (not root or ROOT) and system_discords() + user_discords():
+        if not dist_ok():
+            try:
+                fetch_dist()
+                print("Vencord downloaded: " + DIST)
+            except (OSError, ValueError) as e:
+                print(f"Vencord was not downloaded ({e}); the next run tries again", file=sys.stderr)
+                rc = 1
+        apps = {c.get("app") for c in system_discords() + user_discords()} - {None}
+        for app in sorted(apps):
+            if not flatpak_override(app):
+                print(f"{app}: could not let it in to {DIST}", file=sys.stderr)
+                rc = 1
+        mine += user_discords()
+    for c in mine:
+        try:
+            st = patch(c["path"])
+        except OSError as e:
+            print(f"{c['path']}: {e}", file=sys.stderr)
+            rc = 1
+            continue
+        if st == "patched-now":
+            print(f"Vencord put in: {c['path']}")
+        elif st == "broken":
+            print(f"{c['path']}: a loader without the original (_app.asar): reinstall Discord", file=sys.stderr)
+            rc = 1
+    if not root and not ROOT:
+        left = [c["path"] for c in system_discords() if state(c["path"]) == "clean"]
+        if left:
+            print("without Vencord, the system's part fixes it (sudo sh "
+                  "~/.config/quickshell/angelos/extras/vencord/install.sh): " + ", ".join(left), file=sys.stderr)
+    return rc
+
+
+def cmd_forget():
+    """pacman removes app.asar (ours or not); the original we put aside must go with it"""
+    for line in sys.stdin:
+        rel = line.strip()
+        if rel.endswith("/app.asar"):
+            orig = os.path.join(ROOT + "/", rel[:-len("app.asar")], "_app.asar")
+            if os.path.isfile(orig):
+                os.unlink(orig)
+    return 0
+
+
+def main(argv):
+    cmd = argv[1] if len(argv) > 1 else "status"
+    fn = {"status": cmd_status, "patch": cmd_patch, "forget": cmd_forget}.get(cmd)
+    if not fn:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    return fn()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

@@ -1,0 +1,7 @@
+[Unit]
+Description=angelOS: this user's Vencord for Discord (downloaded when missing), their Flatpak Discord patched
+ConditionPathExists=%h/.config/quickshell/angelos/extras/vencord/angelos-vencord
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/quickshell/angelos/extras/vencord/angelos-vencord patch

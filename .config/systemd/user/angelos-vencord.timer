@@ -1,0 +1,10 @@
+# at login and then every half an hour: Vencord there (a download that failed is tried again)
+[Unit]
+Description=angelOS: check that Discord has Vencord
+
+[Timer]
+OnStartupSec=15s
+OnUnitActiveSec=30min
+
+[Install]
+WantedBy=timers.target

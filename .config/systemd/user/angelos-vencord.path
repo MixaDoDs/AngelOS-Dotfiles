@@ -1,0 +1,10 @@
+# a Flatpak Discord of the user's own (flatpak install --user): its update comes back clean
+[Unit]
+Description=angelOS: watch the user's Flatpak Discord for its updates
+
+[Path]
+PathChanged=%h/.local/share/flatpak/app/com.discordapp.Discord/x86_64/stable
+Unit=angelos-vencord.service
+
+[Install]
+WantedBy=default.target
