@@ -549,7 +549,7 @@ inst_vencord() {
   else
     fail "installer: VENCORD=1 on Arch Linux"
   fi
-  rm -rf -- "$vroot/usr" "$vroot/etc/pacman.d" "$vroot/etc/systemd"
+  rm -rf -- "${vroot:?}/usr" "$vroot/etc/pacman.d" "$vroot/etc/systemd"
   if install_case venckeep SYSROOT="$vroot" && [[ ! -e "$vroot/usr" && ! -e "$vroot/etc/pacman.d" ]]; then
     pass "installer: a config-only run installs no Vencord guard unless asked (VENCORD)"
   else
