@@ -1,0 +1,10 @@
+# whatever the path unit and pacman's hook missed (an update while the system was off, a manual one)
+[Unit]
+Description=angelOS: check that the system's Discord has Vencord
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=30min
+
+[Install]
+WantedBy=timers.target

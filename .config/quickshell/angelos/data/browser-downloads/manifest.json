@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "angelOS downloads",
+  "version": "1.0",
+  "description": "Tells angelOS's Halo how far your downloads are (sizes only, no addresses). Installed by angelOS; scripts/browser-downloads.py remove takes it out.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA8BIIqX9mnriiTA7Iuikmd6yZBDFa3iuHUNN9PPCnpiqfDamGFo14elbiPwNUFqXXWH7De3xneBDOSxxQXHVMhct95K8r84e5lbhruGSNFHo/1iCYgJ73aStOCETL58ZPeSqr2cO7NzbmINVcFodGqjA8PTaOlljW2WekIxUbJv/W3/fHPGBVwZEzuHvVA3uRL39IpxNzHYoFb2OHFARtWLNP7Q4+6WrvDFKVjinpOUexvxQ47XQRCJH/wlxvw/qWR7IS2KPD4jbfzx6BiLUkTGU2IXJgzc6uWWUgShDL7bLawW7jyWWb3zVv39BW05O+M1G4krbUIevnvnjKhlhbrwIDAQAB",
+  "permissions": [
+    "downloads",
+    "nativeMessaging"
+  ],
+  "background": {
+    "service_worker": "bg.js",
+    "scripts": [
+      "bg.js"
+    ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "downloads@angelos",
+      "strict_min_version": "121.0"
+    }
+  }
+}

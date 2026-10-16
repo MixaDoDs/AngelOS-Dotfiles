@@ -28,7 +28,8 @@ Scope {
             exclusionMode: ExclusionMode.Ignore
             color: "transparent"
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.namespace: "angelos-circle"
+            // its own name (not the y2k circle's): niri-cast-privacy blacks it out on stream
+            WlrLayershell.namespace: "angelos-circle-search"
             // takes input until Esc; the dev stand on the test screen leaves the keyboard alone
             WlrLayershell.keyboardFocus: !CircleSearch.open || Quickshell.env("ANGELOS_STAND_NOKEYS") === "1" ? WlrKeyboardFocus.None : WlrKeyboardFocus.Exclusive
             // fading away: the clicks already go through

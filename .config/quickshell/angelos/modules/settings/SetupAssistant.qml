@@ -333,6 +333,7 @@ Item {
                                         "fastfetch": fastfetch,
                                         "widgets": widgetsStep,
                                         "motion": motion,
+                                        "telemetry": telemetryStep,
                                         "ready": ready
                                     })[root.shown.id] || (root.shown.blocks ? blocks : null)
                             }
@@ -2144,6 +2145,30 @@ Item {
                     hint: modelData[3]
                     checked: Motion.chosen === modelData[0]
                     onPicked: Motion.set(modelData[0])
+                    PxIcon {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        name: modelData[1]
+                        pixel: Theme.u * 3
+                    }
+                }
+            }
+        }
+    }
+
+    // telemetry (services/Telemetry): yes or no; Settings → Sponsor shows exactly what goes
+    Component {
+        id: telemetryStep
+        Choices {
+            n: 2
+            Repeater {
+                model: [["yes", "heart", I18n.t("Да, помогу", "Yes, I'll help"), I18n.t("раз в неделю: версии и железо, без имён и файлов", "once a week: versions and hardware, no names or files")], ["no", "close", I18n.t("Нет, спасибо", "No, thanks"), I18n.t("ничего не собирается и не уходит", "nothing is collected or sent")]]
+                Choice {
+                    required property var modelData
+                    width: parent.cardWidth
+                    label: modelData[2]
+                    hint: modelData[3]
+                    checked: Telemetry.consent === modelData[0]
+                    onPicked: Telemetry.setConsent(modelData[0])
                     PxIcon {
                         anchors.horizontalCenter: parent.horizontalCenter
                         name: modelData[1]

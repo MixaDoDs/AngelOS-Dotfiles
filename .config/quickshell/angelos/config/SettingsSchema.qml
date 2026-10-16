@@ -187,6 +187,7 @@ JsonAdapter {
     property JsonObject lyrics: JsonObject {
         property bool enabled: true         // current line in the middle of the bar
         property var screens: []            // empty = every bar
+        property var haloScreens: []        // of those, the screens whose line is in the Halo instead of the bar (Lyrics.placeOn)
         property int offsetMs: 0
         property string artwork: "note"          // note | cover
         property bool typewriter: true
@@ -213,6 +214,7 @@ JsonAdapter {
         property var apps: []               // the apps ticked in the wizard (data/apps-catalog.json ids), browsers included
         property string browser: ""         // the wizard's «Which browser?»: a catalog id or desktop:<file.desktop>; "" = not picked (the default one stays)
         property int introSeen: 0           // the first run's intro last seen (SetupIntro.version): a newer one plays once after the update
+        property string telemetry: ""       // send telemetry to the author (services/Telemetry): "" not asked yet | yes | no — asked by the wizard or TelemetryPrompt
     }
 
     property JsonObject notifications: JsonObject {
@@ -660,6 +662,51 @@ JsonAdapter {
     // Quick Look: Space on a file in Nautilus (services/QuickLook, scripts/quicklook.py)
     property JsonObject quicklook: JsonObject {
         property bool enabled: true         // answer Nautilus's Space (the name GNOME's sushi uses)
+    }
+
+    // the Halo (Нимб, services/Halo, modules/halo): a pixel Dynamic Island at the top centre — music
+    // with its lyrics, timers, recordings as capsules over the windows; a thin arc when nothing happens
+    property JsonObject halo: JsonObject {
+        property bool enabled: true
+        property var screens: []            // empty = every screen
+        property int hoverMs: 400           // the pointer resting this long opens it (a click at once)
+        property string size: "m"           // s | m | l: the pill's and the cards' scale
+        property bool showMusic: true       // what gets a capsule (Settings → Halo)
+        property bool showTimers: true
+        property bool showRec: true
+        // at rest, the closed pill instead of the bare arc (Settings → Halo → «At rest»): a side
+        // each — clock | weather | screen (time today) | none — and the arc or the angel between
+        // them; both sides none and the arc = the thin arc alone, as it was
+        property string idleLeft: "clock"
+        property string idleRight: "weather"
+        property string idleMiddle: "cat"   // ring | cat (modules/halo/HaloCat.js: RunCat's cat runs with the processor, sleeps after a minute without input; the old "angel" = cat)
+        property int idleRotate: 0          // s; the right side turns through the others this often (0 = it stays)
+        property int pauseKeep: 30          // s; paused music keeps the pill this long, then the pill rests and a ▶ bubble with its cover stays beside it (0 = at once)
+        property bool musicSmart: true      // music without synced lyrics (a browser video, a song with none) doesn't take the pill: its cover and dancing bars take the right side, its title peeks 5 s on a new track
+        property int hintsLeft: 3           // the first openings at rest show what the wheel, a drop and a right click do; ✕ = 0
+        property bool privacyDot: true      // an orange (microphone) / green (camera) dot beside it while a program records (services/Sensors)
+        property bool shotThumb: true       // a saved screenshot's picture in the pill for a few seconds: drag it out or onto the shelf
+        property bool coverTint: true       // the pill's outline and the dancing bars in the colour of the song's cover
+        property string anim: "steps"       // how the pill grows: steps (whole 8-bit jumps) | spring (a bounce)
+        // the look (modules/halo HaloWindow `skin`): ears | notch | float | tamagotchi
+        // (classic, win98, neon, lcd and ticker were dropped 16.10: Halo.skin falls back to notch)
+        property string skin: "notch"
+        property string musicView: "cover"  // the open Halo's song tile: cover (a square picture) | cassette (reels turning) | vinyl (a spinning record)
+        property bool redesignOnce: false
+        property bool notify: true          // a notification: 3 s in the pill (its icon, the app, the title), the text when you point at it; the corner popup then stays away (critical ones still come)
+        property bool osd: true             // volume, the microphone and brightness: a bar in the Halo instead of the OSD box (where the Halo is)
+        property bool calls: true           // a call (a program from the list taking the microphone): a green capsule, its time, mute (that program's capture only), open the program
+        property var callApps: []           // more call programs (a part of the name PipeWire knows them by)
+        property string overFullscreen: "nothing" // over a full-screen game or film: nothing | timer (a timer's end only)
+        property bool streamHide: false     // on a streamed screen: no file names, pictures or notification texts in it (off: the viewers see it all)
+        property bool nightDim: true        // after sunset (the weather's city) the Halo dims a little and the cat sleeps sooner   // 16.10 redesign: an install moved once to the notch look and the steps
+        property bool fixedWidth: true      // the closed pill keeps one width whatever it shows (the text is cut to fit)
+        property bool bassGlow: true        // the music's pill moves with the bass (services/Bass, shaders/halo_bass)
+        property string bassStyle: "dither" // dither (a pixel band along the inner edge) | halo (an arc over the pill, a ring on a kick; the pill comes down 4 px)      // how the pill grows: spring (a bounce) | steps (in whole 8-bit jumps)
+        // the quick buttons page, in this order (services/HaloButtons.catalog has them all)
+        property var buttons: ["pomodoro", "timer", "record", "picker", "note"]
+        property bool reserve: true         // a strip of its own at the top: windows start below it, no tab is covered (the open card still lies over)
+        property bool browserBridge: true   // the browsers' download percent: their small extension (scripts/browser-downloads.py)
     }
 
     // the mini island (services/Island, scripts/island): links open in a small browser of its own

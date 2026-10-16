@@ -371,6 +371,34 @@ Singleton {
         else if (kind === "move")
             Achievements.note("wellbeing.break", "move");
     }
+    // a pomodoro's rest (services/Timers): the break most due of the ones switched on —
+    // {kind, text} for the Halo and the notification; a rest with nothing due: a stretch
+    function restTip() {
+        let best = "move", most = -1;
+        for (const k of kinds) {
+            if (cfg[k] === false)
+                continue;
+            const r = used(k) / every(k);
+            if (r > most) {
+                most = r;
+                best = k;
+            }
+        }
+        const text = best === "water" ? I18n.t("Попей воды — стакан засчитается в Благополучии", "Drink some water — the glass counts in Wellbeing") : best === "eyes" ? I18n.t("Посмотри вдаль секунд 20 — глазам отдых", "Look into the distance for 20 seconds — rest your eyes") : I18n.t("Встань, потянись, пройдись", "Stand up, stretch, walk a little");
+        return {
+            "kind": best,
+            "text": text
+        };
+    }
+    // its button pressed: that break taken (as the reminder's «done»)
+    function restTaken(kind) {
+        if (kind === "water")
+            return drink();
+        setUsed(kind, 0);
+        rev++;
+        if (kind === "move")
+            Achievements.note("wellbeing.break", "move");
+    }
     // a glass of water: +1 today (the page's button, the reminder's, `angelos wellbeing water`)
     function drink() {
         const k = dayKey();

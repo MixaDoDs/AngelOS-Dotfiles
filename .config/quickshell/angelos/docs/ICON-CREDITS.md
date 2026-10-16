@@ -54,3 +54,12 @@ GPL-3.0. Not in this repository: `scripts/mac-icons.py` downloads the pinned rel
 checked) when the Golden Gate skin is on and puts its default variant together in
 `~/.local/share/angelos/icons/MacTahoe`, its `COPYING` and `AUTHORS` included. Only the Dock reads
 it (`services/DockIcons.qml`), unchanged.
+
+## RunCat's cat (the Halo at rest)
+
+Source: <https://github.com/runcat-dev/RunCat365> — `RunCat365/resources/game/cat_running_0…4.png`.
+Copyright 2020 Takuto Nakamura. Licensed under the Apache License, Version 2.0
+(<http://www.apache.org/licenses/LICENSE-2.0>).
+Used in `modules/halo/HaloCat.js` (Settings → Halo → At rest → «Cat»). Changes: the five running
+frames reduced by hand to 20×12 whole pixels in the theme's text colour, the eyes cut out; a
+sleeping pose (two frames) and a «z» added by angelOS.

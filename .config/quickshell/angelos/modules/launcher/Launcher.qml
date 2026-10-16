@@ -141,6 +141,7 @@ PanelWindow {
     readonly property var results: {
         providerTick;
         Vault.tick;
+        Timers.items;
         if (command)
             return [];
         if (vaultMode)
@@ -196,6 +197,34 @@ PanelWindow {
                     },
                     "s": Math.min(65, f.s * 0.65)
                 });
+        // timers: "5m чай", "секундомер", "помодоро" start one; "таймер" lists the running ones
+        if (q) {
+            const tm = Timers.parse(query);
+            if (tm)
+                rows.push({
+                    "builtin": "timer",
+                    "spec": tm,
+                    "r": {
+                        "title": tm.kind === "stopwatch" ? I18n.t("Запустить секундомер", "Start a stopwatch") : tm.kind === "pomodoro" ? I18n.t("Помодоро ", "Pomodoro ") + tm.work + "/" + tm.rest + I18n.t(" мин", " min") : I18n.t("Таймер на ", "Timer for ") + Timers.human(tm.ms),
+                        "subtitle": (tm.label ? tm.label + " · " : "") + I18n.t("Enter — запустить", "Enter to start"),
+                        "icon": "clock"
+                    },
+                    // a bare "5m" below the apps (an app called «1С»), the words above all
+                    "s": tm.kind !== "timer" || tm.said ? 1000 : 99
+                });
+            if (/^(таймер|timer|секундомер|stopwatch|помодоро|pomodoro)/.test(q))
+                for (const it of Timers.items)
+                    rows.push({
+                        "builtin": "timerItem",
+                        "item": it,
+                        "r": {
+                            "title": Timers.title(it),
+                            "subtitle": Timers.state(it) + " · " + ((it.kind === "stopwatch" ? it.start : it.end) ? I18n.t("Enter — пауза", "Enter: pause") : I18n.t("Enter — дальше", "Enter: resume")) + (it.kind === "stopwatch" ? I18n.t(", Shift+Enter — круг", ", Shift+Enter: lap") : "") + I18n.t(", Ctrl+Enter — убрать", ", Ctrl+Enter: remove"),
+                            "icon": it.kind === "pomodoro" && it.phase === "rest" ? "coffee" : (it.kind === "stopwatch" ? it.start : it.end) ? "play" : "pause"
+                        },
+                        "s": 990
+                    });
+        }
         // the calculator on top (2+2, 10 km in mi, 100 usd in rub) and settings among the apps
         if (q) {
             const calc = Calc.evaluate(query);
@@ -253,6 +282,15 @@ PanelWindow {
                 Shell.launcherOpen = false;
             return;
         }
+        if (row.builtin === "timer") {
+            Timers.add(row.spec);
+            Shell.launcherOpen = false;
+            return;
+        }
+        if (row.builtin === "timerItem") {
+            Timers.toggle(row.item.id);
+            return;
+        }
         if (row.builtin === "setting") {
             Shell.launcherOpen = false;
             Qt.callLater(() => StartApps.openSetting(row.doc));
@@ -303,6 +341,7 @@ PanelWindow {
     }
     readonly property var picked: results.length > 0 ? results[Math.min(current, results.length - 1)] : null
     readonly property var pickedFile: picked && picked.builtin === "file" ? picked.file : null
+    readonly property var pickedTimer: picked && picked.builtin === "timerItem" ? picked.item : null
     readonly property var pickedLogin: picked && picked.builtin === "vault" && picked.vault.kind === "item" ? picked.vault : null
     function accept() {
         if (command) {
@@ -353,6 +392,8 @@ PanelWindow {
             return I18n.t("программа", "app");
         if (row.builtin === "calc")
             return I18n.t("калькулятор", "calculator");
+        if (row.builtin === "timer" || row.builtin === "timerItem")
+            return I18n.t("таймер", "timer");
         if (row.builtin === "setting")
             return I18n.t("настройка", "setting");
         if (row.builtin === "file")
@@ -831,7 +872,7 @@ PanelWindow {
                     spacing: Theme.u * 2
                     PxText {
                         kind: "tiny"
-                        text: "Enter — " + (!details.row ? "" : details.row.builtin === "calc" ? I18n.t("скопировать", "copy") : details.row.builtin === "setting" ? I18n.t("открыть в настройках", "open in Settings") : win.pickedLogin ? I18n.t("пароль в буфер", "the password to the clipboard") : details.row.builtin === "vault" ? I18n.t("дальше", "go on") : I18n.t("открыть", "open"))
+                        text: "Enter — " + (!details.row ? "" : details.row.builtin === "calc" ? I18n.t("скопировать", "copy") : details.row.builtin === "setting" ? I18n.t("открыть в настройках", "open in Settings") : details.row.builtin === "timer" ? I18n.t("запустить", "start") : details.row.builtin === "timerItem" ? I18n.t("пауза / дальше", "pause / resume") : win.pickedLogin ? I18n.t("пароль в буфер", "the password to the clipboard") : details.row.builtin === "vault" ? I18n.t("дальше", "go on") : I18n.t("открыть", "open"))
                     }
                     PxText {
                         visible: !!win.pickedLogin
@@ -940,7 +981,7 @@ PanelWindow {
             y: parent.height - height - Theme.u * 6
             spacing: Theme.u * 6
             Repeater {
-                model: [["↑↓", I18n.t("выбрать", "pick")], ["Enter", I18n.t("открыть", "open")], [">", I18n.t("команда", "command")]].concat(Config.launcher.calc !== false ? [["2+2", I18n.t("счёт", "maths")]] : []).concat(Vault.enabled && Vault.installed.length ? [["pw", I18n.t("пароли", "passwords")]] : []).concat(win.providers.filter(p => p.prefix).slice(0, 2).map(p => [p.prefix, ""])).concat([["Esc", I18n.t("закрыть", "close")]])
+                model: [["↑↓", I18n.t("выбрать", "pick")], ["Enter", I18n.t("открыть", "open")], [">", I18n.t("команда", "command")]].concat(Config.launcher.calc !== false ? [["2+2", I18n.t("счёт", "maths")]] : []).concat([["5m", I18n.t("таймер", "timer")]]).concat(Vault.enabled && Vault.installed.length ? [["pw", I18n.t("пароли", "passwords")]] : []).concat(win.providers.filter(p => p.prefix).slice(0, 2).map(p => [p.prefix, ""])).concat([["Esc", I18n.t("закрыть", "close")]])
                 Row {
                     id: hintRow
                     required property var modelData
@@ -974,6 +1015,12 @@ PanelWindow {
             const page = Math.max(1, Math.floor(list.height / (Theme.u * 17)) - 1);
             if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) && win.pickedLogin) {
                 win.vaultAct(win.pickedLogin, (e.modifiers & Qt.ControlModifier) ? "username" : "totp");
+                e.accepted = true;
+            } else if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) && win.pickedTimer) {
+                if (e.modifiers & Qt.ControlModifier)
+                    Timers.stop(win.pickedTimer.id);
+                else
+                    Timers.lap(win.pickedTimer.id);
                 e.accepted = true;
             } else if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & Qt.ControlModifier) && win.pickedFile) {
                 Shell.launcherOpen = false;

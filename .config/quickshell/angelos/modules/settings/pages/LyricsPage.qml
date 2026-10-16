@@ -6,7 +6,7 @@ import qs.widgets
 
 PxPage {
     heading: I18n.t("Лирика", "Lyrics")
-    subtitle: I18n.t("Текущая строка песни посередине панели. Трек берётся из любого MPRIS-плеера (Spotify, браузер с YouTube, mpv…), текст ищется по названию песни в нескольких источниках. Клик по строке открывает эту страницу, правый клик ставит трек на паузу.", "The current lyric line appears in the bar. Any MPRIS player works (Spotify, a browser with YouTube, mpv…); lyrics are searched by the song title in several sources. Click the line to open this page; right-click pauses the track.")
+    subtitle: I18n.t("Текущая строка песни посередине панели или в Нимбе (выбирается для каждого экрана). Трек берётся из любого MPRIS-плеера (Spotify, браузер с YouTube, mpv…), текст ищется по названию песни в нескольких источниках. Клик по строке открывает эту страницу, правый клик ставит трек на паузу.", "The current lyric line appears in the bar or in the Halo (chosen per display). Any MPRIS player works (Spotify, a browser with YouTube, mpv…); lyrics are searched by the song title in several sources. Click the line to open this page; right-click pauses the track.")
     id: page
 
     PxGroup {
@@ -22,25 +22,45 @@ PxPage {
                 onToggled: c => Config.lyrics.enabled = c
             }
         }
-        SettingRow {
-            label: I18n.t("На каких панелях", "Show on displays")
-            hint: I18n.t("ничего не выбрано = на всех (где хватает места)", "No selection = all displays with enough space")
-            Flow {
-                width: parent.width
-                spacing: Theme.u * 6
-                Repeater {
-                    model: Quickshell.screens
-                    PxCheck {
-                        required property var modelData
-                        text: modelData.name
-                        checked: (Config.lyrics.screens || []).includes(modelData.name)
-                        onToggled: c => {
-                            const l = (Config.lyrics.screens || []).filter(s => s !== modelData.name);
-                            if (c)
-                                l.push(modelData.name);
-                            Config.lyrics.screens = l;
+        // every screen: the line in its bar, in the Halo (Config.lyrics.haloScreens) or nowhere
+        // (Config.lyrics.screens: empty = every screen shows it)
+        Repeater {
+            model: Quickshell.screens
+            SettingRow {
+                id: placeRow
+                required property var modelData
+                readonly property string name: modelData.name
+                readonly property var shown: Config.lyrics.screens || []
+                readonly property string place: shown.length && !shown.includes(name) ? "none" : (Config.lyrics.haloScreens || []).includes(name) ? "halo" : "bar"
+                function choose(v) {
+                    const halo = (Config.lyrics.haloScreens || []).filter(s => s !== name);
+                    if (v === "halo")
+                        halo.push(name);
+                    Config.lyrics.haloScreens = halo;
+                    if (v === "none")
+                        Config.lyrics.screens = (shown.length ? shown : Quickshell.screens.map(s => s.name)).filter(s => s !== name);
+                    else if (shown.length && !shown.includes(name))
+                        Config.lyrics.screens = shown.concat([name]);
+                }
+                label: I18n.t("Где лирика: ", "Lyrics on ") + name
+                hint: place === "halo" && !Halo.on(name) ? I18n.t("Нимб на этом экране выключен — лирика останется в панели", "The Halo is off on this display: the lyrics stay in the bar") : ""
+                PxSegmented {
+                    model: [
+                        {
+                            "label": I18n.t("В панели", "In the bar"),
+                            "value": "bar"
+                        },
+                        {
+                            "label": I18n.t("В Нимбе", "In the Halo"),
+                            "value": "halo"
+                        },
+                        {
+                            "label": I18n.t("Нигде", "Nowhere"),
+                            "value": "none"
                         }
-                    }
+                    ]
+                    currentValue: placeRow.place
+                    onActivated: v => placeRow.choose(v)
                 }
             }
         }

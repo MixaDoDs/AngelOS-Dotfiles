@@ -5,6 +5,7 @@ write what they were given into files; the owner's clipboard and notifications s
 import io
 import json
 import os
+import urllib.parse
 import re
 import shutil
 import subprocess
@@ -166,7 +167,7 @@ try:
     check(o and open(o[0]).read() == out.get("path"), "capture.shotOpen: opened in the viewer")
 
     # the notification's buttons do what they say
-    for click, kind, want in (("open", "open", lambda p, s: s == p), ("folder", "gdbus", lambda p, s: "ShowItems" in s and os.path.basename(p).replace(" ", "%20") in s)):
+    for click, kind, want in (("open", "open", lambda p, s: s == p), ("folder", "gdbus", lambda p, s: "ShowItems" in s and urllib.parse.quote(os.path.basename(p)) in s)):
         clear()
         e2 = env()
         e2["CLICK"] = click

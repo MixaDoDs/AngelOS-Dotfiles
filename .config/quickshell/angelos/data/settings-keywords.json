@@ -759,5 +759,41 @@
     "предустановленные",
     "очистить систему",
     "debloat"
+  ],
+  "sponsor/donate": [
+    "донат",
+    "задонатить",
+    "донейшн",
+    "donationalerts",
+    "донейшн алертс",
+    "поддержать автора",
+    "спонсор",
+    "деньги",
+    "donate",
+    "donation",
+    "support",
+    "sponsor",
+    "tip"
+  ],
+  "sponsor/wall": [
+    "стена спонсоров",
+    "спонсоры",
+    "кто задонатил",
+    "supporters",
+    "sponsor wall",
+    "donors"
+  ],
+  "sponsor/telemetry": [
+    "телеметрия",
+    "статистика",
+    "сбор данных",
+    "отправка данных",
+    "приватность",
+    "конфиденциальность",
+    "telemetry",
+    "statistics",
+    "data collection",
+    "privacy",
+    "analytics"
   ]
 }

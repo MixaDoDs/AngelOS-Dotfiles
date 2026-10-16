@@ -3,10 +3,10 @@
 (grim's .ppm, or any picture Pillow reads), cut to the picked part, kept like the old region
 tool (~/.local/bin/niri-screenshot-region) kept it:
 
-  capture_save.py save <frame> [--rect x,y,w,h] [--copy|--no-copy] [--no-save] [--open] [--quiet]
+  capture_save.py save <frame> [--rect x,y,w,h] [--copy|--no-copy] [--no-save] [--open] [--quiet] [--private]
       <shots>/<month>/Screenshot from %Y-%m-%d %H-%M-%S.png (jpg q92 with capture.shotFormat jpg;
       the month folder by screenshot-sort.py), on the clipboard (capture.shotCopy, default on),
-      opened (capture.shotOpen), the shutter pling, the notification "Скриншот сохранён" from app
+      opened (capture.shotOpen), the notification (it brings the shutter sound) "Скриншот сохранён" from app
       "Screenshot" (angelOS plays its shutter sound and counts the achievement from that name)
       with Open / Show in folder (/ Edit when satty or swappy is there).
       prints {"path": "...", "copied": bool}
@@ -88,27 +88,22 @@ def copy(data, mime):
         return False
 
 
-def pling():
-    sound = os.path.expanduser("~/.local/share/sounds/screenshot-pling.ogg")
-    # Golden Gate plays its shutter from the notification (services/Sounds marks it)
-    shutter = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "angelos", "shutter")
-    if os.path.isfile(sound) and not os.path.exists(shutter):
-        subprocess.Popen(["pw-play", "--volume", "0.75", sound], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-
 def editor():
     return next((e for e in ("satty", "swappy") if shutil.which(e)), "")
 
 
-def notify_and_wait(path):
-    """The notification with its buttons; runs on its own (detached), acts on the click."""
-    args = ["notify-send", "-a", "Screenshot", "-i", path, "-A", "open=Открыть", "-A", "folder=Показать в папке"]
+def notify_and_wait(path, private=False):
+    """The notification with its buttons; runs on its own (detached), acts on the click.
+    private: a camera icon, not the picture (privacy on stream hides apps it may show)."""
+    args = ["notify-send", "-a", "Screenshot", "-i", "camera-photo" if private else path, "-A", "open=Открыть", "-A", "folder=Показать в папке"]
     ed = editor()
     if ed:
         args += ["-A", "edit=Править"]
     args += ["--wait", "Скриншот сохранён", path]
     try:
-        act = subprocess.run(args, capture_output=True, text=True, timeout=3600).stdout.strip()
+        # angelOS's popup only hides at its timeout (the notification stays open), so --wait
+        # never ended: the buttons give up after 15 minutes
+        act = subprocess.run(args, capture_output=True, text=True, timeout=900).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return
     if act == "open":
@@ -127,7 +122,7 @@ def notify_and_wait(path):
 
 
 def parse(argv):
-    o = {"rect": None, "copy": None, "save": True, "open": None, "quiet": False}
+    o = {"rect": None, "copy": None, "save": True, "open": None, "quiet": False, "private": False}
     it = iter(argv)
     for a in it:
         if a == "--rect":
@@ -140,6 +135,8 @@ def parse(argv):
             o["open"] = True
         elif a == "--quiet":
             o["quiet"] = True
+        elif a == "--private":
+            o["private"] = True
     return o
 
 
@@ -149,7 +146,7 @@ def main(argv):
         return 2
     cmd, frame, o = argv[0], argv[1], parse(argv[2:])
     if cmd == "notify":  # the detached half of "save"
-        notify_and_wait(frame)
+        notify_and_wait(frame, o["private"])
         return 0
     cfg = settings()
     jpg = cfg.get("shotFormat") == "jpg" and cmd == "save" and o["save"]
@@ -172,11 +169,13 @@ def main(argv):
             f.write(data)
         os.replace(path + ".part", path)
     copied = copy(data, "image/jpeg" if jpg else "image/png") if want_copy or not o["save"] else False
+    # no pling here: the notification brings the "screenshot" sound (services/Notifs → Sounds),
+    # at the shell's volume and quiet with its quiet hours and stream mode; this one was a second,
+    # louder sound past all of them
     if path and not o["quiet"]:
-        pling()
         if cfg.get("shotOpen") if o["open"] is None else o["open"]:
             subprocess.Popen(["xdg-open", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-        subprocess.Popen([sys.executable, os.path.abspath(__file__), "notify", path],
+        subprocess.Popen([sys.executable, os.path.abspath(__file__), "notify", path] + (["--private"] if o["private"] else []),
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     print(json.dumps({"path": path, "copied": copied}))
     return 0

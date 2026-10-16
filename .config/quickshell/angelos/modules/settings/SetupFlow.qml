@@ -163,6 +163,13 @@ Scope {
             "when": github.state !== "no-gh"
         },
         {
+            // services/Telemetry: a straight yes or no; Continue with neither picked = no
+            "id": "telemetry",
+            "icon": "chip",
+            "title": I18n.t("Помочь автору телеметрией?", "Help the author with telemetry?"),
+            "text": I18n.t("Раз в неделю автору angelOS уходят версии и железо: процессор, видеокарта, память, экраны, версии Quickshell и системы. Так видно, на чём angelOS живёт и что чинить первым. Имён, файлов и IP — нет. Передумаешь — Настройки → Спонсор.", "Once a week angelOS's author gets the versions and the hardware: CPU, graphics, memory, screens, the Quickshell and system versions. That shows what angelOS runs on and what to fix first. No names, files or IP. Changed your mind? Settings → Sponsor.")
+        },
+        {
             "id": "ready",
             "icon": "check",
             "title": I18n.t("Всё готово ♡", "You're ready ♡"),
@@ -526,6 +533,9 @@ Scope {
         if (setupInstall.running)
             return;
         Config.setup.complete = true;
+        // the telemetry step passed with neither card picked: that is a no
+        if (!Config.setup.telemetry)
+            Telemetry.setConsent("no");
         // the tips start where the questions were answered, once the wizard's screens are gone
         tipsOn = tipsAfter ? (host ? host.name : "") || "-" : "";
         if (!setupInstall.active)

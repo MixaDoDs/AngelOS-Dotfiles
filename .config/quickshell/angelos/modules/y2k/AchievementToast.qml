@@ -15,7 +15,8 @@ import "../../widgets/MacIcons.js" as MacIcons
 // pentagram, blackletter and embers. A thing the achievement gives (story/items.json) lies in a
 // slot of the card with «Open» — the diary key opens the Angel's diary. A new page of the diary
 // comes as a card too. A click opens Settings → Achievements (a diary card: the diary); a
-// hovered card stays. Not on screens the stream shows (StreamMode).
+// hovered card stays. Not on screens the stream shows (StreamMode). The Halo on its screen
+// shows it instead (services/Halo.gameScreen): the timing stays here, the open Halo holds it.
 Scope {
     id: root
 
@@ -67,6 +68,17 @@ Scope {
         id: hold
         onTriggered: slideOut.restart()
     }
+    Connections {
+        target: Halo
+        function onTrophyHeldChanged() {
+            if (!root.card)
+                return;
+            if (Halo.trophyHeld)
+                hold.stop();
+            else
+                hold.restart();
+        }
+    }
     Timer {
         id: gone
         interval: 400
@@ -108,7 +120,7 @@ Scope {
     }
 
     LazyLoader {
-        active: !!root.card && !!root.screen
+        active: !!root.card && !!root.screen && Halo.gameScreen !== root.screen.name
 
         PanelWindow {
             id: win

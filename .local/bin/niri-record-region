@@ -4,8 +4,19 @@ set -euo pipefail
 PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/niri-record-region.pid"
 OVERLAY_PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/niri-record-overlay.pid"
 OUTFILE_META="${XDG_RUNTIME_DIR:-/tmp}/niri-record-region.out"
+# pause = the recorder stops, resume = a new piece; the pieces are glued on stop (wf-recorder
+# has no pause of its own). GEOM: the region; PARTS: the pieces, one a line; PAUSED: there
+# while paused; ACC: ms recorded before the running piece (the shell's clock)
+GEOM="${XDG_RUNTIME_DIR:-/tmp}/niri-record-region.geom"
+PARTS="${XDG_RUNTIME_DIR:-/tmp}/niri-record-region.parts"
+PAUSED="${XDG_RUNTIME_DIR:-/tmp}/niri-record-region.paused"
+ACC="${XDG_RUNTIME_DIR:-/tmp}/niri-record-region.acc"
 OVERLAY_BIN="${HOME}/.local/bin/niri-record-overlay"
 SELECTOR="${HOME}/.local/bin/niri-screenshot-region"
+# --stop: only stop a recording that runs (the Halo's stop button), never open the selector;
+# --pause: pause a running one, or go on with a paused one (the Halo)
+STOP_ONLY=0; [[ "${1:-}" == --stop ]] && STOP_ONLY=1
+PAUSE=0; [[ "${1:-}" == --pause ]] && PAUSE=1
 # angelOS Settings → System → Screenshots and recording (settings.json "capture"):
 # folder, frame rate, sound, codec — one line each
 mapfile -t CAP < <(python3 - <<'PY' 2>/dev/null
@@ -60,29 +71,91 @@ stop_overlay() {
   pkill -f '/niri-record-overlay ' 2>/dev/null || true
 }
 
-if [[ -f "$PIDFILE" ]]; then
-  pid=$(<"$PIDFILE")
+# angelOS re-reads the pid file (services/Capture: the Halo's record capsule); recSaved puts the
+# finished file on the Halo's shelf
+tell_shell() {
+  (qs -c angelos ipc call angelos recChanged >/dev/null 2>&1 &) || true
+}
+tell_saved() {
+  (qs -c angelos ipc call angelos recSaved "$1" >/dev/null 2>&1 &) || true
+}
+
+running() { [[ -f "$PIDFILE" ]] && kill -0 "$(<"$PIDFILE")" 2>/dev/null; }
+
+# the running piece ends; its time goes into ACC
+end_piece() {
+  local pid; pid=$(<"$PIDFILE")
+  local began; began=$(stat -c %Y "$PIDFILE")
+  kill -INT "$pid" 2>/dev/null || true
+  for _ in $(seq 1 100); do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  kill -KILL "$pid" 2>/dev/null || true
+  rm -f "$PIDFILE"
+  local acc=0; [[ -f "$ACC" ]] && acc=$(<"$ACC")
+  echo $((acc + ($(date +%s) - began) * 1000)) >"$ACC"
+}
+
+start_piece() {
+  local file="$1"
+  wf-recorder -g "$(<"$GEOM")" -f "$file" -r "$FPS" -D "${ENC[@]}" "${AUD[@]}" \
+    >>/tmp/niri-record-region.log 2>&1 &
+  echo $! >"$PIDFILE"
+  disown || true
+  echo "$file" >>"$PARTS"
+}
+
+if [[ $PAUSE == 1 ]]; then
+  if [[ -f "$PAUSED" ]]; then
+    outfile=$(<"$OUTFILE_META")
+    n=$(($(wc -l <"$PARTS") + 1))
+    rm -f "$PAUSED"
+    start_piece "$(dirname "$outfile")/.$(basename "${outfile%.mp4}")-$n.mp4"
+  elif running; then
+    end_piece
+    touch "$PAUSED"
+  fi
+  tell_shell
+  exit 0
+fi
+
+if running || [[ -f "$PAUSED" ]]; then
   outfile=""
   [[ -f "$OUTFILE_META" ]] && outfile=$(<"$OUTFILE_META")
-  if kill -0 "$pid" 2>/dev/null; then
-    kill -INT "$pid" 2>/dev/null || true
-    for _ in $(seq 1 100); do
-      kill -0 "$pid" 2>/dev/null || break
-      sleep 0.1
-    done
-    kill -KILL "$pid" 2>/dev/null || true
-    rm -f "$PIDFILE"
-    stop_overlay
-    if [[ -n "$outfile" && -f "$outfile" ]]; then
-      notify "Сохранено (${FPS} fps)" "$outfile"
+  running && end_piece
+  stop_overlay
+  # more than one piece (it was paused): glued into the first, without re-encoding
+  if [[ -f "$PARTS" && $(wc -l <"$PARTS") -gt 1 ]]; then
+    list=$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/niri-record-concat.XXXXXX")
+    # shortcut: a ' in the folder's path breaks the list; quote it if anyone records there
+    while IFS= read -r f; do if [[ -s "$f" ]]; then printf "file '%s'\n" "$f"; fi; done <"$PARTS" >"$list"
+    glued="$(dirname "$outfile")/.$(basename "${outfile%.mp4}")-all.mp4"
+    if ffmpeg -nostdin -loglevel error -y -f concat -safe 0 -i "$list" -c copy "$glued" >>/tmp/niri-record-region.log 2>&1; then
+      mv -f "$glued" "$outfile"
+      tail -n +2 "$PARTS" | while IFS= read -r f; do rm -f "$f"; done
     else
-      notify "Запись остановлена" "смотри /tmp/niri-record-region.log"
+      rm -f "$glued"
+      notify "Куски записи не склеились" "они лежат рядом: $(dirname "$outfile")"
     fi
-    exit 0
+    rm -f "$list"
   fi
+  rm -f "$PAUSED" "$PARTS" "$ACC" "$GEOM"
+  tell_shell
+  if [[ -n "$outfile" && -f "$outfile" ]]; then
+    tell_saved "$outfile"
+    notify "Сохранено (${FPS} fps)" "$outfile"
+  else
+    notify "Запись остановлена" "смотри /tmp/niri-record-region.log"
+  fi
+  exit 0
+fi
+if [[ -f "$PIDFILE" ]]; then
   rm -f "$PIDFILE"
   stop_overlay
+  tell_shell
 fi
+[[ $STOP_ONLY == 1 ]] && exit 0
 
 command -v wf-recorder >/dev/null 2>&1 || {
   notify "Нет wf-recorder" "sudo pacman -S wf-recorder"
@@ -105,9 +178,10 @@ if [[ -x "$OVERLAY_BIN" ]]; then
   sleep 0.05
 fi
 
-wf-recorder -g "$geom" -f "$outfile" -r "$FPS" -D "${ENC[@]}" "${AUD[@]}" \
-  >/tmp/niri-record-region.log 2>&1 &
-echo $! >"$PIDFILE"
-disown || true
+printf '%s\n' "$geom" >"$GEOM"
+rm -f "$PARTS" "$PAUSED" "$ACC"
+: >/tmp/niri-record-region.log
+start_piece "$outfile"
+tell_shell
 
 notify "Запись ${FPS} fps · ${CODEC_LABEL}" "Meta+Shift+R — стоп · ${outfile##*/}"

@@ -30,6 +30,7 @@ import qs.modules.circle
 import qs.modules.quickshare
 import qs.modules.quicklook
 import qs.modules.island
+import qs.modules.halo
 import qs.modules.novel
 import qs.modules.diary
 import qs.modules.mac
@@ -42,6 +43,7 @@ ShellRoot {
 
     Background {}
     Bar {}
+    HaloHost {}
     MacDesktop {}
     StartOverlay {}
     SidebarHost {}
@@ -56,6 +58,7 @@ ShellRoot {
     PolkitDialog {}
     UpdatePrompt {}
     MainScreenPrompt {}
+    TelemetryPrompt {}
     AppsSyncPrompt {}
     SetupWizard {}
     TourOverlay {}
@@ -160,6 +163,7 @@ ShellRoot {
         Backlight.available; // the backlight keys and the dimming before idle
         Gestures.status; // the touchpad's own gestures (scripts/gesture-watch.py)
         Wellbeing.loaded; // screen time and the breaks the angel reminds of (Settings → Wellbeing)
+        Timers.loaded; // timers and pomodoros: one that ended while the shell was off still rings
         Capture.sorting; // niri's screenshots into month folders (scripts/screenshot-sort.py)
         Cobweb.enabled; // cobwebs on windows nobody moved for a while (Settings → Windows → Cobwebs)
         Devices.holders; // the keyboard's lights follow the system's colour (no helper until needed)

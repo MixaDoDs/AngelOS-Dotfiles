@@ -68,7 +68,7 @@ Loader {
         if (wid === "media")
             return Config.bar.showMedia && !!Lyrics.player && Lyrics.title !== "";
         if (wid === "lyrics")
-            return !vertical && Config.lyrics.enabled && Lyrics.visibleToggle && Lyrics.hasLyrics && (!Config.lyrics.screens.length || Config.lyrics.screens.includes(bar.screenName)) && lyricsMax >= Theme.u * 50;
+            return !vertical && Config.lyrics.enabled && Lyrics.visibleToggle && Lyrics.hasLyrics && Lyrics.placeOn(bar.screenName) === "bar" && lyricsMax >= Theme.u * 50;
         return true;
     }
 

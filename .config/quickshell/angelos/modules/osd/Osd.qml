@@ -20,6 +20,9 @@ PanelWindow {
     function show(k) {
         if (!Config.osd.enabled)
             return;
+        // the Halo shows the bar on its screen (Settings → Halo → «Volume and brightness»)
+        if (Halo.takesOsd(k, Shell.focusedScreen ? Shell.focusedScreen.name : ""))
+            return;
         kind = k;
         shown = true;
         hide.interval = k === "layout" || k === "flag" ? Math.round(Config.osd.ms * 0.7) : Config.osd.ms;

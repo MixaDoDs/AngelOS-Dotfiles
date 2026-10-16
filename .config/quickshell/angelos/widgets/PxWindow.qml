@@ -30,6 +30,7 @@ Item {
     property bool translucent: true
     property bool compact: false
     property bool decor: true
+    property bool titleRow: true           // false: the bar is bare, the host draws its own (the Halo)
     property bool active: true
     property bool shadow: Config.appearance.shadows
     property color bodyColor: translucent ? Theme.panel : Theme.face
@@ -86,6 +87,7 @@ Item {
         }
 
         Row {
+            visible: root.titleRow
             anchors.left: parent.left
             anchors.leftMargin: Theme.u * 3
             anchors.verticalCenter: parent.verticalCenter

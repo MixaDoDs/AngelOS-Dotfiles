@@ -93,7 +93,7 @@ Item {
         return out;
     }
     readonly property var layout: BarLayout.effective
-    readonly property bool lyricsShown: BarLayout.has("lyrics") && Config.lyrics.enabled && Lyrics.visibleToggle && Lyrics.hasLyrics && (!Config.lyrics.screens.length || Config.lyrics.screens.includes(screenName))
+    readonly property bool lyricsShown: BarLayout.has("lyrics") && Config.lyrics.enabled && Lyrics.visibleToggle && Lyrics.hasLyrics && Lyrics.placeOn(screenName) === "bar"
     readonly property int gap: Theme.u * 4
 
     Component.onCompleted: Shell.barViews[screenName] = root

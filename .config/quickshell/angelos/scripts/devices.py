@@ -113,7 +113,9 @@ def scan():
                 # "usbfs" on the interface is no kernel driver: somebody (this shell's page,
                 # another `angelos devices`) holds it right now
                 held = driver == "usbfs" and via != "bridge"
-                acc = "busy" if driver and not held else "ok" if via == "bridge" else usbfs.access(dev["node"])
+                # through the bridge "usbfs" is the bridge itself (it holds it from boot): free for us
+                busy = driver and not held and not (via == "bridge" and driver == "usbfs")
+                acc = "busy" if busy else "ok" if via == "bridge" else usbfs.access(dev["node"])
                 connected.append(dict(public(d), id=d["id"] + ("#%d" % (n + 1) if n else ""), base=d["id"], access=acc, via=via,
                                       fake=False, node=dev["node"], usbVersion=dev["version"], driver=driver or "",
                                       held=held, vid=u["vid"], pid=u["pid"]))

@@ -43,6 +43,7 @@ Singleton {
     property string mode: "auto"             // auto | rect | text
     readonly property var modes: ["auto", "rect", "text"]
     property var picked: []                  // the words of the pick
+    property var pickedKeys: ({})            // "x,y" of each picked word: the marks look it up (not picked.some per word)
     property string pickKind: ""             // line | words | region | rect | loop ("" = nothing picked)
     property string text: ""                 // what was picked (the user may edit it)
     property var box: null                   // {x,y,w,h} of the pick, frame pixels
@@ -122,6 +123,7 @@ Singleton {
         tapped = [];
         acted = false;
         picked = [];
+        pickedKeys = {};
         pickKind = "";
         text = "";
         box = null;
@@ -239,10 +241,13 @@ Singleton {
             selectWords(i, i);
             return "word";
         }
+        const had = !!box || picked.length > 0;
         letGo();
-        if (mode === "auto" && pickLineAt(x, y))
-            return "line";
+        // the area first: areas are found in 0.15 s, the words in 1.5-6 s, so a line first made
+        // the same tap take an area or a line by how fast it came
         const r = areaAt(x, y);
+        if (!r && mode === "auto" && pickLineAt(x, y))
+            return "line";
         if (r) {
             // as the user takes this kind of area here, once that is sure
             const app = appAt(r.x + r.w / 2, r.y + r.h / 2), habit = Learn.edgeFor(learned, app, r.kind || "window");
@@ -254,7 +259,12 @@ Singleton {
             };
             return "region";
         }
-        // nothing there: a frame round the tap to drag into place (Lens)
+        // nothing there with a pick: it lets go of it (as a click beside a selection does)
+        if (had) {
+            reset();
+            return "";
+        }
+        // nothing there and nothing picked: a frame round the tap to drag into place (Lens)
         const fw = Math.min(frameW, 300 * scale), fh = Math.min(frameH, 200 * scale);
         pickRect({
             "x": Math.max(0, Math.min(frameW - fw, x - fw / 2)),
@@ -303,6 +313,10 @@ Singleton {
         // at once: what the whole frame found inside; then the closer read replaces it
         const inside = words.filter(w => within(w.x + w.w / 2, w.y + w.h / 2, points));
         setPicked(inside);
+        // a rectangle with the whole frame's words in it keeps them: a closer read of it took
+        // 0.3-6 s and read no better; a hand-drawn loop (cut words at its edge) or no words yet: read
+        if (padding === 0 && inside.length)
+            return;
         const p = points.map(q => Math.round(q.x) + "," + Math.round(q.y)).join(";");
         picker.command = ["python3", script, "ocr", frame, String(Math.round(box.x)), String(Math.round(box.y)), String(Math.round(box.w)), String(Math.round(box.h)), "--poly", p];
         pickBusy = true;
@@ -351,7 +365,13 @@ Singleton {
         if (a < 0 || b < 0 || a >= words.length || b >= words.length)
             return false;
         const run = words.slice(Math.min(a, b), Math.max(a, b) + 1);
-        reset();
+        // a drag over words changes only the run, not all the pick's state on every word
+        if (pickKind !== "words")
+            reset();
+        else {
+            translation = "";
+            translateError = "";
+        }
         setPicked(run);
         box = boundsOf(run);
         pickKind = "words";
@@ -392,6 +412,10 @@ Singleton {
         return out.map(l => l.join(" ")).join("\n");
     }
     function setPicked(list) {
+        const m = {};
+        for (const w of list)
+            m[w.x + "," + w.y] = true;
+        pickedKeys = m;
         picked = list;
         text = joinWords(list);
         readText = text;
@@ -751,9 +775,10 @@ Singleton {
                 root.pickBusy = false;
                 try {
                     const j = JSON.parse(text);
-                    // the closer read wins unless it found nothing the whole frame did
-                    if (!j.error && (j.words || []).length)
-                        root.setPicked(j.words);
+                    // the closer read wins unless it found nothing the whole frame did, or the
+                    // user has already edited the text in the card
+                    if (!j.error && (j.words || []).length && root.text === root.readText)
+                        root.setPicked(Learn.fixWords(root.learned, j.words, w => root.appAt(w.x + w.w / 2, w.y + w.h / 2)));
                     else if (j.error)
                         root.error = j.error;
                 } catch (e) {}

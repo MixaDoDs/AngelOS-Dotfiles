@@ -512,6 +512,14 @@ IpcHandler {
         else
             CircleSearch.toggle(screen);
     }
+    // niri-record-region started or stopped a recording: read its state again (services/Capture)
+    function recChanged(): void {
+        Capture.recCheck();
+    }
+    // …and saved this file (glued, if it was paused): onto the Halo's shelf
+    function recSaved(path: string): void {
+        Capture.saved(path);
+    }
     function circle(): void {
         captureOn("");
     }

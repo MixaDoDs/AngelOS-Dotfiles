@@ -73,6 +73,9 @@ Scope {
         return find(face, name);
     }
     function click(name) {
+        // behind "More" on the bar: open it first
+        if (btn(name) && !btn(name).visible && btn("act-more") && btn("act-more").visible)
+            btn("act-more").clicked();
         const b = btn(name);
         if (!b || !b.visible || !b.enabled) {
             report("button-" + name + "-clickable", false, b ? "visible " + b.visible + " enabled " + b.enabled : "missing");
@@ -519,11 +522,20 @@ Scope {
             root.snap("3-rect");
             return true;
         },
+        // the bar comes to the pick: by the corner let go, off the pick, off the card, on the screen
+        () => root.until("the-bar-comes-to-the-pick", () => {
+                const b = face.bar, c = face.card, r = Qt.rect(40, 50, 300, 90);
+                const off = (p, q) => p.x + p.width <= q.x || q.x + q.width <= p.x || p.y + p.height <= q.y || q.y + q.height <= p.y;
+                const B = Qt.rect(b.x, b.y, b.width, b.height), C = Qt.rect(c.x, c.y, c.width, c.height);
+                const dx = Math.max(B.x - 340, 0, 340 - B.x - B.width), dy = Math.max(B.y - 140, 0, 140 - B.y - B.height);
+                return root.wait(300) && b.visible && b.opacity === 1 && off(B, r) && Math.hypot(dx, dy) < 40 && B.x >= 0 && B.x + B.width <= 900 && B.y + B.height <= 400 && (!c.visible || off(B, C) && off(C, r));
+            }, 3000, () => [face.bar.x, face.bar.y, face.bar.width, face.bar.height, "card", face.card.visible, face.card.x, face.card.y, face.card.width, face.card.height].join(" ")),
         () => {
             // a corner dragged: the opposite one stays
             face.press(340, 140, Qt.LeftButton, 0);
             face.move(370, 170);
             face.move(400, 200);
+            root.report("the-bar-hides-while-a-corner-is-dragged", !face.bar.visible);
             face.release(400, 200);
             root.report("face:-a-corner-drags-the-pick", root.rectIs(CircleSearch.box, 40, 50, 360, 150), JSON.stringify(CircleSearch.box));
             face.press(40, 50, Qt.LeftButton, 0);
@@ -695,6 +707,7 @@ Scope {
             root.snap("5-bar");
             return true;
         },
+        () => root.until("the-bar-settles-at-the-bottom", () => root.wait(400) && face.bar.y + face.bar.height > 400 * 0.75 && face.bar.y + face.bar.height <= 400 && face.bar.height < 120, 1500, () => face.bar.y + " " + face.bar.height + " " + face.bar.width),
         () => {
             root.shots0 = shots.count;
             CircleSearch.pickRect({
@@ -781,6 +794,13 @@ Scope {
             root.reopen();
             island.setText("");
             lensPage.setText("");
+            // only a pick goes to Lens (the whole screen may have private messages on it)
+            CircleSearch.pickRect({
+                "x": 40,
+                "y": 120,
+                "w": 200,
+                "h": 60
+            });
             root.click("act-lens");
             return true;
         },

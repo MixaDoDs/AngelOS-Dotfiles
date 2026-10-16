@@ -180,6 +180,11 @@ start suite eq
 start suite desk
 start suite rescue
 start suite quickshare
+start suite timers
+start suite halo
+start suite shelf
+start suite halo_buttons
+start suite downloads
 start suite links
 start suite circle
 start suite capture
@@ -200,7 +205,7 @@ for sh in "${SHARDS[@]}"; do
   rm -rf "${T:?}/$n"
   start driver "$n" "$from" "$until"
 done
-for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare links circle capture capture_regions island keys; do
+for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare timers halo shelf halo_buttons downloads links circle capture capture_regions island keys; do
   [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" == 0 ]] && continue
   retried+=("$s")
   if [[ "$s" == sddm ]]; then start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1; else start suite "$s"; fi
@@ -268,6 +273,17 @@ result guard "hang watchdog: a healthy shell is left in peace, a busy, stuck or 
 result rescue "rescue: settings and save cut short come back, the first start's language, the window after five failed starts" "rescue" 20
 # Quick Share (tests/quickshare, no shell needed): two daemons on loopback in a namespace of their own
 result quickshare "Quick Share: text, a file byte for byte, a folder, a refusal, receive off" "Quick Share" 15
+# timers (tests/timers): missed ones ring after a restart, a pomodoro moves on, a stopwatch laps
+result timers "timers: missed ones ring, pomodoro, stopwatch, state file" "timers" 15
+# the Halo (tests/halo): its sources (own recording, timers, the ring), where the lyrics go
+result halo "halo: own recording seen, stopped, noticed when it dies; where the lyrics go; the capsules" "halo" 15
+# the Halo's shelf (tests/shelf): drops, duplicates, stars, copies into a starred folder, missing files
+result shelf "shelf: drops, duplicates, stars, folder copies, missing files, state file" "shelf" 15
+# the Halo's quick buttons (tests/halo_buttons): the catalog, the order, the toggles, the fields
+result halo_buttons "halo buttons: catalog and icons, chosen order, toggles, timer and note fields" "halo buttons" 15
+# browser downloads (tests/downloads): a real headless Helium if there is one — the capsule ahead of
+# timers and music, small and slow ones onto the shelf, a cancelled one and old files say nothing
+result downloads "downloads: slow and small ones seen and shelved, cancelled and old ones quiet, Firefox's way, ahead of the music" "downloads" 15
 # links found in text (tests/links, node): Circle's chips, the clipboard's «open», notifications' links
 result links "links: addresses with and without https, mail, phones; not file names, versions or sentences" "links" 10
 result eq "bar equalizer: one service for every bar, an app found in EasyEffects is taken over and given back" "bar equalizer" 15

@@ -680,6 +680,24 @@
             "lyrics/search-by-title",
             "lyrics/song-lyrics"
           ]
+        },
+        {
+          "id": "halo",
+          "ru": "Нимб",
+          "en": "Halo",
+          "icon": "sparkle",
+          "hintRu": "капсулы сверху: музыка, таймеры, запись",
+          "hintEn": "capsules at the top: music, timers, recording",
+          "blocks": [
+            "halo/look",
+            "halo/main",
+            "halo/show",
+            "halo/rest",
+            "halo/buttons"
+          ],
+          "links": [
+            "lyrics"
+          ]
         }
       ]
     },
@@ -1175,6 +1193,40 @@
           "more": [
             "updates/restored",
             "updates/log"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sponsor",
+      "ru": "Спонсор",
+      "en": "Sponsor",
+      "icon": "heart",
+      "tint": "#ff4f9a",
+      "hintRu": "поддержать angelOS, стена спонсоров, телеметрия",
+      "hintEn": "support angelOS, the sponsor wall, telemetry",
+      "pages": [
+        {
+          "id": "sponsor",
+          "ru": "Поддержать",
+          "en": "Support",
+          "icon": "heart",
+          "hintRu": "задонатить и стена спонсоров",
+          "hintEn": "donate, and the sponsor wall",
+          "blocks": [
+            "sponsor/donate",
+            "sponsor/wall"
+          ]
+        },
+        {
+          "id": "telemetry",
+          "ru": "Телеметрия",
+          "en": "Telemetry",
+          "icon": "chip",
+          "hintRu": "отправлять ли автору версии и железо, и что именно уходит",
+          "hintEn": "whether versions and hardware go to the author, and exactly what goes",
+          "blocks": [
+            "sponsor/telemetry"
           ]
         }
       ]
@@ -1788,6 +1840,24 @@
               "lyrics/search-by-title",
               "lyrics/song-lyrics"
             ]
+          },
+          {
+            "id": "halo",
+            "ru": "Нимб",
+            "en": "Halo",
+            "icon": "sparkle",
+            "hintRu": "капсулы сверху: музыка, таймеры, запись",
+            "hintEn": "capsules at the top: music, timers, recording",
+            "blocks": [
+              "halo/look",
+              "halo/main",
+              "halo/show",
+              "halo/rest",
+              "halo/buttons"
+            ],
+            "links": [
+              "lyrics"
+            ]
           }
         ]
       },
@@ -2115,6 +2185,40 @@
               "achievements/things"
             ],
             "game": true
+          }
+        ]
+      },
+      {
+        "id": "mac-sponsor",
+        "ru": "Спонсор",
+        "en": "Sponsor",
+        "icon": "heart",
+        "tint": "#ff4f9a",
+        "hintRu": "поддержать angelOS, стена спонсоров, телеметрия",
+        "hintEn": "support angelOS, the sponsor wall, telemetry",
+        "pages": [
+          {
+            "id": "sponsor",
+            "ru": "Поддержать",
+            "en": "Support",
+            "icon": "heart",
+            "hintRu": "задонатить и стена спонсоров",
+            "hintEn": "donate, and the sponsor wall",
+            "blocks": [
+              "sponsor/donate",
+              "sponsor/wall"
+            ]
+          },
+          {
+            "id": "telemetry",
+            "ru": "Телеметрия",
+            "en": "Telemetry",
+            "icon": "chip",
+            "hintRu": "отправлять ли автору версии и железо, и что именно уходит",
+            "hintEn": "whether versions and hardware go to the author, and exactly what goes",
+            "blocks": [
+              "sponsor/telemetry"
+            ]
           }
         ]
       },

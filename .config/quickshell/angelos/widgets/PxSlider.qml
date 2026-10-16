@@ -6,6 +6,8 @@ import "A11y.js" as A11y
 // Pixel slider: sunken track, pink fill, heart thumb.
 Item {
     id: root
+    // the filled part (a caller in another colour scheme passes its own, e.g. the Halo)
+    property color fill: Theme.accent
 
     property real from: 0
     property real to: 1
@@ -69,7 +71,7 @@ Item {
             y: 0
             height: parent.height - track.inset * 2
             width: Math.max(0, thumb.x + thumb.width / 2 - track.inset)
-            color: Theme.accent
+            color: root.fill
         }
     }
 

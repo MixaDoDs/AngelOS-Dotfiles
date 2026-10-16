@@ -67,7 +67,34 @@ Singleton {
             args.push("--no-save");
         if (o.open)
             args.push("--open");
-        Quickshell.execDetached(args);
+        // privacy on stream hides apps: no picture in the notification (it is on the screen too)
+        if (Privacy.hiddenNow.length)
+            args.push("--private");
+        // its last line says where the picture went: the Halo shows it a moment (shotSaved)
+        shotRun.createObject(root, {
+            "command": args
+        });
+    }
+    // a screenshot kept in its month folder (the overlay's save): the Halo's thumbnail
+    signal shotSaved(string path)
+    Component {
+        id: shotRun
+        Process {
+            id: sr
+            running: true
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    const last = text.trim().split("\n").pop() || "";
+                    try {
+                        const r = JSON.parse(last);
+                        if (r && r.path)
+                            root.shotSaved(r.path);
+                    } catch (e) {}
+                }
+            }
+            onRunningChanged: if (!running)
+                Qt.callLater(sr.destroy)
+        }
     }
     // only the picture on the clipboard, nothing saved
     function copyShot(framePath, rect) {
@@ -75,6 +102,64 @@ Singleton {
         if (rect)
             args.push("--rect", [rect.x, rect.y, rect.w, rect.h].map(Math.round).join(","));
         Quickshell.execDetached(args);
+    }
+    // our own screen recording (niri-record-region, the Halo's record capsule): its pid file says
+    // one runs, the file's time when it began. The script pokes recChanged (modules/Ipc) on start
+    // and stop; while one runs a slow look also notices a recorder that died by itself. Paused
+    // (the Halo): no recorder runs, the pieces wait to be glued; recAcc = ms recorded before
+    // the running piece, so the time shown is recAcc + (now - recSince)
+    property bool recording: false
+    property bool recPaused: false
+    property real recAcc: 0
+    property real recSince: 0           // ms, 0 = not recording (or paused)
+    property string recFile: ""
+    property bool recAgain: false
+    function recCheck() {
+        if (recLook.running)
+            recAgain = true;
+        else
+            recLook.running = true;
+    }
+    function stopRecord() {
+        launch(recordTool, "true", ["--stop"]);
+    }
+    function pauseRecord() {
+        launch(recordTool, "true", ["--pause"]);
+    }
+    // the ms recorded so far
+    function recElapsed(now) {
+        return recAcc + (recPaused || !recSince ? 0 : Math.max(0, now - recSince));
+    }
+    // the recording is saved (IPC recSaved from the script): onto the Halo's shelf
+    function saved(path) {
+        if (Config.halo.enabled && path)
+            Shelf.addDrop(["file://" + encodeURI(path)], "", false);
+    }
+    Process {
+        id: recLook
+        running: true
+        // lines: the piece's start (s; 0 paused), the file, "paused" or "", the ms before the piece
+        command: ["sh", "-c", 'r="${XDG_RUNTIME_DIR:-/tmp}"; p=$(cat "$r/niri-record-region.pid" 2>/dev/null); if [ -n "$p" ] && kill -0 "$p" 2>/dev/null; then stat -c %Y "$r/niri-record-region.pid"; elif [ -f "$r/niri-record-region.paused" ]; then echo 0; else exit 0; fi; cat "$r/niri-record-region.out" 2>/dev/null; [ -f "$r/niri-record-region.paused" ] && echo paused || echo; cat "$r/niri-record-region.acc" 2>/dev/null || echo 0']
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const l = text.split("\n");
+                root.recording = l[0] !== "";
+                root.recSince = root.recording ? Number(l[0]) * 1000 : 0;
+                root.recFile = root.recording ? (l[1] || "") : "";
+                root.recPaused = root.recording && l[2] === "paused";
+                root.recAcc = root.recording ? Number(l[3]) || 0 : 0;
+            }
+        }
+        onExited: if (root.recAgain) {
+            root.recAgain = false;
+            running = true;
+        }
+    }
+    Timer {
+        interval: 3000
+        repeat: true
+        running: root.recording
+        onTriggered: root.recCheck()
     }
     function record() {
         launch(recordTool, 'notify-send -a angelOS "' + I18n.t("Запись экрана не установлена: нет niri-record-region", "Screen recording isn't installed: niri-record-region is missing") + '"');

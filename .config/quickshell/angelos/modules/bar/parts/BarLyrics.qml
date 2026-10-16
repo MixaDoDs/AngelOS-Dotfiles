@@ -18,7 +18,8 @@ Item {
     required property string screenName
     property real maxWidth: Theme.u * 250
     property bool fixedWidth: false        // keep one width per song so the bar doesn't jump
-    readonly property bool onThisScreen: !Config.lyrics.screens || Config.lyrics.screens.length === 0 || Config.lyrics.screens.includes(screenName)
+    property string place: "bar"           // "halo": the line inside the Halo (Lyrics.placeOn)
+    readonly property bool onThisScreen: Lyrics.placeOn(screenName) === place
     readonly property bool active: Config.lyrics.enabled && Lyrics.visibleToggle && Lyrics.hasLyrics && onThisScreen
     readonly property string line: Lyrics.current !== "" ? Lyrics.current : "♪ ~ ♪"
     readonly property real chrome: note.width + Theme.u * 6
@@ -281,10 +282,12 @@ Item {
             id: cover
             anchors.fill: parent
             source: Config.lyrics.artwork === "cover" ? Lyrics.artUrl : ""
-            sourceSize: Qt.size(width * 2, height * 2)
+            // in the Halo a source pixel an art pixel, no smoothing: square and sharp, as music.sh's
+            sourceSize: root.place === "halo" ? Qt.size(Math.max(4, Math.round(width / Theme.u)), Math.max(4, Math.round(height / Theme.u))) : Qt.size(width * 2, height * 2)
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             visible: status === Image.Ready
+            smooth: root.place !== "halo"
             clip: true
         }
         PxIcon {

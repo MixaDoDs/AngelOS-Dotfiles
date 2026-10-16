@@ -16,8 +16,12 @@ Singleton {
     // a music player beats a browser, and a messenger's voice message or a call never takes
     // the song from a music player (Telegram publishes them over MPRIS too); the one already
     // followed keeps it on a tie, so two playing players don't make the lyrics jump
+    // a player picked by hand (the Halo's music card): it wins while it is there
+    property var pinned: null
     readonly property var player: {
         const pref = (Config.lyrics.preferPlayer || "").toLowerCase();
+        if (pinned && players.includes(pinned))
+            return pinned;
         let best = null, top = -1e9;
         for (const p of players) {
             const s = playerScore(p, pref);
@@ -120,6 +124,13 @@ Singleton {
         }
     }
 
+    // where a screen shows the line: "bar" | "halo" (Settings → Lyrics, the Halo on there) | ""
+    function placeOn(name) {
+        const l = Config.lyrics.screens || [];
+        if (l.length && !l.includes(name))
+            return "";
+        return (Config.lyrics.haloScreens || []).includes(name) && Halo.on(name) ? "halo" : "bar";
+    }
     function updateIndex() {
         if (!player || lines.length === 0)
             return;

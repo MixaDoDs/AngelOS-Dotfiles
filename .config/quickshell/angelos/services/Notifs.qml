@@ -171,12 +171,18 @@ Singleton {
                 root.save();
             }
             const dnd = Config.notifications.dnd && n.urgency !== NotificationUrgency.Critical;
-            if (!dnd)
+            // the Halo shows it (Settings → Halo → Notifications): no corner popup then, but
+            // for a critical one
+            const toHalo = Halo.takesNotifications && n.urgency !== NotificationUrgency.Critical;
+            if (!dnd && !toHalo)
                 root.popups = root.popups.concat([n]).slice(-Config.notifications.maxPopups);
             n.closed.connect(() => root.dismissPopup(n));
             root.arrived({
                 "appName": entry.appName,
                 "summary": entry.summary,
+                "body": entry.body,
+                "icon": entry.icon,
+                "n": n,
                 "critical": n.urgency === NotificationUrgency.Critical,
                 "quiet": dnd
             });

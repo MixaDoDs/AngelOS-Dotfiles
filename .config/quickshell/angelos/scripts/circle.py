@@ -857,6 +857,10 @@ def script_fix(words):
     for w in words:
         t = w["t"]
         c, l = len(CYR.findall(t)), len(LAT.findall(t))
+        # a code or a model ("P52", "0xC0000005", "B650") is Latin whatever its line is written in
+        if (c or l) and any(ch.isdigit() for ch in t) and all(ch in CYR2LAT or ch in LAT2CYR for ch in CYR.findall(t) + LAT.findall(t)):
+            w["t"] = "".join(CYR2LAT.get(ch, ch) for ch in t)
+            continue
         if c and l:
             if c >= l and all(ch in LAT2CYR for ch in LAT.findall(t)):
                 w["t"] = "".join(LAT2CYR.get(ch, ch) for ch in t)
