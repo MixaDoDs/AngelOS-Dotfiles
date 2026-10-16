@@ -30,12 +30,13 @@ SIMPLE = {"go": ("go", "00ADD8"), "zig": ("zig", "F7A41D"), "dotnet": ("dotnet",
           "java": ("openjdk", "E76F00"), "docker": ("docker", "2496ED"), "qemu": ("qemu", "FF6600"),
           "basedevel": ("archlinux", "1793D1"), "codex": ("openai", "10A37F"), "claude": ("claude", "D97757"),
           "protonge": ("steam", "C7D5E0"), "lrctty": ("gnometerminal", "E8E4F0"), "reaper": ("reaper", "5A5A5A"),
-          "throne": ("v2ray", "1C8BE0"), "shelly": ("archlinux", "1793D1"), "helium": ("googlechrome", "7A5AF8"),
+          "throne": ("v2ray", "1C8BE0"), "qthrone": ("v2ray", "1C8BE0"), "shelly": ("archlinux", "1793D1"), "helium": ("googlechrome", "7A5AF8"),
           "freshgram": ("telegram", "26A5E4"), "qview": ("googlephotos", "4285F4")}
 # installed here: the .desktop whose Icon= to use when Flathub has none
 DESKTOP = {"helium": "helium.desktop", "freshgram": "io.github.snowyfluffy.freshgram.desktop",
            "qview": "com.interversehq.qView.desktop", "claude": "claude-desktop.desktop",
-           "reaper": "cockos-reaper.desktop", "throne": "throne.desktop"}
+           "reaper": "cockos-reaper.desktop", "throne": "throne.desktop",
+           "qthrone": "qThrone.desktop"}
 
 
 def fetch(url):

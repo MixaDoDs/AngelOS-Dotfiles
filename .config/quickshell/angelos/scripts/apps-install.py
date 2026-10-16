@@ -159,6 +159,8 @@ def installed(a):
     if archive_bin(a):
         # its own installer's copy counts too, and a package of it (strata-bin, once in the AUR)
         return archive_bin(a).is_file() or pacman_installed(a["github"].get("packages", [])[:1])
+    if a.get("script") == "qthrone-install.sh":  # portable, it updates itself
+        return (Path.home() / ".local/opt/qThrone/qThrone").is_file()
     if a.get("script") == "voxtype-install.sh":
         models = Path.home() / ".local/share" / "voxtype" / "models"
         return (Path.home() / ".local/bin/voxtype").is_file() and models.is_dir() and any(models.glob("*large-v3-turbo*"))
