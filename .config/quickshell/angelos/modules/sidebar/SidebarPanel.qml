@@ -263,6 +263,7 @@ PxWindow {
             // ---- system ----
             SysmonWidget {
                 visible: Sidebar.has("system")
+                awake: Sidebar.open
                 width: parent.width
                 height: visible ? implicitHeight : 0
             }

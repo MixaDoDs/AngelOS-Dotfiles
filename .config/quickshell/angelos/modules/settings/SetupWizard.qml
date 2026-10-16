@@ -198,7 +198,7 @@ Scope {
                 }
 
                 // opened again (from Settings, `angelos setup`): "Close" and Esc, on every screen.
-                // The first run has none — only `angelos setup skip` from a text console
+                // The first run: «Skip setup» (a plain desktop, see SetupFlow.skipAll)
                 PxButton {
                     visible: Shell.setupOpen && !Shell.setupFirstRun
                     anchors.top: parent.top
@@ -209,6 +209,17 @@ Scope {
                     icon: "close"
                     text: I18n.t("Закрыть", "Close")
                     onClicked: flow.close()
+                }
+                PxButton {
+                    visible: Shell.setupFirstRun
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: Theme.u * 8
+                    compact: true
+                    flat: true
+                    icon: "close"
+                    text: I18n.t("Пропустить настройку", "Skip setup")
+                    onClicked: flow.skipAll()
                 }
                 PxText {
                     visible: Shell.setupFirstRun

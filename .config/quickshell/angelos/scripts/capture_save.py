@@ -95,7 +95,9 @@ def editor():
 def notify_and_wait(path, private=False):
     """The notification with its buttons; runs on its own (detached), acts on the click.
     private: a camera icon, not the picture (privacy on stream hides apps it may show)."""
-    args = ["notify-send", "-a", "Screenshot", "-i", "camera-photo" if private else path, "-A", "open=Открыть", "-A", "folder=Показать в папке"]
+    # `timeout`: the shell's restart takes this python away but left notify-send waiting for
+    # hours (6 of them, the oldest 14 h, 16.10); now it gives up on its own as well
+    args = ["timeout", "900", "notify-send", "-a", "Screenshot", "-i", "camera-photo" if private else path, "-A", "open=Открыть", "-A", "folder=Показать в папке"]
     ed = editor()
     if ed:
         args += ["-A", "edit=Править"]
@@ -103,7 +105,7 @@ def notify_and_wait(path, private=False):
     try:
         # angelOS's popup only hides at its timeout (the notification stays open), so --wait
         # never ended: the buttons give up after 15 minutes
-        act = subprocess.run(args, capture_output=True, text=True, timeout=900).stdout.strip()
+        act = subprocess.run(args, capture_output=True, text=True, timeout=905).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return
     if act == "open":

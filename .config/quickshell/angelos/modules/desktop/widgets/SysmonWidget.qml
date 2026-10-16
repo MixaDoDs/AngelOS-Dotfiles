@@ -25,7 +25,10 @@ Item {
     property string frameKind: "window"
     property bool face: true
     readonly property bool passive: true     // nothing to click: no input copy needed
-    readonly property bool seen: visible && !Shell.hiddenScreen(screenName)
+    // false: kept but nobody looks (the closed sidebar: its 2 s timer and a second nvidia-smi ran
+    // all day, 16.10)
+    property bool awake: true
+    readonly property bool seen: visible && awake && !Shell.hiddenScreen(screenName)
     // the last minute (a reading every 2 s) of CPU and GPU, for L's columns
     readonly property int histLen: 30
     property var cpuHist: []

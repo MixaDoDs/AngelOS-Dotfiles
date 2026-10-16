@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 
 // "Do not sleep": while on, niri does not count the system idle — no idle screen, lock,
@@ -11,7 +12,17 @@ import qs.config
 Singleton {
     id: root
 
-    property bool manual: false              // by hand; a restart forgets it, like a coffee does
+    // by hand. A reboot forgets it, like a coffee does — a restart of the shell no longer (31 of
+    // them on 16.10, each one let the screen saver back): a file in XDG_RUNTIME_DIR
+    property bool manual: false
+    FileView {
+        id: kept
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos/awake"
+        blockLoading: true
+        printErrors: false
+    }
+    Component.onCompleted: manual = String(kept.text() || "").trim() === "1"
+    onManualChanged: kept.setText(manual ? "1" : "0")
 
     // the window that fills its screen on an active workspace (niri reports no fullscreen flag:
     // its own size against the screen's logical size); null when none
@@ -27,7 +38,7 @@ Singleton {
         }
         return null;
     }
-    readonly property bool byStream: Config.idle.awakeStream && StreamMode.active
+    readonly property bool byStream: Config.idle.awakeStream && (StreamMode.active || StreamMode.onAir)
     readonly property bool byFullscreen: Config.idle.awakeFullscreen && fullscreenWindow !== null
     readonly property bool active: Config.ready && (manual || byStream || byFullscreen)
     // why it is on: manual | stream | fullscreen | ""

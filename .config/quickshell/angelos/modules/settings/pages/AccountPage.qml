@@ -202,6 +202,18 @@ PxPage {
                 }
             }
         }
+        // the first run's intro: no longer before the wizard (SetupIntro), here when wanted
+        SettingRow {
+            visible: Config.game.enabled !== false && !Shell.setupOpen
+            label: I18n.t("Вступление", "The intro")
+            hint: I18n.t("ролик angelOS, около пяти минут: звук, тряска, вспышки", "angelOS's opening, about five minutes: sound, shaking, flashes")
+            PxButton {
+                compact: true
+                text: I18n.t("Посмотреть", "Watch")
+                icon: "play"
+                onClicked: Shell.introRequested()
+            }
+        }
         SettingRow {
             label: I18n.t("Подсказки по интерфейсу", "Interface tips")
             hint: I18n.t("кружки вокруг кнопок: что где", "Circles around the buttons: what's where")

@@ -154,7 +154,6 @@ Item {
                     root.capsVersion++;
                 }
             }
-            Component.onDestruction: delete root.caps[m]
 
             readonly property int well: box.height - box.inset * 2
             // the fill's height in whole screen pixels

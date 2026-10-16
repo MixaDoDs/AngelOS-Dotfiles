@@ -20,6 +20,25 @@ Singleton {
     readonly property int unread: history.filter(h => !h.read).length
     readonly property string historyFile: Config.stateDir + "/notifications.json"
 
+    // on air (OBS streams or records, whatever the stream mode says): a notification of an app
+    // the privacy list hides (Telegram, Discord…) shows its app only, not who wrote or what —
+    // the window was black on stream, its popup was not (16.10: a private message on DP-1)
+    readonly property string hushText: I18n.t("новое сообщение", "new message")
+    function privateOnAir(n) {
+        if (!StreamMode.onAir || !n)
+            return false;
+        const keys = [n.appName, n.desktopEntry].map(x => String(x || "").toLowerCase()).filter(x => x);
+        return Privacy.hidden.some(a => {
+            const id = String(a.id || "").toLowerCase(), name = String(a.name || "").toLowerCase();
+            return keys.some(k => k === id || (name && k.includes(name)));
+        });
+    }
+    function shownSummary(n) {
+        return privateOnAir(n) ? hushText : n.summary;
+    }
+    function shownBody(n) {
+        return privateOnAir(n) ? "" : n.body;
+    }
     function isScreenshot(info) {
         const shot = /screenshot|скриншот/i.test(info.appName || "") || (info.appName === "niri" && /screenshot|скриншот/i.test(info.summary || ""));
         return shot && !/ошибк|error|fail/i.test(info.summary || "");
@@ -171,16 +190,21 @@ Singleton {
                 root.save();
             }
             const dnd = Config.notifications.dnd && n.urgency !== NotificationUrgency.Critical;
+            const hush = root.privateOnAir(n);
             // the Halo shows it (Settings → Halo → Notifications): no corner popup then, but
             // for a critical one
             const toHalo = Halo.takesNotifications && n.urgency !== NotificationUrgency.Critical;
-            if (!dnd && !toHalo)
+            // a fullscreen game or film where the cards would stand: nothing over it, the bell
+            // keeps it (the owner, 16.10; Windows' focus assist in games) — but a critical one
+            const at = Config.notifications.screen === "primary" ? Shell.primaryScreen : Shell.screenByName(Config.notifications.screen) || Shell.focusedScreen;
+            const overGame = n.urgency !== NotificationUrgency.Critical && !!at && Shell.fullscreenOn(at.name);
+            if (!dnd && !toHalo && !overGame)
                 root.popups = root.popups.concat([n]).slice(-Config.notifications.maxPopups);
             n.closed.connect(() => root.dismissPopup(n));
             root.arrived({
                 "appName": entry.appName,
-                "summary": entry.summary,
-                "body": entry.body,
+                "summary": hush ? root.hushText : entry.summary,
+                "body": hush ? "" : entry.body,
                 "icon": entry.icon,
                 "n": n,
                 "critical": n.urgency === NotificationUrgency.Critical,

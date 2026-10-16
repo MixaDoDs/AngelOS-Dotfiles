@@ -57,10 +57,24 @@ Singleton {
         clock = Date.now();
         unhide.interval = ms;
         unhide.restart();
+        hiddenKept.setText(String(hiddenUntil));
     }
     function show() {
         hiddenUntil = 0;
         clock = Date.now();
+        hiddenKept.setText("0");
+    }
+    // through a restart of the shell (it came back at once after each, 16.10), not a reboot
+    FileView {
+        id: hiddenKept
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos/halo-hidden"
+        blockLoading: true
+        printErrors: false
+    }
+    function restoreHidden() {
+        const until = Number(String(hiddenKept.text() || "").trim()) || 0;
+        if (until > Date.now())
+            hideFor(until - Date.now());
     }
     Timer {
         id: unhide
@@ -145,13 +159,34 @@ Singleton {
     function osdLevel(what) {
         return what === "brightness" ? Backlight.level : what === "kbd" ? (Backlight.kbdMax > 0 ? Backlight.kbd / Backlight.kbdMax : 0) : what === "mic" ? (Audio.micMuted ? 0 : Audio.micVolume) : (Audio.muted ? 0 : Math.min(1, Audio.volume));
     }
-    // a call: a program from the list taking the microphone (PipeWire, services/Sensors)
+    // a call: a program from the list taking the microphone (PipeWire, services/Sensors). Its
+    // capture may not say who it is: Discord's is «WEBRTC VoiceEngine», the program only in
+    // application.process.binary and the portal's app id (16.10: the call never showed) — those
+    // count too and name the call; Discord's own word (DiscordVoice) when it has one
     readonly property var callNames: ["discord", "vesktop", "webcord", "legcord", "telegram", "64gram", "ayugram", "freshgram", "kotatogram", "zoom", "skype", "slack", "teams", "element", "signal", "whatsapp", "mumble", "teamspeak"].concat((Config.halo.callApps || []).map(x => String(x).toLowerCase()))
-    readonly property string callApp: Config.halo.calls === false ? "" : Sensors.mic.find(a => callNames.some(c => a.toLowerCase().includes(c))) || ""
+    function callLabel(n) {
+        const p = n.properties || {};
+        if (String(p["media.class"] || "") !== "Stream/Input/Audio" || !Sensors.app(n))
+            return "";
+        const keys = [Sensors.app(n), p["application.process.binary"], p["pipewire.access.portal.app_id"], p["application.id"]].map(x => String(x || ""));
+        const i = keys.findIndex(k => k && callNames.some(c => k.toLowerCase().includes(c)));
+        // an app id: its last part ("com.discordapp.Discord" → "Discord")
+        return i < 0 ? "" : i >= 2 ? keys[i].split(".").pop() : keys[i];
+    }
+    readonly property string callApp: {
+        if (Config.halo.calls === false)
+            return "";
+        for (const n of Sensors.mic.length ? Sensors.captures : []) {
+            const l = callLabel(n);
+            if (l)
+                return l;
+        }
+        return DiscordVoice.state === "call" ? "Discord" : "";
+    }
     property double callSince: 0
     onCallAppChanged: callSince = callApp ? Date.now() : 0
     function callNodes() {
-        return Sensors.captures.filter(n => String((n.properties || {})["media.class"] || "") === "Stream/Input/Audio" && Sensors.app(n) === callApp);
+        return Sensors.captures.filter(n => callLabel(n) === callApp);
     }
     // muting is that program's capture only: the mixer, the stream and the other programs hear on
     readonly property bool callMuted: callApp !== "" && callNodes().some(n => n.audio && n.audio.muted)
@@ -295,6 +330,7 @@ Singleton {
     Component.onCompleted: {
         netSeen = Wifi.online;
         shelfSeen = Shelf.count;
+        restoreHidden();
     }
     // the charger plugged in (a laptop): «⚡ 64%»
     Connections {

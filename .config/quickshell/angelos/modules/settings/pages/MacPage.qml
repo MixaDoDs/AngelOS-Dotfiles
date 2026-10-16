@@ -536,7 +536,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Окна плавают, как на Mac", "Windows float like on a Mac")
-            hint: I18n.t("новые окна поверх друг друга; выключено — колонки niri. Пишется в ~/.config/niri/angelos.kdl с бэкапом и проверкой niri validate", "new windows overlap; off — niri's columns. Written to ~/.config/niri/angelos.kdl with a backup and niri validate")
+            hint: I18n.t("новые окна поверх друг друга; выключено — окна встают в ряд колонками", "new windows overlap; off — windows line up in columns")
             PxToggle {
                 checked: Config.mac.floating
                 onToggled: v => Config.mac.floating = v

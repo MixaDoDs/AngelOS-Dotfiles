@@ -285,6 +285,16 @@ case "$1" in
     for p in $(instances); do end_instance "$p" & done
     wait ;;
   restart)
+    # one load error anywhere = no desktop at all (16.10: five failed starts, then systemd gave
+    # up): every QML file is compiled first, nothing is created (scripts/qml-check.sh, ~3 s).
+    # `angelos restart --force` skips it; a check that can't run (no compositor) doesn't block.
+    if [ "${2:-}" != "--force" ] && [ -x "$SHELL_DIR/scripts/qml-check.sh" ]; then
+      "$SHELL_DIR/scripts/qml-check.sh" "$SHELL_DIR" >&2
+      if [ $? = 1 ]; then
+        echo "angelOS: not restarted — the shell would not load. Fix the errors above (or: angelos restart --force)" >&2
+        exit 1
+      fi
+    fi
     if use_service; then
       # keep the login's environment; moving an older instance under the service takes its one
       if [ ! -s "$RUN_DIR/session.env" ]; then
@@ -323,11 +333,13 @@ case "$1" in
       [ "$p" = "$$" ] && continue
       cmd="$(tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)" || continue
       # the shell's own long-running helpers (night light, the sleep watch and its
-      # inhibitor, the guard, usb-watch's udevadm); anything else in here is left alone
+      # inhibitor, the guard, usb-watch's udevadm, a notification's buttons waited on — the one
+      # who asked is gone with the shell); anything else in here is left alone
       case "$cmd" in
         *"$SHELL_DIR/scripts/"*|*"$SHELL_DIR/plugins/"*|cava\ *angelos*|*/cava\ *angelos*|\
         wlsunset\ *|*/wlsunset\ *|*"gdbus monitor --system --dest org.freedesktop.login1"*|*systemd-inhibit\ *--who=angelOS*|\
-        "udevadm monitor --udev --subsystem-match=usb/usb_device --property "*) kill "$p" 2>/dev/null ;;
+        "udevadm monitor --udev --subsystem-match=usb/usb_device --property "*|\
+        "notify-send "*" --wait "*|"timeout 900 notify-send "*) kill "$p" 2>/dev/null ;;
         # the guard's `sleep` would outlive it in the cgroup (KillMode=process, #70): stopped, it
         # can't start the next one while its children go, then the TERM lands as it continues
         *"$SHELL_DIR/bin/angelos guard "*) kill -STOP "$p" 2>/dev/null; pkill -P "$p" 2>/dev/null; kill "$p" 2>/dev/null; kill -CONT "$p" 2>/dev/null ;;

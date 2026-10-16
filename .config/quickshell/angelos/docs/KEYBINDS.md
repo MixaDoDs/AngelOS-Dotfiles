@@ -61,7 +61,9 @@
 | `CTRL+Shift+2` | `screenshot-screen` |  |
 | `CTRL+Shift+3` | `screenshot-window` |  |
 | `Mod+ESCAPE` | `toggle-keyboard-shortcuts-inhibit` |  |
-| `CTRL+ALT+Delete` | `quit` |  |
+| `CTRL+ALT+Delete` | `angelos session` | angelOS: выключение (как в Windows; раньше был `quit` niri) |
+| `ALT+F4` | `close-window` | Закрыть окно |
+| `CTRL+Shift+Escape` | `angelos taskManager` | angelOS: диспетчер задач |
 | `Mod+Shift+P` | `power-off-monitors` |  |
 | `Mod+Shift+X` | `~/.local/bin/niri-cast-privacy` | Privacy: black out the listed apps on stream |
 | `Mod+Ctrl+Shift+X` | `~/.local/bin/niri-cast-privacy app toggle` | Privacy: hide / show this window's app |

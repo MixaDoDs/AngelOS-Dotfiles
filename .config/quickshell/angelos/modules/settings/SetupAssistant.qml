@@ -1141,7 +1141,7 @@ Item {
                 wrapMode: Text.Wrap
                 kind: "tiny"
                 dim: true
-                text: I18n.t("Токен хранит gh, не angelOS. Позже — Настройки → Аккаунт → Восстановление.", "gh keeps the token, not angelOS. Later: Settings → Account → Recovery.")
+                text: I18n.t("Токен хранит gh, не angelOS. Позже — Настройки → Учётная запись → Восстановление.", "gh keeps the token, not angelOS. Later: Settings → Account → Recovery.")
             }
         }
     }
@@ -1542,7 +1542,7 @@ Item {
                 wrapMode: Text.Wrap
                 kind: "tiny"
                 dim: true
-                text: I18n.t("Все картинки, свои папки, отдельные обои на каждый монитор и стол — Настройки → Обои. Повернуть монитор — Настройки → Экран.", "All the pictures, your own folders, a wallpaper per monitor and desk: Settings → Wallpaper. Turning a monitor: Settings → Display.")
+                text: I18n.t("Все картинки, свои папки, отдельные обои на каждый монитор и стол — Настройки → Обои. Повернуть монитор — Настройки → Система → Экраны.", "All the pictures, your own folders, a wallpaper per monitor and desk: Settings → Wallpaper. Turning a monitor: Settings → System → Displays.")
             }
         }
     }
@@ -2207,7 +2207,7 @@ Item {
                 wrapMode: Text.Wrap
                 kind: "tiny"
                 dim: true
-                text: I18n.t("Цены — примерные, на старте продаж. Поменять потом: Настройки → О системе → fastfetch.", "The prices are rough launch prices. To change it later: Settings → System → fastfetch.")
+                text: I18n.t("Цены — примерные, на старте продаж. Поменять потом: Настройки → Персонализация → Терминал.", "The prices are rough launch prices. To change it later: Settings → Personalization → Terminal.")
             }
         }
     }

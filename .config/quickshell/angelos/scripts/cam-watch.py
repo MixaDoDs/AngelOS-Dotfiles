@@ -91,6 +91,11 @@ def main():
     rewatch()
     last = None
     due = time.monotonic()
+    # opens minus closes since the last look. Zero = a probe that opened and closed again
+    # (Discord does it every second): the holders are the ones of the last look, no walk of
+    # /proc (that walk was ~1 % of a core all day, 16.10)
+    net = 0
+    rescan = True
     while True:
         timeout = max(0.0, due - time.monotonic()) if due is not None else None
         r, _, _ = select.select([fd], [], [], timeout)
@@ -103,8 +108,9 @@ def main():
                 i += 16 + size
                 if wd in watched:
                     seen = True
+                    net += 1 if mask & IN_OPEN else -1 if mask & (IN_CLOSE_WRITE | IN_CLOSE_NOWRITE) else 0
                 elif mask & (IN_CREATE | IN_DELETE) and name.startswith("video"):
-                    devs_changed = seen = True
+                    devs_changed = seen = rescan = True
             if devs_changed:
                 rewatch()
             # /dev's other comings and goings (a tty, a disk) are none of ours
@@ -112,6 +118,9 @@ def main():
                 due = time.monotonic() + SETTLE
             continue
         due = None
+        if net == 0 and not rescan:
+            continue
+        net, rescan = 0, False
         now = holders(set(watched.values()))
         if now != last:
             last = now

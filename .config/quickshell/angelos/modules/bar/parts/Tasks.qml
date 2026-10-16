@@ -28,7 +28,13 @@ Item {
     // the pointer along the row, for the dock's magnification
     readonly property real pointerX: dockHover.hovered ? dockHover.point.position.x + flick.contentX : -1e6
     readonly property var ws: Niri.activeWorkspace(screenName)
-    readonly property var list: Niri.sortedWindows(Config.bar.allWindows ? Niri.windows : Niri.windows.filter(w => ws && w.workspace_id === ws.id))
+    // the windows of the desktop in front, and the ones minimized on this screen (dimmed, a click
+    // brings one back — as Windows' taskbar keeps them); not an app hidden whole (⌘H)
+    readonly property var list: Niri.sortedWindows(Niri.windows.filter(w => !Minimize.isAppHidden(w) && (Config.bar.allWindows || (ws && w.workspace_id === ws.id) || minimizedHere(w))))
+    function minimizedHere(w) {
+        const h = Minimize.isMinimized(w) ? Niri.workspaceById(w.workspace_id) : null;
+        return !!h && h.output === screenName;
+    }
     readonly property int count: list.length
     readonly property int spacing: Theme.u * 2
     readonly property int iconWidth: height
@@ -156,8 +162,13 @@ Item {
                     Component.onCompleted: if (root.dock && root.ready)
                         hopper.restart()
                     middleButton: true
+                    readonly property bool minimized: Minimize.isMinimized(modelData)
+                    opacity: minimized ? 0.5 : 1
                     onClicked: {
-                        Niri.focusWindow(modelData.id);
+                        if (minimized)
+                            Minimize.restore(modelData.id);
+                        else
+                            Niri.focusWindow(modelData.id);
                         if (root.dock)
                             hopper.restart();
                     }

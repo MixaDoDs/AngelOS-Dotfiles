@@ -9,7 +9,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Клавиатура", "Keyboard")
-    subtitle: I18n.t("Раскладки и повтор клавиш. Пишется в ~/.config/niri/cfg/input.kdl точечно (комментарии остаются), с бэкапом и проверкой.", "Layouts and key repeat. Updates input.kdl, preserving comments, with a backup and validation.")
+    subtitle: I18n.t("Раскладки и повтор клавиш.", "Layouts and key repeat.")
 
     readonly property var layoutList: InputConfig.layouts.split(",").filter(l => l)
     readonly property var optionList: InputConfig.options.split(",").filter(o => o)

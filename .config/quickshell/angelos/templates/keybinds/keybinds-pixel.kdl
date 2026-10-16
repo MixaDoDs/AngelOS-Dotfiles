@@ -5,15 +5,15 @@ binds {
     // https://github.com/YaLTeR/niri/wiki/Configuration:-Key-Bindings
 
     // ─── Applications ───
-    Mod+T                          hotkey-overlay-title="Open Terminal: kitty" { spawn "kitty"; }
-    Mod+B                               hotkey-overlay-title="Open Browser" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos browser"; }
+    Mod+T                          hotkey-overlay-title="Терминал" { spawn "kitty"; }
+    Mod+B                               hotkey-overlay-title="Браузер" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos browser"; }
 
     // ─── angelOS ───
     Mod+Space                    hotkey-overlay-title="angelOS: программы" { spawn-sh "qs -c angelos ipc call angelos launcher"; }
     Mod+ALT+L                           hotkey-overlay-title="angelOS: блокировка" { spawn-sh "qs -c angelos ipc call angelos lock"; }
 
     // Please set the text editor of your choice.
-    // Mod+Shift+E                               hotkey-overlay-title="Open Text Editor: Zed" { spawn "zed"; }
+    // Mod+Shift+E                               hotkey-overlay-title="Текстовый редактор" { spawn "zed"; }
 
     // Please choose your own file manager.
 
@@ -80,7 +80,7 @@ binds {
     Mod+CTRL+8                          { move-column-to-workspace 8; }
     Mod+CTRL+9                          { move-column-to-workspace 9; }
 
-    Mod+TAB                             repeat=false hotkey-overlay-title="Overview" { toggle-overview; }
+    Mod+TAB                             repeat=false hotkey-overlay-title="Все окна и рабочие столы" { toggle-overview; }
 
     // ─── Layout Controls ───
     Mod+CTRL+F                          { expand-column-to-available-width; }
@@ -92,7 +92,7 @@ binds {
     Mod+Shift+Equal                     { set-window-height "+10%"; }
 
     // ─── Modes ───
-    Mod+Shift+Space                     hotkey-overlay-title="Toggle floating" { toggle-window-floating; }
+    Mod+Shift+Space                     hotkey-overlay-title="Окно поверх / в ряд" { toggle-window-floating; }
     Mod+F                               { fullscreen-window; }
     Mod+Shift+F                         { maximize-column; }
     Mod+W                               { toggle-column-tabbed-display; }
@@ -105,6 +105,6 @@ binds {
     // It disables any active keyboard shortcut inhibitor, restoring control.
 
     // ─── Exit / Power ───
-    Mod+O                               hotkey-overlay-title="Previous workspace" { focus-workspace-previous; }
+    Mod+O                               hotkey-overlay-title="Прошлый рабочий стол" { focus-workspace-previous; }
 
 }

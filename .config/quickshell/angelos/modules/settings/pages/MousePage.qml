@@ -11,7 +11,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Мышь и лупа", "Mouse and lens")
-    subtitle: I18n.t("Скорость и ускорение мыши пишутся в ~/.config/niri/cfg/input.kdl точечно, с бэкапом и проверкой. Ниже — лупа у курсора.", "Mouse speed and acceleration go to input.kdl, with a backup and validation. Below: the lens at the pointer.")
+    subtitle: I18n.t("Скорость и ускорение мыши. Ниже — лупа у курсора.", "Mouse speed and acceleration. Below: the lens at the pointer.")
 
     PxGroup {
         name: "mouse"

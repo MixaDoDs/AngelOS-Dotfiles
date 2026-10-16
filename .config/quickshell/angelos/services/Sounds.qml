@@ -41,8 +41,10 @@ Singleton {
     readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "circleSin", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear"]
     // off until switched on in System sounds (typing and such would surprise)
     readonly property var optIn: ["clickRight", "key", "windowOpen", "workspace", "lock", "unlock"]
-    // the input ones: quiet over a fullscreen window (games) when asked
-    readonly property var input: ["click", "clickRight", "key"]
+    // over a fullscreen window (a game, a film), when asked (y2k.quietFullscreen): all quiet but
+    // these, the ones the player asks for. It used to be the clicks and keys only: notifications,
+    // the chest and errors sounded over CS2 (16.10)
+    readonly property var inGame: ["volume", "screenshot"]
     // the helper's Undertale "pips", one per letter (AngelHelper plays them as
     // SoundEffect, so they stay .wav); "voice" above is their switch and preview;
     // key2 key3: the typing variants; voiceFallen1…5: her broken voice's syllables (the story's);
@@ -203,6 +205,14 @@ Singleton {
         return true;
     }
 
+    // a ready file straight to the player: the helper's pips and the harp's strings. Not
+    // QtMultimedia's SoundEffect: its PipeWire callback crashed the shell (QSocketNotifier
+    // destroyed on the audio thread, caught twice by the gdb trap on 16.10). Volume 0 warms it.
+    function playFile(path, vol) {
+        if (path)
+            _out(vol, [path]);
+    }
+
     // yours first, then the skin's (pw-play, or paplay without it, if the player is down)
     function _playMac(name, vol) {
         const file = macEvents[name];
@@ -231,7 +241,7 @@ Singleton {
     function playSoft(name, soft) {
         if (!enabled(name) || StreamMode.quiet || quietNow())
             return;
-        if (input.includes(name) && Config.y2k.quietFullscreen && fullscreenNow())
+        if (!inGame.includes(name) && Config.y2k.quietFullscreen && fullscreenNow())
             return;
         _play(name, false, soft);
     }

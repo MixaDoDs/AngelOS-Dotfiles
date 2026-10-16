@@ -107,7 +107,7 @@ PxWindow {
                 spacing: Theme.u * 2
                 PxText {
                     width: parent.width
-                    text: root.notification ? root.notification.summary : ""
+                    text: root.notification ? Notifs.shownSummary(root.notification) : ""
                     font.bold: true
                     wrapMode: Text.Wrap
                     maximumLineCount: 2
@@ -117,7 +117,7 @@ PxWindow {
                 PxText {
                     width: parent.width
                     visible: text !== ""
-                    text: root.notification ? Notifs.safeMarkup(root.notification.body) : ""
+                    text: root.notification ? Notifs.safeMarkup(Notifs.shownBody(root.notification)) : ""
                     textFormat: Text.StyledText
                     wrapMode: Text.Wrap
                     maximumLineCount: 5

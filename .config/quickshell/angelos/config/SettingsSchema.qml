@@ -164,7 +164,7 @@ JsonAdapter {
         // every new window floats (a niri rule in angelos.kdl, ThemeExport); Golden Gate has its own (mac.floating)
         property bool floatAll: false
         // cobwebs (services/Cobweb): a window nobody moved for a while gets a spider and its web
-        property bool cobweb: true
+        property bool cobweb: false         // off for a new user: a web over the window took its clicks (16.10)
         property bool cobwebInside: true    // the web over the window itself (off: only the bar's buttons)
         property bool cobwebBar: true       // a small web and spider on the window's button in the bar / Dock
         property string cobwebSpeed: "normal" // fast (10 min → 1 h) | normal (30 min → 4 h) | slow (2 h → a day)
@@ -399,6 +399,7 @@ JsonAdapter {
         property string command: "./install.sh"
         property string env: "DOTFILES_MODE=full SKIP_PACKAGES=1 INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 ENABLE_SERVICES=0"
         property bool reloadNiri: true
+        property string adminWarned: ""     // the admin verdict last told about (verdict@main@owner): once, not after every restart
     }
 
     property JsonObject system: JsonObject {
@@ -441,6 +442,7 @@ JsonAdapter {
         property string lastCheck: ""
         property int available: 0
         property int paperSeen: 0           // the release whose «what's new» paper was put away (ChangelogPaper)
+        property string notifiedFor: ""     // the newest incoming commit told about: once, not after every restart
     }
 
     property JsonObject network: JsonObject {
@@ -546,7 +548,7 @@ JsonAdapter {
         property bool circleDuck: true      // programs slide to 0 while hell's circles change, then back to their faders (services/AppDuck)
         property var clickButtons: ["left", "right"] // which mouse buttons make the click sound (left right middle)
         property bool clickRelease: false   // a softer tick when the button comes up
-        property bool quietFullscreen: true // no click / typing sounds over a fullscreen window (games)
+        property bool quietFullscreen: true // over a fullscreen window (games, films) only the volume and screenshot sounds
         property bool quietHours: false     // no sounds from quietFrom to quietTo (hours)
         property int quietFrom: 23
         property int quietTo: 8

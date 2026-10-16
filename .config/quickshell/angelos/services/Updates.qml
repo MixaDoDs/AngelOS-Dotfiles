@@ -506,14 +506,14 @@ Singleton {
         }
     }
 
-    property string notifiedFor: ""
+    // kept in settings: in memory it was told again after every restart (12 times on 16.10)
     function maybeNotify() {
-        if (behind <= 0 || !incoming.length || Shell.dev)
+        if (behind <= 0 || !incoming.length || Shell.dev || !Config.ready)
             return;
         const head = incoming[0].split(" ")[0];
-        if (head === notifiedFor)
+        if (head === Config.updates.notifiedFor)
             return;
-        notifiedFor = head;
+        Config.updates.notifiedFor = head;
         Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "system-software-update", I18n.t("Доступно обновление angelOS", "An angelOS update is available"), I18n.t("Новых изменений: ", "New changes: ") + behind + I18n.t(". Настройки → Обновления.", ". Settings → Updates.")]);
     }
     Timer {

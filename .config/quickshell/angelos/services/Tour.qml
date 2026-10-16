@@ -57,7 +57,7 @@ Singleton {
         {
             "key": "bar:tasks",
             "title": I18n.t("Окна", "Windows"),
-            "text": I18n.t("Открытые окна. ПКМ закрывает окно. Ширину кнопок и окон можно настроить.", "Open windows. Right-click closes one. Button and window widths are adjustable.")
+            "text": I18n.t("Открытые окна. Клик — перейти к окну, правый клик — меню окна (закрыть, на весь экран…). Ширину кнопок и окон можно настроить.", "Open windows. Click to go to one, right-click for its menu (close, fullscreen…). Button and window widths are adjustable.")
         },
         {
             "key": "bar:lyrics",
@@ -147,7 +147,7 @@ Singleton {
         {
             "key": "end",
             "title": I18n.t("Готово ♡", "That's it ♡"),
-            "text": I18n.t("Mod+S — настройки. Подсказки можно пройти снова: Настройки → Аккаунт.", "Mod+S opens settings. Replay these tips from Settings → Account.")
+            "text": I18n.t("Mod+S — настройки. Подсказки можно пройти снова: Настройки → Учётная запись.", "Mod+S opens settings. Replay these tips from Settings → Account.")
         }
     ]
     // only steps whose element exists (bar layout is configurable): on the tour's screen when

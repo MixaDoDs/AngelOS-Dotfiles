@@ -10,7 +10,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Экран", "Display")
-    subtitle: I18n.t("«Применить» меняет сразу, «Сохранить» пишет ~/.config/niri/monitor.kdl (с бэкапом и проверкой niri validate).", "Apply changes the live layout. Save to config writes monitor.kdl with a backup and niri validation.")
+    subtitle: I18n.t("Разрешение, масштаб, поворот и расположение экранов. «Применить» сохраняет, «Только попробовать» — до перезагрузки.", "Resolution, scale, rotation and layout of the screens. Apply keeps it, Just try lasts until a reboot.")
 
     property string selected: Object.keys(Outputs.draft)[0] || ""
     readonly property var d: Outputs.draft[selected] || null
@@ -415,7 +415,12 @@ PxPage {
                 icon: "check"
                 text: I18n.t("Оставить", "Keep")
                 anchors.verticalCenter: parent.verticalCenter
-                onClicked: Outputs.keep()
+                // kept = saved, as Windows does: «Keep» used to leave it live only, back as it was
+                // after a reboot (16.10)
+                onClicked: {
+                    Outputs.keep();
+                    Outputs.save();
+                }
             }
             PxButton {
                 id: backBtn
@@ -429,18 +434,24 @@ PxPage {
 
     Row {
         spacing: Theme.u * 4
+        // «Apply» keeps it after a reboot too (a change that may leave the screen unreadable is
+        // saved once «Keep» says so); «Just try» is live only, until the next start
         PxButton {
             text: I18n.t("Применить", "Apply")
             icon: "check"
             accent: true
             enabled: !Outputs.busy
-            onClicked: Outputs.apply()
+            onClicked: {
+                Outputs.apply();
+                if (!Outputs.undo)
+                    Outputs.save();
+            }
         }
         PxButton {
-            text: I18n.t("Сохранить в конфиг", "Save to config")
-            icon: "package"
+            text: I18n.t("Только попробовать", "Just try")
+            icon: "eye"
             enabled: !Outputs.busy
-            onClicked: Outputs.save()
+            onClicked: Outputs.apply()
         }
         PxButton {
             text: I18n.t("Сбросить", "Reset")

@@ -140,7 +140,7 @@ Scope {
             "id": "browser",
             "icon": "search",
             "title": I18n.t("Какой браузер?", "Which browser?"),
-            "text": I18n.t("Он откроется по Mod+B и по ссылкам из программ. Не стоит — поставлю вместе с остальными программами. Потом поменять: Настройки → Приложения по умолчанию.", "It opens on Mod+B and for links from apps. Not installed yet? It comes with the other apps. To change it later: Settings → Default applications.")
+            "text": I18n.t("Он откроется по Mod+B и по ссылкам из программ. Не стоит — поставлю вместе с остальными программами. Потом поменять: Настройки → Приложения → По умолчанию.", "It opens on Mod+B and for links from apps. Not installed yet? It comes with the other apps. To change it later: Settings → Default applications.")
         },
         {
             "id": "apps",
@@ -528,6 +528,19 @@ Scope {
         Shell.setupOpen = false;
         Shell.setupFirstRun = false;
         step = 0;
+    }
+    // the first run's «Skip setup»: a plain desktop as it comes — no game, nothing installed, no
+    // telemetry; the wizard stays in Settings → Account (16.10: the first run could only be left
+    // from a text console)
+    function skipAll() {
+        if (setupInstall.running)
+            return;
+        Config.game.enabled = false;
+        Config.setup.complete = true;
+        if (!Config.setup.telemetry)
+            Telemetry.setConsent("no");
+        setupInstall.active = false;
+        close();
     }
     function finish() {
         if (setupInstall.running)

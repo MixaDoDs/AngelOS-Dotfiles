@@ -84,7 +84,10 @@ Singleton {
     property string _pendingKey: ""
 
     onTrackKeyChanged: fetchTimer.restart()
-    readonly property bool unseen: Shell.locked || (Shell.screens.length > 0 && Shell.screens.every(s => Shell.fullscreenOn(s.name)))
+    // nobody sees a line: locked, or every screen that shows one is under a fullscreen window.
+    // Every screen used to have to be: the owner's lyrics are on DP-1 only, HDMI-A-1 is never
+    // fullscreen, so in CS2 the lines, lyrics-level.py and the bass cava ran for nobody (16.10)
+    readonly property bool unseen: Shell.locked || Shell.screens.filter(s => placeOn(s.name) !== "").every(s => Shell.fullscreenOn(s.name))
 
     // track metadata often arrives in pieces; wait for it to settle
     Timer {

@@ -219,6 +219,15 @@ PopupWindow {
                 separator: true
             }
             PxMenuItem {
+                readonly property bool minimized: !!root.win && Minimize.isMinimized(root.win)
+                text: minimized ? I18n.t("Развернуть", "Restore") : I18n.t("Свернуть", "Minimize")
+                icon: "minimize"
+                onTriggered: {
+                    const back = minimized;
+                    root.run(w => back ? Minimize.restore(w.id) : Minimize.request(w.id, "menu"));
+                }
+            }
+            PxMenuItem {
                 text: I18n.t("Закрыть", "Close")
                 icon: "close"
                 hint: Config.bar.taskMiddleClose ? I18n.t("средняя кнопка", "middle click") : ""

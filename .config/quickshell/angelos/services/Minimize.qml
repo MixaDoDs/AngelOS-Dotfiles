@@ -94,11 +94,12 @@ Singleton {
 
     // ---- the apps' own minimize buttons (GTK's yellow light, Qt's, Firefox's) ----
     // extras/minimize-hook (LD_PRELOAD) catches their xdg_toplevel.set_minimized, which niri
-    // ignores, and sends "<pid>\t<title>" here; only while the skin is on (the socket is gone
-    // otherwise and the request goes to niri as before)
+    // ignores, and sends "<pid>\t<title>" here — in every skin since 16.10: the pixel taskbar
+    // shows a minimized window dimmed and brings it back (modules/bar/parts/Tasks), so the
+    // «Minimize» button the wizard's «from Windows» adds works there too
     readonly property string socketPath: Quickshell.env("XDG_RUNTIME_DIR") + "/angelos-minimize.sock"
     SocketServer {
-        active: GoldenGate.on
+        active: true
         path: root.socketPath
         handler: Socket {
             id: app
@@ -648,19 +649,6 @@ Singleton {
         }
     }
 
-    // nothing stays hidden without the skin (and none from before a restart of the shell)
-    Connections {
-        target: GoldenGate
-        function onOnChanged() {
-            if (!GoldenGate.on)
-                root.restoreAll();
-        }
-    }
-    Connections {
-        target: Niri
-        function onReadyChanged() {
-            if (Niri.ready && !GoldenGate.on)
-                root.restoreAll();
-        }
-    }
+    // minimized windows stay so without the skin as well: the pixel taskbar lists them (they
+    // used to come back when the skin went, and at a restart of the shell)
 }

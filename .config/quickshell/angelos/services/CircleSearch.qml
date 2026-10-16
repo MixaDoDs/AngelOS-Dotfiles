@@ -560,7 +560,8 @@ Singleton {
     function copy(t) {
         const s = t === undefined ? text : t;
         Quickshell.execDetached(["wl-copy", "--", s]);
-        say(I18n.t("Скопировано", "Copied"), s.slice(0, 200));
+        // on air: how much, not what (16.10 a copied word went out on stream)
+        say(I18n.t("Скопировано", "Copied"), StreamMode.onAir ? I18n.t("знаков: ", "characters: ") + s.length : s.slice(0, 200));
     }
     // "Text": the picked text, else all of the screen's
     function copyText() {

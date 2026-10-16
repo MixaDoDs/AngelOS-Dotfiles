@@ -198,7 +198,9 @@ Loader {
     }
     Component {
         id: bellC
-        Bell {}
+        Bell {
+            above: root.bar.above
+        }
     }
     Component {
         id: wifiC

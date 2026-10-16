@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtMultimedia
 import qs.config
 import qs.services
 import qs.widgets
@@ -296,27 +295,17 @@ Item {
             readonly property real wobble: Math.round(Math.sin(pluck * Math.PI * 9) * (1 - pluck) * look.px * 2)
             onHotChanged: if (hot)
                 ring()
-            // plucked: it trembles and sounds its note; two voices take turns, so a string
+            // plucked: it trembles and sounds its note; sfx-player mixes, so a string
             // plucked again rings over its own tail
             function ring() {
                 pluckAnim.restart();
                 if (!look.voiced || Sounds.quietNow())
                     return;
-                (turn ? voiceB : voiceA).play();
-                turn = 1 - turn;
+                Sounds.playFile(clip, look.voiceVolume);
             }
-            property int turn: 0
-            readonly property url clip: look.voiced ? "file://" + Sounds.dir + "/" + Sounds.harpStrings[index % Sounds.harpStrings.length] + ".wav" : ""
-            SoundEffect {
-                id: voiceA
-                source: entry.clip
-                volume: look.voiceVolume
-            }
-            SoundEffect {
-                id: voiceB
-                source: entry.clip
-                volume: look.voiceVolume
-            }
+            readonly property string clip: look.voiced ? Sounds.dir + "/" + Sounds.harpStrings[index % Sounds.harpStrings.length] + ".wav" : ""
+            // decoded ahead in sfx-player, so the first pluck isn't late
+            onClipChanged: Sounds.playFile(clip, 0)
             NumberAnimation {
                 id: pluckAnim
                 target: entry

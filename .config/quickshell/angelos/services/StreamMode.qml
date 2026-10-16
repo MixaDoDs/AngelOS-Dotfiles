@@ -31,6 +31,10 @@ Singleton {
             root.unsuppress()
     }
     readonly property bool active: Config.ready && (Config.stream.manual || (Config.stream.auto && obsLive && !suppressed))
+    // OBS streams or records — whatever the mode above says. Privacy and «stay awake» go by
+    // this: with the mode off (the owner's since 06.10) a stream showed private messages and
+    // the idle screen and the lock came on it (16.10)
+    readonly property bool onAir: obsLive || obsRec
     readonly property var screens: Config.stream.screens || []
 
     // is this screen seen by the viewers right now?

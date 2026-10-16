@@ -233,7 +233,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Тихо в играх", "Quiet in games")
-            hint: I18n.t("клики и клавиши молчат, пока на экране полноэкранное окно", "Clicks and keys stay silent over a fullscreen window")
+            hint: I18n.t("пока игра или фильм на весь экран, звучат только громкость и скриншот", "While a game or a film fills the screen, only the volume and screenshot sounds play")
             PxToggle {
                 checked: Config.y2k.quietFullscreen
                 onToggled: c => Config.y2k.quietFullscreen = c

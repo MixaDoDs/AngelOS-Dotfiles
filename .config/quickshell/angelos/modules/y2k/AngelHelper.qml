@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtMultimedia
 import Quickshell
 import Quickshell.Wayland
 import QtTest
@@ -601,14 +600,17 @@ Scope {
                     id: voice
                     readonly property bool on: Sounds.enabled("voice") && !StreamMode.quiet && Sounds.ready
                     // loaded once the pack is ready: an older, louder pack is synthesised again first
-                    readonly property url clip: Sounds.ready ? "file://" + Sounds.dir + "/" + (Angel.demon ? "voiceDemon" : "voiceAngel") + ".wav" : ""
-                    property int next: 0
+                    readonly property string clip: Sounds.ready ? Sounds.dir + "/" + (Angel.demon ? "voiceDemon" : "voiceAngel") + ".wav" : ""
+                    // decoded ahead in sfx-player, so the first letter isn't late
+                    onClipChanged: if (on)
+                        Sounds.playFile(clip, 0)
+                    onOnChanged: if (on)
+                        Sounds.playFile(clip, 0)
                     // past cold (story/game.json → angel.fallen) her voice is broken: no pips — a
                     // syllable on each vowel, one of five, never the same twice running, not on
                     // top of the last one's start (Sounds.fallenVoice, scripts/y2k-sounds.py)
                     readonly property bool broken: !Angel.demon && Story.angelFallen
                     property int lastSyllable: -1
-                    property int turn: 0
                     property double sungAt: 0
                     function syllable(c) {
                         if (!/[аеёиоуыэюяaeiouy]/i.test(c) || Date.now() - sungAt < 90)
@@ -618,48 +620,16 @@ Scope {
                             v = (v + 1 + Math.floor(Math.random() * 4)) % 5;
                         lastSyllable = v;
                         sungAt = Date.now();
-                        turn = 1 - turn;
-                        const it = syllables.itemAt(v + 5 * turn);
-                        if (it)
-                            it.fx.play();
-                    }
-                    Repeater {
-                        id: syllables
-                        model: voice.broken ? 10 : 0
-                        Item {
-                            id: syl
-                            required property int index
-                            property alias fx: fx
-                            SoundEffect {
-                                id: fx
-                                source: Sounds.ready ? "file://" + Sounds.dir + "/" + Sounds.fallenVoice[syl.index % 5] + ".wav" : ""
-                                volume: Sounds.volumeOf(Sounds.fallenVoice[syl.index % 5])
-                            }
-                        }
+                        const name = Sounds.fallenVoice[v];
+                        Sounds.playFile(Sounds.dir + "/" + name + ".wav", Sounds.volumeOf(name));
                     }
                     function pip(c) {
                         if (!on)
                             return;
                         if (broken)
                             return syllable(c);
-                        const s = [v0, v1, v2][next];
-                        next = (next + 1) % 3;
-                        s.play();
-                    }
-                    SoundEffect {
-                        id: v0
-                        source: voice.clip
-                        volume: Sounds.volumeOf("voiceAngel")
-                    }
-                    SoundEffect {
-                        id: v1
-                        source: voice.clip
-                        volume: Sounds.volumeOf("voiceAngel")
-                    }
-                    SoundEffect {
-                        id: v2
-                        source: voice.clip
-                        volume: Sounds.volumeOf("voiceAngel")
+                        // sfx-player mixes, so a pip rings over the last one's tail
+                        Sounds.playFile(clip, Sounds.volumeOf("voiceAngel"));
                     }
                 }
 
@@ -951,8 +921,11 @@ Scope {
                                 return;
                             }
                             dragging = false;
-                            const thrown = !Angel.demon && (dy > deep || (dy > Theme.u * 6 && vy > 0.9));
-                            // flung (fast) or pushed down slowly, on purpose: the game weighs it
+                            // flung (fast) or pushed down slowly, on purpose: the game weighs it. A
+                            // flick needs a real fling now: 6 steps at 0.9 px/ms was a picture
+                            // moved aside, and the desktop went to hell (16.10)
+                            const flung = dy > Theme.u * 14 && vy > 1.5;
+                            const thrown = !Angel.demon && (dy > deep || flung);
                             Angel.released(thrown, dx, dy, vy > 0.9);
                             if (thrown) {
                                 dx = 0;

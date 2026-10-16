@@ -83,6 +83,9 @@ Singleton {
     readonly property bool spectrumLive: watchers > 0 && !Motion.still && !Power.eco
     readonly property string spectrumSpec: routeActive ? "monitor:easyeffects_sink" : ""
     readonly property string spectrumKey: Math.random().toString(36).slice(2, 10)
+    // a new name each start (two shells never share a fifo): the old ones went to 130 files by
+    // 16.10 — those of past days go
+    Component.onCompleted: Quickshell.execDetached(["find", Quickshell.env("HOME") + "/.cache/angelos", "-maxdepth", "1", "-name", "cava-eq-*.conf", "-mmin", "+1440", "-delete"])
     readonly property string spectrumConf: Quickshell.env("HOME") + "/.cache/angelos/cava-eq-" + spectrumKey + ".conf"
     readonly property string spectrumFifo: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos-cava-eq-" + spectrumKey + ".fifo"
     property string spectrumWritten: ""
