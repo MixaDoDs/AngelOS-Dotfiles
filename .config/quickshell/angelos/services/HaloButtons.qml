@@ -105,7 +105,7 @@ Singleton {
             return true;
         }
         if (id === "note") {
-            Shelf.addText(t);
+            Shelf.addText(t, true);
             return true;
         }
         return false;

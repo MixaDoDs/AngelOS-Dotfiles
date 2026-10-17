@@ -17,7 +17,7 @@ import "CircleLearn.js" as Learn
 // The bar at the bottom: save / copy the picture (Capture), copy / translate the text, search it
 // or the picture in the island (Island.search / Island.lens), send it nearby (QuickShare), save
 // the whole screen or a window. Nothing picked: the picture is the whole screen, the text all
-// of it. Esc steps back, Enter saves, Ctrl+C copies (the text of a text pick, else the picture).
+// of it. Esc steps back, Enter / Ctrl+C copy, Ctrl+S saves, (the pick's text when it has any, else the picture).
 // A tap where nothing is puts a frame there to drag about; every frame has 8 grips and moves.
 // It learns (CircleLearn.js, per app): frames moved after tapping an area, how much text a tap
 // takes, areas let go of, words fixed in the card; when unsure it asks after closing.
@@ -64,6 +64,12 @@ Singleton {
     readonly property string learnFile: Config.stateDir + "/circle-learn.json"
     // a picture was taken (saved / copied): the overlay's shutter; rect null = the whole frame
     signal shot(var rect)
+    // a word for the overlay's hint a moment (copied, kept open)
+    signal told(string t)
+    // the picks before this one (Ctrl+Z), newest last
+    property var history: []
+    // links, mail and phones on the frame (services/Links.js over each line): [{kind, url, text, box}]
+    property var screenLinks: []
 
     readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos"
     readonly property string script: Quickshell.shellPath("scripts/circle.py")
@@ -84,18 +90,22 @@ Singleton {
             return;
         scale = sc.devicePixelRatio > 0 ? sc.devicePixelRatio : 1;
         reset();
+        history = [];
+        nearDone = false;
         mode = "auto";
         words = [];
+        screenLinks = [];
         regions = [];
         tiles = windowsOn(screenName);
         windowsHere = tiles.filter(w => w.x !== null);
-        frame = runtimeDir + "/circle.ppm";
+        // a frame of its own each time: a copy or save of the last one may still be reading its file
+        frame = runtimeDir + "/circle-" + Date.now() + ".ppm";
         grab.command = grabCommand(screenName, frame, wait);
         grab.running = true;
     }
     // grim → the frame; the second line of its PPM header is "W H" (the size before any view loads)
     function grabCommand(name, out, wait) {
-        return ["sh", "-c", 'sleep "$4"; mkdir -p "$1" && grim $5 -o "$2" -t ppm "$3" && head -c 64 "$3" | sed -n 2p', "sh", runtimeDir, name, out, String(wait || 0), Config.capture.shotCursor ? "-c" : ""];
+        return ["sh", "-c", 'sleep "$4"; mkdir -p "$1" && find "$1" -maxdepth 1 -name "circle*.ppm" -mmin +2 -delete; grim $5 -o "$2" -t ppm "$3" && head -c 64 "$3" | sed -n 2p', "sh", runtimeDir, name, out, String(wait || 0), Config.capture.shotCursor ? "-c" : ""];
     }
     function toggle(screen) {
         open ? close() : start(screen);
@@ -109,6 +119,7 @@ Singleton {
         }
         open = false;
         reader.running = false;
+        nearReader.running = false;
         finder.running = false;
         picker.running = false;
         translator.running = false;
@@ -119,6 +130,7 @@ Singleton {
         onTriggered: root.fading = false
     }
     function reset() {
+        keepPick();
         origin = null;
         tapped = [];
         acted = false;
@@ -133,6 +145,67 @@ Singleton {
         error = "";
         picker.running = false;
         pickBusy = false;
+        translator.running = false;
+        translating = false;
+    }
+    // ---- Ctrl+Z: the pick as it was (a new pick, Esc and a tap beside it all keep the last one)
+    function keepPick() {
+        if (!box && !picked.length)
+            return;
+        const top = history[history.length - 1];
+        if (top && JSON.stringify(top.box) === JSON.stringify(box) && top.text === text)
+            return;
+        history = history.concat([{
+                "box": box,
+                "poly": poly,
+                "pickKind": pickKind,
+                "picked": picked,
+                "pickedKeys": pickedKeys,
+                "text": text,
+                "readText": readText
+            }]).slice(-30);
+    }
+    function undo() {
+        if (!history.length)
+            return false;
+        const h = history[history.length - 1];
+        // the pick it replaces is not remembered again (Ctrl+Z twice steps back twice)
+        history = history.slice(0, -1);
+        picker.running = false;
+        pickBusy = false;
+        translator.running = false;
+        translating = false;
+        translation = "";
+        translateError = "";
+        origin = null;
+        tapped = [];
+        box = h.box;
+        poly = h.poly;
+        pickKind = h.pickKind;
+        picked = h.picked;
+        pickedKeys = h.pickedKeys;
+        text = h.text;
+        readText = h.readText;
+        return true;
+    }
+    // the arrows: the pick moved by a pixel (Shift: ten), kept on the frame
+    function nudge(dx, dy) {
+        if (!box || pickKind === "words" || pickKind === "line" && !poly.length)
+            return false;
+        const ddx = Math.max(-box.x, Math.min(frameW - box.x - box.w, dx * scale)), ddy = Math.max(-box.y, Math.min(frameH - box.y - box.h, dy * scale));
+        if (pickKind === "loop") {
+            pickLoop(poly.map(p => ({
+                        "x": p.x + ddx,
+                        "y": p.y + ddy
+                    })));
+            return true;
+        }
+        return adjustTo({
+            "x": box.x + ddx,
+            "y": box.y + ddy,
+            "w": box.w,
+            "h": box.h
+        }, pickKind === "region" || pickKind === "line" ? "rect" : pickKind);
     }
     function setMode(m) {
         if (modes.indexOf(m) >= 0)
@@ -231,6 +304,8 @@ Singleton {
     }
     // a tap (frame pixels): text mode — the word under it; else the line under it, else the
     // area under it; nothing there lets go of the pick. Returns what was picked.
+    // (a word before an area: capture_regions cuts lines of text into "text" areas of half a line
+    // or a whole block, and an area is a picture — Ctrl+C copied the picture of a word)
     function tapAt(x, y) {
         if (mode === "text") {
             const i = wordIndexAt(x, y);
@@ -243,11 +318,10 @@ Singleton {
         }
         const had = !!box || picked.length > 0;
         letGo();
-        // the area first: areas are found in 0.15 s, the words in 1.5-6 s, so a line first made
-        // the same tap take an area or a line by how fast it came
-        const r = areaAt(x, y);
-        if (!r && mode === "auto" && pickLineAt(x, y))
+        if (mode === "auto" && wordIndexAt(x, y) >= 0 && pickLineAt(x, y))
             return "line";
+        // the words not read yet: the area; its words fill in when they come (repick)
+        const r = areaAt(x, y);
         if (r) {
             // as the user takes this kind of area here, once that is sure
             const app = appAt(r.x + r.w / 2, r.y + r.h / 2), habit = Learn.edgeFor(learned, app, r.kind || "window");
@@ -310,18 +384,76 @@ Singleton {
         };
         poly = points;
         pickKind = "loop";
-        // at once: what the whole frame found inside; then the closer read replaces it
+        // the whole frame's words inside, whole: a closer read of the piece cut the words at its edge
+        // ("Sear", "5‹") and moved them a pixel, so their marks went dark; read closer only when
+        // the whole frame found nothing there (not read yet, or too small for it)
         const inside = words.filter(w => within(w.x + w.w / 2, w.y + w.h / 2, points));
         setPicked(inside);
-        // a rectangle with the whole frame's words in it keeps them: a closer read of it took
-        // 0.3-6 s and read no better; a hand-drawn loop (cut words at its edge) or no words yet: read
-        if (padding === 0 && inside.length)
+        if (inside.length)
             return;
         const p = points.map(q => Math.round(q.x) + "," + Math.round(q.y)).join(";");
         picker.command = ["python3", script, "ocr", frame, String(Math.round(box.x)), String(Math.round(box.y)), String(Math.round(box.w)), String(Math.round(box.h)), "--poly", p];
         pickBusy = true;
         picker.running = true;
     }
+    // the words came after the pick was made: its words from them (not over the user's edit)
+    // (a line or words picked from the words near the pointer: the same ones from the whole read)
+    function repick() {
+        if (!box || text !== readText)
+            return;
+        const b = box, inside = words.filter(w => {
+            const cx = w.x + w.w / 2, cy = w.y + w.h / 2;
+            return poly.length > 2 ? within(cx, cy, poly) : cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h;
+        });
+        if (!inside.length)
+            return;
+        picker.running = false;
+        pickBusy = false;
+        const keep = pickKind;
+        setPicked(inside);
+        pickKind = keep;
+    }
+    // the links on the frame: each line's text (as joinWords makes it) through Links.scan, back to its words
+    function findLinks(list) {
+        const out = [], lines = {};
+        for (const w of list)
+            (lines[w.line] = lines[w.line] || []).push(w);
+        for (const k in lines) {
+            const ws = lines[k];
+            let t = "";
+            const at = ws.map(w => {
+                const a = t.length;
+                t += (a ? " " : "") + w.t;
+                return [a + (a ? 1 : 0), t.length];
+            });
+            for (const l of Links.scan(t)) {
+                const hit = ws.filter((w, i) => at[i][0] < l.end && l.start < at[i][1]);
+                if (hit.length)
+                    out.push({
+                        "kind": l.kind,
+                        "url": l.url,
+                        "text": l.text,
+                        "box": boundsOf(hit)
+                    });
+            }
+        }
+        return out.slice(0, 200);
+    }
+    function linkAt(x, y) {
+        return screenLinks.find(l => x >= l.box.x - 2 && x <= l.box.x + l.box.w + 2 && y >= l.box.y - 2 && y <= l.box.y + l.box.h + 2) || null;
+    }
+    // while the whole frame is read (1.5-7 s): the piece round the pointer first, so its words
+    // light up and a tap there takes a line at once
+    function readNear(x, y) {
+        if (!reading || nearReader.running || nearDone || words.length)
+            return;
+        nearDone = true;
+        const w = Math.min(frameW, 1400 * scale), h = Math.min(frameH, 420 * scale);
+        const bx = Math.round(Math.max(0, Math.min(frameW - w, x - w / 2))), by = Math.round(Math.max(0, Math.min(frameH - h, y - h / 2)));
+        nearReader.command = ["python3", script, "ocr", frame, String(bx), String(by), String(Math.round(w)), String(Math.round(h))];
+        nearReader.running = true;
+    }
+    property bool nearDone: false
     // a click on a word: its whole line
     function pickLineAt(x, y) {
         const i = wordIndexAt(x, y);
@@ -371,6 +503,8 @@ Singleton {
         else {
             translation = "";
             translateError = "";
+            translator.running = false;
+            translating = false;
         }
         setPicked(run);
         box = boundsOf(run);
@@ -544,33 +678,41 @@ Singleton {
         } else
             close();
     }
-    // Enter: the picture saved (the pick, else the whole screen)
+    // Enter: copied, as Ctrl+C (the clipboard is what a shot is mostly for; Ctrl+S saves)
     function enter() {
-        save();
+        ctrlC();
     }
-    // Ctrl+C: a text pick's text, else the picture
-    function ctrlC() {
-        if (textPick && hasText)
-            copyText();
+    // Ctrl+C: the pick's text when it has any (the card shows it), else the picture;
+    // keep (Ctrl+Shift+C): the overlay stays for the next piece
+    function ctrlC(keep) {
+        if (hasText)
+            copyText(keep);
         else
-            copyShot();
+            copyShot(keep);
     }
 
     // ---- what the bar does
     function copy(t) {
         const s = t === undefined ? text : t;
-        Quickshell.execDetached(["wl-copy", "--", s]);
+        // a type of its own: guessed, "From: …\nSubject: …" read off a screen went as a mail
+        Quickshell.execDetached(["wl-copy", "--type", "text/plain;charset=utf-8", "--", s]);
         // on air: how much, not what (16.10 a copied word went out on stream)
         say(I18n.t("Скопировано", "Copied"), StreamMode.onAir ? I18n.t("знаков: ", "characters: ") + s.length : s.slice(0, 200));
     }
     // "Text": the picked text, else all of the screen's
-    function copyText() {
+    function copyText(keep) {
+        if (!open)   // a second click while it fades
+            return false;
         learnNow();
         const t = hasText ? text : allText();
         if (!t.trim())
             return false;
         copy(t);
-        close();
+        if (keep) {
+            acted = false;
+            told(I18n.t("Скопировано — выделяйте следующее, Esc — закрыть", "Copied — pick the next piece, Esc closes"));
+        } else
+            close();
         return true;
     }
     // ---- the picture: Capture saves and copies it (its folders, its notification, its settings)
@@ -578,10 +720,15 @@ Singleton {
         return clampRect(r);
     }
     function save(r) {
+        if (!open)
+            return;
         if (r === undefined)
             learnNow();
         const rect = rectOf(r === undefined ? box : r);
-        Capture.saveShot(frame, rect, {});
+        // the file only: the clipboard keeps what was copied (a text, then Enter, lost it)
+        Capture.saveShot(frame, rect, {
+            "copy": false
+        });
         shot(rect);
         close();
     }
@@ -592,11 +739,24 @@ Singleton {
     function saveWindow(x, y) {
         save(targetWindow(x, y));
     }
-    function copyShot() {
+    function copyShot(keep) {
+        if (!open)
+            return;
         learnNow();
         const rect = rectOf(box);
-        Capture.copyShot(frame, rect);
-        say(I18n.t("Картинка скопирована", "Picture copied"), "");
+        // told once it is there: a paste right after the overlay closes got the old clipboard;
+        // closed, the picture waits in the corner as a saved one does (a click edits it)
+        const screen = screenName;
+        Capture.copyShot(frame, rect, r => {
+            say(r.copied ? I18n.t("Картинка скопирована", "Picture copied") : I18n.t("Картинка не скопировалась", "Picture not copied"), r.error || "");
+            if (r.copied && r.path && !keep)
+                ShotEdit.shown(r.path, screen, true);
+        }, ShotEdit.shotsDir + "/shot-" + Date.now() + ".png");
+        if (keep) {
+            acted = false;
+            told(I18n.t("Картинка скопирована — выделяйте следующее", "Picture copied — pick the next piece"));
+            return;
+        }
         shot(rect);
         close();
     }
@@ -646,6 +806,8 @@ Singleton {
     }
     // "Search": the text in the island (a link: opened); a pick with no text: by its picture
     function search() {
+        if (!open)
+            return;
         learnNow();
         const t = text.trim();
         if (!t) {
@@ -674,12 +836,16 @@ Singleton {
     }
     // the picked piece (or the whole screen) to Google Lens, in the island
     function searchPicture() {
+        if (!open)
+            return;
         learnNow();
         cropTo(rectOf(box), "lens", png => Island.lens(png));
         close();
     }
     // to a phone nearby (Quick Share): a text pick's text, else the picture (the pick or the screen)
     function shareNearby() {
+        if (!open)
+            return;
         learnNow();
         if (textPick && hasText)
             QuickShare.share([], text.trim());
@@ -688,7 +854,7 @@ Singleton {
         close();
     }
     function say(title, body) {
-        Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "edit-copy", "-h", "string:x-canonical-private-synchronous:angelos-circle", title, body]);
+        Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "edit-copy", "-h", "string:x-canonical-private-synchronous:angelos-circle", "--", title, body]);
     }
 
     Process {
@@ -744,8 +910,9 @@ Singleton {
                     // the windows as placed on the frame (tiled ones included)
                     if ((j.windows || []).length)
                         root.windowsHere = j.windows;
-                    // kinds the user lets go of every time here are not lit
-                    root.regions = root.regions.filter(r => r.kind === "window" || !Learn.unwanted(root.learned, root.appAt(r.x + r.w / 2, r.y + r.h / 2), r.kind));
+                    // kinds the user lets go of every time here are not lit (text always is: a
+                    // glance and Esc counted as "let go", and the text went dark everywhere)
+                    root.regions = root.regions.filter(r => r.kind === "window" || r.kind === "text" || !Learn.unwanted(root.learned, root.appAt(r.x + r.w / 2, r.y + r.h / 2), r.kind));
                 } catch (e) {
                     root.regions = [];
                 }
@@ -762,12 +929,32 @@ Singleton {
                     const j = JSON.parse(text);
                     if (j.error)
                         root.error = j.error;
-                    else
+                    else {
+                        nearReader.running = false;
                         root.words = Learn.fixWords(root.learned, j.words || [], w => root.appAt(w.x + w.w / 2, w.y + w.h / 2));
+                        root.screenLinks = root.findLinks(root.words);
+                        root.repick();
+                    }
                 } catch (e) {}
             }
         }
         onExited: root.reading = false
+    }
+    Process {
+        id: nearReader
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const j = JSON.parse(text);
+                    // the whole read may have come first: it wins
+                    if (root.reading && !j.error && (j.words || []).length) {
+                        root.words = Learn.fixWords(root.learned, j.words, w => root.appAt(w.x + w.w / 2, w.y + w.h / 2));
+                        root.screenLinks = root.findLinks(root.words);
+                        root.repick();
+                    }
+                } catch (e) {}
+            }
+        }
     }
     Process {
         id: picker
@@ -776,8 +963,7 @@ Singleton {
                 root.pickBusy = false;
                 try {
                     const j = JSON.parse(text);
-                    // the closer read wins unless it found nothing the whole frame did, or the
-                    // user has already edited the text in the card
+                    // (only asked when the whole frame had no words there) — not over the user's edit
                     if (!j.error && (j.words || []).length && root.text === root.readText)
                         root.setPicked(Learn.fixWords(root.learned, j.words, w => root.appAt(w.x + w.w / 2, w.y + w.h / 2)));
                     else if (j.error)

@@ -81,15 +81,19 @@ Singleton {
         id: shotRun
         Process {
             id: sr
+            property var done: null
             running: true
             stdout: StdioCollector {
                 onStreamFinished: {
                     const last = text.trim().split("\n").pop() || "";
+                    let r = {};
                     try {
-                        const r = JSON.parse(last);
-                        if (r && r.path)
+                        r = JSON.parse(last) || {};
+                        if (r.path)
                             root.shotSaved(r.path);
                     } catch (e) {}
+                    if (sr.done)
+                        sr.done(r);
                 }
             }
             onRunningChanged: if (!running)
@@ -97,11 +101,18 @@ Singleton {
         }
     }
     // only the picture on the clipboard, nothing saved
-    function copyShot(framePath, rect) {
+    // done(r): r.copied once the script is through ({"copied": bool, "path"} or {"error"});
+    // out: the PNG kept there too (the corner's thumbnail, services/ShotEdit)
+    function copyShot(framePath, rect, done, out) {
         const args = ["python3", Quickshell.shellPath("scripts/capture_save.py"), "copy", framePath];
         if (rect)
             args.push("--rect", [rect.x, rect.y, rect.w, rect.h].map(Math.round).join(","));
-        Quickshell.execDetached(args);
+        if (out)
+            args.push("--out", out);
+        shotRun.createObject(root, {
+            "command": args,
+            "done": done || null
+        });
     }
     // our own screen recording (niri-record-region, the Halo's record capsule): its pid file says
     // one runs, the file's time when it began. The script pokes recChanged (modules/Ipc) on start

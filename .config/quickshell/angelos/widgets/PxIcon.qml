@@ -63,4 +63,7 @@ Image {
     smooth: false
     mipmap: false
     cache: true
+    // an icon whose source changes (the cat's frames) lost a frame while the next one loaded,
+    // seen as a blink whenever a popup opened or closed (#82)
+    retainWhileLoading: true
 }

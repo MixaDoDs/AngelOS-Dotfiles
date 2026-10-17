@@ -18,7 +18,8 @@ Text {
     font.pixelSize: script ? Theme.scriptPx(Math.max(basePx, Theme.sizeTiny + 2)) : basePx
     font.weight: mac && (kind === "title" || kind === "big" || kind === "huge") ? Font.Bold : Font.Normal
     font.hintingPreference: mac ? Font.PreferVerticalHinting : Font.PreferFullHinting
-    renderType: script || mac ? Text.QtRendering : Text.NativeRendering
+    readonly property bool zoomed: Theme.zoomedFor(parent)
+    renderType: script || mac || zoomed ? Text.QtRendering : Text.NativeRendering
     verticalAlignment: Text.AlignVCenter
     // AutoText would render HTML found in window titles, track names or the
     // clipboard (<img src=…> even fetches remote images). Opt in per use.

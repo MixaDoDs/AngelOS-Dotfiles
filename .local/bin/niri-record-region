@@ -44,8 +44,10 @@ fi
 case "$CODEC" in
   # no GOP of its own: with these settings NVENC wrote one keyframe for the whole file and
   # every seek decoded from the start (#73): one a second
-  nvenc) ENC=(-c hevc_nvenc -p cq=26 -p preset=p4 -p tune=ll -p g="$FPS" -b 0); CODEC_LABEL="HEVC NVENC" ;;
-  vaapi) ENC=(-c hevc_vaapi -d "$(compgen -G '/dev/dri/renderD*' | head -n1)"); CODEC_LABEL="HEVC VA-API" ;;
+  # H.264, not HEVC: browsers on Linux and GitHub don't play HEVC (a white frame), and a
+  # recording is mostly made to show someone (#86)
+  nvenc) ENC=(-c h264_nvenc -p cq=23 -p preset=p4 -p tune=ll -p g="$FPS" -b 0); CODEC_LABEL="H.264 NVENC" ;;
+  vaapi) ENC=(-c h264_vaapi -d "$(compgen -G '/dev/dri/renderD*' | head -n1)"); CODEC_LABEL="H.264 VA-API" ;;
   *) ENC=(-c libx264 -p crf=23 -p preset=veryfast); CODEC_LABEL="x264" ;;
 esac
 # the sound: what you hear (the default output's monitor), the microphone, or both (wf-recorder

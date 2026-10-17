@@ -369,7 +369,7 @@ PanelWindow {
                     width: GoldenGate.px(16)
                     height: width
                     sourceSize: Qt.size(width * 2, height * 2)
-                    source: extra.modelData.icon
+                    source: StdIcon.safe(extra.modelData.icon, "application-x-executable")
                     smooth: true
                     mipmap: true
                 }

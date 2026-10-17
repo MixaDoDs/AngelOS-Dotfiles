@@ -534,6 +534,12 @@ IpcHandler {
             return;
         QuickShare.share([], text);
     }
+    // the screenshot editor on a picture ("" : the newest shot), its recent shots along the bottom
+    function shotEdit(path: string): void {
+        if (Shell.setupLocked)
+            return;
+        ShotEdit.edit(path);
+    }
     // Quick Look: a look at a file without opening it (Space in Nautilus calls it by itself)
     function quicklook(path: string): void {
         if (Shell.setupLocked)

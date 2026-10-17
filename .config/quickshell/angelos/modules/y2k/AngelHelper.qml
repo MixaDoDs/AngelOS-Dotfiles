@@ -752,7 +752,9 @@ Scope {
                         SpriteRig {
                             id: sprite
                             x: (win.atLeft ? 0 : stage.width - width) + win.offX
-                            y: stage.height - angel.height + Theme.u * 2 + (stage.moving ? 0 : win.streamer ? -win.voiceLift : win.bob * Math.max(1, Theme.u / 2)) + win.offY
+                            // + 0.02: at a fractional size a screen pixel centred right on an art-pixel edge picked
+                            // its row by float error, so one row (above the bow) flickered while bobbing (#85)
+                            y: stage.height - angel.height + Theme.u * 2 + (stage.moving ? 0 : win.streamer ? -win.voiceLift : win.bob * Math.max(1, Theme.u / 2)) + win.offY + 0.02
                             width: ready ? implicitWidth : pixelArt.width
                             height: ready ? implicitHeight : pixelArt.height
                             who: win.demonArt ? "demon" : "angel"

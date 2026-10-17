@@ -6,6 +6,8 @@ import Quickshell.Io
 import qs.config
 import qs.services
 import qs.modules.circle
+import qs.modules.capture
+import qs.modules.quickshare
 
 // The screenshot overlay, offscreen (started by tests/circle/run.sh): a frame with known words is
 // drawn here; CircleSearch.start grabs it through a stand-in grim (with the pointer or not), the
@@ -89,11 +91,11 @@ Scope {
         CircleSearch.open = true;
     }
     property bool snapping: false
-    function snap(name) {
+    function snap(name, item) {
         if (!root.snaps)
             return;
         root.snapping = true;
-        face.grabToImage(r => {
+        (item || face).grabToImage(r => {
             r.saveToFile(root.snaps + "/" + name + ".png");
             root.snapping = false;
         });
@@ -173,6 +175,47 @@ Scope {
             height: 400
         }
     }
+
+    // the saved shot's corner card and its editor, as ShotPreview's windows would hold them
+    FloatingWindow {
+        visible: true
+        implicitWidth: 1000
+        implicitHeight: 760
+        color: "#203040"
+        Item {
+            id: shotFace
+            anchors.fill: parent
+            Loader {
+                active: ShotEdit.thumb
+                x: 700
+                y: 520
+                sourceComponent: ShotCard {}
+            }
+        }
+    }
+    FloatingWindow {
+        visible: true
+        implicitWidth: 1320
+        implicitHeight: 860
+        color: "black"
+        ShotEditor {
+            id: editorFace
+            anchors.fill: parent
+        }
+    }
+    // Quick Share's window, as ShareSheet holds it
+    FloatingWindow {
+        visible: true
+        implicitWidth: 760
+        implicitHeight: 680
+        color: "black"
+        ShareView {
+            id: shareFace
+            anchors.fill: parent
+        }
+    }
+    property string firstShot: ""
+    property int undone: 0
 
     // the stand-ins' logs
     FileView {
@@ -436,6 +479,15 @@ Scope {
             CircleSearch.windowsHere = root.windowsHere;
             return true;
         },
+        // ---- icons a theme lacks (services/StdIcon): ours, never the checkerboard (#47)
+        () => {
+            const u = StdIcon.safe("image://icon/image");
+            const bad = StdIcon.safe("image://icon/no-such-icon-at-all", "notification");
+            root.report("icons:-a-name-the-theme-lacks-is-ours", u.indexOf("data:image/svg") === 0 && bad.indexOf("data:image/svg") === 0, u.slice(0, 30) + " | " + bad.slice(0, 30));
+            root.report("icons:-paths-and-urls-pass", StdIcon.safe("/a/b.png") === "file:///a/b.png" && StdIcon.safe("image://qsimage/1") === "image://qsimage/1" && StdIcon.safe("") === "");
+            root.report("icons:-words-in-a-name-pick-one", StdIcon.pixel("org.gnome.Screenshot") === StdIcon.pixel("camera-photo") && StdIcon.pixel("audio-volume-high-symbolic") !== "" && StdIcon.pixel("zzqqxx") === "");
+            return true;
+        },
         // ---- picks: a loop, a line, words, areas
         () => {
             const w = root.word("hello");
@@ -458,6 +510,18 @@ Scope {
             const w = root.word("second");
             CircleSearch.setMode("auto");
             root.report("a-tap-on-a-word-picks-its-line", CircleSearch.tapAt(w.x + 2, w.y + 2) === "line" && /search the second line/i.test(CircleSearch.text) && CircleSearch.pickKind === "line", CircleSearch.text);
+            // capture_regions cuts text into "text" areas (half a line): the word's line still wins
+            CircleSearch.regions = root.areasHere.concat([{
+                    "x": w.x - 4,
+                    "y": w.y - 4,
+                    "w": w.w + 8,
+                    "h": w.h + 8,
+                    "kind": "text",
+                    "score": 0.7,
+                    "label": ""
+                }]);
+            root.report("a-tap-on-a-word-in-a-text-area-picks-its-line", CircleSearch.tapAt(w.x + 2, w.y + 2) === "line" && /search the second line/i.test(CircleSearch.text), CircleSearch.pickKind + " " + CircleSearch.text);
+            CircleSearch.regions = root.areasHere;
             const a = root.word("angelos");
             CircleSearch.setMode("text");
             root.report("text-mode:-a-tap-picks-one-word", CircleSearch.tapAt(a.x + 3, a.y + 3) === "word" && CircleSearch.text === a.t && CircleSearch.textPick, CircleSearch.text);
@@ -481,7 +545,10 @@ Scope {
             CircleSearch.setMode("auto");
             const hit = CircleSearch.tapAt(700, 150);
             root.report("a-tap-picks-the-smallest-area", hit === "region" && root.rectIs(CircleSearch.box, 600, 120, 200, 60), hit + " " + JSON.stringify(CircleSearch.box));
-            // nothing there: a 300 × 200 frame round the tap (Lens), kept on the screen
+            // nothing there: the first tap lets go of the pick, the next one puts a 300 × 200 frame
+            // round the tap (Lens), kept on the screen
+            const off = CircleSearch.tapAt(500, 330);
+            root.report("a-tap-on-nothing-lets-go-first", off === "" && !CircleSearch.box, off + " " + JSON.stringify(CircleSearch.box));
             const miss = CircleSearch.tapAt(500, 330);
             root.report("a-tap-on-nothing-puts-a-frame-there", miss === "rect" && root.rectIs(CircleSearch.box, 350, 200, 300, 200) && CircleSearch.pickKind === "rect", miss + " " + JSON.stringify(CircleSearch.box));
             // by a window's edge: the window (its inside, empty, gave the frame above)
@@ -549,22 +616,37 @@ Scope {
             face.move(450, 120);
             face.release(450, 120);
             root.report("face:-a-side-drags-only-itself", root.rectIs(CircleSearch.box, 20, 30, 430, 170), JSON.stringify(CircleSearch.box));
-            // inside: the whole frame moves, kept on the screen
-            face.press(200, 100, Qt.LeftButton, 0);
+            // inside with Ctrl: the whole frame moves, kept on the screen
+            face.press(200, 100, Qt.LeftButton, Qt.ControlModifier);
             face.move(210, 110);
             face.move(230, 120);
             face.release(230, 120);
             root.report("face:-the-frame-moves-as-a-whole", root.rectIs(CircleSearch.box, 50, 50, 430, 170), JSON.stringify(CircleSearch.box));
-            face.press(300, 100, Qt.LeftButton, 0);
+            face.press(300, 100, Qt.LeftButton, Qt.ControlModifier);
             face.move(-400, -400);
             face.release(-400, -400);
             root.report("face:-a-moved-frame-stays-on-the-screen", root.rectIs(CircleSearch.box, 0, 0, 430, 170), JSON.stringify(CircleSearch.box));
+            // the arrows: a pixel, Shift ten; Ctrl+Z: the pick before
+            face.key("Right");
+            face.key("Shift+Down");
+            root.report("arrows-move-the-pick", root.rectIs(CircleSearch.box, 1, 10, 430, 160) || root.rectIs(CircleSearch.box, 1, 10, 430, 170), JSON.stringify(CircleSearch.box));
+            face.key("Ctrl+Z");
+            root.report("Ctrl+Z-steps-back-a-pick", root.rectIs(CircleSearch.box, 1, 0, 430, 170), JSON.stringify(CircleSearch.box));
+            // without Ctrl a drag inside draws a new pick
+            face.press(100, 60, Qt.LeftButton, 0);
+            face.move(200, 105);
+            face.move(300, 150);
+            face.release(300, 150);
+            root.report("face:-a-drag-inside-the-pick-draws-a-new-one", CircleSearch.pickKind === "rect" && root.rectIs(CircleSearch.box, 100, 60, 200, 90), JSON.stringify(CircleSearch.box));
             // a tap inside it (no travel) is a tap: the line under it
             const hw = root.word("hello");
             face.press(hw.x + 4, hw.y + hw.h / 2, Qt.LeftButton, 0);
             face.release(hw.x + 5, hw.y + hw.h / 2);
             root.report("face:-a-tap-inside-the-frame-is-a-tap", CircleSearch.pickKind === "line" && /hello/i.test(CircleSearch.text), CircleSearch.pickKind + " " + JSON.stringify(CircleSearch.text));
-            // a tap on an empty place: the frame there
+            // a tap on an empty place: lets go of the pick, the next one puts the frame there
+            face.press(500, 330, Qt.LeftButton, 0);
+            face.release(500, 330);
+            root.report("face:-a-tap-on-nothing-lets-go-first", !CircleSearch.box, JSON.stringify(CircleSearch.box));
             face.press(500, 330, Qt.LeftButton, 0);
             face.release(500, 330);
             root.report("face:-a-tap-on-nothing-puts-a-frame-there", CircleSearch.pickKind === "rect" && root.rectIs(CircleSearch.box, 350, 200, 300, 200), JSON.stringify(CircleSearch.box));
@@ -591,7 +673,50 @@ Scope {
             face.move(w.x + w.w + 12, w.y + w.h + 12);
             face.move(w.x - 12, w.y + w.h + 12);
             face.release(w.x - 12, w.y - 10);
-            root.report("face:-a-loop-drawn-picks-inside", CircleSearch.pickKind === "loop" && /world/i.test(CircleSearch.text) && !/hello/i.test(CircleSearch.text), JSON.stringify(CircleSearch.text));
+            root.report("face:-a-rectangle-drawn-by-hand-snaps-to-its-box", CircleSearch.pickKind === "rect" && /world/i.test(CircleSearch.text) && !/hello/i.test(CircleSearch.text), CircleSearch.pickKind + " " + JSON.stringify(CircleSearch.text));
+            // a circle (open a little): a loop, its word lit
+            const cx = w.x + w.w / 2, cy = w.y + w.h / 2, rx = w.w / 2 + 16, ry = w.h / 2 + 16;
+            CircleSearch.reset();   // (a press on the last pick's edge drags that edge)
+            face.press(cx + rx, cy, Qt.LeftButton, 0);
+            for (let t = 0.3; t < 6.0; t += 0.3)
+                face.move(cx + Math.cos(t) * rx, cy + Math.sin(t) * ry);
+            face.release(cx + Math.cos(6.0) * rx, cy + Math.sin(6.0) * ry);
+            const lit = CircleSearch.words.filter(v => CircleSearch.pickedKeys[v.x + "," + v.y]).map(v => v.t).join(" ");
+            root.report("face:-a-circle-is-a-loop-with-its-words-lit", CircleSearch.pickKind === "loop" && /^world$/i.test(lit) && /world/i.test(CircleSearch.text), CircleSearch.pickKind + " " + lit);
+            // a figure 8 round two words: a loop (its area cancelled out: it was nothing)
+            const hw = root.word("hello");
+            const ox = (hw.x + w.x + w.w) / 2, oy = cy, ax = (w.x + w.w - hw.x) / 2 + 12;
+            CircleSearch.reset();
+            face.press(ox, oy, Qt.LeftButton, 0);
+            for (let t = 0.25; t < 6.28; t += 0.25)
+                face.move(ox + Math.sin(t) * ax, oy + Math.sin(2 * t) * (w.h / 2 + 14));
+            face.release(ox, oy);
+            root.report("face:-a-figure-8-is-a-loop", CircleSearch.pickKind === "loop" && /hello/i.test(CircleSearch.text) && /world/i.test(CircleSearch.text), CircleSearch.pickKind + " " + JSON.stringify(CircleSearch.text));
+            // a flat diagonal drag with the hand's sag: still a rectangle (it was a sickle)
+            CircleSearch.reset();
+            face.press(30, 60, Qt.LeftButton, 0);
+            for (let i = 1; i < 20; i++)
+                face.move(30 + i * 40, 60 + i * 3 + Math.sin(i / 20 * Math.PI) * 18);
+            face.release(830, 120);
+            root.report("face:-a-flat-drag-with-a-sag-is-a-rectangle", CircleSearch.pickKind === "rect" && root.rectIs(CircleSearch.box, 30, 60, 800, 60), CircleSearch.pickKind + " " + JSON.stringify(CircleSearch.box));
+            // a straight drag along a line of text: its words, as a mouse selects
+            const s1 = root.word("search"), s2 = root.word("second");
+            face.press(s1.x + 4, s1.y + s1.h / 2, Qt.LeftButton, 0);
+            face.move(s1.x + 80, s1.y + s1.h / 2 + 1);
+            face.move(s2.x + 20, s2.y + s2.h / 2);
+            face.release(s2.x + 20, s2.y + s2.h / 2);
+            root.report("face:-a-straight-drag-along-text-picks-its-words", CircleSearch.pickKind === "words" && /^search the second$/i.test(CircleSearch.text), CircleSearch.pickKind + " " + JSON.stringify(CircleSearch.text));
+            // the preview never flips back: a circle's start is a rectangle, then a loop for good
+            face.press(cx + rx, cy, Qt.LeftButton, 0);
+            let flips = 0, was = face.looped;
+            for (let t = 0.3; t < 6.0; t += 0.3) {
+                face.move(cx + Math.cos(t) * rx, cy + Math.sin(t) * ry);
+                if (face.looped !== was)
+                    flips++;
+                was = face.looped;
+            }
+            face.key("Escape");
+            root.report("face:-the-preview-turns-to-a-loop-once", flips === 1 && was, flips + " " + was);
             // a tap on the photo area
             face.press(700, 150, Qt.LeftButton, 0);
             face.release(701, 151);
@@ -673,6 +798,47 @@ Scope {
         },
         () => root.until("Ctrl+C-copies-an-area's-picture", () => /image\/png/.test(root.fileText(copied)), 8000, () => copied.text()),
         () => {
+            root.reopen();
+            const w = root.word("world");
+            CircleSearch.pickLoop([{
+                    "x": w.x - 10,
+                    "y": w.y - 10
+                }, {
+                    "x": w.x + w.w + 10,
+                    "y": w.y - 10
+                }, {
+                    "x": w.x + w.w + 10,
+                    "y": w.y + w.h + 10
+                }, {
+                    "x": w.x - 10,
+                    "y": w.y + w.h + 10
+                }]);
+            copied.setText("");
+            face.key("Ctrl+C");
+            return true;
+        },
+        () => root.until("Ctrl+C-copies-a-loop's-text-not-its-picture", () => /^world$/i.test(root.fileText(copied)), 4000, () => copied.text()),
+        () => {
+            root.reopen();
+            CircleSearch.tapAt(root.word("second").x + 3, root.word("second").y + 3);
+            copied.setText("");
+            face.key("Ctrl+Shift+C");
+            root.report("Ctrl+Shift+C-copies-and-keeps-it-open", CircleSearch.open && face.miss !== "", CircleSearch.open + " " + face.miss);
+            // links on the screen: each line through Links.scan, back to its words (a phone over several)
+            const mk = (t, x, line) => ({
+                    "x": x,
+                    "y": line * 40,
+                    "w": t.length * 10,
+                    "h": 20,
+                    "t": t,
+                    "line": line
+                });
+            const ls = CircleSearch.findLinks([mk("see", 10, 9), mk("angelos.dev/docs", 60, 9), mk("call", 10, 10), mk("+7", 60, 10), mk("999", 90, 10), mk("123-45-67", 130, 10)]);
+            root.report("links-on-the-screen-are-found-with-their-words", ls.length === 2 && ls[0].kind === "url" && ls[0].box.x === 60 && ls[1].kind === "phone" && ls[1].box.x === 60 && ls[1].box.w === 160, JSON.stringify(ls));
+            return true;
+        },
+        () => root.until("Ctrl+Shift+C-copies-the-text", () => /search the second line/i.test(root.fileText(copied)), 4000, () => copied.text()),
+        () => {
             root.look();
             return root.wait(1500);
         },
@@ -685,11 +851,176 @@ Scope {
                 "w": 300,
                 "h": 90
             });
-            face.key("Enter");
-            root.report("Enter-saves-and-closes-with-the-shutter", !CircleSearch.open && face.leaving === "shot" && root.rectIs(face.shotRect, 40, 50, 300, 90), face.leaving + " " + JSON.stringify(face.shotRect));
+            copied.setText("kept");
+            Config.capture.shotPreviewAt = "top-left";
+            face.key("Ctrl+S");
+            root.report("Ctrl+S-saves-and-closes-with-the-shutter", !CircleSearch.open && face.leaving === "shot" && root.rectIs(face.shotRect, 40, 50, 300, 90), face.leaving + " " + JSON.stringify(face.shotRect));
+            // the piece flies where the corner card will be, at its size
+            root.report("the-shot-flies-where-the-thumbnail-goes", face.landAt === "top-left" && face.land.x < 450 && face.land.y < 200 && face.landK < 1, face.landAt + " " + face.land.x + "," + face.land.y + " k " + face.landK);
+            Config.capture.shotPreviewAt = "auto";
             return true;
         },
-        () => root.until("Enter-saves-the-picked-piece", () => root.savedIs("300x90"), 10000, () => shots.count + " " + shots.size),
+        () => root.until("Ctrl+S-saves-the-picked-piece", () => root.savedIs("300x90"), 10000, () => shots.count + " " + shots.size),
+        () => {
+            root.report("saving-leaves-the-clipboard-alone", root.fileText(copied) === "kept", root.fileText(copied));
+            return true;
+        },
+        // ---- the saved shot in the corner, its editor (services/ShotEdit, modules/capture/ShotEditor)
+        () => root.until("a-saved-shot-waits-in-the-corner", () => ShotEdit.thumb && /\.png$/.test(ShotEdit.path), 4000, () => ShotEdit.thumb + " " + ShotEdit.path),
+        () => {
+            // where it goes: the place picked, or by itself a free one (not the notifications' corner)
+            const auto = ShotEdit.placeOn(ShotEdit.screenName || CircleSearch.screenName);
+            Config.capture.shotPreviewAt = "top-left";
+            const picked = ShotEdit.placeOn(CircleSearch.screenName);
+            Config.capture.shotPreviewAt = "auto";
+            root.report("the-thumbnail's-place:-picked-or-free", picked === "top-left" && auto !== (Config.notifications.position || "top-right") && ["bottom-right", "bottom-left", "top-right", "top-left", "right", "left", "bottom-center", "top-center"].includes(auto), picked + " / " + auto);
+            return true;
+        },
+        () => root.wait(400),
+        () => {
+            root.snap("8-corner", shotFace);
+            return true;
+        },
+        () => root.wait(300),
+        () => {
+            root.firstShot = ShotEdit.path;
+            ShotEdit.edit();
+            root.report("a-click-opens-the-editor", ShotEdit.editing && !ShotEdit.thumb && editorFace.path === ShotEdit.path, editorFace.path);
+            return true;
+        },
+        // the work goes on a copy (the shot itself may be saved over)
+        () => root.until("editor:-works-on-a-copy-of-the-shot", () => editorFace.base !== editorFace.path && editorFace.page.width === 300, 8000, () => editorFace.base + " " + editorFace.page.width),
+        () => {
+            const e = editorFace;
+            e.tool = "arrow";
+            e.press([20, 20], 0);
+            e.move([120, 50], 0);
+            e.release([200, 70], 0);
+            e.tool = "rect";
+            e.press([10, 10], 0);
+            e.release([100, 60], Qt.ShiftModifier);
+            e.tool = "num";
+            e.press([250, 40], 0);
+            e.tool = "marker";
+            e.press([30, 80], 0);
+            e.move([90, 80], 0);
+            e.release([150, 80], 0);
+            root.report("editor:-marks-drawn", e.items.length === 4 && e.items[0].t === "arrow" && e.items[1].w === e.items[1].h && e.items[2].n === 1 && e.nextNum === 2 && e.items[3].pts.length >= 2, JSON.stringify(e.items.map(m => m.t)));
+            e.undo();
+            const back = e.items.length === 3;
+            e.redo();
+            root.report("editor:-undo-and-redo", back && e.items.length === 4, e.items.length);
+            // select and drag a mark
+            e.tool = "select";
+            e.press([250, 40], 0);
+            e.move([255, 45], 0);
+            e.release([260, 50], 0);
+            root.report("editor:-select-drags-a-mark", e.items[2].x === 260 && e.items[2].y === 50, JSON.stringify(e.items[2]));
+            e.ink = "#3fa9ff";
+            e.restyle();
+            root.report("editor:-a-picked-mark-takes-the-colour", e.items[2].c === "#3fa9ff", e.items[2].c);
+            e.tool = "sticker";
+            e.press([275, 20], 0);
+            e.add({
+                "t": "text",
+                "x": 160,
+                "y": 55,
+                "s": "привет!",
+                "c": "#ffd23f",
+                "size": 22,
+                "pixel": false
+            });
+            e.tool = "arrow";
+            return true;
+        },
+        () => root.wait(500),
+        () => {
+            root.snap("9-editor", editorFace);
+            return true;
+        },
+        () => root.wait(300),
+        () => {
+            // crop, Telegram-like: the bottom-right grip dragged in, then Done (the marks go into the picture)
+            const e = editorFace;
+            e.tool = "crop";
+            root.report("editor:-crop-starts-as-the-whole-picture", e.crop && e.crop.w === 300 && e.crop.h === 90, JSON.stringify(e.crop));
+            e.press([300, 90], 0);
+            e.move([250, 70], 0);
+            e.release([200, 60], 0);
+            root.report("editor:-a-crop-grip-drags", e.crop.w === 200 && e.crop.h === 60, JSON.stringify(e.crop));
+            return true;
+        },
+        () => root.wait(300),
+        () => {
+            root.snap("10-crop", editorFace);
+            return true;
+        },
+        () => root.wait(400),
+        () => {
+            editorFace.applyCrop();
+            return true;
+        },
+        () => root.until("editor:-cropped-with-its-marks", () => !editorFace.busy && editorFace.page.width === 200 && editorFace.page.height === 60 && editorFace.items.length === 0, 8000, () => editorFace.page.width + "x" + editorFace.page.height + " " + editorFace.items.length + " " + ShotEdit.error),
+        () => {
+            editorFace.tool = "hide";
+            editorFace.press([10, 10], 0);
+            editorFace.release([60, 40], 0);
+            return true;
+        },
+        () => root.until("editor:-a-part-hidden", () => !editorFace.busy && editorFace.undoList.length === 10, 8000, () => editorFace.undoList.length + " " + ShotEdit.error),
+        () => {
+            editorFace.step("rotate", "cw");
+            return true;
+        },
+        () => root.until("editor:-turned", () => !editorFace.busy && editorFace.page.width === 60 && editorFace.page.height === 200, 8000, () => editorFace.page.width + "x" + editorFace.page.height),
+        () => {
+            editorFace.undo();
+            return true;
+        },
+        () => root.until("editor:-Ctrl+Z-undoes-the-turn", () => editorFace.page.width === 200, 4000, () => editorFace.page.width),
+        () => {
+            root.shots0 = shots.count;
+            root.undone = editorFace.undoList.length;
+            editorFace.save();
+            copied.setText("");
+            editorFace.copy();
+            return true;
+        },
+        () => root.until("editor:-saved-over-the-shot", () => (root.look(), shots.size === "200x60"), 10000, () => shots.count + " " + shots.size + " " + ShotEdit.error),
+        () => root.until("editor:-copies-the-picture", () => /image\/png/.test(root.fileText(copied)), 4000, () => copied.text()),
+        // a picture only copied (Enter): on the clipboard, then in the corner too; its editor copies first
+        () => {
+            root.reopen();
+            ShotEdit.dismiss();
+            CircleSearch.tapAt(700, 150);   // the photo: no text in it
+            copied.setText("");
+            face.key("Enter");
+            root.report("Enter-copies-the-picture-and-closes", !CircleSearch.open, CircleSearch.open);
+            return true;
+        },
+        () => root.until("Enter-puts-the-picture-on-the-clipboard", () => /image\/png/.test(root.fileText(copied)), 8000, () => copied.text()),
+        () => root.until("a-copied-shot-waits-in-the-corner-too", () => ShotEdit.thumb && ShotEdit.temp && /shot-\d+\.png$/.test(ShotEdit.path), 4000, () => ShotEdit.thumb + " " + ShotEdit.temp + " " + ShotEdit.path),
+        () => {
+            ShotEdit.edit();
+            const ec = root.find(editorFace, "editor-copy");
+            root.report("editor:-the-clipboard-is-its-main-button", !!ec && ec.accent && ec.visible, !!ec);
+            root.report("editor:-another-shot-opens-in-the-same-window", editorFace.path === ShotEdit.path && editorFace.items.length === 0, editorFace.path);
+            return true;
+        },
+        () => root.until("editor:-the-copied-shot-is-ready", () => editorFace.base !== editorFace.path, 6000, () => editorFace.base),
+        () => {
+            root.shots0 = shots.count;
+            editorFace.save();
+            return true;
+        },
+        () => root.until("editor:-a-copied-shot-goes-into-the-folder", () => root.savedIs("200x60") && !ShotEdit.thumb && !ShotEdit.temp, 10000, () => shots.count + " " + shots.size + " thumb " + ShotEdit.thumb + " temp " + ShotEdit.temp),
+        () => {
+            // back to the first shot: its work and its undo are still there
+            ShotEdit.edit(root.firstShot);
+            root.report("editor:-a-shot's-work-is-kept", editorFace.path === root.firstShot && editorFace.undoList.length === root.undone && editorFace.page.width === 200, editorFace.undoList.length + " / " + root.undone);
+            ShotEdit.close();
+            return true;
+        },
         // ---- the bar
         () => {
             root.reopen();
@@ -850,6 +1181,20 @@ Scope {
             return true;
         },
         () => root.until("Send-nearby-sends-the-picture", () => QuickShare.sheetOpen && QuickShare.payload.length === 1 && /\.png$/.test(QuickShare.payload[0]), 8000, () => JSON.stringify(QuickShare.payload)),
+        () => {
+            // the window stays open: more files join what goes (no twice), the picker's lines too
+            const first = QuickShare.payload[0];
+            QuickShare.share(["/tmp/a.txt", first], "");
+            shareFace.add(["/tmp/b.mp3", "/tmp/a.txt", "", "relative"]);
+            root.report("Send-nearby:-more-files-join-what-goes", QuickShare.payload.length === 3 && QuickShare.payload[0] === first && QuickShare.payload.includes("/tmp/b.mp3"), JSON.stringify(QuickShare.payload));
+            return true;
+        },
+        () => root.wait(400),
+        () => {
+            root.snap("11-share", shareFace);
+            return true;
+        },
+        () => root.wait(300),
         () => {
             pngSize.file = QuickShare.payload[0];
             pngSize.running = true;

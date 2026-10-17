@@ -13,6 +13,9 @@ group, like meta-tap.py) and prints, then exits:
 Fast on purpose (a quick Alt+Tab tap lasts ~100 ms): no python-evdev, only the
 keyboards that have Alt (from /sys) are opened, the key state is one ioctl.
 It runs only while the switcher is open (at most --timeout seconds).
+
+--mod ctrl --follow: prints down/up on every change until killed — the desktop widgets'
+Ctrl + wheel zoom, whose layer window has no keyboard focus, so Qt never sees Ctrl (#84).
 Privacy: no key codes are stored, logged or printed; only "is an Alt key down".
 Devices are opened read-only and never grabbed.
 """
@@ -27,7 +30,8 @@ import time
 
 KEY_TAB, KEY_LEFTALT, KEY_RIGHTALT = 15, 56, 100
 KEY_LEFTMETA, KEY_RIGHTMETA = 125, 126
-MODS = {"alt": (KEY_LEFTALT, KEY_RIGHTALT), "meta": (KEY_LEFTMETA, KEY_RIGHTMETA)}
+KEY_LEFTCTRL, KEY_RIGHTCTRL = 29, 97
+MODS = {"alt": (KEY_LEFTALT, KEY_RIGHTALT), "meta": (KEY_LEFTMETA, KEY_RIGHTMETA), "ctrl": (KEY_LEFTCTRL, KEY_RIGHTCTRL)}
 ALT = MODS["alt"]
 EV_KEY = 1
 KEY_BYTES = 96                                  # KEY_MAX 0x2ff → 768 bits
@@ -59,6 +63,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--mod", choices=sorted(MODS), default="alt")
+    parser.add_argument("--follow", action="store_true")
     args = parser.parse_args()
     global ALT
     ALT = MODS[args.mod]
@@ -79,6 +84,23 @@ def main():
 
     def held():
         return any(alt_down(fd) for fd in fds)
+
+    if args.follow:
+        last = None
+        while True:
+            now = held()
+            if now != last:
+                print("down" if now else "up", flush=True)
+                last = now
+            ready, _, _ = select.select(fds, [], [], 1.0)
+            for fd in ready:
+                try:
+                    os.read(fd, EVENT.size * 64)    # drained only: the state is one ioctl
+                except OSError:                     # unplugged: stop polling it
+                    fds.remove(fd)
+            if not fds:
+                print("up", flush=True)
+                return
 
     if not held():
         print("up", flush=True)

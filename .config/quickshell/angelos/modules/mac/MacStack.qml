@@ -126,7 +126,7 @@ Item {
             if (p)
                 return p;
         }
-        return "";
+        return StdIcon.pixel(typeIcon(f)[0] || "");
     }
     // the freedesktop thumbnail (~/.cache/thumbnails), named by the md5 of the file's URI
     function thumbPath(f) {

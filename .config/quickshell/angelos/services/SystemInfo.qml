@@ -13,6 +13,19 @@ Singleton {
     // (scripts/gear.py, data/premium-gear.json) — Settings → System, fastfetch
     property var gear: []
     property real gearThreshold: 100
+    // what can be picked for an interface's inputs / headphone jacks and the rest of the desk
+    property var gearCatalog: []
+    // the user's own additions (kept by gear.py in ~/.config/angelos/gear.json, never published)
+    readonly property var gearMine: gear.filter(d => d.mine)
+
+    // rows: [{kind, name, usd, on?, port?}] — the whole list, as Settings → System edits it
+    function saveGear(rows) {
+        gear = gear.filter(d => !d.mine).concat(rows.map(r => Object.assign({
+                "mine": true
+            }, r)));
+        gearSave.command = ["python3", Quickshell.shellDir + "/scripts/gear.py", "--save-mine", JSON.stringify(rows)];
+        gearSave.running = true;
+    }
 
     function refresh() {
         probe.running = true;
@@ -33,9 +46,14 @@ Singleton {
                     const r = JSON.parse(text);
                     root.gear = r.devices || [];
                     root.gearThreshold = r.threshold || 100;
+                    root.gearCatalog = r.catalog || [];
                 } catch (e) {}
             }
         }
+    }
+    Process {
+        id: gearSave
+        onExited: gearProbe.running = true
     }
     Process {
         id: probe

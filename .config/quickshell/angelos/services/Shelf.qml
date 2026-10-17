@@ -13,7 +13,8 @@ import qs.config
 Singleton {
     id: root
 
-    // [{id, kind: file|folder|image|link|text, path, url, text, name, added (ms), fav, missing}]
+    // [{id, kind: file|folder|image|link|text, path, url, text, name, added (ms), fav, missing,
+    //   note (a text written by hand)}]
     property var items: []
     property bool loaded: false
     readonly property var loose: items.filter(i => !i.fav)
@@ -168,15 +169,48 @@ Singleton {
         }
         return out.join("");
     }
-    function addText(text) {
+    // note: written by hand (the shelf's ＋, the buttons page's field), not dropped — it stays
+    // when dragged out, as a note does, until it is ticked off
+    function addText(text, note) {
         const t = String(text || "").trim();
         if (t === "")
-            return;
-        put({
+            return null;
+        return put(Object.assign({
             "kind": "text",
             "text": t,
             "name": t.split("\n")[0].slice(0, 60)
-        });
+        }, note ? {
+            "note": true
+        } : {}));
+    }
+    // an empty note to be written at once (the shelf's ＋); left empty, it goes (setText)
+    function newNote() {
+        const it = {
+            "id": Date.now() + "-" + Math.floor(Math.random() * 1e6),
+            "kind": "text",
+            "path": "",
+            "url": "",
+            "text": "",
+            "name": "",
+            "added": Date.now(),
+            "fav": false,
+            "missing": false,
+            "note": true
+        };
+        set([it].concat(items.filter(i => !(i.kind === "text" && String(i.text).trim() === ""))));
+        return it;
+    }
+    // a text's words changed in the note view; "" with drop: gone
+    function setText(id, text, drop) {
+        const t = String(text || "");
+        if (drop && t.trim() === "") {
+            remove(id);
+            return;
+        }
+        set(items.map(i => i.id === id ? Object.assign({}, i, {
+                    "text": t,
+                    "name": t.trim().split("\n")[0].slice(0, 60)
+                }) : i));
     }
 
     function remove(id) {
@@ -187,10 +221,10 @@ Singleton {
                     "fav": !!on
                 }) : i));
     }
-    // dragged out somewhere: gone from the shelf unless starred
+    // dragged out somewhere: gone from the shelf unless starred or a note written by hand
     function taken(id) {
         const it = find(id);
-        if (it && !it.fav)
+        if (it && !it.fav && !it.note)
             remove(id);
     }
 
@@ -365,8 +399,9 @@ Singleton {
                     // what was dropped before the file was read stays, on top
                     // (the one kept on disk wins: its star, its id)
                     const early = root.items.map(e => list.find(i => i && root.same(i, e)) || e);
-                    // a picture still coming when the shell went: its fetch is gone with it
-                    const kept = list.filter(i => i && i.id && ["file", "folder", "image", "link", "text"].includes(i.kind) && !early.some(e => root.same(i, e)) && !(i.pending && !i.url)).map(i => i.pending ? Object.assign({}, i, {
+                    // a picture still coming when the shell went: its fetch is gone with it;
+                    // a note left empty when it went: gone too
+                    const kept = list.filter(i => i && i.id && ["file", "folder", "image", "link", "text"].includes(i.kind) && !early.some(e => root.same(i, e)) && !(i.pending && !i.url) && !(i.kind === "text" && String(i.text || "").trim() === "")).map(i => i.pending ? Object.assign({}, i, {
                                 "kind": "link",
                                 "pending": false,
                                 "failed": true

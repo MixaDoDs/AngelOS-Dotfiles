@@ -11,6 +11,10 @@ Pixora (CC BY 4.0, tsora1603) draws its folders in three colours: #E3C896 body, 
 (or -b: the name swaps on every change, so GTK apps reload the theme live), inheriting the Pixora
 in use, and becomes the icon theme (gtk-3.0/gtk-4.0 settings.ini, gsettings). "pixora" puts the
 Pixora theme back. Another icon theme than Pixora (Golden Gate's, the user's own) is left alone.
+
+Strata (the file manager) draws its own icons from inside its binary, never from the icon theme:
+Pixora's under Strata's names go into ~/.local/share/angelos/strata-icons, the folders in the
+tint, and GLib's G_RESOURCE_OVERLAYS (scripts/strata-setup.py) shows them instead of its own.
 """
 import configparser
 import json
@@ -30,6 +34,34 @@ BASES = ("pixora", "pixora-dark")
 BODY, SHADE = "E3C896", "AB947A"
 SHADES = ("A48875", "A48675", "9E7C71")   # the few in-between pixels of some folders
 CONTEXTS = ("places",)
+STRATA_ICONS = ICONS.parent / "angelos/strata-icons"
+# Strata's icon (its folder in the binary / name) → Pixora's: files, places, drives; its buttons stay
+STRATA = {
+    "actions/strata-folder": "places/folder", "actions/strata-folder-open": "places/folder",
+    "actions/strata-house": "places/folder-home", "actions/strata-monitor": "places/folder-desktop",
+    "actions/strata-download": "places/folder-downloads", "actions/strata-network": "places/folder-network",
+    "actions/strata-clock": "places/folder-recent", "actions/strata-trash": "mimetypes/application-x-trash",
+    "actions/strata-hard-drive": "devices/drive-harddisk", "actions/strata-disc": "devices/media-optical",
+    "actions/strata-image": "mimetypes/image-x-generic", "actions/strata-video": "mimetypes/video-x-generic",
+    "actions/strata-audio-lines": "mimetypes/audio-x-generic", "actions/strata-music-2": "mimetypes/audio-x-generic",
+    "actions/strata-file-text": "mimetypes/text-x-generic", "actions/strata-file-code": "mimetypes/text-x-script",
+    "actions/strata-file-terminal": "mimetypes/application-x-shellscript",
+    "actions/strata-file-archive": "mimetypes/package-x-generic",
+    "actions/strata-file-spreadsheet": "mimetypes/x-office-spreadsheet",
+    "actions/strata-presentation": "mimetypes/x-office-presentation",
+    "actions/strata-file-type": "mimetypes/font-x-generic",
+    # the languages' own (catppuccin's): those Pixora draws too
+    **{f"catppuccin/strata-ctp-{k}": f"mimetypes/{v}" for k, v in {
+        "python": "text-x-python", "bash": "application-x-shellscript", "c": "text-x-csrc",
+        "c-header": "text-x-chdr", "cpp": "text-x-c++src", "cpp-header": "text-x-chdr",
+        "csharp": "text-x-csharp", "go": "text-x-go", "rust": "text-rust", "java": "text-x-java",
+        "java-jar": "application-x-java-archive", "lua": "text-x-lua", "php": "application-x-php",
+        "json": "application-json", "yaml": "application-yaml", "toml": "application-toml",
+        "xml": "text-xml", "html": "text-html", "css": "text-css", "markdown": "text-markdown",
+        "cmake": "text-x-cmake", "makefile": "text-x-makefile", "readme": "text-markdown",
+        "changelog": "text-x-generic", "license": "text-x-generic",
+    }.items()},
+}
 
 
 def theme_dirs(name):
@@ -133,12 +165,28 @@ def build(name, base, fill, shade):
     return n
 
 
+def strata_icons(themes):
+    """Strata's icons from the first of these themes that has each (none: Strata's own)"""
+    shutil.rmtree(STRATA_ICONS, ignore_errors=True)
+    dirs = [theme_dirs(t)[0] for t in themes if theme_dirs(t)]
+    if not dirs:
+        return
+    STRATA_ICONS.mkdir(parents=True, exist_ok=True)
+    for name, icon in STRATA.items():
+        src = next((d / "scalable" / f"{icon}.svg" for d in dirs if (d / "scalable" / f"{icon}.svg").is_file()), None)
+        if src:
+            (STRATA_ICONS / name).parent.mkdir(exist_ok=True)
+            shutil.copyfile(src, STRATA_ICONS / f"{name}.svg")
+
+
 def apply(palette):
     if palette.get("skin") == "goldengate":
+        strata_icons([])
         return "Golden Gate's icons: folders left alone"
     cur = current()
     base = base_of(cur)
     if base not in BASES or not theme_dirs(base):
+        strata_icons([])
         return f"icon theme {cur or '?'} is not Pixora: folders left alone"
     tint = palette.get("folderTint") or "pixora"
     if tint == "pixora":
@@ -146,12 +194,14 @@ def apply(palette):
             set_theme(base)
         for name in OURS:
             shutil.rmtree(ICONS / name, ignore_errors=True)
+        strata_icons([base])
         return f"folders as Pixora draws them ({base})"
     fill = (palette.get("folderFill") or "#" + BODY).lstrip("#")[:6]
     shade = (palette.get("folderShade") or "#" + SHADE).lstrip("#")[:6]
     stamp = ICONS / ".angelos-folders"
     want = f"{base} {fill} {shade}"
     if cur in OURS and stamp.is_file() and stamp.read_text() == want and theme_dirs(cur):
+        strata_icons([cur, base])
         return f"folders {fill} already ({cur})"
     name = OURS[1] if cur == OURS[0] else OURS[0]
     n = build(name, base, fill, shade)
@@ -159,6 +209,7 @@ def apply(palette):
     set_theme(name)
     other = OURS[0] if name == OURS[1] else OURS[1]
     shutil.rmtree(ICONS / other, ignore_errors=True)
+    strata_icons([name, base])
     return f"folders {fill}/{shade}: {n} icons in {name} over {base}"
 
 

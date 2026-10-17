@@ -27,6 +27,7 @@ import qs.modules.cursor
 import qs.modules.cobweb
 import qs.modules.lens
 import qs.modules.circle
+import qs.modules.capture
 import qs.modules.quickshare
 import qs.modules.quicklook
 import qs.modules.island
@@ -78,6 +79,7 @@ ShellRoot {
     CobwebOverlay {}
     LensOverlay {}
     CircleOverlay {}
+    ShotPreview {}
     ShareSheet {}
     QuickLookWindow {}
     IslandProbe {}

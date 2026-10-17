@@ -33,7 +33,9 @@ PanelWindow {
     }
     Component.onCompleted: currentIndex = activeIndex
 
-    visible: shown || slide.running
+    // linger: shown goes false a beat before the slide-out starts, which unmapped the strip
+    // for a few frames before it slid away (#87)
+    visible: shown || slide.running || linger.running
     anchors.right: true
     implicitWidth: box.width + Theme.u * 8
     implicitHeight: box.height + Theme.u * 6
@@ -53,7 +55,14 @@ PanelWindow {
     Timer {
         id: hideTimer
         interval: Math.max(400, Config.workspaces.popupMs)
-        onTriggered: win.shown = false
+        onTriggered: {
+            linger.restart();
+            win.shown = false;
+        }
+    }
+    Timer {
+        id: linger
+        interval: Motion.ms(Theme.normal) + 100
     }
 
     PxBox {

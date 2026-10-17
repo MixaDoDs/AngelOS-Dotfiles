@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Templates as T
 import Quickshell
 import Quickshell.Io
 import qs.config
@@ -11,6 +12,268 @@ import "../../../widgets/Logos.js" as Logos
 PxPage {
     id: systemPage
     heading: "System"
+
+    // a gear field: type a bit of the name ("sm7", "м50", "аудиотехника") and the catalog's
+    // matches drop down with their prices; ↑↓ and Enter pick one; a name it doesn't know is
+    // added as your own, with a price
+    component GearPick: Row {
+        id: pick
+        property var kinds: ["xlr"]
+        property var current: null
+        property string empty: I18n.t("напиши модель…", "type a model…")
+        signal picked(var entry)
+        spacing: Theme.u * 3
+        readonly property var choices: SystemInfo.gearCatalog.filter(c => pick.kinds.includes(c.kind))
+        property string own: ""          // your own name, waiting for its price
+        property int hi: 0               // the highlighted suggestion
+
+        // brands as people say them in Russian → as the catalog writes them
+        readonly property var aliases: ({
+                "шур": "shure",
+                "сенхайзер": "sennheiser",
+                "зенхайзер": "sennheiser",
+                "сенхейзер": "sennheiser",
+                "аудиотехника": "audiotechnica",
+                "бейердинамик": "beyerdynamic",
+                "байердинамик": "beyerdynamic",
+                "роде": "rode",
+                "рёде": "rode",
+                "сони": "sony",
+                "акг": "akg",
+                "нейман": "neumann",
+                "электровойс": "electrovoice",
+                "хейл": "heil",
+                "фокал": "focal",
+                "одези": "audeze",
+                "хайфайман": "hifiman",
+                "эппл": "apple",
+                "боуз": "bose",
+                "элгато": "elgato",
+                "логитек": "logitech",
+                "рейзер": "razer",
+                "хайперикс": "hyperx",
+                "стилсириес": "steelseries",
+                "филипс": "philips",
+                "фостекс": "fostex",
+                "левитт": "lewitt",
+                "клаудлифтер": "cloudlifter",
+                "наушники": "",
+                "микрофон": ""
+            })
+        // a model number typed in Cyrillic lookalikes: "м50х" is M50x
+        readonly property var lookalike: ({
+                "а": "a",
+                "в": "b",
+                "е": "e",
+                "к": "k",
+                "м": "m",
+                "н": "h",
+                "о": "o",
+                "р": "p",
+                "с": "c",
+                "т": "t",
+                "у": "y",
+                "х": "x"
+            })
+        function norm(s) {
+            let n = String(s).toLowerCase().replace(/ø/g, "o").replace(/ё/g, "е").replace(/[^a-z0-9а-я+]/g, "");
+            if (/[a-z0-9]/.test(n))
+                n = n.replace(/[а-я]/g, ch => lookalike[ch] || ch);
+            return n;
+        }
+        // typed on the Russian layout: "ыь7и" is sm7b
+        readonly property string ru: "йцукенгшщзхъфывапролджэячсмитьбю"
+        readonly property string en: "qwertyuiop[]asdfghjkl;'zxcvbnm,."
+        function relayout(s) {
+            return s.toLowerCase().split("").map(ch => ru.indexOf(ch) >= 0 ? en[ru.indexOf(ch)] : ch).join("");
+        }
+        function token(t) {
+            const n = norm(t);
+            if (n.length >= 3)
+                for (const k in aliases)
+                    if (k.startsWith(n) || n.startsWith(k))
+                        return aliases[k];
+            return n;
+        }
+        readonly property string query: field.text.trim()
+        readonly property var matches: {
+            const found = find(query);
+            return found.length || !/[а-яё]/i.test(query) ? found : find(relayout(query));
+        }
+        function find(q) {
+            const words = q.split(/\s+/).map(token).filter(w => w);
+            if (!words.length)
+                return q ? [] : choices.slice(0, 8);
+            const scored = [];
+            for (const c of choices) {
+                const n = norm(c.name);
+                if (words.every(w => n.includes(w)))
+                    scored.push({
+                        "c": c,
+                        "s": (n.startsWith(words[0]) ? 0 : 1) * 1000 + n.length
+                    });
+            }
+            return scored.sort((a, b) => a.s - b.s).slice(0, 8).map(x => x.c);
+        }
+        // the suggestions, then "add as your own" when what's typed isn't one of them
+        readonly property var rows: matches.map(c => ({
+                    "label": (pick.kinds.length > 1 ? setupGroup.kindName[c.kind] + ": " : "") + c.name,
+                    "price": "~$" + Math.round(c.usd),
+                    "entry": c
+                })).concat(query && !matches.some(c => norm(c.name) === norm(query)) ? [{
+                    "label": I18n.t("＋ «", "＋ “") + query + I18n.t("» — своё", "” — your own"),
+                    "price": "",
+                    "entry": null
+                }] : [])
+        onRowsChanged: {
+            hi = 0;
+            if (drop.want && !drop.opened)
+                drop.open();
+        }
+
+        function choose(i) {
+            const r = rows[i];
+            if (!r)
+                return;
+            if (r.entry) {
+                pick.picked(r.entry);
+                field.text = "";
+                field.input.focus = false;
+            } else {
+                own = query;
+                field.text = "";
+                field.input.focus = false;
+                price.text = "";
+                price.focusField();
+            }
+        }
+        function saveOwn() {
+            if (!own)
+                return;
+            pick.picked({
+                "kind": pick.kinds[0],
+                "name": own,
+                "usd": Math.max(0, parseFloat(price.text.replace(/[^0-9.,]/g, "").replace(",", ".")) || 0)
+            });
+            own = "";
+        }
+
+        PxField {
+            id: field
+            width: Theme.u * 130
+            visible: !pick.own
+            placeholder: pick.current ? pick.current.name + "  ~$" + Math.round(pick.current.usd) : pick.empty
+            // what the slot holds reads as plain text; a click empties the field for a search
+            Binding on text {
+                when: !field.input.activeFocus && !!pick.current
+                value: pick.current ? pick.current.name + "  ~$" + Math.round(pick.current.usd) : ""
+            }
+            onKeyPressed: e => {
+                if (e.key === Qt.Key_Down || e.key === Qt.Key_Tab) {
+                    pick.hi = Math.min(pick.hi + 1, pick.rows.length - 1);
+                    e.accepted = true;
+                } else if (e.key === Qt.Key_Up || e.key === Qt.Key_Backtab) {
+                    pick.hi = Math.max(pick.hi - 1, 0);
+                    e.accepted = true;
+                } else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
+                    pick.choose(pick.hi);
+                    e.accepted = true;
+                } else if (e.key === Qt.Key_Escape)
+                    field.text = "";
+            }
+
+            T.Popup {
+                id: drop
+                readonly property bool want: field.input.activeFocus && pick.rows.length > 0
+                onWantChanged: want ? open() : close()
+                y: field.height + Theme.u
+                width: Math.max(field.width, Theme.u * 170)
+                height: Math.min(list.contentHeight, Theme.u * 150) + Theme.u * 4
+                padding: Theme.u * 2
+                margins: Theme.u * 2
+                modal: false
+                focus: false
+                closePolicy: T.Popup.CloseOnEscape | T.Popup.CloseOnPressOutsideParent
+                background: PxBox {
+                    color: Theme.face
+                    shadow: true
+                }
+                contentItem: ListView {
+                    id: list
+                    clip: true
+                    model: pick.rows
+                    currentIndex: pick.hi
+                    boundsBehavior: Flickable.StopAtBounds
+                    delegate: Rectangle {
+                        id: sug
+                        required property var modelData
+                        required property int index
+                        readonly property bool lit: index === pick.hi
+                        width: list.width
+                        height: Theme.sizeBody + Theme.u * 7
+                        color: lit ? Theme.select : "transparent"
+                        PxText {
+                            anchors.left: parent.left
+                            anchors.right: cost.left
+                            anchors.leftMargin: Theme.u * 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            elide: Text.ElideRight
+                            text: sug.modelData.label
+                            color: sug.lit ? Theme.selectText : Theme.text
+                        }
+                        PxText {
+                            id: cost
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.u * 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: sug.modelData.price
+                            color: sug.lit ? Theme.selectText : Theme.text
+                            dim: !sug.lit
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onEntered: pick.hi = sug.index
+                            // on press: a click must not lose to the field losing focus
+                            onPressed: pick.choose(sug.index)
+                        }
+                    }
+                }
+            }
+        }
+        // your own: its price, then ✓
+        PxText {
+            visible: !!pick.own
+            anchors.verticalCenter: parent.verticalCenter
+            text: pick.own
+            font.bold: true
+        }
+        PxField {
+            id: price
+            visible: !!pick.own
+            width: Theme.u * 30
+            placeholder: I18n.t("цена $", "price $")
+            onAccepted: pick.saveOwn()
+            onKeyPressed: e => {
+                if (e.key === Qt.Key_Escape)
+                    pick.own = "";
+            }
+        }
+        PxButton {
+            visible: !!pick.own
+            compact: true
+            icon: "check"
+            onClicked: pick.saveOwn()
+        }
+        // empty the slot
+        PxButton {
+            visible: !pick.own && !!pick.current
+            compact: true
+            icon: "close"
+            onClicked: pick.picked(null)
+        }
+    }
 
     PxGroup {
         name: "rendering"
@@ -161,43 +424,146 @@ PxPage {
         DesktopActions.refresh();
     }
 
-    // the expensive toys: shown only when a popular model over $100 is plugged in
+    // the expensive toys: popular models over $100 found plugged in, plus what each user adds
+    // (what is in the interface's inputs and jacks, the rest of the desk) — kept by gear.py in
+    // their own ~/.config/angelos/gear.json, never published
     PxGroup {
+        id: setupGroup
         name: "your-setup"
-        visible: SystemInfo.gear.length > 0
         title: I18n.t("Твой сетап ✧", "Your setup ✧")
         icon: "star"
         width: parent.width
+
+        readonly property var kindIcon: ({
+                "keyboard": "keyboard",
+                "mouse": "mouse",
+                "mic": "mic",
+                "xlr": "mic",
+                "headphones": "headphones"
+            })
+        readonly property var kindName: ({
+                "keyboard": I18n.t("Клавиатура", "Keyboard"),
+                "mouse": I18n.t("Мышь", "Mouse"),
+                "mic": I18n.t("Микрофон", "Microphone"),
+                "xlr": I18n.t("Микрофон (XLR)", "Microphone (XLR)"),
+                "headphones": I18n.t("Наушники", "Headphones"),
+                "other": I18n.t("На столе", "On the desk")
+            })
+        // detected ones, and own ones not plugged into a detected interface
+        readonly property var topLevel: SystemInfo.gear.filter(d => !d.mine || !d.on || !SystemInfo.gear.some(p => !p.mine && p.name === d.on))
+
+        function plain(d) {
+            const r = {
+                "kind": d.kind,
+                "name": d.name,
+                "usd": d.usd
+            };
+            if (d.on)
+                r.on = d.on;
+            if (d.port)
+                r.port = d.port;
+            return r;
+        }
+        function same(a, b) {
+            return a.name === b.name && (a.on || "") === (b.on || "") && (a.port || "") === (b.port || "");
+        }
+        function inSlot(on, port) {
+            return SystemInfo.gearMine.find(d => d.on === on && d.port === port) || null;
+        }
+        // entry: {kind, name, usd} or null to empty the slot
+        function setSlot(on, port, entry) {
+            const rows = SystemInfo.gearMine.filter(d => !(d.on === on && d.port === port)).map(plain);
+            if (entry)
+                rows.push(Object.assign(plain(entry), {
+                    "on": on,
+                    "port": port
+                }));
+            SystemInfo.saveGear(rows);
+        }
+        function add(entry) {
+            SystemInfo.saveGear(SystemInfo.gearMine.map(plain).concat([plain(entry)]));
+        }
+        function remove(d) {
+            SystemInfo.saveGear(SystemInfo.gearMine.filter(m => !same(m, d)).map(plain));
+        }
+        function slots(d) {
+            const out = [], p = d.ports || {};
+            for (let i = 1; i <= (p["in"] || 0); i++)
+                out.push({
+                    "port": "in" + i,
+                    "kind": "xlr",
+                    "label": I18n.t("Вход ", "Input ") + i
+                });
+            for (let i = 1; i <= (p.phones || 0); i++)
+                out.push({
+                    "port": "phones" + i,
+                    "kind": "headphones",
+                    "label": p.phones > 1 ? I18n.t("Наушники ", "Headphones ") + i : I18n.t("Наушники", "Headphones")
+                });
+            return out;
+        }
+
         Repeater {
-            model: SystemInfo.gear
-            Row {
+            model: setupGroup.topLevel
+            Column {
                 id: gearRow
                 required property var modelData
-                spacing: Theme.u * 4
-                PxIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    name: ({
-                            "keyboard": "keyboard",
-                            "mouse": "mouse",
-                            "mic": "mic"
-                        })[gearRow.modelData.kind] || "star"
-                    pixel: Theme.u * 2
+                width: parent.width
+                spacing: Theme.u * 2
+                Row {
+                    spacing: Theme.u * 4
+                    PxIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: setupGroup.kindIcon[gearRow.modelData.kind] || "star"
+                        pixel: Theme.u * 2
+                    }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        PxText {
+                            text: gearRow.modelData.name
+                            font.bold: true
+                        }
+                        PxText {
+                            text: setupGroup.kindName[gearRow.modelData.kind] + " · ~$" + Math.round(gearRow.modelData.usd) + (gearRow.modelData.on ? I18n.t(" · в ", " · in ") + gearRow.modelData.on : "")
+                            kind: "tiny"
+                            dim: true
+                        }
+                    }
+                    PxButton {
+                        visible: !!gearRow.modelData.mine
+                        anchors.verticalCenter: parent.verticalCenter
+                        compact: true
+                        icon: "close"
+                        onClicked: setupGroup.remove(gearRow.modelData)
+                    }
                 }
-                Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    PxText {
-                        text: gearRow.modelData.name
-                        font.bold: true
+                // what is plugged into the interface: a row per input and headphone jack
+                Repeater {
+                    model: gearRow.modelData.mine ? [] : setupGroup.slots(gearRow.modelData)
+                    SettingRow {
+                        id: slotRow
+                        required property var modelData
+                        width: gearRow.width
+                        label: "   " + slotRow.modelData.label
+                        GearPick {
+                            kinds: [slotRow.modelData.kind]
+                            current: setupGroup.inSlot(gearRow.modelData.name, slotRow.modelData.port)
+                            onPicked: e => setupGroup.setSlot(gearRow.modelData.name, slotRow.modelData.port, e)
+                        }
                     }
-                    PxText {
-                        text: ({
-                                "keyboard": I18n.t("Клавиатура", "Keyboard"),
-                                "mouse": I18n.t("Мышь", "Mouse"),
-                                "mic": I18n.t("Микрофон", "Microphone")
-                            })[gearRow.modelData.kind] + " · ~$" + Math.round(gearRow.modelData.usd)
-                        kind: "tiny"
-                        dim: true
-                    }
+                }
+            }
+        }
+        SettingRow {
+            width: parent.width
+            label: I18n.t("Добавить ещё", "Add more")
+            hint: I18n.t("наушники, микрофон, камера — что угодно на столе", "headphones, a mic, a camera — anything on the desk")
+            GearPick {
+                kinds: ["headphones", "xlr", "mic", "other"]
+                empty: I18n.t("напиши, что ещё на столе…", "type what else is on the desk…")
+                onPicked: e => {
+                    if (e)
+                        setupGroup.add(e);
                 }
             }
         }
@@ -206,7 +572,7 @@ PxPage {
             wrapMode: Text.Wrap
             kind: "tiny"
             dim: true
-            text: I18n.t("Популярные клавиатуры, мыши и микрофоны дороже $", "Popular keyboards, mice and microphones over $") + Math.round(SystemInfo.gearThreshold) + I18n.t(" (примерная цена на старте продаж). Их же показывает fastfetch.", " (roughly their launch price). fastfetch shows them too.")
+            text: I18n.t("Популярные клавиатуры, мыши и микрофоны дороже $", "Popular keyboards, mice and microphones over $") + Math.round(SystemInfo.gearThreshold) + I18n.t(" находятся сами (примерная цена на старте продаж). Что воткнуто в пульт и остальное — добавь сам: это хранится только у тебя (~/.config/angelos/gear.json) и никуда не публикуется. Всё это показывает и fastfetch.", " are found by themselves (roughly their launch price). What is plugged into the interface and the rest you add yourself: it stays only with you (~/.config/angelos/gear.json) and is never published. fastfetch shows it all too.")
         }
         PxButton {
             compact: true

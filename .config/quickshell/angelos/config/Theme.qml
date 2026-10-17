@@ -644,6 +644,14 @@ Singleton {
     readonly property color streamLive: accent
 
     // Only controls inside SettingsView inherit its skin.
+    // under a frame scaled by a fraction (a zoomed desktop widget): native glyphs would be
+    // resampled as a texture and smear, so PxText draws them with Qt instead (#83)
+    function zoomedFor(item) {
+        for (let p = item; p; p = p.parent)
+            if (p.zoomedFrame !== undefined)
+                return p.zoomedFrame === true;
+        return false;
+    }
     function settingsSkinFor(item) {
         for (let p = item; p; p = p.parent)
             if (p.settingsSkin !== undefined)

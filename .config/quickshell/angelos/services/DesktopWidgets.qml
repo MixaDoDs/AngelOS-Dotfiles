@@ -461,6 +461,18 @@ Singleton {
     }
     // the widget under the pointer (its input copy says so): the plate shows its name then
     property string hoverUid: ""
+    // Ctrl held, read from the keyboards while the pointer is over a widget: the desktop's
+    // layer window never has the keyboard focus, so the wheel event's modifiers are stale (#84)
+    property bool ctrlHeld: false
+    Process {
+        command: ["python3", Quickshell.shellDir + "/scripts/alt-watch.py", "--mod", "ctrl", "--follow"]
+        running: root.hoverUid !== ""
+        stdout: SplitParser {
+            onRead: line => root.ctrlHeld = line.trim() === "down"
+        }
+        onRunningChanged: if (!running)
+            root.ctrlHeld = false
+    }
     // the clocks that show the weather keep it coming (services/Weather)
     readonly property bool weatherWanted: widgets.some(w => w.type === "clock" && !(w.settings && w.settings.weather === false))
     Binding {

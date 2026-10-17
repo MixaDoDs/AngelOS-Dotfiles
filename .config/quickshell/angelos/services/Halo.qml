@@ -284,7 +284,8 @@ Singleton {
         target: Capture
         function onShotSaved(path) {
             // not while privacy on stream hides apps: the picture may have them in it
-            if (Config.halo.shotThumb !== false && !Privacy.hiddenNow.length)
+            // (the corner's own thumbnail, services/ShotEdit, takes its place when it is on)
+            if (Config.halo.shotThumb !== false && !ShotEdit.wanted && !Privacy.hiddenNow.length)
                 root.flashOf("shot", {
                     "path": path
                 }, 4000);

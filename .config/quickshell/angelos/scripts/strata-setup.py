@@ -3,8 +3,9 @@
 
   strata-setup.py status            -> JSON: what is installed and applied
   strata-setup.py apply             -> angelOS's items in Strata's menu (Open in terminal, mediafix,
-                                       Send nearby: ~/.config/strata/actions/angelos-*) and the
+                                       Send nearby: ~/.config/strata/actions/angelos-*), the
                                        angelOS theme (scripts/strata-theme.py) as the one it uses
+                                       and Pixora's icons (see below)
   strata-setup.py theme             -> only make «angelOS» the theme (apply does it too)
   strata-setup.py remove            -> take the items out (into a backup) and give the theme back
   strata-setup.py portal on|off     -> Strata's own Open/Save dialogs for every app (the file chooser
@@ -21,6 +22,12 @@ only while no Strata runs; otherwise apply says {"themePending": true} and the s
 once Strata is gone (services/StrataSetup). Its colours follow angelOS on the fly afterwards
 (Strata watches ~/.config/strata/themes). The theme Strata had before is kept in
 ~/.local/state/angelos/strata-before.json for `remove`.
+
+The icons: Strata reads them from inside its binary (GResource), so no icon theme reaches them.
+GLib's G_RESOURCE_OVERLAYS, set for the session (environment.d, and systemd's user manager at
+once), points their folders at ~/.local/share/angelos/strata-icons, which scripts/folder-tint.py
+fills with Pixora's: a Strata started after that draws those. Only Strata's own path is
+overlaid; a name missing there (or the whole folder, under another icon theme) is Strata's own.
 """
 import json
 import os
@@ -42,6 +49,9 @@ STATE = HOME / ".local/state/angelos"
 BEFORE = STATE / "strata-before.json"
 BACKUPS = STATE / "backups"
 DESKTOP = "io.github.lgse.Strata.desktop"
+ENVD = CONFIG / "environment.d/angelos-strata-icons.conf"
+OVERLAY = ":".join(f"/io/github/lgse/Strata/icons/{res}={DATA}/angelos/strata-icons/{own}"
+                   for res, own in (("scalable/actions", "actions"), ("catppuccin", "catppuccin")))
 VIDEO = ["mp4", "mkv", "mov", "avi", "mxf", "webm", "ts", "mts", "m2ts", "flv", "wmv", "mpg", "mpeg", "m4v", "3gp"]
 
 
@@ -78,7 +88,7 @@ def actions():
         },
         "angelos-share": {
             "name": "Отправить рядом (LocalSend)" if r else "Send nearby (LocalSend)",
-            "description": "Окно angelOS «Отправить рядом» с этими файлами" if r else "angelOS's Send nearby sheet with these files",
+            "description": "Окно angelOS «Отправить рядом» с этими файлами" if r else "angelOS's Send nearby window with these files",
             "icon": "send", "menu": "top",
             "when": {},
             "run": {"program": angelos, "args": ["share", "{paths}"], "mode": "whole-selection"},
@@ -186,6 +196,7 @@ def status():
         "theme": (STRATA / "themes/angelos.toml").is_file(),
         "themeSelected": setting(text, "theme") == "angelos" and setting(text, "mode") in (None, "theme"),
         "portal": (DATA / "xdg-desktop-portal/portals/strata.portal").is_file(),
+        "icons": ENVD.is_file(),
         "ffmpeg": bool(shutil.which("ffmpeg")),
         "localsend": bool(shutil.which("localsend") or shutil.which("localsend_app")),
     }
@@ -227,6 +238,24 @@ def select_theme(done):
     return True
 
 
+def icons(on, done):
+    """the session's G_RESOURCE_OVERLAYS for Strata's icons (see the docstring)"""
+    text = f"G_RESOURCE_OVERLAYS={OVERLAY}\n"
+    if (ENVD.is_file() and ENVD.read_text() == text) if on else not ENVD.exists():
+        return
+    if on:
+        ENVD.parent.mkdir(parents=True, exist_ok=True)
+        ENVD.write_text(text)
+    else:
+        ENVD.unlink()
+    # the tests run in a home of their own, and systemctl would reach the real session
+    if shutil.which("systemctl") and os.environ.get("ANGELOS_TEST") != "1":
+        subprocess.run(["systemctl", "--user", "set-environment" if on else "unset-environment",
+                        f"G_RESOURCE_OVERLAYS={OVERLAY}" if on else "G_RESOURCE_OVERLAYS"],
+                       stderr=subprocess.DEVNULL, check=False)
+    done.append("Pixora icons " + ("on" if on else "off"))
+
+
 def apply():
     done, errors = [], []
     backup = None
@@ -247,6 +276,7 @@ def apply():
         tmp.replace(target)
         done.append("installed " + aid)
     build_theme(errors)
+    icons(True, done)
     pending = not select_theme(done)
     return {"done": done, "errors": errors, "themePending": pending, "backup": str(backup or ""), "status": status()}
 
@@ -259,6 +289,7 @@ def remove():
             backup = backup or backup_dir()
             shutil.move(str(ACTIONS / aid), backup / aid)
             done.append("removed " + aid)
+    icons(False, done)
     text = read_settings()
     if setting(text, "theme") == "angelos" and not strata_pids():
         try:

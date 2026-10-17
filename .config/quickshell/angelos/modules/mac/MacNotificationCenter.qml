@@ -189,8 +189,7 @@ PanelWindow {
                         sourceSize: Qt.size(width * 2, height * 2)
                         smooth: true
                         source: {
-                            const i = String(card.modelData.icon || "");
-                            return !i ? Quickshell.iconPath("dialog-information", true) : i.startsWith("/") ? "file://" + i : i.includes("://") ? i : Quickshell.iconPath(i, true);
+                            return StdIcon.safe(card.modelData.icon, "dialog-information");
                         }
                     }
                     Column {

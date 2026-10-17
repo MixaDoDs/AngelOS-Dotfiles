@@ -103,6 +103,16 @@
     {
       "type": "command",
       "key": " ",
+      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{tier} {price} {#} {name}' --lang ru --nth 4"
+    },
+    {
+      "type": "command",
+      "key": " ",
+      "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{tier} {price} {#} {name}' --lang ru --nth 5"
+    },
+    {
+      "type": "command",
+      "key": " ",
       "text": "python3 @HOME@/.config/quickshell/angelos/scripts/gear.py --fmt '{#1;38;2;224;197;126}♡ донатов на сетап: {total}{#}' --lang ru --total --zero"
     }
   ]

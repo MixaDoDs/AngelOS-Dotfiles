@@ -97,8 +97,7 @@ Item {
             sourceSize: Qt.size(width * 2, height * 2)
             smooth: true
             source: {
-                const i = root.notification ? String(Notifs.iconFor(root.notification) || "") : "";
-                return !i ? Quickshell.iconPath("dialog-information", true) : i.startsWith("/") ? "file://" + i : i.includes("://") ? i : Quickshell.iconPath(i, true);
+                return StdIcon.safe(root.notification ? Notifs.iconFor(root.notification) : "", "dialog-information");
             }
         }
         // no icon from the app or the theme: a bell on a squircle

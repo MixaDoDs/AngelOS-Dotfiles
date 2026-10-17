@@ -6,6 +6,7 @@ import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
+import "../../widgets/Place.js" as Place
 
 // The screenshot overlay's face (services/CircleSearch), Pixel's Circle to Search: the frozen
 // frame, a light sweeping it while it is read, the areas found outlined (the one under the
@@ -22,7 +23,9 @@ Item {
     readonly property int u: Theme.u
     property var stroke: []                  // the loop / rectangle being drawn, window pixels
     property bool drawing: false
-    property string drawMode: "auto"         // this drag's mode (Shift: a rectangle)
+    property string drawMode: "auto"         // this drag's mode (Shift: a rectangle, Alt: a loop)
+    property bool looped: false              // this auto drag turned: a loop from then on (no flicker back)
+    property string miss: ""                 // a drag that caught nothing: said a moment in the hint
     property real travel: 0
     property int textFrom: -1                // a text drag's first word
     property int corner: -1                  // the pick's grip being dragged: 0 tl, 1 tr, 2 br, 3 bl corners,
@@ -40,29 +43,75 @@ Item {
     property real px: 0
     property real py: 0
     property bool dirty: false
+    // the word under the pointer: in auto its line (what a tap takes), in text mode the word itself
+    readonly property var hoverText: {
+        if (drawing || corner >= 0 || at.x < 0 || CircleSearch.mode === "rect")
+            return null;
+        const i = CircleSearch.wordIndexAt(at.x, at.y);
+        if (i < 0)
+            return null;
+        const w = CircleSearch.words[i];
+        return CircleSearch.mode === "text" ? w : CircleSearch.boundsOf(CircleSearch.words.filter(v => v.line === w.line && Math.abs(v.y - w.y) < w.h * 1.5));
+    }
     // the area under the pointer (a window by its edge): what a tap takes
-    readonly property var hovered: !drawing && !CircleSearch.box && at.x >= 0 && CircleSearch.mode !== "text" ? CircleSearch.areaAt(at.x, at.y) : null
+    readonly property var hovered: !drawing && !CircleSearch.box && at.x >= 0 && CircleSearch.mode !== "text" && !hoverText ? CircleSearch.areaAt(at.x, at.y) : null
     readonly property var target: windowPreview ? CircleSearch.targetWindow(at.x, at.y) : null
     readonly property bool editing: editor.input.activeFocus
     readonly property alias bar: bar
     readonly property alias card: card
     readonly property alias modeBox: modeBox
 
-    // a drag that encloses next to nothing (corner to corner, as every other screenshot tool
-    // takes a rectangle): a rectangle, not a loop
-    function lineLike(s) {
+    // what a drag drew (window pixels): "rect" — a near-straight path, corner to corner (as every
+    // other screenshot tool takes a rectangle); "loop" — a path that turns (a circle, open or not,
+    // an 8, an S); a closed one hugging its box all round is a rectangle drawn by hand: "rect".
+    // (it was |area| < 25% of the box: a flat drag with a sag of the hand became a sickle, a
+    // straight one along a line an empty loop, an 8 nothing)
+    function strokeKind(s) {
         if (s.length < 2)
-            return false;
-        let a = 0, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-        for (let i = 0; i < s.length; i++) {
-            const p = s[i], q = s[(i + 1) % s.length];
-            a += p.x * q.y - q.x * p.y;
+            return "rect";
+        const a = s[0], b = s[s.length - 1], pts = [a];
+        // resampled: an 8 kHz mouse's jitter is no path
+        for (const p of s)
+            if (Math.hypot(p.x - pts[pts.length - 1].x, p.y - pts[pts.length - 1].y) >= 8)
+                pts.push(p);
+        pts.push(b);
+        const D = Math.hypot(b.x - a.x, b.y - a.y);
+        let L = 0, dev = 0, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+        for (let i = 0; i < pts.length; i++) {
+            const p = pts[i];
+            if (i)
+                L += Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y);
+            dev = Math.max(dev, D > 0 ? Math.abs((b.x - a.x) * (a.y - p.y) - (a.x - p.x) * (b.y - a.y)) / D : Math.hypot(p.x - a.x, p.y - a.y));
             x0 = Math.min(x0, p.x);
             y0 = Math.min(y0, p.y);
             x1 = Math.max(x1, p.x);
             y1 = Math.max(y1, p.y);
         }
-        return Math.abs(a) / 2 < (x1 - x0) * (y1 - y0) * 0.25;
+        if (L < 40 || D >= 0.9 * L && dev < 0.12 * Math.max(D, 40))
+            return "rect";
+        const m = Math.min(x1 - x0, y1 - y0);
+        if (D > 0.35 * L || m < 30)
+            return "loop";
+        // closed: a rectangle drawn by hand keeps to its box's edges and reaches its corners
+        let off = 0;
+        for (const p of pts)
+            off += Math.min(p.x - x0, x1 - p.x, p.y - y0, y1 - p.y);
+        const reach = c => Math.min(...pts.map(p => Math.hypot(p.x - c[0], p.y - c[1])));
+        const corners = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+        return off / pts.length < 0.06 * m && corners.every(c => reach(c) < 0.15 * m) ? "rect" : "loop";
+    }
+    function boxOf(s) {
+        const xs = s.map(p => p.x), ys = s.map(p => p.y);
+        return Qt.rect(Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+    }
+    function missed(t) {
+        miss = t;
+        missTimer.restart();
+    }
+    Timer {
+        id: missTimer
+        interval: 2500
+        onTriggered: canvas.miss = ""
     }
     function win(r) {   // a frame rect in window pixels
         return r ? Qt.rect(r.x * k, r.y * k, r.w * k, r.h * k) : Qt.rect(0, 0, width, height);
@@ -178,6 +227,12 @@ Item {
         case "Ctrl+C":
             CircleSearch.ctrlC();
             return true;
+        case "Ctrl+Shift+C":
+            CircleSearch.ctrlC(true);
+            return true;
+        case "Ctrl+Z":
+            CircleSearch.undo();
+            return true;
         case "Ctrl+S":
             CircleSearch.save();
             return true;
@@ -186,6 +241,13 @@ Item {
             return true;
         case "Tab":
             CircleSearch.nextMode();
+            return true;
+        }
+        // the arrows move the pick a pixel, with Shift ten
+        const m = /^(Shift\+)?(Left|Right|Up|Down)$/.exec(name);
+        if (m) {
+            const n = m[1] ? 10 : 1, d = m[2];
+            CircleSearch.nudge(d === "Left" ? -n : d === "Right" ? n : 0, d === "Up" ? -n : d === "Down" ? n : 0);
             return true;
         }
         return false;
@@ -220,24 +282,38 @@ Item {
             key("Escape");
             return;
         }
+        // out of the card's editor: its focus turned Enter / Ctrl+C off and kept the card in place
+        canvas.forceActiveFocus();
         at = Qt.point(x / k, y / k);
         travel = 0;
         fresh = true;
         textTo = -1;
+        // Ctrl+click on a link on the screen: opened (a plain tap picks its line, its chip in the card)
+        const link = (mods & Qt.ControlModifier) ? CircleSearch.linkAt(x / k, y / k) : null;
+        if (link) {
+            CircleSearch.openLink(link);
+            return;
+        }
         corner = cornerAt(x, y);
+        // inside the pick a drag draws a new one (a tap there is still a tap); Ctrl+drag moves the pick
+        if (corner === 8 && !(mods & Qt.ControlModifier))
+            corner = -1;
         if (corner >= 0) {
             // (inside the frame it only moves once the pointer travels: a tap there stays a tap)
             adjust = corner === 8 ? null : CircleSearch.box;
             grabbed = at;
             return;
         }
-        drawMode = (mods & Qt.ShiftModifier) ? "rect" : CircleSearch.mode;
+        drawMode = (mods & Qt.ShiftModifier) ? "rect" : (mods & Qt.AltModifier) ? "loop" : CircleSearch.mode;
+        looped = drawMode === "loop";
         textFrom = drawMode === "text" ? CircleSearch.wordIndexAt(x / k, y / k) : -1;
         stroke = [Qt.point(x, y)];
         drawing = true;
     }
     function move(x, y) {
         at = Qt.point(x / k, y / k);
+        if (CircleSearch.reading)
+            CircleSearch.readNear(at.x, at.y);
         if (corner >= 0) {
             const b = CircleSearch.box, fx = Math.max(0, Math.min(CircleSearch.frameW, x / k)), fy = Math.max(0, Math.min(CircleSearch.frameH, y / k));
             if (corner === 8) {
@@ -287,6 +363,8 @@ Item {
             return;
         travel += d;
         stroke = stroke.concat([Qt.point(x, y)]);
+        if (drawMode === "auto" && !looped && strokeKind(stroke) === "loop")
+            looped = true;
         if (drawMode === "text" && textFrom >= 0 && travel >= 6) {
             const b = CircleSearch.wordNear(x / k, y / k);
             // the pick changes only when the word under the pointer does
@@ -313,21 +391,34 @@ Item {
             return;
         drawing = false;
         const a = stroke[0];
+        const s = stroke.concat([Qt.point(x, y)]);
+        // auto: straight — corner to corner; turned — a loop, but a closed one drawn as a rectangle snaps to its box
+        const snap = drawMode === "auto" && looped && strokeKind(s) === "rect";
+        const rect = drawMode === "rect" || drawMode === "auto" && !looped || snap;
+        const w = rect && !snap ? Qt.rect(Math.min(a.x, x), Math.min(a.y, y), Math.abs(x - a.x), Math.abs(y - a.y)) : boxOf(s);
         const r = {
-            "x": Math.min(a.x, x) / k,
-            "y": Math.min(a.y, y) / k,
-            "w": Math.abs(x - a.x) / k,
-            "h": Math.abs(y - a.y) / k
+            "x": w.x / k,
+            "y": w.y / k,
+            "w": w.width / k,
+            "h": w.height / k
         };
         if (travel < 14)
             CircleSearch.tapAt(x / k, y / k);
-        else if (drawMode === "rect" || drawMode === "auto" && lineLike(stroke))
-            CircleSearch.pickRect(r, "rect");
-        else if (drawMode === "text") {
-            if (textFrom < 0)
-                CircleSearch.selectWordsIn(r);
-        } else
-            CircleSearch.pickLoop(stroke.map(p => ({
+        else if (drawMode === "auto" && rect && Math.min(w.width, w.height) < 12) {
+            // a thin straight drag (along a line of text, as a mouse selects): the words from its start to its end
+            const i = CircleSearch.wordNear(a.x / k, a.y / k), j = CircleSearch.wordNear(x / k, y / k);
+            if (i < 0 || j < 0 || !CircleSearch.selectWords(i, j))
+                missed(CircleSearch.reading ? I18n.t("Текст ещё читается — попробуйте через секунду", "Still reading the text — try again in a second") : I18n.t("Здесь нет слов — обведите или тяните рамку", "No words here — circle it or drag a rectangle"));
+        } else if (rect) {
+            if (!CircleSearch.pickRect(r, "rect"))
+                missed(I18n.t("Слишком узко — тяните рамку побольше", "Too thin — drag a bigger rectangle"));
+        } else if (drawMode === "text") {
+            if (textFrom < 0 && !CircleSearch.selectWordsIn(r))
+                missed(I18n.t("Здесь нет слов", "No words here"));
+        } else if (s.length < 3 || w.width < 12 && w.height < 12)
+            missed(I18n.t("Слишком маленькая обводка", "Too small a loop"));
+        else
+            CircleSearch.pickLoop(s.map(p => ({
                         "x": p.x / k,
                         "y": p.y / k
                     })));
@@ -350,6 +441,8 @@ Item {
         target: CircleSearch
         function onShot(rect) {
             canvas.shotRect = rect;
+            // where the corner's picture will come up (ShotEdit.placeOn): the piece flies there
+            canvas.landAt = ShotEdit.placeOn(CircleSearch.screenName);
             canvas.leaving = "shot";
             shutter.restart();
         }
@@ -361,6 +454,9 @@ Item {
                 bar.glide = false;
                 Qt.callLater(canvas.relayout);
             }
+        }
+        function onTold(t) {
+            canvas.missed(t);
         }
         function onBoxChanged() {
             Qt.callLater(canvas.relayout);
@@ -406,7 +502,7 @@ Item {
         const box = r => [Qt.point(r.x, r.y), Qt.point(r.x + r.width, r.y), Qt.point(r.x + r.width, r.y + r.height), Qt.point(r.x, r.y + r.height), Qt.point(r.x, r.y)];
         if (corner >= 0 && adjust)
             return box(win(adjust));
-        if (drawing && (drawMode === "rect" || drawMode === "auto" && lineLike(s)) && s.length > 1)
+        if (drawing && (drawMode === "rect" || drawMode === "auto" && !looped) && s.length > 1)
             return box(Qt.rect(Math.min(s[0].x, last.x), Math.min(s[0].y, last.y), Math.abs(last.x - s[0].x), Math.abs(last.y - s[0].y)));
         if (drawing)
             return [];
@@ -422,7 +518,7 @@ Item {
     }
     // the loop's line, in pixel steps on the grid: the stroke while a loop is drawn, else the loop picked
     readonly property var line: {
-        const src = drawing ? (drawMode !== "rect" && drawMode !== "text" ? stroke : []) : CircleSearch.pickKind === "loop" && !(corner >= 0 && adjust) ? hole : [];
+        const src = drawing ? (looped ? stroke : []) : CircleSearch.pickKind === "loop" && !(corner >= 0 && adjust) ? hole : [];
         return src.length > 1 ? src.map(p => Qt.point(Math.round(p.x / u) * u, Math.round(p.y / u) * u)) : [];
     }
     // the dim and the line are Shapes: the GPU draws them (a screen-sized Canvas was painted by
@@ -591,16 +687,43 @@ Item {
             width: Math.round(modelData.w * canvas.k) + canvas.u * 2
             height: Math.round(modelData.h * canvas.k) + canvas.u * 2
             radius: Theme.macLook ? canvas.u : 0
-            color: on ? Qt.alpha(Theme.accent, 0.34) : textMode ? Qt.alpha(Theme.accent2, 0.12) : "transparent"
+            color: on ? Qt.alpha(Theme.accent, 0.34) : Qt.alpha(Theme.accent2, textMode ? 0.12 : 0.07)
             border.width: Math.max(1, canvas.u / 2)
-            border.color: Qt.alpha(on ? Theme.accent : Theme.accent2, on ? 0.95 : textMode ? 0.55 : 0.3)
-            visible: !(canvas.drawing && canvas.drawMode !== "text")
+            border.color: Qt.alpha(on ? Theme.accent : Theme.accent2, on ? 0.95 : textMode ? 0.55 : 0.45)
             opacity: 0
             NumberAnimation on opacity {
                 to: 1
                 duration: 260
             }
         }
+    }
+
+    // links, mail and phones on the screen: underlined (Ctrl+click opens one)
+    Repeater {
+        model: CircleSearch.screenLinks
+        Rectangle {
+            required property var modelData
+            readonly property rect r: canvas.win(modelData.box)
+            x: r.x
+            y: r.y + r.height + canvas.u
+            width: r.width
+            height: Math.max(2, canvas.u)
+            color: Theme.accent3
+        }
+    }
+
+    // the line (text mode: the word) under the pointer: what a tap takes
+    Rectangle {
+        readonly property rect r: canvas.win(canvas.hoverText)
+        visible: !!canvas.hoverText
+        x: r.x - canvas.u * 2
+        y: r.y - canvas.u * 2
+        width: r.width + canvas.u * 4
+        height: r.height + canvas.u * 4
+        radius: Theme.macLook ? canvas.u * 2 : 0
+        color: Qt.alpha(Theme.accent, 0.16)
+        border.width: Math.max(2, canvas.u)
+        border.color: Qt.alpha("white", 0.9)
     }
 
     // the pick: four corners (drag one to change it), popping in
@@ -704,7 +827,7 @@ Item {
         // from canvas.at (once a frame), not mouseX (every move of the mouse)
         cursorShape: {
             const g = canvas.corner >= 0 ? canvas.corner : canvas.cornerAt(canvas.at.x * canvas.k, canvas.at.y * canvas.k);
-            return g >= 0 && (canvas.corner >= 0 || g < 8) ? canvas.gripCursor(g) : CircleSearch.mode === "text" && CircleSearch.wordIndexAt(canvas.at.x, canvas.at.y) >= 0 ? Qt.IBeamCursor : canvas.hovered ? Qt.PointingHandCursor : Qt.CrossCursor;
+            return g >= 0 && (canvas.corner >= 0 || g < 8) ? canvas.gripCursor(g) : canvas.hoverText ? (CircleSearch.mode === "text" ? Qt.IBeamCursor : Qt.PointingHandCursor) : canvas.hovered ? Qt.PointingHandCursor : Qt.CrossCursor;
         }
         onPressed: m => {
             canvas.flush();
@@ -794,7 +917,7 @@ Item {
                 wrapMode: Text.Wrap
                 kind: "tiny"
                 dim: true
-                text: CircleSearch.error === "tesseract" ? I18n.t("Нужен tesseract — без него текст не прочитать", "Needs tesseract to read text") : (CircleSearch.mode === "text" ? I18n.t("Нажмите на слово или проведите по словам · Ctrl+A — весь текст", "Tap a word or drag over words · Ctrl+A for all") : CircleSearch.mode === "rect" ? I18n.t("Тяните рамку или нажмите на область", "Drag a rectangle or tap an area") : I18n.t("Нажмите на область или строку · тяните рамку · обведите", "Tap an area or a line · drag a rectangle · circle it")) + (CircleSearch.reading ? I18n.t(" · читаю экран…", " · reading the screen…") : CircleSearch.box ? (CircleSearch.textPick && CircleSearch.hasText ? I18n.t(" · Ctrl+C — копировать текст", " · Ctrl+C copies the text") : I18n.t(" · Ctrl+C — копировать картинку", " · Ctrl+C copies the picture")) + I18n.t(" · Enter — сохранить выделенное · Esc — снять", " · Enter saves the pick · Esc lets go") : I18n.t(" · Enter — сохранить экран · Esc — закрыть", " · Enter saves the screen · Esc closes"))
+                text: canvas.miss || (CircleSearch.error === "tesseract" ? I18n.t("Нужен tesseract — без него текст не прочитать", "Needs tesseract to read text") : (CircleSearch.mode === "text" ? I18n.t("Нажмите на слово или проведите по словам · Ctrl+A — весь текст", "Tap a word or drag over words · Ctrl+A for all") : CircleSearch.mode === "rect" ? I18n.t("Тяните рамку или нажмите на область", "Drag a rectangle or tap an area") : I18n.t("Нажмите на область или строку · тяните рамку · обведите", "Tap an area or a line · drag a rectangle · circle it")) + (CircleSearch.reading ? I18n.t(" · читаю экран…", " · reading the screen…") : CircleSearch.box ? (CircleSearch.hasText ? I18n.t(" · Ctrl+C — копировать текст", " · Ctrl+C copies the text") : I18n.t(" · Ctrl+C — копировать картинку", " · Ctrl+C copies the picture")) + I18n.t(" · Enter — копировать · Ctrl+Shift+C — не закрывая · Ctrl+Z — назад · Ctrl+S — сохранить · Esc — снять", " · Enter copies · Ctrl+Shift+C keeps it open · Ctrl+Z back · Ctrl+S saves · Esc lets go") : I18n.t(" · Enter — копировать экран · Esc — закрыть", " · Enter copies the screen · Esc closes")))
             }
         }
     }
@@ -922,8 +1045,8 @@ Item {
             easing.type: Easing.OutCubic
         }
         property bool more: false
-        readonly property bool textFirst: CircleSearch.textPick && CircleSearch.hasText || CircleSearch.kind !== "text"
-        readonly property var order: !CircleSearch.box ? ["save", "copy", "text", "search", "lens", "translate", "share", "full", "window"] : CircleSearch.kind !== "text" ? ["search", "text", "translate", "more", "save", "copy", "lens", "share", "full", "window"] : textFirst ? ["text", "search", "translate", "more", "save", "copy", "lens", "share", "full", "window"] : ["save", "copy", Config.circle.lens ? "lens" : "search"].concat(CircleSearch.hasText ? ["text"] : [], ["more", Config.circle.lens ? "search" : "lens", "translate", "share", "full", "window"])
+        // the clipboard first, always (the first button is lit): the text when there is some, else the picture
+        readonly property var order: !CircleSearch.box ? ["copy", "text", "save", "search", "lens", "translate", "share", "full", "window"] : CircleSearch.kind !== "text" ? ["text", "search", "copy", "more", "translate", "save", "lens", "share", "full", "window"] : CircleSearch.hasText ? ["text", "copy", "search", "translate", "more", "save", "lens", "share", "full", "window"] : ["copy", Config.circle.lens ? "lens" : "search", "save", "more", Config.circle.lens ? "search" : "lens", "translate", "share", "full", "window"]
         readonly property int fold: order.indexOf("more")    // -1: everything shown
         onOrderChanged: more = false
         readonly property var acts: {
@@ -939,7 +1062,7 @@ Item {
                 },
                 "copy": {
                     "icon": "image",
-                    "text": I18n.t("Копировать", "Copy"),
+                    "text": I18n.t("Копировать картинку", "Copy picture"),
                     "on": true,
                     "shown": !behind("copy"),
                     "run": () => CircleSearch.copyShot()
@@ -1056,7 +1179,17 @@ Item {
         }
     }
 
-    // a picture taken: a flash, then the piece shrinks into the corner
+    // a picture taken: a flash, then the piece shrinks to the corner card's size and flies to its
+    // place (ShotCard: at most u*90 × u*70, u*10 from the edge, clear of the bar), centre to centre
+    property string landAt: "bottom-right"
+    readonly property real landK: Math.min(1, u * 90 / Math.max(1, thumb.width), u * 70 / Math.max(1, thumb.height))
+    readonly property point land: {
+        const p = landAt, e = BarLayout.edge, bar = Theme.barHeight, m = u * 12;
+        const sw = thumb.width * landK, sh = thumb.height * landK;
+        const x = Place.left(p) ? (e === "left" ? bar : 0) + m : Place.right(p) ? width - (e === "right" ? bar : 0) - m - sw : (width - sw) / 2;
+        const y = Place.top(p) ? (e === "top" ? bar : 0) + m : Place.bottom(p) ? height - (e === "bottom" ? bar : 0) - m - sh : (height - sh) / 2;
+        return Qt.point(x + sw / 2, y + sh / 2);
+    }
     Rectangle {
         id: flash
         anchors.fill: parent
@@ -1072,7 +1205,7 @@ Item {
         y: r.y
         width: r.width
         height: r.height
-        transformOrigin: Item.BottomRight
+        transformOrigin: Item.Center
         Image {
             x: -thumb.r.x
             y: -thumb.r.y
@@ -1111,7 +1244,7 @@ Item {
             target: thumb
             property: "scale"
             from: 1
-            to: Math.min(0.3, canvas.width * 0.22 / Math.max(1, thumb.width))
+            to: canvas.landK
             duration: 420
             easing.type: Easing.InOutCubic
         }
@@ -1119,7 +1252,7 @@ Item {
             target: thumb
             property: "x"
             from: thumb.r.x
-            to: canvas.width - thumb.width - canvas.u * 12
+            to: canvas.land.x - thumb.width / 2
             duration: 420
             easing.type: Easing.InOutCubic
         }
@@ -1127,7 +1260,7 @@ Item {
             target: thumb
             property: "y"
             from: thumb.r.y
-            to: canvas.height - thumb.height - canvas.u * 12
+            to: canvas.land.y - thumb.height / 2
             duration: 420
             easing.type: Easing.InOutCubic
         }
@@ -1148,8 +1281,28 @@ Item {
     }
     Shortcut {
         sequence: "Ctrl+C"
-        enabled: !canvas.editing
+        enabled: !canvas.editing || editor.input.selectedText === ""
         onActivated: canvas.key("Ctrl+C")
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+C"
+        onActivated: canvas.key("Ctrl+Shift+C")
+    }
+    Shortcut {
+        sequence: "Ctrl+Z"
+        enabled: !canvas.editing
+        onActivated: canvas.key("Ctrl+Z")
+    }
+    Repeater {
+        model: ["Left", "Right", "Up", "Down", "Shift+Left", "Shift+Right", "Shift+Up", "Shift+Down"]
+        Item {
+            required property string modelData
+            Shortcut {
+                sequence: parent.modelData
+                enabled: !canvas.editing
+                onActivated: canvas.key(parent.modelData)
+            }
+        }
     }
     Shortcut {
         sequence: "Ctrl+S"

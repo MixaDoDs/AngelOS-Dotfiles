@@ -4,6 +4,12 @@ angelOS's own pixel icons (`widgets/Icons.js`) are part of angelOS. The two othe
 (Settings → Appearance → Icons) are converted from these sets by `scripts/icon-sets.py` into
 `widgets/IconSets.js`.
 
+The pixel icons for the standard (freedesktop) icon names — what notifications, tray items and
+apps get when the user's icon theme has no picture for a name (`services/StdIcon`) — are
+converted from the same two sets by `scripts/std-icons.py` into `widgets/StdIcons.js`
+(pixelarticons 2.4.2, HackerNoon 1.1.0; the same changes: rendered to bitmaps on their grid,
+cropped, coloured by the theme). The Bluetooth sign there is angelOS's own.
+
 ## pixelarticons
 
 Source: <https://github.com/halfmage/pixelarticons> (npm `pixelarticons@2.4.1`).

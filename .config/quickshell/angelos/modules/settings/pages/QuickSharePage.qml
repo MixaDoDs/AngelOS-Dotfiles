@@ -25,6 +25,14 @@ PxPage {
             }
         }
         SettingRow {
+            label: "KDE Connect"
+            hint: !Config.quickshare.kdeconnect ? I18n.t("выключено", "off") : QuickShare.kdcState === "ok" ? I18n.t("телефон с приложением KDE Connect получает файлы, даже когда заблокирован (LocalSend спит)", "a phone with the KDE Connect app gets files even when locked (LocalSend sleeps)") : QuickShare.kdcState === "missing" ? I18n.t("не установлен: sudo pacman -S kdeconnect и sudo ufw allow \"KDE Connect\"; на телефон — приложение KDE Connect", "not installed: sudo pacman -S kdeconnect and sudo ufw allow \"KDE Connect\"; on the phone, the KDE Connect app") : I18n.t("проверяю…", "checking…")
+            PxToggle {
+                checked: Config.quickshare.kdeconnect
+                onToggled: v => Config.quickshare.kdeconnect = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Кто может присылать", "Who can send")
             PxSegmented {
                 model: [

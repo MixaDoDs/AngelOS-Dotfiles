@@ -522,6 +522,9 @@ case "$1" in
     for f in "$@"; do p="$(realpath -- "$f" 2>/dev/null)" && list="$list$p
 "; done
     exec qs -c angelos ipc call angelos share "$list" ;;
+  shots)
+    # the screenshot editor: `angelos shots [picture]` (none: the newest shot)
+    exec qs -c angelos ipc call angelos shotEdit "$([ -n "${2:-}" ] && realpath -- "$2")" ;;
   quicklook)
     # Quick Look: `angelos quicklook <file>`
     exec qs -c angelos ipc call angelos quicklook "$(realpath -- "${2:-.}")" ;;

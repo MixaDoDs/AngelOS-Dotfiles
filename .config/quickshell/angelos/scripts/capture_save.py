@@ -10,8 +10,10 @@ tool (~/.local/bin/niri-screenshot-region) kept it:
       "Screenshot" (angelOS plays its shutter sound and counts the achievement from that name)
       with Open / Show in folder (/ Edit when satty or swappy is there).
       prints {"path": "...", "copied": bool}
-  capture_save.py copy <frame> [--rect x,y,w,h]
-      only the picture on the clipboard (image/png), nothing saved; prints {"copied": bool}
+  capture_save.py copy <frame> [--rect x,y,w,h] [--out <png>]
+      only the picture on the clipboard (image/png), nothing kept in the folders; --out: the PNG
+      also there (the corner's thumbnail and its editor, services/ShotEdit);
+      prints {"copied": bool, "path": <png or "">}
 """
 import io
 import json
@@ -124,7 +126,7 @@ def notify_and_wait(path, private=False):
 
 
 def parse(argv):
-    o = {"rect": None, "copy": None, "save": True, "open": None, "quiet": False, "private": False}
+    o = {"rect": None, "copy": None, "save": True, "open": None, "quiet": False, "private": False, "out": ""}
     it = iter(argv)
     for a in it:
         if a == "--rect":
@@ -139,6 +141,8 @@ def parse(argv):
             o["quiet"] = True
         elif a == "--private":
             o["private"] = True
+        elif a == "--out":
+            o["out"] = next(it)
     return o
 
 
@@ -160,7 +164,18 @@ def main(argv):
         print(json.dumps({"error": str(e)}))
         return 1
     if cmd == "copy":
-        print(json.dumps({"copied": copy(encode(im, False), "image/png")}))
+        data = encode(im, False)
+        path = ""
+        if o["out"]:
+            try:
+                os.makedirs(os.path.dirname(o["out"]), exist_ok=True)
+                with open(o["out"] + ".part", "wb") as f:
+                    f.write(data)
+                os.replace(o["out"] + ".part", o["out"])
+                path = o["out"]
+            except OSError:
+                pass
+        print(json.dumps({"copied": copy(data, "image/png"), "path": path}))
         return 0
     data = encode(im, jpg)
     want_copy = cfg.get("shotCopy", True) if o["copy"] is None else o["copy"]

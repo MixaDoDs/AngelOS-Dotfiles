@@ -30,7 +30,7 @@ Item {
     property real fitWidth: 0                // > 0: the bars stretch to this width
     readonly property bool passive: true     // nothing to click: no input copy needed
     // music on pause: cava at 30 frames a second drew flat bars (16.10)
-    readonly property bool paused: Shell.hiddenScreen(screenName) || Power.eco || !Lyrics.playing
+    readonly property bool paused: Shell.stillScreen(screenName) || Power.eco || !Lyrics.playing
     readonly property bool live: visible && face && !paused
     onLiveChanged: {
         count(live);

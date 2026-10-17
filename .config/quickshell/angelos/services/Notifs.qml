@@ -153,13 +153,15 @@ Singleton {
             Qt.openUrlExternally(url);
     }
 
+    // through StdIcon: a name the icon theme lacks (`notify-send -i image` came as image://icon/image)
+    // is a pixel icon of ours, else a bell — never the checkerboard
     function iconFor(n) {
         if (n.image)
-            return n.image;
+            return StdIcon.safe(n.image, "notification");
         if (n.appIcon)
-            return n.appIcon.startsWith("/") || n.appIcon.includes("://") ? n.appIcon : Quickshell.iconPath(n.appIcon, true);
+            return StdIcon.safe(n.appIcon, "notification");
         const entry = n.desktopEntry ? DesktopEntries.byId(n.desktopEntry) : null;
-        return entry && entry.icon ? Quickshell.iconPath(entry.icon, true) : "";
+        return entry && entry.icon ? StdIcon.safe(entry.icon) : "";
     }
 
     NotificationServer {

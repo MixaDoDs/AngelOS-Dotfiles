@@ -118,6 +118,33 @@ PxPage {
             }
         }
         SettingRow {
+            label: I18n.t("Миниатюра в углу", "Thumbnail in the corner")
+            hint: I18n.t("снимок ждёт в углу экрана: нажмите — повернуть, обрезать, скрыть личное", "the shot waits in the screen's corner: click to turn, crop, hide what is private")
+            PxToggle {
+                checked: Config.capture.shotPreview
+                onToggled: v => Config.capture.shotPreview = v
+            }
+        }
+        SettingRow {
+            visible: Config.capture.shotPreview
+            label: I18n.t("Где миниатюра", "Where the thumbnail goes")
+            hint: I18n.t("«Сама» — в свободное место, мимо ангела и виджетов; или клик по месту на мониторе", "«By itself»: a free place, clear of the angel and the widgets; or click a place on the display")
+            Row {
+                spacing: Theme.u * 4
+                PxButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    compact: true
+                    checked: (Config.capture.shotPreviewAt || "auto") === "auto"
+                    text: I18n.t("Сама", "By itself")
+                    onClicked: Config.capture.shotPreviewAt = "auto"
+                }
+                PxPositionPicker {
+                    value: Config.capture.shotPreviewAt === "auto" ? "" : Config.capture.shotPreviewAt
+                    onPicked: v => Config.capture.shotPreviewAt = v
+                }
+            }
+        }
+        SettingRow {
             label: I18n.t("Открывать после снимка", "Open after the shot")
             hint: I18n.t("в просмотрщике картинок", "in the image viewer")
             PxToggle {

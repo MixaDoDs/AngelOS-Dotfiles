@@ -170,6 +170,7 @@ PanelWindow {
             menu = false;
         if (!expanded) {
             multi = [];
+            closeNote();
             eventsNew = false;
             dropFocus();
             if (hintShown && Config.halo.hintsLeft > 0)
@@ -289,6 +290,8 @@ PanelWindow {
         pageKey = pages[page] || "now";
         pageScroll = 0;
         dropFocus();
+        if (pages[page] !== "shelf")
+            closeNote();
         if (pages[page] === "events")
             eventsNew = false;
         if (pages[page] === "shelf")
@@ -412,6 +415,42 @@ PanelWindow {
     property bool typing: false
     // the shelf's thing picked (its buttons show), by id
     property string sel: ""
+    // the text open on the shelf page to be read and written (a note), by id; "" = the squares.
+    // Its words are kept half a second after the last key (noteSave) and at once when it closes;
+    // a note left empty goes
+    property string note: ""
+    function openNote(id) {
+        if (note !== id)
+            closeNote();
+        sel = "";
+        multi = [];
+        note = id;
+    }
+    function noteFlush() {
+        if (!noteSave.running)
+            return;
+        noteSave.stop();
+        Shelf.setText(noteSave.id, noteSave.text);
+    }
+    function closeNote() {
+        noteFlush();
+        const it = note ? Shelf.find(note) : null;
+        if (it && String(it.text).trim() === "")
+            Shelf.remove(it.id);
+        note = "";
+    }
+    Timer {
+        id: noteSave
+        property string id: ""
+        property string text: ""
+        interval: 500
+        onTriggered: Shelf.setText(id, text)
+    }
+    function noteEdited(text) {
+        noteSave.id = note;
+        noteSave.text = text;
+        noteSave.restart();
+    }
     // Ctrl+click: several picked at once (two or more; one is `sel`), dragged out together
     property var multi: []
     readonly property var multiItems: Shelf.items.filter(i => multi.includes(i.id))
@@ -455,7 +494,7 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.namespace: "angelos-halo"
     // the keyboard only for the quick buttons' fields
-    WlrLayershell.keyboardFocus: expanded && pages[page] === "buttons" && !menu && !dropping ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: expanded && (pages[page] === "buttons" || pages[page] === "shelf") && !menu && !dropping ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     // a full-screen window covers the Top layer: its timer's end comes over it
     WlrLayershell.layer: full ? WlrLayer.Overlay : WlrLayer.Top
     mask: Region {
@@ -3125,16 +3164,20 @@ PanelWindow {
     }
 
     // one thing on the shelf, a square: its picture whole (else its icon and kind), its name
-    // under the pointer; a click picks it (its buttons show under), a drag takes it out
+    // under the pointer; a click picks it (its buttons show under), a drag takes it out.
+    // A text is two squares wide with its first words on it, as a note pinned to a board; a click
+    // opens it to be read and written (NoteView)
     component ShelfTile: Item {
         id: tile
         required property var modelData
         property int cell: win.px(30)
+        property int gap: win.u * 3
         readonly property var it: modelData
+        readonly property bool words: it.kind === "text" && !win.onAir && !it.failed
         readonly property bool picked: win.sel === it.id || win.multi.includes(it.id)
         // dragged while one of several picked: all of them go
         readonly property var batch: win.multi.includes(it.id) ? win.multiItems : [it]
-        width: cell
+        width: words ? cell * 2 + gap : cell
         height: cell
         opacity: it.missing ? 0.45 : 1
 
@@ -3153,7 +3196,7 @@ PanelWindow {
             asynchronous: true
         }
         Column {
-            visible: !thumb.visible && !tile.it.pending
+            visible: !thumb.visible && !tile.it.pending && !tile.words
             anchors.centerIn: parent
             spacing: win.u
             PxIcon {
@@ -3166,6 +3209,20 @@ PanelWindow {
                 text: win.shelfTag(tile.it)
                 dim: true
             }
+        }
+        // a text's words, as many lines as the square holds, the last one ending in «…»
+        PxText {
+            visible: tile.words
+            anchors.fill: parent
+            anchors.margins: win.u * 3
+            anchors.rightMargin: win.u * (tile.it.fav ? 9 : 3)
+            readonly property string words: String(tile.it.text || "").trim()
+            text: words || I18n.t("пустая записка", "an empty note")
+            dim: words === ""
+            kind: "tiny"
+            wrapMode: Text.Wrap
+            elide: Text.ElideRight
+            clip: true
         }
         // a picture still coming from the browser
         PxRing {
@@ -3189,7 +3246,7 @@ PanelWindow {
             onHoveredChanged: {
                 if (hovered)
                     tile.grabToImage(r => tile.dragPic = r.url);
-                const name = win.shelfName(tile.it);
+                const name = tile.words ? I18n.t("Клик — прочитать и поправить", "A click: read and edit it") : win.shelfName(tile.it);
                 win.hint(tile, (name ? name + "\n" : "") + I18n.t("Ctrl+клик — выбрать несколько", "Ctrl+click picks several"), hovered);
             }
         }
@@ -3197,6 +3254,10 @@ PanelWindow {
         TapHandler {
             acceptedModifiers: Qt.NoModifier
             onTapped: {
+                if (tile.words) {
+                    win.openNote(tile.it.id);
+                    return;
+                }
                 const was = tile.picked && !win.multi.length;
                 win.multi = [];
                 win.sel = was ? "" : tile.it.id;
@@ -3261,22 +3322,58 @@ PanelWindow {
         readonly property int gap: win.u * 3
         readonly property int cols: 6
         readonly property int cell: Math.floor((width - (cols - 1) * gap) / cols)
-        implicitHeight: col.implicitHeight + (col.implicitHeight > 0 ? gap : 0) + win.px(24)
+        // the squares it takes: ＋, one a thing, two a text
+        readonly property int squares: Shelf.items.reduce((n, i) => n + (i.kind === "text" && !win.onAir && !i.failed ? 2 : 1), win.onAir ? 0 : 1)
+        implicitHeight: win.note ? win.pageH : col.implicitHeight + (col.implicitHeight > 0 ? gap : 0) + win.px(24)
 
+        NoteView {
+            visible: !!win.note
+            width: parent.width
+            height: win.pageH
+        }
         Column {
             id: col
+            visible: !win.note
             width: parent.width
             spacing: win.u * 3
             Flow {
-                visible: Shelf.items.length > 0
+                visible: sc.squares > 0
                 // as wide as its squares (six at most a row), in the middle
-                width: Math.min(sc.cols, Shelf.items.length) * (sc.cell + sc.gap) - sc.gap
+                width: Math.min(sc.cols, sc.squares) * (sc.cell + sc.gap) - sc.gap
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: sc.gap
+                // a new note, written at once
+                Well {
+                    id: plus
+                    visible: !win.onAir
+                    width: sc.cell
+                    height: sc.cell
+                    clickable: true
+                    onHoveredChanged: win.hint(plus, I18n.t("Записка на потом: что сделать, купить, ответить.\nОстаётся, пока не отметишь ✓", "A note for later: what to do, buy, answer.\nIt stays until you tick it ✓"), hovered)
+                    onClicked: {
+                        win.tip = "";
+                        win.openNote(Shelf.newNote().id);
+                        win.noteFocus();
+                    }
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: win.u
+                        PxIcon {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            name: "plus"
+                        }
+                        PxText {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: I18n.t("записка", "note")
+                            dim: true
+                        }
+                    }
+                }
                 Repeater {
                     model: Shelf.favs.concat(Shelf.loose)
                     ShelfTile {
                         cell: sc.cell
+                        gap: sc.gap
                     }
                 }
             }
@@ -3369,8 +3466,9 @@ PanelWindow {
                 }
             }
         }
-        // the rest of the page: where a drop lands
+        // the rest of the page: where a drop lands; an empty shelf says what it is for
         Item {
+            visible: !win.note
             y: col.implicitHeight + (col.implicitHeight > 0 ? sc.gap : 0)
             width: parent.width
             height: Math.max(win.px(24), sc.height - y)
@@ -3378,7 +3476,28 @@ PanelWindow {
                 anchors.fill: parent
                 ink: win.dropping ? win.accent : Qt.alpha(Theme.textDim, 0.7)
             }
+            Column {
+                visible: Shelf.items.length === 0
+                anchors.centerIn: parent
+                width: parent.width - win.u * 12
+                spacing: win.u * 2
+                PxText {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                    text: I18n.t("Карман на рабочем столе", "A pocket on the desktop")
+                }
+                PxText {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                    kind: "tiny"
+                    dim: true
+                    text: I18n.t("Брось сюда файл, картинку из браузера, ссылку или текст — и вытащи в любое окно, когда понадобится: не надо искать его заново или держать открытым.\n＋ — записка на потом: что сделать, купить, ответить.", "Drop a file, a picture from the browser, a link or text here, and drag it into any window when it is needed: no looking for it again, no keeping it open.\n＋ is a note for later: what to do, buy, answer.")
+                }
+            }
             Row {
+                visible: Shelf.items.length > 0
                 anchors.centerIn: parent
                 spacing: win.u * 3
                 PxIcon {
@@ -3387,12 +3506,129 @@ PanelWindow {
                 }
                 PxText {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Shelf.items.length ? I18n.t("Брось сюда ещё", "Drop more here") : I18n.t("Брось сюда файл, картинку, ссылку или текст", "Drop a file, a picture, a link or text here")
+                    text: I18n.t("Брось сюда ещё", "Drop more here")
                     dim: true
                 }
             }
             HoverHandler {
-                onHoveredChanged: win.hint(parent, I18n.t("Полежит, пока не вытащишь. ★ — оставить навсегда; папка со ★ принимает файлы", "It waits until you drag it out. ★ keeps it for good; a ★ folder takes files"), hovered)
+                onHoveredChanged: win.hint(parent, I18n.t("Полежит, пока не вытащишь в нужное окно. Записки остаются, пока не отметишь ✓. ★ — оставить навсегда; папка со ★ принимает файлы", "It waits until you drag it into a window. Notes stay until you tick them ✓. ★ keeps a thing for good; a ★ folder takes files"), hovered)
+            }
+        }
+    }
+
+    // a text from the shelf open on its page: read, written (kept as it is typed), copied, sent,
+    // starred, ticked off; ← or Esc back to the squares. Still dragged out from its square
+    signal noteFocus
+    component NoteView: Column {
+        id: nv
+        readonly property var it: Shelf.items.find(i => i.id === win.note) || null
+        // the words put in from the shelf, not typed: not saved back
+        property bool filling: false
+        spacing: win.u * 3
+        // from Shelf itself: `it` may not have caught up with the new id yet
+        function fill() {
+            const n = win.note ? Shelf.find(win.note) : null;
+            filling = true;
+            editor.text = n ? n.text : "";
+            filling = false;
+        }
+        Connections {
+            target: win
+            function onNoteChanged() {
+                nv.fill();
+            }
+            function onNoteFocus() {
+                Qt.callLater(() => editor.input.forceActiveFocus());
+            }
+            function onDropFocus() {
+                editor.input.focus = false;
+            }
+        }
+        Connections {
+            target: editor.input
+            function onActiveFocusChanged() {
+                win.typing = editor.input.activeFocus;
+            }
+        }
+        Item {
+            id: nvHead
+            width: parent.width
+            height: back.height
+            PxButton {
+                id: back
+                compact: true
+                hell: win.hell
+                icon: "arrowLeft"
+                iconPixel: Math.max(1, win.u - 1)
+                onHoveredChanged: win.hint(back, I18n.t("К полке (Esc)", "Back to the shelf (Esc)"), hovered)
+                onClicked: {
+                    win.tip = "";
+                    win.closeNote();
+                }
+            }
+            RunText {
+                x: back.width + win.u * 3
+                width: tools.x - x - win.u * 3
+                anchors.verticalCenter: parent.verticalCenter
+                dim: true
+                text: !nv.it ? "" : (nv.it.note ? I18n.t("записка", "note") : I18n.t("текст", "text")) + " · " + Qt.formatDateTime(new Date(nv.it.added), "dd.MM hh:mm")
+            }
+            Row {
+                id: tools
+                anchors.right: parent.right
+                spacing: win.u * 2
+                Repeater {
+                    model: [
+                        { "id": "copy", "icon": "document", "tip": I18n.t("В буфер", "Copy") },
+                        { "id": "share", "icon": "phone", "tip": "Quick Share" },
+                        { "id": "fav", "icon": "star", "tip": I18n.t("Оставить навсегда", "Keep for good") },
+                        { "id": "done", "icon": "check", "tip": I18n.t("Сделано — убрать с полки", "Done: off the shelf") }
+                    ]
+                    PxButton {
+                        id: toolBtn
+                        required property var modelData
+                        compact: true
+                        hell: win.hell
+                        icon: modelData.icon
+                        iconPixel: Math.max(1, win.u - 1)
+                        checkable: modelData.id === "fav"
+                        checked: modelData.id === "fav" && !!nv.it && nv.it.fav
+                        onHoveredChanged: win.hint(toolBtn, modelData.tip, hovered)
+                        onClicked: {
+                            if (!nv.it)
+                                return;
+                            const i = nv.it.id;
+                            win.tip = "";
+                            win.noteFlush();
+                            switch (modelData.id) {
+                            case "copy": Shelf.copy(i); break;
+                            case "share": Shelf.share(i); break;
+                            case "fav": Shelf.setFav(i, !nv.it.fav); break;
+                            case "done":
+                                Shelf.remove(i);
+                                win.note = "";
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        PxTextArea {
+            id: editor
+            width: parent.width
+            height: nv.height - nvHead.height - nv.spacing
+            placeholder: I18n.t("Что не забыть…", "What not to forget…")
+            onEdited: if (!nv.filling && nv.it)
+                win.noteEdited(text)
+            // Esc, Ctrl+Enter: back to the squares
+            keyFilter: e => {
+                if (e.key === Qt.Key_Escape || (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & Qt.ControlModifier)) {
+                    editor.input.focus = false;
+                    win.closeNote();
+                    return true;
+                }
+                return false;
             }
         }
     }

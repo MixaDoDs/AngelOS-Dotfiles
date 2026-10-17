@@ -281,7 +281,7 @@ def centred(text, width, seen=None):
 
 # the receipt: a strip of paper (parchment in hell) the readings are printed on
 PAPER = 38                       # columns, a margin of one on each side
-SLOTS = 4                        # gear lines it has room for
+SLOTS = 6                        # gear lines it has room for (the interface, what is plugged into it)
 
 
 def paper_colours(hell):

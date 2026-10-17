@@ -31,6 +31,7 @@ Item {
         anchors.centerIn: parent
         spacing: Skin.px(4)
         CatSprite {
+            id: barCat
             anchors.verticalCenter: parent.verticalCenter
             plugin: root.plugin
             // the Mac cat is 8 × this tall: 16 pt at size ×1, like the menu bar's icons
@@ -75,6 +76,7 @@ Item {
                 CatSprite {
                     anchors.horizontalCenter: parent.horizontalCenter
                     plugin: root.plugin
+                    master: barCat
                     pixel: root.mac ? GoldenGate.px(6) : Theme.u * 4
                 }
                 PxText {

@@ -12,6 +12,9 @@ import qs.config
 //       files, one picture as a picture, a message as text); the files land in ~/Downloads/LocalSend
 //   out: `angelos share <files…>`, Nautilus → "Send nearby", Circle to Search, the sheet
 //        (modules/quickshare/ShareSheet) with the devices found and a drop area
+//   KDE Connect: its daemon's devices are here too (fp "kdc:<id>") — the LocalSend app on a phone
+//        sleeps once it is locked, KDE Connect's does not; a phone linked by it is sent to through
+//        it, its LocalSend twin (the same address) is not shown
 Singleton {
     id: root
 
@@ -23,6 +26,7 @@ Singleton {
     property string busy: ""
     property string fingerprint: ""
     property string myIp: ""
+    property string kdcState: ""           // KDE Connect's daemon: ok | missing ("" = off, not asked yet)
     readonly property string alias: Config.quickshare.alias || ("angelOS " + (Quickshell.env("HOSTNAME") || hostName))
     property string hostName: ""
     readonly property string saveDir: Config.quickshare.dir || (Quickshell.env("HOME") + "/Downloads/LocalSend")
@@ -30,7 +34,9 @@ Singleton {
     property var devices: ({})             // fp → {fp, alias, ip, port, protocol, type, model, seen}
     readonly property var nearby: {
         const now = clock.now;
-        return Object.values(devices).filter(d => now - d.seen < 5 * 60 * 1000).sort((a, b) => a.alias.localeCompare(b.alias));
+        const all = Object.values(devices);
+        const linked = all.filter(d => d.protocol === "kdeconnect" && d.online && d.paired).map(d => d.ip);
+        return all.filter(d => d.protocol === "kdeconnect" ? d.online : now - d.seen < 5 * 60 * 1000 && !linked.includes(d.ip)).sort((a, b) => a.alias.localeCompare(b.alias));
     }
     property var jobs: ({})                // job → {to, state, done, total, msg}
     property var incoming: null            // the receive now: {id, from, done, total, state}
@@ -41,9 +47,11 @@ Singleton {
     property string payloadText: ""
     property int jobSerial: 0
 
+    // the window open already (it stays, AirDrop-like): new files join what goes
     function share(paths, text) {
-        payload = (paths || []).filter(p => p !== "");
-        payloadText = text || "";
+        const add = (paths || []).filter(p => p !== "");
+        payload = sheetOpen && add.length ? payload.concat(add.filter(p => !payload.includes(p))) : add;
+        payloadText = add.length ? "" : text || "";
         sheetOpen = true;
         scan();
     }
@@ -157,6 +165,8 @@ Singleton {
             busy = ev.busy || "";
             fingerprint = ev.fingerprint || "";
             myIp = ev.ip || "";
+        } else if (ev.ev === "kdc") {
+            kdcState = ev.state;
         } else if (ev.ev === "device") {
             const d = Object.assign({}, devices);
             d[ev.fp] = Object.assign({
@@ -243,6 +253,10 @@ Singleton {
         function onReceiveChanged() {
             root.restart();
         }
+        function onKdeconnectChanged() {
+            root.kdcState = "";
+            root.restart();
+        }
     }
     function restart() {
         if (!wanted)
@@ -261,7 +275,7 @@ Singleton {
         id: daemon
         running: root.wanted
         stdinEnabled: true
-        command: ["python3", Quickshell.shellPath("scripts/quickshare.py"), "daemon", "--alias", root.alias, "--receive", Config.quickshare.receive, "--dir", root.saveDir, "--trusted", (Config.quickshare.trusted || []).map(t => t.fp).join(","), "--pin", Config.quickshare.pin].concat(root.port ? ["--port", root.port] : [])
+        command: ["python3", Quickshell.shellPath("scripts/quickshare.py"), "daemon", "--alias", root.alias, "--receive", Config.quickshare.receive, "--dir", root.saveDir, "--trusted", (Config.quickshare.trusted || []).map(t => t.fp).join(","), "--pin", Config.quickshare.pin, "--kdeconnect", Config.quickshare.kdeconnect ? "1" : "0"].concat(root.port ? ["--port", root.port] : [])
         stdout: SplitParser {
             onRead: line => {
                 try {

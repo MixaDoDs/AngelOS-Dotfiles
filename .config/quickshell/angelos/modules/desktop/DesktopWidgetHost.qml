@@ -193,7 +193,7 @@ Item {
             host.contextMenu(p.x, p.y);
         }
         onWheel: w => {
-            if (DesktopWidgets.editMode || (w.modifiers & Qt.ControlModifier)) {
+            if (DesktopWidgets.editMode || (w.modifiers & Qt.ControlModifier) || DesktopWidgets.ctrlHeld) {
                 const notch = (w.angleDelta.y || w.angleDelta.x) / 120;
                 if (notch)
                     DesktopWidgets.setScale(host.uid, host.zoom + notch * 0.05);
@@ -420,9 +420,10 @@ Item {
             x: canvas.pad
             y: canvas.pad
             hell: Theme.hell
-            flamesLive: host.windowed && (host.face ? !Shell.hiddenScreen(host.screenName) : host.shown)
+            flamesLive: host.windowed && (host.face ? !Shell.stillScreen(host.screenName) : host.shown)
             trim: !host.overFace
             scale: host.zoom
+            readonly property bool zoomedFrame: host.zoom !== 1
             transformOrigin: Item.TopLeft
             // with the grid on: whole cells (DesktopWidgets.fit), the content in the middle
             width: DesktopWidgets.fit(Math.max(Theme.u * 70, host.contentW + (inset + bodyPadding) * 2), host.zoom)
@@ -526,6 +527,7 @@ Item {
             x: canvas.pad
             y: canvas.pad
             scale: host.zoom
+            readonly property bool zoomedFrame: host.zoom !== 1
             transformOrigin: Item.TopLeft
             width: DesktopWidgets.fit(host.contentW + padding * 2, host.zoom)
             height: DesktopWidgets.fit(host.contentH + padding * 2, host.zoom)
@@ -546,6 +548,7 @@ Item {
             x: canvas.pad
             y: canvas.pad
             scale: host.zoom
+            readonly property bool zoomedFrame: host.zoom !== 1
             transformOrigin: Item.TopLeft
             width: DesktopWidgets.fit(host.contentW + padding * 2, host.zoom)
             height: DesktopWidgets.fit(host.contentH + padding * 2, host.zoom)

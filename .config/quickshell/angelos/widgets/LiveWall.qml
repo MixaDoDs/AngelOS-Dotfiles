@@ -43,7 +43,7 @@ ShaderEffect {
     // another picture: off until its mask is there (no fading the old one's over it)
     visible: allowed && maskCurrent && fade > 0
 
-    readonly property bool running: visible && !Shell.hiddenScreen(screenName)
+    readonly property bool running: visible && !Shell.stillScreen(screenName)
 
     property real time: 0
     // Config.wallpaper.liveFps: 12 / 24 / 60 a second, or 0 — every frame of the screen. On a

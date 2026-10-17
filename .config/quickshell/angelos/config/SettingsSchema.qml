@@ -375,6 +375,8 @@ JsonAdapter {
         property bool shotCursor: false     // the pointer on the picture
         property bool shotCopy: true        // copied to the clipboard as well
         property bool shotOpen: false       // opened in the image viewer after
+        property bool shotPreview: true     // the overlay's saved shot waits in the screen's corner: a click edits it (services/ShotEdit)
+        property string shotPreviewAt: "auto" // where: "auto" (a place the angel and the widgets leave free) or a Place.js name
         property bool classic: false        // the screenshot key opens the old region selector, not the overlay
         property string recordDir: ""       // "" = ~/Videos
         property int recordFps: 60
@@ -659,6 +661,7 @@ JsonAdapter {
         property string dir: ""             // "" = ~/Downloads/LocalSend
         property var trusted: []            // [{fp, alias}] — their files come without a question
         property string pin: ""             // asked from senders when set
+        property bool kdeconnect: true      // KDE Connect's devices too (its daemon, package kdeconnect): a phone with its app gets files while locked
     }
 
     // Quick Look: Space on a file in Nautilus (services/QuickLook, scripts/quicklook.py)

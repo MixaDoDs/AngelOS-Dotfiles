@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.config
+import qs.services
 
 // App icon by app-id / icon name; falls back to a pixel window.
 Item {
@@ -26,7 +27,8 @@ Item {
             return "";
         if (name.startsWith("/") || name.includes("://"))
             return name.startsWith("/") ? "file://" + name : name;
-        return Quickshell.iconPath(name, true) || Quickshell.iconPath(name.toLowerCase(), true) || "";
+        // none in the icon theme: a pixel icon of ours for it (StdIcon), else the window below
+        return Quickshell.iconPath(name, true) || Quickshell.iconPath(name.toLowerCase(), true) || StdIcon.pixel(name);
     }
 
     implicitWidth: size

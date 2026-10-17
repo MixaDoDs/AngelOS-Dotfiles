@@ -13,6 +13,7 @@ that cost more than the threshold ($100 by default), from data/premium-gear.json
   gear.py --total --fmt F  -> what they cost together, in F (the receipt's ИТОГО, the angel's
                               word on it); exit 1 if there is nothing unless --zero
   gear.py --threshold N    -> another limit
+  gear.py --save-mine JSON -> keep this list as the user's own gear (see below)
 
 The prices are the point (people giggle at them): every way of printing shows them.
 
@@ -26,9 +27,16 @@ Sources (read-only, no root, no daemons asked): USB vendor:product and product
 strings from /sys (HID interfaces for keyboards and mice, audio interfaces for
 microphones), input device names from /proc/bus/input/devices (Bluetooth ones
 too) and sound card names from /proc/asound/cards.
+
+What can't be detected (an XLR mic in the interface, the headphones in its jack, anything else on
+the desk) each user adds in Settings → System: [{kind, name, usd, on?, port?}] in their own
+~/.config/angelos/gear.json ("on" = the interface, "port" = in1, phones2…). It is personal: never
+in data/ and never published — the owner's gear must not end up on other people's machines.
+Those always show, whatever the threshold (the user said so), after the detected ones.
 """
 import argparse
 import json
+import os
 import random
 import re
 import sys
@@ -36,6 +44,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE.parent / "data/premium-gear.json"
+MINE = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "angelos/gear.json"
+KINDS = ["keyboard", "mouse", "mic", "xlr", "headphones", "other"]
 HID, AUDIO = "03", "01"
 
 
@@ -81,7 +91,8 @@ def things():
 
 def detect(threshold):
     data = json.loads(DATA.read_text())
-    entries = [dict(e, rx=re.compile(e["match"], re.I)) for e in data["devices"]]
+    # catalog-only entries (no usb, no match: XLR mics, headphones…) are never detected
+    entries = [dict(e, rx=re.compile(e["match"], re.I)) for e in data["devices"] if e.get("match")]
     found = {}
     for label, vp, kinds in things():
         # an exact USB id first, else the first pattern in file order (specific ones come first)
@@ -90,12 +101,47 @@ def detect(threshold):
             entry = next((e for e in entries if e["kind"] in kinds and e["rx"].search(label)), None)
         if entry and entry["name"] not in found:
             found[entry["name"]] = {"kind": entry["kind"], "name": entry["name"], "usd": entry["usd"], "via": vp or label}
-    order = {"keyboard": 0, "mouse": 1, "mic": 2}
-    devices = sorted((d for d in found.values() if d["usd"] > threshold), key=lambda d: (order.get(d["kind"], 9), -d["usd"]))
-    return threshold, devices
+            if entry.get("ports"):
+                found[entry["name"]]["ports"] = entry["ports"]
+    devices = sorted((d for d in found.values() if d["usd"] > threshold), key=lambda d: (KINDS.index(d["kind"]), -d["usd"]))
+    return threshold, devices + sorted(mine(), key=lambda d: (KINDS.index(d["kind"]), -d["usd"]))
 
 
-WORDS = {"keyboard": ("клава", "kbd"), "mouse": ("мышь", "mouse"), "mic": ("мик", "mic")}
+def mine():
+    """the user's own gear from MINE, cleaned up (a hand-edited file may hold anything)"""
+    try:
+        rows = json.loads(MINE.read_text()).get("mine", [])
+    except (OSError, ValueError, AttributeError):
+        return []
+    out = []
+    for r in rows if isinstance(rows, list) else []:
+        if not isinstance(r, dict) or not str(r.get("name", "")).strip():
+            continue
+        try:
+            usd = max(0.0, float(r.get("usd") or 0))
+        except (TypeError, ValueError):
+            usd = 0.0
+        d = {"kind": r.get("kind") if r.get("kind") in KINDS else "other", "name": str(r["name"]).strip(), "usd": usd, "mine": True}
+        for k in ("on", "port"):
+            if r.get(k):
+                d[k] = str(r[k])
+        out.append(d)
+    return out
+
+
+def save_mine(text):
+    """keeps the list Settings → System sends as the user's gear (atomically: a half-written file
+    would lose it all)"""
+    rows = json.loads(text)
+    MINE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = MINE.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"mine": rows if isinstance(rows, list) else []}, ensure_ascii=False, indent=2) + "\n")
+    tmp.replace(MINE)
+    MINE.chmod(0o600)
+
+
+WORDS = {"keyboard": ("клава", "kbd"), "mouse": ("мышь", "mouse"), "mic": ("мик", "mic"), "xlr": ("мик", "mic"),
+         "headphones": ("уши", "phones"), "other": ("ещё", "more")}
 # superchat colours by the price: (from $, chip background, chip text)
 TIERS = [(400, "#e62117", "#ffffff"), (200, "#e91e63", "#ffffff"), (0, "#f57c00", "#1a0f05")]
 # the angel's (and the demon's) word on what the gear cost together: (up to $, ru, en)
@@ -167,7 +213,11 @@ def main():
     parser.add_argument("--lang", choices=["ru", "en"], default="ru")
     parser.add_argument("--voice", choices=["angel", "demon"], default="angel")
     parser.add_argument("--threshold", type=float, default=None)
+    parser.add_argument("--save-mine", metavar="JSON")
     args = parser.parse_args()
+    if args.save_mine is not None:
+        save_mine(args.save_mine)
+        return 0
     data_threshold = json.loads(DATA.read_text()).get("threshold", 100)
     threshold, devices = detect(data_threshold if args.threshold is None else args.threshold)
     if args.line:
@@ -197,7 +247,9 @@ def main():
             return 1
         print(", ".join(f"{d['name']} (~${round(d['usd'])})" for d in mine))
         return 0
-    print(json.dumps({"threshold": threshold, "devices": devices}, ensure_ascii=False))
+    catalog = [{"kind": e["kind"], "name": e["name"], "usd": e["usd"]} for e in json.loads(DATA.read_text())["devices"]
+               if e["kind"] in ("xlr", "headphones", "other", "mic")]
+    print(json.dumps({"threshold": threshold, "devices": devices, "catalog": catalog}, ensure_ascii=False))
     return 0
 
 

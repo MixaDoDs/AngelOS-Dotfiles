@@ -26,7 +26,9 @@ Item {
     readonly property bool mac: Skin.mac
     // the Mac cat's one colour: the fur unless a host gives another (the menu bar's ink)
     property color ink: fur
-    property int frame: 0
+    // a cat in a popup takes the bar cat's frames, so the two walk and sleep in step (#82)
+    property Item master: null
+    property int frame: master ? master.frame : 0
     // shown on a screen: a cat in a closed popup (Quickshell keeps its items) stands still
     readonly property bool onScreen: visible && !!Window.window && Window.window.visible
 
@@ -35,14 +37,14 @@ Item {
 
     Timer {
         interval: Math.max(50, root.frameMs)
-        running: root.pace !== "idle" && root.onScreen
+        running: root.pace !== "idle" && root.onScreen && !root.master
         repeat: true
         onTriggered: root.frame = (root.frame + 1) % 5
     }
     Timer {
         // slow zzz blink while asleep (the Cerberus sleeps without it)
         interval: 700
-        running: root.pace === "idle" && root.onScreen && (!root.hell || root.mac)
+        running: root.pace === "idle" && root.onScreen && (!root.hell || root.mac) && !root.master
         repeat: true
         onTriggered: root.frame = (root.frame + 1) % 2
     }

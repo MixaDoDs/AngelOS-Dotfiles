@@ -42,7 +42,8 @@ cat >"$H/.config/angelos/settings.json" <<'JSON'
 JSON
 cat >"$T/bin/wl-copy" <<'EOF'
 #!/bin/sh
-[ "$1" = "--" ] && shift
+# text: wl-copy [--type T] -- <text> (only the text kept); a picture: --type image/png (its args kept)
+case " $* " in *" -- "*) while [ "$1" != "--" ]; do shift; done; shift;; esac
 printf '%s' "$*" >"$FAKE_DIR/clip.part" && mv "$FAKE_DIR/clip.part" "$FAKE_DIR/clip"
 EOF
 for t in gdbus pw-play; do printf '#!/bin/sh\nexit 0\n' >"$T/bin/$t"; done
@@ -109,6 +110,8 @@ fi
 if command -v node >/dev/null; then
   o="$(node "$DIR/tests/circle/test_learn.mjs" 2>&1)" || { echo "  ✕ learning: $o" | head -5; fail=1; }
   n=$((n + $(grep -o '[0-9]* checks' <<<"$o" | grep -o '[0-9]*' || echo 0)))
+  # the screenshot editor's geometry (modules/capture/ShotMarks.js)
+  o="$(node "$DIR/tests/circle/test_marks.mjs" 2>&1)" || { echo "  ✕ editor marks: $o" | head -5; fail=1; }
 fi
 # a YouTube id read wrong (I/l/1, O/0): its look-alikes against a stand-in YouTube
 o="$(python3 "$DIR/tests/circle/test_fixlink.py" "$DIR" 2>&1)" || { grep '✕' <<<"$o"; fail=1; }

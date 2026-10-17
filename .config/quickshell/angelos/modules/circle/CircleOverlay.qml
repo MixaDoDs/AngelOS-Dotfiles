@@ -9,8 +9,9 @@ import qs.widgets
 // The screenshot, Pixel-like (services/CircleSearch): a layer window over the frozen screen with
 // the overlay's face (CircleCanvas: the areas, the words, the pick, the modes, the bar, the
 // keys). Transparent itself, so closing fades back to the live screen. Esc / right click: back,
-// then away; Enter: save; Ctrl+C: copy (a text pick's text, else the picture); Ctrl+S: save;
-// Ctrl+A: all the text; Tab: the next mode; Ctrl+Enter: search.
+// then away; Enter / Ctrl+C: copy (the pick's text when it has any, else the picture); Ctrl+S: save;
+// Ctrl+Shift+C: copy and stay; Ctrl+Z: the pick before; arrows (Shift: ×10): move the pick;
+// Ctrl+A: all the text; Tab: the next mode; Ctrl+Enter: search; Ctrl+click: open a link on the screen.
 Scope {
     id: root
     LazyLoader {

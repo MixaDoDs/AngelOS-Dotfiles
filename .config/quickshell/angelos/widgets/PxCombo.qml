@@ -113,6 +113,9 @@ Item {
         y: root.height
         width: root.width
         height: Math.min(list.contentHeight + Theme.u * 4, Theme.u * 150)
+        // kept inside the window: near the bottom of Settings a long list (apps for a
+        // shortcut) was cut off by the window edge and its last entries never showed (#80)
+        margins: Theme.u * 2
         padding: Theme.u * 2
         modal: false
         focus: true
@@ -137,6 +140,16 @@ Item {
             clip: true
             model: root.items
             boundsBehavior: Flickable.StopAtBounds
+            // a long list scrolls: show that it does
+            T.ScrollIndicator.vertical: T.ScrollIndicator {
+                active: list.contentHeight > list.height
+                contentItem: Rectangle {
+                    implicitWidth: Theme.u * 2
+                    color: Theme.text
+                    opacity: 0.5
+                    visible: parent.active
+                }
+            }
             delegate: Rectangle {
                 id: opt
                 required property var modelData

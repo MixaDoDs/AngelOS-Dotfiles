@@ -228,6 +228,21 @@ Singleton {
     function hiddenScreen(name) {
         return locked || setupLocked || idleOver(name) || fullscreenOn(name);
     }
+    // a game runs (niri-game-mode's $XDG_RUNTIME_DIR/niri-game-mode/state says "game"): what only
+    // animates (the live wallpaper, the spectrum, hell's flames) stands still on every screen, the
+    // other one too, so niri draws nothing but the game. The clocks and the readings go on.
+    property bool gaming: false
+    FileView {
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/niri-game-mode/state"
+        printErrors: false
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: root.gaming = text().trim() === "game"
+        onLoadFailed: root.gaming = false
+    }
+    function stillScreen(name) {
+        return gaming || hiddenScreen(name);
+    }
     // the idle screen (modules/idle/IdleScreen) covers every screen, or the main one only
     function idleOver(name) {
         return Idle.active && (Config.idle.allScreens || name === primaryName || screens.length === 1);

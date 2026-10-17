@@ -3,7 +3,7 @@
 (services/QuickShare, modules/quickshare/ShareSheet).
 
   quickshare.py daemon [--alias NAME] [--receive ask|trusted|off] [--dir DIR]
-                       [--trusted FP,FP] [--pin PIN] [--port 53317]
+                       [--trusted FP,FP] [--pin PIN] [--port 53317] [--kdeconnect 1]
 
 Talks JSON lines: commands on stdin, events on stdout.
 
@@ -21,11 +21,15 @@ Talks JSON lines: commands on stdin, events on stdout.
           {"ev":"recv", "id","state":"receiving|done|cancelled|error","done","total","paths","items"}
               (items: what came, top level — a folder once, not its files; it is also put
               on the clipboard: files as text/uri-list, one picture as itself, a message as text)
-          {"ev":"send", "job","state":"waiting|sending|done|declined|busy|pin|error","done","total","msg"}
+          {"ev":"send", "job","state":"pairing|waiting|sending|done|declined|busy|pin|error","done","total","msg"}
+          {"ev":"kdc", "state":"ok|missing","why"}       KDE Connect's daemon (--kdeconnect 1)
+              (its devices come as "device" too: fp "kdc:<id>", protocol "kdeconnect", "paired", "online")
 
 Discovery: multicast 224.0.0.167:53317; the server: HTTPS on 53317 with a self-signed
 certificate kept in ~/.local/share/angelos/quickshare/. When the LocalSend app already
 holds the port, this still finds devices and sends (receive is then the app's).
+With --kdeconnect 1 the KDE Connect daemon's devices are there too (see its section): a phone with
+that app gets files while it is locked, one with LocalSend's does not.
 """
 import hashlib
 import http.client
@@ -112,6 +116,7 @@ class State:
 
 
 S = None
+K = None      # KDE Connect (Kdc), None when it is off
 
 
 # ------------------------------------------------------------------ discovery
@@ -511,6 +516,10 @@ def mime(path):
 
 def send(job, to, files, text, pin=""):
     S.jobs[job] = {"cancel": False}
+    if to.startswith("kdc:"):
+        if not K:
+            return emit(ev="send", job=job, state="error", msg="kdeconnect off")
+        return kdc_send(job, to[4:], files, text)
     with S.lock:
         d = S.devices.get(to)
     if not d:
@@ -603,10 +612,205 @@ def add_device(ip, port):
     emit(ev="error", msg="no device at %s:%d" % (ip, port))
 
 
+# ------------------------------------------------------------------ KDE Connect
+#
+# The LocalSend app on a phone sleeps once the phone is locked; the KDE Connect app keeps a service
+# and a link to the computer, so files get to the phone any time. With KDE Connect's daemon here
+# (package kdeconnect; ports 1714–1764 open: `sudo ufw allow "KDE Connect"`) its devices are the
+# sheet's too, fp "kdc:<id>": sending goes through it over D-Bus (it takes the files and sends them
+# itself, so no progress here), files from a phone land where it puts them (~/Downloads) and are
+# handled as LocalSend's (clipboard, notification); a text from a phone it puts on the clipboard itself.
+
+KDC = "org.kde.kdeconnect"
+KDC_ROOT = "/modules/kdeconnect"
+KDC_SIGNAL = re.compile(r"^(/modules/kdeconnect\S*): \S+\.(\w+) \((.*)\)\s*$")
+
+
+class Kdc:
+    def __init__(self):
+        self.state = ""          # ok | missing (no daemon on the bus, not installed)
+        self.why = ""
+        self.devs = {}           # id → {"name", "ip", "type", "paired", "online"}
+        self.batches = {}        # id → {"paths", "timer"}: the files a phone sends, one after another
+        self.kick = threading.Event()
+        self.lock = threading.Lock()
+
+
+def kdc_call(path, iface, method, sig="", *args):
+    """A method of the KDE Connect daemon (started by the bus if it is not running): its result."""
+    r = subprocess.run(["busctl", "--user", "--json=short", "--timeout=15", "call", KDC, path, iface, method]
+                       + ([sig] + [str(a) for a in args] if sig else []), capture_output=True, text=True, timeout=20)
+    if r.returncode:
+        raise OSError(r.stderr.strip() or "busctl %d" % r.returncode)
+    out = r.stdout.strip()
+    return json.loads(out)["data"] if out else []
+
+
+def kdc_status(state, why=""):
+    if (K.state, K.why) != (state, why):
+        K.state, K.why = state, why
+        emit(ev="kdc", state=state, why=why)
+
+
+def kdc_refresh():
+    try:
+        ids = kdc_call(KDC_ROOT, KDC + ".daemon", "devices", "bb", "false", "false")[0]
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError) as e:
+        return kdc_status("missing", str(e)[:200])
+    seen = {}
+    for did in ids:
+        try:
+            p = kdc_call(KDC_ROOT + "/devices/" + did, "org.freedesktop.DBus.Properties", "GetAll", "s", KDC + ".device")[0]
+        except (OSError, ValueError, IndexError, subprocess.SubprocessError):
+            continue
+        v = {k: x.get("data") for k, x in p.items()}
+        seen[did] = {"name": v.get("name") or did, "ip": (v.get("reachableAddresses") or [""])[0],
+                     "type": "mobile" if v.get("type") in ("phone", "tablet") else "desktop",
+                     "paired": bool(v.get("isPaired")), "online": bool(v.get("isReachable"))}
+    with K.lock:
+        old, K.devs = K.devs, seen
+    for did, d in seen.items():
+        if old.get(did) != d:
+            kdc_show(did, d)
+    for did, d in old.items():
+        if did not in seen:
+            kdc_show(did, dict(d, online=False))
+    kdc_status("ok")
+
+
+def kdc_show(did, d):
+    emit(ev="device", fp="kdc:" + did, alias=d["name"], ip=d["ip"], port=0, protocol="kdeconnect",
+         type=d["type"], model="KDE Connect", paired=d["paired"], online=d["online"])
+
+
+def kdc_keep():
+    # the list again on any of its signals, and every half minute anyway
+    while True:
+        kdc_refresh()
+        K.kick.wait(30)
+        K.kick.clear()
+        time.sleep(0.3)
+
+
+def die_with_parent():
+    # the monitor goes when the daemon does (a restart of the shell must not leave one behind)
+    try:
+        import ctypes
+        ctypes.CDLL("libc.so.6", use_errno=True).prctl(1, 15)   # PR_SET_PDEATHSIG, SIGTERM
+    except (OSError, AttributeError):
+        pass
+
+
+def kdc_watch():
+    while True:
+        try:
+            p = subprocess.Popen(["gdbus", "monitor", "--session", "--dest", KDC], stdout=subprocess.PIPE,
+                                 stderr=subprocess.DEVNULL, text=True, preexec_fn=die_with_parent)
+        except OSError:
+            return
+        for line in p.stdout:
+            m = KDC_SIGNAL.match(line)
+            if not m:
+                continue
+            path, name, args = m.groups()
+            if name == "shareReceived":
+                kdc_received(path, args)
+            elif name in ("reachableChanged", "pairStateChanged", "nameChanged", "deviceAdded", "deviceRemoved",
+                          "deviceVisibilityChanged", "deviceListChanged", "linksChanged"):
+                K.kick.set()
+        p.wait()
+        time.sleep(5)
+
+
+def kdc_received(path, args):
+    """shareReceived('file:///…'): one file of what a phone sends; two quiet seconds end the batch."""
+    s = args.strip().rstrip(",").strip()
+    if len(s) < 2 or s[0] not in "'\"" or s[-1] != s[0]:
+        return
+    url = s[1:-1].replace("\\" + s[0], s[0]).replace("\\\\", "\\")
+    if not url.startswith("file://"):
+        return
+    path_ = url[7:]
+    if not os.path.exists(path_):
+        path_ = urllib.parse.unquote(path_)
+    if not os.path.isfile(path_):
+        return
+    did = path.split("/")[4] if path.count("/") >= 4 else ""
+    with K.lock:
+        b = K.batches.setdefault(did, {"paths": [], "timer": None})
+        if path_ not in b["paths"]:
+            b["paths"].append(path_)
+        if b["timer"]:
+            b["timer"].cancel()
+        b["timer"] = threading.Timer(2.0, kdc_batch_done, args=(did,))
+        b["timer"].daemon = True
+        b["timer"].start()
+
+
+def kdc_batch_done(did):
+    with K.lock:
+        b = K.batches.pop(did, None)
+        d = K.devs.get(did) or {}
+    if not b:
+        return
+    items = [p for p in b["paths"] if os.path.exists(p)]
+    if not items:
+        return
+    clip_items(items)
+    total = sum(os.path.getsize(p) for p in items)
+    frm = {"alias": d.get("name") or "KDE Connect", "ip": d.get("ip") or "", "type": d.get("type") or "mobile", "fp": "kdc:" + did}
+    emit(ev="recv", id="kdc-" + secrets.token_hex(4), state="done", done=total, total=total, paths=items, items=items, **{"from": frm})
+
+
+def kdc_send(job, did, files, text):
+    base = KDC_ROOT + "/devices/" + did
+    d = K.devs.get(did)
+    try:
+        if not d or not d["online"]:
+            return emit(ev="send", job=job, state="error", msg="offline")
+        if not d["paired"]:
+            # not paired yet: asked on the phone, a minute for its yes
+            emit(ev="send", job=job, state="pairing")
+            kdc_call(base, KDC + ".device", "requestPairing")
+            for _ in range(120):
+                time.sleep(0.5)
+                if S.jobs[job]["cancel"]:
+                    return emit(ev="send", job=job, state="cancelled")
+                if kdc_call(base, KDC + ".device", "isPaired")[0]:
+                    break
+            else:
+                return emit(ev="send", job=job, state="declined")
+            K.kick.set()
+        if text:
+            kdc_call(base + "/share", KDC + ".device.share", "shareText", "s", text)
+            return emit(ev="send", job=job, state="done", done=len(text), total=len(text))
+        paths = [p for p, _ in walk(files)]
+        if not paths:
+            return emit(ev="send", job=job, state="error", msg="nothing")
+        total = sum(os.path.getsize(p) for p in paths)
+        urls = ["file://" + urllib.parse.quote(os.path.abspath(p)) for p in paths]
+        kdc_call(base + "/share", KDC + ".device.share", "shareUrls", "as", len(urls), *urls)
+        emit(ev="send", job=job, state="done", done=total, total=total)
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError) as e:
+        emit(ev="send", job=job, state="error", msg=str(e)[:200])
+
+
+def kdc_scan():
+    # the sheet is open: the daemon announces itself again (a phone back on the Wi-Fi links at once)
+    now = time.time()
+    if now - getattr(K, "announced", 0) > 60:
+        K.announced = now
+        try:
+            kdc_call(KDC_ROOT, KDC + ".daemon", "forceOnNetworkChange")
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+    K.kick.set()
+
+
 # ------------------------------------------------------------------ main loop
 
 def main():
-    global S
+    global S, K
     if len(sys.argv) < 2 or sys.argv[1] != "daemon":
         print(__doc__)
         return 2
@@ -617,6 +821,10 @@ def main():
             args[a[2:]] = next(it, "")
     S = State(args)
     why = serve()
+    if args.get("kdeconnect") == "1":
+        K = Kdc()
+        for fn in (kdc_keep, kdc_watch):
+            threading.Thread(target=fn, daemon=True).start()
     try:
         sock = multicast_socket()
     except OSError as e:
@@ -632,8 +840,11 @@ def main():
         except ValueError:
             continue
         cmd = c.get("cmd")
-        if cmd == "scan" and sock:
-            announce(sock)
+        if cmd == "scan":
+            if sock:
+                announce(sock)
+            if K:
+                threading.Thread(target=kdc_scan, daemon=True).start()
         elif cmd == "send":
             threading.Thread(target=send, args=(c.get("job") or "j", c.get("to"), c.get("files") or [], c.get("text") or "", c.get("pin") or ""), daemon=True).start()
         elif cmd == "answer":

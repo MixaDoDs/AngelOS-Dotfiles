@@ -74,7 +74,8 @@ PxButton {
                             TintedImage {
                                 anchors.centerIn: parent
                                 size: root.iconSize
-                                source: cell.modelData.icon
+                                // a name the icon theme lacks: ours, not the checkerboard
+                                source: StdIcon.safe(cell.modelData.icon, "application-x-executable")
                                 mode: cell.hovered ? "off" : Config.bar.trayTint
                             }
                             MouseArea {
