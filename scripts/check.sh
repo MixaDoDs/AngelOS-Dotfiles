@@ -158,7 +158,7 @@ check_author_tools() {
 
 check_shellcheck() {
   if command -v shellcheck >/dev/null 2>&1; then
-    if shellcheck -S warning "$ROOT/install.sh" "$ROOT/installer/tui.sh" "$ROOT/scripts/check.sh" "$ROOT/scripts/test-update.sh" "$ROOT/scripts/test-update-old.sh" "$ROOT/scripts/ci-local.sh" \
+    if shellcheck -S warning -x "$ROOT/install.sh" "$ROOT"/installer/lib/*.sh "$ROOT"/installer/steps/*.sh "$ROOT/scripts/check.sh" "$ROOT/scripts/test-update.sh" "$ROOT/scripts/test-update-old.sh" "$ROOT/scripts/ci-local.sh" \
          "$ROOT/.config/quickshell/angelos/scripts/dotfiles-update.sh" "$ROOT/.config/quickshell/angelos/tests/updates/run.sh" &&
        shellcheck -s sh -S warning "$ROOT/.config/quickshell/angelos/bin/angelos" "$ROOT/.config/quickshell/angelos/scripts/author-tools.sh"; then
       pass "shellcheck"
@@ -174,7 +174,7 @@ check_shellcheck() {
 
 check_files() {
   for file in \
-    install.sh .install installer/tui.sh \
+    install.sh .install installer/lib/core.sh installer/lib/tui.sh installer/lib/show.sh installer/art/angel-0.ans \
     .config/niri/config.kdl .config/niri/cfg/keybinds.kdl .config/niri/cfg/keybinds-common.kdl \
     .config/niri/cfg/keybinds-pixel.kdl .config/niri/cfg/keybinds-macos.kdl .config/fish/config.fish \
     packages/fish.txt packages/nvim.txt .config/quickshell/angelos/data/apps-catalog.json \
@@ -909,7 +909,7 @@ check_hygiene() {
   fi
 
   if search '/home/mixad|/home/[A-Za-z0-9_.-]+/\.config/gh/hosts\.yml|Cookies|Login Data|Bitwarden/data\.json|keyrings|voxtype/models' \
-       -g '!scripts/check.sh' -g '!README.md' -g '!.gitignore' -g '!install.sh' \
+       -g '!scripts/check.sh' -g '!README.md' -g '!.gitignore' -g '!install.sh' -g '!installer/steps/35-voxtype.sh' \
        -g '!graphify-out/**' -g '!.claude/**' >"$WORK/sensitive" 2>/dev/null; then   # the author's dev tools, never installed
     cat "$WORK/sensitive"
     fail "personal path or secret-like data detected"
