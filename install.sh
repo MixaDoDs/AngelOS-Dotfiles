@@ -253,8 +253,9 @@ warn() { _log "WARNING: $*"; printf '%s[dotfiles] WARNING:%s %s\n' "$C_WARN" "$C
 die()  { DIED=1; _log "ERROR: $*"; printf '%s[dotfiles] ERROR:%s %s\n' "$C_ERR" "$C_OFF2" "$*" >&2; exit 1; }
 hr()   { printf '%s%s %s %s%s\n' "$C_DIM" "$G_HEART" '───────────────────────────────────────────────────────' "$G_HEART" "$C_OFF"; }
 
-# root's home would get angelOS (sudo ./install.sh, or logged in as root on a fresh system)
-((EUID != 0)) || die "$(_ 'Run the installer as your own user, not root and not with sudo: it asks for the admin password itself' \
+# root's home would get angelOS (sudo ./install.sh, or logged in as root on a fresh system); a
+# container without a terminal (the CI, a build) runs as root on purpose
+((EUID != 0 || !INTERACTIVE)) || die "$(_ 'Run the installer as your own user, not root and not with sudo: it asks for the admin password itself' \
                           'Запускай установщик от своего пользователя, не от root и не через sudo: пароль администратора он спросит сам')"
 
 # ── Self-update ──────────────────────────────────────────────────────────────
