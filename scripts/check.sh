@@ -158,7 +158,11 @@ check_author_tools() {
 
 check_shellcheck() {
   if command -v shellcheck >/dev/null 2>&1; then
-    if shellcheck -S warning -x "$ROOT/install.sh" "$ROOT"/installer/lib/*.sh "$ROOT"/installer/steps/*.sh "$ROOT/scripts/check.sh" "$ROOT/scripts/test-update.sh" "$ROOT/scripts/test-update-old.sh" "$ROOT/scripts/ci-local.sh" \
+    # the installer as one script, its modules where install.sh sources them: a variable one file
+    # sets and another reads is no "unused" warning then
+    { sed '/^for _f in "\$ROOT"\/installer/,/^unset _f/d' "$ROOT/install.sh"
+      sed '/^# shellcheck shell=bash/d' "$ROOT"/installer/lib/*.sh "$ROOT"/installer/steps/*.sh; } >"$WORK/installer-whole.sh"
+    if shellcheck -S warning "$WORK/installer-whole.sh" "$ROOT/scripts/check.sh" "$ROOT/scripts/test-update.sh" "$ROOT/scripts/test-update-old.sh" "$ROOT/scripts/ci-local.sh" \
          "$ROOT/.config/quickshell/angelos/scripts/dotfiles-update.sh" "$ROOT/.config/quickshell/angelos/tests/updates/run.sh" &&
        shellcheck -s sh -S warning "$ROOT/.config/quickshell/angelos/bin/angelos" "$ROOT/.config/quickshell/angelos/scripts/author-tools.sh"; then
       pass "shellcheck"

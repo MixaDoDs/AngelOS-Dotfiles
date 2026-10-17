@@ -235,9 +235,14 @@ else
   C_WARN="$(c2 '1;38;2;255;214;120')" C_ERR="$(c2 '1;38;2;255;79;163')" C_OFF2="$(c2 0)"
 fi
 # every line of the installer's own also goes to a log (pacman keeps its terminal: its bars)
-INSTALL_LOG="${XDG_STATE_HOME:-$HOME_DIR/.local/state}/angelos/install-$STAMP.log"
-_log() { printf '%s %s\n' "$(date +%T)" "$*" >>"$INSTALL_LOG" 2>/dev/null; return 0; }
-mkdir -p -- "${INSTALL_LOG%/*}" 2>/dev/null && ls -1t "${INSTALL_LOG%/*}"/install-*.log 2>/dev/null | tail -n +6 | xargs -r rm -f -- || true
+# (from the start of the run: a refused distribution or --help leave nothing behind)
+INSTALL_LOG="${XDG_STATE_HOME:-$HOME_DIR/.local/state}/angelos/install-$STAMP.log" LOG_ON=0
+_log() { ((LOG_ON)) && printf '%s %s\n' "$(date +%T)" "$*" >>"$INSTALL_LOG" 2>/dev/null; return 0; }
+log_start() { # the last five logs are kept
+  mkdir -p -- "${INSTALL_LOG%/*}" 2>/dev/null || return 0
+  LOG_ON=1
+  ls -1t "${INSTALL_LOG%/*}"/install-*.log 2>/dev/null | tail -n +5 | xargs -r rm -f -- || true
+}
 if ((COLOR)); then
   say()  { _log "$*"; printf '%s%s%s %s\n' "$C_SAY" "$G_HEART" "$C_OFF" "$*"; }
 else
@@ -319,6 +324,7 @@ unset _f
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+log_start
 show_init
 ((INTERACTIVE)) && tui_boot
 preflight
