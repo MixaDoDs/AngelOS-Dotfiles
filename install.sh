@@ -235,11 +235,12 @@ else
   C_WARN="$(c2 '1;38;2;255;214;120')" C_ERR="$(c2 '1;38;2;255;79;163')" C_OFF2="$(c2 0)"
 fi
 # every line of the installer's own also goes to a log (pacman keeps its terminal: its bars)
-# (from the start of the run: a refused distribution or --help leave nothing behind)
+# (from the start of a run on a terminal: a refused distribution, --help or an update from Settings
+# leave nothing behind)
 INSTALL_LOG="${XDG_STATE_HOME:-$HOME_DIR/.local/state}/angelos/install-$STAMP.log" LOG_ON=0
 _log() { ((LOG_ON)) && printf '%s %s\n' "$(date +%T)" "$*" >>"$INSTALL_LOG" 2>/dev/null; return 0; }
-log_start() { # the last five logs are kept
-  mkdir -p -- "${INSTALL_LOG%/*}" 2>/dev/null || return 0
+log_start() { # the last five logs are kept; an update from Settings has a log of its own
+  ((INTERACTIVE)) && mkdir -p -- "${INSTALL_LOG%/*}" 2>/dev/null || return 0
   LOG_ON=1
   ls -1t "${INSTALL_LOG%/*}"/install-*.log 2>/dev/null | tail -n +5 | xargs -r rm -f -- || true
 }
