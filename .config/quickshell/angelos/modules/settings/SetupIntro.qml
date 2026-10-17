@@ -26,9 +26,9 @@ import qs.services
 // fades out and pauses — not a game's.
 // This is the controller (one for all the screens); SetupIntroScreen draws the installer and the
 // words, SetupWake the waking up over each screen.
-// Not on the first run any more (16.10: five minutes of it, no pointer, before a new user saw a
-// single question): Settings → Account «Watch the intro» plays it alone. (Opened from Settings →
-// Account «with the intro» in debug mode:
+// On the first run, right after the install (taken off 16.10 by an audit, back 17.10 — the
+// owner's call); Settings → Account «Watch the intro» plays it alone any time. (Opened from
+// Settings → Account «with the intro» in debug mode:
 // Shell.setupIntroOnce; or ANGELOS_SETUP_INTRO=1; =0 never); not while motion is off.
 // And once for everyone already set up when an update brings a newer one (`version` above
 // Config.setup.introSeen), after the shell starts again: alone (Shell.introOpen), over a still of
@@ -44,7 +44,7 @@ Scope {
     // the intro's own version: raise it when it changes enough to show everyone again
     readonly property int version: 2
     readonly property string env: Quickshell.env("ANGELOS_SETUP_INTRO") || ""
-    readonly property bool wanted: env !== "0" && !Motion.still && (Shell.setupIntroOnce || Shell.introOpen || env === "1")
+    readonly property bool wanted: env !== "0" && !Motion.still && (Shell.setupFirstRun || Shell.setupIntroOnce || Shell.introOpen || env === "1")
     readonly property bool alone: Shell.introOpen && !Shell.setupOpen
     // "" → (alone: ask, the question) → bake (the sounds being made) → pre (the minute before:
     // 2002, SetupPrequel) → run (the minute) → reveal (the cut, fading off) → done
@@ -108,7 +108,7 @@ Scope {
     // `wanted` left the covers up over a still of the desktop, no way out)
     function begin() {
         const lone = Shell.introOpen && !Shell.setupOpen;
-        const want = env !== "0" && !Motion.still && (Shell.setupIntroOnce || lone || env === "1");
+        const want = env !== "0" && !Motion.still && (Shell.setupFirstRun || Shell.setupIntroOnce || lone || env === "1");
         Shell.setupIntroOnce = false;
         if (Shell.setupFirstRun || lone)
             Config.setup.introSeen = version;
