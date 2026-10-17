@@ -8,8 +8,8 @@ import qs.services
 import qs.widgets
 
 // Experimental sidebar (Settings → Bar → Sidebar). A small bookmark tab sits on
-// the chosen screen edge: click opens the panel, drag moves the tab — it snaps
-// to the nearest edge.
+// the chosen screen edge: click opens the panel (or the phone: Config.sidebar.look, Phone),
+// drag moves the tab — it snaps to the nearest edge.
 Scope {
     id: root
 
@@ -48,12 +48,12 @@ Scope {
 
                 PxBox {
                     anchors.fill: parent
-                    color: Sidebar.open ? Theme.accent : tabMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.3) : Theme.panel
+                    color: Sidebar.open || Sidebar.shown ? Theme.accent : tabMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.3) : Theme.panel
                     edgeColor: Theme.menuBorder
                     PxIcon {
                         anchors.centerIn: parent
                         name: tabMouse.pressed && Sidebar.dragging ? "sparkle" : "heart"
-                        fill: Sidebar.open ? "#ffffff" : Theme.accent
+                        fill: Sidebar.open || Sidebar.shown ? "#ffffff" : Theme.accent
                     }
                 }
                 MouseArea {
@@ -142,7 +142,13 @@ Scope {
                 visible: shown
                 property bool shown: false
                 readonly property bool open: Sidebar.open
+                // the phone plays its own coming and going, and says when it is gone
+                readonly property bool phoneHere: Sidebar.phone && Sidebar.shown
+                onPhoneHereChanged: if (phoneHere)
+                    shown = true
                 onOpenChanged: {
+                    if (Sidebar.phone)
+                        return;
                     if (open) {
                         shown = true;
                         slide.from = 1;
@@ -176,10 +182,15 @@ Scope {
                 WlrLayershell.namespace: "angelos-sidebar"
                 WlrLayershell.layer: WlrLayer.Top
                 WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+                // open: a click anywhere beside it shuts it (the phone: its lid); the phone shut
+                // on the desk takes only the clicks on itself
                 mask: Region {
-                    item: panelWin.open ? catcher : null
+                    item: panelWin.open ? catcher : phoneLoader.item ? phoneLoader.item.hitBox : null
+                    Region {
+                        item: !panelWin.open && phoneLoader.item ? phoneLoader.item.plugBox : null
+                    }
                 }
-                BackgroundEffect.blurRegion: Config.appearance.blur && panelWin.shown ? blurRegion : null
+                BackgroundEffect.blurRegion: Config.appearance.blur && panelWin.shown && !Sidebar.phone ? blurRegion : null
                 Region {
                     id: blurRegion
                     item: panel
@@ -193,9 +204,26 @@ Scope {
 
                 readonly property real gap: Theme.u * 13
                 readonly property real anchorAlong: Config.sidebar.offset * (scope.vertical ? height : width)
+                // the phone: it rests where the panel would, its middle on the tab's line
+                Loader {
+                    id: phoneLoader
+                    anchors.fill: parent
+                    active: Sidebar.phone && panelWin.shown
+                    focus: true
+                    sourceComponent: Phone {
+                        focus: true
+                        edge: scope.edge
+                        readonly property real reach: Theme.u * 150
+                        restX: scope.edge === "left" ? panelWin.gap + reach : scope.edge === "right" ? panelWin.width - panelWin.gap - reach : Math.max(reach, Math.min(panelWin.width - reach, panelWin.anchorAlong))
+                        restY: scope.edge === "top" ? panelWin.gap + Theme.u * 140 : scope.edge === "bottom" ? panelWin.height - panelWin.gap - Theme.u * 140 : Math.max(Theme.u * 140, Math.min(panelWin.height - Theme.u * 140, panelWin.anchorAlong))
+                        onGone: panelWin.shown = false
+                    }
+                }
+
                 SidebarPanel {
                     id: panel
-                    focus: true
+                    visible: !Sidebar.phone
+                    focus: !Sidebar.phone
                     height: Math.min(implicitHeight, panelWin.height - Theme.u * 8)
                     readonly property real restX: scope.edge === "left" ? panelWin.gap : scope.edge === "right" ? panelWin.width - width - panelWin.gap : Math.max(Theme.u * 4, Math.min(panelWin.width - width - Theme.u * 4, panelWin.anchorAlong - width / 2))
                     readonly property real restY: scope.edge === "top" ? panelWin.gap : scope.edge === "bottom" ? panelWin.height - height - panelWin.gap : Math.max(Theme.u * 4, Math.min(panelWin.height - height - Theme.u * 4, panelWin.anchorAlong - height / 2))

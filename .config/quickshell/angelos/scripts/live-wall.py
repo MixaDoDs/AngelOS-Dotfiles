@@ -41,11 +41,15 @@ Hints the author ships next to a picture (<name>.scene.json) say what a look can
     "screens": [[x0, y0, x1, y1], …]      CRT screens: their glass breathes
     "smoke": [x, y, height]               a thread of smoke rising from x, y, height art pixels
     "blink": [cx, cy, rx, ry]             an eye that blinks now and then (0…1)
+    "music": [[x0, y0, x1, y1], …]        up to three bands where lines move with the music, from
+                                          behind one thing to behind another (or the frame's edge)
+    "musicMask": {"size", "png"}          where in them the lines show (alpha > 127: the sky, a
+                                          CRT's glass); what is not in it hides them (R code 7)
 
 The JSON: {mask, size: [w, h] of the picture, grid: [cell w, cell h, offset x, offset y] of one
 art pixel in the picture's pixels (cell 1 = a photo), pixelArt, sky: {found, night, area},
 water: {found, axis, mirror, area, falls}, lights, glints, scene: {outdoor, rims, objects}}; and,
-only when the hints have them, extras: {snow, fireworks, smoke, blink, bulbs: n, screens: n}.
+only when the hints have them, extras: {snow, fireworks, smoke, blink, music, bulbs: n, screens: n}.
 rims are where a pebble may break off (land over a fall or the dark), eyes where an eye may
 open deep in a cloud; picture 0…1. axis is the waterline (0 top … 1 bottom);
 mirror = the water shows the scene upside down, so the sky's stars are drawn there too.
@@ -530,6 +534,18 @@ def extras_of(hints, w, h):
     e = numbers(hints.get("blink") or [], 4)
     if e is not None and e[2] > 0 and e[3] > 0:
         ex["blink"] = [round(min(1.0, max(0.0, x)), 4) for x in e]
+    music = rects_of(hints, "music", 3)
+    if music:
+        ex["music"] = music
+        mm = hints.get("musicMask")
+        try:
+            import base64
+            import io
+            im = Image.open(io.BytesIO(base64.b64decode(mm["png"]))).convert("RGBA").resize((w, h), Image.NEAREST)
+            free = np.asarray(im)[..., 3] > 127
+        except Exception:
+            free = np.ones((h, w), bool)        # no mask: the whole band shows them
+        codes[free & (codes == 0)] = 7
     return codes, ex or None
 
 

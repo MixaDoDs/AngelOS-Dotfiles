@@ -137,7 +137,7 @@ Scope {
             readonly property string assistantMood: Angel.assistant && Angel.assistant.helperMood || ""
             readonly property bool assistantBusy: !!Angel.assistant && Angel.assistant.helperBusy === true
             readonly property bool expressive: !Motion.calm && !Angel.transition && !grab.held
-            readonly property bool awake: !still || stirring || Angel.talking || Angel.menuOpen || grab.held || Novel.wantsClick || voiceOn || assistantBusy || !!assistantMood
+            readonly property bool awake: !still || stirring || Angel.talking || Angel.menuOpen || grab.held || Novel.wantsClick || voiceOn || assistantBusy || !!assistantMood || Angel.petting || onPhone
             // on stream she stays awake over a fullscreen game: the viewers see her
             readonly property bool clockOn: win.visible && (streamer ? !Shell.locked : !Shell.hiddenScreen(Angel.screenName)) && (awake || bellyClock)
             Timer {
@@ -168,14 +168,26 @@ Scope {
                     stirWait.interval = (100 + Math.random() * 200) * 1000;
                 }
             }
+            // petted (Angel.petting): eyes shut, a blush that comes and goes softly, a little
+            // tilt into each stroke
+            readonly property bool petFace: Angel.petting && !grab.held && !Angel.transition
+            property real petGlow: petFace ? 1 : 0
+            Behavior on petGlow {
+                NumberAnimation {
+                    duration: win.petFace ? 260 : 900
+                }
+            }
+            property int petTilt: 0
             // the swap flips the sprite halfway through (Angel.becomeDemon/becomeAngel)
             readonly property bool demonArt: Angel.demon
             // asleep on a flat battery: eyes shut; tired: heavier lids, a blink more often
-            readonly property bool blinking: clockOn && (Angel.tired >= 3 || awake && (tick % (Angel.tired ? 13 : 29) === 0 || (expressive && assistantMood === "happy" && tick % 24 < 3)))
+            readonly property bool blinking: petFace || clockOn && (Angel.tired >= 3 || awake && (tick % (Angel.tired ? 13 : 29) === 0 || (expressive && assistantMood === "happy" && tick % 24 < 3)))
             // her own words type out; on stream the streamer's voice moves her mouth too
             // (a PNGtuber's: open on loud syllables, flapping in between)
             readonly property bool voiceOn: streamer && StreamAngel.talking && !Angel.transition
-            readonly property bool mouthOpen: (Angel.talking && typer.shown < Angel.text.length && tick % 2 === 0) || (voiceOn && (StreamAngel.level > StreamAngel.threshold * 1.5 || tick % 2 === 0)) || yawning
+            // on the flip phone with you (PhoneLine): the phone at her ear, her mouth with the call
+            readonly property bool onPhone: PhoneLine.talking && PhoneLine.herCall && PhoneLine.call.who === (Angel.demon ? "demon" : "angel")
+            readonly property bool mouthOpen: (onPhone && PhoneLine.speaking && tick % 2 === 0) || (Angel.talking && typer.shown < Angel.text.length && tick % 2 === 0) || (voiceOn && (StreamAngel.level > StreamAngel.threshold * 1.5 || tick % 2 === 0)) || yawning
             // tired (a low battery): a long yawn now and then, more often when the wings are down
             readonly property bool yawning: !Angel.transition && !grab.held && !Angel.talking && (Angel.tired === 1 && tick % 320 < 12 || Angel.tired === 2 && tick % 200 < 12)
             // Settings → Y2K → Looks, each of them apart: glitch (the cracked-halo angel /
@@ -763,7 +775,7 @@ Scope {
                             blink: win.blinking
                             talk: win.mouthOpen
                             // Small whole-rig gestures keep authored sprite parts aligned.
-                            rotation: win.expressive ? win.assistantBusy ? Math.sin(win.tick * 0.23) * 2 : win.assistantMood === "happy" ? Math.sin(win.tick * 0.65) * 3 : win.assistantMood === "concerned" ? -2 : 0 : 0
+                            rotation: win.petFace && !Motion.calm ? win.petTilt * 2 : win.expressive ? win.assistantBusy ? Math.sin(win.tick * 0.23) * 2 : win.assistantMood === "happy" ? Math.sin(win.tick * 0.65) * 3 : win.assistantMood === "concerned" ? -2 : 0 : 0
                             // a flat battery (Angel.tired): she slumps — still, so in the eco mode too
                             transform: Rotation {
                                 origin.x: sprite.width / 2
@@ -774,6 +786,7 @@ Scope {
                             flutter: grab.held || (win.expressive && win.assistantMood === "happy")
                             // past cold she cries (story/game.json → angel.fallen); motion off: no drops
                             tears: !win.demonArt && Story.angelFallen && !Motion.still
+                            blush: win.petGlow
                             // her skin from heaven's prayers (services/HeavenStars)
                             layer.enabled: !win.demonArt && ready && HeavenStars.worn !== null
                             layer.smooth: false
@@ -821,6 +834,32 @@ Scope {
                                     "o": Theme.hex(Theme.accent)
                                 })
                             }
+                        }
+                        // hearts from under the hand as she is petted; a burst when she grows warmer
+                        HeartBurst {
+                            id: petHearts
+                            anchors.fill: parent
+                            z: 4
+                            poolSize: 24
+                            gravity: 0.08
+                            colors: win.demonArt ? [Theme.hellAccent, "#ff3b6b", "#c01848"] : [Theme.accent, "#ff7aa8", "#ffb3cc"]
+                            Connections {
+                                target: Angel
+                                function onPetWarmer() {
+                                    if (!Motion.still)
+                                        petHearts.burst(sprite.x + sprite.body.x + sprite.body.width / 2, sprite.y + sprite.body.y + sprite.body.height * 0.2, 14, Theme.u * 8);
+                                }
+                            }
+                        }
+                        // the flip phone at her ear while she talks to you on it
+                        PxIcon {
+                            visible: win.onPhone && !stage.moving
+                            z: 3
+                            name: "phone"
+                            pixel: Math.max(Theme.u, Math.round(sprite.body.width / 26))
+                            fill: win.demonArt ? Theme.hellAccent : Theme.accent
+                            x: win.atLeft ? sprite.x + sprite.body.x + sprite.body.width * 0.78 : sprite.x + sprite.body.x + sprite.body.width * 0.04 - width * 0.5
+                            y: sprite.y + sprite.body.y + sprite.body.height * 0.2 + (win.tick % 8 < 4 ? 0 : Theme.u)
                         }
                         // the novel has a question for you: a "?" bobbing over her head (click her)
                         PxBox {
@@ -872,6 +911,64 @@ Scope {
                         cursorShape: dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
                         property bool dragging: false
                         readonly property bool held: dragging || spring.running
+                        // petting: the pointer, no button, swung to and fro over her head. Three
+                        // turns, each within 0.9 s of the last, begin it; then every turn is a stroke
+                        hoverEnabled: true
+                        property int petDir: 0          // which way the pointer goes: -1 left, 1 right
+                        property real petEdge: 0        // the farthest x of this swing (sprite px)
+                        property int petTurns: 0
+                        property double petTurnAt: 0
+                        property bool petAnchored: false
+                        onExited: {
+                            petDir = 0;
+                            petAnchored = false;
+                        }
+                        function petMove(mx, my) {
+                            if (Angel.transition)
+                                return;
+                            const p = grab.mapToItem(sprite, mx, my);
+                            const b = sprite.body;
+                            if (p.x < b.x || p.x > b.x + b.width || p.y < b.y || p.y > b.y + b.height * 0.42) {
+                                petDir = 0;
+                                petAnchored = false;
+                                return;
+                            }
+                            const swing = Math.max(Theme.u * 3, b.width * 0.12);
+                            // just come over her head: this is where the first swing starts from
+                            if (!petAnchored) {
+                                petAnchored = true;
+                                petEdge = p.x;
+                                return;
+                            }
+                            const d = p.x - petEdge;
+                            if (petDir === 0) {
+                                if (Math.abs(d) > swing) {
+                                    petDir = d > 0 ? 1 : -1;
+                                    petEdge = p.x;
+                                }
+                                return;
+                            }
+                            if (d * petDir > 0) {
+                                petEdge = p.x;
+                                return;
+                            }
+                            if (Math.abs(d) < swing)
+                                return;
+                            // turned back far enough: a stroke
+                            petDir = -petDir;
+                            petEdge = p.x;
+                            const t = Date.now();
+                            petTurns = t - petTurnAt < 900 ? petTurns + 1 : 1;
+                            petTurnAt = t;
+                            if (petTurns < 3 && !Angel.petting)
+                                return;
+                            Angel.stroke();
+                            win.petTilt = petDir;
+                            if (!Motion.still && Math.random() < 0.6) {
+                                const h = grab.mapToItem(stage, mx, my);
+                                petHearts.pop(h.x, h.y - Theme.u * 4);
+                            }
+                        }
                         // the window keeps its height from the press until she is back (#76)
                         readonly property bool holding: pressed || held
                         onHoldingChanged: win.keptHeight = holding ? win.implicitHeight : 0
@@ -895,7 +992,7 @@ Scope {
                         }
                         onPositionChanged: m => {
                             if (!pressed)
-                                return;
+                                return petMove(m.x, m.y);
                             if (!dragging) {
                                 if (Math.abs(m.x - start.x) + Math.abs(m.y - start.y) < Theme.u * 3)
                                     return;
@@ -982,6 +1079,34 @@ Scope {
                                     sim.mouseMove(grab, p.x, p.y, -1, Qt.LeftButton, Qt.NoModifier);
                                 if (!path.length)
                                     stop();
+                            }
+                        }
+                        // dev (`angelos helper "pet N"`): the pointer, no button, to and fro over her head
+                        Timer {
+                            id: petReplay
+                            property var path: []
+                            interval: 16
+                            repeat: true
+                            onTriggered: {
+                                const p = path.shift();
+                                sim.mouseMove(grab, p.x, p.y, -1, Qt.NoButton, Qt.NoModifier);
+                                if (!path.length)
+                                    stop();
+                            }
+                        }
+                        Connections {
+                            target: Angel
+                            enabled: Shell.dev
+                            function onDevPet(swings) {
+                                const b = sprite.body, head = grab.mapFromItem(sprite, b.x + b.width / 2, b.y + b.height * 0.22);
+                                const reach = b.width * 0.3, path = [];
+                                for (let i = 0; i <= swings * 12; i++)
+                                    path.push({
+                                        "x": head.x + Math.sin(i / 12 * Math.PI) * reach,
+                                        "y": head.y
+                                    });
+                                petReplay.path = path;
+                                petReplay.start();
                             }
                         }
                         Connections {

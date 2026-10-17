@@ -11,6 +11,7 @@ import qs.modules.diary
 import qs.modules.keycast
 import qs.modules.launcher
 import qs.modules.laptop
+import qs.modules.reaper
 import qs.modules.session
 import qs.modules.settings
 
@@ -154,5 +155,11 @@ Scope {
     LazyLoader {
         active: diaryKeep.alive
         DiaryBook {}
+    }
+
+    // the mini-game «Смерть на смене» (services/Reaper): the Halo's button «Смерть»
+    LazyLoader {
+        active: Reaper.open
+        ReaperWindow {}
     }
 }

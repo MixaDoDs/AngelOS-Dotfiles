@@ -3,7 +3,7 @@
 // quietly, from the mask scripts/live-wall.py made of it — r the layer of every art pixel
 // (×32: 1 sky, 2 cloud, 3 a ring or another thing in the sky, 4 still water, 5 falling water,
 // 6 land, 7 outdoors where only snow falls; the low bits: 1…3 a garland's bulb of that group,
-// 4…6 a CRT screen), g a place within it (the water's depth, a fall's way down, the place round
+// 4…6 a CRT screen, 7 where the music's lines show), g a place within it (the water's depth, a fall's way down, the place round
 // a ring), b the picture's own bright points (lights in the sky, glints on the water). Everything sits
 // on the art's pixel grid (`grid`: one art pixel and its offset, in the picture's pixels) and is
 // scaled by `strength` (0 = the picture). Nothing flickers fast: the eye is left alone.
@@ -23,7 +23,9 @@
 //   6 the eye the picture's author pointed at blinks (its own clock: 90 s and more apart)
 // What the author's hints add (release 2002; all 0 for older pictures, nothing of it runs):
 // snow over the sky and outdoors, far fireworks on a night sky's dark, a garland's bulbs taking
-// turns, CRT glass breathing, a thread of smoke
+// turns, CRT glass breathing, a thread of smoke; lines that move with the music (tetoOS's
+// ribbons, on the art grid: a quiet wave in silence) across a band, seen only on its sky or glass:
+// they come out from behind a house, the tree, a ring, a CRT's bezel and go behind the next one
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 
@@ -56,6 +58,14 @@ layout(std140, binding = 0) uniform buf {
     vec4 smoke;          // xy where the smoke starts (0 … 1), z how high it rises (art px), w 1: on
     float snow;          // 0 none … 1 thick: flakes over every layer but nothing (0)
     float calm;          // 1: Motion.calm — gentler bulbs, no band crawling down the screens
+    vec4 music0;         // up to three places for the music's lines (x0 y0 x1 y1, 0 … 1); 0: none
+    vec4 music1;
+    vec4 music2;
+    vec4 bandsA;         // the spectrum: 16 bands, low → high, 0 … 1 (LiveWall eases them)
+    vec4 bandsB;
+    vec4 bandsC;
+    vec4 bandsD;
+    float loud;          // 0 silence … 1 music playing, eased
 };
 layout(binding = 1) uniform sampler2D source;   // the picture as shown (cropped to the item)
 layout(binding = 2) uniform sampler2D mask;     // in the picture's own uv
@@ -296,6 +306,52 @@ float smokeAt(vec2 c) {
     return (1.0 - h) * (0.35 + 0.65 * wisp);
 }
 
+// the spectrum at t (0 … 1 across), between its 16 bands (no dynamic indexing: GLSL 1.00)
+float bandAt(float i) {
+    vec4 v = i < 4.0 ? bandsA : i < 8.0 ? bandsB : i < 12.0 ? bandsC : bandsD;
+    float j = mod(i, 4.0);
+    return j < 1.0 ? v.x : j < 2.0 ? v.y : j < 3.0 ? v.z : v.w;
+}
+float levelAt(float t) {
+    float x = clamp(t, 0.0, 1.0) * 15.0;
+    float i = floor(x);
+    return mix(bandAt(i), bandAt(min(15.0, i + 1.0)), smoothstep(0.0, 1.0, x - i));
+}
+// a ribbon's height at column x of a band (art px from its middle row): a slow wave, and the
+// music's level along it as ripples, both running along it — no ends of its own: what is in front
+// of the band hides them
+float ribbonY(float x, vec2 a, vec2 b, float k, float salt) {
+    float t = (x - a.x) / max(1.0, b.x - a.x);
+    float half_ = 0.5 * (b.y - a.y);
+    float off = 1.7 * k + salt;
+    float base = 0.3 * sin(t * 6.283 * (1.2 + 0.5 * k) + off - time * 0.35);
+    float lv = levelAt(fract(t * 0.85 + 0.03 * off)) * loud;
+    float rip = lv * 1.1 * sin(t * 3.14159 * (6.0 + 2.0 * k) + off - time * 2.2);
+    return (base + rip) * half_ * (0.62 - 0.1 * k);
+}
+// the music's lines in a place: 0 none, else 1 + the ribbon (front first); a column covers the
+// rows half way to its neighbours', so a steep one is still a line of whole pixels
+float musicAt(vec2 c, vec4 r, float salt) {
+    vec2 a = cellOf(r.xy);
+    vec2 b = cellOf(r.zw);
+    if (r.z <= r.x || c.x < a.x || c.x > b.x || c.y < a.y || c.y > b.y)
+        return 0.0;
+    float mid = floor(0.5 * (a.y + b.y) + 0.5);
+    for (int i = 0; i < 3; i++) {
+        float k = float(i);
+        float y = floor(mid - ribbonY(c.x, a, b, k, salt) + 0.5);
+        float yl = floor(mid - ribbonY(c.x - 1.0, a, b, k, salt) + 0.5);
+        float yr = floor(mid - ribbonY(c.x + 1.0, a, b, k, salt) + 0.5);
+        float lo = min(y, min(ceil(0.5 * (y + yl)), ceil(0.5 * (y + yr))));
+        float hi = max(y, max(floor(0.5 * (y + yl)), floor(0.5 * (y + yr))));
+        lo = max(lo, a.y);
+        hi = min(hi, b.y);
+        if (c.y >= lo && c.y <= hi)
+            return 1.0 + k;
+    }
+    return 0.0;
+}
+
 void main() {
     vec2 iu = toImg(qt_TexCoord0);
     vec2 c = cellOf(iu);
@@ -353,7 +409,7 @@ void main() {
     }
     // the sky's own lights (stars, windows) glimmer, slowly
     // (a bulb in the sky has its own rhythm, below)
-    if (lay == SKY && lights > 0.5 && m.b > 0.0 && code < 0.5) {
+    if (lay == SKY && lights > 0.5 && m.b > 0.0 && (code < 0.5 || code > 6.5)) {
         vec2 b = floor(c / 4.0);
         float f = sin(time * (0.3 + 0.5 * hash(b + 1.0)) + hash(b) * 6.283);
         col.rgb *= 1.0 + m.b * strength * (0.3 * f - 0.08);
@@ -436,6 +492,32 @@ void main() {
         float breath = 0.03 * sin(time * (0.9 + 0.3 * k) + k * 2.1) + 0.02 * (2.0 * noise(vec2(time * 0.5, k * 7.0)) - 1.0);
         float band = calm > 0.5 ? 0.0 : (mod(c.y - floor(time * 3.0) + k * 13.0, 46.0) < 2.0 ? 0.06 : 0.0);
         col.rgb *= 1.0 + strength * (breath - band);
+    }
+    // the music's lines: pink in front, turquoise, soft gold behind (the release's colours), on
+    // the band's sky or glass only (code 7, a screen 4…6); toward the frame's edge they go dark
+    // pixel by pixel, not in a blur
+    if (music0.z > music0.x && code > 3.5) {
+        float hit = musicAt(c, music0, 0.0);
+        vec4 r = music0;
+        if (hit < 0.5 && music1.z > music1.x) {
+            hit = musicAt(c, music1, 2.1);
+            r = music1;
+        }
+        if (hit < 0.5 && music2.z > music2.x) {
+            hit = musicAt(c, music2, 4.3);
+            r = music2;
+        }
+        if (hit > 0.5) {
+            vec2 a = cellOf(r.xy);
+            vec2 b = cellOf(r.zw);
+            float t = (c.x - a.x) / max(1.0, b.x - a.x);
+            float edge = (r.x < 0.01 ? smoothstep(0.0, 0.3, t) : 1.0) * (r.z > 0.99 ? smoothstep(1.0, 0.7, t) : 1.0);
+            if (hash(c + seed) < edge) {
+                vec3 tint = hit < 1.5 ? vec3(1.0, 0.5, 0.69) : hit < 2.5 ? vec3(0.37, 0.78, 0.75) : vec3(1.0, 0.91, 0.66);
+                float alpha = (hit < 1.5 ? 0.85 : hit < 2.5 ? 0.65 : 0.45) * (0.55 + 0.45 * loud);
+                col.rgb = mix(col.rgb, tint, alpha * strength);
+            }
+        }
     }
     // the smoke of a cigarette, a cup, a chimney
     if (smoke.w > 0.5) {

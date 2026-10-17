@@ -424,6 +424,9 @@ IpcHandler {
             const a = arg.split(/\s+/).map(Number);
             Angel.devDrag(a[0] || 0, a[1] || 0, a[2] || 300);
         }
+        // dev: the pointer swung to and fro over her head N times, no button (TestEvent): "pet 8"
+        else if (Shell.dev && cmd === "pet")
+            Angel.devPet(Number(arg) || 6);
         else if (debug && cmd === "fx")
             Angel.effect();
         else if (debug && cmd === "hellwall")
@@ -1018,7 +1021,26 @@ IpcHandler {
         if (!Sidebar.enabled)
             return "sidebar is off (Settings → Taskbar → Sidebar)";
         Sidebar.toggle();
-        return Sidebar.open ? "open" : "closed";
+        return Sidebar.open ? "open" : Sidebar.shown ? "shut, on the desk" : "closed";
+    }
+    // the sidebar's phone (Config.sidebar.look "phone"): turn | upright | next | prev | page N
+    // | side sound|walls|theme — for a look without the mouse
+    function phone(cmd: string): string {
+        const a = String(cmd || "").trim().split(/\s+/);
+        if (a[0] === "turn")
+            Sidebar.turned = !Sidebar.turned;
+        else if (a[0] === "upright")
+            Sidebar.turned = false;
+        else if (a[0] === "next" || a[0] === "prev")
+            Sidebar.page += a[0] === "next" ? 1 : -1;
+        else if (a[0] === "page")
+            Sidebar.page = Number(a[1]) || 0;
+        else if (a[0] === "side") {
+            Sidebar.side = a[1] || "sound";
+            Sidebar.turned = true;
+        } else
+            return "phone turn | upright | next | prev | page N | side sound|walls|theme";
+        return (Sidebar.turned ? "side " + Sidebar.side : "page " + Sidebar.page) + (Sidebar.open ? "" : " (shut: angelos sidebar)");
     }
     // screensaver: animated ASCII art until any input
     function idle(): void {

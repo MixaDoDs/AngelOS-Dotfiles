@@ -1,0 +1,153 @@
+# ==============================================================================
+# Miabeyefendi - Universal .gitattributes Template
+# https://github.com/Miabeyefendi
+# Controls line endings, diff behavior, language stats, and export packaging.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Default: let Git normalize line endings for any file it detects as text.
+# Stored as LF in the repo; checked out using each user's core.autocrlf setting.
+# ------------------------------------------------------------------------------
+* text=auto
+
+# ------------------------------------------------------------------------------
+# Force LF for source and config files (the safe default for servers, Docker,
+# and cross-platform tooling). This prevents CRLF from leaking in on Windows.
+# ------------------------------------------------------------------------------
+*.js     text eol=lf
+*.jsx    text eol=lf
+*.ts     text eol=lf
+*.tsx    text eol=lf
+*.mjs    text eol=lf
+*.cjs    text eol=lf
+*.py     text eol=lf
+*.rb     text eol=lf
+*.php    text eol=lf
+*.go     text eol=lf
+*.rs     text eol=lf
+*.java   text eol=lf
+*.kt     text eol=lf
+*.cs     text eol=lf
+*.c      text eol=lf
+*.h      text eol=lf
+*.cpp    text eol=lf
+*.hpp    text eol=lf
+*.css    text eol=lf
+*.scss   text eol=lf
+*.sass   text eol=lf
+*.less   text eol=lf
+*.html   text eol=lf
+*.htm    text eol=lf
+*.xml    text eol=lf
+*.svg    text eol=lf
+*.vue    text eol=lf
+*.svelte text eol=lf
+*.md     text eol=lf
+*.txt    text eol=lf
+*.json   text eol=lf
+*.jsonc  text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.toml   text eol=lf
+*.ini    text eol=lf
+*.cfg    text eol=lf
+*.env    text eol=lf
+*.sql    text eol=lf
+*.graphql text eol=lf
+Dockerfile text eol=lf
+Makefile   text eol=lf
+
+# Shell scripts MUST be LF or they break on Unix.
+*.sh     text eol=lf
+*.bash   text eol=lf
+*.zsh    text eol=lf
+
+# ------------------------------------------------------------------------------
+# Force CRLF for Windows-only scripts (they break with LF).
+# ------------------------------------------------------------------------------
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+*.ps1    text eol=crlf
+*.psm1   text eol=crlf
+*.sln    text eol=crlf
+
+# ------------------------------------------------------------------------------
+# Binary files: Git must not try to diff, merge, or normalize them.
+# ------------------------------------------------------------------------------
+# Images
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.webp   binary
+*.bmp    binary
+*.tiff   binary
+*.psd    binary
+# Fonts
+*.woff   binary
+*.woff2  binary
+*.eot    binary
+*.ttf    binary
+*.otf    binary
+# Audio / video
+*.mp3    binary
+*.mp4    binary
+*.wav    binary
+*.flac   binary
+*.mov    binary
+*.webm   binary
+*.avi    binary
+# Documents / archives
+*.pdf    binary
+*.zip    binary
+*.gz     binary
+*.tar    binary
+*.tgz    binary
+*.rar    binary
+*.7z     binary
+# Compiled / packaged
+*.exe    binary
+*.dll    binary
+*.so     binary
+*.dylib  binary
+*.jar    binary
+*.wasm   binary
+
+# ------------------------------------------------------------------------------
+# Linguist overrides (GitHub language statistics on the repo home page).
+# Hide vendored, generated, and documentation files from the language bar.
+# ------------------------------------------------------------------------------
+docs/*           linguist-documentation
+*.min.js         linguist-generated
+*.min.css        linguist-generated
+dist/*           linguist-generated
+build/*          linguist-generated
+vendor/*         linguist-vendored
+third_party/*    linguist-vendored
+*.lock           linguist-generated
+package-lock.json linguist-generated
+yarn.lock        linguist-generated
+pnpm-lock.yaml   linguist-generated
+
+# ------------------------------------------------------------------------------
+# Diff helpers: give Git smarter hunk headers / treatment for these types.
+# ------------------------------------------------------------------------------
+*.cs   diff=csharp
+*.py   diff=python
+*.html diff=html
+*.css  diff=css
+*.md   diff=markdown
+*.rb   diff=ruby
+*.php  diff=php
+
+# ------------------------------------------------------------------------------
+# export-ignore: keep these out of `git archive` / GitHub release tarballs.
+# ------------------------------------------------------------------------------
+.gitattributes export-ignore
+.gitignore     export-ignore
+.editorconfig  export-ignore
+.github/       export-ignore
+.vscode/       export-ignore
+tests/         export-ignore
+*.test.js      export-ignore

@@ -266,6 +266,74 @@ Singleton {
             "ru": "Сделать перерыв по напоминанию",
             "en": "Take a break when reminded",
             "key": "eyes | move"
+        },
+        {
+            "id": "angel.pet",
+            "ru": "Погладить ангела (или демоницу)",
+            "en": "Pet the angel (or the demon)",
+            "key": "angel | demon"
+        },
+        {
+            "id": "angel.pet.top",
+            "ru": "Нежность на самом верху",
+            "en": "Tenderness at its very top",
+            "key": "angel | demon"
+        },
+        {
+            "id": "phone.call",
+            "ru": "Поговорить с ней по раскладушке",
+            "en": "Talk to her on the flip phone",
+            "key": "angel | demon"
+        },
+        {
+            "id": "phone.sms",
+            "ru": "Отправить SMS с раскладушки",
+            "en": "Send a text from the flip phone",
+            "key": "who to"
+        },
+        {
+            "id": "phone.code",
+            "ru": "Набрать секретный код",
+            "en": "Dial a secret code",
+            "key": "the code"
+        },
+        {
+            "id": "phone.snake30",
+            "ru": "Набрать 30 в Змейке",
+            "en": "Score 30 at Snake"
+        },
+        {
+            "id": "phone.melody",
+            "ru": "Сохранить свою мелодию",
+            "en": "Save a tune of your own",
+            "key": "ring | sounds"
+        },
+        {
+            "id": "phone.ball",
+            "ru": "Спросить шар судьбы",
+            "en": "Ask the magic ball"
+        },
+        {
+            "id": "phone.drop",
+            "ru": "Уронить раскладушку",
+            "en": "Drop the flip phone"
+        },
+        {
+            "id": "phone.selfie",
+            "ru": "Сделать селфи с ней",
+            "en": "Take a selfie with her",
+            "key": "angel | demon"
+        },
+        {
+            "id": "phone.raid30",
+            "ru": "Набрать 30 в Небесном рейде",
+            "en": "Score 30 in Heaven Raid"
+        },
+        {
+            "id": "phone.tuning",
+            "ru": "Надеть деталь тюнинга",
+            "en": "Put on a piece of tuning",
+            "key": "the piece"
         }
     ]
     // + "act:<name>" for every action of story/game.json (a joke, "I love you", the throws…)

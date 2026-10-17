@@ -81,6 +81,41 @@ JsonAdapter {
         property var diary: ({})            // the Angel's diary (services/Diary): {read: {page: ms}, seen: {page: ms}}
     }
 
+    // petting the helper (services/Angel → petting): how tender each of them has grown.
+    // {love, day: "yyyy-MM-dd" of the last petting, today: how much it warmed her that day, at: ms}
+    property JsonObject pet: JsonObject {
+        property var angel: ({})
+        property var demon: ({})
+    }
+
+    // the flip phone's line (services/PhoneLine): messages [{from | to, text, at, read}], the
+    // call log [{who, name, kind: in | out | missed, at}], the best Snake score, and when she
+    // called (for how often she may): {day, count, last, first, late, morning, miss, text}
+    property JsonObject phone: JsonObject {
+        property var sms: []
+        property var log: []
+        property int snake: 0
+        property var calls: ({})
+        // stage 3: counts for the tuning's locks {calls, sms, riddles, demon, raid}, the tunes she
+        // sent [id], the tuning pieces a code of the day gave ["cat:item"], today's code {day, idx,
+        // solved}, when the phone was dropped (ms, 0 = whole), the selfies [{path, at, who}]
+        property var stats: ({})
+        property var tunes: []
+        property var gifts: []
+        property var daily: ({})
+        property double cracked: 0
+        property var album: []
+        // the battery {lvl, at, plug, plugAt, hungry, off, warned, full, smoked}; her hints
+        // {seen, lost (heard under the hiss), told (a sister told them whole)}; what each one
+        // remembers of you {who: {said, tags, at}}; the voicemail [{who, sister, at, lines, lore,
+        // heard}]; messages waiting for the phone to come on
+        property var batt: null
+        property var lore: ({})
+        property var mem: ({})
+        property var voice: []
+        property var pending: []
+    }
+
     // every choice the player made: [{scene, node, choice, tone, at}] (the last 400)
     property var choices: []
     // the novel's progress (was ~/.local/state/angelos/novel.json) and the running scene

@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.config
 import "AngelLines.js" as Lines
+import "AngelPetLines.js" as PetLines
 import "Intents.js" as Intents
 
 // The Y2K helper in the screen corner (modules/y2k/AngelHelper): what she says
@@ -116,6 +117,7 @@ Singleton {
     signal shattered(string screenName)
     signal quake(string screenName, string kind)
     signal devDrag(real dx, real dy, int ms)   // dev: AngelHelper replays a real drag (tests)
+    signal devPet(int swings)                  // dev: AngelHelper swings the pointer over her head (tests)
 
     function tr(pair) {
         return I18n.t(pair[0], pair[1]);
@@ -219,6 +221,117 @@ Singleton {
             SettingsSearch.load();
         Sounds.play(demon ? "demon" : "angel");
     }
+    // ---- petting: the pointer stroked to and fro over her head (AngelHelper) ----
+    // She shuts her eyes and blushes, hearts float up, each stroke plucks a harp string, and
+    // now and then she says something: AngelPetLines.js, 500 lines each for the angel and the
+    // demon in either language, 100 for each of five levels of tenderness. Tenderness is the
+    // save's (save.json → pet): a day with petting warms her by one, and twice more that day
+    // after a break of ten minutes; more than three days without cool her by one a day. The
+    // top level is an achievement for each of them. A cooled angel (Story.angelStep ≥ 2) answers
+    // with the first level's lines only, whatever she was before.
+    property bool petting: false
+    property int petStrokes: 0
+    property double _petSaidAt: 0
+    signal petWarmer()                        // she has grown a level more tender
+    readonly property var petSteps: [0, 3, 9, 18, 30]
+    readonly property string petWho: demon ? "demon" : "angel"
+    readonly property var petSave: Story.pets && Story.pets[petWho] ? Story.pets[petWho] : ({})
+    readonly property int petLove: petSave.love || 0
+    readonly property int petLevel: {
+        let l = 0;
+        while (l + 1 < petSteps.length && petLove >= petSteps[l + 1])
+            l++;
+        return l;
+    }
+    function stroke() {
+        if (!shown || transition)
+            return;
+        now = Date.now();
+        petEnd.restart();
+        petStrokes++;
+        if (!petting) {
+            petting = true;
+            _petBegin();
+        }
+        _pluck();
+        if (now - _petSaidAt > 7000)
+            _petSay();
+    }
+    Timer {
+        id: petEnd
+        interval: 1500
+        onTriggered: {
+            root.petting = false;
+            root.petStrokes = 0;
+        }
+    }
+    function _petBegin() {
+        const who = petWho;
+        const today = Qt.formatDate(new Date(), "yyyy-MM-dd");
+        const p = Object.assign({
+            "love": 0,
+            "day": "",
+            "today": 0,
+            "at": 0
+        }, petSave);
+        if (p.day !== today) {
+            const gap = p.day ? Math.round((Date.parse(today) - Date.parse(p.day)) / 86400000) : 0;
+            if (gap > 3)
+                p.love = Math.max(0, p.love - (gap - 3));
+            p.day = today;
+            p.today = 0;
+        }
+        const before = petLevel;
+        if (p.today === 0 || (p.today < 3 && now - p.at > 600000)) {
+            p.love++;
+            p.today++;
+            p.at = now;
+        }
+        Story.pets[who] = p;
+        Achievements.note("angel.pet", who);
+        if (p.love >= petSteps[petSteps.length - 1])
+            Achievements.note("angel.pet.top", who);
+        // a session opens with a line; warmer than before: a burst of hearts first (AngelHelper)
+        _petSaidAt = 0;
+        if (petLevel > before)
+            petWarmer();
+    }
+    function _petSay() {
+        // her menu or a line with buttons stays; only the blush and the hearts then
+        if (menuOpen || talking && actions.length)
+            return;
+        const level = !demon && Story.angelStep >= 2 ? 0 : petLevel;
+        const set = PetLines[petWho];
+        const list = set && set[I18n.english ? "en" : "ru"] ? set[I18n.english ? "en" : "ru"][level] : null;
+        const msg = fresh(list, "pet" + petWho + level);
+        if (!msg)
+            return;
+        _petSaidAt = now;
+        say(msg, null, Math.max(4500, msg.length * 70), true);
+    }
+    // a harp string a stroke, softly, climbing as the strokes go on: the angel high, the demon low
+    function _pluck() {
+        if (!Sounds.ready || !Sounds.enabled("harp") || StreamMode.quiet)
+            return;
+        const step = [0, 2, 4, 7, 9][petStrokes % 5];
+        const n = demon ? 1 + Math.min(petLevel, 3) + [0, 2, 4, 2][petStrokes % 4] : Math.min(16, 5 + petLevel + step);
+        Sounds.playFile(Sounds.dir + "/harp" + n + ".wav", Sounds.volumeOf("harp") * 0.3);
+    }
+    // random, and none of the last third of the list again before the rest has had its turn
+    property var _recent: ({})
+    function fresh(list, key) {
+        if (!list || !list.length)
+            return "";
+        const seen = (_recent[key] || []).filter(i => i < list.length);
+        const keep = Math.floor(list.length / 3);
+        let i = Math.floor(Math.random() * list.length);
+        for (let tries = 0; tries < 20 && seen.includes(i); tries++)
+            i = Math.floor(Math.random() * list.length);
+        seen.push(i);
+        _recent[key] = seen.slice(-keep);
+        return list[i];
+    }
+
     function showMe(page) {
         return {
             "label": I18n.t("Покажи", "Show me"),

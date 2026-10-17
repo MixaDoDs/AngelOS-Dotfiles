@@ -359,10 +359,20 @@ JsonAdapter {
 
     property JsonObject sidebar: JsonObject {
         property bool enabled: false        // experimental
+        property string look: "phone"       // phone (a pixel flip phone in 3D, modules/sidebar/Phone) | panel (a plain window)
         property string screen: ""          // "" = first screen
         property string edge: "right"       // left | right | top | bottom — where the tab sits
         property real offset: 0.5           // tab position along that edge, 0..1
         property var sections: ["toggles", "media", "sound", "system", "ai"]
+    }
+
+    // the flip phone (services/PhoneLine; Settings → Taskbar → Sidebar)
+    property JsonObject phone: JsonObject {
+        property bool calls: true           // the angel (or the demon) calls now and then, and texts
+        property bool timerCalls: true      // a timer's end rings the phone too
+        property bool keyTones: true        // the keys beep (quieter on stream)
+        property string ringtone: ""        // the composer's tune for her calls; "" = hers (PhoneScripts.tunes)
+        property var look: ({})             // the tuning: {shell, gems, sticker, charm, wall} (PhoneScripts.looks)
     }
 
     property JsonObject capture: JsonObject {

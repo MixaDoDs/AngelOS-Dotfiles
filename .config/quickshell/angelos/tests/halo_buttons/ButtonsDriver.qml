@@ -26,14 +26,15 @@ Scope {
             root.step++;
             const B = HaloButtons;
             if (root.step === 3) {
-                const want = ["pomodoro", "timer", "record", "picker", "note"];
+                const want = ["pomodoro", "timer", "record", "picker", "note", "reaper"];
                 const ids = B.catalog.map(b => b.id);
                 root.ok("catalog", want.every(id => ids.includes(id)) && ids.length === want.length, ids.join(","));
                 const names = Icons.names();
                 const bad = B.catalog.filter(b => !names.includes(b.icon)).map(b => b.id + ":" + b.icon);
                 root.ok("icons", bad.length === 0, bad.join(","));
                 root.ok("labels", B.catalog.every(b => B.label(b) !== "" && ["action", "toggle", "field"].includes(b.kind)) && B.hint("timer") !== "" && B.hint("note") !== "", "");
-                root.ok("default-order", B.list.map(b => b.id).join(",") === want.join(","), B.list.map(b => b.id).join(","));
+                // the game's button (reaper) is the player's pick, not a default
+                root.ok("default-order", B.list.map(b => b.id).join(",") === want.filter(id => id !== "reaper").join(","), B.list.map(b => b.id).join(","));
                 const keep = Config.halo.buttons;
                 // "dnd" was a button once (the sidebar has it): an old settings file keeps working
                 Config.halo.buttons = ["note", "bogus", "dnd", "picker"];

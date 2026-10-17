@@ -14,6 +14,8 @@ import qs.services
 // next kick of the bass (services/LiveBeat). An eye the author pointed at ("blink") blinks on
 // its own slow clock. The author's other hints (snow, fireworks, a garland, CRT screens, smoke:
 // info.extras) are drawn all the time; Motion.calm keeps the fireworks off and the rest gentler.
+// Where the author marked an empty place for it ("music"), lines move with the music: `levels`,
+// a cava spectrum the wallpaper's window runs while `hearsMusic` (modules/background/WallpaperView).
 ShaderEffect {
     id: root
 
@@ -198,6 +200,35 @@ ShaderEffect {
     // the author's hints (all 0 when there are none: the shader skips them)
     function rect(r) {
         return r ? Qt.vector4d(r[0], r[1], r[2], r[3]) : Qt.vector4d(0, 0, 0, 0);
+    }
+    readonly property var musicPlaces: allowedFx("music") ? extras.music || [] : []
+    readonly property bool hearsMusic: visible && musicPlaces.length > 0
+    property var levels: []
+    property vector4d music0: rect(musicPlaces[0])
+    property vector4d music1: rect(musicPlaces[1])
+    property vector4d music2: rect(musicPlaces[2])
+    // 16 bands, each easing towards cava's newest frame (tetoOS's 0.45), so the lines glide
+    property var eased: []
+    onLevelsChanged: {
+        const src = levels || [];
+        const next = [];
+        for (let i = 0; i < 16; i++) {
+            const v = src.length ? src[Math.min(src.length - 1, Math.floor(i * src.length / 16))] : 0;
+            const was = eased[i] || 0;
+            next.push(was + (v - was) * 0.45);
+        }
+        eased = next;
+    }
+    property vector4d bandsA: Qt.vector4d(eased[0] || 0, eased[1] || 0, eased[2] || 0, eased[3] || 0)
+    property vector4d bandsB: Qt.vector4d(eased[4] || 0, eased[5] || 0, eased[6] || 0, eased[7] || 0)
+    property vector4d bandsC: Qt.vector4d(eased[8] || 0, eased[9] || 0, eased[10] || 0, eased[11] || 0)
+    property vector4d bandsD: Qt.vector4d(eased[12] || 0, eased[13] || 0, eased[14] || 0, eased[15] || 0)
+    property real loud: (levels || []).length > 0 ? 1 : 0
+    Behavior on loud {
+        NumberAnimation {
+            duration: 1200
+            easing.type: Easing.InOutSine
+        }
     }
     property vector4d lid: rect(extras.blink)
     // fireworks are flashes, however dim: none in calm

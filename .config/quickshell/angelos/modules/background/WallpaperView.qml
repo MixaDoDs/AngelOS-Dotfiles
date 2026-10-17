@@ -5,6 +5,7 @@ import QtQuick.Window
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.desktop
 
 // Two stacked images blended by the pixel transition shader.
 Item {
@@ -178,11 +179,31 @@ Item {
 
         // the picture, half alive (stars, water): over it once a transition is over
         LiveWall {
+            id: live
             anchors.fill: parent
             screenName: root.screenName
             path: root.shown
             picture: toSrc
             allowed: root.progress >= 1 && !anim.running
+            levels: hearing.item ? hearing.item.levels : []
+        }
+        // the cava behind the wallpaper's music lines: only while a picture with a place for
+        // them is shown (MusicSpectrum: and only while music plays, and the desk is seen)
+        Loader {
+            id: hearing
+            active: live.hearsMusic
+            sourceComponent: MusicSpectrum {
+                screenName: root.screenName
+                widget: ({
+                        "uid": "wall-" + root.screenName,
+                        "settings": {
+                            "bars": 16
+                        }
+                    })
+                rows: 0
+                mac: false
+                opacity: 0                       // numbers only: the lines are the shader's
+            }
         }
     }
 }

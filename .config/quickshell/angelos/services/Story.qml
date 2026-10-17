@@ -44,6 +44,10 @@ Singleton {
     property alias hell: save.hell
     // the achievements' part of the save (services/Achievements)
     property alias feats: save.achievements
+    // petting the helper (services/Angel): her tenderness
+    property alias pets: save.pet
+    // the flip phone's messages, calls and Snake (services/PhoneLine)
+    property alias phone: save.phone
     readonly property double createdAt: save.createdAt || 0
     readonly property var vars: save.vars || ({})
     readonly property var novelState: save.novel

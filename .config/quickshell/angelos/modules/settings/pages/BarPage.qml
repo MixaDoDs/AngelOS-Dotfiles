@@ -463,6 +463,50 @@ PxPage {
         }
         SettingRow {
             visible: Config.sidebar.enabled
+            label: I18n.t("Вид", "Look")
+            hint: I18n.t("телефон-раскладушка в 3D: клавиши — переключатели, на боку — звук, обои и тема", "A 3D flip phone: its keys are the toggles, on its side it holds sound, wallpapers and theme")
+            PxCombo {
+                width: Theme.u * 100
+                model: [{
+                        "label": I18n.t("Телефон", "Phone"),
+                        "value": "phone"
+                    }, {
+                        "label": I18n.t("Панель", "Panel"),
+                        "value": "panel"
+                    }]
+                currentValue: Config.sidebar.look === "panel" ? "panel" : "phone"
+                onActivated: v => Config.sidebar.look = v
+            }
+        }
+        // the phone's line (services/PhoneLine)
+        SettingRow {
+            visible: Config.sidebar.enabled && Sidebar.phone
+            label: I18n.t("Звонки ангела", "The angel calls")
+            hint: I18n.t("иногда звонит и пишет SMS на раскладушку (демоница — из ада)", "Now and then she calls and texts the flip phone (the demon, from hell)")
+            PxToggle {
+                checked: Config.phone.calls
+                onToggled: c => Config.phone.calls = c
+            }
+        }
+        SettingRow {
+            visible: Config.sidebar.enabled && Sidebar.phone
+            label: I18n.t("Таймеры звонят", "Timers ring")
+            hint: I18n.t("конец таймера — звонок на раскладушку", "A timer's end rings the flip phone")
+            PxToggle {
+                checked: Config.phone.timerCalls
+                onToggled: c => Config.phone.timerCalls = c
+            }
+        }
+        SettingRow {
+            visible: Config.sidebar.enabled && Sidebar.phone
+            label: I18n.t("Тоны клавиш", "Key tones")
+            PxToggle {
+                checked: Config.phone.keyTones
+                onToggled: c => Config.phone.keyTones = c
+            }
+        }
+        SettingRow {
+            visible: Config.sidebar.enabled
             label: I18n.t("Экран", "Screen")
             PxCombo {
                 width: Theme.u * 100

@@ -58,7 +58,10 @@ PxPage {
     function hintOf(id) {
         return (labels[id] || ["", ""])[1] || "";
     }
-    // what a row can play: its own sound, any other event's, a custom file, a file from anywhere
+    readonly property var classicLabels: ({
+            "icq": "ICQ «о-оу»"
+        })
+    // what a row can play: its own sound, any other event's, a classic one, a custom file, a file from anywhere
     function choices(id) {
         const own = [{
                 "label": I18n.t("Свой звук", "Its own"),
@@ -70,6 +73,10 @@ PxPage {
                     "label": "♪ " + labelOf(e),
                     "value": e
                 }));
+        const classic = Sounds.classics.map(c => ({
+                    "label": "♪ " + (classicLabels[c] || c),
+                    "value": "classic:" + c
+                }));
         const files = Sounds.customFiles.map(f => ({
                     "label": "♫ " + f,
                     "value": "file:" + Sounds.customDir + "/" + f
@@ -80,7 +87,7 @@ PxPage {
                 "label": "♫ " + cur.split("/").pop(),
                 "value": cur
             });
-        return own.concat(files).concat(others).concat([{
+        return own.concat(classic).concat(files).concat(others).concat([{
                 "label": I18n.t("Выбрать файл…", "Pick a file…"),
                 "value": "__pick"
             }]);

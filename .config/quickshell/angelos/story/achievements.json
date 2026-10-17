@@ -721,6 +721,195 @@
       "count": 100
     },
     {
+      "id": "pet",
+      "tier": 1,
+      "icon": "heartSmall",
+      "name": {
+        "ru": "Погладь меня",
+        "en": "Pet me"
+      },
+      "desc": {
+        "ru": "Погладить ангела по голове: поводить мышкой туда-сюда",
+        "en": "Pet the angel's head: move the mouse to and fro over it"
+      },
+      "on": "angel.pet:angel"
+    },
+    {
+      "id": "tender",
+      "tier": 4,
+      "icon": "heart",
+      "name": {
+        "ru": "Тает",
+        "en": "Melting"
+      },
+      "desc": {
+        "ru": "Гладить ангела изо дня в день, пока нежность не дойдёт до самого верха",
+        "en": "Pet the angel day after day until her tenderness is at its very top"
+      },
+      "on": "angel.pet.top:angel"
+    },
+    {
+      "id": "tender-demon",
+      "tier": 5,
+      "icon": "heartHorns",
+      "name": {
+        "ru": "Ручная",
+        "en": "Tamed"
+      },
+      "desc": {
+        "ru": "Догладить демоницу до самой большой нежности",
+        "en": "Pet the demon until her tenderness is at its very top"
+      },
+      "on": "angel.pet.top:demon",
+      "secret": true,
+      "hell": true
+    },
+    {
+      "id": "phone-hello",
+      "tier": 1,
+      "icon": "phone",
+      "name": {
+        "ru": "Алло?",
+        "en": "Hello?"
+      },
+      "desc": {
+        "ru": "Поговорить с ней по раскладушке",
+        "en": "Talk to her on the flip phone"
+      },
+      "on": "phone.call"
+    },
+    {
+      "id": "phone-sms",
+      "tier": 1,
+      "icon": "chat",
+      "name": {
+        "ru": "SMS-ка",
+        "en": "A text"
+      },
+      "desc": {
+        "ru": "Написать ей SMS кнопками раскладушки",
+        "en": "Text her with the flip phone's keys"
+      },
+      "on": "phone.sms"
+    },
+    {
+      "id": "phone-composer",
+      "tier": 2,
+      "icon": "music",
+      "name": {
+        "ru": "Композитор",
+        "en": "Composer"
+      },
+      "desc": {
+        "ru": "Сочинить и сохранить свою мелодию",
+        "en": "Compose and save a tune of your own"
+      },
+      "on": "phone.melody"
+    },
+    {
+      "id": "phone-snake",
+      "tier": 3,
+      "icon": "gamepad",
+      "name": {
+        "ru": "Змеелов",
+        "en": "Snake charmer"
+      },
+      "desc": {
+        "ru": "Набрать 30 очков в Змейке",
+        "en": "Score 30 at Snake"
+      },
+      "on": "phone.snake30"
+    },
+    {
+      "id": "phone-codes",
+      "tier": 5,
+      "icon": "pin",
+      "name": {
+        "ru": "Хакер 2002",
+        "en": "Hacker 2002"
+      },
+      "desc": {
+        "ru": "Найти три секретных кода раскладушки",
+        "en": "Find three of the flip phone's secret codes"
+      },
+      "on": "phone.code",
+      "kinds": 3,
+      "secret": true
+    },
+    {
+      "id": "phone-ball",
+      "tier": 1,
+      "icon": "eye",
+      "name": {
+        "ru": "Шар судьбы",
+        "en": "The magic ball"
+      },
+      "desc": {
+        "ru": "Раскрутить закрытую раскладушку и получить ответ",
+        "en": "Spin the shut flip phone and get an answer"
+      },
+      "on": "phone.ball"
+    },
+    {
+      "id": "phone-drop",
+      "tier": 2,
+      "icon": "heartBroken",
+      "name": {
+        "ru": "Растяпа",
+        "en": "Butterfingers"
+      },
+      "desc": {
+        "ru": "Уронить раскладушку",
+        "en": "Drop the flip phone"
+      },
+      "on": "phone.drop",
+      "secret": true
+    },
+    {
+      "id": "phone-selfie",
+      "tier": 2,
+      "icon": "camera",
+      "name": {
+        "ru": "Фотосессия",
+        "en": "Photo shoot"
+      },
+      "desc": {
+        "ru": "Сделать пять селфи с ней",
+        "en": "Take five selfies with her"
+      },
+      "on": "phone.selfie",
+      "count": 5
+    },
+    {
+      "id": "phone-raid",
+      "tier": 3,
+      "icon": "gamepad",
+      "name": {
+        "ru": "Небесный ас",
+        "en": "Heaven's ace"
+      },
+      "desc": {
+        "ru": "Набрать 30 очков в Небесном рейде",
+        "en": "Score 30 in Heaven Raid"
+      },
+      "on": "phone.raid30"
+    },
+    {
+      "id": "phone-tuning",
+      "tier": 3,
+      "icon": "sparkleStar",
+      "name": {
+        "ru": "Тюнинг 2002",
+        "en": "Pimp my phone"
+      },
+      "desc": {
+        "ru": "Надеть десять разных деталей тюнинга",
+        "en": "Put on ten different pieces of tuning"
+      },
+      "on": "phone.tuning",
+      "kinds": 10
+    },
+    {
       "id": "completionist",
       "tier": 4,
       "icon": "sparkleStar",

@@ -51,6 +51,14 @@ Singleton {
             "en": "Note",
             "wide": true,
             "kind": "field"
+        },
+        {
+            "id": "reaper",
+            "icon": "skull",
+            "ru": "Смерть",
+            "en": "Death",
+            "wide": false,
+            "kind": "action"
         }
     ]
     // the chosen ones, in the chosen order; ids nobody knows are skipped
@@ -88,6 +96,10 @@ Singleton {
             break;
         case "picker":
             ColorPicker.pick();
+            break;
+        // the mini-game «Смерть на смене» (services/Reaper)
+        case "reaper":
+            Reaper.open = true;
             break;
         }
     }

@@ -16,6 +16,8 @@
                                         and the parts into modules/y2k/sprites/demon-<circle>/
   sprite-rig.py verify                  rebuild the neon demon from its recipe and compare it with
                                         modules/y2k/sprites/demon-glitch/ pixel by pixel
+  sprite-rig.py cheeks                  write `cheeks` (where a petted one blushes) into every
+                                        rig.json under modules/y2k/sprites/ from its eyes.png
 
 How a sheet is cut (the same steps the sprites in the shell were made with):
   1. each part is cropped from the sheet (with `mask`: only its own blob — parts sit close
@@ -25,7 +27,8 @@ How a sheet is cut (the same steps the sprites in the shell were made with):
      x, y, and only the pixels that differ from the body under them are kept (clipped to
      `clip`) — the blink and talk overlays, the body's size; where they overlap (a figure
      whose eye is its face) rig.json says blinkCoversTalk and the blink wins; where tears
-     would run from — the low edge of each closed eye — goes into rig.json as `tears`;
+     would run from — the low edge of each closed eye — goes into rig.json as `tears`, and
+     where she blushes when petted (just under the closed eyes, at their outer ends) as `cheeks`;
   3. the wings and the tail are rotated around their pivot on the full-size sheet for every
      angle, only then shrunk (clean outlines), cropped to what all frames cover and put into
      the unrotated part's colours: a strip of frames; `at` is where the pivot sits on the body.
@@ -331,9 +334,23 @@ def build(recipe, out):
     if ((ovs[0][..., 3] > 0) & (ovs[1][..., 3] > 0)).any():
         rig["blinkCoversTalk"] = True
     rig["tears"] = tear_points(ovs[0], bw)
+    if not rig.get("blinkCoversTalk"):
+        rig["cheeks"] = cheek_points(ovs[0], bh)
     json.dump(rig, open(out / "rig.json", "w"), indent=1)
     check(rig, parts, body, out, ovs)
     return rig
+
+
+def cheek_points(eyes, body_h):
+    """where a petted one blushes (AngelHelper): the top-left corners of two 7×3 ovals under
+    the closed eyes, at their outer ends, and the art pixels one oval pixel is (`k`: the
+    circles' demons are drawn twice as fine). A figure whose eye is its face gets none."""
+    ys, xs = np.nonzero(eyes[..., 3] > 0)
+    if not len(xs):
+        return None
+    k = max(1, round(body_h / 120))
+    x0, x1, y1 = int(xs.min()), int(xs.max()) + 1, int(ys.max()) + 1
+    return {"k": k, "at": [[x0 + k, y1], [x1 - k - 7 * k, y1]]}
 
 
 def tear_points(eyes, body_w):
@@ -606,6 +623,18 @@ def main():
         return 0
     if cmd == "verify":
         return verify()
+    if cmd == "cheeks":
+        for d in sorted(SPRITES.iterdir()):
+            rf = d / "rig.json"
+            if not rf.exists() or not (d / "eyes.png").exists():
+                continue
+            rig = json.load(open(rf))
+            rig.pop("cheeks", None)
+            if not rig.get("blinkCoversTalk"):
+                rig["cheeks"] = cheek_points(np.array(Image.open(d / "eyes.png").convert("RGBA")), rig["body"]["h"])
+            json.dump(rig, open(rf, "w"), indent=1)
+            print(d.name, rig.get("cheeks"))
+        return 0
     print(__doc__)
     return 2
 

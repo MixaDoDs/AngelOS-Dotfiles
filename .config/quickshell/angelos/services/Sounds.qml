@@ -32,7 +32,9 @@ import qs.config
 // (Config.mac.sounds / soundVolume / volumeSound, Settings → Sound in Golden Gate).
 // Settings → System sounds (SfxPage) tunes each one (Config.y2k.soundTweaks,
 // {event: {on, vol, sound, vary}}): on/off, its own volume, another event's sound
-// ("notify") or a file ("file:/path", e.g. from sounds/custom), and for the input
+// ("notify"), a classic one ("classic:icq", data/sounds/classic by scripts/classic-sounds.py, yours
+// of the same name in ~/.local/share/angelos/sounds/classic first) or a file ("file:/path", e.g.
+// from sounds/custom), and for the input
 // sounds which buttons click, a release tick and typing with three variants. The
 // newer events (opt-in) stay quiet until switched on there.
 Singleton {
@@ -98,9 +100,21 @@ Singleton {
         const off = (Config.y2k.soundOff || []).filter(x => x !== name);
         Config.y2k.soundOff = on ? off : off.concat([name]);
     }
-    // what an event plays: "" its own, another event's id, or "file:/path"
+    // what an event plays: "" its own, another event's id, "classic:<id>" or "file:/path"
     function soundOf(name) {
         return String(tweak(name).sound || "");
+    }
+    // the classic sounds (System sounds offers them to every event)
+    readonly property var classics: ["icq"]
+    readonly property var classicDirs: [base + "/classic", Quickshell.shellDir + "/data/sounds/classic"]
+    // a file or a classic sound: where it may be (the first that exists plays); [] for an event's
+    function chosenPaths(chosen) {
+        if (chosen.startsWith("file:"))
+            return [chosen.slice(5)];
+        const id = chosen.startsWith("classic:") ? chosen.slice(8) : "";
+        if (!classics.includes(id))
+            return [];
+        return classicDirs.reduce((all, d) => all.concat(["ogg", "oga", "opus", "mp3", "wav", "flac"].map(e => d + "/" + id + "." + e)), []);
     }
     // quiet hours (y2k.quietHours, from → to, whole hours, may wrap past midnight)
     function quietNow() {
@@ -260,7 +274,8 @@ Singleton {
         if (!ready || macOwn(name) || !enabled(name) || StreamMode.quiet || quietNow())
             return;
         const chosen = soundOf(name);
-        _out(0, chosen.startsWith("file:") ? [chosen.slice(5)] : _packPaths(chosen && events.concat(extra).includes(chosen) ? chosen : name));
+        const files = chosenPaths(chosen);
+        _out(0, files.length ? files : _packPaths(chosen && events.concat(extra).includes(chosen) ? chosen : name));
     }
     function warmSin(circle) {
         if (!enabled("circleSin") || StreamMode.quiet || quietNow() || soundOf("circleSin"))
@@ -329,10 +344,11 @@ Singleton {
         lastAt[key] = now;
         const vol = String(Math.max(0, Math.min(1, volumeOf(name) * (soft || 1))));
         const chosen = soundOf(name);
-        if (chosen.startsWith("file:")) {
+        const files = chosenPaths(chosen);
+        if (files.length) {
             sounded(name);
-            if (!_out(vol, [chosen.slice(5)]))
-                Quickshell.execDetached(["pw-play", "--volume", vol, chosen.slice(5)]);
+            if (!_out(vol, files))
+                Quickshell.execDetached(["sh", "-c", 'for f; do [ -f "$f" ] && exec pw-play --volume "$0" "$f"; done', vol].concat(files));
             return;
         }
         // another event's sound, or its own; typing picks one of three

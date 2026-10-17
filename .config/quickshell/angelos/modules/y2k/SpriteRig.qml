@@ -34,6 +34,9 @@ Item {
     // she cries: pixel drops run from under her closed eyes (rig.json → tears, found by
     // sprite-rig.py on the blink overlay) and fall, on the same clock as the rest of her
     property bool tears: false
+    // petted (services/Angel → petting): pink ovals under her closed eyes, 0…1 (rig.json →
+    // cheeks, found by sprite-rig.py on the blink overlay; a figure whose eye is its face has none)
+    property real blush: 0
     property real px: 1
     // false: Settings → Y2K → Looks picked a pixel version, the helper draws that instead
     property bool use: true
@@ -160,6 +163,29 @@ Item {
             source: root.use && root.file.loaded.rig ? "file://" + root.file.loaded.dir + "mouth.png" : ""
             smooth: false
             mipmap: false
+        }
+        // the blush: a 7×3 oval of `k` art pixels each, two darker strokes across it
+        Repeater {
+            model: root.blush > 0 && root.ready && root.rig.cheeks ? root.rig.cheeks.at : []
+            Item {
+                id: cheek
+                required property var modelData
+                readonly property real k: root.rig.cheeks.k * root.px
+                x: Math.round(modelData[0] * root.px)
+                y: Math.round(modelData[1] * root.px)
+                opacity: root.blush
+                Repeater {
+                    model: [[1, 0, 5, 1, 0], [0, 1, 7, 1, 0], [1, 2, 5, 1, 0], [2, 1, 1, 1, 1], [4, 1, 1, 1, 1]]
+                    Rectangle {
+                        required property var modelData
+                        x: Math.round(modelData[0] * cheek.k)
+                        y: Math.round(modelData[1] * cheek.k)
+                        width: Math.round((modelData[0] + modelData[2]) * cheek.k) - x
+                        height: Math.round((modelData[1] + modelData[3]) * cheek.k) - y
+                        color: modelData[4] ? Qt.rgba(0.84, 0.2, 0.41, 0.8) : Qt.rgba(1, 0.38, 0.55, 0.55)
+                    }
+                }
+            }
         }
     }
     Repeater {
