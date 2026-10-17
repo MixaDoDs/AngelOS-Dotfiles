@@ -490,6 +490,9 @@ PanelWindow {
     // browser's tabs); hidden for a while, it keeps the strip so they don't jump; the stand
     // never pushes the real windows
     readonly property int strip: glued ? px(16) : px(18) + topGap + (skin === "float" ? u * 3 : 0)
+    // Normal said outright: a 0 at start (the strip off) doesn't change the zone, so Quickshell
+    // never left Auto and the strip came back after every restart (#89)
+    exclusionMode: ExclusionMode.Normal
     exclusiveZone: Config.halo.reserve && !Shell.dev ? strip : 0
     color: "transparent"
     WlrLayershell.namespace: "angelos-halo"
