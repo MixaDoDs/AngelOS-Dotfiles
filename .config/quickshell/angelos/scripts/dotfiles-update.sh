@@ -75,6 +75,15 @@ fail() {
 }
 
 is_repo() { [[ -d "$1/.git" && -f "$1/install.sh" ]]; }
+# commits of HEAD that upstream never had: the publish force-pushes, so commits that only
+# left upstream (were in it once — its reflog) are not the clone's own and don't block (#90)
+own_commits() {
+  local seen=() c log
+  log="$(git rev-parse --git-path "logs/$(git rev-parse --symbolic-full-name '@{u}' 2>/dev/null)")"
+  # both columns: a forced update's entry holds the value it replaced
+  for c in $(cut -d' ' -f1,2 "$log" 2>/dev/null); do git cat-file -e "$c^{commit}" 2>/dev/null && seen+=("^$c"); done
+  git rev-list --count HEAD "^@{u}" "${seen[@]}" 2>/dev/null || echo 0
+}
 
 # updates run the repository's installer, so only pull from where this system
 # came from: the official repository or the remote recorded at install time
@@ -182,7 +191,7 @@ case "${1:-}" in
     echo "BRANCH $(git rev-parse --abbrev-ref HEAD)"
     echo "UPSTREAM $(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo none)"
     echo "BEHIND $(git rev-list --count 'HEAD..@{u}' 2>/dev/null || echo 0)"
-    echo "AHEAD $(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)"
+    echo "AHEAD $(own_commits)"
     echo "DIRTY $(git status --porcelain | wc -l)"
     echo "REMOTE $(git remote get-url origin 2>/dev/null || echo none)"
     trusted_remote && echo "TRUSTED 1" || echo "TRUSTED 0"
@@ -260,7 +269,8 @@ new="$(git rev-parse '@{u}' 2>/dev/null)" ||
                        "у ветки $branch нет upstream — переключись на main (git -C \"$REPO\" switch main) и обнови снова")" 6
 up="$(git rev-parse --abbrev-ref '@{u}')"
 # commits of the clone's own: a fast-forward would lose them (a developer's working clone)
-ahead="$(git rev-list --count "$new..$old")" behind="$(git rev-list --count "$old..$new")"
+ahead="$(own_commits)" behind="$(git rev-list --count "$old..$new")"
+rewritten="$(git rev-list --count "$new..$old")"  # upstream was force-pushed past these: drop them
 if ((ahead > 0 && behind == 0)); then
   fail_early local-commits "$(_ "the repository has $ahead commit(s) of its own that $up doesn't have, and nothing new came: there is nothing to update. Nothing changed. Install your own version with its installer (./install.sh)" \
                                 "в репозитории $ahead своих коммит(а/ов), которых нет в $up, а нового там нет — обновлять нечего. Ничего не менялось. Свою версию ставь её установщиком (./install.sh)")" 7
@@ -290,9 +300,15 @@ exec 9>"$B/.lock"
 STAGE=pull
 trap 'fail "$STAGE" "$(_ "unexpected error (dotfiles-update.sh, line $LINENO)" "неожиданная ошибка (dotfiles-update.sh, строка $LINENO)")" 13' ERR
 
-say "git merge --ff-only ($branch)"
 err="$B/merge.log"
-if ! git merge --ff-only --quiet "$new" >"$err" 2>&1; then
+if ((rewritten > 0)); then
+  say "git reset --keep ($branch → $up)"
+  move=(git reset --keep --quiet "$new")
+else
+  say "git merge --ff-only ($branch)"
+  move=(git merge --ff-only --quiet "$new")
+fi
+if ! "${move[@]}" >"$err" 2>&1; then
   sed 's/^/  /' "$err"
   fail pull "$(_ "git merge failed ($(git_reason "$err")) — the repository stayed on the old version" "git merge не прошёл ($(git_reason "$err")) — репозиторий остался на прежней версии")" 6
 fi
