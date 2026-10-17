@@ -215,11 +215,11 @@ check "success: --last reports it" grep -q "^LAST ok done $BACKUP $V1 $V2" "$W/l
 # ── 2. the installer fails halfway; restore, with a change made after the update ──
 new_case install-fails
 v2_edits
-python3 - "$W/work/install.sh" <<'PY'
+python3 - "$W/work/installer/steps/60-shell.sh" <<'PY'
 import sys
 p = sys.argv[1]
 t = open(p).read()
-# the steps run in order (STEPS in install.sh): install_shell comes right after install_configs
+# the steps run in order (installer/steps, by their step lines): install_shell comes right after install_configs
 assert "install_shell() {\n" in t
 open(p, "w").write(t.replace("install_shell() {\n", "install_shell() {\n  false  # the test's broken step\n", 1))
 PY
@@ -301,7 +301,7 @@ check "snapshot failure: repository not moved" head_is "$V1"
 # ── 6. restores that fail keep the snapshot ──────────────────────────────────
 new_case restore-fails
 v2_edits
-sed -i 's/^install_shell() {$/install_shell() {\n  false/' "$W/work/install.sh"
+sed -i 's/^install_shell() {$/install_shell() {\n  false/' "$W/work/installer/steps/60-shell.sh"
 publish "v2 with a broken installer"
 update
 copy="$BACKUP/files$H/$QML_FILE"
@@ -440,7 +440,7 @@ check "SYSTEM_UPGRADE=0: angelOS updates, pacman never runs" \
 # ── 8. failures after the snapshot say why, and are undone ───────────────────
 new_case install-dies
 v2_edits
-python3 - "$W/work/install.sh" <<'PY2'
+python3 - "$W/work/installer/steps/60-shell.sh" <<'PY2'
 import sys
 p = sys.argv[1]
 t = open(p).read()

@@ -95,24 +95,32 @@ cd AngelOS-Dotfiles
 
 <br>
 
-The installer draws a stream right in the terminal ([gum](https://github.com/charmbracelet/gum)): pixel frames, menus
-ticked with the space bar, a progress bar made of hearts, a chat that comments on what is going on. It asks nine things:
+Before: Arch Linux or CachyOS, the internet, your own user (not root) with sudo (`sudo pacman -S --needed git`
+first on a bare Arch). About 10–30 minutes, mostly downloads.
+
+The installer is a small show right in the terminal: a hard disk spins up, the angel flaps its wings
+([chafa](https://hpjansson.org/chafa/) draws real pictures in kitty, foot, Konsole, WezTerm; coloured blocks in any
+other terminal and in the bare Linux console), menus by [gum](https://github.com/charmbracelet/gum), a progress bar
+of hearts, a chat commenting on it, quiet music while it works (`NO_MUSIC=1` mutes it, `NO_ANIM=1` stills it). It
+works the same from a console after a fresh install (Ctrl+Alt+F2), over `ssh -t`, or in a terminal inside KDE or GNOME.
+
+It asks only what the system needs; the look, the game, the apps, the keyboard and voice input come with the setup
+wizard on the first login:
 
 | Question | Options |
 | --- | --- |
-| Profile | `full` (the whole look) or `tech` (niri config and the helper tools only) |
-| Shell | angelOS (default) or none |
-| Look | **Pixel** or **macOS**, and with macOS whether to take the ⌘ keys |
-| The game | angelOS as a game, or plain dotfiles (`ANGELOS_GAME=0\|1`) |
 | Wallpapers | packs from [PixelStreetArt_Wallpapers](https://github.com/MixaDoDs/PixelStreetArt_Wallpapers), only the ticked folders |
-| fish | install it with its look and make it the login shell (`FISH_DEFAULT=0` keeps yours) |
-| Apps | the ones in the stills: Helium, Telegram, Spotify, Obsidian, qView, mpv, LocalSend, Discord |
-| Extras | voice input (Voxtype + a Whisper model), the SDDM login screen, the everyday tools |
-| Keyboard | layouts, which one is on after login, the switch shortcut |
+| Terminal | fish with its look as the login shell (`FISH_DEFAULT=0` keeps yours) |
+| Login screen | the angelOS SDDM theme (with GDM or Plasma's own, keeping it is the default) |
+| Main screen | with two screens or more, inside a running niri |
+| Programs | a system monitor, an archiver, file compare and small console tools |
 
-Everything it replaces is backed up first (`name.bak.YYYYMMDD-HHMMSS`), then `niri validate` runs. Safe to run again.
-Without questions: `INTERACTIVE=0` with the answers as environment variables (`PROFILE`, `ANGELOS_THEME`, `MAC_KEYS`,
-`KB_LAYOUTS`, `INSTALL_APPS` and the rest, listed at the top of `install.sh`).
+Then one screen says everything that will happen — packages and their size, the login screen, the shell, groups —
+with **Start**, **Change the answers** or **Quit**. Nothing is touched before it, and the admin password is asked
+once. Everything it replaces is backed up first (`name.bak.YYYYMMDD-HHMMSS`), then `niri validate` runs; the log is
+in `~/.local/state/angelos/`. Safe to run again. Without questions: `INTERACTIVE=0` with the answers as environment
+variables (`DOTFILES_MODE`, `ANGELOS_THEME`, `MAC_KEYS`, `KB_LAYOUTS`, `INSTALL_APPS` and the rest: `./install.sh --help`).
+How it is built: [installer/README.md](installer/README.md).
 
 After the first login, a setup wizard: language, where you are coming from (Windows, a Mac, another Linux, nothing), the
 game or just a desktop, the main screen, layouts, mouse, light or dark, a wallpaper, how much should move; then the tips.

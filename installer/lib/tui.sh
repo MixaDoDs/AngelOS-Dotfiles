@@ -25,13 +25,21 @@ tui_detect() {
   return 0
 }
 
-# ANSI truecolor from #rrggbb, only on a terminal and without NO_COLOR
+# ANSI truecolor from #rrggbb, only on a terminal and without NO_COLOR; the Linux console has 16
+# colours (it squashes truecolor to white): the palette's nearest ones there
 _rgb() {
   local hex="${1#\#}"
+  if ((CONSOLE)); then
+    case "$1" in
+      "$P_HOT") printf '\033[1;95m' ;; "$P_PINK") printf '\033[95m' ;; "$P_LILAC") printf '\033[94m' ;;
+      "$P_DIM") printf '\033[35m' ;; *) printf '\033[97m' ;;
+    esac
+    return 0
+  fi
   printf '\033[38;2;%d;%d;%dm' "0x${hex:0:2}" "0x${hex:2:2}" "0x${hex:4:2}"
 }
-fg() { [[ -t 1 && -z "${NO_COLOR:-}" ]] && _rgb "$1"; return 0; }
-off() { [[ -t 1 && -z "${NO_COLOR:-}" ]] && printf '\033[0m'; return 0; }
+fg() { ((COLOR)) && _rgb "$1"; return 0; }
+off() { ((COLOR)) && printf '\033[0m'; return 0; }
 
 # a random line of the "stream chat" (en/ru)
 # shellcheck disable=SC2034  # read through the nameref in chat_line
@@ -76,7 +84,7 @@ BANNER=(
 '   ▄▀▀▄▄▀▀▄      ▄▀█ █▄ █ █▀▀ █▀▀ █   █▀█ █▀▀'
 '  █  ♥  ♥  █     █▀█ █ ▀█ █▄█ ██▄ █▄▄ █▄█ ▄▄█'
 '   ▀▄    ▄▀'
-'     ▀▄▄▀        ● LIVE   dotfiles installer ♡'
+'     ▀▄▄▀        ● LIVE   angelOS setup ♡'
 )
 
 tui_banner() {
@@ -100,6 +108,16 @@ tui_banner() {
 tui_boot() {
   ((INTERACTIVE)) || return 0
   local frames=('▖' '▘' '▝' '▗') i msg
+  ((CONSOLE)) && frames=('|' '/' '-' '\\')
+  # a hard disk spins up, as a PC of 2000 did; then Lain's opening words, and the angel
+  ((COLOR)) && printf '\033[2J\033[H'
+  sfx pc2k/startup
+  if ((SHOW)); then
+    printf '%s' "$(fg "$P_DIM")"
+    typed "Present day. Present time."
+    off
+    anim angel 2
+  fi
   msg="$(_ 'connecting to the stream' 'подключаюсь к стриму')"
   if [[ "${NO_ANIM:-0}" != 1 ]]; then
     for i in {0..11}; do
@@ -121,7 +139,7 @@ box_width() {
   local cols
   cols="$(tput cols 2>/dev/null || echo 80)"
   ((cols > 80)) && cols=80
-  ((cols < 60)) && cols=60
+  ((cols < 24)) && cols=24
   echo $((cols - 4))
 }
 
@@ -131,16 +149,18 @@ tui_section() {
   if ((TUI)); then
     local w edge line
     w="$(box_width)"
+    local tl='▛' tr='▜' bl='▙' br='▟' top='▀' bot='▄' side='▌'
+    ((CONSOLE)) && tl='+' tr='+' bl='+' br='+' top='-' bot='-' side='|'
     printf -v edge '%*s' "$w" ''
     echo
-    printf '%s▛%s▜%s\n' "$(fg "$P_PINK")" "${edge// /▀}" "$(off)"
-    printf '%s▌%s %s%s%s\n' "$(fg "$P_PINK")" "$(off)" "$(fg "$P_HOT")" "♡ $title" "$(off)"
+    printf '%s%s%s%s%s\n' "$(fg "$P_PINK")" "$tl" "${edge// /$top}" "$tr" "$(off)"
+    printf '%s%s%s %s%s%s\n' "$(fg "$P_PINK")" "$side" "$(off)" "$(fg "$P_HOT")" "$G_HEART $title" "$(off)"
     if (($#)); then
       while IFS= read -r line; do
-        printf '%s▌%s %s%s%s\n' "$(fg "$P_PINK")" "$(off)" "$(fg "$P_CREAM")" "$line" "$(off)"
+        printf '%s%s%s %s%s%s\n' "$(fg "$P_PINK")" "$side" "$(off)" "$(fg "$P_CREAM")" "$line" "$(off)"
       done < <(gum style --width "$((w - 2))" -- "$*")
     fi
-    printf '%s▙%s▟%s\n' "$(fg "$P_PINK")" "${edge// /▄}" "$(off)"
+    printf '%s%s%s%s%s\n' "$(fg "$P_PINK")" "$bl" "${edge// /$bot}" "$br" "$(off)"
   else
     hr
     printf '%s\n' "$title"
@@ -160,7 +180,7 @@ ui_choose() {
   local header="$1" def="$2"; shift 2
   local labels=("$@") pick i reply
   if ((TUI)); then
-    pick="$(gum choose --header "$header" --cursor "♡ " --selected "${labels[def-1]}" \
+    pick="$(gum choose --header "$header" --cursor "$G_HEART " --selected "${labels[def-1]}" \
               --header.foreground "$P_PINK" --cursor.foreground "$P_HOT" --selected.foreground "$P_HOT" \
               --item.foreground "$P_CREAM" -- "${labels[@]}")" || die "$(_ 'Cancelled — the stream is over' 'Отменено — стрим окончен')"
     for i in "${!labels[@]}"; do
@@ -187,8 +207,8 @@ ui_choose_many() {
     for n in $pre; do sel+=("${labels[n-1]}"); done
     local IFS=,
     local picked
-    picked="$(gum choose --no-limit --header "$header" --cursor "♡ " --selected "${sel[*]:-}" \
-                --cursor-prefix "♡ " --selected-prefix "♥ " --unselected-prefix "· " \
+    picked="$(gum choose --no-limit --header "$header" --cursor "$G_HEART " --selected "${sel[*]:-}" \
+                --cursor-prefix "$G_HEART " --selected-prefix "$G_FULL " --unselected-prefix "· " \
                 --header.foreground "$P_PINK" --cursor.foreground "$P_HOT" --selected.foreground "$P_HOT" \
                 --item.foreground "$P_CREAM" -- "${labels[@]}")" || die "$(_ 'Cancelled — the stream is over' 'Отменено — стрим окончен')"
     unset IFS
@@ -216,7 +236,7 @@ ui_confirm() {
     local d=false; [[ "$default" == y ]] && d=true
     # gum confirm doesn't wrap: a long question is wrapped here to the box's width
     question="$(gum style --width "$(box_width)" -- "$question" | sed 's/[[:space:]]*$//')"
-    gum confirm --default="$d" --affirmative "$(_ 'Yes ♡' 'Да ♡')" --negative "$(_ 'No' 'Нет')" \
+    gum confirm --default="$d" --affirmative "$(_ "Yes $G_HEART" "Да $G_HEART")" --negative "$(_ 'No' 'Нет')" \
       --prompt.foreground "$P_CREAM" --selected.background "$P_HOT" --selected.foreground "$P_CREAM" \
       --unselected.foreground "$P_LILAC" -- "$question"
     local rc=$?
@@ -230,7 +250,7 @@ ui_confirm() {
 ui_input() {
   local prompt="$1" def="${2:-}" reply
   if ((TUI)); then
-    reply="$(gum input --prompt "♡ $prompt › " --value "$def" --prompt.foreground "$P_PINK" \
+    reply="$(gum input --prompt "$G_HEART $prompt › " --value "$def" --prompt.foreground "$P_PINK" \
                --cursor.foreground "$P_HOT")" || die "$(_ 'Cancelled — the stream is over' 'Отменено — стрим окончен')"
     printf '%s' "${reply:-$def}"; return 0
   fi
@@ -242,15 +262,16 @@ ui_input() {
 
 # ui_progress N TOTAL LABEL: ♥♥♥♥♡♡♡♡♡♡ 40%  label — on a terminal only (logs stay as they were)
 ui_progress() {
-  ((INTERACTIVE)) && [[ -t 1 ]] || return 0
+  ((INTERACTIVE && TTY_OUT)) || return 0
   local n="$1" total="$2" label="$3" width=10 full bar="" i pct
   ((total > 0)) || total=1
   full=$((n * width / total)); pct=$((n * 100 / total))
   for ((i = 0; i < width; i++)); do
-    if ((i < full)); then bar+="$(fg "$P_HOT")♥"; else bar+="$(fg "$P_LILAC")♡"; fi
+    if ((i < full)); then bar+="$(fg "$P_HOT")$G_FULL"; else bar+="$(fg "$P_LILAC")$G_HEART"; fi
   done
   printf '\n%s %s%3d%%%s  %s%s%s\n' "$bar" "$(fg "$P_CREAM")" "$pct" "$(off)" "$(fg "$P_PINK")" "$label" "$(off)"
   # every third step someone in chat says something
   ((n % 3 == 1)) && chat_line
+  ((n)) && sfx pc2k/chestTick
   return 0
 }
