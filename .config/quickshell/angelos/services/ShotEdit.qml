@@ -51,7 +51,9 @@ Singleton {
                 root.moved(root.path, p);
                 return;
             }
-            root.shown(p, CircleSearch.screenName || Niri.focusedOutput, false);
+            // (Ctrl+Shift+C: the overlay stays for the next piece, no picture over it)
+            if (!CircleSearch.open)
+                root.shown(p, CircleSearch.screenName || Niri.focusedOutput, false);
         }
     }
     // a shot saved (or only copied: temp) on that screen: its picture in the corner
@@ -195,25 +197,30 @@ Singleton {
         say(I18n.t("Картинка скопирована", "Picture copied"));
     }
     // the finished picture kept: over the shot, or a copied one into the folder (as a new screenshot)
-    function saveFile(file) {
+    // silent: no notification of its own (the editor's Copy saves its changes too, and says "copied")
+    function saveFile(file, silent) {
         if (temp) {
             quiet = true;
             Capture.saveShot(file, null, {
-                "copy": false
+                "copy": false,
+                "quiet": !!silent
             });
             return;
         }
+        saver.silent = !!silent;
         saver.command = ["sh", "-c", 'cp -- "$1" "$2.part" && mv -f -- "$2.part" "$2"', "sh", file, path];
         saver.running = true;
     }
     Process {
         id: saver
+        property bool silent: false
         onExited: code => {
             if (code !== 0) {
                 root.error = I18n.t("Не сохранилось", "Not saved");
                 return;
             }
-            root.say(I18n.t("Снимок сохранён", "Screenshot saved"));
+            if (!saver.silent)
+                root.say(I18n.t("Снимок сохранён", "Screenshot saved"));
             root.loadRecent();
         }
     }

@@ -209,11 +209,15 @@ Item {
             });
         });
     }
+    // on the clipboard, and the changes over the shot in the folder too (what was copied is what is kept)
     function copy() {
         if (busy)
             return;
+        const changed = dirty;
         flatten(f => {
             ShotEdit.copyFile(f);
+            if (changed)
+                ShotEdit.saveFile(f, true);
             ed.dirty = false;
             ed.store();
             ed.say(I18n.t("Скопировано — вставляйте куда нужно", "Copied — paste it anywhere"));

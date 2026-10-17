@@ -55,8 +55,10 @@ Singleton {
     }
     // the overlay's picked part (rect: {x, y, w, h} in frame pixels, null: the whole frame) kept
     // as the old tool kept it (scripts/capture_save.py): the month folder, the clipboard, the
-    // notification with its buttons. opts: {copy, save, open} override the settings
-    function saveShot(framePath, rect, opts) {
+    // notification with its buttons. opts: {copy, save, open} override the settings; quiet: no
+    // notification (the caller says what happened); noThumb: no corner / Halo picture of it.
+    // done(r): {path, copied} once it is kept
+    function saveShot(framePath, rect, opts, done) {
         const o = opts || {};
         const args = ["python3", Quickshell.shellPath("scripts/capture_save.py"), "save", framePath];
         if (rect)
@@ -67,12 +69,16 @@ Singleton {
             args.push("--no-save");
         if (o.open)
             args.push("--open");
+        if (o.quiet)
+            args.push("--quiet");
         // privacy on stream hides apps: no picture in the notification (it is on the screen too)
         if (Privacy.hiddenNow.length)
             args.push("--private");
         // its last line says where the picture went: the Halo shows it a moment (shotSaved)
         shotRun.createObject(root, {
-            "command": args
+            "command": args,
+            "done": done || null,
+            "noThumb": !!o.noThumb
         });
     }
     // a screenshot kept in its month folder (the overlay's save): the Halo's thumbnail
@@ -82,6 +88,7 @@ Singleton {
         Process {
             id: sr
             property var done: null
+            property bool noThumb: false
             running: true
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -89,7 +96,7 @@ Singleton {
                     let r = {};
                     try {
                         r = JSON.parse(last) || {};
-                        if (r.path)
+                        if (r.path && !sr.noThumb)
                             root.shotSaved(r.path);
                     } catch (e) {}
                     if (sr.done)
@@ -99,20 +106,6 @@ Singleton {
             onRunningChanged: if (!running)
                 Qt.callLater(sr.destroy)
         }
-    }
-    // only the picture on the clipboard, nothing saved
-    // done(r): r.copied once the script is through ({"copied": bool, "path"} or {"error"});
-    // out: the PNG kept there too (the corner's thumbnail, services/ShotEdit)
-    function copyShot(framePath, rect, done, out) {
-        const args = ["python3", Quickshell.shellPath("scripts/capture_save.py"), "copy", framePath];
-        if (rect)
-            args.push("--rect", [rect.x, rect.y, rect.w, rect.h].map(Math.round).join(","));
-        if (out)
-            args.push("--out", out);
-        shotRun.createObject(root, {
-            "command": args,
-            "done": done || null
-        });
     }
     // our own screen recording (niri-record-region, the Halo's record capsule): its pid file says
     // one runs, the file's time when it began. The script pokes recChanged (modules/Ipc) on start

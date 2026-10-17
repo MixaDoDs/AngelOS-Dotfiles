@@ -988,6 +988,21 @@ Scope {
         },
         () => root.until("editor:-saved-over-the-shot", () => (root.look(), shots.size === "200x60"), 10000, () => shots.count + " " + shots.size + " " + ShotEdit.error),
         () => root.until("editor:-copies-the-picture", () => /image\/png/.test(root.fileText(copied)), 4000, () => copied.text()),
+        () => {
+            // a change, then Copy: the shot in the folder takes it too
+            editorFace.step("rotate", "cw");
+            return true;
+        },
+        () => root.until("editor:-turned-again", () => !editorFace.busy && editorFace.page.width === 60, 8000, () => editorFace.page.width),
+        () => {
+            editorFace.copy();
+            return true;
+        },
+        () => root.until("editor:-Copy-keeps-the-changes-over-the-shot", () => (root.look(), shots.size === "60x200"), 8000, () => shots.size),
+        () => {
+            editorFace.undo();
+            return true;
+        },
         // a picture only copied (Enter): on the clipboard, then in the corner too; its editor copies first
         () => {
             root.reopen();
@@ -999,7 +1014,7 @@ Scope {
             return true;
         },
         () => root.until("Enter-puts-the-picture-on-the-clipboard", () => /image\/png/.test(root.fileText(copied)), 8000, () => copied.text()),
-        () => root.until("a-copied-shot-waits-in-the-corner-too", () => ShotEdit.thumb && ShotEdit.temp && /shot-\d+\.png$/.test(ShotEdit.path), 4000, () => ShotEdit.thumb + " " + ShotEdit.temp + " " + ShotEdit.path),
+        () => root.until("a-copied-shot-is-kept-in-the-folder-and-waits-in-the-corner", () => ShotEdit.thumb && !ShotEdit.temp && /Pictures\/Screenshots\/.*\.png$/.test(ShotEdit.path), 4000, () => ShotEdit.thumb + " " + ShotEdit.temp + " " + ShotEdit.path),
         () => {
             ShotEdit.edit();
             const ec = root.find(editorFace, "editor-copy");

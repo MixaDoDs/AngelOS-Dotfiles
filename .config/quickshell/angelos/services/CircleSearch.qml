@@ -744,14 +744,13 @@ Singleton {
             return;
         learnNow();
         const rect = rectOf(box);
-        // told once it is there: a paste right after the overlay closes got the old clipboard;
-        // closed, the picture waits in the corner as a saved one does (a click edits it)
-        const screen = screenName;
-        Capture.copyShot(frame, rect, r => {
-            say(r.copied ? I18n.t("Картинка скопирована", "Picture copied") : I18n.t("Картинка не скопировалась", "Picture not copied"), r.error || "");
-            if (r.copied && r.path && !keep)
-                ShotEdit.shown(r.path, screen, true);
-        }, ShotEdit.shotsDir + "/shot-" + Date.now() + ".png");
+        // on the clipboard and in the screenshots folder too (every shot is kept there); told once it
+        // is there — a paste right after the overlay closes got the old clipboard. Kept, it waits in
+        // the corner as a saved one does (ShotEdit, from Capture.shotSaved)
+        Capture.saveShot(frame, rect, {
+            "copy": true,
+            "quiet": true
+        }, r => say(r.copied ? I18n.t("Картинка скопирована", "Picture copied") : I18n.t("Картинка не скопировалась", "Picture not copied"), r.path ? I18n.t("и сохранена в папку снимков", "and kept in the screenshots folder") : r.error || ""));
         if (keep) {
             acted = false;
             told(I18n.t("Картинка скопирована — выделяйте следующее", "Picture copied — pick the next piece"));
@@ -759,35 +758,6 @@ Singleton {
         }
         shot(rect);
         close();
-    }
-    // the pick (or the whole frame) as a PNG of its own, then done(path)
-    function cropTo(rect, prefix, done) {
-        const r = rect || {
-            "x": 0,
-            "y": 0,
-            "w": Math.round(frameW),
-            "h": Math.round(frameH)
-        };
-        const png = runtimeDir + "/" + prefix + "-" + Date.now() + ".png";
-        const p = cropper.createObject(root, {
-            "png": png,
-            "done": done,
-            "command": ["python3", script, "crop", frame, String(r.x), String(r.y), String(r.w), String(r.h), png]
-        });
-        p.running = true;
-    }
-    Component {
-        id: cropper
-        Process {
-            id: crop
-            property string png
-            property var done
-            onExited: code => {
-                if (code === 0)
-                    crop.done(crop.png);
-                crop.destroy();
-            }
-        }
     }
     function translate() {
         learnNow();
@@ -839,7 +809,15 @@ Singleton {
         if (!open)
             return;
         learnNow();
-        cropTo(rectOf(box), "lens", png => Island.lens(png));
+        // the piece is kept in the screenshots folder like every shot, and that file goes to Lens
+        Capture.saveShot(frame, rectOf(box), {
+            "copy": false,
+            "quiet": true,
+            "noThumb": true
+        }, r => {
+            if (r.path)
+                Island.lens(r.path);
+        });
         close();
     }
     // to a phone nearby (Quick Share): a text pick's text, else the picture (the pick or the screen)
@@ -850,7 +828,14 @@ Singleton {
         if (textPick && hasText)
             QuickShare.share([], text.trim());
         else
-            cropTo(rectOf(box), "circle", png => QuickShare.share([png], ""));
+            Capture.saveShot(frame, rectOf(box), {
+                "copy": false,
+                "quiet": true,
+                "noThumb": true
+            }, r => {
+                if (r.path)
+                    QuickShare.share([r.path], "");
+            });
         close();
     }
     function say(title, body) {
