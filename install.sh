@@ -1710,19 +1710,35 @@ install_sddm() {
 # Only for the real home of this user (never a test's or a chroot's) and never on the author's
 # own machine. FOLLOW_SYSTEM=0 skips it.
 FOLLOW_SYSTEM="${FOLLOW_SYSTEM:-1}"
+fish_asked() { # remembered: fish is offered once
+  mkdir -p -- "$STATE_DIR"
+  python3 - "$STATE_DIR/apps.json" <<'PY' || true
+import json, sys
+p = sys.argv[1]
+try:
+    st = json.load(open(p))
+except (OSError, ValueError):
+    st = {}
+st["fishAsked"] = True
+json.dump(st, open(p, "w"), indent=1)
+PY
+}
 follow_system() {
   [[ "$FOLLOW_SYSTEM" == 1 && -z "$SYSROOT" && "$OWNER_HOME" == 0 && "$DESKTOP_SHELL" == angelos ]] || return 0
   [[ "$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)" == "$HOME_DIR" ]] || return 0
   command -v pacman >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 || return 0
   local sddm_py="$ROOT/.config/quickshell/angelos/scripts/sddm-theme.py" sddm_src="$ROOT/.config/quickshell/angelos/extras/sddm/angelos"
   local pkgs=() fish="" theme="" applied="" built="" root_sddm="" stamp="$STATE_DIR/sddm-theme.sha256" hash cur look="" pal="" hid=""
-  local -a lists=(pacman.txt angelos.txt tools.txt fish.txt)
-  command -v sddm >/dev/null 2>&1 && lists+=(sddm.txt)
+  # what the user said no to stays out (an unattended update keeps the defaults: yes)
+  local -a lists=(pacman.txt angelos.txt)
+  [[ "$INSTALL_TOOLS" == 1 ]] && lists+=(tools.txt)
+  [[ "$FISH_DEFAULT" == 1 ]] && lists+=(fish.txt)
+  command -v sddm >/dev/null 2>&1 && [[ "$INSTALL_SDDM" == 1 ]] && lists+=(sddm.txt)
   # base packages missing here that the repositories have
   mapfile -t pkgs < <(cd "$ROOT/packages" && cat "${lists[@]}" 2>/dev/null | sed 's/#.*//' | tr -s ' \t' '\n' | grep -v '^$' | sort -u | not_removed |
                         xargs -r pacman -T 2>/dev/null | xargs -r -n1 sh -c 'pacman -Si "$0" >/dev/null 2>&1 && echo "$0"')
   # fish: bash or sh as the login shell, not asked before
-  case "$(basename "$(getent passwd "$(id -un)" | cut -d: -f7)")" in
+  [[ "$FISH_DEFAULT" == 1 ]] && case "$(basename "$(getent passwd "$(id -un)" | cut -d: -f7)")" in
     bash|sh) python3 - "$STATE_DIR/apps.json" <<'PY' && fish=1 ;;
 import json, sys
 try:
@@ -1731,8 +1747,9 @@ except (OSError, ValueError):
     sys.exit(0)
 PY
   esac
+  [[ "$FISH_DEFAULT" == 0 ]] && given FISH_DEFAULT && fish_asked
   # the login screen: the installer's old theme (or none) → the author's; the author's changed → again
-  if command -v sddm >/dev/null 2>&1 && [[ -f "$sddm_src/Main.qml" ]]; then
+  if [[ "$INSTALL_SDDM" == 1 ]] && command -v sddm >/dev/null 2>&1 && [[ -f "$sddm_src/Main.qml" ]]; then
     hash="$(python3 "$sddm_py" fingerprint)"
     cur="$(python3 "$sddm_py" status 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print("|".join((d.get("current",""), d.get("look",""), d.get("palette",""))))' 2>/dev/null || true)"
     IFS='|' read -r cur look pal <<<"$cur"   # an empty look must not shift the palette into its place
@@ -1795,16 +1812,7 @@ PY
   fi
   # what is done is remembered: fish is asked once, the theme is redone only when the author changes it
   if [[ -n "$fish" ]] && [[ "$(basename "$(getent passwd "$(id -un)" | cut -d: -f7)")" == fish ]]; then
-    python3 - "$STATE_DIR/apps.json" <<'PY' || true
-import json, sys
-p = sys.argv[1]
-try:
-    st = json.load(open(p))
-except (OSError, ValueError):
-    st = {}
-st["fishAsked"] = True
-json.dump(st, open(p, "w"), indent=1)
-PY
+    fish_asked
   fi
   if [[ -n "$theme" && -n "$applied" ]] &&
      [[ "$(python3 "$sddm_py" status 2>/dev/null)" == *'"current": "angelos"'* ]]; then
