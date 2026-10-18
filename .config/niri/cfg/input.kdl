@@ -21,6 +21,7 @@ input {
     touchpad {
         tap // Enable tap-to-click
         natural-scroll // Enable natural (macOS-style) scrolling
+        drag-lock // Lift the finger mid-drag and put it back: the drag goes on (#93)
     }
 
     // Pointer speed and acceleration are intentionally NOT set: every mouse is
