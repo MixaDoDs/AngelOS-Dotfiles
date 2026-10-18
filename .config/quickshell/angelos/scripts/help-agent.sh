@@ -12,6 +12,7 @@
 # Without a terminal (from the shell) it opens one itself (settings.json system.terminal).
 # The agent works in ~/.local/state/angelos/help/<time>/: AGENTS.md (CLAUDE.md links to it),
 # context/*.txt; the last five such folders are kept. No CLI: it offers to install it with pacman.
+# Out of a limit: the next account of the chain takes over (see chain()).
 set -Eeuo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -48,20 +49,65 @@ pause() { read -r -p "$(_ 'Enter — close' 'Enter — закрыть') " _ || t
 # id → the command and its package (all three are in CachyOS's repositories)
 declare -A BIN=([claude]=claude [codex]=codex [opencode]=opencode)
 declare -A PKG=([claude]=claude-code [codex]=openai-codex [opencode]=opencode)
-AGENT="${ANGELOS_HELP_AGENT:-$(setting system helpAgent)}"
-if [[ -z "$AGENT" || -z "${BIN[$AGENT]+x}" ]]; then
-  AGENT=claude
-  for a in claude codex opencode; do command -v "${BIN[$a]}" >/dev/null 2>&1 && { AGENT=$a; break; }; done
-fi
-if ! command -v "${BIN[$AGENT]}" >/dev/null 2>&1; then
-  say "${BIN[$AGENT]} is not installed. It comes from the repositories: sudo pacman -S ${PKG[$AGENT]}" \
-      "${BIN[$AGENT]} не установлен. Он есть в репозиториях: sudo pacman -S ${PKG[$AGENT]}"
+FIRST="${ANGELOS_HELP_AGENT:-$(setting system helpAgent)}"
+[[ -n "$FIRST" && -n "${BIN[$FIRST]+x}" ]] || FIRST=claude
+
+# The chain: every logged-in account of every agent, the chosen agent first — Claude's
+# (~/.claude, then ~/.claude-profiles/*: CLAUDE_CONFIG_DIR), Codex's (~/.codex, ~/.codex-profiles/*:
+# CODEX_HOME), opencode. An account out of its limit is skipped; one used up mid-talk hands over
+# to the next (progress.md carries what was found and done). "agent|config dir" ("" = its default)
+chain() {
+  local a d order=("$FIRST")
+  for a in claude codex opencode; do [[ "$a" == "$FIRST" ]] || order+=("$a"); done
+  for a in "${order[@]}"; do
+    command -v "${BIN[$a]}" >/dev/null 2>&1 || continue
+    case "$a" in
+      claude)
+        [[ -f "$HOME/.claude/.credentials.json" || ! -d "$HOME/.claude-profiles" ]] && echo "claude|"
+        for d in "$HOME"/.claude-profiles/*/; do [[ -f "$d.credentials.json" ]] && echo "claude|${d%/}"; done ;;
+      codex)
+        [[ -f "$HOME/.codex/auth.json" || ! -d "$HOME/.codex-profiles" ]] && echo "codex|"
+        for d in "$HOME"/.codex-profiles/*/; do [[ -f "${d}auth.json" ]] && echo "codex|${d%/}"; done ;;
+      opencode) echo "opencode|" ;;
+    esac
+  done
+}
+mapfile -t CHAIN < <(chain)
+if ((${#CHAIN[@]} == 0)); then
+  say "${BIN[$FIRST]} is not installed. It comes from the repositories: sudo pacman -S ${PKG[$FIRST]}" \
+      "${BIN[$FIRST]} не установлен. Он есть в репозиториях: sudo pacman -S ${PKG[$FIRST]}"
   read -r -p "$(_ 'Install it now? [Y/n] ' 'Поставить сейчас? [Д/н] ')" a || a=n
-  if [[ ! "${a:-y}" =~ ^[yYдД] ]] || ! sudo pacman -S --needed "${PKG[$AGENT]}" || ! command -v "${BIN[$AGENT]}" >/dev/null 2>&1; then
+  if [[ ! "${a:-y}" =~ ^[yYдД] ]] || ! sudo pacman -S --needed "${PKG[$FIRST]}" || ! command -v "${BIN[$FIRST]}" >/dev/null 2>&1; then
     say 'Not installed: nothing to open.' 'Не поставился: открывать нечего.'
     pause; exit 1
   fi
+  mapfile -t CHAIN < <(chain)
 fi
+# the account's own environment (ENVA, for env): its config dir, or the agent's default even when
+# the user's shell names another
+envof() {
+  local var=""
+  case "$1" in claude) var=CLAUDE_CONFIG_DIR ;; codex) var=CODEX_HOME ;; esac
+  ENVA=()
+  [[ -n "$var" ]] && { if [[ -n "$2" ]]; then ENVA=("$var=$2"); else ENVA=(-u "$var"); fi; }
+  return 0
+}
+label() { echo "${BIN[$1]}${2:+ ($(basename "$2"))}"; }
+LIMIT='usage limit|limit reached|hit your (usage )?limit|rate.?limit(ed)?|quota|exceeded your|limit will reset|resets at'
+# one tiny question: an account out of its limit (or logged out) says so at once
+probe() {
+  local out
+  envof "$1" "$2"
+  case "$1" in
+    claude) out="$(env "${ENVA[@]}" timeout 90 claude -p "Reply with one word: OK" 2>&1)" ;;
+    codex) out="$(env "${ENVA[@]}" timeout 90 codex exec --skip-git-repo-check "Reply with one word: OK" </dev/null 2>&1)" ;;
+    *) return 0 ;;
+  esac
+  local code=$?
+  grep -qiE "$LIMIT" <<<"$out" && return 2
+  ((code == 0)) || { [[ -z "$2" ]] && return 0; return 3; }  # the default account may just need a login
+  return 0
+}
 
 BASE="${XDG_STATE_HOME:-$HOME/.local/state}/angelos/help"
 DIR="$BASE/$(date +%Y%m%d-%H%M%S)"
@@ -109,12 +155,22 @@ angelOS is a desktop for the niri compositor on Arch Linux / CachyOS: a Quickshe
 3. $SNAP
 4. sudo: your shell can't ask the password. Give the user the command and ask them to type it
    after \`!\` in this window (or in another terminal); then read the result.
-5. Leave the user's own things alone: documents, pictures, music, browser profiles, game saves,
+5. Settings files (a game's, a mod's, an app's): copy the file to ~/backups/<what>-<date-time>/ first
+   (a new folder each time), change only the keys that need it, never rewrite or delete the whole file,
+   and show the user what changed (old → new). Another program's or mod's config is not yours to clean up.
+   If something you need isn't in context/, look for it yourself before asking.
+6. Leave the user's own things alone: documents, pictures, music, browser profiles, game saves,
    messengers, ~/.ssh, ~/.gnupg, keys and tokens. Never delete: move aside to a backup.
-6. Don't close or restart the user's apps (Steam, the browser, Discord…) without asking.
-7. angelOS's own code (~/.config/quickshell/angelos, ~/.local/bin) comes with its updates: don't edit
+7. Don't close or restart the user's apps (Steam, the browser, Discord…) without asking.
+   Games may have mods: a launch option like WINEDLLOVERRIDES="winhttp=n,b" or -modded is often
+   what keeps a mod loader (BepInEx, CET, RED4ext, UE4SS, ReShade…) on — add to such lines, never
+   drop parts of them; mod files are moved aside, not deleted. Asked to turn a mod on: help with
+   its loader, the override and its config.
+8. angelOS's own code (~/.config/quickshell/angelos, ~/.local/bin) comes with its updates: don't edit
    it. A bug there: tell the user and offer an issue text for https://github.com/MixaDoDs/AngelOS-Dotfiles/issues
-8. At the end: what you changed, and how to undo it.
+9. At the end: what you changed, and how to undo it.
+10. Keep progress.md here up to date as you go: the cause found, each change made and how to undo it.
+   If your limit runs out, another helper reads it and goes on from there.
 
 ## angelOS, where things are
 - settings: ~/.config/angelos/settings.json (the shell writes it; change it through Settings when you can)
@@ -129,10 +185,33 @@ ln -sf AGENTS.md "$DIR/CLAUDE.md"
 printf '{"$schema": "https://opencode.ai/config.json", "permission": {"edit": "ask", "bash": "ask", "webfetch": "ask"}}\n' >"$DIR/opencode.json"
 
 PROMPT="$(_ 'Read AGENTS.md and the files in context/, then help me' 'Прочитай AGENTS.md и файлы в context/, потом помоги мне'): ${TASK:-$(_ 'ask me what happened' 'спроси меня, что случилось')}"
+NEXT="$(_ 'The helper before you ran out of its limit. Read AGENTS.md, context/ and progress.md (what it found and did), tell me in two lines where we are, and go on' 'Прошлый помощник упёрся в лимит. Прочитай AGENTS.md, context/ и progress.md (что он нашёл и сделал), скажи в двух строках, где мы, и продолжай')"
 cd "$DIR"
-say "Opening ${BIN[$AGENT]} (log in to your account if it asks)…" "Открываю ${BIN[$AGENT]} (если спросит — войди в свой аккаунт)…"
-case "$AGENT" in
-  claude) exec claude --permission-mode default "$PROMPT" ;;
-  codex) exec codex -a on-request -s workspace-write "$PROMPT" ;;
-  opencode) exec opencode --prompt "$PROMPT" ;;
-esac
+run() { # agent dir prompt
+  envof "$1" "$2"
+  case "$1" in
+    claude) env "${ENVA[@]}" claude --permission-mode default "$3" ;;
+    codex) env "${ENVA[@]}" codex -a on-request -s workspace-write "$3" ;;
+    opencode) opencode --prompt "$3" ;;
+  esac
+}
+i=0 started=0
+while ((i < ${#CHAIN[@]})); do
+  IFS='|' read -r agent dir <<<"${CHAIN[$i]}"
+  i=$((i + 1))
+  if ((i < ${#CHAIN[@]})); then
+    say "Checking $(label "$agent" "$dir")…" "Проверяю $(label "$agent" "$dir")…"
+    probe "$agent" "$dir" || {
+      say "$(label "$agent" "$dir"): out of its limit or logged out — the next one" "$(label "$agent" "$dir"): лимит кончился или не вошёл — беру следующего"
+      continue
+    }
+  fi
+  say "Opening $(label "$agent" "$dir") (log in to your account if it asks)…" "Открываю $(label "$agent" "$dir") (если спросит — войди в свой аккаунт)…"
+  run "$agent" "$dir" "$( ((started)) && echo "$NEXT" || echo "$PROMPT")" || true
+  started=1
+  ((i < ${#CHAIN[@]})) || break
+  read -r -p "$(_ 'The agent ran out of its limit? Enter — the next one goes on, q — close: ' 'Агент упёрся в лимит? Enter — продолжит следующий, q — закрыть: ')" a || a=q
+  [[ "${a:-}" =~ ^[qQйЙ] ]] && exit 0
+done
+((started)) || say 'Every account is out of its limit for now.' 'У всех аккаунтов сейчас кончился лимит.'
+pause

@@ -29,6 +29,8 @@ import gzip
 import json
 import os
 import re
+import shlex
+import shutil
 import sys
 import time
 import urllib.request
@@ -393,6 +395,120 @@ def suggest(appid, game, avail, d, prof, ac, native, gpu, have_gamemode):
             "fallbacks": fallbacks, "tips": prof.get("tips") or []}
 
 
+# ---------------------------------------------------------------- mods
+# loaders that hook in through a DLL of their own: Wine must take the game's copy first
+# ("dll=n,b"), or the mod is silently off. (name, files/dirs that tell it, the DLL, a launch flag)
+MOD_LOADERS = [
+    ("BepInEx", ("BepInEx", "doorstop_config.ini"), "winhttp", ""),
+    ("MelonLoader", ("MelonLoader",), "version", ""),
+    ("Lovely (Steamodded)", ("version.dll",), "version", ""),
+    ("Cyber Engine Tweaks", ("bin/x64/plugins/cyber_engine_tweaks",), "version", ""),
+    ("RED4ext", ("red4ext",), "winmm", ""),
+    ("REDmod", ("tools/redmod",), "", "-modded"),
+    ("UE4SS", ("ue4ss", "Binaries/Win64/ue4ss", "Binaries/Win64/UE4SS-settings.ini"), "dwmapi", ""),
+    ("Script Hook V", ("ScriptHookV.dll",), "dinput8", ""),
+    ("ASI Loader", ("scripts/*.asi", "plugins/*.asi"), "dinput8", ""),
+    ("OptiScaler", ("OptiScaler.ini", "bin/x64/OptiScaler.ini"), "dxgi", ""),
+    ("ReShade", ("ReShade.ini", "reshade-shaders", "bin/x64/ReShade.ini"), "dxgi", ""),
+]
+PROXIES = ("winhttp", "version", "winmm", "dxgi", "d3d9", "d3d11", "dinput8", "dwmapi", "dsound", "xinput1_3")
+
+
+def overrides(line):
+    """the DLLs WINEDLLOVERRIDES names in a launch line"""
+    m = re.search(r'WINEDLLOVERRIDES=("[^"]*"|\S+)', line or "")
+    if not m:
+        return set()
+    out = set()
+    for part in m.group(1).strip('"').split(";"):
+        out.update(x.strip().lower().removesuffix(".dll") for x in part.split("=")[0].split(",") if x.strip())
+    return out
+
+
+def mods(game, line):
+    """the mod loaders in the game's folder: name, the DLL Wine must take from it, on or not"""
+    d = Path(game.get("dir", ""))
+    if not d.is_dir():
+        return []
+    have = overrides(line)
+    out = []
+    for name, marks, dll, flag in MOD_LOADERS:
+        hits = [m for m in marks if any(d.glob(m))] if any("*" in m for m in marks) else [m for m in marks if (d / m).exists()]
+        if not hits:
+            continue
+        if name == "Lovely (Steamodded)" and not ((d / "Mods").is_dir() or (d / "mods").is_dir()):
+            continue
+        if name == "REDmod" and not (d / "mods").is_dir():
+            continue
+        on = (not dll or dll in have) and (not flag or flag in (line or "").split())
+        out.append({"name": name, "found": hits[0], "dll": dll, "flag": flag, "on": on})
+    # a folder of mods the game loads itself (Teardown, Balatro's Mods for Lovely…)
+    if not out and any((d / m).is_dir() for m in ("mods", "Mods")):
+        out.append({"name": "mods", "found": "mods", "dll": "", "flag": "", "on": True})
+    # r2modman / Thunderstore start BepInEx from their own profile through the launch line
+    if "--doorstop-enable" in (line or "") and not any(m["name"] == "BepInEx" for m in out):
+        out.append({"name": "BepInEx (r2modman)", "found": "launch options", "dll": "winhttp", "flag": "", "on": True})
+    return out
+
+
+def with_need(line, dll, flag):
+    """the launch line with one more DLL Wine takes from the game, and/or a flag after %command%"""
+    words = line.split() if line else []
+    if "%command%" not in words:
+        words = ["%command%"] + words
+    if dll and dll not in overrides(" ".join(words)):
+        for i, w in enumerate(words):
+            if w.startswith("WINEDLLOVERRIDES="):
+                v = w.split("=", 1)[1].strip('"')
+                words[i] = 'WINEDLLOVERRIDES="%s;%s=n,b"' % (v, dll)
+                break
+        else:
+            words.insert(0, 'WINEDLLOVERRIDES="%s=n,b"' % dll)
+    if flag and flag not in words:
+        words.append(flag)
+    return " ".join(words)
+
+
+def merge(now, rec):
+    """what the game runs now (the user's or a mod's own variables, wrappers, flags) with our
+    suggestion added: nothing of theirs is dropped, a variable both name takes ours, DLL overrides add up"""
+    if not now:
+        return rec
+    if not rec:
+        return now
+    try:
+        a, b = shlex.split(now), shlex.split(rec)
+    except ValueError:
+        return now
+
+    def parts(words):
+        if "%command%" not in words:
+            return [], words
+        i = words.index("%command%")
+        return words[:i], words[i + 1:]
+    pa, aa = parts(a)
+    pb, ab = parts(b)
+    env = {}
+    order = []
+    for w in pa + pb:
+        if "=" in w and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w):
+            k, v = w.split("=", 1)
+            if k == "WINEDLLOVERRIDES" and k in env:
+                have = overrides("WINEDLLOVERRIDES=" + env[k])
+                add = [x for x in v.split(";") if x and not (overrides("WINEDLLOVERRIDES=" + x) <= have)]
+                v = ";".join([env[k]] + add)
+            if k not in env:
+                order.append(k)
+            env[k] = v
+    wraps = []
+    for w in pa + pb:
+        if not ("=" in w and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w)) and w not in wraps:
+            wraps.append(w)
+    args = list(aa) + [w for w in ab if w not in aa]
+    pre = [k + "=" + (env[k] if re.match(r"^[A-Za-z0-9_.,:=+%@/-]+$", env[k]) else '"%s"' % env[k].replace('"', "")) for k in order]
+    return " ".join(pre + wraps + ["%command%"] + args)
+
+
 def listing():
     root = steam_root()
     if not root:
@@ -420,6 +536,16 @@ def listing():
         d = apps.get(appid)
         is_native = native.get(appid, (ac.get(appid) or {}).get("native", False))
         rec = suggest(appid, g, avail, d, profiles.get(appid, {}), ac.get(appid), is_native, gpu, have_gamemode)
+        # ours goes on top of what runs now: a mod's overrides and the user's own flags stay
+        now_opts = opts_now.get(appid, "")
+        found_mods = mods(g, now_opts)
+        rec["options"] = merge(now_opts, rec["options"])
+        for m in found_mods:
+            if m["on"]:
+                rec["options"] = with_need(rec["options"], m["dll"], m["flag"])
+            else:
+                m["enable"] = with_need(rec["options"], m["dll"], m["flag"])
+        rec["mods"] = found_mods
         out.append(dict(g, now={"proton": proton_now.get(appid, ""), "options": opts_now.get(appid, "")},
                         rec=rec, rating={"tier": tier(d), "n": (d or {}).get("n", 0), "ok": (d or {}).get("ok", 0),
                                          "oob": (d or {}).get("oob")},
@@ -472,12 +598,14 @@ def set_values(root, appid, proton=None, options=None):
     return before
 
 
-def apply(appid, proton, options, trusted=False):
+def apply(appid, proton, options, trusted=False):  # noqa: ARG001 — kept for the bench
     root = steam_root()
     if not root:
         return {"ok": False, "error": "no Steam"}, 1
-    if options and not trusted and not safe(options):
-        return {"ok": False, "error": "launch options refused: only variables, known wrappers and the game's flags"}, 1
+    # the line is what the user saw and approved (ProtonDB's lines were filtered on the way in):
+    # only one line, as Steam keeps it
+    if options and ("\n" in options or len(options) > 2000):
+        return {"ok": False, "error": "launch options: one line, please"}, 1
     STATE.mkdir(parents=True, exist_ok=True)
     if steam_running():
         pending = load_json(STATE / "pending.json", {})
@@ -519,6 +647,80 @@ def undo_app(appid):
     return {"ok": True}, 0
 
 
+CONF_EXT = {".ini", ".cfg", ".json", ".xml", ".toml", ".yaml", ".yml", ".conf"}
+# game data that only looks like settings
+CONF_SKIP = re.compile(r"/(Content|Paks|StreamingAssets|archive|assets|data|locale|localization|lang|Movies|"
+                       r"shadercache|logs?|Temp|Microsoft|Crashes|CrashDumps|__pycache__)/", re.I)
+SECRETISH = re.compile(r"token|auth|login|account|passw|credential|secret|session|cookie|license|steam_api", re.I)
+
+
+def config_files(root, g):
+    """the game's and its mods' settings files: mod loaders' first, then the game's folder and its
+    own Wine prefix (Documents, AppData, Saved Games: the prefix is this game's alone)"""
+    seen, out = set(), []
+
+    def take(p):
+        try:
+            ok = (p.suffix.lower() in CONF_EXT and p.is_file() and p.stat().st_size < 256 * 1024
+                  and not SECRETISH.search(p.name) and p not in seen)
+        except OSError:
+            return False
+        if ok:
+            seen.add(p)
+            out.append(p)
+        return ok
+
+    def walk(base, depth, limit):
+        n = 0
+        for dirpath, dirs, names in os.walk(base):
+            rel = Path(dirpath).relative_to(base)
+            if len(rel.parts) >= depth or CONF_SKIP.search("/" + str(rel) + "/"):
+                dirs[:] = []
+            for name in sorted(names):
+                if n >= limit:
+                    return
+                n += take(Path(dirpath) / name)
+    d = Path(g["dir"])
+    for sub in ("BepInEx/config", "bin/x64/plugins/cyber_engine_tweaks", "red4ext", "ue4ss", "Binaries/Win64/ue4ss",
+                "MelonLoader", "UserData"):
+        if (d / sub).is_dir():
+            walk(d / sub, 4, 40)
+    for f in ("ReShade.ini", "OptiScaler.ini", "doorstop_config.ini", "bin/x64/ReShade.ini", "bin/x64/OptiScaler.ini"):
+        take(d / f)
+    # r2modman / Thunderstore keep BepInEx in their own profiles (a folder named like the game)
+    key = re.sub(r"[^a-z0-9]", "", g["name"].lower())
+    for mm in (HOME / ".config/r2modmanPlus-local", HOME / ".config/Thunderstore Mod Manager/DataFolder"):
+        for game_dir in (mm.iterdir() if mm.is_dir() else []):
+            if re.sub(r"[^a-z0-9]", "", game_dir.name.lower()) == key:
+                for prof in sorted((game_dir / "profiles").glob("*/BepInEx/config")):
+                    walk(prof, 2, 25)
+    if d.is_dir():
+        walk(d, 2, 30)
+    user = root / "steamapps/compatdata" / g["appid"] / "pfx/drive_c/users/steamuser"
+    for sub in ("Documents", "AppData/Local", "AppData/LocalLow", "AppData/Roaming", "Saved Games"):
+        if (user / sub).is_dir():
+            walk(user / sub, 6, 40)
+    return out
+
+
+def backup_configs(files, appid):
+    """every settings file copied before the helper touches anything: STATE/backups/<appid>-<time>"""
+    if not files:
+        return None
+    # the last five copies of a game are kept
+    for old in sorted((STATE / "backups").glob(appid + "-*"))[:-4]:
+        shutil.rmtree(old, ignore_errors=True)
+    dst = STATE / "backups" / ("%s-%s" % (appid, time.strftime("%Y%m%d-%H%M%S")))
+    for f in files:
+        t = dst / str(f).lstrip("/")
+        t.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            t.write_bytes(f.read_bytes())
+        except OSError:
+            continue
+    return dst
+
+
 def context(appid):
     data = listing()
     g = next((x for x in data["games"] if x["appid"] == appid), None)
@@ -531,9 +733,40 @@ def context(appid):
              "Установленные Proton: " + ", ".join("%s (%s)" % (t["display"], t["name"]) for t in data["tools"]),
              "", "## ProtonDB (последние 2 года)", json.dumps(d, ensure_ascii=False),
              "", "## Античит (AreWeAntiCheatYet)", json.dumps(g.get("anticheat"), ensure_ascii=False),
+             "", "## Моды в папке игры (%s)" % g["dir"],
+             json.dumps(g["rec"].get("mods") or [], ensure_ascii=False),
+             "Моды, что цепляются через свою DLL, работают, только если Wine берёт её из игры "
+             "(WINEDLLOVERRIDES=\"dll=n,b\"). Не убирай такие оверрайды и флаги вроде -modded из параметров "
+             "запуска: сломаешь моды. Новое добавляй к тому, что есть. Если я хочу включить мод — помоги: "
+             "нужный оверрайд, загрузчик (BepInEx, CET, RED4ext, UE4SS, ReShade, OptiScaler…), его конфиг в папке игры. "
+             "Файлы модов не удаляй: отключай переименованием или переносом в бэкап.",
              "", "## Что предлагает angelOS", json.dumps(g["rec"], ensure_ascii=False),
              "", "Применять настройки только через `%s apply %s --proton NAME --options LINE` "
                  "(пишет в Steam сам, помнит старое; `undo %s` возвращает)." % (Path(__file__).resolve(), appid, appid)]
+    # the game's and its mods' settings, copied aside first, the small ones in full: the helper
+    # needn't ask what is in them, and nothing it changes is lost
+    files = config_files(steam_root(), g)
+    bak = backup_configs(files, appid)
+    lines += ["", "## Файлы настроек игры и модов (%d)" % len(files),
+              ("Копия всех, снятая перед тобой: %s (вернуть — скопировать обратно по тому же пути)." % bak) if bak
+              else "Файлов настроек не нашлось.",
+              "Правь в них только нужные ключи: файл целиком не переписывай и не удаляй, перед правкой скажи, что меняешь."]
+    lines += ["- %s" % f for f in files]
+    budget = 120 * 1024
+    for f in sorted(files, key=lambda x: x.stat().st_size):
+        try:
+            text = f.read_text(errors="replace")
+        except OSError:
+            continue
+        if len(text) > 16 * 1024 or len(text) > budget:
+            continue
+        budget -= len(text)
+        lines += ["", "### " + str(f), "```", text.rstrip(), "```"]
+    log = HOME / ("steam-%s.log" % appid)
+    if log.is_file():
+        lines += ["", "## Лог Proton (%s, конец)" % log, "```"] + log.read_text(errors="replace").splitlines()[-300:] + ["```"]
+    else:
+        lines += ["", "Лога Proton нет. Нужен — добавь в параметры запуска PROTON_LOG=1 и запусти игру: ~/steam-%s.log." % appid]
     return "\n".join(lines) + "\n", 0
 
 

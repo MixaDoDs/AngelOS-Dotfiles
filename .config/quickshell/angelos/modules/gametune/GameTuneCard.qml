@@ -192,6 +192,41 @@ Column {
             onEdited: root.options = text
         }
     }
+    // ---- mods: what hooks in through a DLL of its own needs Wine to take the game's copy
+    Column {
+        visible: (root.rec.mods || []).length > 0 && !root.bench
+        width: parent.width
+        spacing: Theme.u
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            text: I18n.t("Моды: их параметры и твои сохраняются, совет добавляется сверху.", "Mods: their settings and yours stay, the suggestion goes on top.")
+        }
+        Repeater {
+            model: root.rec.mods || []
+            Row {
+                id: modRow
+                required property var modelData
+                spacing: Theme.u * 3
+                PxText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: root.width - (modOn.visible ? modOn.width + Theme.u * 3 : 0)
+                    wrapMode: Text.Wrap
+                    text: "• " + (modRow.modelData.name === "mods" ? I18n.t("папка модов игры", "the game's mod folder") : modRow.modelData.name) + " — " + (modRow.modelData.on ? I18n.t("включён", "on") : I18n.t("найден, но не включён", "found, but not on")) + (modRow.modelData.dll ? I18n.t(" (Wine берёт %1.dll из игры)", " (Wine takes %1.dll from the game)").replace("%1", modRow.modelData.dll) : "") + (modRow.modelData.flag ? " " + modRow.modelData.flag : "")
+                }
+                PxButton {
+                    id: modOn
+                    visible: !modRow.modelData.on && !!modRow.modelData.enable && root.options.indexOf(modRow.modelData.dll ? modRow.modelData.dll + "=n,b" : modRow.modelData.flag) < 0
+                    compact: true
+                    icon: "check"
+                    text: I18n.t("Включить", "Turn on")
+                    onClicked: root.options = modRow.modelData.enable
+                }
+            }
+        }
+    }
     Column {
         visible: (root.rec.fallbacks || []).length > 0
         width: parent.width

@@ -10,7 +10,7 @@ import re
 import shlex
 
 NAME = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
-VALUE = re.compile(r"^[A-Za-z0-9_.,:=+%@-]{0,200}$")
+VALUE = re.compile(r"^[A-Za-z0-9_.,:;=+%@-]{0,200}$")
 # variables that run or load something of their own
 BAD_NAMES = {"LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT", "PATH", "BASH_ENV", "ENV", "SHELL", "HOME",
              "PYTHONPATH", "PYTHONSTARTUP", "PERL5OPT", "NODE_OPTIONS", "GIO_EXTRA_MODULES", "GST_PLUGIN_PATH",
@@ -42,7 +42,8 @@ def safe(line):
         if eq and not wrapped:
             if not NAME.match(name) or name in BAD_NAMES or name.endswith("_COMMAND") or not VALUE.match(value):
                 return None
-            out.append(name + "=" + (shlex.quote(value) if value else '""'))
+            # Steam's launch lines quote with "…"; VALUE allows nothing that needs escaping inside
+            out.append(name + "=" + (value if re.match(r"^[A-Za-z0-9_.,:=+%@-]+$", value) else '"%s"' % value))
         elif w in WRAPPERS:
             wrapped = True
             out.append(w)
@@ -76,4 +77,6 @@ if __name__ == "__main__":
     for s in bad:
         assert safe(s) is None, s
     assert safe('WINEDLLOVERRIDES="xgameruntime=n" %command%') == "WINEDLLOVERRIDES=xgameruntime=n %command%"
+    assert safe('WINEDLLOVERRIDES="winmm;version=n,b" %command%') == 'WINEDLLOVERRIDES="winmm;version=n,b" %command%'
+    assert safe("A=1 %command% ; rm") is None
     print("ok")

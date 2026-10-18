@@ -271,7 +271,7 @@ PxPage {
 
         SettingRow {
             label: I18n.t("Агент", "Agent")
-            hint: I18n.t("Входишь в свой аккаунт; angelOS ключей не хранит. Нет программы — предложит поставить из репозитория.", "You log in to your own account; angelOS keeps no keys. Not installed: it offers to install it from the repositories.")
+            hint: I18n.t("Начинает с выбранного. Кончился лимит — берёт следующий аккаунт: все профили Claude (~/.claude-profiles), потом Codex, потом opencode; перед запуском каждому крошечный запрос-проверка. Входишь в свой аккаунт; angelOS ключей не хранит.", "Starts with the chosen one. Out of its limit: the next account takes over — every Claude profile (~/.claude-profiles), then Codex, then opencode; each gets a tiny check request first. You log in to your own account; angelOS keeps no keys.")
             PxSegmented {
                 model: [
                     {
