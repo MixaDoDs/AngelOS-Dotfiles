@@ -70,7 +70,10 @@ install_wallpaper_packs() {
     return 0
   fi
   say "$(_ "Downloading wallpapers: ${folders[*]}…" "Скачиваю обои: ${folders[*]}…")"
-  tmp="$(mktemp -d)"
+  # on the disk of ~/Pictures, not in /tmp: a tmpfs of half the RAM has no room for all the packs
+  mkdir -p -- "$HOME_DIR/.cache"
+  tmp="$(mktemp -d "$HOME_DIR/.cache/angelos-wallpapers.XXXXXX")"
+  trap 'rm -rf -- "$tmp"' EXIT
   if git clone --quiet --depth 1 --filter=blob:none --sparse -- "$WALLPAPERS_REPO" "$tmp/w" &&
      git -C "$tmp/w" sparse-checkout set -- "${folders[@]}"; then
     mkdir -p -- "$HOME_DIR/Pictures"

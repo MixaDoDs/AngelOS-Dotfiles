@@ -94,6 +94,7 @@ window-rule {
     // floating, never taking the focus
     window-rule {
         match app-id=r#"^org\.quickshell$"# title="^angelOS · Privacy для OBS$"
+        // privacy plate: invisible to viewers, opacity 0.0 is intentional
         opacity 0.0
         open-focused false
         open-floating true

@@ -118,6 +118,7 @@ install_sddm() {
              'Экран входа angelOS не поставился (см. выше)')"
     return 0
   fi
+  trap 'rm -rf -- "$built"' EXIT
   rm -rf -- "$built"
   SDDM_STATUS=enabled
 

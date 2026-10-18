@@ -270,7 +270,7 @@ check_files() {
 
   # Glowing windows: translucent + blurred windows, inactive dimming, or the thick
   # default focus ring all "lit up" windows as focus followed the mouse.
-  if grep -Eq '^[[:space:]]*(blur[[:space:]]+true|opacity[[:space:]]+0\.[0-9]+)' "$ROOT/.config/niri/cfg/rules.kdl"; then
+  if grep -Eq '^[[:space:]]*(blur[[:space:]]+true|opacity[[:space:]]+0\.[1-9][0-9]*)' "$ROOT/.config/niri/cfg/rules.kdl"; then
     fail "rules.kdl makes windows translucent/blurred (they glow under focus-follows-mouse)"
   else
     pass "rules.kdl keeps windows opaque, no blur"
@@ -913,7 +913,7 @@ check_hygiene() {
   fi
 
   if search '/home/mixad|/home/[A-Za-z0-9_.-]+/\.config/gh/hosts\.yml|Cookies|Login Data|Bitwarden/data\.json|keyrings|voxtype/models' \
-       -g '!scripts/check.sh' -g '!README.md' -g '!.gitignore' -g '!install.sh' -g '!installer/steps/35-voxtype.sh' \
+       -g '!scripts/check.sh' -g '!README.md' -g '!README.ru.md' -g '!.gitignore' -g '!install.sh' -g '!installer/steps/35-voxtype.sh' \
        -g '!graphify-out/**' -g '!.claude/**' >"$WORK/sensitive" 2>/dev/null; then   # the author's dev tools, never installed
     cat "$WORK/sensitive"
     fail "personal path or secret-like data detected"

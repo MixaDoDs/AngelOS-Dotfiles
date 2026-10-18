@@ -430,6 +430,7 @@ install_configs() {
   mkdir -p -- "$HOME_DIR/.config" "$HOME_DIR/.local/bin"
   say "$(_ 'Installing configuration…' 'Установка конфигурации…')"
   load_manifest
+  trap 'rm -rf -- "$PARKED_DIR"' EXIT
   rm -rf -- "$PARKED_DIR"
   niri_foreign_check
   # the Neovim config goes in only where there is none yet, or where it is the one we put there
