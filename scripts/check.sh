@@ -269,8 +269,9 @@ check_files() {
   fi
 
   # Glowing windows: translucent + blurred windows, inactive dimming, or the thick
-  # default focus ring all "lit up" windows as focus followed the mouse.
-  if grep -Eq '^[[:space:]]*(blur[[:space:]]+true|opacity[[:space:]]+0\.[0-9]+)' "$ROOT/.config/niri/cfg/rules.kdl"; then
+  # default focus ring all "lit up" windows as focus followed the mouse. Opacity 0 is a window
+  # kept hidden on purpose (the privacy plate for OBS), not a translucent one.
+  if grep -Eq '^[[:space:]]*(blur[[:space:]]+true|opacity[[:space:]]+0\.0*[1-9])' "$ROOT/.config/niri/cfg/rules.kdl"; then
     fail "rules.kdl makes windows translucent/blurred (they glow under focus-follows-mouse)"
   else
     pass "rules.kdl keeps windows opaque, no blur"
