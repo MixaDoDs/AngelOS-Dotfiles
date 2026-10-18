@@ -272,7 +272,20 @@ const codes = {
     "0": ["Оператор: на вашем счету 0 душ.\nПополните у демоницы.", "Operator: you have 0 souls left.\nTop up with the demon."],
     "2002": ["С днём рождения, раскладушка! ♡", "Happy birthday, flip phone! ♡"],
     "*#7#": ["Секрет: ангел боится темноты.\nДемоница это знает.", "Secret: the angel is scared of the dark.\nThe demon knows."],
-    "*#666#": ["Связь с адом: 1 деление.\nЗвоните 666.", "Hell signal: 1 bar.\nDial 666."]
+    "*#666#": ["Связь с адом: 1 деление.\nЗвоните 666.", "Hell signal: 1 bar.\nDial 666."],
+    // the meme numbers (#91)
+    "88005553535": ["Проще позвонить, чем у кого-то занимать! ♪\nАнгел одолжит ♡ без процентов.", "Easier to call than to borrow! ♪\nThe angel lends ♡ interest-free."],
+    "78005553535": ["Проще позвонить, чем у кого-то занимать! ♪\nАнгел одолжит ♡ без процентов.", "Easier to call than to borrow! ♪\nThe angel lends ♡ interest-free."],
+    "01189998819991197253": ["Новый номер службы спасения!\n0118 999 881 999 119 725… 3\nЗапомнил? Ангел — нет.", "The new emergency number!\n0118 999 881 999 119 725… 3\nGot it? The angel didn't."],
+    "8675309": ["Дженни? Нет, это ангел.\nДженни тут не живёт ♪", "Jenny? No, it's the angel.\nJenny doesn't live here ♪"],
+    "4815162342": ["Числа введены. Кнопка нажата.\nОстров спасён ещё на 108 минут.", "The numbers are in. The button is pressed.\nThe island is safe for 108 more minutes."],
+    "42": ["Ответ на главный вопрос жизни,\nвселенной и всего такого.\nВопрос уточняется.", "The answer to life, the universe\nand everything.\nThe question is being worked out."],
+    "1337": ["Ты 1337 х4ц3р.\nАнгел впечатлён.", "U r 1337 h4x0r.\nThe angel is impressed."],
+    "0451": ["Код от двери подошёл.\nЗа дверью — ещё одна дверь.", "The door code worked.\nBehind the door is another door."],
+    "5550123": ["Номер из кино: никто не ответит.\nНо ангел слушает ♡", "A movie number: nobody answers.\nBut the angel is listening ♡"],
+    "02": ["Небесная полиция: ангел ничего не крал.\nПочти.", "Heaven's police: the angel stole nothing.\nAlmost."],
+    "03": ["Скорая: приложите котика к груди.\nНе помогло — ещё котика.", "Ambulance: put a cat on your chest.\nDidn't help? Another cat."],
+    "*#*#4636#*#*": ["Меню тестирования.\nТелефон: раскладушка.\nТест пройден ♡", "Testing menu.\nPhone: flip.\nTest passed ♡"]
 };
 const wrongNumber = ["Номер набран неправильно", "Wrong number"];
 const unavailable = ["Абонент временно недоступен.\nПопробуйте позвонить позже.", "The number you dialled is unavailable.\nPlease try again later."];

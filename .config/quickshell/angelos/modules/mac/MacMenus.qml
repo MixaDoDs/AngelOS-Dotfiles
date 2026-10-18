@@ -186,6 +186,18 @@ Singleton {
     readonly property int frontId: AppMenu.window ? AppMenu.window.id : -1
     onFrontIdChanged: if (index > 0)
         close()
+    // the screen with the menu went to another workspace: the menu closes, like the desktop's (#99);
+    // wsScreen tells that from the menu moving to another screen
+    property string wsScreen: ""
+    readonly property int activeWsId: {
+        const ws = screen ? Niri.activeWorkspace(screen) : null;
+        return ws ? ws.id : -1;
+    }
+    onActiveWsIdChanged: {
+        if (screen !== "" && screen === wsScreen)
+            close();
+        wsScreen = screen;
+    }
 
     function fn(id, label, f, extra) {
         return AppMenu.item(id, label, {
