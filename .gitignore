@@ -46,3 +46,6 @@ Pictures/Screenshots/
 /.claude/
 /graphify-out/
 /docs/superpowers/
+
+# graphify code-map cache (holds the owner home path)
+graphify-out/
