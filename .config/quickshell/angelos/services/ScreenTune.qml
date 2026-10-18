@@ -5,8 +5,8 @@ import Quickshell
 import Quickshell.Io
 import qs.config
 
-// Brightness and saturation per monitor (Settings → Monitor → Brightness and colour,
-// Config.system.screenTune {output: {brightness 0.3–1, saturation −1…1}}) and the night
+// Brightness, gamma, contrast, R/G/B and saturation per monitor (Settings → Monitor → Brightness
+// and colour, Config.system.screenTune {output: {brightness 0.3–1, saturation −1…1, `curve`}}) and the night
 // light's schedule (plugins/nightlight sets `night`). Software only, nothing on stream:
 //   scripts/gamma.py     the gamma tables — brightness and the night light's warmth in one
 //                        owner (wlsunset next to it would fight for them); runs only while
@@ -29,6 +29,21 @@ Singleton {
     function brightnessOf(name) {
         const t = tune[name] || {};
         return t.brightness === undefined ? 1 : Math.max(0.3, Math.min(1, Number(t.brightness)));
+    }
+    // the rest of the gamma curve: key -> [as at boot, min, max]; scripts/gamma.py clamps the same
+    readonly property var curve: ({
+            "gamma": [1, 0.5, 2],
+            "contrast": [1, 0.5, 1.5],
+            "red": [1, 0.5, 1],
+            "green": [1, 0.5, 1],
+            "blue": [1, 0.5, 1]
+        })
+    function curveOf(name, key) {
+        const t = tune[name] || {}, c = curve[key];
+        return t[key] === undefined ? c[0] : Math.max(c[1], Math.min(c[2], Number(t[key])));
+    }
+    function tuned(name) {
+        return brightnessOf(name) < 1 || saturationOf(name) !== 0 || Object.keys(curve).some(k => curveOf(name, k) !== curve[k][0]);
     }
     function saturationOf(name) {
         const t = tune[name] || {};
@@ -57,14 +72,19 @@ Singleton {
         return states[name] || "neutral";
     }
 
-    // ---- gamma: brightness + night light ----
+    // ---- gamma: brightness, the curve + night light ----
     readonly property var gammaOutputs: {
         const o = {};
-        for (const n of Object.keys(tune))
+        for (const n of Object.keys(tune)) {
+            const t = {};
             if (brightnessOf(n) < 0.999)
-                o[n] = {
-                    "brightness": brightnessOf(n)
-                };
+                t.brightness = brightnessOf(n);
+            for (const k of Object.keys(curve))
+                if (curveOf(n, k) !== curve[k][0])
+                    t[k] = curveOf(n, k);
+            if (Object.keys(t).length)
+                o[n] = t;
+        }
         return o;
     }
     readonly property bool gammaWanted: Config.ready && !Shell.dev && (Object.keys(gammaOutputs).length > 0 || !!night)

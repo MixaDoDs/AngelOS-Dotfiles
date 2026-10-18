@@ -6,7 +6,9 @@ usage: gamma.py            reads JSON lines on stdin, keeps the tables while it 
        gamma.py --probe    prints the outputs and whether gamma control is there, exits
 
 stdin, one JSON object a line (each one replaces the last):
-  {"outputs": {"DP-1": {"brightness": 0.8}, …},          0.3–1.0, missing = 1.0
+  {"outputs": {"DP-1": {"brightness": 0.8}, …},          0.3–1.0, missing = 1.0; also
+                                                         gamma 0.5–2, contrast 0.5–1.5,
+                                                         red/green/blue 0.5–1 (CURVE)
    "night": null | {"day": 6600, "night": 3900,           kelvin
                     "sunrise": "07:00", "sunset": "20:00", fixed times, or
                     "location": [55.75, 37.62],            the sun's own (lat, lon)
@@ -33,6 +35,16 @@ import time
 
 MIN_BRIGHTNESS = 0.3
 NEUTRAL_K = 6600          # at and above this the night light changes nothing
+# the rest of an output's curve: key -> (as at boot, min, max), as in services/ScreenTune
+CURVE = {"gamma": (1.0, 0.5, 2.0), "contrast": (1.0, 0.5, 1.5),
+         "red": (1.0, 0.5, 1.0), "green": (1.0, 0.5, 1.0), "blue": (1.0, 0.5, 1.0)}
+
+
+def num(t, key, default, lo, hi):
+    try:
+        return max(lo, min(hi, float(t.get(key, default))))
+    except (TypeError, ValueError):
+        return default
 
 
 # ---------------------------------------------------------------- wire protocol
@@ -140,17 +152,20 @@ class Output:
             self.wl.handlers.pop(self.control, None)
         self.control, self.size, self.applied = 0, 0, None
 
-    def apply(self, brightness, white):
+    def apply(self, brightness, white, gamma=1.0, contrast=1.0):
         if not self.control or not self.size:
             return
-        key = (round(brightness, 4), tuple(round(c, 4) for c in white))
+        key = (round(brightness, 4), tuple(round(c, 4) for c in white), round(gamma, 4), round(contrast, 4))
         if key == self.applied:
             return
         n = self.size
+        # the curve is the same for each channel: gamma (above 1 lifts the mid-tones), then
+        # contrast round the middle grey; brightness and the channel's own gain scale it
+        curve = [min(1.0, max(0.0, ((i / (n - 1)) ** (1.0 / gamma) - 0.5) * contrast + 0.5)) for i in range(n)]
         ramp = array.array("H")
         for c in white:
             k = brightness * c * 65535.0
-            ramp.extend(min(65535, int(i / (n - 1) * k + 0.5)) for i in range(n))
+            ramp.extend(min(65535, int(v * k + 0.5)) for v in curve)
         fd = os.memfd_create("angelos-gamma", os.MFD_CLOEXEC)
         try:
             os.write(fd, ramp.tobytes())
@@ -303,19 +318,18 @@ def main():
         for o in list(outputs.values()):
             if not o.name:
                 continue
-            b = (want["outputs"].get(o.name) or {}).get("brightness", 1.0)
-            try:
-                b = max(MIN_BRIGHTNESS, min(1.0, float(b)))
-            except (TypeError, ValueError):
-                b = 1.0
-            if b >= 0.999 and white == (1.0, 1.0, 1.0):
+            t = want["outputs"].get(o.name) or {}
+            b = num(t, "brightness", 1.0, MIN_BRIGHTNESS, 1.0)
+            c = {k: num(t, k, *CURVE[k]) for k in CURVE}
+            rgb = (white[0] * c["red"], white[1] * c["green"], white[2] * c["blue"])
+            if b >= 0.999 and rgb == (1.0, 1.0, 1.0) and c["gamma"] == 1.0 and c["contrast"] == 1.0:
                 if o.control:
                     o.release(destroy=True)
                 if o.state != "failed":
                     o.state = "neutral"
                 continue
             o.ensure_control(manager[0])
-            o.apply(b, white)
+            o.apply(b, rgb, c["gamma"], c["contrast"])
         report = {"outputs": {o.name: o.state for o in outputs.values() if o.name}, "kelvin": round(kelvin)}
         if report != last_report:
             print(json.dumps(report), flush=True)

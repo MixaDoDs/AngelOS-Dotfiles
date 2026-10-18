@@ -246,6 +246,8 @@ PxPage {
                     anchors.fill: parent
                     enabled: Config.appearance.paletteArea === "custom" && thumb.status === Image.Ready
                     cursorShape: enabled ? Qt.CrossCursor : Qt.ArrowCursor
+                    // the settings page scrolls: without this it takes the drag away mid-frame
+                    preventStealing: true
                     property bool drawing: false
                     property point from
                     property var rect: [0, 0, 1, 1]
@@ -263,6 +265,7 @@ PxPage {
                         const x = part(e.x, width), y = part(e.y, height);
                         rect = [Math.min(from.x, x), Math.min(from.y, y), Math.abs(x - from.x), Math.abs(y - from.y)];
                     }
+                    onCanceled: drawing = false
                     onReleased: {
                         drawing = false;
                         if (rect[2] > 0.02 && rect[3] > 0.02)

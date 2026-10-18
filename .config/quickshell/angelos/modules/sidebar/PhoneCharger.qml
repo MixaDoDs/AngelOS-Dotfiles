@@ -124,8 +124,9 @@ Item {
                 moved = Math.max(moved, Math.abs(p[i][0] - w[i][0]) + Math.abs(p[i][1] - w[i][1]));
             root.was = w;
             root.pts = p;
-            // pulled tighter than it reaches: the plug pops out (unless the cable is wound round it)
-            if (root.plugState === "in" && !root.tangled && Math.hypot(root.phone.portAt[0] - root.socket[0], root.phone.portAt[1] - root.socket[1]) > root.length * 1.02) {
+            // pulled tighter than it reaches: the plug pops out (unless the cable is wound round it);
+            // the phone going away or coming back takes the plug with it, it charges hidden
+            if (root.plugState === "in" && root.phone.present && root.phone.slide < 0.02 && !root.tangled && Math.hypot(root.phone.portAt[0] - root.socket[0], root.phone.portAt[1] - root.socket[1]) > root.length * 1.02) {
                 root.plugState = "rest";
                 PhoneLine.plug(false);
             }

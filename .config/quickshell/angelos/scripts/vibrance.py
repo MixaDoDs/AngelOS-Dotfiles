@@ -9,7 +9,8 @@ usage: vibrance.py status              JSON: {"nvidia", "driver", "ready", "erro
 
 nvibrant ships one binary per driver version, so the first `set` fetches the release
 wheel (pinned, SHA-256 checked) into ~/.local/share/angelos/nvibrant and keeps the
-binary for this driver; a driver newer than the pin falls back to the latest release.
+binary for this driver; a driver newer than the pin falls back to the latest release,
+and one no release knows yet gets it built here (git + g++, the driver's own headers).
 nvibrant numbers the GPU's physical ports (HDMI, DP, DP, HDMI…) and takes one value
 for each in that order; the n-th connected port of a kind is the n-th connected DRM
 connector of that kind (HDMI-A-1, DP-1…), which is how names map onto ports.
@@ -19,8 +20,10 @@ import io
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -28,6 +31,7 @@ from pathlib import Path
 PIN = ("v1.3.0", "nvibrant-1.3.0-py3-none-manylinux_2_17_x86_64.whl",
        "d60a080b52e4a16e16d16a7d4b6405a32a3fe1b8ee0df65dc3685213ef0393e8")
 REPO = "Tremeschin/nVibrant"
+MAIN_SHA = "2117557edb14a11e9e9506193b896aacc446a12ab2cfd00dd3d9ec221e131d28"   # nvibrant/main.cpp at PIN, for build()
 HOME = Path.home()
 DIR = Path(os.environ.get("XDG_DATA_HOME", HOME / ".local/share")) / "angelos/nvibrant"
 
@@ -80,7 +84,35 @@ def ensure(ver):
         if a.get("name", "").endswith(".whl") and "x86_64" in a.get("name", ""):
             if extract(fetch(a["browser_download_url"]), ver):
                 return b
-    raise RuntimeError("nvibrant has no build for driver " + ver + " yet")
+    return build(ver)
+
+
+def build(ver):
+    """No release for this driver yet: nvibrant is one main.cpp against the driver's own
+    headers (open-gpu-kernel-modules, tagged by driver version), so build it here"""
+    cxx = shutil.which("c++") or shutil.which("g++")
+    if not cxx or not shutil.which("git"):
+        raise RuntimeError("nvibrant has no build for driver " + ver + " yet, and building it needs git and g++ (base-devel)")
+    src = fetch("https://raw.githubusercontent.com/%s/%s/nvibrant/main.cpp" % (REPO, PIN[0]), MAIN_SHA)
+    with tempfile.TemporaryDirectory(prefix="nvibrant-") as tmp:
+        og = os.path.join(tmp, "og")
+        dirs = ["src/nvidia-modeset/interface", "src/nvidia-modeset/include", "src/common/inc",
+                "src/common/sdk/nvidia/inc", "src/common/unix/common/inc"]
+        git = ["git", "-c", "advice.detachedHead=false"]
+        subprocess.run(git + ["clone", "-q", "--depth", "1", "--branch", ver, "--filter=blob:none", "--sparse",
+                              "https://github.com/NVIDIA/open-gpu-kernel-modules", og],
+                       check=True, capture_output=True, timeout=300)
+        subprocess.run(git + ["-C", og, "sparse-checkout", "set"] + dirs, check=True, capture_output=True, timeout=300)
+        Path(tmp, "main.cpp").write_bytes(src)
+        dst = binary_path(ver)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        out = dst.with_suffix(".tmp")
+        r = subprocess.run([cxx, "-O2", "-o", str(out), os.path.join(tmp, "main.cpp")] + ["-I" + os.path.join(og, d) for d in dirs],
+                           capture_output=True, text=True, timeout=300)
+        if r.returncode:
+            raise RuntimeError("building nvibrant for driver " + ver + " failed: " + (r.stderr.strip().splitlines() or ["?"])[-1])
+        out.replace(dst)
+    return dst
 
 
 def connected():
@@ -155,7 +187,6 @@ def set_levels(pairs):
                 index_of[name] = idx
         n = max([i for i, _, _ in found] + [-1]) + 1
         cache.write_text(json.dumps({"key": key, "driver": ver, "index": index_of, "n": n}))
-    n = max([i for i, _, _ in found] + [-1]) + 1
     values = [0] * n
     for name, lv in want.items():
         if name in index_of:

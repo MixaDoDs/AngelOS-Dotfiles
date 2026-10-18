@@ -169,11 +169,74 @@ PxPage {
                         onMoved: v => ScreenTune.setTune(tuneRow.modelData, "saturation", Math.round(v) === 0 ? null : Math.round(v) / 100)
                     }
                 }
+                // gamma, contrast and the channels: the same gamma tables as brightness
+                Repeater {
+                    model: [
+                        {
+                            "key": "gamma",
+                            "label": I18n.t("Гамма", "Gamma"),
+                            "hint": I18n.t("больше 1 — светлее полутона, тени видно лучше", "Above 1 lifts the mid-tones, shadows show more"),
+                            "decimals": 2,
+                            "suffix": ""
+                        },
+                        {
+                            "key": "contrast",
+                            "label": I18n.t("Контраст", "Contrast"),
+                            "hint": "",
+                            "decimals": 0,
+                            "suffix": " %"
+                        },
+                        {
+                            "key": "red",
+                            "label": I18n.t("Красный", "Red"),
+                            "hint": "",
+                            "decimals": 0,
+                            "suffix": " %"
+                        },
+                        {
+                            "key": "green",
+                            "label": I18n.t("Зелёный", "Green"),
+                            "hint": "",
+                            "decimals": 0,
+                            "suffix": " %"
+                        },
+                        {
+                            "key": "blue",
+                            "label": I18n.t("Синий", "Blue"),
+                            "hint": "",
+                            "decimals": 0,
+                            "suffix": " %"
+                        }
+                    ]
+                    SettingRow {
+                        id: curveRow
+                        required property var modelData
+                        readonly property var range: ScreenTune.curve[modelData.key]
+                        // gamma as it is (1.00), the rest in per cent
+                        readonly property real scale: modelData.decimals ? 1 : 100
+                        width: parent.width
+                        label: modelData.label
+                        hint: modelData.hint
+                        PxSlider {
+                            width: parent.width
+                            from: curveRow.range[1] * curveRow.scale
+                            to: curveRow.range[2] * curveRow.scale
+                            stepSize: curveRow.modelData.decimals ? 0.05 : 1
+                            decimals: curveRow.modelData.decimals
+                            suffix: curveRow.modelData.suffix
+                            value: ScreenTune.curveOf(tuneRow.modelData, curveRow.modelData.key) * curveRow.scale
+                            onMoved: v => {
+                                const x = Math.round(v / curveRow.scale * 100) / 100;
+                                ScreenTune.setTune(tuneRow.modelData, curveRow.modelData.key, x === curveRow.range[0] ? null : x);
+                            }
+                        }
+                    }
+                }
                 PxButton {
                     compact: true
                     icon: "refresh"
                     text: I18n.t("Как было", "As it was")
-                    visible: ScreenTune.brightnessOf(tuneRow.modelData) < 1 || ScreenTune.saturationOf(tuneRow.modelData) !== 0
+                    visible: ScreenTune.tuned(tuneRow.modelData)
                     onClicked: ScreenTune.reset(tuneRow.modelData)
                 }
             }
@@ -193,8 +256,14 @@ PxPage {
             sunken: true
             color: Qt.alpha(Theme.sunken, 0.8)
 
-            readonly property var names: Object.keys(Outputs.draft).filter(n => !Outputs.draft[n].off)
-            readonly property var bounds: {
+            // through a string: a move replaces the draft, and a new array would rebuild the
+            // monitors (the one under the mouse with them, dropping the drag)
+            readonly property string nameKey: Object.keys(Outputs.draft).filter(n => !Outputs.draft[n].off).join("\n")
+            readonly property var names: nameKey ? nameKey.split("\n") : []
+            // the frame stays put while a monitor is dragged, or it would slide from under the mouse
+            property var held: null
+            readonly property var bounds: held || fit
+            readonly property var fit: {
                 let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
                 for (const n of names) {
                     const dd = Outputs.draft[n], s = page.logicalSize(n);
@@ -247,13 +316,17 @@ PxPage {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.SizeAllCursor
+                        preventStealing: true
                         property point start
                         property point orig
                         onPressed: m => {
                             page.selected = mon.modelData;
+                            canvas.held = canvas.fit;
                             start = mapToItem(canvas, m.x, m.y);
                             orig = Qt.point(mon.dd.x, mon.dd.y);
                         }
+                        onReleased: canvas.held = null
+                        onCanceled: canvas.held = null
                         onPositionChanged: m => {
                             if (!pressed)
                                 return;
