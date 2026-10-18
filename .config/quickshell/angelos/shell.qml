@@ -17,7 +17,6 @@ import qs.modules.polkit
 import qs.modules.session
 import qs.modules.settings
 import qs.modules.workspace
-import qs.modules.tour
 import qs.modules.voxtype
 import qs.modules.idle
 import qs.modules.sidebar
@@ -46,7 +45,6 @@ ShellRoot {
     Bar {}
     HaloHost {}
     MacDesktop {}
-    StartOverlay {}
     SidebarHost {}
     DiaryTab {}
     WorkspaceFx {}
@@ -62,7 +60,6 @@ ShellRoot {
     TelemetryPrompt {}
     AppsSyncPrompt {}
     SetupWizard {}
-    TourOverlay {}
     PluginHost {}
     AngelHelper {}
     StreamerCast {}

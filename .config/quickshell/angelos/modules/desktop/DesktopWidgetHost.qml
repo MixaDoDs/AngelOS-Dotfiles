@@ -67,10 +67,10 @@ Item {
     readonly property string frameKind: DesktopWidgets.frameOf(widget)
     readonly property bool windowed: !mac && frameKind === "window"
     // the frame on show: the pixel window, the plate (or none) or the macOS card
-    readonly property Item frame: mac ? macFrame : windowed ? pxFrame : plate
+    readonly property Item frame: mac ? macFrame.item : windowed ? pxFrame : plate.item
     // what drags it: the pixel window's title bar, the plate, or the macOS card (in edit mode)
-    readonly property MouseArea grip: mac ? macFrame.dragArea : windowed ? pxFrame.titleMouse : plate.dragArea
-    readonly property Item gripBar: mac ? macFrame : windowed ? pxFrame.titleBar : plate
+    readonly property MouseArea grip: mac ? (macFrame.item ? macFrame.item.dragArea : null) : windowed ? pxFrame.titleMouse : (plate.item ? plate.item.dragArea : null)
+    readonly property Item gripBar: mac ? macFrame.item : windowed ? pxFrame.titleBar : plate.item
     // S / M / L for the built-in widgets ("" for plugins)
     readonly property string size: DesktopWidgets.sizeOf(widget)
     // the plate's name tab: the pointer on it (its input copy says so), edit mode, a drag
@@ -153,8 +153,8 @@ Item {
         interval: 60
         onTriggered: host.overFace = host.faceShowing
     }
-    width: Math.round(frame.width * zoom)
-    height: Math.round(frame.height * zoom)
+    width: frame ? Math.round(frame.width * zoom) : 0
+    height: frame ? Math.round(frame.height * zoom) : 0
     // where it was put (negative: from the right or the bottom), then clear of the widgets
     // before it (DesktopWidgets.settledPlace: sizes grow with the art pixel and the fonts)
     readonly property point place: widget ? DesktopWidgets.settledPlace(uid, screenName, clampX(widget.x < 0 ? area.width + widget.x - width : widget.x), clampY(widget.y < 0 ? area.height + widget.y - height : widget.y), width, height, area.width, area.height) : Qt.point(0, 0)
@@ -269,12 +269,12 @@ Item {
         value: host.dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
     }
     Binding {
-        target: plate.dragArea
+        target: plate.item ? plate.item.dragArea : null
         property: "cursorShape"
         value: host.dragging ? Qt.ClosedHandCursor : DesktopWidgets.editMode ? Qt.OpenHandCursor : Qt.ArrowCursor
     }
     Binding {
-        target: macFrame.dragArea
+        target: macFrame.item ? macFrame.item.dragArea : null
         property: "cursorShape"
         value: host.dragging ? Qt.ClosedHandCursor : DesktopWidgets.editMode ? Qt.OpenHandCursor : Qt.ArrowCursor
     }
@@ -442,7 +442,7 @@ Item {
             Loader {
                 id: content
                 // the pixel window's body, the plate's, or the card's
-                parent: host.mac ? macFrame.bodyItem : host.windowed ? pxFrame.bodyItem : plate.bodyItem
+                parent: host.mac ? (macFrame.item ? macFrame.item.bodyItem : null) : host.windowed ? pxFrame.bodyItem : (plate.item ? plate.item.bodyItem : null)
                 width: implicitWidth
                 height: implicitHeight
                 // in the middle of a frame the grid made bigger
@@ -521,45 +521,51 @@ Item {
             }
         }
 
-        WidgetPlate {
+        // the plate (or none): built only when it is the frame
+        Loader {
             id: plate
-            visible: !host.mac && !host.windowed
+            active: !host.mac && !host.windowed
             x: canvas.pad
             y: canvas.pad
-            scale: host.zoom
-            readonly property bool zoomedFrame: host.zoom !== 1
-            transformOrigin: Item.TopLeft
-            width: DesktopWidgets.fit(host.contentW + padding * 2, host.zoom)
-            height: DesktopWidgets.fit(host.contentH + padding * 2, host.zoom)
-            bare: host.frameKind === "none"
-            hell: Theme.hell
-            fill: !host.overFace
-            shadow: Config.appearance.shadows && !host.overFace
-            showName: host.nameShown
-            closable: DesktopWidgets.editMode
-            title: DesktopWidgets.titleOf(host.info)
-            icon: host.info ? host.info.icon : "heart"
-            onCloseClicked: DesktopWidgets.remove(host.uid)
+            sourceComponent: WidgetPlate {
+                scale: host.zoom
+                readonly property bool zoomedFrame: host.zoom !== 1
+                transformOrigin: Item.TopLeft
+                width: DesktopWidgets.fit(host.contentW + padding * 2, host.zoom)
+                height: DesktopWidgets.fit(host.contentH + padding * 2, host.zoom)
+                bare: host.frameKind === "none"
+                hell: Theme.hell
+                fill: !host.overFace
+                shadow: Config.appearance.shadows && !host.overFace
+                showName: host.nameShown
+                closable: DesktopWidgets.editMode
+                title: DesktopWidgets.titleOf(host.info)
+                icon: host.info ? host.info.icon : "heart"
+                onCloseClicked: DesktopWidgets.remove(host.uid)
+            }
         }
 
-        MacWidgetCard {
+        // the macOS card: built only in the macOS look (its glass is a blur of the wallpaper)
+        Loader {
             id: macFrame
-            visible: host.mac
+            active: host.mac
             x: canvas.pad
             y: canvas.pad
-            scale: host.zoom
-            readonly property bool zoomedFrame: host.zoom !== 1
-            transformOrigin: Item.TopLeft
-            width: DesktopWidgets.fit(host.contentW + padding * 2, host.zoom)
-            height: DesktopWidgets.fit(host.contentH + padding * 2, host.zoom)
-            editing: DesktopWidgets.editMode && !host.face
-            closable: DesktopWidgets.editMode
-            glassBody: !host.overFace
-            shadow: Config.appearance.shadows && !host.overFace
-            backdrop: host.face ? host.backdrop : null
-            backdropOrigin: Qt.point(host.x, host.y)
-            backdropScale: host.zoom
-            onCloseClicked: DesktopWidgets.remove(host.uid)
+            sourceComponent: MacWidgetCard {
+                scale: host.zoom
+                readonly property bool zoomedFrame: host.zoom !== 1
+                transformOrigin: Item.TopLeft
+                width: DesktopWidgets.fit(host.contentW + padding * 2, host.zoom)
+                height: DesktopWidgets.fit(host.contentH + padding * 2, host.zoom)
+                editing: DesktopWidgets.editMode && !host.face
+                closable: DesktopWidgets.editMode
+                glassBody: !host.overFace
+                shadow: Config.appearance.shadows && !host.overFace
+                backdrop: host.face ? host.backdrop : null
+                backdropOrigin: Qt.point(host.x, host.y)
+                backdropScale: host.zoom
+                onCloseClicked: DesktopWidgets.remove(host.uid)
+            }
         }
     }
 }

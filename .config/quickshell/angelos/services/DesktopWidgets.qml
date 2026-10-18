@@ -40,12 +40,10 @@ Singleton {
     // SF Pro when it is installed (Display from 20 pt up, as Apple sets it), else the skin's
     // font (Inter); Config.mac.font wins when it is set
     readonly property bool sfPro: Theme.macFamilies.includes("SF Pro Text")
+    readonly property string macTextFamily: Config.mac.font && Theme.macFamilies.includes(Config.mac.font) ? Config.mac.font : sfPro ? "SF Pro Text" : Theme.macFont
+    readonly property string macDisplayFamily: Config.mac.font && Theme.macFamilies.includes(Config.mac.font) ? Config.mac.font : sfPro ? (Theme.macFamilies.includes("SF Pro Display") ? "SF Pro Display" : "SF Pro Text") : Theme.macFont
     function macFamily(px) {
-        if (Config.mac.font && Theme.macFamilies.includes(Config.mac.font))
-            return Config.mac.font;
-        if (sfPro)
-            return px >= 20 && Theme.macFamilies.includes("SF Pro Display") ? "SF Pro Display" : "SF Pro Text";
-        return Theme.macFont;
+        return px >= 20 ? macDisplayFamily : macTextFamily;
     }
     // colours from the theme in use (its flavour, light or dark): the Golden Gate skin's Mac
     // palette while it is on, the wallpaper's or a flavour's otherwise

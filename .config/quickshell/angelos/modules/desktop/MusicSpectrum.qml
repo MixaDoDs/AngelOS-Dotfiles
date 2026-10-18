@@ -32,17 +32,32 @@ Item {
     // music on pause: cava at 30 frames a second drew flat bars (16.10)
     readonly property bool paused: Shell.stillScreen(screenName) || Power.eco || !Lyrics.playing
     readonly property bool live: visible && face && !paused
+    // the same spectrum on another screen shares one cava (services/SpectrumHub): only the leader runs it
+    readonly property string key: source + "|" + bars
+    readonly property bool leads: live && SpectrumHub.lead[key] === root
     onLiveChanged: {
         count(live);
         if (!live) {
+            levels = [];
+            pending = null;
+        }
+    }
+    onLeadsChanged: {
+        if (leads) {
+            writeConf();
+        } else {
             restart.stop();
             restart.interval = 2000;
             proc.running = false;
-            levels = [];
-            pending = null;
             proc.lastLine = "";
-        } else {
-            writeConf();
+        }
+    }
+    Connections {
+        target: SpectrumHub
+        enabled: root.live && !root.leads
+        function onFrame(k, v) {
+            if (k === root.key)
+                root.pending = v;
         }
     }
     // the bars move on the desk's one clock (services/DeskClock), with the live wallpaper of the
@@ -50,11 +65,23 @@ Item {
     // own the window drew a frame for the scene and another for the bars
     property var pending: null
     property bool counted: false
+    property string joinedKey: ""
+    onKeyChanged: if (counted) {
+        SpectrumHub.leave(joinedKey, root);
+        joinedKey = key;
+        SpectrumHub.join(key, root);
+    }
     function count(on) {
         if (on === counted)
             return;
         counted = on;
         DeskClock.spectra += on ? 1 : -1;
+        if (on) {
+            joinedKey = key;
+            SpectrumHub.join(key, root);
+        } else {
+            SpectrumHub.leave(joinedKey, root);
+        }
         feed();
     }
     // what everything plays: LiveBeat hears its kicks here instead of a cava of its own
@@ -98,12 +125,12 @@ Item {
         path: root.conf
         preload: false
         atomicWrites: true
-        onSaved: proc.running = root.live
+        onSaved: proc.running = root.leads
     }
     property bool ready: false
     property string written: ""
     function writeConf() {
-        if (!ready || !live)
+        if (!ready || !leads)
             return;
         proc.running = false;
         const text = ["[general]", "bars = " + bars, "framerate = 30", "sensitivity = 70", "autosens = 1", "[input]", "method = fifo", "source = " + root.fifo, "sample_rate = 22050", "sample_bits = 16", "[output]", "method = raw", "raw_target = /dev/stdout", "data_format = ascii", "ascii_max_range = 100", "bar_delimiter = 59", "frame_delimiter = 10", "channels = mono", "[smoothing]", "noise_reduction = 60", ""].join("\n");
@@ -119,7 +146,6 @@ Item {
     Component.onCompleted: {
         ready = true;
         count(live);
-        writeConf();
     }
     onBarsChanged: writeConf()
     onSourceChanged: writeConf()
@@ -146,6 +172,7 @@ Item {
                 proc.lastLine = line;
                 const v = line.split(";").filter(s => s !== "").map(n => parseInt(n) / 100);
                 root.pending = v;
+                SpectrumHub.frame(root.key, v);
                 if (root.feedsBeat)
                     LiveBeat.feed(v[0] || 0);
             }
@@ -153,7 +180,7 @@ Item {
         onExited: code => {
             if (code === 127) {
                 root.missing = true;
-            } else if (root.live) {
+            } else if (root.leads) {
                 // a tap that ends right away (no sound server, the sink gone) is tried again
                 // later and later, up to a minute — not every 2 s for ever; a run that lasted
                 // brings the 2 s back
@@ -165,7 +192,7 @@ Item {
     Timer {
         id: restart
         interval: 2000
-        onTriggered: proc.running = root.live
+        onTriggered: proc.running = root.leads
     }
     // the watchdog: a running cava prints 30 frames a second, silence included — 6 s without
     // one is a hang (a stuck tap, a stuck cava): start over. And whatever path forgot to
@@ -174,7 +201,7 @@ Item {
     Timer {
         interval: 2000
         repeat: true
-        running: root.live && !root.missing
+        running: root.leads && !root.missing
         onTriggered: {
             if (proc.running && Date.now() - root.lastFrame > root.stallMs) {
                 console.warn("cava widget " + (root.widget ? root.widget.uid : "") + ": no frames for " + Math.round((Date.now() - root.lastFrame) / 1000) + " s, restarting");

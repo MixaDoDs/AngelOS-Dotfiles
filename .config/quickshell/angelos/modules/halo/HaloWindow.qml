@@ -316,9 +316,15 @@ PanelWindow {
     // it is, as the iPhone's island — no half-empty window
     readonly property real pageH: Math.max(u * 90, px(90))
     readonly property bool eventsPage: expanded && !dropping && pages[page] === "events"
-    readonly property real cardBoxH: eventsPage ? Math.min(pageH, Math.max(px(24), eventsCol.implicitHeight)) : pageH
+    readonly property real cardBoxH: eventsPage ? Math.min(pageH, Math.max(px(24), pagesLoader.item ? pagesLoader.item.eventsH : 0)) : pageH
     property real pageScroll: 0
-    readonly property real pageContentH: dropping ? dropCard.implicitHeight : pages[page] === "shelf" ? shelfCard.implicitHeight : pages[page] === "buttons" ? buttonsCard.implicitHeight : pages[page] === "events" ? eventsCol.implicitHeight : nowMusic ? nowCard.implicitHeight : tilesCard.implicitHeight
+    readonly property real pageContentH: pagesLoader.item ? pagesLoader.item.contentH : 0
+    // the pages exist while the pointer is on the pill or the card is open, and 45 s after
+    Linger {
+        id: pagesKeep
+        when: win.expanded || hover.hovered || win.dropping
+        ms: 45000
+    }
     readonly property real pageMax: Math.max(0, pageContentH - pageView.height)
     onPageMaxChanged: pageScroll = Math.min(pageScroll, pageMax)
     // the menu goes when the pointer has left it and the pill a moment
@@ -1108,10 +1114,26 @@ PanelWindow {
                         width: parent.width
                         height: card.implicitHeight
                         clip: true
-                        Item {
+                        // the pages (two thousand objects) are built while the pointer is on the
+                        // pill or the card is open and kept 45 s after: closed, it holds none.
+                        // Built bit by bit between frames (~0.1 s), so the opening never stalls
+                        // (built at once it stopped the spring for 40–80 ms)
+                        Loader {
+                            id: pagesLoader
+                            active: pagesKeep.alive
+                            asynchronous: true
                             width: parent.width
-                            height: win.pageContentH
                             y: -Math.round(win.pageScroll / win.u) * win.u
+                            sourceComponent: pagesPart
+                        }
+                    }
+                    Component {
+                        id: pagesPart
+                        Item {
+                            // what the window's sizes ask of the pages
+                            readonly property real contentH: win.dropping ? dropCard.implicitHeight : win.pages[win.page] === "shelf" ? shelfCard.implicitHeight : win.pages[win.page] === "buttons" ? buttonsCard.implicitHeight : win.pages[win.page] === "events" ? eventsCol.implicitHeight : win.nowMusic ? nowCard.implicitHeight : tilesCard.implicitHeight
+                            readonly property real eventsH: eventsCol.implicitHeight
+                            height: win.pageContentH
                             // «Now»: the song with its lyrics, else the tiles
                             Card {
                                 id: nowCard
@@ -1778,8 +1800,8 @@ PanelWindow {
         }
     }
 
-    // RunCat's cat (modules/halo/HaloCat.js) in the text colour: like RunCat it runs faster the
-    // busier the processor is (win.cpu: a frame each 400 ms at rest, 40 ms under full load); a
+    // RunCat's cat (modules/halo/HaloCat.js) in the text colour: a steady frame each 200 ms (it
+    // used to follow win.cpu, so the shell's own load sped it up, a feedback loop); a
     // minute without input it sleeps as a loaf, breathing, a «z» rising; the pointer on the Halo
     // wakes it; in hell it turns red. One still frame when motion is reduced
     component RestCat: Item {
@@ -1812,7 +1834,7 @@ PanelWindow {
         width: 20 * pixel
         height: 12 * pixel
         Timer {
-            interval: cat.napping ? 1000 : Math.round(Math.max(40, 400 / Math.max(1, win.cpu * 10)))
+            interval: cat.napping ? 1000 : 200
             repeat: true
             running: cat.moving
             onTriggered: cat.tick++

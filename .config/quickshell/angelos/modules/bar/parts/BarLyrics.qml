@@ -69,6 +69,7 @@ Item {
     property string shown: ""
     property string previous: ""
     property int typed: 0
+    readonly property int typeStep: 1
     readonly property real fullW: fm.advanceWidth(shown)
     readonly property real typedW: typed >= shown.length ? fullW : fm.advanceWidth(shown.slice(0, typed))
     readonly property real overflowW: Math.max(0, fullW - textBox.width)
@@ -89,13 +90,16 @@ Item {
             startGlide();
             return;
         }
-        if (!Config.lyrics.typewriter) {
+        // unseen (no lyrics room, another screen): no typing and no slide to animate
+        if (!Config.lyrics.typewriter || !visible) {
             typed = shown.length;
             startGlide();
+            return;
         } else {
             typed = 0;
             const dur = Math.max(0.3, Lyrics.lineEnd - Lyrics.lineStart);
-            typer.interval = Math.max(12, Math.min(38, dur * 1000 * 0.45 / Math.max(1, shown.length)));
+            // a few characters a tick (same total time): fewer text rebuilds and measurements
+            typer.interval = Math.max(12, Math.min(38, dur * 1000 * 0.45 / Math.max(1, shown.length))) * typeStep;
             typer.restart();
         }
         slide.restart();
@@ -243,7 +247,12 @@ Item {
         id: typer
         repeat: true
         onTriggered: {
-            root.typed = Math.min(root.shown.length, root.typed + 1);
+            let n = Math.min(root.shown.length, root.typed + root.typeStep);
+            // never cut a surrogate pair (emoji) in the middle
+            const c = root.shown.charCodeAt(n - 1);
+            if (n < root.shown.length && c >= 0xD800 && c <= 0xDBFF)
+                n++;
+            root.typed = n;
             if (root.typed >= root.shown.length) {
                 stop();
                 // the caret already pulled the text to its end
@@ -335,7 +344,11 @@ Item {
         }
         PxText {
             id: cur
-            width: Math.max(parent.width, root.fullW + Theme.u * 4)
+            // typing: the whole line is laid out once and a clip uncovers it (+ a caret item), instead of
+            // rebuilding the rich text on every character
+            readonly property bool typing: root.typed < root.shown.length
+            width: typing ? root.typedW + Theme.u * 3 : Math.max(parent.width, root.fullW + Theme.u * 4)
+            clip: typing
             height: root.hell ? parent.height : implicitHeight
             font.family: root.fontFamily
             font.pixelSize: root.fontPx
@@ -355,10 +368,15 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             textFormat: Text.StyledText
             color: root.hell ? (Lyrics.current === "" || !Lyrics.playing ? (root.burning ? "#b0b0b0" : Theme.hellTextDim) : (root.burning ? "white" : Theme.hellText)) : root.barInk ? (Lyrics.current === "" || !Lyrics.playing ? Theme.hellTextDim : Theme.hellText) : Lyrics.current === "" || !Lyrics.playing ? Theme.textDim : Theme.text
-            text: {
-                const esc = s => Qt.escapeHtml(s);
-                const t = root.shown;
-                return esc(t.slice(0, root.typed)) + (root.typed < t.length ? "<font color='" + Theme.hex(Theme.accent) + "'>▌</font>" : "");
+            text: Qt.escapeHtml(root.shown)
+            PxText {
+                visible: cur.typing
+                x: root.typedW
+                font.family: cur.font.family
+                font.pixelSize: cur.font.pixelSize
+                renderType: Text.NativeRendering
+                color: Theme.accent
+                text: "▌"
             }
         }
 

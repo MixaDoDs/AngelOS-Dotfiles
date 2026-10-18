@@ -10,7 +10,7 @@ import qs.config
 // scripts/audio-tap.py (what everything plays): three bands from 40 Hz to 6 kHz with cava's
 // autosens, so the low one says how much of the sound is bass, whatever the volume —
 // measured on real music: 0.3…0.6 at rest, 0.8…0.95 on a kick. Runs only while the pill shows
-// music that plays and someone can see it (not locked, no full-screen game everywhere, not in
+// music that plays and someone can see it (not locked, no full-screen game everywhere, no game boost, not in
 // the eco mode); Settings → Halo → «Glow with the bass».
 //   level   0…3: how dense the bass is, in whole steps (the dither band's rows, the arc's weight)
 //   flash   1 on a kick, then down in a fifth of a second; kicked() once per kick (the wave)
@@ -19,7 +19,7 @@ Singleton {
 
     // the song in any capsule: a recording (or a timer) goes first, the bass goes on
     readonly property bool shownMusic: Halo.items.some(i => i.kind === "music")
-    readonly property bool wanted: Config.ready && !!Config.halo.enabled && Config.halo.bassGlow !== false && !Shell.dev && !Power.eco && Lyrics.playing && !Lyrics.unseen && shownMusic
+    readonly property bool wanted: Config.ready && !!Config.halo.enabled && Config.halo.bassGlow !== false && !Shell.dev && !Power.eco && Lyrics.playing && !Lyrics.unseen && shownMusic && Shell.screens.some(s => Halo.on(s.name) && !Shell.stillScreen(s.name))
 
     property int level: 0
     property real flash: 0

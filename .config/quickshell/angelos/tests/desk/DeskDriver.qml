@@ -8,7 +8,7 @@ import qs.modules.desktop
 
 // The desk's one clock (started by tests/desk/run.sh, offscreen): the music spectrum keeps its
 // blocks when the levels move, its bars move on DeskClock's tick and not on cava's own
-// frames, the clock runs at the scene's rate with a spectrum lifting it to 30, and LiveBeat
+// frames, the clock runs at the scene's rate with a spectrum lifting it to 20, and LiveBeat
 // hears the kick in a spectrum's bass instead of starting a cava of its own. And the
 // launcher's file thumbnails are what the cache holds, not a guess per size (FileSearch).
 Scope {
@@ -75,12 +75,12 @@ Scope {
                 if (Date.now() - root.since < 1500)
                     return;
                 root.report("desk-spectrum-counted", spec.live && DeskClock.spectra === 1 && LiveBeat.feeders === 1, "live=" + spec.live + " spectra=" + DeskClock.spectra + " feeders=" + LiveBeat.feeders);
-                root.report("desk-clock-spectrum-30", DeskClock.fps === 30, "fps=" + DeskClock.fps);
+                root.report("desk-clock-spectrum-20", DeskClock.fps === 20, "fps=" + DeskClock.fps);
                 DeskClock.walls++;
                 Config.wallpaper.liveFps = 60;
                 root.report("desk-clock-scene-faster", DeskClock.fps === 60, "fps=" + DeskClock.fps);
                 Config.wallpaper.liveFps = 12;
-                root.report("desk-clock-spectrum-lifts", DeskClock.fps === 30, "fps=" + DeskClock.fps);
+                root.report("desk-clock-spectrum-lifts", DeskClock.fps === 20, "fps=" + DeskClock.fps);
                 // a laptop's battery (#60): never more than 24, «Monitor» (0) on the clock at 24,
                 // and the spectrum doesn't lift it past that
                 DeskClock.battery = true;
@@ -89,7 +89,7 @@ Scope {
                 Config.wallpaper.liveFps = 0;
                 const monitor = DeskClock.sceneFps === 24 && DeskClock.fps === 24;
                 Config.wallpaper.liveFps = 12;
-                const slow = DeskClock.sceneFps === 12 && DeskClock.fps === 24;
+                const slow = DeskClock.sceneFps === 12 && DeskClock.fps === 20;
                 root.report("desk-clock-battery-cap", capped && monitor && slow, "60→" + capped + " monitor→" + monitor + " 12→" + slow);
                 DeskClock.battery = false;
                 DeskClock.walls--;

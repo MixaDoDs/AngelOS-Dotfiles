@@ -51,7 +51,7 @@ Singleton {
     property bool projectOpen: false         // the screens menu, Mod+P / the display key (modules/laptop/ProjectMenu)
     signal projectNext()                      // …the key again while it is open: the next choice
     property bool bootOpen: false            // Y2K loading screen (modules/y2k/BootScreen)
-    property bool settingsWarm: false        // the main Settings window is built and kept, hidden (modules/LazyWindows)
+    property bool settingsWarm: false        // the main Settings window is built ahead, hidden, while it is likely to be opened (modules/LazyWindows)
     property bool bootCover: false           // …the black second before it, at login
     property bool bootCoverShown: false      // …its first frame is out
     // the wallpaper, bar and Dock wait for the cover's first frame, so they are never seen before it
@@ -240,8 +240,74 @@ Singleton {
         onLoaded: root.gaming = text().trim() === "game"
         onLoadFailed: root.gaming = false
     }
+    // Windows cover the screen (the wallpaper, spectrum and desktop widgets are not seen): the union of
+    // the windows' rectangles on the screen's active workspace is >= 95% of the screen. Recomputed once
+    // per change of Niri.windows/workspaces/screens into a name -> bool map, not per binding.
+    // Windows' opacity/blur is unknown to niri's IPC, so the terminals (usually translucent) and
+    // angelOS's own windows are not counted: better to keep the wallpaper running than to stop a seen one.
+    readonly property var _coveredMap: {
+        const res = {};
+        const wins = Niri.windows;
+        for (const s of screens) {
+            const ws = Niri.activeWorkspace(s.name);
+            if (!ws || !s.width || !s.height)
+                continue;
+            const rects = [];
+            for (const w of wins) {
+                if (w.workspace_id !== ws.id)
+                    continue;
+                const l = w.layout;
+                const sz = l ? l.window_size : null;
+                if (!sz || !(sz[0] > 0) || !(sz[1] > 0))
+                    continue;
+                if (/^(kitty|foot|alacritty|org\.wezfurlong\.wezterm|com\.mitchellh\.ghostty|konsole|org\.kde\.konsole|quickshell|angelos)/i.test(String(w.app_id || "")))
+                    continue;
+                // the position on the screen is known for tiles in view; a window without one only counts alone
+                const pos = l.tile_pos_in_workspace_view;
+                const x = pos ? pos[0] : 0, y = pos ? pos[1] : 0;
+                const x1 = Math.max(0, x), y1 = Math.max(0, y);
+                const x2 = Math.min(s.width, x + sz[0]), y2 = Math.min(s.height, y + sz[1]);
+                if (x2 > x1 && y2 > y1)
+                    rects.push({
+                        "x1": x1, "y1": y1, "x2": x2, "y2": y2, "alone": !pos
+                    });
+            }
+            const total = s.width * s.height;
+            let area = 0;
+            // no position: only a single such window covering the screen by size counts
+            const lone = rects.filter(r => r.alone && (r.x2 - r.x1) * (r.y2 - r.y1) >= 0.95 * total);
+            if (lone.length)
+                area = total;
+            else {
+                const rs = rects.filter(r => !r.alone);
+                const xset = new Set();
+                for (const r of rs) {
+                    xset.add(r.x1);
+                    xset.add(r.x2);
+                }
+                const xs = [...xset].sort((a, b) => a - b);
+                for (let i = 0; i + 1 < xs.length; i++) {
+                    // union of the y-intervals of the rectangles spanning the strip xs[i]..xs[i+1]
+                    const iv = rs.filter(r => r.x1 <= xs[i] && r.x2 >= xs[i + 1]).map(r => [r.y1, r.y2]).sort((a, b) => a[0] - b[0]);
+                    let len = 0, end = -1;
+                    for (const [a, b] of iv) {
+                        const from = Math.max(a, end);
+                        if (b > from)
+                            len += b - from;
+                        end = Math.max(end, b);
+                    }
+                    area += len * (xs[i + 1] - xs[i]);
+                }
+            }
+            res[s.name] = area >= 0.95 * total;
+        }
+        return res;
+    }
+    function coveredScreen(name) {
+        return _coveredMap[name] === true;
+    }
     function stillScreen(name) {
-        return gaming || hiddenScreen(name);
+        return gaming || hiddenScreen(name) || coveredScreen(name);
     }
     // the idle screen (modules/idle/IdleScreen) covers every screen, or the main one only
     function idleOver(name) {

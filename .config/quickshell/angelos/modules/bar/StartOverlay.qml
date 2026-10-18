@@ -53,6 +53,9 @@ Variants {
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: open ? (Shell.dev ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive) : WlrKeyboardFocus.None
 
+        // built by the click that opens it (modules/LazyWindows): open is already true then
+        Component.onCompleted: if (open)
+            openChanged()
         onOpenChanged: {
             if (open) {
                 shown = true;

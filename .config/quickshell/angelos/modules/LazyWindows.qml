@@ -4,6 +4,7 @@ import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.bar
 import qs.modules.chest
 import qs.modules.clipboard
 import qs.modules.desktop
@@ -14,11 +15,14 @@ import qs.modules.laptop
 import qs.modules.reaper
 import qs.modules.session
 import qs.modules.settings
+import qs.modules.tour
 
 // Windows that are closed most of the time: each is built when it opens and kept a
 // little after it closes (Linger: a quick reopen keeps its state), then it goes with
 // everything it held. A closed launcher, clipboard, session menu or Settings holds no memory.
 Scope {
+    id: root
+
     Linger {
         id: launcherKeep
         when: Shell.launcherOpen
@@ -26,6 +30,18 @@ Scope {
     LazyLoader {
         active: launcherKeep.alive
         Launcher {}
+    }
+
+    // the Start menu: its windows (one per screen) exist while it is open and a little after
+    // (the look's own Linger inside is 30 s)
+    Linger {
+        id: startKeep
+        when: Shell.startScreen !== ""
+        ms: 40000
+    }
+    LazyLoader {
+        active: startKeep.alive
+        StartOverlay {}
     }
 
     // heaven's chest (services/Chests): built when one opens
@@ -76,20 +92,46 @@ Scope {
         ProjectMenu {}
     }
 
+    // the tour: ~800 objects that are only of use while it runs
+    Linger {
+        id: tourKeep
+        when: Tour.running
+        ms: 10000
+    }
+    LazyLoader {
+        active: tourKeep.alive
+        TourOverlay {}
+    }
+
     // a minute: back/forward history lives in the window
     Linger {
         id: settingsKeep
         when: Shell.settingsOpen
         ms: 60000
     }
-    // …and once the shell has settled it is built ahead and kept, hidden — its frame, the
+    // …and while it is likely to be opened it is built ahead, hidden — its frame, the
     // navigation, Home, the search with its index, the look in use — so it opens at once
-    // (the pages one goes on to come and go: SettingsView). Not during the boot screen, the
-    // first-run wizard or a stream (the build is a second of CPU); asked again until it fits.
-    // Not in the eco mode either (services/Power): the kept window is ~100 MB a machine that
-    // saves has better uses for — it goes when eco comes, and opens as any other window does.
-    // Only with 16 GB of memory or more: bin/angelos starts the shell with
-    // ANGELOS_SETTINGS_WARM=1 there and =0 below (the window is ~136 MB of the shell's memory).
+    // (the pages one goes on to come and go: SettingsView). Likely: a way to it is open —
+    // Start, the sidebar, the desktop's right-click menu (each has a Settings entry). Kept
+    // always it was 11 700 of the shell's 25 500 objects and ~166 MB (the stand, 18.10), for
+    // a window opened a few times a day; so it is built then, in the background (no second
+    // of CPU in front of the menu just opened), and goes 3 min after the last such moment
+    // with Settings closed. The Halo's card and the bar's buttons are not asked: their open /
+    // hovered state lives in their own windows. Not during the boot screen, the first-run
+    // wizard or a stream; not in the eco mode either (services/Power): it goes when eco
+    // comes, and opens as any other window does. Only with 16 GB of memory or more:
+    // bin/angelos starts the shell with ANGELOS_SETTINGS_WARM=1 there and =0 below.
+    readonly property bool settingsLikely: Shell.startScreen !== "" || Sidebar.open || Object.keys(Shell.desktopMenus).some(k => {
+        const m = Shell.desktopMenus[k];
+        return !!m && (m.visible && !m.own || !!m.radial && m.radial.visible);
+    })
+    Linger {
+        id: settingsLikelyKeep
+        when: root.settingsLikely || Shell.settingsOpen
+        ms: 180000
+        onAliveChanged: if (!alive)
+            Shell.settingsWarm = false
+    }
     Connections {
         target: Power
         function onEcoChanged() {
@@ -98,13 +140,10 @@ Scope {
         }
     }
     Timer {
-        id: settingsWarm
-        interval: 8000
-        running: !Shell.settingsWarm && !Power.eco && Quickshell.env("ANGELOS_SETTINGS_WARM") !== "0"
-        repeat: true
+        // a moment: a menu flicked open and shut builds nothing, and its own opening goes first
+        interval: 400
+        running: root.settingsLikely && !Shell.settingsWarm && !Power.eco && Quickshell.env("ANGELOS_SETTINGS_WARM") !== "0" && !Shell.bootOpen && !Shell.bootCover && !Shell.setupOpen && !StreamMode.active
         onTriggered: {
-            if (Shell.bootOpen || Shell.bootCover || Shell.setupOpen || StreamMode.active)
-                return;
             if (!Shell.settingsOpen) {
                 Shell.settingsPage = "main";     // what opening without a page shows
                 Shell.settingsSub = "";
@@ -112,8 +151,17 @@ Scope {
             Shell.settingsWarm = true;
         }
     }
+    // built ahead in the background; opened, it is finished at once
+    Connections {
+        target: Shell
+        function onSettingsOpenChanged() {
+            if (Shell.settingsOpen)
+                settingsLoader.active = true;
+        }
+    }
     LazyLoader {
-        active: settingsKeep.alive || Shell.settingsWarm
+        id: settingsLoader
+        activeAsync: settingsKeep.alive || Shell.settingsWarm
         SettingsWindow {}
     }
     // the other Settings windows (Shell.newSettingsWindow): each goes as soon as it is closed

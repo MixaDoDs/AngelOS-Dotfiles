@@ -279,6 +279,11 @@ class Stand:
         for w in ((settings.get("desktop") or {}).get("widgets") or []):
             if isinstance(w, dict) and w.get("screen"):
                 w["screen"] = self.screen
+        # …and so do the Halo and the lyrics line, when they are kept to some screens (empty =
+        # every screen, the stand's among them)
+        for sect, key in (("halo", "screens"), ("lyrics", "screens"), ("lyrics", "haloScreens")):
+            if (settings.get(sect) or {}).get(key):
+                settings[sect][key] = [self.screen]
         settings.setdefault("updates", {})["autoCheck"] = False
         json.dump(settings, open(os.path.join(h, ".config/angelos/settings.json"), "w"))
         cmd = [quickshell()[0], "-p", SHELL_DIR]

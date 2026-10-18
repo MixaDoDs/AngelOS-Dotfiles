@@ -214,7 +214,7 @@ Scope {
             Timer {
                 interval: 450
                 repeat: true
-                running: true
+                running: !Motion.still && !Shell.hiddenScreen(Angel.screenName)
                 onTriggered: deskNote.tick++
             }
 

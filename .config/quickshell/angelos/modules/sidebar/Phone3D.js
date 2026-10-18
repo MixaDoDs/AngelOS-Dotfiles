@@ -144,3 +144,30 @@ function undir(m, p) {
 function dot(a, b) {
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
+
+// two boxes seen end-on (their corners, [y, z] pairs): the line that parts them widest, as
+// [ny, nz, c] — `a` lies on its n·p < c side, `b` on the other. Two convex shapes that do not
+// overlap are parted along the normal of one of their own sides, so only lines through two
+// corners of one of them are tried
+function parting(a, b) {
+    let best = [0, 1, 0], gap = -Infinity;
+    for (const s of [a, b])
+        for (let i = 0; i < s.length; i++)
+            for (let j = i + 1; j < s.length; j++) {
+                const ey = s[j][0] - s[i][0], ez = s[j][1] - s[i][1], l = Math.hypot(ey, ez);
+                if (l < 1e-9)
+                    continue;
+                for (const n of [[-ez / l, ey / l], [ez / l, -ey / l]]) {
+                    let hiA = -Infinity, loB = Infinity;
+                    for (const p of a)
+                        hiA = Math.max(hiA, n[0] * p[0] + n[1] * p[1]);
+                    for (const p of b)
+                        loB = Math.min(loB, n[0] * p[0] + n[1] * p[1]);
+                    if (loB - hiA > gap) {
+                        gap = loB - hiA;
+                        best = [n[0], n[1], (hiA + loB) / 2];
+                    }
+                }
+            }
+    return best;
+}

@@ -193,7 +193,7 @@ Scope {
                 BackgroundEffect.blurRegion: Config.appearance.blur && panelWin.shown && !Sidebar.phone ? blurRegion : null
                 Region {
                     id: blurRegion
-                    item: panel
+                    item: panelLoader.item
                 }
 
                 MouseArea {
@@ -220,19 +220,24 @@ Scope {
                     }
                 }
 
-                SidebarPanel {
-                    id: panel
-                    visible: !Sidebar.phone
-                    focus: !Sidebar.phone
-                    height: Math.min(implicitHeight, panelWin.height - Theme.u * 8)
-                    readonly property real restX: scope.edge === "left" ? panelWin.gap : scope.edge === "right" ? panelWin.width - width - panelWin.gap : Math.max(Theme.u * 4, Math.min(panelWin.width - width - Theme.u * 4, panelWin.anchorAlong - width / 2))
-                    readonly property real restY: scope.edge === "top" ? panelWin.gap : scope.edge === "bottom" ? panelWin.height - height - panelWin.gap : Math.max(Theme.u * 4, Math.min(panelWin.height - height - Theme.u * 4, panelWin.anchorAlong - height / 2))
-                    x: restX + (scope.edge === "left" ? -1 : scope.edge === "right" ? 1 : 0) * panelWin.slideAt * (width + panelWin.gap)
-                    y: restY + (scope.edge === "top" ? -1 : scope.edge === "bottom" ? 1 : 0) * panelWin.slideAt * (height + panelWin.gap)
-                    Keys.onEscapePressed: Sidebar.open = false
-                    MouseArea {
-                        anchors.fill: parent
-                        z: -1
+                // built while the panel is shown only: closed, the sidebar holds no panel at all
+                Loader {
+                    id: panelLoader
+                    active: panelWin.shown && !Sidebar.phone
+                    focus: true
+                    sourceComponent: SidebarPanel {
+                        visible: !Sidebar.phone
+                        focus: !Sidebar.phone
+                        height: Math.min(implicitHeight, panelWin.height - Theme.u * 8)
+                        readonly property real restX: scope.edge === "left" ? panelWin.gap : scope.edge === "right" ? panelWin.width - width - panelWin.gap : Math.max(Theme.u * 4, Math.min(panelWin.width - width - Theme.u * 4, panelWin.anchorAlong - width / 2))
+                        readonly property real restY: scope.edge === "top" ? panelWin.gap : scope.edge === "bottom" ? panelWin.height - height - panelWin.gap : Math.max(Theme.u * 4, Math.min(panelWin.height - height - Theme.u * 4, panelWin.anchorAlong - height / 2))
+                        x: restX + (scope.edge === "left" ? -1 : scope.edge === "right" ? 1 : 0) * panelWin.slideAt * (width + panelWin.gap)
+                        y: restY + (scope.edge === "top" ? -1 : scope.edge === "bottom" ? 1 : 0) * panelWin.slideAt * (height + panelWin.gap)
+                        Keys.onEscapePressed: Sidebar.open = false
+                        MouseArea {
+                            anchors.fill: parent
+                            z: -1
+                        }
                     }
                 }
 

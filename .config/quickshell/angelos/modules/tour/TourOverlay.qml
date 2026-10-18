@@ -66,15 +66,21 @@ PanelWindow {
         interval: 1500
         onTriggered: win.shotSettled = true
     }
+    function begin() {
+        win.shotOk = false;
+        win.shotSettled = false;
+        grab.command = ["sh", "-c", 'mkdir -p "${1%/*}" && command -v grim >/dev/null && exec grim -o "$2" "$1"; exit 1', "sh", win.shotPath, Tour.screen];
+        grab.running = true;
+        grabLate.restart();
+    }
+    // built when the tour starts (modules/LazyWindows): the start it was made for is already past
+    Component.onCompleted: if (Tour.running)
+        begin()
     Connections {
         target: Tour
         function onRunningChanged() {
             if (Tour.running) {
-                win.shotOk = false;
-                win.shotSettled = false;
-                grab.command = ["sh", "-c", 'mkdir -p "${1%/*}" && command -v grim >/dev/null && exec grim -o "$2" "$1"; exit 1', "sh", win.shotPath, Tour.screen];
-                grab.running = true;
-                grabLate.restart();
+                win.begin();
             } else {
                 win.camX = win.width / 2;
                 win.camY = win.height / 2;

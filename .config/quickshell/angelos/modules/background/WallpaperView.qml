@@ -30,6 +30,11 @@ Item {
         img.path = p;
         img.source = url(p);
     }
+    // the old picture is only needed while a transition runs
+    function freeFrom() {
+        fromImg.path = "";
+        fromImg.source = "";
+    }
     // a picture too big for Qt came back as a fitted copy: show that instead
     Connections {
         target: Wallpapers
@@ -55,7 +60,7 @@ Item {
         anim.stop();
         if (!animate) {
             shown = path;
-            load(fromImg, path);
+            freeFrom();
             load(toImg, path);
             progress = 1;
             return;
@@ -75,7 +80,6 @@ Item {
         Qt.callLater(() => go(target))
     Component.onCompleted: {
         shown = target;
-        load(fromImg, target);
         load(toImg, target);
         configChanged = false;
     }
@@ -88,6 +92,7 @@ Item {
         to: 1
         duration: Motion.ms(Config.wallpaper.duration)
         easing.type: Easing.Linear
+        onFinished: root.freeFrom()
     }
 
     Image {
@@ -128,7 +133,7 @@ Item {
         textureSize: Qt.size(Math.ceil(root.width * root.dpr), Math.ceil(root.height * root.dpr))
         sourceItem: fromImg
         hideSource: true
-        live: true
+        live: root.progress < 1
         visible: false
     }
     ShaderEffectSource {
@@ -167,6 +172,7 @@ Item {
 
         ShaderEffect {
             anchors.fill: parent
+            visible: root.progress < 1
             property var fromTex: fromSrc
             property var toTex: toSrc
             property real progress: root.progress

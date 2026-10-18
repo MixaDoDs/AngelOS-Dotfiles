@@ -1084,6 +1084,16 @@ Singleton {
         for (const f of wait)
             f();
     }
+    // the parsed index (~1.6 MB of objects) is kept for a minute after the last search, then goes;
+    // the next track looks it up from the file again
+    Timer {
+        id: amllFree
+        interval: 60000
+        onTriggered: if (!root._amllLoading) {
+            root._amll = null;
+            amllReader.path = "";
+        }
+    }
     function amllFind(c, d, cb) {
         if (_amll === null) {
             _amllWait.push(() => amllFind(c, d, cb));
@@ -1093,6 +1103,7 @@ Singleton {
             }
             return;
         }
+        amllFree.restart();
         const sp = spotifyId;
         let hit = sp ? _amll.find(r => r.sp.includes(sp)) : null;
         if (!hit)

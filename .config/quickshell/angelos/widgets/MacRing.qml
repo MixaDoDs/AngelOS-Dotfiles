@@ -32,6 +32,8 @@ Item {
     // the arc runs clockwise from 12 o'clock; the gradient runs anticlockwise from there, so the
     // start is at 1 and the tip at 1 - shown. The bright-to-deep turn sits where nothing is drawn
     // (between the tip and the start), so both round ends keep their own colour.
+    readonly property color deep: Qt.darker(color, 1.3)
+    readonly property color tip: Qt.lighter(color, 1.18)
     ConicalGradient {
         id: sweep
         centerX: root.width / 2
@@ -39,19 +41,19 @@ Item {
         angle: 90
         GradientStop {
             position: 0
-            color: Qt.darker(root.color, 1.3)
+            color: root.deep
         }
         GradientStop {
             position: Math.max(0.001, (1 - root.shown) / 2)
-            color: Qt.darker(root.color, 1.3)
+            color: root.deep
         }
         GradientStop {
             position: Math.max(0.002, 1 - root.shown)
-            color: Qt.lighter(root.color, 1.18)
+            color: root.tip
         }
         GradientStop {
             position: 1
-            color: Qt.darker(root.color, 1.3)
+            color: root.deep
         }
     }
 

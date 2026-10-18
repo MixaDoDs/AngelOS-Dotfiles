@@ -345,7 +345,7 @@ Item {
         leanX = -cl((py - (b.y + b.height / 2)) / Math.max(1, b.height / 2)) * 2.5;
     }
     FrameAnimation {
-        running: root.visible && (Math.abs(root.tiltX - root.leanX) > 0.01 || Math.abs(root.tiltY - root.leanY) > 0.01)
+        running: root.visible && root.present && (Math.abs(root.tiltX - root.leanX) > 0.01 || Math.abs(root.tiltY - root.leanY) > 0.01)
         onTriggered: {
             const a = Math.min(1, frameTime * 5);
             root.tiltX += (root.leanX - root.tiltX) * a;
@@ -360,22 +360,22 @@ Item {
     // ---- in hand ----
     // Open, it is for using: a drag on its body only tips it a little (25° at most) and it
     // springs back to face you. Shut, it is a toy: a drag turns it like a trackball — the side
-    // under the pointer goes with it — about its own middle, calmly (a quarter of a degree a
-    // pixel); a fling spins it on and slows down; a hard spin or a shake asks the magic ball.
-    // Press and hold still for half a second (at the start or in the middle of a turn) and it is picked up: it comes closer and follows the
-    // pointer. Let go slowly and it floats home; let go with a swing and it flies as a solid box:
-    // it tumbles, its corners knock on the screen's edges, a knock turns it, and it comes to rest
-    // lying on the bottom — a hard landing cracks it.
+    // under the pointer goes with it — about its own middle, calmly under a slow hand (a quarter
+    // of a degree a pixel), up to twice that under a quick one; a fling spins it on as fast as it
+    // went and slows down; a hard spin or a shake asks the magic ball.
+    // Press and hold still for half a second (at the start or in the middle of a turn) and it is
+    // picked up: it comes closer and follows the pointer. Let go slowly and it floats home; let go
+    // with a swing and it flies as a solid box: it tumbles, its corners knock on the screen's
+    // edges, a knock turns it, and it comes to rest lying on the bottom — a hard landing cracks it.
     property var rot: [1, 0, 0, 0]        // its turn in the hand (P3 quaternion), about `pivot`
     property var spin: [0, 0, 0]          // radians a second about the world's axes (a fling)
     property var around: P3.turnZ(0)       // the turn around it (on its side, the lean): world axes → its own
-    property var turnFrom: null           // the drag: {x, y, t, vx, vy, x0, y0, from}
+    property var turnFrom: null           // the drag: {x, y, ax, ay (turned to), x0, y0, hx, hy (held at), trail, run, from}
     property bool turning: false
     property bool held: false             // picked up by a long press
     property int shakes: 0                // the drag's turns back (a shake asks the ball)
-    property real lastDx: 0
     property string answer: ""            // the magic ball on the outside screen
-    readonly property real turnRate: 0.25 // degrees a pixel
+    readonly property real turnRate: 0.25 // degrees a pixel (a slow hand; turnGain)
     function clamp(v, a, b) {
         return Math.max(a, Math.min(b, v));
     }
@@ -431,17 +431,20 @@ Item {
         }
     }
     function turnStart(item, mx, my) {
-        const p = item.mapToItem(root, mx, my);
+        const p = item.mapToItem(root, mx, my), t = Date.now();
         spinOn.running = false;
         faceAnim.stop();
         turnFrom = {
             "x": p.x,
             "y": p.y,
-            "t": Date.now(),
-            "vx": 0,
-            "vy": 0,
+            "ax": p.x,
+            "ay": p.y,
             "x0": p.x,
             "y0": p.y,
+            "hx": p.x,
+            "hy": p.y,
+            "trail": [[t, p.x, p.y]],
+            "run": 0,
             "from": P3.qangle(rot)
         };
         turning = false;
@@ -452,6 +455,7 @@ Item {
         } else if (!Motion.still) {
             holdWait.restart();
         }
+        turnTick.running = true;
     }
     Timer {
         id: holdWait
@@ -476,48 +480,101 @@ Item {
         liftAnim.restart();
         PhoneLine.play("click", 0.4);
     }
+    // the pointer moved: only noted here, the phone catches up once a frame (turnStep) — a quick
+    // mouse sends a thousand moves a second, and a rebuild for each fell behind the hand
     function turnMove(item, mx, my) {
-        if (!turnFrom)
+        const f = turnFrom;
+        if (!f)
             return;
-        const p = item.mapToItem(root, mx, my), f = turnFrom, t = Date.now();
-        const dx = p.x - f.x, dy = p.y - f.y, dt = Math.max(1, t - f.t);
+        const p = item.mapToItem(root, mx, my), t = Date.now();
+        // a face edge-on to the eye can't map the pointer back: that move is skipped
+        if (!isFinite(p.x) || !isFinite(p.y))
+            return;
+        f.x = p.x;
+        f.y = p.y;
+        // the hand's last moments (its speed): some 60 ms of them
+        f.trail.push([t, p.x, p.y]);
+        while (f.trail.length > 2 && t - f.trail[1][0] > 60)
+            f.trail.shift();
+        // the hand moves: the pick-up waits for it to stand still again (by how far it went, not
+        // by a step: a quick mouse moves a pixel a step)
+        if (!held && Math.hypot(p.x - f.hx, p.y - f.hy) > k * 2) {
+            f.hx = p.x;
+            f.hy = p.y;
+            if (!Motion.still)
+                holdWait.restart();
+        }
+    }
+    FrameAnimation {
+        id: turnTick
+        onTriggered: {
+            // the hand is gone (release lost): nothing to follow
+            if (!root.turnFrom)
+                running = false;
+            else
+                root.turnStep();
+        }
+    }
+    function turnStep() {
+        const f = turnFrom;
+        if (!f)
+            return;
+        const dx = f.x - f.ax, dy = f.y - f.ay;
+        if (!dx && !dy)
+            return;
         if (held) {
             // in the hand: it follows the pointer
+            f.ax = f.x;
+            f.ay = f.y;
             offX += dx;
             offY += dy;
-        } else {
-            if (!turning && Math.hypot(p.x - f.x0, p.y - f.y0) < k * 3)
-                return;
-            turning = true;
-            // the hand moves: the pick-up waits for it to stand still again
-            if (Math.hypot(dx, dy) > k * 1.5 && !Motion.still)
-                holdWait.restart();
-            const was = rot;
-            turnBy([-dy, dx, 0], Math.hypot(dx, dy) * turnRate * Math.PI / 180);
-            // open: no further than 25° (or than it already was)
-            if (lidUp && P3.qangle(rot) > Math.max(25, f.from))
-                rot = was;
-            if (dx * lastDx < 0 && Math.abs(dx) > k * 2)
-                shakes++;
-            if (Math.abs(dx) > k)
-                lastDx = dx;
+            return;
         }
-        turnFrom = Object.assign({}, f, {
-            "x": p.x,
-            "y": p.y,
-            "t": t,
-            "vx": f.vx * 0.5 + dx / dt * 0.5,
-            "vy": f.vy * 0.5 + dy / dt * 0.5
-        });
+        if (!turning && Math.hypot(f.x - f.x0, f.y - f.y0) < k * 3)
+            return;
+        turning = true;
+        f.ax = f.x;
+        f.ay = f.y;
+        const was = rot;
+        turnBy([-dy, dx, 0], Math.hypot(dx, dy) * turnGain(handSpeed(f)) * Math.PI / 180);
+        // open: no further than 25° (or than it already was)
+        if (lidUp && P3.qangle(rot) > Math.max(25, f.from))
+            rot = was;
+        // a shake: back along x after a good run one way
+        if (dx * f.run < 0) {
+            if (Math.abs(f.run) > k * 8)
+                shakes++;
+            f.run = 0;
+        }
+        f.run += dx;
+    }
+    // the hand's speed (px a ms) over its last moments, up to now: [x, y, along its way (round
+    // and round it goes further than it gets)]; a hand that stopped has none
+    function handSpeed(f) {
+        const tr = f.trail, a = tr[0], b = tr[tr.length - 1], now = Date.now();
+        if (now - b[0] > 90)
+            return [0, 0, 0];
+        const dt = Math.max(8, now - a[0]);
+        let way = 0;
+        for (let i = 1; i < tr.length; i++)
+            way += Math.hypot(tr[i][1] - tr[i - 1][1], tr[i][2] - tr[i - 1][2]);
+        return [(b[1] - a[1]) / dt, (b[2] - a[2]) / dt, way / dt];
+    }
+    // degrees a pixel: calm under a slow hand, up to twice that under a quick one
+    function turnGain(v) {
+        const s = clamp((v[2] - 0.5) / 2, 0, 1);
+        return turnRate * (1 + s * s * (3 - 2 * s));
     }
     function turnEnd() {
         holdWait.stop();
+        turnTick.running = false;
+        // what the hand did since the last frame
+        turnStep();
         const f = turnFrom;
         turnFrom = null;
         if (!f)
             return;
-        // a stale speed (the hand stood still before letting go) is no fling
-        const fresh = Date.now() - f.t < 90, vx = fresh ? f.vx : 0, vy = fresh ? f.vy : 0;
+        const v = handSpeed(f), vx = v[0], vy = v[1];
         if (held) {
             held = false;
             release(vx, vy);
@@ -539,8 +596,8 @@ Item {
             faceUp();
             return;
         }
-        // px/ms → the same trackball turn, a second of it; at most 1½ turns a second
-        const r = Math.min(Math.hypot(vx, vy) * 1000 * turnRate, 540) * Math.PI / 180, l = Math.hypot(vx, vy) || 1;
+        // the spin goes on as fast as the hand turned it; at most three turns a second
+        const r = Math.min(Math.hypot(vx, vy) * 1000 * turnGain(v), 1080) * Math.PI / 180, l = Math.hypot(vx, vy) || 1;
         spin = [-vy / l * r, vx / l * r, 0];
         if (!Motion.still && r > 0.2)
             spinOn.running = true;
@@ -553,9 +610,9 @@ Item {
         onTriggered: {
             const dt = Math.min(frameTime, 0.05), s = root.spin, r = Math.hypot(s[0], s[1], s[2]);
             root.turnBy(s, r * dt);
-            const keep = Math.exp(-dt * 2.8);
+            const keep = Math.exp(-dt * 2.4);
             root.spin = [s[0] * keep, s[1] * keep, s[2] * keep];
-            if (r < 0.1)
+            if (!(r >= 0.1) || !root.present)
                 running = false;
         }
     }
@@ -956,9 +1013,11 @@ Item {
             f.item.shade = Math.max(0, (n[0] * light[0] + n[1] * light[1] + n[2] * light[2]) / nl);
             depth.push([seen.centre[2], f.item, f.lid ? "lid" : f.item === antennaFace ? "antenna" : "base"]);
         }
-        // the hinge: a cylinder of eight strips and two round ends, drawn like the rest
-        const r = tb * 0.6, zc = -tb * 0.45, hl = w / 2 - k * 2, n8 = 8;
-        const at = a => [0, -r * Math.cos(a), zc + r * Math.sin(a)];
+        // the hinge: a cylinder of eight strips and two round ends, drawn like the rest. It is
+        // flattened where it meets the base and the lid (|y| ≤ g): poking into them, its strips
+        // cut over their edges whichever of them was painted first
+        const r = tb * 0.6, zc = -tb * 0.45, hl = w / 2 - k * 2, n8 = 8, ry = Math.min(r, g);
+        const at = a => [0, Math.max(-ry, Math.min(ry, -r * Math.cos(a))), zc + r * Math.sin(a)];
         for (let i = 0; i < n8; i++) {
             const a0 = i * 2 * Math.PI / n8, a1 = (i + 1) * 2 * Math.PI / n8;
             const p0 = at(a0), p1 = at(a1), len = Math.hypot(p1[1] - p0[1], p1[2] - p0[2]);
@@ -986,17 +1045,17 @@ Item {
             if (!it)
                 continue;
             const f = e ? {
-                "o": [hl, -r, zc + r],
+                "o": [hl, -ry, zc + r],
                 "u": [0, 0, -1],
                 "v": [0, 1, 0],
                 "w": r * 2,
-                "h": r * 2
+                "h": ry * 2
             } : {
-                "o": [-hl, -r, zc - r],
+                "o": [-hl, -ry, zc - r],
                 "u": [0, 0, 1],
                 "v": [0, 1, 0],
                 "w": r * 2,
-                "h": r * 2
+                "h": ry * 2
             };
             const seen = P3.look(model, f, eye);
             it.width = f.w;
@@ -1006,14 +1065,29 @@ Item {
             depth.push([seen.centre[2], it, "hinge"]);
         }
         // painted part by part (base, lid, hinge, antenna), the far part first: each part is a
-        // convex box, so its faces turned to the eye never cover each other; sorting single faces
-        // by their middles let a long face of one part cut over the near face of the next
-        const sum = {}, count = {};
-        for (const d of depth) {
-            sum[d[2]] = (sum[d[2]] || 0) + d[0];
-            count[d[2]] = (count[d[2]] || 0) + 1;
-        }
-        depth.sort((a, b) => sum[a[2]] / count[a[2]] - sum[b[2]] / count[b[2]] || a[0] - b[0]);
+        // convex box, so its faces turned to the eye never cover each other. Which of two parts
+        // is nearer is told by a plane between them (the eye's side of it), not by their middles:
+        // the shut lid lies on the base, and seen from a slant the base's middle came nearer and
+        // its keys were painted over the lid's edges (the lid's inside over the base's, too)
+        const spot = [model[3], model[7], model[11]];
+        const seer = P3.undir(model, [-spot[0], -spot[1], eye - spot[2]]);    // the eye in the phone
+        const seerLid = P3.undir(swing, seer);                                // … and in the lid
+        const cut = P3.parting([[g, 0], [g, -tb], [bh, 0], [bh, -tb]], [[-g, 0], [-g, -tl], [-lh, 0], [-lh, -tl]].map(p => {
+            const q = P3.dir(swing, [0, p[0], p[1]]);
+            return [q[1], q[2]];
+        }));
+        const out = seer[0] > w / 2 + k / 2;    // the antenna stands beside them all
+        // [nearer, farther]; a part's rank: how many parts it is nearer than
+        const ahead = [cut[0] * seer[1] + cut[1] * seer[2] > cut[2] ? ["lid", "base"] : ["base", "lid"], seer[1] < g ? ["hinge", "base"] : ["base", "hinge"], seerLid[1] > -g ? ["hinge", "lid"] : ["lid", "hinge"], out ? ["antenna", "base"] : ["base", "antenna"], out ? ["antenna", "lid"] : ["lid", "antenna"], out ? ["antenna", "hinge"] : ["hinge", "antenna"]];
+        const rank = {
+            "base": 0,
+            "lid": 0,
+            "hinge": 0,
+            "antenna": 0
+        };
+        for (const p of ahead)
+            rank[p[0]]++;
+        depth.sort((a, b) => rank[a[2]] - rank[b[2]] || a[0] - b[0]);
         for (let i = 0; i < depth.length; i++)
             depth[i][1].z = i + 1;
         // what the hand pulls: the lid by its line from the hinge, the antenna along itself
