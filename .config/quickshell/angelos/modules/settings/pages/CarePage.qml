@@ -4,6 +4,7 @@ import QtQuick
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.settings
 
 // «Обслуживание» (services/Care, scripts/care.py): how the computer is, and one button that
 // cleans what is safe. The scan changes nothing; the list says what would go and how much.
@@ -249,6 +250,14 @@ PxPage {
                     }
                 }
             }
+        }
+        // each game's Proton and launch options, what ProtonDB says, the FPS compared here
+        PxText {
+            text: I18n.t("Proton и параметры запуска", "Proton and launch options")
+            font.bold: true
+        }
+        GameTuneList {
+            width: parent.width
         }
     }
 

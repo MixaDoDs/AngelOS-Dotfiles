@@ -1,0 +1,21 @@
+{
+  "_": "The game tuner's own profiles (scripts/game-tune.py): checked by hand, they win over ProtonDB's statistics. games.<steam appid>: proton (a compatibility tool's internal name, \"\" = Steam's own), options (a launch line: only what scripts/gametune_safe.py lets through), tips ([ru, en] each: in-game settings worth changing).",
+  "games": {
+    "1091500": {
+      "options": "%command% --launcher-skip",
+      "tips": [
+        ["Графика → NVIDIA Reflex: «Вкл.» (на NVIDIA меньше задержка ввода)", "Graphics → NVIDIA Reflex: On (less input lag on NVIDIA)"]
+      ]
+    },
+    "1808500": {
+      "tips": [
+        ["Графика → NVIDIA Reflex: «Вкл.»; генерацию кадров включай, только если FPS и так выше 60", "Graphics → NVIDIA Reflex: On; frame generation only when the FPS is above 60 anyway"]
+      ]
+    },
+    "1144200": {
+      "tips": [
+        ["Графика → NVIDIA Reflex: «Вкл.»", "Graphics → NVIDIA Reflex: On"]
+      ]
+    }
+  }
+}

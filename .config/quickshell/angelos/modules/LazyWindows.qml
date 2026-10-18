@@ -9,6 +9,7 @@ import qs.modules.chest
 import qs.modules.clipboard
 import qs.modules.desktop
 import qs.modules.diary
+import qs.modules.gametune
 import qs.modules.keycast
 import qs.modules.launcher
 import qs.modules.laptop
@@ -63,6 +64,11 @@ Scope {
     LazyLoader {
         active: KeyCast.on
         KeyCastOverlay {}
+    }
+    // a new Steam game's note (services/GameTune): only while one is open
+    LazyLoader {
+        active: !!GameTune.noteGame
+        GameNote {}
     }
 
     Linger {

@@ -654,6 +654,7 @@ JsonAdapter {
     property JsonObject gaming: JsonObject {
         property int mouseRate: 0           // motion reports a second in games: 0 = the mouse as it is | 1000 | 2000 | 4000
         property string mouseDevice: ""     // a part of the mouse's /dev/input/by-id name ("" = the first USB mouse)
+        property bool tuneNotes: true       // a new Steam game gets its note: Proton and launch options (services/GameTune)
     }
 
     // the novel (services/Novel, ~/AngelOs-Nov): chapters the angel plays out on the desktop
