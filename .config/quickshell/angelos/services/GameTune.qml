@@ -15,9 +15,9 @@ Singleton {
     id: root
 
     property var data: null                  // game-tune.py list
-    readonly property var games: data ? data.games : []
+    readonly property var games: data && data.games ? data.games : []
     readonly property bool hasSteam: !!data && data.steam
-    readonly property var tools: data ? data.tools : []
+    readonly property var tools: data && data.tools ? data.tools : []
     property string note: ""                 // the appid whose note is open
     readonly property var noteGame: games.find(g => g.appid === note) || null
     property string error: ""
@@ -65,7 +65,7 @@ Singleton {
 
     // ---- comparing Protons on this machine (game-tune.py bench): one run per Proton, MangoHud
     // logs 60 s from Shift+F2, the next Proton comes by itself once the game closes
-    readonly property var bench: data ? data.bench : null
+    readonly property var bench: data && data.bench ? data.bench : null
     readonly property bool hasMangoHud: data ? !!data.mangohud : false
     property bool restartSteam: false        // the switch is new: Steam sees it after a restart
     function benchStart(appid, names) {

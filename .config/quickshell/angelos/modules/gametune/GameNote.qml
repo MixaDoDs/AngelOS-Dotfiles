@@ -32,6 +32,8 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
+    RightClickGuard {}
+
     PxWindow {
         id: paper
         width: parent.width
