@@ -66,6 +66,32 @@ Singleton {
         if (!report || Date.now() - lastScan > 60000)
             scan();
     }
+    // «Игры» (scripts/game-doctor.py): what games need, looked over, and its fixes
+    property var games: null                // scan: {checks, games: [{id, name, prefix, shaderBytes}], protons, edition, missing}
+    property bool gamesScanning: gameScanner.running
+    property bool gameBusy: gameFixer.running
+    property var gameResult: null           // the last fix: {ok, ru, en}
+    function gameScan() {
+        if (!gameScanner.running)
+            gameScanner.running = true;
+    }
+    function gameFix(args) {
+        if (gameFixer.running)
+            return;
+        gameResult = null;
+        gameFixer.command = ["python3", Quickshell.shellPath("scripts/game-doctor.py")].concat(args);
+        gameFixer.running = true;
+    }
+    // the gaming edition (scripts/game-setup.sh, the installer's too): pacman and sudo in a terminal
+    function gameSetup() {
+        Shell.terminal("ANGELOS_LANG=" + lang + " bash '" + Quickshell.shellPath("scripts/game-setup.sh") + "'; printf '\\n%s ' '" + I18n.t("Enter — закрыть", "Enter — close") + "'; read _");
+    }
+    // «Позвать помощника» (scripts/help-agent.sh): the agent of Config.system.helpAgent in a terminal it opens
+    function callHelper(text) {
+        Quickshell.execDetached(["env", "ANGELOS_LANG=" + lang, "bash", Quickshell.shellPath("scripts/help-agent.sh")].concat(text ? [text] : []));
+    }
+    readonly property string lang: Config.appearance.language === "en" ? "en" : "ru"
+
     function size(n) {
         if (!n || n < 0)
             return "0 " + I18n.t("Б", "B");
@@ -133,6 +159,34 @@ Singleton {
             root.picked = {};
             rescan.restart();
         }
+    }
+    Process {
+        id: gameScanner
+        command: ["python3", Quickshell.shellPath("scripts/game-doctor.py"), "scan"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.games = JSON.parse(text);
+                } catch (e) {}
+            }
+        }
+    }
+    Process {
+        id: gameFixer
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.gameResult = JSON.parse(text.trim().split("\n").pop());
+                } catch (e) {
+                    root.gameResult = {
+                        "ok": false,
+                        "ru": "Доктор игр не ответил",
+                        "en": "The games doctor did not answer"
+                    };
+                }
+            }
+        }
+        onExited: root.gameScan()
     }
     Timer {
         id: rescan

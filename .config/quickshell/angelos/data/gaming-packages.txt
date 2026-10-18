@@ -1,0 +1,20 @@
+# angelOS gaming edition (scripts/game-setup.sh; the installer's INSTALL_GAMING=1, Settings →
+# Maintenance → Games). Updates keep this list installed once it was set up ($STATE_DIR/gaming).
+# The 32-bit driver of the video card and the snapshots (snapper, snap-pac, the boot menu's
+# limine-snapper-sync or grub-btrfs) are picked by game-setup.sh for this machine.
+steam
+# Proton: CachyOS's build with Steam's runtime; umu runs games outside Steam with protonfixes;
+# ProtonPlus fetches GE-Proton and the others (Settings → Maintenance → Games does GE itself too)
+proton-cachyos-slr
+umu-launcher
+protonplus
+gamemode
+lib32-gamemode
+mangohud
+lib32-mangohud
+gamescope
+# sched-ext: niri-game-mode switches the scheduler to gaming (scxctl) while a game runs
+scx-scheds
+scx-tools
+# vulkaninfo: the games doctor checks the driver with it
+vulkan-tools

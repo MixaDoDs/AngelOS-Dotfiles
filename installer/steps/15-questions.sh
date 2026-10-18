@@ -54,6 +54,11 @@ ask_profile() {
                     'И полезные программы: монитор системы, архиватор, сравнение файлов, экран телефона и консольные мелочи?')" "$( ((INSTALL_TOOLS)) && echo y || echo n)" \
       && INSTALL_TOOLS=1 || INSTALL_TOOLS=0
   fi
+  if ! given INSTALL_GAMING && [[ "$SKIP_PACKAGES" != 1 ]]; then
+    ui_confirm "$(_ 'The gaming edition? (Steam, Proton, the drivers for games, a boost while one runs; snapshots of the system on btrfs)' \
+                    'Игровая версия? (Steam, Proton, драйверы для игр, ускорение на время игры; снимки системы на btrfs)')" n \
+      && INSTALL_GAMING=1 || INSTALL_GAMING=0
+  fi
   # voice input is 1.6 GB: the wizard offers it (Settings → Sound later), not this run
   if wizard_next && ! given INSTALL_VOXTYPE; then
     INSTALL_VOXTYPE=0
@@ -147,6 +152,12 @@ review() {
   [[ "$DESKTOP_SHELL" == angelos ]] &&
     lines+=("$(_ '• you join the input group (the Meta key, the mouse in games) and a udev rule reads the charge of wireless mice' \
                  '• ты войдёшь в группу input (клавиша Meta, мышь в играх), правило udev читает заряд беспроводных мышей')")
+  if [[ "$INSTALL_GAMING" == 1 && "$SKIP_PACKAGES" != 1 ]]; then
+    local g
+    while IFS= read -r g; do
+      [[ -n "$g" ]] && lines+=("• $(_ 'games' 'игры'): $g")
+    done < <(bash "$ROOT/.config/quickshell/angelos/scripts/game-setup.sh" --plan 2>/dev/null || true)
+  fi
   lines+=("$(_ "• your configs that differ are kept or backed up (*.bak.$STAMP); a log: ${INSTALL_LOG/#$HOME_DIR/\~}" \
                "• твои отличающиеся конфиги остаются или уходят в копию (*.bak.$STAMP); журнал: ${INSTALL_LOG/#$HOME_DIR/\~}")")
   lines+=("$(_ '• about 10–30 minutes, mostly the download; the admin password is asked once' \

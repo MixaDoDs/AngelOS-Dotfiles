@@ -30,6 +30,11 @@
 #                                  pacman first, the AUR through paru, else Flathub
 #                                  (scripts/apps-install.py, which remembers the pick: Settings →
 #                                  Updates later brings what the author adds to those groups)
+#   INSTALL_GAMING=0|1             the gaming edition: Steam, Proton (CachyOS's, umu, ProtonPlus), the
+#                                  32-bit drivers, gamemode, MangoHud, gamescope, a 10 GB shader cache
+#                                  and, on btrfs, a snapshot before every update (snapper, snap-pac,
+#                                  in the boot menu). Asked interactively (default no), unattended 0.
+#                                  Later: Settings → Maintenance → Games (scripts/game-setup.sh)
 #   CACHYOS_REPOS=1|0              Arch Linux (x86_64): add the author's repositories before the
 #                                  packages — [cachyos], LAST (Arch's own packages win, the system
 #                                  stays Arch) and [multilib]. Without them Helium, qView, LocalSend,
@@ -119,7 +124,8 @@ VOXTYPE_FORCE="${VOXTYPE_FORCE:-0}"
 is_set() { [[ -n "${!1+x}" ]]; }
 for v in DOTFILES_MODE DESKTOP_SHELL NOCTALIA KB_LAYOUTS KB_TOGGLE INSTALL_VOXTYPE DOWNLOAD_VOXTYPE_MODEL \
          INSTALL_WALLPAPERS WALLPAPER_PACKS INSTALL_SDDM DEVICE_ACCESS ANGELOS_GAME GITHUB_LOGIN \
-         INSTALL_FLATPAK INSTALL_TOOLS ANGELOS_THEME MAC_KEYS FISH_DEFAULT INSTALL_APPS APPS MAIN_SCREEN; do
+         INSTALL_FLATPAK INSTALL_TOOLS ANGELOS_THEME MAC_KEYS FISH_DEFAULT INSTALL_APPS APPS MAIN_SCREEN \
+         INSTALL_GAMING; do
   is_set "$v" && declare -r "GIVEN_$v=1"
 done
 given() { local n="GIVEN_$1"; [[ -n "${!n:-}" ]]; }
@@ -172,6 +178,7 @@ ANGELOS_THEME="${ANGELOS_THEME:-pixel}"
 MAC_KEYS="${MAC_KEYS:-1}"
 FISH_DEFAULT="${FISH_DEFAULT:-1}"
 INSTALL_APPS="${INSTALL_APPS:-0}"
+INSTALL_GAMING="${INSTALL_GAMING:-0}"
 CACHYOS_REPOS="${CACHYOS_REPOS:-1}"
 APPS="${APPS:-all}"
 # fish before this run: a login shell someone already has is never changed behind their back
@@ -344,6 +351,7 @@ esac
 [[ "$FISH_DEFAULT" == 0 || "$FISH_DEFAULT" == 1 ]] || die "FISH_DEFAULT must be 0 or 1"
 [[ "$MAC_KEYS" == 0 || "$MAC_KEYS" == 1 ]] || die "MAC_KEYS must be 0 or 1"
 [[ "$INSTALL_APPS" == 0 || "$INSTALL_APPS" == 1 ]] || die "INSTALL_APPS must be 0 or 1"
+[[ "$INSTALL_GAMING" == 0 || "$INSTALL_GAMING" == 1 ]] || die "INSTALL_GAMING must be 0 or 1"
 [[ "$DEVICE_ACCESS" == 0 || "$DEVICE_ACCESS" == 1 ]] || die "DEVICE_ACCESS must be 0 or 1"
 [[ "$CACHYOS_REPOS" == 0 || "$CACHYOS_REPOS" == 1 ]] || die "CACHYOS_REPOS must be 0 or 1"
 # APPS given alone means "these ones, please"

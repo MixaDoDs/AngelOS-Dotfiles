@@ -11,8 +11,34 @@ PxPage {
     heading: I18n.t("Обслуживание", "Maintenance")
     subtitle: I18n.t("Одна кнопка: проверить компьютер и убрать безопасное — старые кэши, временные папки, кэш пакетов. Модели, музыка, профили браузеров и кэши шейдеров игр не трогаются.", "One button: check the computer and clean what is safe — old caches, temporary folders, the package cache. Models, music, browser profiles and game shader caches are never touched.")
 
-    Component.onCompleted: if (!Care.report || Date.now() - Care.lastScan > 60000)
-        Care.scan()
+    id: page
+
+    property string armed: ""               // the game whose prefix reset waits for a second click
+
+    Component.onCompleted: {
+        if (!Care.report || Date.now() - Care.lastScan > 60000)
+            Care.scan();
+        if (!Care.games)
+            Care.gameScan();
+    }
+
+    // one line of a check: {level: ok|info|warn|bad, ru, en}
+    component CheckRow: Row {
+        required property var modelData
+        width: parent.width
+        spacing: Theme.u * 3
+        PxIcon {
+            anchors.verticalCenter: parent.verticalCenter
+            name: parent.modelData.level === "ok" ? "check" : parent.modelData.level === "info" ? "info" : "warn"
+            fill: parent.modelData.level === "ok" ? Theme.ok : parent.modelData.level === "bad" ? Theme.danger : parent.modelData.level === "warn" ? Theme.accent : Theme.accent2
+        }
+        PxText {
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width - Theme.u * 12
+            wrapMode: Text.Wrap
+            text: I18n.t(parent.modelData.ru, parent.modelData.en)
+        }
+    }
 
     PxGroup {
         name: "main"
@@ -89,22 +115,7 @@ PxPage {
         // the checks
         Repeater {
             model: Care.checks
-            Row {
-                required property var modelData
-                width: parent.width
-                spacing: Theme.u * 3
-                PxIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    name: parent.modelData.level === "ok" ? "check" : parent.modelData.level === "info" ? "info" : "warn"
-                    fill: parent.modelData.level === "ok" ? Theme.ok : parent.modelData.level === "bad" ? Theme.danger : parent.modelData.level === "warn" ? Theme.accent : Theme.accent2
-                }
-                PxText {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - Theme.u * 12
-                    wrapMode: Text.Wrap
-                    text: I18n.t(parent.modelData.ru, parent.modelData.en)
-                }
-            }
+            CheckRow {}
         }
     }
 
@@ -141,6 +152,156 @@ PxPage {
                     }
                 }
             }
+        }
+    }
+
+    // «Доктор игр» (scripts/game-doctor.py): what games need, and the fixes that help when one
+    // stops starting. Which Proton a game runs and its launch options stay the user's, in Steam
+    PxGroup {
+        name: "games"
+        title: I18n.t("Игры", "Games")
+        icon: "gamepad"
+        width: parent.width
+
+        Flow {
+            width: parent.width
+            spacing: Theme.u * 3
+            PxButton {
+                text: I18n.t("Проверить", "Check")
+                icon: "refresh"
+                enabled: !Care.gamesScanning && !Care.gameBusy
+                onClicked: Care.gameScan()
+            }
+            PxButton {
+                text: I18n.t("Свежий GE-Proton", "The newest GE-Proton")
+                icon: "download"
+                enabled: !Care.gameBusy
+                onClicked: Care.gameFix(["ge-proton"])
+            }
+            PxButton {
+                text: I18n.t("Очистить все кэши шейдеров", "Clear all shader caches")
+                icon: "trash"
+                enabled: !Care.gameBusy
+                onClicked: Care.gameFix(["clear-shaders", "all"])
+            }
+            PxButton {
+                visible: !!Care.games && !Care.games.edition
+                text: I18n.t("Поставить игровую версию", "Install the gaming edition")
+                icon: "package"
+                accent: true
+                onClicked: Care.gameSetup()
+            }
+        }
+        PxText {
+            visible: Care.gameBusy || !!Care.gameResult
+            width: parent.width
+            wrapMode: Text.Wrap
+            color: Care.gameBusy ? Theme.textDim : Care.gameResult && Care.gameResult.ok ? Theme.ok : Theme.danger
+            text: Care.gameBusy ? I18n.t("Делаю…", "Working…") : Care.gameResult ? I18n.t(Care.gameResult.ru, Care.gameResult.en) : ""
+        }
+        PxText {
+            visible: !!Care.games && !Care.games.edition
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            text: I18n.t("Игровая версия: Steam, Proton, драйверы для игр, gamemode, MangoHud, кэш шейдеров 10 ГБ, на btrfs — снимок системы перед каждым обновлением. Откроется терминал: пароль администратора спросит pacman.", "The gaming edition: Steam, Proton, the drivers for games, gamemode, MangoHud, a 10 GB shader cache, on btrfs a snapshot before every update. A terminal opens: pacman asks the admin password.") + (Care.games && Care.games.missing.length ? I18n.t(" Не хватает: ", " Missing: ") + Care.games.missing.join(", ") : "")
+        }
+        PxText {
+            visible: !Care.games
+            dim: true
+            text: Care.gamesScanning ? I18n.t("Смотрю…", "Looking…") : ""
+        }
+        Repeater {
+            model: Care.games ? Care.games.checks : []
+            CheckRow {}
+        }
+        Repeater {
+            model: Care.games ? Care.games.games : []
+            SettingRow {
+                id: game
+                required property var modelData
+                label: modelData.name
+                hint: (modelData.shaderBytes > 0 ? I18n.t("кэш шейдеров ", "shader cache ") + Care.size(modelData.shaderBytes) : I18n.t("кэша шейдеров нет", "no shader cache")) + (page.armed === modelData.id ? I18n.t(" · префикс уйдёт в копию (steamapps/angelos-prefix-backups), Steam создаст чистый", " · the prefix moves to a copy (steamapps/angelos-prefix-backups), Steam makes a clean one") : "")
+                Row {
+                    spacing: Theme.u * 2
+                    PxButton {
+                        compact: true
+                        text: I18n.t("Шейдеры", "Shaders")
+                        icon: "trash"
+                        enabled: !Care.gameBusy && game.modelData.shaderBytes > 0
+                        onClicked: Care.gameFix(["clear-shaders", game.modelData.id])
+                    }
+                    PxButton {
+                        compact: true
+                        text: page.armed === game.modelData.id ? I18n.t("Точно сбросить", "Reset, sure") : I18n.t("Сбросить префикс", "Reset the prefix")
+                        icon: "rotate"
+                        danger: page.armed === game.modelData.id
+                        enabled: !Care.gameBusy && game.modelData.prefix
+                        onClicked: {
+                            if (page.armed !== game.modelData.id) {
+                                page.armed = game.modelData.id;
+                                return;
+                            }
+                            page.armed = "";
+                            Care.gameFix(["reset-prefix", game.modelData.id]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // «Помощник»: something broke → an AI agent of the user's choice, with the logs gathered and
+    // angelOS's rules (scripts/help-agent.sh). The user logs in to their own account in it
+    PxGroup {
+        name: "helper"
+        title: I18n.t("Помощник", "Helper")
+        icon: "bot"
+        width: parent.width
+
+        SettingRow {
+            label: I18n.t("Агент", "Agent")
+            hint: I18n.t("Входишь в свой аккаунт; angelOS ключей не хранит. Нет программы — предложит поставить из репозитория.", "You log in to your own account; angelOS keeps no keys. Not installed: it offers to install it from the repositories.")
+            PxSegmented {
+                model: [
+                    {
+                        "label": "Claude Code",
+                        "value": "claude"
+                    },
+                    {
+                        "label": "Codex",
+                        "value": "codex"
+                    },
+                    {
+                        "label": "opencode",
+                        "value": "opencode"
+                    }
+                ]
+                currentValue: Config.system.helpAgent
+                onActivated: v => Config.system.helpAgent = v
+            }
+        }
+        PxField {
+            id: trouble
+            width: parent.width
+            placeholder: I18n.t("Что случилось? (можно пусто — спросит сам)", "What happened? (may stay empty: it asks)")
+        }
+        PxButton {
+            text: I18n.t("Позвать помощника", "Call the helper")
+            icon: "bot"
+            accent: true
+            onClicked: {
+                Care.callHelper(trouble.text.trim());
+                trouble.text = "";
+            }
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            text: I18n.t("Откроется терминал. Помощник уже видит журналы системы, оболочки и обновлений; перед правкой делает снимок системы (если они есть) и спрашивает перед каждой командой, sudo — только с твоего согласия.", "A terminal opens. The helper sees the system's, the shell's and the updates' logs already; before a change it takes a snapshot (when there are any) and asks before every command, sudo only with your yes.")
         }
     }
 }

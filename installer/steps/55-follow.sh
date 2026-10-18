@@ -10,6 +10,7 @@
 #     theme the user's install had (pixel-cyberpunk, which angelOS no longer ships); again when
 #     the author changes it, with the user's own look and colours (Settings → Lock screen).
 #     Another theme the user picked stays
+#   - the gaming edition's packages (data/gaming-packages.txt), when it was set up here
 #   - the udev rule for the devices' charge (device_access above), missing or changed by the
 #     author; DEVICE_ACCESS=0 leaves it out
 # Only for the real home of this user (never a test's or a chroot's) and never on the author's
@@ -39,6 +40,8 @@ follow_system() {
   [[ "$INSTALL_TOOLS" == 1 ]] && lists+=(tools.txt)
   [[ "$FISH_DEFAULT" == 1 ]] && lists+=(fish.txt)
   command -v sddm >/dev/null 2>&1 && [[ "$INSTALL_SDDM" == 1 ]] && lists+=(sddm.txt)
+  # the gaming edition, once it was set up here (scripts/game-setup.sh): its list is the shell's
+  [[ -f "$STATE_DIR/gaming" ]] && lists+=(../.config/quickshell/angelos/data/gaming-packages.txt)
   # base packages missing here that the repositories have
   mapfile -t pkgs < <(cd "$ROOT/packages" && cat "${lists[@]}" 2>/dev/null | sed 's/#.*//' | tr -s ' \t' '\n' | grep -v '^$' | sort -u | not_removed |
                         xargs -r pacman -T 2>/dev/null | xargs -r -n1 sh -c 'pacman -Si "$0" >/dev/null 2>&1 && echo "$0"')

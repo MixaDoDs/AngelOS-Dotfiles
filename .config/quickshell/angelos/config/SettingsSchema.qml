@@ -431,6 +431,7 @@ JsonAdapter {
         property string primaryScreen: ""   // the main screen (widgets, the angel, the lock…); "" = the widest
         property bool primaryAsked: false   // asked once (MainScreenPrompt) where the main screen is, or it was picked already
         property var screenTune: ({})       // Monitor → Brightness and colour: {output: {brightness 0.3–1 (gamma), saturation −1…1 (NVIDIA vibrance)}} (services/ScreenTune)
+        property string helpAgent: ""       // Maintenance → Helper: claude | codex | opencode — the AI agent «Call the helper» opens (scripts/help-agent.sh); "" = the first one installed
     }
 
     property JsonObject cursor: JsonObject {
