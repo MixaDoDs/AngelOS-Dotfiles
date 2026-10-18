@@ -61,8 +61,12 @@ pic() {
     local -a o=(--size "$((cols - 4))x$rows" --align left)
     ((CONSOLE)) && o+=(-f symbols --colors 16 --symbols block)
     [[ -n "${TMUX:-}" ]] && o+=(-f symbols)
-    [[ "${NO_ANIM:-0}" == 1 ]] && o+=(--animate off)
-    chafa "${o[@]}" -- "$f" >/dev/tty 2>/dev/null && return 0
+    # on a terminal chafa plays a lone .gif forever unless told: the billboard before pacman
+    # never ended, the install stood at 0% (issue #97). Once, and pacman waits 10 s at most
+    if [[ "${NO_ANIM:-0}" == 1 ]]; then o+=(--animate off); else o+=(--duration 0); fi
+    local rc=0
+    timeout --foreground -s INT 10 chafa "${o[@]}" -- "$f" >/dev/tty 2>/dev/null || rc=$?
+    ((rc == 0 || rc == 124)) && return 0
   fi
   [[ -f "$ans" ]] && cat -- "$ans" >/dev/tty
   return 0
