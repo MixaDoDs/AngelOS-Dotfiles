@@ -1521,7 +1521,6 @@ Item {
                                 color: Theme.sunken
                                 Image {
                                     anchors.fill: parent
-                                    anchors.margins: parent.bevel
                                     source: scrCol.file ? "file://" + Wallpapers.display(scrCol.file) : ""
                                     sourceSize: Qt.size(320, 320)
                                     fillMode: Image.PreserveAspectCrop

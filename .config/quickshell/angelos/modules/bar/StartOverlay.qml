@@ -114,12 +114,18 @@ Variants {
                 return Qt.rect(Theme.u * 2, height - Theme.u * 2, Theme.u * 40, 0);
             const w = b.window, it = b.item;
             const p = it.mapToItem(w.contentItem, 0, 0);
+            // an auto-hidden taskbar (TaskbarWindow.slide) comes back up while Start is open:
+            // its resting place, or the menu opened from the tucked bar sat over it (#93)
+            const s = w.slide || 0;
+            const e = BarLayout.edge;
+            const px = p.x + (e === "left" ? s : e === "right" ? -s : 0);
+            const py = p.y + (e === "bottom" ? -s : e === "top" ? s : 0);
             const a = w.anchors || {};
             const bottom = a.bottom && !a.top;
             const wy = bottom ? height - w.height - (w.margins ? w.margins.bottom : 0) : (w.margins ? w.margins.top : 0);
             // across the screen, on its left edge, on its right edge, or centred (the dock, an island)
             const wx = a.left && a.right ? 0 : a.left ? (w.margins ? w.margins.left : 0) : a.right ? width - w.width - (w.margins ? w.margins.right : 0) : (width - w.width) / 2;
-            return Qt.rect(wx + p.x, wy + p.y, it.width, it.height);
+            return Qt.rect(wx + px, wy + py, it.width, it.height);
         }
         readonly property bool above: button.y > height / 2
         // a taskbar on the left or the right edge (BarLayout.side): Start opens beside it, from

@@ -190,6 +190,9 @@ Singleton {
         rescue.keepLater();
     }
     function undo() {
+        // a change still waiting for its save is the last step: Undo right after a slider
+        // moved took back the step before it and the slider's change stayed
+        flush();
         const step = lastStep;
         if (!step)
             return false;

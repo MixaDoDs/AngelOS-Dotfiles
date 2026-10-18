@@ -41,6 +41,7 @@ import json
 import os
 import select
 import signal
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -78,7 +79,21 @@ MESSAGES = {
 
 def message(code, detail=""):
     ru, en = MESSAGES.get(code, MESSAGES["io"])
-    return {"code": code, "ru": ru, "en": en, "detail": detail}
+    out = {"code": code, "ru": ru, "en": en, "detail": detail}
+    if code == "deaf":
+        # is the bridge this version ("ok"), an older one ("old") or not there ("missing"): only
+        # an old bridge is worth updating for a stuck channel; with a current one, a replug
+        out["bridge"] = bridge_status()
+    return out
+
+
+def bridge_status():
+    try:
+        r = subprocess.run(["sh", str(Path(__file__).resolve().parent.parent / "extras/usb-bridge/install.sh"), "--status"],
+                           capture_output=True, text=True, timeout=5)
+        return r.stdout.strip() or "missing"
+    except (OSError, subprocess.SubprocessError):
+        return ""
 
 
 def public(desc):
@@ -217,18 +232,27 @@ def serve():
             emit({"t": "gone", "id": sid})
             drop()
 
+    # The shell stops this helper with SIGTERM (a Process set not running), not by closing its
+    # stdin: without this the process died on the spot and `finally` never ran — the keyboard
+    # was left with travel reports on, and its service channel dies when it reports into a
+    # channel nobody reads (a reboot, a suspend, the time before the bridge takes it at boot).
+    # Only a flag: the loop ends at its next turn (a write in progress is let finish).
+    stopping = []
+    signal.signal(signal.SIGTERM, lambda *_: stopping.append(1))
     try:
         rescan(True)
         stdin = sys.stdin.fileno()
         buf = b""
         next_scan = time.monotonic() + RESCAN
-        while True:
+        while not stopping:
             # asleep until the shell says something; with a device open, a look at it every frame
             # while travel is streamed and ten times a second otherwise
             wait = FRAME if streaming else 0.1 if session else RESCAN
             try:
                 ready, _, _ = select.select([stdin], [], [], wait)
             except (OSError, ValueError):
+                break
+            if stopping:
                 break
             if ready:
                 chunk = os.read(stdin, 65536)

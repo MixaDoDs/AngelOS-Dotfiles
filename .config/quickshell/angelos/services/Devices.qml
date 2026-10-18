@@ -449,7 +449,8 @@ Singleton {
         case "gone":
             return I18n.t("Устройство отключено.", "The device is not connected.");
         case "deaf":
-            return I18n.t("Клавиатура принимает команды, но ничего не отвечает: её служебный канал завис (ошибка шины −71). Вынь и вставь её кабель — страница подхватит клавиатуру сама. Канал виснет, если его долго никто не читает; мост angelOS читает его всё время, так что это бывает только когда мост не стоит или старый («Разрешить» обновит его).", "The keyboard takes commands and answers nothing: its service channel is stuck (bus error −71). Unplug and plug its cable: the page picks the keyboard up by itself. The channel sticks when nobody reads it for a while; angelOS's bridge reads it all the time, so this happens only when the bridge is missing or old (\"Allow\" updates it).");
+            // e.bridge (devices.py): "ok" = the bridge is this version, "old" / "missing"
+            return I18n.t("Клавиатура принимает команды, но ничего не отвечает: её служебный канал завис (ошибка шины −71), поэтому глубины нажатия нет. Вынь и вставь её кабель — страница подхватит клавиатуру сама. Канал виснет, если клавиатура шлёт в него, а его никто не читает.", "The keyboard takes commands and answers nothing: its service channel is stuck (bus error −71), so there is no key travel. Unplug and plug its cable: the page picks the keyboard up by itself. The channel sticks when the keyboard sends into it and nobody reads it.") + (e.bridge === "old" || e.bridge === "missing" ? I18n.t(" Мост angelOS, который читает канал всё время, старый — «Обновить мост».", " angelOS's bridge, which reads the channel all the time, is old: \"Update the bridge\".") : "");
         case "asleep":
             return I18n.t("Мышь спит: за неё отвечает один донгл. Пошевели её — настройки появятся сами.", "The mouse is asleep: its dongle alone answers. Move it and the settings show by themselves.");
         case "timeout":

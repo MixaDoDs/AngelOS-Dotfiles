@@ -184,6 +184,8 @@ class Keeper:
         self.deaf = False
         self.why = None                             # the last reason it could not be taken (journal)
         self.dropped = 0
+        self.packets = 0                            # since taken, and when the last came (journal)
+        self.last = 0.0
         self.lock = threading.Lock()
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self.run, daemon=True)
@@ -212,6 +214,7 @@ class Keeper:
                 try:
                     self.channel = self.opener(self.key, self.entry)
                     self.bad, self.deaf = 0, False
+                    self.packets, self.last = 0, 0.0
                     if self.why is not None:
                         log("%s: taken (was %s)" % (self.key, self.why))
                     else:
@@ -241,14 +244,21 @@ class Keeper:
                 self.bad += 1
                 if self.bad == 20:
                     self.deaf = True
+                    # to the journal: when the channel got stuck, and how long it was quiet before
+                    # (a replug is what brings it back)
+                    log("%s: stuck: bus errors on the IN endpoint (%s); %d packets since taken, the last %s ago"
+                        % (self.key, e, self.packets, "%.0f s" % (time.monotonic() - self.last) if self.last else "never"))
                     self.tell({"deaf": True, "errno": getattr(e, "errno", 0)})
                 self.stop.wait(0.25 if self.bad >= 20 else 0.005)
                 continue
             if self.bad >= 20:
                 self.deaf = False
+                log("%s: answers again" % self.key)
                 self.tell({"deaf": False})
             self.bad = 0
             if packet:
+                self.packets += 1
+                self.last = time.monotonic()
                 with self.lock:
                     c = self.client
                 if c is not None:

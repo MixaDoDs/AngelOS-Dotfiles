@@ -170,9 +170,12 @@ Item {
             fragmentShader: Qt.resolvedUrl("../../shaders/hell_backdrop.frag.qsb")
         }
 
+        // the transition, and at rest the still picture (p >= 1 draws just toTex) whenever
+        // LiveWall doesn't cover it: live off, hell, no mask yet, nothing alive in the picture
+        // (#98, #100). Off only under a drawn LiveWall: no second full-screen pass under it
         ShaderEffect {
             anchors.fill: parent
-            visible: root.progress < 1
+            visible: root.progress < 1 || !live.visible
             property var fromTex: fromSrc
             property var toTex: toSrc
             property real progress: root.progress

@@ -119,6 +119,7 @@ Singleton {
     AsyncFile {
         id: cache
         path: root.cacheFile
+        printErrors: false   // no cache before the first currency sum: not an error
         onLoaded: {
             try {
                 const c = JSON.parse(text());

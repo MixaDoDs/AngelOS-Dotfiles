@@ -63,7 +63,8 @@ Item {
             }
             if (k === "#" && a) {
                 PhoneLine.dropPhoto(a.path);
-                pic = Math.max(0, Math.min(pic, album.length - 2));
+                // the album is one shorter already: the next photo takes this place (the last, the one before)
+                pic = Math.max(0, Math.min(pic, album.length - 1));
                 return true;
             }
             if (k === "end") {
@@ -192,18 +193,23 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.margins: root.k * 2
-            text: Qt.formatDate(new Date(), "dd MM 'yy")
+            text: Qt.formatDate(new Date(), "dd MM ''yy")
             kind: "tiny"
             color: "#ffb21a"
             style: Text.Outline
             styleColor: "#5a3000"
         }
-        Rectangle {
-            id: flash
-            anchors.fill: parent
-            color: "#ffffff"
-            opacity: 0
-        }
+    }
+    // the flash over the finder, not in it: grabbed with the photo, it made the shots white
+    Rectangle {
+        id: flash
+        visible: root.mode === "finder"
+        x: photo.x
+        y: photo.y
+        width: photo.width
+        height: photo.height
+        color: "#ffffff"
+        opacity: 0
     }
     // what she says about it, and which backdrop
     PxText {

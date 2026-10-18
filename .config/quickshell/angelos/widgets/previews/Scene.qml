@@ -32,12 +32,13 @@ Item {
     Grid {
         id: checker
         readonly property int cell: Theme.u * 6
-        readonly property int cols: Math.ceil(root.width / cell)
+        readonly property int cols: Math.max(0, Math.ceil(root.width / cell))
         anchors.fill: parent
         columns: cols
         opacity: 0.06
         Repeater {
-            model: checker.cols * Math.ceil(root.height / checker.cell)
+            // a preview laid out before its size (a moment of negative width) asked for −33 cells
+            model: checker.cols * Math.max(0, Math.ceil(root.height / checker.cell))
             Rectangle {
                 required property int index
                 width: checker.cell

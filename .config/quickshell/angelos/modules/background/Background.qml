@@ -188,6 +188,14 @@ Variants {
                 listMenu: menu
             }
 
+            // the surface is drawn inside every workspace, and its popups with it: an open menu
+            // closes when the screen goes to another workspace (#99)
+            readonly property int activeWsId: {
+                const ws = Niri.activeWorkspace(modelData.name);
+                return ws ? ws.id : -1;
+            }
+            onActiveWsIdChanged: menu.close()
+
             RightClickGuard {}
         }
 

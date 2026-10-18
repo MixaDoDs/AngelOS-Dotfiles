@@ -45,8 +45,19 @@ Row {
             text: root.value.toFixed(root.decimals) + root.suffix
         }
         MouseArea {
+            id: spinMouse
             anchors.fill: parent
-            onWheel: w => root.set(root.value + (w.angleDelta.y > 0 ? root.stepSize : -root.stepSize))
+            hoverEnabled: true
+            // only once the pointer rests on it: scrolling the page past it doesn't turn it (#93)
+            onWheel: w => {
+                const n = spinWheel.steps(w);
+                if (n !== 0)
+                    root.set(root.value + n * root.stepSize);
+            }
+            WheelGate {
+                id: spinWheel
+                hovered: spinMouse.containsMouse
+            }
         }
     }
     PxButton {

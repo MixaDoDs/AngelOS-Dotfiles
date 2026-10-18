@@ -60,7 +60,42 @@ Singleton {
     readonly property bool playing: !!player && player.isPlaying
     readonly property string title: player ? player.trackTitle || "" : ""
     readonly property string artist: player ? player.trackArtist || "" : ""
-    readonly property string artUrl: player ? player.trackArtUrl || "" : ""
+    readonly property string trackArt: player ? player.trackArtUrl || "" : ""
+    // the cover every Image shows. A remote one (Spotify's https) is fetched once by curl into
+    // the cache and shown from there: each Image loading it itself made ~8 requests a song, and
+    // Qt's kept-alive connection, closed by the CDN while idle between songs, failed them all
+    // ("Connection closed" in the journal, no cover)
+    property string artUrl: ""
+    onTrackArtChanged: _art()
+    function _art() {
+        const u = trackArt;
+        if (!/^https?:\/\//i.test(u)) {
+            artUrl = u;
+            return;
+        }
+        artUrl = "";
+        if (artFetch.running)
+            return; // its onExited asks again
+        let h = 0;
+        for (let i = 0; i < u.length; i++)
+            h = (h * 31 + u.charCodeAt(i)) | 0;
+        artFetch.url = u;
+        artFetch.file = Config.cacheDir + "/art/" + (h >>> 0).toString(16) + "-" + u.length;
+        artFetch.running = true;
+    }
+    Process {
+        id: artFetch
+        property string url: ""
+        property string file: ""
+        // kept a day after its last use
+        command: ["sh", "-c", 'd="${1%/*}"; mkdir -p "$d"; if [ -s "$1" ]; then touch "$1"; else curl -sfL -m 15 --retry 2 -o "$1.part" "$2" && mv "$1.part" "$1"; fi; find "$d" -type f -mmin +1440 -delete 2>/dev/null; [ -s "$1" ]', "sh", file, url]
+        onExited: code => {
+            if (url !== root.trackArt)
+                root._art();
+            else if (code === 0)
+                root.artUrl = "file://" + file;
+        }
+    }
     readonly property string album: player ? player.trackAlbum || "" : ""
     readonly property real length: player && player.lengthSupported ? player.length : 0
     readonly property string trackKey: artist + "\u0001" + title

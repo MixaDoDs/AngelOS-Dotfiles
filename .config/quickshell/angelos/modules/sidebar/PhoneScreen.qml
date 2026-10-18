@@ -380,7 +380,7 @@ Item {
                     }
                     PxText {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: Qt.formatDate(root.phone.now, I18n.english ? "ddd, MMM d" : "ddd, d MMMM")
+                        text: I18n.locale.toString(root.phone.now, I18n.english ? "ddd, MMM d" : "ddd, d MMMM")
                         kind: "tiny"
                         color: root.dimInk
                     }
@@ -634,7 +634,8 @@ Item {
                     return true;
                 }
                 if (k === "ok") {
-                    if (c.who)
+                    // the voicemail takes no messages: OK calls it
+                    if (c.who && c.who !== "voicemail")
                         root.go("write", {
                             "to": c.who
                         });
@@ -744,7 +745,8 @@ Item {
                     required property var modelData
                     icon: modelData.from ? (modelData.read ? "chat" : "bell") : "arrowRight"
                     title: modelData.from ? PhoneLine.nameOfMsg(modelData) : "→ " + PhoneLine.nameOfMsg(modelData)
-                    sub: modelData.text
+                    // one line: a message with a line break (the voicemail's) would spill out of the row
+                    sub: String(modelData.text || "").replace(/\s*\n\s*/g, " ")
                     strong: !!modelData.from && !modelData.read
                     onHit: root.go("read", {
                         "msg": modelData
@@ -799,7 +801,10 @@ Item {
         id: replyApp
         Item {
             readonly property var msg: root.cur.msg || ({})
-            readonly property var choices: PhoneLine.replyOptions(msg).concat([{
+            // picked once, not bound: replyOptions draws at random and notes what it drew (a
+            // binding would loop on that and shuffle the lines under the cursor)
+            property var choices: []
+            Component.onCompleted: choices = PhoneLine.replyOptions(msg).concat([{
                     "text": I18n.t("Своими словами…", "In my own words…"),
                     "tag": "own"
                 }])
@@ -1276,7 +1281,8 @@ Item {
                 spacing: root.k * 3
                 Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    x: ballView.shake % 2 ? root.k * 2 : 0
+                    // the shake (x would be overruled by the anchor)
+                    anchors.horizontalCenterOffset: ballView.shake % 2 ? root.k * 2 : 0
                     width: root.k * 34
                     height: width
                     radius: width / 2

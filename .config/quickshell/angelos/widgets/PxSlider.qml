@@ -26,7 +26,7 @@ Item {
     signal moved(real value)
     signal released(real value)
 
-    // one step up (1) or down (-1): the wheel, a screen reader's increase / decrease
+    // steps up (1) or down (-1): the wheel, a screen reader's increase / decrease
     function nudge(dir) {
         const step = stepSize > 0 ? stepSize : (to - from) / 50;
         const v = Math.max(Math.min(from, to), Math.min(Math.max(from, to), value + dir * step));
@@ -193,6 +193,17 @@ Item {
             dragOpen = false;
             root.released(root.value);
         }
-        onWheel: w => root.nudge(w.angleDelta.y > 0 ? 1 : -1)
+        // only once the pointer rests on it or it was pressed: scrolling the page past it
+        // doesn't turn it (#93)
+        onWheel: w => {
+            const n = wheelGate.steps(w);
+            if (n !== 0)
+                root.nudge(n);
+        }
+        WheelGate {
+            id: wheelGate
+            hovered: mouse.containsMouse
+            held: mouse.pressed
+        }
     }
 }

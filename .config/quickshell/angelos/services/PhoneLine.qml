@@ -91,27 +91,33 @@ Singleton {
     // ---- the model ----
     readonly property string model: wearing("model")
     readonly property bool bar: model !== "flip"
-    onModelChanged: if (save && save.batt)
-        _battSet({})
+    // a new model drains at its own rate from now on (the battery keeps the old one's until then).
+    // Later, not now: Qt evaluates bindings lazily, and the first read of the model can come in
+    // the middle of the battery's own binding — a write then is a binding loop
+    onModelChanged: Qt.callLater(_rebase)
 
     // ---- the battery ----
     readonly property var batt: save && save.batt ? save.batt : null
     property bool hungry: false          // a game, the camera or the torch on (Phone)
-    onHungryChanged: if (batt)
-        _battSet({
-            "hungry": hungry
-        })
+    onHungryChanged: Qt.callLater(_rebase)
+    function _rebase() {
+        if (batt && (batt.hours !== hoursFull || !!batt.hungry !== hungry))
+            _battSet({
+                "hungry": hungry
+            });
+    }
     readonly property real hoursFull: ({
             "flip": 24,
             "3310": 120,
             "ngage": 16
         })[model] || 24
-    // the level at a time, from the saved point: plugged it fills in 45 minutes
+    // the level at a time, from the saved point: plugged it fills in 45 minutes; it drains at the
+    // rate saved with the point (b.hours: the model's then; older saves, the model's now)
     function _battAt(b, t) {
         if (!b)
             return 1;
         const h = Math.max(0, t - b.at) / 3600000;
-        return b.plug ? Math.min(1, b.lvl + h / 0.75) : Math.max(0, b.lvl - h / hoursFull * (b.hungry ? 4 : 1));
+        return b.plug ? Math.min(1, b.lvl + h / 0.75) : Math.max(0, b.lvl - h / (b.hours || hoursFull) * (b.hungry ? 4 : 1));
     }
     readonly property real battery: _battAt(batt, now)
     readonly property bool plugged: !!batt && !!batt.plug
@@ -126,7 +132,8 @@ Singleton {
             "off": false
         }, batt || {}, {
             "lvl": _battAt(batt, t),
-            "at": t
+            "at": t,
+            "hours": hoursFull
         }, patch || {});
         now = t;
     }
@@ -155,6 +162,7 @@ Singleton {
             save.batt = {
                 "lvl": 1,
                 "at": Date.now(),
+                "hours": hoursFull,
                 "plug": false,
                 "hungry": false,
                 "off": false
@@ -439,8 +447,9 @@ Singleton {
             root._battCheck();
         }
     }
+    // later, not in the binding that first read the save (a write there is a binding loop)
     onSaveChanged: if (save)
-        _battCheck()
+        Qt.callLater(_battCheck)
 
     // ---- messages ----
     signal texted(string from)                 // a message came (the phone beeps and shakes a moment)

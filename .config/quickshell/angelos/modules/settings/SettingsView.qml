@@ -32,6 +32,10 @@ import qs.modules.settings.dresses
 Item {
     id: win
 
+    // the pages scroll under the pointer: their sliders and spin boxes take the wheel only once
+    // the pointer rests on them (widgets/WheelGate, #93)
+    readonly property int wheelRest: 400
+
     Component.onCompleted: {
         lastLoc = loc;
         if (main)
@@ -1034,7 +1038,12 @@ Item {
                     win.openResult(win.results[Math.min(win.sel, win.results.length - 1)]);
             }
             onKeyPressed: e => {
-                if (e.key === Qt.Key_Tab || (e.key === Qt.Key_Right && searchInput.input.cursorPosition === searchInput.text.length)) {
+                // the field keeps the focus, so Ctrl+Z came here and never reached the Undo
+                // shortcut below (#93): with nothing typed it is the settings' Undo
+                if (e.matches(StandardKey.Undo) && searchInput.text === "") {
+                    Config.undo();
+                    e.accepted = true;
+                } else if (e.key === Qt.Key_Tab || (e.key === Qt.Key_Right && searchInput.input.cursorPosition === searchInput.text.length)) {
                     if (win.acceptGhost())
                         e.accepted = true;
                 } else if (e.key === Qt.Key_Down) {

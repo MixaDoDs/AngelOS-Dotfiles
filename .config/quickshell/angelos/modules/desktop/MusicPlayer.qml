@@ -84,7 +84,7 @@ Item {
             Image {
                 id: macArt
                 anchors.fill: parent
-                source: root.mac && root.p ? (root.p.trackArtUrl || "") : ""
+                source: root.mac && root.p ? Lyrics.artUrl : ""   // the cached cover (services/Lyrics): a web one is fetched once
                 sourceSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))
                 fillMode: Image.PreserveAspectCrop
                 smooth: true
@@ -243,7 +243,7 @@ Item {
                 anchors.centerIn: parent
                 width: side
                 height: side
-                source: root.p ? (root.p.trackArtUrl || "") : ""
+                source: root.p ? Lyrics.artUrl : ""
                 sourceSize: Qt.size(Theme.u * 24, Theme.u * 24)   // tiny source + no smoothing = pixel cover
                 fillMode: Image.PreserveAspectCrop
                 smooth: false

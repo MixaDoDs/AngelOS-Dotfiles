@@ -61,7 +61,13 @@ Item {
         if (visible)
             rope.running = true;
     }
+    // the window starts 0×0: laid out again once it has its size (else the plug stays above the
+    // screen, issue #95); the lead follows the phone's place, and the rope wakes when shown
     onWidthChanged: reset()
+    onHeightChanged: reset()
+    onSocketChanged: wake()
+    onVisibleChanged: if (visible)
+        wake()
     Component.onCompleted: reset()
     Connections {
         target: root.phone

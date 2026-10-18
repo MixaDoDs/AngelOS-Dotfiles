@@ -681,7 +681,8 @@ PxPage {
                     spacing: Theme.u * 3
                     PxButton {
                         readonly property bool kernel: !!Devices.error && Devices.heldByKernel(Devices.error.id)
-                        visible: !!Devices.error && (Devices.error.code === "denied" || Devices.error.code === "deaf" || kernel)
+                        // a stuck channel: only an old bridge is worth updating (else a replug)
+                        visible: !!Devices.error && (Devices.error.code === "denied" || Devices.error.code === "deaf" && Devices.error.bridge !== "ok" || kernel)
                         compact: true
                         accent: true
                         icon: "lock"
