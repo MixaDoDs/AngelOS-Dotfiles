@@ -115,6 +115,6 @@
     {"q": "диспетчер задач", "want": ["taskmanager"]},
     {"q": "рабочие столы", "want": ["workspaces"], "top": 3},
     {"q": "ночной свет", "want": ["plugin:nightlight"], "top": 3},
-    {"q": "игры", "want": ["game"], "top": 2}
+    {"q": "игры", "want": ["care/Игры", "game"], "top": 3}
   ]
 }

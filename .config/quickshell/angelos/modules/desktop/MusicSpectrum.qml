@@ -29,8 +29,9 @@ Item {
     property int rows: 14                    // the pixel bars' height, in blocks
     property real fitWidth: 0                // > 0: the bars stretch to this width
     readonly property bool passive: true     // nothing to click: no input copy needed
-    // music on pause: cava at 30 frames a second drew flat bars (16.10)
-    readonly property bool paused: Shell.stillScreen(screenName) || Power.eco || !Lyrics.playing
+    // music on pause: cava at 30 frames a second drew flat bars (16.10); the tests have no player
+    property bool music: Lyrics.playing
+    readonly property bool paused: Shell.stillScreen(screenName) || Power.eco || !music
     readonly property bool live: visible && face && !paused
     // the same spectrum on another screen shares one cava (services/SpectrumHub): only the leader runs it
     readonly property string key: source + "|" + bars

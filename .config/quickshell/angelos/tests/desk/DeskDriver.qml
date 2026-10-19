@@ -46,6 +46,7 @@ Scope {
         screenName: ""
         rows: 7
         face: true
+        music: true
         mac: false
         widget: ({
                 "uid": "desk-test",

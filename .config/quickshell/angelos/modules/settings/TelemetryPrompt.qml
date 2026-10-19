@@ -23,6 +23,7 @@ PanelWindow {
         left: true
         right: true
     }
+    // takes input: a question over the screen, a click beside the card is «later»
     exclusionMode: ExclusionMode.Ignore
     color: Qt.alpha(Theme.shadow, 0.35)
     WlrLayershell.namespace: "angelos-telemetry"

@@ -350,6 +350,7 @@ Scope {
             source: Quickshell.shellDir + "/modules/desktop/MusicSpectrum.qml"
             onLoaded: {
                 item.screenName = "selftest";
+                item.music = true;
                 item.widget = {
                     "uid": "selftest",
                     "settings": {}
@@ -2642,6 +2643,8 @@ Scope {
             if (Presets.builtin.length < 4 && Date.now() - started < 20000)
                 return;
             const began = Presets.active;
+            // as many as differ from where it starts (a default changed elsewhere moves the number)
+            const lightPlan = Presets.plan("light").length;
             const nLight = Presets.apply("light");
             const light = Presets.active === "light" && Config.appearance.motion === "off" && !Config.appearance.blur && !Config.wallpaper.live;
             Presets.apply("calm");
@@ -2737,7 +2740,7 @@ Scope {
             const auto = Autostart.mine.length === 1 && Autostart.system.length === 1 && Autostart.has("chat") && Autostart.has("chat.desktop") && !Autostart.has("nope");
             Autostart.entries = [];
             report("programs", asked && pfailed && pclear && sizes === "|2 КБ|5 МБ|3,0 ГБ" && auto, "a removal asked " + asked + ", a failure kept " + pfailed + ", cleared " + pclear + "; sizes " + sizes + "; autostart split " + auto);
-            report("presets", began === "author" && nLight === 10 && light && calm && author && differs > 0 && mine && undone && gone && Presets.ipc("list").includes('"active":"author"'), "starts as " + began + "; light " + light + " (" + nLight + " settings); calm after it " + calm + "; author " + author + "; mine " + mine + " (" + differs + " differed); undone " + undone + "; removed " + gone);
+            report("presets", began === "author" && nLight > 0 && nLight === lightPlan && light && calm && author && differs > 0 && mine && undone && gone && Presets.ipc("list").includes('"active":"author"'), "starts as " + began + "; light " + light + " (" + nLight + " settings); calm after it " + calm + "; author " + author + "; mine " + mine + " (" + differs + " differed); undone " + undone + "; removed " + gone);
             phase = "new-1012";
             return;
         }

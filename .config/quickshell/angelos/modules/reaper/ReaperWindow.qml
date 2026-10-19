@@ -16,6 +16,7 @@ import "ReaperLines.js" as Lines
 // Sort the day's quota before the time runs out, three mistakes end the shift.
 FloatingWindow {
     id: root
+    RightClickGuard {}
 
     title: Shell.appTitle + " · " + I18n.t("Смерть на смене", "Death on shift")
     visible: Reaper.open

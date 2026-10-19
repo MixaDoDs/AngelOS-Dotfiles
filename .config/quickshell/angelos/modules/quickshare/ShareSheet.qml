@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import qs.config
 import qs.services
+import qs.widgets
 
 // Quick Share (services/QuickShare) in a window of its own (ShareView): it stays beside the file
 // manager for files to be dragged into it, can be alt-tabbed to and moved to another workspace
@@ -14,6 +15,7 @@ Scope {
 
         FloatingWindow {
             id: win
+            RightClickGuard {}
             title: Shell.appTitle + " · " + I18n.t("Отправить рядом", "Quick Share")
             visible: true
             color: "transparent"

@@ -9,6 +9,8 @@
 #   UPDATE_UI=0 scripts/test-update.sh skip the Settings → Updates UI part
 #   REQUIRE_UI=1 …                     a missing quickshell is a failure, not a skip (CI)
 #   KEEP_TEST_DIR=1 …                  keep the scratch folder for a look afterwards
+#   UPDATE_JOBS=N …                    the cases in N processes at once (default 4; 1: one by one)
+#   UPDATE_SHARD=i/n …                 only every n-th case from the i-th (what each of them runs)
 set -Eeuo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -21,6 +23,30 @@ fail() { printf '[update] FAIL %s\n' "$*" >&2; failures=$((failures + 1)); }
 skip() { printf '[update] SKIP %s\n' "$*"; }
 check() { local what="$1"; shift; if "$@"; then pass "$what"; else fail "$what"; fi; }
 G=(git -c user.name=test -c user.email=test@invalid -c init.defaultBranch=main -c commit.gpgsign=false -c advice.detachedHead=false)
+
+# the cases run in UPDATE_JOBS processes at once (default 4, at most the CPUs), each with a scratch
+# home of its own: installed files hold their home's path, so one install can't be shared. Their
+# lines come shard by shard; the Settings → Updates UI runs in the first
+if [[ -z "${UPDATE_SHARD:-}" ]]; then
+  jobs_n="${UPDATE_JOBS:-4}"; cpus="$(nproc 2>/dev/null || echo 1)"; ((jobs_n <= cpus)) || jobs_n=$cpus
+  if ((jobs_n > 1)); then
+    pids=()
+    for ((i = 0; i < jobs_n; i++)); do
+      ui=0; ((i)) || ui="${UPDATE_UI:-1}"
+      UPDATE_SHARD="$i/$jobs_n" UPDATE_UI="$ui" bash "${BASH_SOURCE[0]}" >"$W/shard-$i.out" 2>&1 & pids+=($!)
+    done
+    for ((i = 0; i < jobs_n; i++)); do
+      wait "${pids[i]}" || true
+      grep -vE '^\[update\] (all checks passed|[0-9]+ check\(s\) failed)$' "$W/shard-$i.out" || true
+    done
+    failures=$(cat "$W"/shard-*.out | grep -c '^\[update\] FAIL' || true)
+    ended=$(grep -lE '^\[update\] (all checks passed|[0-9]+ check\(s\) failed)$' "$W"/shard-*.out | wc -l)
+    ((ended == jobs_n)) || fail "$((jobs_n - ended)) of $jobs_n shards of the cases did not finish"
+    if ((failures)); then printf '[update] %d check(s) failed\n' "$failures" >&2; exit 1; fi
+    printf '[update] all checks passed\n'
+    exit 0
+  fi
+fi
 
 # ── stand-ins ────────────────────────────────────────────────────────────────
 STUBS="$W/stubs"
@@ -133,8 +159,10 @@ skip = {os.path.join(home, ".local/state/angelos/backups"), os.path.join(home, "
 for base, dirs, files in os.walk(home):
     # GTK 4's pictures by content (gtk-live.py version_gtk4): a few older looks are kept on
     # purpose for apps still running in them, so a restore leaves the newer one there too
+    # Strata's icons (folder-tint.py) too: rebuilt whole from the theme by its hook, a cache
     dirs[:] = sorted(d for d in dirs if os.path.join(base, d) not in skip
-                     and not (d.startswith("v-") and base.endswith(".config/gtk-4.0/assets")))
+                     and not (d.startswith("v-") and base.endswith(".config/gtk-4.0/assets"))
+                     and not (d == "strata-icons" and base.endswith(".local/share/angelos")))
     for f in sorted(files):
         p = os.path.join(base, f)
         if f in ("update-last", "stub-calls"):
@@ -161,6 +189,30 @@ only_changed() { # FILE_A FILE_B PATH… : the two fingerprints differ in exactl
 # update leaves behind
 set +e
 
+key_edit() { # FILE PYTHON-EXPR-ON-t
+  python3 - "$1" "$2" <<'PY'
+import re, sys
+p, expr = sys.argv[1], sys.argv[2]
+t = open(p).read()
+i = t.rstrip().rfind("}")
+u = eval(expr)
+# an edit that finds nothing to change tests nothing (2026-10: the titles went Russian)
+if u == t:
+    sys.exit("key_edit: nothing changed in %s: %s" % (p, expr))
+open(p, "w").write(u)
+PY
+}
+refused() { # CASE-LABEL EXIT STAGE: the run stopped early, told why, changed nothing
+  local label="$1" want="$2" stage="$3"
+  if ((RC == want)); then pass "$label: exit $want"; else fail "$label: exit $RC (want $want)"; show "$W/$CASE.out"; fi
+  check "$label: FAILED $stage is the last line, with a reason" \
+    bash -c "tail -n 1 '$W/$CASE.out' | grep -qE '^FAILED $stage .{20,}'"
+  check "$label: no snapshot, no UPDATED" bash -c "! grep -qE '^(BACKUP|UPDATED) ' '$W/$CASE.out'"
+  fingerprint >"$W/after"
+  check "$label: no installed file changed" diff -q "$W/before" "$W/after"
+}
+
+case_success() {
 # ── 1. a successful update ───────────────────────────────────────────────────
 new_case success
 v2_edits
@@ -168,18 +220,8 @@ echo '// v2 binds' >>"$W/work/.config/niri/cfg/keybinds.kdl"
 # the pixel key profile in v2: a new key, a changed one; the user's copy has a key moved and one
 # of their own (Settings → Shortcuts) — the update has to merge, not park
 PIXEL=".config/niri/cfg/keybinds-pixel.kdl"
-key_edit() { # FILE PYTHON-EXPR-ON-t
-  python3 - "$1" "$2" <<'PY'
-import sys
-p, expr = sys.argv[1], sys.argv[2]
-t = open(p).read()
-i = t.rstrip().rfind("}")
-t = eval(expr)
-open(p, "w").write(t)
-PY
-}
 key_edit "$W/work/$PIXEL" 't[:i] + "    Mod+Shift+F9 hotkey-overlay-title=\"v2 key\" { spawn \"v2-new\"; }\n" + t[i:]'
-key_edit "$W/work/$PIXEL" 't.replace("{ focus-workspace-previous; }", "{ focus-workspace-previous; } // v2 changed").replace("hotkey-overlay-title=\"Previous workspace\"", "hotkey-overlay-title=\"Previous desk v2\"")'
+key_edit "$W/work/$PIXEL" 're.sub(r"hotkey-overlay-title=\"[^\"]*\"(\s*\{ focus-workspace-previous; \})", r"hotkey-overlay-title=\"Previous desk v2\"\1 // v2 changed", t)'
 publish v2
 V2="$(git -C "$W/work" rev-parse HEAD)"
 echo '// my own binds' >>"$H/.config/niri/cfg/keybinds.kdl"     # the user's change before the update
@@ -211,6 +253,8 @@ check "success: settings.json untouched" grep -qx '{"setup":{"complete":true},"m
 check "success: snapshot recorded as ok" test "$(meta "$BACKUP" status)" = ok
 "${ENVS[@]}" bash "$SCRIPT" --last >"$W/last" 2>&1 || true
 check "success: --last reports it" grep -q "^LAST ok done $BACKUP $V1 $V2" "$W/last"
+}
+case_install_fails() {
 
 # ── 2. the installer fails halfway; restore, with a change made after the update ──
 new_case install-fails
@@ -256,6 +300,8 @@ check "restore: repository back on v1 (the update is offered again)" head_is "$V
 check "restore: recorded as restored" test "$(meta "$BACKUP" status)" = restored
 restore "$BACKUP"
 check "restore: a second restore is refused" test "$RC" -ne 0
+}
+case_niri_invalid() {
 
 # ── 3. the new version leaves niri with a config it refuses ──────────────────
 new_case niri-invalid
@@ -274,6 +320,8 @@ fingerprint >"$W/after"
 check "invalid niri: after the restore every file is as before the update" diff -q "$W/before" "$W/after"
 diff "$W/before" "$W/after" | head -20   # which files, when they differ
 check "invalid niri: repository back on v1" head_is "$V1"
+}
+case_niri_missing() {
 
 # ── 4. niri is not installed: the update cannot be confirmed ─────────────────
 new_case niri-missing
@@ -282,6 +330,8 @@ publish v2
 update NIRI_BIN=/nonexistent/niri
 check "niri missing: exit 12, FAILED niri-missing, no UPDATED" \
   bash -c "[[ $RC == 12 ]] && grep -q '^FAILED niri-missing ' '$W/$CASE.out' && ! grep -q '^UPDATED ' '$W/$CASE.out'"
+}
+case_snapshot_fails() {
 
 # ── 5. the snapshot cannot be written: nothing may change ────────────────────
 new_case snapshot-fails
@@ -297,6 +347,8 @@ check "snapshot failure: FAILED snapshot, no UPDATED, no BACKUP" \
 fingerprint >"$W/after"
 check "snapshot failure: no installed file changed" diff -q "$W/before" "$W/after"
 check "snapshot failure: repository not moved" head_is "$V1"
+}
+case_restore_fails() {
 
 # ── 6. restores that fail keep the snapshot ──────────────────────────────────
 new_case restore-fails
@@ -324,17 +376,10 @@ check "niri broken after restore: snapshot and the pre-restore copy kept, status
 sed -i '/NIRI-INVALID/d' "$H/.config/niri/cfg/input.kdl"
 restore "$BACKUP"
 check "restore after fixing niri: exit 0, repository back on v1" bash -c "[[ $RC == 0 ]] && [[ \$(git -C '$REPO' rev-parse HEAD) == $V1 ]]"
+}
+case_local_changes() {
 
 # ── 7. stopped before the snapshot: the reason and the way on, nothing changed ─
-refused() { # CASE-LABEL EXIT STAGE: the run stopped early, told why, changed nothing
-  local label="$1" want="$2" stage="$3"
-  if ((RC == want)); then pass "$label: exit $want"; else fail "$label: exit $RC (want $want)"; show "$W/$CASE.out"; fi
-  check "$label: FAILED $stage is the last line, with a reason" \
-    bash -c "tail -n 1 '$W/$CASE.out' | grep -qE '^FAILED $stage .{20,}'"
-  check "$label: no snapshot, no UPDATED" bash -c "! grep -qE '^(BACKUP|UPDATED) ' '$W/$CASE.out'"
-  fingerprint >"$W/after"
-  check "$label: no installed file changed" diff -q "$W/before" "$W/after"
-}
 new_case local-changes
 v2_edits
 publish v2
@@ -344,6 +389,8 @@ update
 refused "own edits in the clone" 3 local-changes
 check "own edits in the clone: the edit is still there, the files are listed" \
   bash -c "grep -q 'my experiment' '$REPO/install.sh' && grep -q 'install.sh' '$W/$CASE.out'"
+}
+case_local_commits() {
 
 new_case local-commits
 "${G[@]}" -C "$REPO" commit -q --allow-empty -m "mine"
@@ -351,6 +398,8 @@ fingerprint >"$W/before"
 update
 refused "own commits, nothing new" 7 local-commits
 check "own commits, nothing new: says there is nothing to update" grep -qi 'nothing to update' "$W/$CASE.out"
+}
+case_diverged() {
 
 new_case diverged
 v2_edits
@@ -362,6 +411,8 @@ update
 refused "own commits and new ones" 7 local-commits
 check "own commits and new ones: suggests pull --rebase, the clone stays on its commit" \
   bash -c "grep -q 'pull --rebase' '$W/$CASE.out' && [[ \$(git -C '$REPO' rev-parse HEAD) == $MINE ]]"
+}
+case_untrusted() {
 
 new_case untrusted
 v2_edits
@@ -370,6 +421,8 @@ git -C "$REPO" remote set-url origin https://example.invalid/someone-else/dotfil
 fingerprint >"$W/before"
 update
 refused "a foreign origin" 4 untrusted
+}
+case_offline() {
 
 new_case offline
 v2_edits
@@ -380,6 +433,8 @@ update
 refused "no network" 6 pull
 check "no network: git's own reason is in the message" bash -c "tail -n 1 '$W/$CASE.out' | grep -qiE 'repository|does not|not found|exist'"
 mv "$W/origin.away" "$W/origin.git"
+}
+case_system_fails() {
 
 # ── 7b. the system update stops the update before angelOS changes ────────────
 new_case system-fails
@@ -391,6 +446,8 @@ update
 refused "pacman -Syu fails" 8 system
 check "pacman -Syu fails: pacman's own error in the message, the repository on v1" \
   bash -c "tail -n 1 '$W/$CASE.out' | grep -q 'conflicting files' && [[ \$(git -C '$REPO' rev-parse HEAD) == $V1 ]]"
+}
+case_password_closed() {
 
 new_case password-closed
 v2_edits
@@ -400,6 +457,8 @@ fingerprint >"$W/before"
 update
 refused "password dialog closed" 8 system
 check "password dialog closed: pacman never ran" bash -c "! grep -q '^pacman -Syu' '$H/stub-calls'"
+}
+case_pacman_busy() {
 
 new_case pacman-busy
 v2_edits
@@ -409,6 +468,8 @@ fingerprint >"$W/before"
 update PACMAN_DB="$W/pacdb"
 refused "another pacman running" 8 system
 check "another pacman running: pkexec never asked" bash -c "! grep -q '^pkexec' '$H/stub-calls' 2>/dev/null"
+}
+case_quickshell_too_old() {
 
 new_case quickshell-too-old
 v2_edits
@@ -420,6 +481,8 @@ fingerprint >"$W/before"
 update PATH="$W/qsold:$STUBS:$PATH"
 refused "Quickshell too old for the new version" 9 quickshell
 check "Quickshell too old: says which one is needed" bash -c "tail -n 1 '$W/$CASE.out' | grep -q '0.3.2'"
+}
+case_qt_moved() {
 
 new_case qt-moved
 v2_edits
@@ -429,6 +492,8 @@ printf 'qt6-base 6.12.0-1\nquickshell 0.3.2-2\n' >"$H/stub-qt-after"
 update
 check "Qt moved with the system: exit 0, SYSTEM says so (the shell is asked to restart)" \
   bash -c "[[ $RC == 0 ]] && grep -q '^SYSTEM 3 1\$' '$W/$CASE.out' && tail -n 1 '$W/$CASE.out' | grep -q '^UPDATED '"
+}
+case_no_system() {
 
 new_case no-system
 v2_edits
@@ -436,6 +501,8 @@ publish v2
 update SYSTEM_UPGRADE=0
 check "SYSTEM_UPGRADE=0: angelOS updates, pacman never runs" \
   bash -c "[[ $RC == 0 ]] && ! grep -q '^SYSTEM ' '$W/$CASE.out' && ! grep -q 'pacman -Syu' '$H/stub-calls' 2>/dev/null"
+}
+case_install_dies() {
 
 # ── 8. failures after the snapshot say why, and are undone ───────────────────
 new_case install-dies
@@ -459,6 +526,8 @@ check "installer error: --last gives the reason as MESSAGE" grep -q '^MESSAGE .*
 restore "$BACKUP"
 fingerprint >"$W/after"
 check "installer error: the restore puts every file back" bash -c "[[ $RC == 0 ]] && diff -q '$W/before' '$W/after' >/dev/null"
+}
+case_integration_fails() {
 
 new_case integration-fails
 v2_edits
@@ -473,6 +542,8 @@ restore "$BACKUP"
 fingerprint >"$W/after"
 check "niri wiring fails: the restore puts every file back, the repository on v1" \
   bash -c "[[ $RC == 0 ]] && diff -q '$W/before' '$W/after' >/dev/null && [[ \$(git -C '$REPO' rev-parse HEAD) == $V1 ]]"
+}
+case_merge_fails() {
 
 new_case merge-fails
 v2_edits
@@ -492,6 +563,8 @@ check "merge fails: exit 6, FAILED pull with git's reason, after a snapshot" \
 fingerprint >"$W/after"
 check "merge fails: nothing installed, the repository on v1" \
   bash -c "diff -q '$W/before' '$W/after' >/dev/null && [[ \$(git -C '$REPO' rev-parse HEAD) == $V1 ]]"
+}
+case_retry_same_commit() {
 
 # a failed attempt that wasn't undone left the repository on v2: the same commit again
 new_case retry-same-commit
@@ -503,6 +576,8 @@ NOW="$(git -C "$REPO" rev-parse HEAD)"
 update
 check "same commit again: UPDATED old=new, CHANGED says the shell's files changed" \
   bash -c "[[ $RC == 0 ]] && grep -q '^UPDATED $NOW $NOW 0\$' '$W/$CASE.out' && grep -qE '^CHANGED [1-9][0-9]* 1\$' '$W/$CASE.out'"
+}
+case_unsupported_distro() {
 
 # ── 9. issue #36: a system installed with DOTFILES_FORCE_DISTRO=1 updates ────
 new_case unsupported-distro
@@ -513,6 +588,12 @@ update DOTFILES_OS_RELEASE="$W/os-alarm"
 if ((RC == 0)); then pass "Arch Linux ARM (configs only): exit 0"; else fail "Arch Linux ARM: exit $RC"; show "$W/$CASE.out"; fi
 check "Arch Linux ARM: UPDATED, the new version installed, the warning in the log" \
   bash -c "tail -n 1 '$W/$CASE.out' | grep -q '^UPDATED ' && grep -q '// v2' '$H/$QML_FILE' && grep -q 'installs no packages' '$W/$CASE.out'"
+}
+
+# this process's cases: every UPDATE_SHARD=i/n-th one (all, alone)
+CASES=(success install-fails niri-invalid niri-missing snapshot-fails restore-fails local-changes local-commits diverged untrusted offline system-fails password-closed pacman-busy quickshell-too-old qt-moved no-system install-dies integration-fails merge-fails retry-same-commit unsupported-distro)
+IFS=/ read -r shard shards <<<"${UPDATE_SHARD:-0/1}"
+for ((k = shard; k < ${#CASES[@]}; k += shards)); do "case_${CASES[k]//-/_}"; done
 
 # ── 10. Settings → Updates reads the results right ────────────────────────────
 if [[ "${UPDATE_UI:-1}" == 0 ]]; then

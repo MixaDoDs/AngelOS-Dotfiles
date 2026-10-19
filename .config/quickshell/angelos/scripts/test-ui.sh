@@ -65,7 +65,8 @@ root = pathlib.Path(sys.argv[1])
 lit = re.compile(r'"(?:[^"\\\n]|\\.)*"')
 bad = []
 for p in sorted(list(root.rglob("*.qml")) + list(root.rglob("*.js")) + list(root.rglob("manifest.json"))):
-    if "tests" in p.relative_to(root).parts:
+    # the characters' lines (story, phone, angel) are speech, not titles: an .exe there is a joke
+    if "tests" in p.relative_to(root).parts or p.name.endswith(("Lore.js", "Lines.js")):
         continue
     prev = ""
     for n, line in enumerate(p.read_text(errors="ignore").splitlines(), 1):
@@ -164,29 +165,30 @@ suite() { # NAME [VAR=value…]
 # at most ANGELOS_TEST_JOBS at once (default: the CPUs), the longest first
 JOBS="${ANGELOS_TEST_JOBS:-$(nproc 2>/dev/null || echo 4)}"
 start() { while (( $(jobs -rp | wc -l) >= JOBS )); do wait -n 2>/dev/null || true; done; "$@" & }
-start suite scale
-for s in b c d a; do
+# (measured 20.10, all at once: leak 141 s, shards a b ~60, circle 57, perf 52, sddm 50, scale 44)
+start suite leak
+for s in a b d c; do
   for sh in "${SHARDS[@]}"; do [[ "${sh%%|*}" == "$s" ]] && { IFS='|' read -r n from until <<<"$sh"; start driver "$n" "$from" "$until"; }; done
 done
+start suite circle
+start suite perf
+start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1
+start suite scale
 start suite lock
+start suite halo
+start suite rescue
 start suite theme
 start suite search
 start suite tour
-start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1
-start suite perf
-start suite leak
 start suite guard
 start suite eq
 start suite desk
-start suite rescue
 start suite quickshare
 start suite timers
-start suite halo
 start suite shelf
 start suite halo_buttons
 start suite downloads
 start suite links
-start suite circle
 start suite capture
 start suite capture_regions
 start suite island
@@ -196,22 +198,24 @@ wait
 # A shard or suite that failed in the crowd runs once more on its own, the rest being done:
 # a wait that ran out on a busy machine passes then, a real fault fails twice (and counts)
 shard_failed() { grep -qE 'TEST [^ ]+ FAIL' "$T/$1.log" || ! grep -q 'TEST DONE' "$T/$1.log"; }
-retried=()
+retried=() firsts=()
 for sh in "${SHARDS[@]}"; do
   IFS='|' read -r n from until <<<"$sh"
   shard_failed "$n" || continue
   first=$(sed -n 's/.*TEST \([^ ]*\) FAIL.*/\1/p' "$T/$n.log" | tr '\n' ' ')
   retried+=("shard $n (${first:-did not finish})")
+  firsts+=("shard $n: $(sed -n 's/.*TEST \([^ ]* FAIL.*\)/\1/p' "$T/$n.log" | head -3 | cut -c1-160 | tr '\n' ';')")
   rm -rf "${T:?}/$n"
   start driver "$n" "$from" "$until"
 done
 for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare timers halo shelf halo_buttons downloads links circle capture capture_regions island keys; do
-  [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" == 0 ]] && continue
+  [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" =~ ^(0|77)$ ]] && continue
   retried+=("$s")
+  firsts+=("$s: $(grep -E '✕' "$T/suite-$s.out" | head -3 | sed 's/^ *//' | cut -c1-160 | tr '\n' ';')")
   if [[ "$s" == sddm ]]; then start suite sddm ANGELOS_SDDM_TEST_OFFSCREEN=1; else start suite "$s"; fi
 done
 wait
-((${#retried[@]} == 0)) || printf '  ⚠ failed beside the others, run once more alone: %s\n' "${retried[*]}"
+((${#retried[@]} == 0)) || { printf '  ⚠ failed beside the others, run once more alone: %s\n' "${retried[*]}"; printf '      the first time — %s\n' "${firsts[@]}"; }
 
 # results of the driver, shard by shard
 for sh in "${SHARDS[@]}"; do
@@ -235,9 +239,13 @@ else
 fi
 
 # suite NAME "what it checks": its result, the lines that are not ✓ when it failed
+# 77: it can't run here (no user namespaces, no quickshell…) — said, not a failure
 result() {
-  if [[ "$(cat "$T/suite-$1.code" 2>/dev/null)" == 0 ]]; then
+  local code; code="$(cat "$T/suite-$1.code" 2>/dev/null)"
+  if [[ "$code" == 0 ]]; then
     ok "$2"
+  elif [[ "$code" == 77 ]]; then
+    printf '  – %s: skipped here (%s)\n' "$3" "$(grep -v '✓' "$T/suite-$1.out" | tail -1)"
   else
     bad "$3 (tests/$1/run.sh):"; grep -v '✓' "$T/suite-$1.out" | head -"$4" | sed 's/^/      /'
   fi

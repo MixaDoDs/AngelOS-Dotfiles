@@ -35,8 +35,11 @@ cat >"$H/.config/angelos/settings.json" <<'JSON'
 {"setup": {"complete": true}, "stream": {"auto": false}, "y2k": {"sounds": false, "helper": false, "boot": false},
  "updates": {"autoCheck": false}, "appearance": {"language": "ru"}}
 JSON
-# the real recorder script (for its --stop)
-mkdir -p "$H/.local/bin" && ln -s "$HOME/.local/bin/niri-record-region" "$H/.local/bin/"
+# the real recorder script (for its --stop): the tree's own (the repo, or the home it sits in),
+# not whatever the machine running the test has installed (a CI runner has none)
+rec="$DIR/../../../.local/bin/niri-record-region"
+[[ -f "$rec" ]] || rec="$HOME/.local/bin/niri-record-region"
+mkdir -p "$H/.local/bin" && ln -s "$(realpath "$rec")" "$H/.local/bin/"
 cat >"$T/bin/notify-send" <<'SH'
 #!/bin/sh
 printf '%s\n' "$*" >>"$FAKE_DIR/notify"

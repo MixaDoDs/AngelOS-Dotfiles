@@ -7,6 +7,8 @@
 #   REQUIRE_UI=1 ./scripts/check.sh          a missing quickshell fails the Updates UI test (CI)
 #   CHECK_UI=1 ./scripts/check.sh            the UI self-test (scripts/test-ui.sh) runs along (CI)
 #   CHECK_JOBS=N ./scripts/check.sh          N checks at once (default: the CPUs)
+#   CHECK_ONLY=ui,settings-search ./scripts/check.sh   only these checks (names as in "── name";
+#                                            a * matches: CHECK_ONLY='installer-*')
 #
 # The checks run side by side: each block below is a job, the slowest started first, its
 # lines printed together when it ends; whatever failed is listed once more at the end.
@@ -70,6 +72,14 @@ run_job() {
 }
 job() {
   local name="$1"; shift
+  if [[ -n "${CHECK_ONLY:-}" ]]; then
+    local pat pats want=0
+    IFS=, read -ra pats <<<"$CHECK_ONLY"
+    # a pattern on purpose (installer-*):
+    # shellcheck disable=SC2053
+    for pat in "${pats[@]}"; do [[ "$name" == $pat ]] && want=1; done
+    ((want)) || return 0
+  fi
   while (( $(jobs -rp | wc -l) >= JOBS )); do wait -n 2>/dev/null || true; show_done; done
   NAMES+=("$name")
   { set +e; local t=$SECONDS first="$WORK/job-$name.first"
@@ -893,7 +903,7 @@ check_updates_old() {
 # the offscreen UI self-test, alongside the rest (CHECK_UI=1, as in CI)
 check_ui() {
   if bash "$ROOT/.config/quickshell/angelos/scripts/test-ui.sh" "$ROOT/.config/quickshell/angelos" >"$WORK/ui.log" 2>&1; then
-    grep '⚠' "$WORK/ui.log" || true
+    grep -E '⚠|the first time —' "$WORK/ui.log" || true
     pass "UI self-test: $(grep -c '✓' "$WORK/ui.log") checks (scripts/test-ui.sh)"
   else
     grep -v '✓' "$WORK/ui.log" | sed 's/^/    /'
@@ -913,7 +923,8 @@ check_hygiene() {
     pass "no API keys or tokens"
   fi
 
-  if search '/home/mixad|/home/[A-Za-z0-9_.-]+/\.config/gh/hosts\.yml|Cookies|Login Data|Bitwarden/data\.json|keyrings|voxtype/models' \
+  # a browser's Cookies / Login Data file (a path), not the word: Qt's AllowPersistentCookies is fine
+  if search '/home/mixad|/home/[A-Za-z0-9_.-]+/\.config/gh/hosts\.yml|/Cookies\b|/Login Data\b|Bitwarden/data\.json|keyrings|voxtype/models' \
        -g '!scripts/check.sh' -g '!README.md' -g '!.gitignore' -g '!install.sh' -g '!installer/steps/35-voxtype.sh' \
        -g '!graphify-out/**' -g '!.claude/**' >"$WORK/sensitive" 2>/dev/null; then   # the author's dev tools, never installed
     cat "$WORK/sensitive"
@@ -1032,12 +1043,22 @@ for name in "${NAMES[@]}"; do
   cat "$WORK/job-$name.log"; fail "$name: did not finish" | tee -a "$WORK/job-unfinished.log"
 done
 
-failed="$(cat "$WORK"/job-*.log | grep '^\[check\] FAIL' || true)"
-# what passed only the second time, once more here: worth a look, not a reason to stop
-cat "$WORK"/job-*.log | grep -E '^\[check\] WARN|⚠' || true
+failed="$(cat "$WORK"/job-*.log 2>/dev/null | grep '^\[check\] FAIL' || true)"
+# the summary: the slowest (what the run waited for), what passed only the second time (worth a
+# look, not a reason to stop), and what failed — its first lines and how to run it alone
+printf '\n[check] ── summary (%s s)\n' "$SECONDS"
+for name in "${NAMES[@]}"; do [[ -f "$WORK/job-$name.done" ]] && printf '%s %s\n' "$(cat "$WORK/job-$name.done")" "$name"; done |
+  sort -rn | head -5 | awk '{printf "[check]   slowest: %s (%s s)\n", $2, $1}'
+cat "$WORK"/job-*.log 2>/dev/null | grep -E '^\[check\] WARN|⚠' || true
 if [[ -n "$failed" ]]; then
-  printf '\n%s\n' "$failed" >&2
-  printf '[check] %d check(s) failed\n' "$(grep -c . <<<"$failed")" >&2
+  bad=()
+  for name in "${NAMES[@]}"; do
+    grep -q '^\[check\] FAIL' "$WORK/job-$name.log" 2>/dev/null || continue
+    bad+=("$name")
+    printf '[check] ✕ %s\n' "$name" >&2
+    grep -E '^\[check\] FAIL|✕|^\s*\[update\] FAIL|^In .* line [0-9]+:|SC[0-9]{4} \(' "$WORK/job-$name.log" | head -8 | sed 's/^\s*/      /' >&2
+  done
+  printf '[check] %d check(s) failed — again, only these: CHECK_ONLY=%s scripts/check.sh\n' "$(grep -c . <<<"$failed")" "$(IFS=,; echo "${bad[*]}")" >&2
   exit 1
 fi
 printf '[check] all checks passed\n'

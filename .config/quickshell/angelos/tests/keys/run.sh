@@ -67,6 +67,6 @@ done < <(sed -n 's/.*\(TEST [^ ]* \(PASS\|FAIL\).*\)/\1/p' "$log")
 grep -q 'TEST DONE' "$log" || { echo "  ✕ the test did not finish (exit $code): $(tail -3 "$log" | tr '\n' ' ' | cut -c1-400)"; qfail=1; }
 errs=$(grep -E 'Ipc\.qml|DeskMenu|Capture\.qml|KeysDriver' "$log" | grep -E 'TypeError|ReferenceError|Unable to assign|is not defined|Cannot read property|Binding loop|is not a type|Cannot assign|not a function' | sed 's/\x1b\[[0-9;]*m//g' | sort -u | head -8)
 [[ -z "$errs" ]] || { echo "  ✕ QML errors:"; printf '%s\n' "$errs" | sed 's/^/      /'; qfail=1; }
-((qfail)) || echo "  ✓ screenshot IPC and menus: $n checks (capture/captureOn/circle → the overlay, classic → the old selector, old \"circle\" menu entry)"
+((qfail)) || echo "  ✓ screenshot IPC and menus: $n checks (capture/captureOn/circle → the overlay's process, classic and no process → the old selector, old \"circle\" menu entry)"
 ((qfail)) && fail=1
 exit $fail

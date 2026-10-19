@@ -27,6 +27,12 @@ Scope {
     function grims() {
         return calls().filter(l => l.startsWith("grim "));
     }
+    // what the shell asked the overlay's process, taken (so its 3 s fallback stays quiet)
+    function asked() {
+        const p = CircleHost.pending;
+        CircleHost.pending = null;
+        return p;
+    }
     function check(name, ok, detail) {
         console.log("TEST " + name + " " + (ok ? "PASS" : "FAIL") + " " + (detail || ""));
     }
@@ -49,39 +55,39 @@ Scope {
             if (s === 2) {
                 drv.check("menu-quick", JSON.stringify(DeskMenu.quick) === '["terminal","screenshot"]', JSON.stringify(DeskMenu.quick));
                 drv.check("menu-items", JSON.stringify(DeskMenu.items) === '["screenshot","sep","more"]', JSON.stringify(DeskMenu.items));
+                // the overlay runs in its own process (services/CircleHost), not started under
+                // ANGELOS_TEST: what the shell asks of it waits in CircleHost.pending
                 drv.ipc.capture();
-            }
-            if (s === 5) {
-                const g = drv.grims();
-                drv.check("capture-grabs", g.length === 1 && g[0].indexOf(" -o ") > 0 && g[0].indexOf("-t ppm") > 0, JSON.stringify(drv.calls()));
+                const p = drv.asked();
+                drv.check("capture-asks-overlay", !!p && p.t === "toggle" && drv.grims().length === 0, JSON.stringify(p) + " " + JSON.stringify(drv.calls()));
                 drv.ipc.captureOn(drv.screen);
-            }
-            if (s === 8) {
-                const g = drv.grims();
-                drv.check("captureOn-screen", g.length === 1 && CircleSearch.screenName === "TEST-1", JSON.stringify(g) + " " + CircleSearch.screenName);
+                const q = drv.asked();
+                drv.check("captureOn-screen", !!q && q.screen === "TEST-1", JSON.stringify(q));
                 drv.ipc.circle();
-            }
-            if (s === 11) {
-                drv.check("circle-old-name", drv.grims().length === 2 && CircleSearch.screenName !== "TEST-1", JSON.stringify(drv.grims()));
+                const r = drv.asked();
+                drv.check("circle-old-name", !!r && r.t === "toggle" && r.screen !== "TEST-1", JSON.stringify(r));
                 drv.ipc.circleOn(drv.screen);
-            }
-            if (s === 14) {
-                drv.check("circleOn-old-name", drv.grims().length === 2 && CircleSearch.screenName === "TEST-1", JSON.stringify(drv.grims()) + " " + CircleSearch.screenName);
+                const u = drv.asked();
+                drv.check("circleOn-old-name", !!u && u.screen === "TEST-1", JSON.stringify(u));
                 Config.capture.classic = true;
                 drv.ipc.captureOn("");
+                drv.check("classic-asks-nothing", !CircleHost.pending, JSON.stringify(CircleHost.pending));
             }
-            if (s === 18) {
+            if (s === 6) {
                 const c = drv.calls();
-                drv.check("classic-old-selector", c.some(l => l.startsWith("old-selector")) && drv.grims().length === 2, JSON.stringify(c.filter(l => !l.startsWith("niri msg --json"))));
+                drv.check("classic-old-selector", c.filter(l => l.startsWith("old-selector")).length === 1 && drv.grims().length === 0, JSON.stringify(c.filter(l => !l.startsWith("niri msg --json"))));
                 Config.capture.classic = false;
                 Shell.setupOpen = true;
                 drv.ipc.capture();
                 drv.ipc.captureOn("TEST-2");
-            }
-            if (s === 21) {
-                const c = drv.calls();
-                drv.check("setup-locked-nothing", drv.grims().length === 2 && CircleSearch.screenName !== "TEST-2" && c.filter(l => l.startsWith("old-selector")).length === 1, JSON.stringify(c.filter(l => !l.startsWith("niri msg --json"))));
+                drv.check("setup-locked-nothing", !CircleHost.pending, JSON.stringify(CircleHost.pending));
                 Shell.setupOpen = false;
+                // no process within 3 s: the classic selector takes the shot
+                drv.ipc.capture();
+            }
+            if (s === 19) {
+                const c = drv.calls();
+                drv.check("no-process-old-selector", c.filter(l => l.startsWith("old-selector")).length === 2 && !CircleHost.pending, JSON.stringify(c.filter(l => !l.startsWith("niri msg --json"))));
                 console.log("TEST DONE");
                 Qt.quit();
             }

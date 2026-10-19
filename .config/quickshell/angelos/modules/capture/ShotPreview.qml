@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.config
 import qs.services
+import qs.widgets
 import "../../widgets/Place.js" as Place
 
 // A screenshot just saved (services/ShotEdit), as phones keep it: ShotCard in the corner of the
@@ -17,6 +18,7 @@ Scope {
 
         PanelWindow {
             id: corner
+            RightClickGuard {}
             screen: Shell.screenByName(ShotEdit.screenName) || Shell.focusedScreen
             // the place ShotEdit picked (Settings, or the first one the angel and the widgets leave free)
             anchors {
