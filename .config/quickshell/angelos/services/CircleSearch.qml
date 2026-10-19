@@ -450,7 +450,8 @@ Singleton {
         nearDone = true;
         const w = Math.min(frameW, 1400 * scale), h = Math.min(frameH, 420 * scale);
         const bx = Math.round(Math.max(0, Math.min(frameW - w, x - w / 2))), by = Math.round(Math.max(0, Math.min(frameH - h, y - h / 2)));
-        nearReader.command = ["python3", script, "ocr", frame, String(bx), String(by), String(Math.round(w)), String(Math.round(h))];
+        // under the overlay and niri, over the whole read: the pointer never waits for tesseract
+        nearReader.command = ["nice", "-n", "10", "python3", script, "ocr", frame, String(bx), String(by), String(Math.round(w)), String(Math.round(h)), "--background"];
         nearReader.running = true;
     }
     property bool nearDone: false
@@ -879,7 +880,9 @@ Singleton {
             finder.running = true;
             if (Config.circle.liveText) {
                 root.reading = true;
-                reader.command = ["python3", root.script, "ocr", root.frame];
+                // the lowest priority: up to 8 tesseracts side by side took the cores the
+                // pointer needed for the first seconds (20.10)
+                reader.command = ["nice", "-n", "19", "python3", root.script, "ocr", root.frame, "--background"];
                 reader.running = true;
             }
         }

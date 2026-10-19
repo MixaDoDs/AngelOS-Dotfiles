@@ -41,6 +41,7 @@ binds {
     Mod+CTRL+Shift+WheelScrollUp        { move-column-left; }
     Mod+V                               hotkey-overlay-title="angelOS: буфер обмена" { spawn-sh "qs -c angelos ipc call angelos clipboard"; }
     Mod+Shift+C                         repeat=false hotkey-overlay-title="angelOS: пипетка (цвет с экрана)" { spawn-sh "qs -c angelos ipc call angelos pickColor"; }
+    Mod+Alt+G                           repeat=false allow-inhibiting=false hotkey-overlay-title="angelOS: клип — последние секунды экрана на Полку" { spawn-sh "qs -c angelos ipc call angelos clip"; }
     Mod+Shift+S                         repeat=false hotkey-overlay-title="angelOS: скриншот — выделить, найти, текст, перевод" { spawn-sh "~/.config/quickshell/angelos/bin/angelos capture 2>&1 | grep -q . && exec ~/.local/bin/niri-screenshot-region"; }
     Print                               repeat=false hotkey-overlay-title="angelOS: скриншот — выделить, найти, текст, перевод" { spawn-sh "~/.config/quickshell/angelos/bin/angelos capture 2>&1 | grep -q . && exec ~/.local/bin/niri-screenshot-region"; }
     Mod+Shift+V                         repeat=false hotkey-overlay-title="Голосовой ввод вкл/выкл" { spawn "@HOME@/.local/bin/voxtype" "record" "toggle"; }

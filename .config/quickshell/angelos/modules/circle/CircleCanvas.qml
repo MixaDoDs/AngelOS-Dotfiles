@@ -199,11 +199,20 @@ Item {
         interval: 150
         onTriggered: canvas.fresh = false
     }
-    onDrawingChanged: Qt.callLater(relayout)
-    onCornerChanged: Qt.callLater(relayout)
+    onDrawingChanged: {
+        Qt.callLater(relayout);
+        takeWords();
+    }
+    onCornerChanged: {
+        Qt.callLater(relayout);
+        takeWords();
+    }
     onHeightChanged: Qt.callLater(relayout)
     onWidthChanged: Qt.callLater(relayout)
-    Component.onCompleted: Qt.callLater(relayout)
+    Component.onCompleted: {
+        Qt.callLater(relayout);
+        takeWords();
+    }
 
     // ---- the keys (CircleOverlay's shortcuts and the test call this)
     function key(name) {
@@ -470,6 +479,9 @@ Item {
         anchors.fill: parent
         source: CircleSearch.frameUrl
         cache: true
+        // the frame's size comes from grim's header: decoding it on the main thread held the
+        // overlay ~130 ms as it opened
+        asynchronous: true
         smooth: false
         fillMode: Image.Stretch
         onStatusChanged: {
@@ -673,27 +685,48 @@ Item {
         }
     }
 
-    // Live Text: every word found (faint; clearer in text mode), the picked ones filled
-    Repeater {
-        id: wordMarks
-        model: CircleSearch.words
-        Rectangle {
-            id: mark
-            required property var modelData
-            readonly property bool on: !!CircleSearch.pickedKeys[modelData.x + "," + modelData.y]
-            readonly property bool textMode: CircleSearch.mode === "text"
-            x: Math.round(modelData.x * canvas.k) - canvas.u
-            y: Math.round(modelData.y * canvas.k) - canvas.u
-            width: Math.round(modelData.w * canvas.k) + canvas.u * 2
-            height: Math.round(modelData.h * canvas.k) + canvas.u * 2
-            radius: Theme.macLook ? canvas.u : 0
-            color: on ? Qt.alpha(Theme.accent, 0.34) : Qt.alpha(Theme.accent2, textMode ? 0.12 : 0.07)
-            border.width: Math.max(1, canvas.u / 2)
-            border.color: Qt.alpha(on ? Theme.accent : Theme.accent2, on ? 0.95 : textMode ? 0.55 : 0.45)
-            opacity: 0
-            NumberAnimation on opacity {
-                to: 1
-                duration: 260
+    // Live Text: every word found (faint; clearer in text mode), the picked ones filled.
+    // The words land 1.5-7 s after opening, often mid-drag: a mark per word built then (2000 on
+    // a page of text, ~70 ms) froze the pick, so they are taken only between drags and fade in
+    // as one layer, not an animation per mark
+    property var marks: []
+    function takeWords() {
+        if (!drawing && corner < 0 && marks !== CircleSearch.words) {
+            marks = CircleSearch.words;
+            marksFade.restart();
+        }
+    }
+    Connections {
+        target: CircleSearch
+        function onWordsChanged() {
+            canvas.takeWords();
+        }
+    }
+    Item {
+        id: markLayer
+        anchors.fill: parent
+        NumberAnimation on opacity {
+            id: marksFade
+            from: 0
+            to: 1
+            duration: 260
+        }
+        Repeater {
+            id: wordMarks
+            model: canvas.marks
+            Rectangle {
+                id: mark
+                required property var modelData
+                readonly property bool on: !!CircleSearch.pickedKeys[modelData.x + "," + modelData.y]
+                readonly property bool textMode: CircleSearch.mode === "text"
+                x: Math.round(modelData.x * canvas.k) - canvas.u
+                y: Math.round(modelData.y * canvas.k) - canvas.u
+                width: Math.round(modelData.w * canvas.k) + canvas.u * 2
+                height: Math.round(modelData.h * canvas.k) + canvas.u * 2
+                radius: Theme.macLook ? canvas.u : 0
+                color: on ? Qt.alpha(Theme.accent, 0.34) : Qt.alpha(Theme.accent2, textMode ? 0.12 : 0.07)
+                border.width: Math.max(1, canvas.u / 2)
+                border.color: Qt.alpha(on ? Theme.accent : Theme.accent2, on ? 0.95 : textMode ? 0.55 : 0.45)
             }
         }
     }

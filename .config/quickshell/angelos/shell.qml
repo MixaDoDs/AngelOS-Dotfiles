@@ -3,6 +3,7 @@
 
 import QtQuick
 import Quickshell
+import qs.config
 import qs.services
 import qs.modules
 import qs.modules.background
@@ -75,7 +76,6 @@ ShellRoot {
     ShakeCursor {}
     CobwebOverlay {}
     LensOverlay {}
-    CircleOverlay {}
     ShotPreview {}
     ShareSheet {}
     QuickLookWindow {}
@@ -166,5 +166,13 @@ ShellRoot {
         Capture.sorting; // niri's screenshots into month folders (scripts/screenshot-sort.py)
         Cobweb.enabled; // cobwebs on windows nobody moved for a while (Settings → Windows → Cobwebs)
         Devices.holders; // the keyboard's lights follow the system's colour (no helper until needed)
+        CircleHost.open; // the screenshot overlay's own process (scripts/circle-proc.sh), ready before the key
+    }
+    // the shell going away (`angelos restart`/stop and the unit's ExecStop use `qs kill`, a reload):
+    // what still waits in a save's debounce is written, else the next start reads the file from
+    // before it (a singleton's own onDestruction never runs)
+    Component.onDestruction: {
+        Config.persist();
+        Story.persist();
     }
 }

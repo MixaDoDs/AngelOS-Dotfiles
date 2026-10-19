@@ -47,12 +47,12 @@ Column {
                 PxField {
                     width: Skin.px(120)
                     text: row.modelData.split("|")[0]
-                    onAccepted: root.update(row.index, text + "|" + row.modelData.split("|").slice(1).join("|"))
+                    onEditingFinished: root.update(row.index, text + "|" + row.modelData.split("|").slice(1).join("|"))
                 }
                 PxField {
                     width: Skin.px(260)
                     text: row.modelData.split("|").slice(1).join("|")
-                    onAccepted: root.update(row.index, row.modelData.split("|")[0] + "|" + text)
+                    onEditingFinished: root.update(row.index, row.modelData.split("|")[0] + "|" + text)
                 }
                 PxButton {
                     compact: true

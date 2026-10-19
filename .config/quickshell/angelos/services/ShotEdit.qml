@@ -52,14 +52,14 @@ Singleton {
                 return;
             }
             // (Ctrl+Shift+C: the overlay stays for the next piece, no picture over it)
-            if (!CircleSearch.open)
-                root.shown(p, CircleSearch.screenName || Niri.focusedOutput, false);
+            if (!CircleHost.open)
+                root.shown(p, CircleHost.screenName || Niri.focusedOutput, false);
         }
     }
     // a shot saved (or only copied: temp) on that screen: its picture in the corner
     function shown(p, screen, isTemp) {
-        // not while privacy on stream hides apps: the picture may have them in it
-        if (!wanted || Privacy.hiddenNow.length)
+        // privacy on stream too: the owner wants the picture always (19.10)
+        if (!wanted)
             return;
         // copied shots of an hour ago go (the runtime dir is memory)
         if (isTemp)

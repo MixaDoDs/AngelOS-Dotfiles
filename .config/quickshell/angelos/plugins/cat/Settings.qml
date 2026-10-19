@@ -107,7 +107,7 @@ Column {
             PxField {
                 width: Skin.px(100)
                 text: root.plugin ? root.plugin.get("color", "#e8a24c") : ""
-                onAccepted: root.plugin.set("color", text)
+                onEditingFinished: root.plugin.set("color", text)
             }
         }
     }

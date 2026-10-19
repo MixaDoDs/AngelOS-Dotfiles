@@ -90,7 +90,7 @@ PxPage {
             PxField {
                 text: Config.gaming.mouseDevice || ""
                 placeholder: I18n.t("первая мышь", "the first mouse")
-                onAccepted: Config.gaming.mouseDevice = text.trim()
+                onEditingFinished: Config.gaming.mouseDevice = text.trim()
             }
         }
     }

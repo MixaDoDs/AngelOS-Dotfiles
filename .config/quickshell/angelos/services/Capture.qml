@@ -51,7 +51,7 @@ Singleton {
         if (Config.capture.classic)
             launch(screenshotTool, "niri msg action screenshot");
         else
-            CircleSearch.start(screen || "", 0.3);
+            CircleHost.start(screen || "", 0.3);
     }
     // the overlay's picked part (rect: {x, y, w, h} in frame pixels, null: the whole frame) kept
     // as the old tool kept it (scripts/capture_save.py): the month folder, the clipboard, the
@@ -164,6 +164,54 @@ Singleton {
         repeat: true
         running: root.recording
         onTriggered: root.recCheck()
+    }
+    // instant replay (Settings → Screen recording, Mod+Alt+G → Ipc clip): gpu-screen-recorder keeps
+    // the last replaySec seconds of the main screen in memory, from the GPU straight into NVENC
+    // (on vkcube ~2 % of the frames, where wf-recorder took 90 %); SIGUSR1 saves them, it prints
+    // the file's path, and the clip goes onto the Halo's shelf like a recording
+    property bool canReplay: false
+    Process {
+        running: true
+        command: ["sh", "-c", "command -v gpu-screen-recorder"]
+        onExited: code => root.canReplay = code === 0
+    }
+    readonly property bool replayOn: Config.capture.replay && canReplay && Shell.primaryName !== ""
+    // a clip without the game's sound is no clip: "mic" adds the voice to what you hear
+    readonly property var replayAudio: ({
+            "system": ["-a", "default_output"],
+            "mic": ["-a", "default_output|default_input"],
+            "both": ["-a", "default_output|default_input"]
+        })[Config.capture.recordAudio] || []
+    readonly property var replayCommand: ["gpu-screen-recorder", "-w", Shell.primaryName, "-f", String(Config.capture.recordFps), "-r", String(Config.capture.replaySec), "-c", "mp4", "-k", "h264", "-ac", "aac", "-q", "high", "-v", "no", "-o", (Config.capture.recordDir || "~/Videos").replace(/^~/, Config.home)].concat(replayAudio)
+    onReplayOnChanged: replay.running = replayOn
+    // new settings: stop it, replayAgain starts it with them
+    onReplayCommandChanged: if (replay.running)
+        replay.signal(15)
+    Process {
+        id: replay
+        command: root.replayCommand
+        stdout: SplitParser {
+            onRead: line => {
+                if (!line.startsWith("/"))
+                    return;
+                root.saved(line);
+                if (!Config.halo.enabled)
+                    Quickshell.execDetached(["notify-send", "-a", "angelOS", I18n.t("Клип сохранён", "Clip saved"), line]);
+            }
+        }
+        onExited: if (root.replayOn)
+            replayAgain.restart()
+    }
+    Timer {
+        id: replayAgain
+        interval: 3000
+        onTriggered: replay.running = root.replayOn
+    }
+    function clip() {
+        if (replay.running)
+            replay.signal(10);
+        else
+            Quickshell.execDetached(["notify-send", "-a", "angelOS", I18n.t("Мгновенный повтор выключен", "Instant replay is off"), canReplay ? I18n.t("Настройки → Скриншоты и запись → «Мгновенный повтор»", "Settings → Screenshots and recording → “Instant replay”") : I18n.t("Нужен gpu-screen-recorder", "It needs gpu-screen-recorder")]);
     }
     function record() {
         launch(recordTool, 'notify-send -a angelOS "' + I18n.t("Запись экрана не установлена: нет niri-record-region", "Screen recording isn't installed: niri-record-region is missing") + '"');

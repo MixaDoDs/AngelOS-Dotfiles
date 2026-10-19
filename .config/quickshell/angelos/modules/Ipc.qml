@@ -500,6 +500,10 @@ IpcHandler {
     function pickColor(): void {
         ColorPicker.pick();
     }
+    // instant replay (Mod+Alt+G): the last seconds onto the Halo's shelf
+    function clip(): void {
+        Capture.clip();
+    }
     // the screenshot (Mod+Shift+S, Print): the frozen screen to pick, read, search, save —
     // the focused screen, or a named one; circle/circleOn are its old names
     function capture(): void {
@@ -513,7 +517,7 @@ IpcHandler {
         if (Config.capture.classic)
             Capture.screenshot(screen);
         else
-            CircleSearch.toggle(screen);
+            CircleHost.toggle(screen);
     }
     // niri-record-region started or stopped a recording: read its state again (services/Capture)
     function recChanged(): void {

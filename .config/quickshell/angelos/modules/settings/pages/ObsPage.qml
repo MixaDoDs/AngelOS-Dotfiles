@@ -38,6 +38,9 @@ PxPage {
                             StreamMode.reconnect();
                         }
                     }
+                    // left without Enter: the port typed is still taken
+                    onEditingFinished: if (parseInt(text) !== Config.stream.port)
+                        accepted()
                 }
                 PxButton {
                     compact: true

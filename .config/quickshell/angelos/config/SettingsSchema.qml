@@ -392,6 +392,8 @@ JsonAdapter {
         property int recordFps: 60
         property string recordAudio: "none" // none | system (what you hear) | mic | both
         property string recordCodec: "auto" // auto (NVENC on NVIDIA, else VA-API, else x264) | nvenc | vaapi | x264
+        property bool replay: false         // instant replay: the last seconds of the main screen kept in memory, Mod+Alt+G saves them (services/Capture)
+        property int replaySec: 30
     }
 
     property JsonObject plugins: JsonObject {

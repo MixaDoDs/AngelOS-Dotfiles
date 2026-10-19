@@ -713,9 +713,11 @@ def read_segments(page, segs, langs, env, zoom=0, tmp=None, target=TARGET):
         return
     # the pieces stacked into a few pages (one tesseract each, side by side): one page reads
     # the same whatever came before it, unlike a list of pages, and starts tesseract once
-    cpus = os.cpu_count() or 2
+    # in the background one reader per core it was given (8 readers bought little over 4: 1456
+    # words in 4.8 s against 5.2 s — 20.10)
+    cpus = len(os.sched_getaffinity(0)) or 2
     area = sum(p.width * p.height for p, *_ in jobs)
-    k = max(1, min(max(1, cpus // 2), 8, int(area // 150_000) + 1, len(jobs)))
+    k = max(1, min(cpus if BACKGROUND else max(1, cpus // 2), 8, int(area // 150_000) + 1, len(jobs)))
     if os.environ.get("ANGELOS_OCR_DEBUG"):
         sys.stderr.write("area %d k %d\n" % (area, k))
     # about the same amount of picture in each (the biggest pieces first, each to the
@@ -938,7 +940,37 @@ def clean_segment(seg, floor, sure=None):
     return ws
 
 
+# the read behind the overlay (`--background`: the whole frame, the piece round the pointer)
+BACKGROUND = False
+
+
+def background():
+    """Keep the read off the pointer's way: the last half of the physical cores, one thread each,
+    at the idle priority. Eight tesseracts side by side made the pointer heavy for the first
+    seconds (20.10): nice alone left them on the SMT siblings of the cores niri draws on, and the
+    sched_ext scheduler weighs nice lightly."""
+    try:
+        groups = {}
+        for c in os.sched_getaffinity(0):
+            with open("/sys/devices/system/cpu/cpu%d/topology/thread_siblings_list" % c) as f:
+                key = f.read().strip()
+            groups[key] = min(groups.get(key, c), c)
+        firsts = sorted(groups.values())
+        os.sched_setaffinity(0, firsts[len(firsts) // 2:] or firsts)
+    except (OSError, ValueError):
+        pass
+    try:
+        os.sched_setscheduler(0, os.SCHED_IDLE, os.sched_param(0))
+    except (OSError, AttributeError):
+        pass
+
+
 def ocr(args):
+    global BACKGROUND
+    if "--background" in args:
+        args = [a for a in args if a != "--background"]
+        BACKGROUND = True
+        background()
     path = args[0]
     poly = []
     zoom = 0

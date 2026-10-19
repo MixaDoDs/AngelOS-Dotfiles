@@ -142,7 +142,7 @@ PxPage {
                     id: dirField
                     width: Theme.u * 130
                     text: Config.wallpaper.dir
-                    onAccepted: Config.wallpaper.dir = text
+                    onEditingFinished: Config.wallpaper.dir = text
                 }
                 PxButton {
                     compact: true

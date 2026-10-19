@@ -172,7 +172,7 @@ PxPage {
             PxButton {
                 text: I18n.t("Попробовать", "Try it")
                 icon: "search"
-                onClicked: CircleSearch.start("")
+                onClicked: CircleHost.start("")
             }
         }
         SettingRow {
@@ -256,11 +256,11 @@ PxPage {
             label: I18n.t("Чему научился", "What it has learned")
             hint: I18n.t("как вы поправляете рамки, сколько текста берёте, какие области отпускаете, какие слова исправляете — по приложениям; если не уверен, спрашивает после снимка", "how you fix frames, how much text you take, which areas you let go of, which words you correct — per app; when unsure it asks after the shot")
             PxButton {
-                readonly property int n: CircleSearch.learnedCount
+                readonly property int n: CircleHost.learnedCount
                 text: n ? I18n.t("Забыть (" + n + ")", "Forget (" + n + ")") : I18n.t("Пока ничего", "Nothing yet")
                 enabled: n > 0
                 icon: "trash"
-                onClicked: CircleSearch.forget()
+                onClicked: CircleHost.forget()
             }
         }
     }
@@ -337,6 +337,28 @@ PxPage {
                         }))
                 currentValue: Config.capture.recordFps
                 onActivated: v => Config.capture.recordFps = v
+            }
+        }
+        // services/Capture: gpu-screen-recorder's replay buffer
+        SettingRow {
+            label: I18n.t("Мгновенный повтор", "Instant replay")
+            hint: !Capture.canReplay ? I18n.t("Нужен gpu-screen-recorder", "It needs gpu-screen-recorder") : I18n.t("Mod+Alt+G — последние секунды главного экрана на Полку. Почти не ест FPS. Окна, скрытые от эфира, в повтор попадают", "Mod+Alt+G puts the main screen's last seconds on the shelf. Costs almost no FPS. Windows hidden from the stream do get into it")
+            PxToggle {
+                enabled: Capture.canReplay
+                checked: Config.capture.replay
+                onToggled: v => Config.capture.replay = v
+            }
+        }
+        SettingRow {
+            visible: Config.capture.replay
+            label: I18n.t("Длина повтора", "Replay length")
+            PxSegmented {
+                model: [15, 30, 60, 120].map(n => ({
+                            "label": I18n.t(n + " с", n + " s"),
+                            "value": n
+                        }))
+                currentValue: Config.capture.replaySec
+                onActivated: v => Config.capture.replaySec = v
             }
         }
         // the keys pressed, on screen (services/KeyCast): for guides and streams

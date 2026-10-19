@@ -18,6 +18,9 @@ Singleton {
     readonly property string cacheDir: home + "/.cache/angelos"
 
     property bool newConfig: false
+    // a second process that only reads the settings (the screenshot overlay's, services/CircleHost):
+    // it never writes settings.json, nor repairs or backs it up — the shell does
+    readonly property bool readOnly: Quickshell.env("ANGELOS_CONFIG_READONLY") === "1"
     // settings.json is read and it parsed. One that doesn't parse (cut short by a crash or a
     // power cut: it is written in place) is put right first, see JsonRescue — read as it was
     // it meant "every default", and that was written back a moment later
@@ -169,6 +172,14 @@ Singleton {
         saveTimer.stop();
         _write();
     }
+    // the shell going away (shell.qml's teardown: `angelos restart`/stop go through `qs kill`, so
+    // do the unit's ExecStop and Quickshell.reload): a change still in the debounce — or a value
+    // changed in place, which never notifies — is written now; the next start read the file from
+    // before it. A singleton's own Component.onDestruction never runs. Unchanged text isn't rewritten
+    function persist() {
+        saveTimer.stop();
+        _write();
+    }
     // The language of a first start nobody answered for (the installer asks on a terminal
     // only; a clone by hand, a script, a package never do): the system's, not the author's.
     // Like the installer: Russian for a ru_* locale, English for everyone else — the wizard's
@@ -183,7 +194,7 @@ Singleton {
     }
     // never before the file is read: the adapter still holds the defaults then
     function _write() {
-        if (!ready)
+        if (!ready || readOnly)
             return;
         _record();
         file.writeAdapter();
@@ -265,7 +276,7 @@ Singleton {
                 if (root._parsed)
                     return;
                 if (rescue.outcome === "") {
-                    if (root._badLoads++ === 0)
+                    if (root._badLoads++ === 0 || root.readOnly)
                         againSoon.start();
                     else
                         rescue.rescue();
@@ -275,7 +286,8 @@ Singleton {
                 root._firstLanguage(null);
                 saveTimer.restart();
             } else if (!root._parsed) {
-                rescue.keepNow();
+                if (!root.readOnly)
+                    rescue.keepNow();
                 root._firstLanguage(JSON.parse(file.text()));
             }
             // a new section declared in SettingsSchema but missing from the user's
@@ -288,7 +300,10 @@ Singleton {
                 const copy = JSON.parse(JSON.stringify(d));
                 adapter[sec] = copy;
             }
-            root._snap = root.snapshot();
+            // a load while a change waits for its save (the echo of our own last write) keeps
+            // the snapshot from before it: else that change was never an Undo step
+            if (!saveTimer.running)
+                root._snap = root.snapshot();
             root._parsed = true;
         }
         onAdapterUpdated: saveTimer.restart()

@@ -12,6 +12,14 @@ Item {
     property real from: 0
     property real to: 1
     property real value: 0
+    // what the pointer (or a wheel step) set, shown until the owner's binding answers. `value`
+    // itself is never assigned: that cut the owner's binding (Config, a service), and after one
+    // drag an Undo, a reset, a clamp or another window no longer moved the slider — it showed a
+    // value that was not the one saved. A value the owner didn't take shows as it is once let go
+    property real _held: NaN
+    readonly property real shown: isNaN(_held) ? value : _held
+    onValueChanged: if (!mouse.pressed)
+        _held = NaN
     property real stepSize: 0
     property bool live: true
     property string suffix: ""
@@ -29,14 +37,15 @@ Item {
     // steps up (1) or down (-1): the wheel, a screen reader's increase / decrease
     function nudge(dir) {
         const step = stepSize > 0 ? stepSize : (to - from) / 50;
-        const v = Math.max(Math.min(from, to), Math.min(Math.max(from, to), value + dir * step));
-        value = v;
+        const v = Math.max(Math.min(from, to), Math.min(Math.max(from, to), shown + dir * step));
+        _held = v;
         moved(v);
         released(v);
+        letGo.restart();
     }
     Accessible.role: Accessible.Slider
     Accessible.name: A11y.rowLabel(root)
-    Accessible.description: (value * valueScale).toFixed(decimals) + suffix
+    Accessible.description: (shown * valueScale).toFixed(decimals) + suffix
     Accessible.focusable: true
     Accessible.onIncreaseAction: nudge(1)
     Accessible.onDecreaseAction: nudge(-1)
@@ -44,7 +53,7 @@ Item {
     implicitWidth: Theme.u * 110
     implicitHeight: Theme.u * 12
 
-    readonly property real frac: to === from ? 0 : Math.max(0, Math.min(1, (value - from) / (to - from)))
+    readonly property real frac: to === from ? 0 : Math.max(0, Math.min(1, (shown - from) / (to - from)))
     property real _drag: frac
 
     function valueAt(x) {
@@ -154,7 +163,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: Theme.u * 26
         horizontalAlignment: Text.AlignRight
-        text: (root.value * root.valueScale).toFixed(root.decimals) + root.suffix
+        text: (root.shown * root.valueScale).toFixed(root.decimals) + root.suffix
     }
 
     MouseArea {
@@ -168,7 +177,7 @@ Item {
         function apply(mx) {
             const v = root.valueAt(mx);
             if (root.live)
-                root.value = v;
+                root._held = v;
             root.moved(v);
         }
         // a drag ends with `released` however it ends: a press taken away (an overlay that
@@ -186,12 +195,14 @@ Item {
         onReleased: m => {
             dragOpen = false;
             root.released(root.valueAt(m.x));
+            letGo.restart();
         }
         onCanceled: {
             if (!dragOpen)
                 return;
             dragOpen = false;
-            root.released(root.value);
+            root.released(root.shown);
+            letGo.restart();
         }
         // only once the pointer rests on it or it was pressed: scrolling the page past it
         // doesn't turn it (#93)
@@ -205,5 +216,11 @@ Item {
             hovered: mouse.containsMouse
             held: mouse.pressed
         }
+    }
+    Timer {
+        id: letGo
+        interval: 2000
+        onTriggered: if (!mouse.pressed)
+            root._held = NaN
     }
 }

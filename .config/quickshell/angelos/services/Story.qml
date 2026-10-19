@@ -317,6 +317,13 @@ Singleton {
             saveRescue.keepLater();
         }
     }
+    // the shell going away (shell.qml's teardown): a write still waiting is done now
+    function persist() {
+        if (!writeSoon.running)
+            return;
+        writeSoon.stop();
+        writeSoon.triggered();
+    }
     JsonRescue {
         id: saveRescue
         path: root.file

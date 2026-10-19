@@ -8,23 +8,28 @@ Item {
     id: root
 
     property bool checked: false
+    // the flip just made, shown until the owner's binding answers (as PxSlider): `checked` is
+    // never assigned — that cut the binding, and a switch whose service refused or failed
+    // stayed flipped as if it were saved. Not taken within 2 s: the truth shows again
+    property var _held: undefined
+    readonly property bool shown: _held === undefined ? checked : _held
+    onCheckedChanged: _held = undefined
     property string text: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
     readonly property bool mac: settingsSkin === "goldengate"
     signal toggled(bool checked)
 
     function flip() {
-        // the owner's binding updates `checked` (see PxSegmented): assign only if it did not
-        const next = !checked;
+        const next = !shown;
+        _held = next;
+        letGo.restart();
         toggled(next);
-        if (checked !== next)
-            checked = next;
         Sounds.play("toggle");
     }
     Accessible.role: Accessible.CheckBox
     Accessible.name: A11y.name(text, root)
     Accessible.checkable: true
-    Accessible.checked: checked
+    Accessible.checked: shown
     Accessible.focusable: true
     Accessible.onPressAction: flip()
     Accessible.onToggleAction: flip()
@@ -54,7 +59,7 @@ Item {
         height: track.height
         anchors.verticalCenter: parent.verticalCenter
         radius: height / 2
-        color: root.checked ? GoldenGate.accent : GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.1)
+        color: root.shown ? GoldenGate.accent : GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.1)
         Behavior on color {
             ColorAnimation {
                 duration: Motion.ms(150)
@@ -65,7 +70,7 @@ Item {
             height: width
             radius: width / 2
             y: GoldenGate.px(2)
-            x: root.checked ? parent.width - width - GoldenGate.px(2) : GoldenGate.px(2)
+            x: root.shown ? parent.width - width - GoldenGate.px(2) : GoldenGate.px(2)
             color: "#ffffff"
             border.width: 1
             border.color: Qt.rgba(0, 0, 0, 0.08)
@@ -84,15 +89,15 @@ Item {
         height: root.mac ? GoldenGate.px(22) : Theme.u * 13
         anchors.verticalCenter: parent.verticalCenter
         sunken: true
-        color: root.checked ? Theme.mix(Theme.sunken, Theme.accent, 0.55) : Theme.sunken
+        color: root.shown ? Theme.mix(Theme.sunken, Theme.accent, 0.55) : Theme.sunken
 
         PxBox {
             id: knob
             width: parent.height
             height: width
             y: 0
-            x: root.checked ? parent.width - width : 0
-            color: root.checked ? Theme.accent : Theme.face
+            x: root.shown ? parent.width - width : 0
+            color: root.shown ? Theme.accent : Theme.face
             Behavior on x {
                 NumberAnimation {
                     duration: Motion.ms(Theme.fast)
@@ -103,8 +108,8 @@ Item {
                 anchors.centerIn: parent
                 name: "heartSmall"
                 pixel: Math.max(1, Theme.u - 1)
-                fill: root.checked ? "#ffffff" : Theme.lo
-                ink: root.checked ? Theme.edge : Theme.textDim
+                fill: root.shown ? "#ffffff" : Theme.lo
+                ink: root.shown ? Theme.edge : Theme.textDim
             }
         }
     }
@@ -115,16 +120,16 @@ Item {
         height: track.height
         anchors.verticalCenter: parent.verticalCenter
         radius: root.settingsSkin === "windose" ? height / 2 : Theme.u * 2
-        color: root.checked ? Theme.mix(Theme.face, Theme.accent, 0.36) : Theme.sunken
+        color: root.shown ? Theme.mix(Theme.face, Theme.accent, 0.36) : Theme.sunken
         border.width: Math.max(1, Theme.u / 2)
         border.color: root.settingsSkin === "windose" ? Theme.windoseLine : Theme.streamLive
         Rectangle {
             width: parent.height - Theme.u * 2
             height: width
             y: Theme.u
-            x: root.checked ? parent.width - width - Theme.u : Theme.u
+            x: root.shown ? parent.width - width - Theme.u : Theme.u
             radius: root.settingsSkin === "windose" ? width / 2 : Theme.u * 2
-            color: root.checked ? Theme.accent : Theme.faceAlt
+            color: root.shown ? Theme.accent : Theme.faceAlt
             border.width: Math.max(1, Theme.u / 2)
             border.color: root.settingsSkin === "windose" ? Theme.windoseLine : Theme.streamLive
             Behavior on x { NumberAnimation { duration: Theme.fast } }
@@ -133,7 +138,7 @@ Item {
                 anchors.centerIn: parent
                 name: "heartSmall"
                 pixel: Math.max(1, Theme.u - 1)
-                ink: root.checked ? Theme.selectText : Theme.text
+                ink: root.shown ? Theme.selectText : Theme.text
             }
         }
     }
@@ -153,5 +158,10 @@ Item {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         onClicked: root.flip()
+    }
+    Timer {
+        id: letGo
+        interval: 2000
+        onTriggered: root._held = undefined
     }
 }

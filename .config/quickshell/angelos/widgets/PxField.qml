@@ -23,6 +23,9 @@ Item {
     property bool spell: false
     signal accepted
     signal edited
+    // Enter, or the field left any other way (a click elsewhere, Tab, the window closed): a
+    // setting saved on `accepted` alone was lost unless Enter was pressed
+    signal editingFinished
     signal keyPressed(var event)
 
     implicitWidth: Theme.u * 100
@@ -117,6 +120,7 @@ Item {
             }
         }
         onTextEdited: root.edited()
+        onEditingFinished: root.editingFinished()
 
         property bool entered: false
         onActiveFocusChanged: if (activeFocus)

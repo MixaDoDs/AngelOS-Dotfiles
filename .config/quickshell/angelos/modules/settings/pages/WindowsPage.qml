@@ -1053,7 +1053,7 @@ PxPage {
                 PxField {
                     width: Theme.u * 40
                     placeholder: "px"
-                    onAccepted: if (parseInt(text) > 100)
+                    onEditingFinished: if (parseInt(text) > 100)
                         WindowConfig.save({
                             "defaultWidth": "fixed " + parseInt(text)
                         })
@@ -1128,7 +1128,7 @@ PxPage {
                     PxField {
                         width: Theme.u * 34
                         placeholder: "px"
-                        onAccepted: if (parseInt(text) > 100)
+                        onEditingFinished: if (parseInt(text) > 100)
                             WindowConfig.setAppWidth(appRow.appId, "fixed " + parseInt(text))
                     }
                 }

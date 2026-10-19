@@ -57,6 +57,20 @@ case "$AUDIO" in
   system|both) mon="$(pactl get-default-sink 2>/dev/null).monitor"; AUD=(--audio="$mon") ;;
   mic) src="$(pactl get-default-source 2>/dev/null)"; AUD=(--audio="$src") ;;
 esac
+# gpu-screen-recorder when it is there: the frame goes from the GPU straight into the encoder
+# (on vkcube −1…−5 % of the frames, wf-recorder −91 %), and it mixes both sounds into one track
+GSR=0
+if command -v gpu-screen-recorder >/dev/null 2>&1; then
+  GSR=1
+  GENC=(-k h264); [[ "$CODEC" == x264 ]] && GENC+=(-encoder cpu)
+  GAUD=()
+  case "$AUDIO" in
+    system) GAUD=(-a default_output) ;;
+    mic) GAUD=(-a default_input) ;;
+    both) GAUD=(-a "default_output|default_input") ;;
+  esac
+  CODEC_LABEL="H.264 · gpu-screen-recorder"
+fi
 mkdir -p "$OUTDIR"
 
 notify() {
@@ -101,8 +115,16 @@ end_piece() {
 
 start_piece() {
   local file="$1"
-  wf-recorder -g "$(<"$GEOM")" -f "$file" -r "$FPS" -D "${ENC[@]}" "${AUD[@]}" \
-    >>/tmp/niri-record-region.log 2>&1 &
+  if [[ $GSR == 1 ]]; then
+    # the selector's "X,Y WxH" as gpu-screen-recorder's WxH+X+Y
+    local x y w h
+    read -r x y w h < <(tr ',x' '  ' <"$GEOM")
+    gpu-screen-recorder -w "${w}x${h}+${x}+${y}" -f "$FPS" -c mp4 "${GENC[@]}" -ac aac -q high -v no "${GAUD[@]}" -o "$file" \
+      >>/tmp/niri-record-region.log 2>&1 &
+  else
+    wf-recorder -g "$(<"$GEOM")" -f "$file" -r "$FPS" -D "${ENC[@]}" "${AUD[@]}" \
+      >>/tmp/niri-record-region.log 2>&1 &
+  fi
   echo $! >"$PIDFILE"
   disown || true
   echo "$file" >>"$PARTS"
@@ -159,7 +181,7 @@ if [[ -f "$PIDFILE" ]]; then
 fi
 [[ $STOP_ONLY == 1 ]] && exit 0
 
-command -v wf-recorder >/dev/null 2>&1 || {
+[[ $GSR == 1 ]] || command -v wf-recorder >/dev/null 2>&1 || {
   notify "Нет wf-recorder" "sudo pacman -S wf-recorder"
   exit 1
 }

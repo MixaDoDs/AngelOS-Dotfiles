@@ -38,7 +38,7 @@ Column {
         PxToggle {
             checked: GameTune.instant !== "off"
             enabled: !GameTune.busy
-            onToggled: GameTune.setInstant(checked)
+            onToggled: v => GameTune.setInstant(v)
         }
     }
     SettingRow {

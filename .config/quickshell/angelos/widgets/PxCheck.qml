@@ -7,19 +7,25 @@ Item {
     id: root
 
     property bool checked: false
+    // the flip just made, shown until the owner's binding answers (as PxSlider): `checked` is
+    // never assigned — that cut the binding, and a switch whose service refused or failed
+    // stayed flipped as if it were saved. Not taken within 2 s: the truth shows again
+    property var _held: undefined
+    readonly property bool shown: _held === undefined ? checked : _held
+    onCheckedChanged: _held = undefined
     property string text: ""
     signal toggled(bool checked)
 
     function flip() {
-        const next = !checked;
+        const next = !shown;
+        _held = next;
+        letGo.restart();
         toggled(next);
-        if (checked !== next)
-            checked = next;
     }
     Accessible.role: Accessible.CheckBox
     Accessible.name: A11y.name(text, root)
     Accessible.checkable: true
-    Accessible.checked: checked
+    Accessible.checked: shown
     Accessible.focusable: true
     Accessible.onPressAction: flip()
     Accessible.onToggleAction: flip()
@@ -34,11 +40,11 @@ Item {
         visible: root.mac
         anchors.fill: box
         radius: GoldenGate.px(4)
-        color: root.checked ? GoldenGate.accent : GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.12) : "#ffffff"
-        border.width: root.checked ? 0 : 1
+        color: root.shown ? GoldenGate.accent : GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.12) : "#ffffff"
+        border.width: root.shown ? 0 : 1
         border.color: GoldenGate.separator
         MacIcon {
-            visible: root.checked
+            visible: root.shown
             anchors.centerIn: parent
             name: "check"
             size: parent.width * 0.8
@@ -56,7 +62,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         PxIcon {
             anchors.centerIn: parent
-            visible: root.checked
+            visible: root.shown
             name: "check"
             pixel: Math.max(1, Theme.u - 1)
             ink: Theme.accent
@@ -73,5 +79,10 @@ Item {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         onClicked: root.flip()
+    }
+    Timer {
+        id: letGo
+        interval: 2000
+        onTriggered: root._held = undefined
     }
 }

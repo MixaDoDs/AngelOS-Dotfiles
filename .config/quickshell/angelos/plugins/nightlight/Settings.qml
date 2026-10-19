@@ -68,12 +68,12 @@ Column {
                 PxField {
                     width: Skin.px(80)
                     text: root.plugin ? root.plugin.get("sunrise", "07:00") : ""
-                    onAccepted: root.plugin.set("sunrise", text)
+                    onEditingFinished: root.plugin.set("sunrise", text)
                 }
                 PxField {
                     width: Skin.px(80)
                     text: root.plugin ? root.plugin.get("sunset", "20:00") : ""
-                    onAccepted: root.plugin.set("sunset", text)
+                    onEditingFinished: root.plugin.set("sunset", text)
                 }
             }
         }
@@ -84,12 +84,12 @@ Column {
                 PxField {
                     width: Skin.px(80)
                     text: root.plugin ? String(root.plugin.get("lat", 55.75)) : ""
-                    onAccepted: root.plugin.set("lat", parseFloat(text))
+                    onEditingFinished: root.plugin.set("lat", parseFloat(text))
                 }
                 PxField {
                     width: Skin.px(80)
                     text: root.plugin ? String(root.plugin.get("lon", 37.62)) : ""
-                    onAccepted: root.plugin.set("lon", parseFloat(text))
+                    onEditingFinished: root.plugin.set("lon", parseFloat(text))
                 }
             }
         }
