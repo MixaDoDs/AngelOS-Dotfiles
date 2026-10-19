@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """ProtonDB's monthly export (github.com/bdefore/protondb-data, ODbL) boiled down to what the
 game tuner needs per Steam game: how many say it works, out of the box or not, which Proton
-those who say so ran, the launch options they used (harmless ones only, by video card) and
-whether anti-cheat got in the way. The export is ~70 MB packed, ~530 MB of JSON: this runs
+those who say so ran, the launch options they used (harmless ones only, by video card maker and,
+in "s", by the card's series: RTX 40, RDNA3… — what works on the same hardware) and whether
+anti-cheat got in the way. The export is ~70 MB packed, ~530 MB of JSON: this runs
 monthly in GitHub Actions (.github/workflows/protondb-digest.yml) and publishes the digest as a
 release asset (~2 MB), which scripts/game-tune.py fetches. Streamed: a few MB of memory.
 
@@ -18,6 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gametune_safe import safe  # noqa: E402
+from gametune_gpu import gpu_series  # noqa: E402
 
 TOP = 4                 # launch options kept per game and video card
 MIN_SAME = 2            # an option posted once is someone's own
@@ -92,7 +94,9 @@ def gpu_vendor(info):
 def build(src, years):
     since = time.time() - years * 365 * 86400
     apps = defaultdict(lambda: {"n": 0, "ok": 0, "oob": 0, "oobn": 0, "ac": 0,
-                                "pv": Counter(), "lo": defaultdict(Counter), "t": ""})
+                                "pv": Counter(), "lo": defaultdict(Counter), "t": "",
+                                # by the video card's series (scripts/gametune_gpu.py): who has the same card
+                                "sn": Counter(), "sok": Counter(), "spv": defaultdict(Counter), "slo": defaultdict(Counter)})
     with tarfile.open(src) as tar:
         member = next(m for m in tar if m.isfile() and m.name.endswith(".json"))
         for rec in records(tar.extractfile(member)):
@@ -107,6 +111,12 @@ def build(src, years):
             a["t"] = str(rec["app"].get("title") or a["t"])[:120]
             a["n"] += 1
             works = r.get("verdict") == "yes"
+            info = rec.get("systemInfo") or {}
+            series = gpu_series(str(info.get("gpu") or "") + " " + str(info.get("gpuDriver") or ""))
+            a["sn"][series] += 1
+            if works:
+                a["sok"][series] += 1
+                a["spv"][series][proton_family(r)] += 1
             if r.get("isImpactedByAntiCheat") == "yes":
                 a["ac"] += 1
             if r.get("verdictOob") in ("yes", "no"):
@@ -119,6 +129,7 @@ def build(src, years):
             lo = safe(str(r.get("launchOptions") or "").strip()) if r.get("launchOptions") else None
             if lo:
                 a["lo"][gpu_vendor(rec.get("systemInfo"))][lo] += 1
+                a["slo"][series][lo] += 1
     out = {}
     for appid, a in apps.items():
         d = {"t": a["t"], "n": a["n"], "ok": a["ok"]}
@@ -132,6 +143,19 @@ def build(src, years):
         lo = {v: x for v, x in lo.items() if x}
         if lo:
             d["lo"] = lo
+        ser = {}
+        for k, n in a["sn"].items():
+            if n < 2 or k == "other":
+                continue
+            e = {"n": n, "ok": a["sok"][k]}
+            if a["spv"][k]:
+                e["pv"] = dict(a["spv"][k].most_common(3))
+            los = [[x, c] for x, c in a["slo"][k].most_common(3) if c >= MIN_SAME]
+            if los:
+                e["lo"] = los
+            ser[k] = e
+        if ser:
+            d["s"] = ser
         out[appid] = d
     return out
 

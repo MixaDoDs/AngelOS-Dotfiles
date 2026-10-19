@@ -365,10 +365,14 @@ PxPage {
                     {
                         "label": I18n.t("Мощность", "Performance"),
                         "value": "performance"
+                    },
+                    {
+                        "label": I18n.t("Киберспорт", "Esports"),
+                        "value": "esports"
                     }
                 ]
-                currentValue: SystemInfo.powerProfile
-                onActivated: v => SystemInfo.setPowerProfile(v)
+                currentValue: Power.profile
+                onActivated: v => Power.setProfile(v)
             }
         }
     }

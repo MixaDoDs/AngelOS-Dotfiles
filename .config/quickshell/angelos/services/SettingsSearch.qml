@@ -133,7 +133,7 @@ Singleton {
             "lock": ["блокировка", "заставка", "пароль", "экран блокировки", "экран входа", "sddm", "загрузка", "lock", "idle", "lock screen", "screensaver", "login screen", "boot"],
             "updates": ["обновления", "версия", "релиз", "откат", "updates", "upgrade", "version", "release", "rollback"],
             "about": ["система", "о системе", "компьютер", "отчёт", "баг", "system", "about", "computer", "report", "bug"],
-            "power": ["питание", "производительность", "энергосбережение", "сон", "простой", "power", "performance", "sleep", "idle"],
+            "power": ["питание", "производительность", "киберспорт", "esports", "энергосбережение", "сон", "простой", "power", "performance", "sleep", "idle"],
             "lab": ["лаборатория", "эксперименты", "разработчик", "режим разработчика", "отладка", "отрисовка", "движок", "nvidia", "lab", "experiments", "developer", "debug", "renderer"],
             "terminal": ["терминал", "fastfetch", "фастфетч", "неофетч", "neofetch", "логотип в терминале", "консоль", "terminal", "console", "logo"],
             "stream": ["стрим", "эфир", "трансляция", "стример", "stream", "broadcast", "on air", "streamer"],

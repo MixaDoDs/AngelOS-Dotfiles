@@ -479,6 +479,7 @@ JsonAdapter {
         property int ecoAt: 30              // auto: on battery at or below this; 100 = whenever on battery
         property bool ecoWithSaver: true    // auto: also while the power profile is "power-saver"
         property bool ecoSaverProfile: true // the eco mode switches the profile to power-saver (and back when it ends)
+        property bool esports: false        // the esports power profile: a game all the time (services/Power, niri-game-mode)
         property int chargeLimit: 100       // stop charging at this % (charge_control_end_threshold; 100 = off), set again at every login
         // idle on battery (−1 = as on mains); on mains: lock.idleMinutes, screenOffMinutes, sleepMinutes
         property int batteryLockMinutes: -1

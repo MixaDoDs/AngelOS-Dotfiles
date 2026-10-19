@@ -15,6 +15,10 @@ VALUE = re.compile(r"^[A-Za-z0-9_.,:;=+%@-]{0,200}$")
 BAD_NAMES = {"LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT", "PATH", "BASH_ENV", "ENV", "SHELL", "HOME",
              "PYTHONPATH", "PYTHONSTARTUP", "PERL5OPT", "NODE_OPTIONS", "GIO_EXTRA_MODULES", "GST_PLUGIN_PATH",
              "QT_PLUGIN_PATH", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "STEAM_COMPAT_DATA_PATH", "WINEPREFIX"}
+# right on the reporter's machine only: their monitor, their card's index — left out of the line
+MACHINE = {"WAYLANDDRV_PRIMARY_MONITOR", "PROTON_WAYLAND_MONITOR", "DXVK_FILTER_DEVICE_NAME", "VKD3D_FILTER_DEVICE_NAME",
+           "MESA_VK_DEVICE_SELECT", "DRI_PRIME", "__NV_PRIME_RENDER_OFFLOAD", "__GLX_VENDOR_LIBRARY_NAME",
+           "__VK_LAYER_NV_optimus", "VK_ICD_FILENAMES", "VK_DRIVER_FILES", "CUDA_VISIBLE_DEVICES", "SDL_VIDEO_DISPLAY"}
 WRAPPERS = {"gamemoderun", "mangohud", "prime-run", "gamescope", "game-performance"}
 GAMESCOPE_ARG = re.compile(r"^(-{1,2}[A-Za-z][A-Za-z0-9-]*|[0-9]{1,5}|[a-z]{1,12})$")
 GAME_ARG = re.compile(r"^[-+]?[A-Za-z0-9_.,:=+-]{1,64}$")
@@ -39,7 +43,9 @@ def safe(line):
     while i < len(before):
         w = before[i]
         name, eq, value = w.partition("=")
-        if eq and not wrapped:
+        if eq and not wrapped and name in MACHINE:
+            pass
+        elif eq and not wrapped:
             if not NAME.match(name) or name in BAD_NAMES or name.endswith("_COMMAND") or not VALUE.match(value):
                 return None
             # Steam's launch lines quote with "…"; VALUE allows nothing that needs escaping inside
@@ -79,4 +85,5 @@ if __name__ == "__main__":
     assert safe('WINEDLLOVERRIDES="xgameruntime=n" %command%') == "WINEDLLOVERRIDES=xgameruntime=n %command%"
     assert safe('WINEDLLOVERRIDES="winmm;version=n,b" %command%') == 'WINEDLLOVERRIDES="winmm;version=n,b" %command%'
     assert safe("A=1 %command% ; rm") is None
+    assert safe("WAYLANDDRV_PRIMARY_MONITOR=DP-1 PROTON_ENABLE_WAYLAND=1 %command%") == "PROTON_ENABLE_WAYLAND=1 %command%"
     print("ok")

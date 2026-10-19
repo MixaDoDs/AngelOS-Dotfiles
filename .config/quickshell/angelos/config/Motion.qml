@@ -21,10 +21,11 @@ Singleton {
 
     readonly property var levels: ["full", "calm", "off"]
     // the laptop's eco mode (services/Power sets it): `off` for as long as it lasts, the setting
-    // itself untouched
+    // itself untouched; so is a game (niri-game-mode's state, the esports profile too)
     property bool eco: false
+    property bool gaming: false // services/Shell sets it
     readonly property string chosen: levels.includes(Config.appearance.motion) ? Config.appearance.motion : "full"
-    readonly property string level: eco ? "off" : chosen
+    readonly property string level: eco || gaming ? "off" : chosen
     readonly property bool calm: level !== "full"
     readonly property bool still: level === "off"
     // an animation's length: nothing while `off`

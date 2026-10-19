@@ -41,6 +41,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gametune_safe import safe  # noqa: E402
+from gametune_gpu import gpu_series  # noqa: E402
 
 SHELL = Path(__file__).resolve().parent.parent
 HOME = Path.home()
@@ -360,7 +361,8 @@ def hardware():
             cls = "rdna4" if re.search(r"RX 9\d{3}|Navi 4\d", name) else "rdna3" if re.search(r"RX 7\d{3}|Navi 3\d", name) else "amd"
         else:
             v, cls = "intel", "arc" if "Arc" in name else "igpu"
-    return {"vendor": v, "gpu": name, "class": cls, "ntsync": Path("/dev/ntsync").exists(),
+    series = gpu_series(" ".join(sorted(cards, key=rank)[0])) if cards else {"nvidia": "nvold", "amd": "amdold"}.get(v, "intel")
+    return {"vendor": v, "gpu": name, "class": cls, "series": series, "ntsync": Path("/dev/ntsync").exists(),
             "wayland": bool(os.environ.get("WAYLAND_DISPLAY"))}
 
 
@@ -423,7 +425,7 @@ def strip_own(line):
     return "" if words == ["%command%"] else " ".join(words)
 
 
-def suggest(appid, game, avail, d, prof, ac, native, gpu, have_gamemode):
+def suggest(appid, game, avail, d, prof, ac, native, gpu, have_gamemode, series=""):
     # ---- Proton
     proton, pwhy = "", ""
     if native:
@@ -431,7 +433,9 @@ def suggest(appid, game, avail, d, prof, ac, native, gpu, have_gamemode):
     elif prof.get("proton"):
         proton, pwhy = prof["proton"], "profile"
     else:
-        pv = (d or {}).get("pv") or {}
+        # those with the same video card first, everyone when they are too few
+        same = ((d or {}).get("s") or {}).get(series) or {}
+        pv = same.get("pv") if sum((same.get("pv") or {}).values()) >= 5 else (d or {}).get("pv") or {}
         total = sum(pv.values())
         st = (ac or {}).get("status", "")
         valve = pv.get("official", 0) + pv.get("experimental", 0)
@@ -450,16 +454,21 @@ def suggest(appid, game, avail, d, prof, ac, native, gpu, have_gamemode):
         owhy = "profile"
     else:
         base = ""
-        lo = ((d or {}).get("lo") or {}).get(gpu) or []
+        # the launch lines of those with the same series of card (two of them agree), then the
+        # same maker's (a few more must); each passes the filter again
+        same = ((((d or {}).get("s") or {}).get(series) or {}).get("lo") or [])
+        cands = [(x, c, "series:%s:%d" % (series, c)) for x, c in same if c >= 2]
         need = max(3, int(((d or {}).get("ok") or 0) * 0.02))
-        for line, count in lo:
-            s = strip_own(line)
-            if not s or count < need:
+        cands += [(x, c, "protondb:%d" % c) for x, c in (((d or {}).get("lo") or {}).get(gpu) or []) if c >= need]
+        for line, count, why in cands:
+            s = strip_own(safe(line) or "")
+            if not s:
                 continue
             if FALLBACK.search(s):
-                fallbacks.append([s, count])
+                if s not in [f[0] for f in fallbacks]:
+                    fallbacks.append([s, count])
             elif not base:
-                base, owhy = s, "protondb:%d" % count
+                base, owhy = s, why
     if have_gamemode and not native:
         parts.append("gamemoderun")
     line = base
@@ -623,7 +632,7 @@ def listing():
     for appid, g in sorted(found.items(), key=lambda kv: kv[1]["name"].lower()):
         d = apps.get(appid)
         is_native = native.get(appid, (ac.get(appid) or {}).get("native", False))
-        rec = suggest(appid, g, avail, d, profiles.get(appid, {}), ac.get(appid), is_native, gpu, have_gamemode)
+        rec = suggest(appid, g, avail, d, profiles.get(appid, {}), ac.get(appid), is_native, gpu, have_gamemode, hw["series"])
         # ours goes on top of what runs now: a mod's overrides and the user's own flags stay
         now_opts = opts_now.get(appid, "")
         now_proton = proton_now.get(appid, "")
@@ -643,7 +652,8 @@ def listing():
         rec["variants"] = [] if is_native else variants(hw, avail, now_opts)
         out.append(dict(g, now={"proton": now_proton, "options": now_opts},
                         rec=rec, rating={"tier": tier(d), "n": (d or {}).get("n", 0), "ok": (d or {}).get("ok", 0),
-                                         "oob": (d or {}).get("oob")},
+                                         "oob": (d or {}).get("oob"),
+                                         "same": {k: v for k, v in (((d or {}).get("s") or {}).get(hw["series"]) or {}).items() if k in ("n", "ok")}},
                         anticheat=ac.get(appid), native=is_native, undo=appid in undo, pending=appid in pending,
                         fresh=g["installed"] and appid not in known))
     return {"steam": True, "root": str(root), "running": steam_running(),

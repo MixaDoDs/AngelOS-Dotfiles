@@ -60,12 +60,19 @@ Singleton {
     }
 
     // ---- the power profile (power-profiles-daemon / tuned-ppd) ----
+    // "esports": a game all the time — niri-game-mode sees the flag and boosts as for a game
+    // (performance, niri up, Discord/Helium below, no effects; Motion goes "off" through
+    // Shell.gaming) and gives the profile back to whoever picks the next one
     readonly property bool profilesAvailable: SystemInfo.powerProfile !== ""
-    readonly property string profile: PowerProfiles.profile === PowerProfile.PowerSaver ? "power-saver" : PowerProfiles.profile === PowerProfile.Performance ? "performance" : "balanced"
+    readonly property bool esports: Config.ready && !!Config.power.esports
+    readonly property string profile: esports ? "esports" : PowerProfiles.profile === PowerProfile.PowerSaver ? "power-saver" : PowerProfiles.profile === PowerProfile.Performance ? "performance" : "balanced"
     function setProfile(p) {
-        PowerProfiles.profile = p === "power-saver" ? PowerProfile.PowerSaver : p === "performance" ? PowerProfile.Performance : PowerProfile.Balanced;
+        Config.power.esports = p === "esports";
+        if (p !== "esports")
+            PowerProfiles.profile = p === "power-saver" ? PowerProfile.PowerSaver : p === "performance" ? PowerProfile.Performance : PowerProfile.Balanced;
         SystemInfo.powerProfile = p;
     }
+    onEsportsChanged: writeFlags()
 
     // ---- notifications: low / very low / critical, each once per discharge ----
     // the lowest step already told this discharge (101 = none); a few seconds' grace at
@@ -209,10 +216,21 @@ Singleton {
     Component.onCompleted: applyEco()
     function applyEco() {
         Motion.eco = eco;
-        ecoFlag.running = false;
-        ecoFlag.command = ["sh", "-c", 'd="${XDG_RUNTIME_DIR:-/tmp}/angelos"; mkdir -p "$d"; if [ "$1" = 1 ]; then : > "$d/eco"; else rm -f "$d/eco"; fi; command -v niri-game-mode >/dev/null && niri-game-mode >/dev/null 2>&1; exit 0', "sh", eco ? "1" : "0"];
-        ecoFlag.running = true;
+        writeFlags();
         syncEcoProfile();
+    }
+    // the eco and esports flags for niri-game-mode; a run of it tells the watching one too.
+    // esports stays as it is until the settings are read: a restart must not end the boost
+    function writeFlags() {
+        flags.running = false;
+        flags.command = ["sh", "-c", 'd="${XDG_RUNTIME_DIR:-/tmp}/angelos"; mkdir -p "$d"; if [ "$1" = 1 ]; then : > "$d/eco"; else rm -f "$d/eco"; fi; if [ "$2" = 1 ]; then : > "$d/esports"; elif [ "$2" = 0 ]; then rm -f "$d/esports"; fi; command -v niri-game-mode >/dev/null && niri-game-mode >/dev/null 2>&1; exit 0', "sh", eco ? "1" : "0", !Config.ready ? "-" : esports ? "1" : "0"];
+        flags.running = true;
+    }
+    Connections {
+        target: Config
+        function onReadyChanged() {
+            root.writeFlags();
+        }
     }
     // the profile follows eco, also once ppd answered (the probe comes after eco at startup)
     onProfilesAvailableChanged: syncEcoProfile()
@@ -244,7 +262,7 @@ Singleton {
         }
     }
     Process {
-        id: ecoFlag
+        id: flags
     }
 
     // ---- idle on battery: lock, the screens off, sleep (on mains: lock.idleMinutes and ours) ----

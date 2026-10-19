@@ -31,10 +31,6 @@ Singleton {
         probe.running = true;
         gearProbe.running = true;
     }
-    function setPowerProfile(p) {
-        Quickshell.execDetached(["powerprofilesctl", "set", p]);
-        powerProfile = p;
-    }
 
     Process {
         id: gearProbe
