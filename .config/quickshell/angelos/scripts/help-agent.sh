@@ -6,6 +6,7 @@
 # account in the agent; angelOS ships no keys.
 #
 #   help-agent.sh [--context FILE] [TEXT…]
+#   help-agent.sh --which          which account would open (each one asked in turn), nothing opened
 #       TEXT     what happened, in the user's words (none: the agent asks)
 #       FILE     more context to put next to the logs (a game's notes, say)
 #
@@ -28,7 +29,7 @@ print(v if isinstance(v, str) else "")
 PY
 }
 
-if [[ ! -t 0 || ! -t 1 ]]; then
+if [[ "${1:-}" != --which && ( ! -t 0 || ! -t 1 ) ]]; then
   t="$(setting system terminal)"; t="${t:-kitty}"
   case "${t##*/}" in
     kitty|foot) exec "$t" bash "$0" "$@" ;;
@@ -37,6 +38,8 @@ if [[ ! -t 0 || ! -t 1 ]]; then
   esac
 fi
 
+WHICH=0
+[[ "${1:-}" == --which ]] && { WHICH=1; shift; }
 CONTEXT=""
 if [[ "${1:-}" == --context ]]; then CONTEXT="${2:-}"; shift 2 || shift; fi
 TASK="$*"
@@ -93,7 +96,8 @@ envof() {
   return 0
 }
 label() { echo "${BIN[$1]}${2:+ ($(basename "$2"))}"; }
-LIMIT='usage limit|limit reached|hit your (usage )?limit|rate.?limit(ed)?|quota|exceeded your|limit will reset|resets at'
+# what an account out of its limit answers (Claude: "You've hit your session limit · resets 5am")
+LIMIT='hit your [a-z ]*limit|(session|usage|weekly|daily|monthly) limit|limit reached|limit.*resets?|rate.?limit(ed)?|quota|exceeded your'
 # one tiny question: an account out of its limit (or logged out) says so at once
 probe() {
   local out
@@ -105,9 +109,19 @@ probe() {
   esac
   local code=$?
   grep -qiE "$LIMIT" <<<"$out" && return 2
-  ((code == 0)) || { [[ -z "$2" ]] && return 0; return 3; }  # the default account may just need a login
-  return 0
+  # an answer is an account that works; anything else (logged out, offline) — the next one
+  ((code == 0)) && return 0
+  return 3
 }
+
+if ((WHICH)); then
+  for c in "${CHAIN[@]}"; do
+    IFS='|' read -r agent dir <<<"$c"
+    probe "$agent" "$dir" && { label "$agent" "$dir"; exit 0; }
+    echo "$(label "$agent" "$dir"): $(_ 'out of its limit or logged out' 'лимит кончился или не вошёл')" >&2
+  done
+  exit 1
+fi
 
 BASE="${XDG_STATE_HOME:-$HOME/.local/state}/angelos/help"
 DIR="$BASE/$(date +%Y%m%d-%H%M%S)"

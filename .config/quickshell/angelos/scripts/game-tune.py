@@ -12,7 +12,9 @@ usage: game-tune.py list                 JSON: Steam, its Proton builds, every i
                                          them on exit, so they wait (exit 3) until it is closed
        game-tune.py pending              apply what waits, if Steam is closed now
        game-tune.py undo APPID           put back what the last apply replaced
-       game-tune.py bench start APPID P1,P2[,…]   compare Protons on this machine (MangoHud logs)
+       game-tune.py instant on|off       every Windows game through the switch: Proton and additions
+                                         per game from files, no Steam restart after this one
+       game-tune.py bench start APPID P1,P2+VAR[,…]   compare Protons and variants here (MangoHud)
        game-tune.py bench next           read the last run's log, switch to the next Proton
        game-tune.py bench finish [KEEP]  end: keep that Proton (or put back what it had)
        game-tune.py seen APPID           its note was shown (list marks new games "fresh")
@@ -31,6 +33,7 @@ import os
 import re
 import shlex
 import shutil
+import subprocess
 import sys
 import time
 import urllib.request
@@ -202,7 +205,13 @@ def tools(root):
 def tool_entry(name, display, path, kind):
     m = dig(vdf_load(path / "toolmanifest.vdf"), "manifest")
     switchable = m.get("commandline", "").split() == ["/proton", "%verb%"] and m.get("require_tool_appid") == RUNTIME
-    return {"name": name, "display": display, "kind": kind, "dir": str(path), "switchable": switchable}
+    # what this build understands: the variables its own proton script reads
+    try:
+        known = set(re.findall(r"PROTON_[A-Z0-9_]+", (path / "proton").read_text(errors="replace")))
+    except OSError:
+        known = set()
+    return {"name": name, "display": display, "kind": kind, "dir": str(path), "switchable": switchable,
+            "vars": sorted(known & {v[0] for v in VARIANTS})}
 
 
 def kind_of(name):
@@ -302,6 +311,78 @@ def refresh(root):
 
 def which(name):
     return any(Path(p, name).exists() for p in os.environ.get("PATH", "/usr/bin").split(":"))
+
+
+# What may lift a game on this kind of machine, offered even when ProtonDB says "runs as it is":
+# (variable, value, the video cards it is for (None: any), ru, en). Shown only if an installed
+# Proton reads it (its proton script names it); MANGOHUD is MangoHud's, not Proton's
+VARIANTS = [
+    ("PROTON_DLSS_UPGRADE", "1", {"rtx"}, "свежий DLSS вместо старого из игры: чётче и обычно быстрее (в играх с DLSS)",
+     "the newest DLSS instead of the game's old one: sharper and usually faster (games with DLSS)"),
+    ("PROTON_FSR4_UPGRADE", "1", {"rdna4"}, "FSR 4 вместо FSR 3.1 из игры: чётче при том же FPS",
+     "FSR 4 instead of the game's FSR 3.1: sharper at the same FPS"),
+    ("PROTON_FSR4_RDNA3_UPGRADE", "1", {"rdna3"}, "FSR 4 на RDNA3 (эксперимент): чётче, но чуть тяжелее",
+     "FSR 4 on RDNA3 (experimental): sharper, a bit heavier"),
+    ("PROTON_XESS_UPGRADE", "1", {"arc", "igpu"}, "свежий XeSS вместо старого из игры",
+     "the newest XeSS instead of the game's old one"),
+    ("PROTON_USE_OPTISCALER", "1", {"gtx", "amd", "rdna3", "rdna4", "arc", "igpu"},
+     "OptiScaler: игры, где есть только DLSS, получают FSR/XeSS и генерацию кадров (эксперимент)",
+     "OptiScaler: games with DLSS only get FSR/XeSS and frame generation (experimental)"),
+    ("PROTON_ENABLE_WAYLAND", "1", None, "игра рисуется прямо в Wayland, без XWayland: меньше задержка ввода, ровнее кадры; редкие игры капризничают",
+     "the game draws straight to Wayland, no XWayland: less input lag, steadier frames; a few games misbehave"),
+    ("MANGOHUD", "1", None, "показывать FPS и нагрузку в углу (MangoHud): видно, помогло ли",
+     "show the FPS and the load in a corner (MangoHud): see what helped"),
+]
+
+
+def hardware():
+    """this machine, for whoever runs it: the video card that games use (discrete before built-in),
+    its class (rtx | gtx | rdna4 | rdna3 | amd | arc | igpu), ntsync in the kernel, a Wayland session"""
+    cards = []
+    try:
+        out = subprocess.run(["lspci", "-mm"], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        out = ""
+    for line in out.splitlines():
+        f = re.findall(r'"([^"]*)"', line)
+        if len(f) >= 3 and re.search(r"VGA|3D|Display", f[0]):
+            m = re.search(r"\[([^\]]+)\]", f[2])
+            cards.append((f[1], m.group(1) if m else f[2]))
+    rank = lambda c: 0 if "NVIDIA" in c[0] else 1 if re.search(r"AMD|ATI", c[0]) else 2  # noqa: E731
+    v = vendor()
+    name, cls = "", {"nvidia": "gtx", "amd": "amd"}.get(v, "igpu")
+    if cards:
+        make, name = sorted(cards, key=rank)[0]
+        if "NVIDIA" in make:
+            v, cls = "nvidia", "rtx" if "RTX" in name else "gtx"
+        elif re.search(r"AMD|ATI", make):
+            v = "amd"
+            cls = "rdna4" if re.search(r"RX 9\d{3}|Navi 4\d", name) else "rdna3" if re.search(r"RX 7\d{3}|Navi 3\d", name) else "amd"
+        else:
+            v, cls = "intel", "arc" if "Arc" in name else "igpu"
+    return {"vendor": v, "gpu": name, "class": cls, "ntsync": Path("/dev/ntsync").exists(),
+            "wayland": bool(os.environ.get("WAYLAND_DISPLAY"))}
+
+
+def variants(hw, avail, line):
+    """what may lift a game here: for this video card, read by some installed Proton; on = already in"""
+    out = []
+    have = set(re.findall(r"\b([A-Z][A-Z0-9_]*)=", line or ""))
+    for var, val, cards, ru, en in VARIANTS:
+        if cards is not None and hw["class"] not in cards:
+            continue
+        if var == "PROTON_ENABLE_WAYLAND" and not hw["wayland"]:
+            continue
+        if var == "MANGOHUD":
+            if not which("mangohud"):
+                continue
+            tools_ok = [t["name"] for t in avail.values()]
+        else:
+            tools_ok = [t["name"] for t in avail.values() if var in t.get("vars", [])]
+            if not tools_ok:
+                continue
+        out.append({"var": var, "value": val, "ru": ru, "en": en, "on": var in have, "tools": tools_ok})
+    return out
 
 
 def vendor():
@@ -520,8 +601,15 @@ def listing():
     profiles = load_json(PROFILES, {}).get("games", {})
     ac = anticheat()
     native = load_json(CACHE / "native.json", {})
-    gpu = vendor()
-    have_gamemode = which("gamemoderun")
+    hw = hardware()
+    gpu = hw["vendor"]
+    instant = instant_state(root)
+    # through the switch a wrapper can't be added without Steam: niri-game-mode boosts anyway
+    have_gamemode = which("gamemoderun") and instant == "off"
+    if instant != "off":
+        default_dir = (SWITCH_DIR / "default").read_text().strip() if (SWITCH_DIR / "default").exists() else ""
+        by_dir = {t["dir"]: n for n, t in avail.items()}
+        eff_default = by_dir.get(default_dir, "")
     undo = load_json(STATE / "undo.json", {})
     pending = load_json(STATE / "pending.json", {})
     found = games(root)
@@ -538,6 +626,12 @@ def listing():
         rec = suggest(appid, g, avail, d, profiles.get(appid, {}), ac.get(appid), is_native, gpu, have_gamemode)
         # ours goes on top of what runs now: a mod's overrides and the user's own flags stay
         now_opts = opts_now.get(appid, "")
+        now_proton = proton_now.get(appid, "")
+        if instant != "off":
+            now_opts = merge(now_opts, run_line(appid))
+            sw = SWITCH_DIR / appid
+            now_proton = by_dir.get(sw.read_text().strip(), "") if sw.exists() else (
+                now_proton if now_proton and now_proton != SWITCH else "")
         found_mods = mods(g, now_opts)
         rec["options"] = merge(now_opts, rec["options"])
         for m in found_mods:
@@ -546,12 +640,14 @@ def listing():
             else:
                 m["enable"] = with_need(rec["options"], m["dll"], m["flag"])
         rec["mods"] = found_mods
-        out.append(dict(g, now={"proton": proton_now.get(appid, ""), "options": opts_now.get(appid, "")},
+        rec["variants"] = [] if is_native else variants(hw, avail, now_opts)
+        out.append(dict(g, now={"proton": now_proton, "options": now_opts},
                         rec=rec, rating={"tier": tier(d), "n": (d or {}).get("n", 0), "ok": (d or {}).get("ok", 0),
                                          "oob": (d or {}).get("oob")},
                         anticheat=ac.get(appid), native=is_native, undo=appid in undo, pending=appid in pending,
                         fresh=g["installed"] and appid not in known))
-    return {"steam": True, "root": str(root), "running": steam_running(), "default": proton_now.get("0", ""),
+    return {"steam": True, "root": str(root), "running": steam_running(),
+            "default": eff_default if instant != "off" else proton_now.get("0", ""), "instant": instant, "hardware": hw,
             "tools": sorted(avail.values(), key=lambda t: t["display"].lower()), "gpu": gpu,
             "digest": {"built": digest.get("built", ""), "source": digest.get("source", "")}, "games": out,
             "bench": load_json(STATE / "bench.json", None), "benchHistory": load_json(STATE / "bench-history.json", {}),
@@ -598,6 +694,191 @@ def set_values(root, appid, proton=None, options=None):
     return before
 
 
+def write_mappings(root, changes):
+    """Steam's Proton per game ({appid: name, "" = none}); while Steam runs they wait for it to close"""
+    STATE.mkdir(parents=True, exist_ok=True)
+    if steam_running():
+        pending = load_json(STATE / "pending.json", {})
+        for appid, name in changes.items():
+            pending.setdefault(appid, {})["proton"] = name
+        (STATE / "pending.json").write_text(json.dumps(pending))
+        return {"ok": True, "pending": True}, 3
+    for appid, name in changes.items():
+        set_values(root, appid, name, None)
+    return {"ok": True, "applied": True}, 0
+
+
+# ---------------------------------------------------------------- without a Steam restart (instant)
+# Steam keeps one tool for every Windows game: the switch (angelos-proton, Steam's default "0").
+# Each game's Proton and what angelOS adds to its start (variables, the game's own flags) are files
+# the switch reads at every start — STATE/switch/<appid> (or default), STATE/run/<appid>.env|.args —
+# so "Apply" counts from the game's next start, Steam left alone. The user's own launch options in
+# Steam stay and still apply; ours go on top. Turning it on (once) sets Steam's default: that one
+# write waits for Steam to close, like any other.
+RUN = STATE / "run"
+INSTANT = STATE / "instant.json"
+SWITCH_DIR = STATE / "switch"
+
+
+def instant_state(root):
+    mapping, _ = current(root)
+    if mapping.get("0") == SWITCH and INSTANT.exists():
+        return "on"
+    if (load_json(STATE / "pending.json", {}).get("0") or {}).get("proton") == SWITCH:
+        return "waiting"
+    return "off"
+
+
+def instant_on():
+    root = steam_root()
+    if not root:
+        return {"ok": False, "error": "no Steam"}, 1
+    avail = tools(root)
+    install_switch(root)
+    mapping, _ = current(root)
+    prev = {k: v for k, v in mapping.items() if v and v != SWITCH}
+    SWITCH_DIR.mkdir(parents=True, exist_ok=True)
+    default = prev.get("0", "")
+    if not (default in avail and avail[default]["switchable"]):
+        default = (next((t for t in DEFAULT_TOOLS if t in avail), "")
+                   or next((n for n, t in avail.items() if t["switchable"] and t["kind"] == "experimental"), "")
+                   or next((n for n, t in avail.items() if t["switchable"]), ""))
+    if not default:
+        return {"ok": False, "error": "no Proton the switch can run (Steam Linux Runtime 4)"}, 1
+    (SWITCH_DIR / "default").write_text(avail[default]["dir"])
+    moved = {}
+    for appid, name in prev.items():
+        if appid != "0" and name in avail and avail[name]["switchable"]:
+            if not (SWITCH_DIR / appid).exists():
+                (SWITCH_DIR / appid).write_text(avail[name]["dir"])
+            moved[appid] = name
+    INSTANT.write_text(json.dumps({"default": prev.get("0", ""), "games": moved}))
+    return write_mappings(root, dict({"0": SWITCH}, **{a: "" for a in moved}))
+
+
+def instant_off():
+    """back to Steam's own settings: what each game got through the switch moves into Steam
+    (its Proton, our additions merged into its launch options), the default goes back"""
+    root = steam_root()
+    st = load_json(INSTANT, None)
+    if not root or not st:
+        return {"ok": True}, 0
+    avail = tools(root)
+    by_dir = {t["dir"]: n for n, t in avail.items()}
+    _, opts = current(root)
+    changes = {"0": {"proton": st.get("default", "")}}
+    for appid, name in st.get("games", {}).items():
+        changes[appid] = {"proton": name}
+    for f in SWITCH_DIR.glob("*"):
+        if f.name.isdigit() and by_dir.get(f.read_text().strip()):
+            changes.setdefault(f.name, {})["proton"] = by_dir[f.read_text().strip()]
+    for f in RUN.glob("*.env"):
+        appid = f.stem
+        line = run_line(appid)
+        if line:
+            changes.setdefault(appid, {})["options"] = merge(opts.get(appid, ""), line)
+    for f in RUN.glob("*.args"):
+        appid = f.stem
+        if appid not in changes or "options" not in changes[appid]:
+            changes.setdefault(appid, {})["options"] = merge(opts.get(appid, ""), run_line(appid))
+    INSTANT.unlink()
+    if steam_running():
+        pending = load_json(STATE / "pending.json", {})
+        for appid, c in changes.items():
+            pending.setdefault(appid, {}).update(c)
+        (STATE / "pending.json").write_text(json.dumps(pending))
+        return {"ok": True, "pending": True}, 3
+    for appid, c in changes.items():
+        set_values(root, appid, c.get("proton"), c.get("options"))
+    return {"ok": True, "applied": True}, 0
+
+
+def split_line(line):
+    """a launch line → (variables, wrappers, the game's flags); None when it won't parse"""
+    try:
+        words = shlex.split(line or "")
+    except ValueError:
+        return None
+    if "%command%" not in words:
+        words = ["%command%"] + words
+    i = words.index("%command%")
+    env, wraps = {}, []
+    for w in words[:i]:
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w):
+            k, v = w.split("=", 1)
+            env[k] = v
+        else:
+            wraps.append(w)
+    return env, wraps, words[i + 1:]
+
+
+def run_line(appid):
+    """what the switch adds to this game's start, as a launch line ("" = nothing)"""
+    env = [x for x in (RUN / (appid + ".env")).read_text().splitlines() if x] if (RUN / (appid + ".env")).exists() else []
+    args = [x for x in (RUN / (appid + ".args")).read_text().splitlines() if x] if (RUN / (appid + ".args")).exists() else []
+    if not env and not args:
+        return ""
+    pre = [k + "=" + (v if re.match(r"^[A-Za-z0-9_.,:=+%@/-]+$", v) else '"%s"' % v) for k, v in (e.split("=", 1) for e in env)]
+    return " ".join(pre + ["%command%"] + args)
+
+
+def write_run(appid, env, args):
+    RUN.mkdir(parents=True, exist_ok=True)
+    for name, lines in ((appid + ".env", ["%s=%s" % kv for kv in env.items()]), (appid + ".args", args)):
+        if lines:
+            (RUN / name).write_text("\n".join(lines) + "\n")
+        else:
+            (RUN / name).unlink(missing_ok=True)
+
+
+def snapshot_instant(appid):
+    sw, e, a = SWITCH_DIR / appid, RUN / (appid + ".env"), RUN / (appid + ".args")
+    return {"switch": sw.read_text() if sw.exists() else None, "env": e.read_text() if e.exists() else None,
+            "args": a.read_text() if a.exists() else None}
+
+
+def restore_instant(appid, snap):
+    for path, text in ((SWITCH_DIR / appid, snap.get("switch")), (RUN / (appid + ".env"), snap.get("env")),
+                       (RUN / (appid + ".args"), snap.get("args"))):
+        if text is None:
+            path.unlink(missing_ok=True)
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+
+
+def apply_instant(root, appid, proton, options, avail):
+    """the game's Proton and additions through the switch's files; what only Steam can do (another
+    runtime's Proton, dropping a part of the user's own Steam line, a wrapper) is left to Steam:
+    returns (proton, options) still for Steam, None each when done here"""
+    left_proton, left_options = None, None
+    if proton is not None:
+        if not proton:
+            (SWITCH_DIR / appid).unlink(missing_ok=True)
+        elif proton in avail and avail[proton]["switchable"]:
+            SWITCH_DIR.mkdir(parents=True, exist_ok=True)
+            (SWITCH_DIR / appid).write_text(avail[proton]["dir"])
+        else:
+            left_proton = proton
+    if options is not None:
+        steam = current(root)[1].get(appid, "")
+        new, old = split_line(options), split_line(steam)
+        if new is None or old is None:
+            return left_proton, options
+        nenv, nwraps, nargs = new
+        oenv, owraps, oargs = old
+        dropped = ([k for k in oenv if k not in nenv] + [w for w in owraps if w not in nwraps]
+                   + [x for x in oargs if x not in nargs])
+        extra_wraps = [w for w in nwraps if w not in owraps and w not in ("mangohud", "gamemoderun", "game-performance")]
+        if dropped or extra_wraps:
+            return left_proton, options
+        env = {k: v for k, v in nenv.items() if oenv.get(k) != v}
+        if "mangohud" in nwraps and "mangohud" not in owraps:
+            env["MANGOHUD"] = "1"
+        write_run(appid, env, [x for x in nargs if x not in oargs])
+    return left_proton, left_options
+
+
 def apply(appid, proton, options, trusted=False):  # noqa: ARG001 — kept for the bench
     root = steam_root()
     if not root:
@@ -607,14 +888,33 @@ def apply(appid, proton, options, trusted=False):  # noqa: ARG001 — kept for t
     if options and ("\n" in options or len(options) > 2000):
         return {"ok": False, "error": "launch options: one line, please"}, 1
     STATE.mkdir(parents=True, exist_ok=True)
+    undo = load_json(STATE / "undo.json", {})
+    # the default of every game, through the switch: its own file (and what "off" gives back to Steam)
+    if appid == "0" and proton and instant_state(root) != "off":
+        avail = tools(root)
+        if proton in avail and avail[proton]["switchable"]:
+            SWITCH_DIR.mkdir(parents=True, exist_ok=True)
+            (SWITCH_DIR / "default").write_text(avail[proton]["dir"])
+            st = load_json(INSTANT, {})
+            st["default"] = proton
+            INSTANT.write_text(json.dumps(st))
+            return {"ok": True, "applied": True, "instant": True}, 0
+    if appid != "0" and instant_state(root) != "off":
+        snap = snapshot_instant(appid)
+        proton, options = apply_instant(root, appid, proton, options, tools(root))
+        undo.setdefault(appid, {}).setdefault("instant", snap)
+        (STATE / "undo.json").write_text(json.dumps(undo))
+        if proton is None and options is None:
+            return {"ok": True, "applied": True, "instant": True}, 0
     if steam_running():
         pending = load_json(STATE / "pending.json", {})
         pending[appid] = {"proton": proton, "options": options}
         (STATE / "pending.json").write_text(json.dumps(pending))
         return {"ok": True, "pending": True}, 3
     before = set_values(root, appid, proton, options)
-    undo = load_json(STATE / "undo.json", {})
-    undo.setdefault(appid, before)
+    entry = undo.setdefault(appid, {})
+    for k, v in before.items():
+        entry.setdefault(k, v)
     (STATE / "undo.json").write_text(json.dumps(undo))
     return {"ok": True, "applied": True}, 0
 
@@ -627,7 +927,10 @@ def apply_pending():
     undo = load_json(STATE / "undo.json", {})
     for appid, p in list(pending.items()):
         before = set_values(root, appid, p.get("proton"), p.get("options"))
-        undo.setdefault(appid, before)
+        if appid != "0":
+            entry = undo.setdefault(appid, {})
+            for k, v in before.items():
+                entry.setdefault(k, v)
         pending.pop(appid)
     (STATE / "undo.json").write_text(json.dumps(undo))
     (STATE / "pending.json").write_text(json.dumps(pending))
@@ -639,10 +942,15 @@ def undo_app(appid):
     undo = load_json(STATE / "undo.json", {})
     if appid not in undo:
         return {"ok": False, "error": "nothing to undo"}, 1
-    if steam_running():
+    b = undo[appid]
+    steam_part = {k: v for k, v in b.items() if k in ("proton", "options")}
+    if steam_part and steam_running():
         return {"ok": False, "error": "steam running"}, 3
-    b = undo.pop(appid)
-    set_values(root, appid, b.get("proton"), b.get("options"))
+    if "instant" in b:
+        restore_instant(appid, b["instant"])
+    if steam_part:
+        set_values(root, appid, steam_part.get("proton"), steam_part.get("options"))
+    undo.pop(appid)
     (STATE / "undo.json").write_text(json.dumps(undo))
     return {"ok": True}, 0
 
@@ -777,12 +1085,22 @@ def context(appid):
 # $HOME and /usr/share/steam (checked with SteamLinuxRuntime_4/run), so the switch finds them all.
 BENCH_SECONDS = 60
 SWITCH_SCRIPT = """#!/bin/sh
-# angelOS game tuner (scripts/game-tune.py bench): runs the Proton chosen for this game's run
+# angelOS game tuner (scripts/game-tune.py): Steam starts this for the game; it runs the Proton
+# chosen for it (STATE/switch/<appid>, else …/default) with what angelOS adds to its start
+# (STATE/run/<appid>.env: VAR=value a line; …/<appid>.args: the game's flags, a line each)
 id="${SteamAppId:-${STEAM_COMPAT_APP_ID:-0}}"
-f="${XDG_STATE_HOME:-$HOME/.local/state}/angelos/game-tune/switch/$id"
-dir="$(cat "$f" 2>/dev/null)"
-[ -n "$dir" ] && [ -x "$dir/proton" ] || dir="$(cat "${f%/*}/default" 2>/dev/null)"
+st="${XDG_STATE_HOME:-$HOME/.local/state}/angelos/game-tune"
+dir="$(cat "$st/switch/$id" 2>/dev/null)"
+[ -n "$dir" ] && [ -x "$dir/proton" ] || dir="$(cat "$st/switch/default" 2>/dev/null)"
 [ -n "$dir" ] && [ -x "$dir/proton" ] || { echo "angelos-proton: no Proton chosen for $id" >&2; exit 1; }
+if [ -r "$st/run/$id.env" ]; then
+  while IFS= read -r kv; do
+    case "$kv" in [A-Za-z_]*=*) export "$kv" ;; esac
+  done < "$st/run/$id.env"
+fi
+if [ "$1" = waitforexitandrun ] && [ -r "$st/run/$id.args" ]; then
+  while IFS= read -r a; do [ -n "$a" ] && set -- "$@" "$a"; done < "$st/run/$id.args"
+fi
 exec "$dir/proton" "$@"
 """
 
@@ -794,7 +1112,7 @@ def install_switch(root):
     new = not (d / "compatibilitytool.vdf").exists()
     d.mkdir(parents=True, exist_ok=True)
     (d / "compatibilitytool.vdf").write_text(vdf_dumps({"compatibilitytools": {"compat_tools": {SWITCH: {
-        "install_path": ".", "display_name": "angelOS: Proton comparison", "from_oslist": "windows", "to_oslist": "linux"}}}}))
+        "install_path": ".", "display_name": "angelOS: Proton per game", "from_oslist": "windows", "to_oslist": "linux"}}}}))
     (d / "toolmanifest.vdf").write_text(vdf_dumps({"manifest": {
         "version": "2", "commandline": "/angelos-proton %verb%", "require_tool_appid": RUNTIME,
         "use_sessions": "1", "compatmanager_layer_name": "proton"}}))
@@ -849,33 +1167,51 @@ def bench_dir(appid):
     return STATE / "bench" / appid
 
 
-def bench_options(appid, base):
-    folder = bench_dir(appid)
-    cfg = "no_display,log_duration=%d,log_interval=0,output_folder=%s" % (BENCH_SECONDS, folder)
-    words = [w for w in (base or "").split() if w != "mangohud"]
-    if "%command%" not in words:
-        words = ["%command%"] + words
-    at = words.index("%command%")
-    return " ".join(['MANGOHUD_CONFIG="%s"' % cfg] + words[:at] + ["mangohud"] + words[at:])
+def bench_runs(specs, avail):
+    """"TOOL" or "TOOL+VAR" (a variant of VARIANTS on that Proton) → the runs to compare"""
+    vals = {v[0]: v[1] for v in VARIANTS}
+    runs = []
+    for spec in specs:
+        tool, _, var = spec.partition("+")
+        if tool in avail and avail[tool]["switchable"] and (not var or var in vals):
+            runs.append({"label": spec, "tool": tool, "env": {var: vals[var]} if var else {}})
+    return runs
 
 
-def bench_start(appid, names):
+def bench_step(st):
+    """the switch's files for run i: its Proton, the game's own additions, its variant, MangoHud"""
+    run = st["runs"][st["i"]]
+    appid = st["appid"]
+    SWITCH_DIR.mkdir(parents=True, exist_ok=True)
+    (SWITCH_DIR / appid).write_text(st["dirs"][run["tool"]])
+    base = dict(kv.split("=", 1) for kv in (st["saved"].get("env") or "").splitlines() if "=" in kv)
+    base.update(run["env"])
+    base.update({"MANGOHUD": "1", "MANGOHUD_CONFIG": "no_display,log_duration=%d,log_interval=0,output_folder=%s"
+                 % (BENCH_SECONDS, bench_dir(appid))})
+    args = [x for x in (st["saved"].get("args") or "").splitlines() if x]
+    write_run(appid, base, args)
+
+
+def bench_start(appid, specs):
     root = steam_root()
     avail = tools(root)
-    pick = [n for n in names if n in avail and avail[n]["switchable"]]
-    if len(pick) < 2:
-        return {"ok": False, "error": "pick two Protons or more that run in Steam Linux Runtime 4"}, 1
-    proton_now, opts_now = current(root)
+    runs = bench_runs(specs, avail)
+    if len(runs) < 2:
+        return {"ok": False, "error": "pick two runs or more (Protons that run in Steam Linux Runtime 4)"}, 1
     new_tool = install_switch(root)
     bench_dir(appid).mkdir(parents=True, exist_ok=True)
-    (STATE / "switch").mkdir(parents=True, exist_ok=True)
-    (STATE / "switch" / appid).write_text(avail[pick[0]]["dir"])
-    state = {"appid": appid, "tools": pick, "dirs": {n: avail[n]["dir"] for n in pick}, "i": 0,
-             "since": time.time(), "results": {},
-             "before": {"proton": proton_now.get(appid, ""), "options": opts_now.get(appid, "")}}
-    (STATE / "bench.json").write_text(json.dumps(state))
-    r, code = apply(appid, SWITCH, bench_options(appid, opts_now.get(appid, "")), trusted=True)
-    r.update({"restartSteam": new_tool and steam_running(), "tool": pick[0]})
+    mapping, _ = current(root)
+    st = {"appid": appid, "runs": runs, "tools": [r["label"] for r in runs],
+          "dirs": {r["tool"]: avail[r["tool"]]["dir"] for r in runs}, "i": 0, "since": time.time(), "results": {},
+          "saved": snapshot_instant(appid), "mapped": "", "instant": instant_state(root) != "off"}
+    r, code = {"ok": True}, 0
+    if not st["instant"]:
+        # without the switch as Steam's default, this game alone goes through it for the comparison
+        st["mapped"] = mapping.get(appid, "") or "-"
+        r, code = write_mappings(root, {appid: SWITCH})
+    (STATE / "bench.json").write_text(json.dumps(st))
+    bench_step(st)
+    r.update({"restartSteam": new_tool and steam_running(), "tool": runs[0]["label"]})
     return r, code
 
 
@@ -887,31 +1223,48 @@ def bench_next():
     if not logs:
         return {"ok": True, "waiting": True}, 0
     s = stats(frames(max(logs, key=lambda p: p.stat().st_mtime)))
-    name = st["tools"][st["i"]]
-    st["results"][name] = s or {"error": "too short"}
+    label = st["runs"][st["i"]]["label"]
+    st["results"][label] = s or {"error": "too short"}
     st["i"] += 1
     st["since"] = time.time()
-    if st["i"] < len(st["tools"]):
-        (STATE / "switch" / st["appid"]).write_text(st["dirs"][st["tools"][st["i"]]])
+    if st["i"] < len(st["runs"]):
+        bench_step(st)
     else:
         st["done"] = True
+        restore_instant(st["appid"], st["saved"])
     (STATE / "bench.json").write_text(json.dumps(st))
-    return {"ok": True, "recorded": name, "done": bool(st.get("done"))}, 0
+    return {"ok": True, "recorded": label, "done": bool(st.get("done"))}, 0
 
 
 def bench_finish(keep):
-    """the comparison ends: the game gets the Proton kept (or what it had) and its old options"""
+    """the comparison ends: the game gets the run kept (its Proton and variant) or what it had"""
     st = load_json(STATE / "bench.json", None)
     if not st:
         return {"ok": True}, 0
     appid = st["appid"]
-    proton = keep if keep in st["tools"] else st["before"]["proton"]
-    r, code = apply(appid, proton, st["before"]["options"], trusted=True)
+    root = steam_root()
+    restore_instant(appid, st["saved"])
+    run = next((r for r in st["runs"] if r["label"] == keep), None)
+    r, code = {"ok": True}, 0
+    if st.get("mapped"):
+        before = "" if st["mapped"] == "-" else st["mapped"]
+        r, code = write_mappings(root, {appid: run["tool"] if run else before})
+    elif run:
+        SWITCH_DIR.mkdir(parents=True, exist_ok=True)
+        (SWITCH_DIR / appid).write_text(st["dirs"][run["tool"]])
+    if run and run["env"]:
+        line = merge(current(root)[1].get(appid, "") if not st.get("instant") else "", run_line(appid))
+        for k, v in run["env"].items():
+            line = merge(line, "%s=%s %%command%%" % (k, v))
+        if st.get("instant"):
+            env, _, args = split_line(line)
+            write_run(appid, env, args)
+        else:
+            r, code = apply(appid, None, line)
     hist = load_json(STATE / "bench-history.json", {})
-    hist.setdefault(appid, []).append({"at": int(time.time()), "results": st["results"], "kept": proton})
+    hist.setdefault(appid, []).append({"at": int(time.time()), "results": st["results"], "kept": keep or ""})
     (STATE / "bench-history.json").write_text(json.dumps(hist))
     (STATE / "bench.json").unlink(missing_ok=True)
-    (STATE / "switch" / appid).unlink(missing_ok=True)
     return r, code
 
 
@@ -938,6 +1291,10 @@ def main():
         else:
             print(__doc__, file=sys.stderr)
             return 2
+        print(json.dumps(r))
+        return code
+    if cmd == "instant" and len(a) > 1 and a[1] in ("on", "off"):
+        r, code = instant_on() if a[1] == "on" else instant_off()
         print(json.dumps(r))
         return code
     if cmd == "seen" and len(a) > 1:

@@ -22,6 +22,25 @@ Column {
         dim: true
         text: GameTune.data ? I18n.t("Steam не найден — поставь его, и здесь появятся игры с подобранными настройками.", "Steam isn't here — install it and the games show up with their settings picked.") : I18n.t("Смотрю игры…", "Looking at the games…")
     }
+    PxText {
+        width: parent.width
+        visible: GameTune.hasSteam && !!GameTune.data.hardware
+        wrapMode: Text.Wrap
+        kind: "tiny"
+        dim: true
+        text: GameTune.data && GameTune.data.hardware ? I18n.t("Железо: ", "This machine: ") + (GameTune.data.hardware.gpu || GameTune.data.hardware.vendor) + (GameTune.data.hardware.ntsync ? " · ntsync" : "") + I18n.t(" — советы и варианты подбираются под него.", " — the suggestions and variants are picked for it.") : ""
+    }
+    SettingRow {
+        width: parent.width
+        visible: GameTune.hasSteam
+        label: I18n.t("Без перезапуска Steam", "No Steam restart")
+        hint: GameTune.instant === "on" ? I18n.t("включено: Proton и настройки игры меняются со следующего её запуска", "on: a game's Proton and settings change from its next start") : GameTune.instant === "waiting" ? I18n.t("закрой Steam один раз — дальше без перезапусков", "close Steam once — then no more restarts") : I18n.t("Steam видит один переключатель angelOS, а он перед каждым запуском берёт выбранный Proton и настройки игры. Твои параметры запуска в Steam остаются.", "Steam sees one angelOS switch that takes each game's chosen Proton and settings at every start. Your launch options in Steam stay.")
+        PxToggle {
+            checked: GameTune.instant !== "off"
+            enabled: !GameTune.busy
+            onToggled: GameTune.setInstant(checked)
+        }
+    }
     SettingRow {
         width: parent.width
         visible: GameTune.hasSteam

@@ -259,13 +259,66 @@ Column {
         }
     }
 
+    // ---- for this machine's video card: what may lift it, even when it runs fine as it is
+    function hasVar(line, v) {
+        return (" " + line).indexOf(" " + v + "=") >= 0;
+    }
+    function withVar(line, v, val, on) {
+        const words = (line || "").split(" ").filter(w => w !== "" && w.indexOf(v + "=") !== 0);
+        if (!on)
+            return words.join(" ") === "%command%" ? "" : words.join(" ");
+        if (words.indexOf("%command%") < 0)
+            words.unshift("%command%");
+        return [v + "=" + val].concat(words).join(" ");
+    }
+    readonly property var tool: GameTune.tools.find(t => t.name === root.proton) || null
+    readonly property var hw: GameTune.data && GameTune.data.hardware ? GameTune.data.hardware : null
+    PxText {
+        visible: !root.game.native && (root.rec.variants || []).length > 0 && !root.bench
+        width: parent.width
+        wrapMode: Text.Wrap
+        font.bold: true
+        text: I18n.t("Можно попробовать на твоём железе", "Worth a try on this machine") + (root.hw && root.hw.gpu ? " (" + root.hw.gpu + ")" : "")
+    }
+    Repeater {
+        model: root.bench ? [] : (root.rec.variants || [])
+        Column {
+            id: varRow
+            required property var modelData
+            readonly property bool here: modelData.var === "MANGOHUD" || !root.tool || (root.tool.vars || []).includes(modelData.var)
+            width: root.width
+            spacing: 0
+            PxCheck {
+                text: varRow.modelData.var + "=" + varRow.modelData.value
+                checked: root.hasVar(root.options, varRow.modelData.var)
+                onToggled: on => root.options = root.withVar(root.options, varRow.modelData.var, varRow.modelData.value, on)
+            }
+            PxText {
+                width: parent.width
+                wrapMode: Text.Wrap
+                kind: "tiny"
+                dim: varRow.here
+                color: varRow.here ? Theme.text : Theme.danger
+                text: I18n.t(varRow.modelData.ru, varRow.modelData.en) + (varRow.here ? "" : I18n.t(" — выбранный Proton это не умеет, умеют: ", " — the chosen Proton doesn't know it; these do: ") + varRow.modelData.tools.map(n => GameTune.toolName(n)).join(", "))
+            }
+        }
+    }
+    PxText {
+        width: parent.width
+        visible: !root.game.native && !root.bench && !!root.hw && !root.hw.ntsync
+        wrapMode: Text.Wrap
+        kind: "tiny"
+        dim: true
+        text: I18n.t("В ядре нет ntsync: с ним (CachyOS, linux-zen 6.14+) игры, что упираются в процессор, идут быстрее.", "The kernel has no ntsync: with it (CachyOS, linux-zen 6.14+) CPU-bound games run faster.")
+    }
+
     PxText {
         width: parent.width
         visible: root.game.pending || GameTune.data.running
         wrapMode: Text.Wrap
         kind: "tiny"
         color: Theme.accent
-        text: root.game.pending ? I18n.t("Ждёт, пока закроешь Steam — тогда запишу сам.", "Waiting for Steam to close — then it goes in by itself.") : I18n.t("Steam открыт: «Применить» запишет, когда он закроется.", "Steam is open: \"Apply\" writes it once Steam closes.")
+        text: root.game.pending ? I18n.t("Ждёт, пока закроешь Steam — тогда запишу сам.", "Waiting for Steam to close — then it goes in by itself.") : GameTune.instant === "on" ? I18n.t("«Применить» сработает со следующего запуска игры — Steam перезапускать не надо.", "\"Apply\" counts from the game's next start — no Steam restart.") : I18n.t("Steam открыт: «Применить» запишет, когда он закроется. Чтобы без этого — включи «Без перезапуска Steam» в Обслуживание → Игры.", "Steam is open: \"Apply\" writes it once Steam closes. To skip that, turn on \"No Steam restart\" in Maintenance → Games.")
     }
     Flow {
         width: parent.width
@@ -293,11 +346,30 @@ Column {
     }
     // ---- compare Protons here: FPS measured on this machine (GameTune.bench)
     readonly property var bench: GameTune.bench && GameTune.bench.appid === game.appid ? GameTune.bench : null
+    // a run: a Proton ("name"), or a Proton with one variant on ("name+VAR")
+    readonly property string base: benchable.some(t => t.name === rec.proton) ? rec.proton : benchable.length ? benchable[0].name : ""
     readonly property var benchable: GameTune.tools.filter(t => t.switchable)
+    readonly property var runs: benchable.map(t => ({
+                "spec": t.name,
+                "label": runName(t.name)
+            })).concat((rec.variants || []).filter(v => v.var !== "MANGOHUD" && v.tools.includes(base)).map(v => ({
+                "spec": base + "+" + v.var,
+                "label": runName(base + "+" + v.var)
+            })))
     property var picked: []
+    // the Proton it runs now or we suggest, and one more: the first variant on it, or Wineland, or GE
     function defaultPick() {
-        const want = [game.now.proton, rec.proton].concat(benchable.filter(t => t.kind === "wineland").map(t => t.name).slice(0, 1));
-        return benchable.map(t => t.name).filter(n => want.includes(n)).slice(0, 3);
+        const first = benchable.some(t => t.name === game.now.proton) ? game.now.proton : base;
+        const more = runs.map(r => r.spec).filter(sp => sp !== first);
+        const next = more.find(sp => sp.indexOf(first + "+") === 0) || more.find(sp => (benchable.find(t => t.name === sp) || {}).kind === "wineland") || more[0];
+        return [first].concat(next ? [next] : []).filter(x => !!x);
+    }
+    function shortTool(name) {
+        return GameTune.toolName(name).replace(/\s*\(steam linux runtime\)/i, "");
+    }
+    function runName(spec) {
+        const i = spec.indexOf("+");
+        return i < 0 ? shortTool(spec) : shortTool(spec.slice(0, i)) + " + " + spec.slice(i + 1).replace("PROTON_", "").toLowerCase();
     }
     function fmt(r) {
         return !r || r.error ? I18n.t("мало кадров — не засчитано", "too few frames — not counted") : I18n.t("%1 FPS · 1 % low %2 · 0,1 % low %3", "%1 FPS · 1 % low %2 · 0.1 % low %3").replace("%1", r.fps).replace("%2", r.low1).replace("%3", r.low01);
@@ -316,19 +388,19 @@ Column {
         wrapMode: Text.Wrap
         kind: "tiny"
         dim: true
-        text: GameTune.hasMangoHud ? I18n.t("Выбери 2–3 Proton: по заходу на каждый, FPS меряет MangoHud на твоём железе. Стоять лучше в одном и том же месте или включить бенчмарк самой игры.", "Pick 2–3 Protons: one run each, MangoHud measures the FPS on this machine. Stand in the same spot each time, or run the game's own benchmark.") : I18n.t("Для замера нужен MangoHud (sudo pacman -S mangohud lib32-mangohud).", "Measuring needs MangoHud (sudo pacman -S mangohud lib32-mangohud).")
+        text: GameTune.hasMangoHud ? I18n.t("Выбери 2–3 захода: разные Proton или вариант с переменной; по заходу на каждый, FPS меряет MangoHud на твоём железе. Стоять лучше в одном и том же месте или включить бенчмарк самой игры.", "Pick 2–3 runs: different Protons or one with a variable; one run each, MangoHud measures the FPS on this machine. Stand in the same spot each time, or run the game's own benchmark.") : I18n.t("Для замера нужен MangoHud (sudo pacman -S mangohud lib32-mangohud).", "Measuring needs MangoHud (sudo pacman -S mangohud lib32-mangohud).")
     }
     Flow {
         width: parent.width
         visible: !root.game.native && !root.bench && GameTune.hasMangoHud
         spacing: Theme.u * 3
         Repeater {
-            model: root.benchable
+            model: root.runs
             PxCheck {
                 required property var modelData
-                text: modelData.display
-                checked: root.picked.includes(modelData.name)
-                onToggled: on => root.picked = on ? root.picked.concat([modelData.name]) : root.picked.filter(n => n !== modelData.name)
+                text: modelData.label
+                checked: root.picked.includes(modelData.spec)
+                onToggled: on => root.picked = on ? root.picked.concat([modelData.spec]) : root.picked.filter(n => n !== modelData.spec)
             }
         }
     }
@@ -344,7 +416,7 @@ Column {
         visible: !!root.bench && !root.bench.done
         wrapMode: Text.Wrap
         color: Theme.accent
-        text: root.bench && !root.bench.done ? I18n.t("Заход %1 из %2: %3. Запусти игру, встань в одно место (или включи бенчмарк игры) и нажми Shift+F2 — 60 секунд записи. Потом выйди из игры: следующий Proton включится сам.", "Run %1 of %2: %3. Start the game, stand in one spot (or run its benchmark) and press Shift+F2 — 60 seconds of recording. Then quit: the next Proton comes by itself.").replace("%1", root.bench.i + 1).replace("%2", root.bench.tools.length).replace("%3", GameTune.toolName(root.bench.tools[root.bench.i])) + (GameTune.restartSteam ? I18n.t(" Сначала перезапусти Steam один раз — он должен увидеть переключатель «angelOS: Proton comparison».", " Restart Steam once first — it has to see the switch \"angelOS: Proton comparison\".") : "") : ""
+        text: root.bench && !root.bench.done ? I18n.t("Заход %1 из %2: %3. Запусти игру, встань в одно место (или включи бенчмарк игры) и нажми Shift+F2 — 60 секунд записи. Потом выйди из игры: следующий Proton включится сам.", "Run %1 of %2: %3. Start the game, stand in one spot (or run its benchmark) and press Shift+F2 — 60 seconds of recording. Then quit: the next Proton comes by itself.").replace("%1", root.bench.i + 1).replace("%2", root.bench.tools.length).replace("%3", root.runName(root.bench.tools[root.bench.i])) + (GameTune.restartSteam ? I18n.t(" Сначала перезапусти Steam один раз — он должен увидеть переключатель «angelOS: Proton per game».", " Restart Steam once first — it has to see the switch \"angelOS: Proton per game\".") : "") : ""
     }
     Repeater {
         model: root.bench ? root.bench.tools : []
@@ -355,7 +427,7 @@ Column {
             readonly property var r: root.bench.results[modelData]
             visible: r !== undefined
             font.bold: root.ranked.length > 0 && root.ranked[0] === modelData
-            text: (root.ranked[0] === modelData && root.bench.done ? "★ " : "• ") + GameTune.toolName(modelData) + " — " + root.fmt(r)
+            text: (root.ranked[0] === modelData && root.bench.done ? "★ " : "• ") + root.runName(modelData) + " — " + root.fmt(r)
         }
     }
     Flow {
@@ -366,7 +438,7 @@ Column {
             visible: !!root.bench && root.bench.done && root.ranked.length > 0
             accent: true
             icon: "check"
-            text: I18n.t("Оставить ", "Keep ") + (root.ranked.length ? GameTune.toolName(root.ranked[0]) : "")
+            text: I18n.t("Оставить ", "Keep ") + (root.ranked.length ? root.runName(root.ranked[0]) : "")
             enabled: !GameTune.busy
             onClicked: GameTune.benchFinish(root.ranked[0])
         }
@@ -390,6 +462,6 @@ Column {
         wrapMode: Text.Wrap
         kind: "tiny"
         dim: true
-        text: I18n.t("Данные: ProtonDB (ODbL), AreWeAntiCheatYet. Steam перезаписывает настройки при выходе — поэтому запись ждёт, пока он закрыт.", "Data: ProtonDB (ODbL), AreWeAntiCheatYet. Steam rewrites its settings on exit, so writing waits until it is closed.")
+        text: I18n.t("Данные: ProtonDB (ODbL), AreWeAntiCheatYet.", "Data: ProtonDB (ODbL), AreWeAntiCheatYet.") + (GameTune.instant === "on" ? "" : I18n.t(" Steam перезаписывает настройки при выходе — поэтому запись ждёт, пока он закрыт.", " Steam rewrites its settings on exit, so writing waits until it is closed."))
     }
 }

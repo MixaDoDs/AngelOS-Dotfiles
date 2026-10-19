@@ -53,6 +53,12 @@ Singleton {
     function undo(appid) {
         run(["undo", appid]);
     }
+    // "No Steam restart" (game-tune.py instant): every Windows game through the switch, its Proton
+    // and additions from files — off | waiting (for Steam to close, once) | on
+    readonly property string instant: data && data.instant ? data.instant : "off"
+    function setInstant(on) {
+        run(["instant", on ? "on" : "off"]);
+    }
     // GE, EM, Sarek, tkg and the rest come from ProtonPlus (the gaming edition installs it);
     // without it, a terminal offers it
     function openProtonPlus() {
