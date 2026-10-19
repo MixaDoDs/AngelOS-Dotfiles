@@ -23,6 +23,8 @@ gnome-keyring
 grim
 slurp
 wf-recorder
+# screen recording and instant replay: the frame from the GPU straight into the encoder
+gpu-screen-recorder
 wl-clipboard
 wtype
 libnotify
