@@ -323,6 +323,8 @@ PanelWindow {
                     readonly property bool sel: index === win.current
                     readonly property bool isImage: item.entry.kind === "image"
                     readonly property string link: win.linkOf(item.entry)
+                    readonly property bool video: VideoGrab.grabbable(link)
+                    readonly property bool overGrab: grabMouse.containsMouse || soundMouse.containsMouse
                     width: list.width
                     height: isImage ? (sel ? Theme.u * 70 : Theme.u * 44) : txt.implicitHeight + Theme.u * 6
                     color: sel ? Theme.select : m.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.12) : "transparent"
@@ -408,7 +410,7 @@ PanelWindow {
                         id: txt
                         visible: !item.isImage
                         x: Theme.u * 4
-                        width: parent.width - Theme.u * 8 - star.width - (item.link ? linkBtn.width : 0)
+                        width: parent.width - Theme.u * 8 - star.width - (item.link ? linkBtn.width : 0) - (item.video ? grabBtns.width : 0)
                         anchors.verticalCenter: parent ? parent.verticalCenter : undefined
                         text: String(item.entry.text || "").replace(/\s+/g, " ").slice(0, 300)
                         maximumLineCount: 2
@@ -430,7 +432,7 @@ PanelWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         width: Theme.u * 12
                         height: Theme.u * 12
-                        visible: !!item.link && (m.containsMouse || openMouse.containsMouse || starMouse.containsMouse || item.sel)
+                        visible: !!item.link && (m.containsMouse || openMouse.containsMouse || starMouse.containsMouse || item.overGrab || item.sel)
                         PxIcon {
                             anchors.centerIn: parent
                             name: "window"
@@ -444,6 +446,53 @@ PanelWindow {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: win.openLink(item.entry)
+                        }
+                    }
+                    // ⇩ a video's link: the video (up to 1080p) or ♪ its sound into ~/Downloads (services/VideoGrab)
+                    Row {
+                        id: grabBtns
+                        anchors.right: linkBtn.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: item.video && (m.containsMouse || openMouse.containsMouse || starMouse.containsMouse || item.overGrab || item.sel)
+                        Item {
+                            width: Theme.u * 12
+                            height: Theme.u * 12
+                            PxIcon {
+                                anchors.centerIn: parent
+                                name: "download"
+                                ink: item.sel ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
+                                scale: grabMouse.containsMouse ? 1.2 : 1
+                            }
+                            MouseArea {
+                                id: grabMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    VideoGrab.grab(item.link, false);
+                                    Shell.clipboardOpen = false;
+                                }
+                            }
+                        }
+                        Item {
+                            width: Theme.u * 12
+                            height: Theme.u * 12
+                            PxIcon {
+                                anchors.centerIn: parent
+                                name: "music"
+                                ink: item.sel ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
+                                scale: soundMouse.containsMouse ? 1.2 : 1
+                            }
+                            MouseArea {
+                                id: soundMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    VideoGrab.grab(item.link, true);
+                                    Shell.clipboardOpen = false;
+                                }
+                            }
                         }
                     }
                     // ★ keeps it: shown on favourites, and on the row under the mouse or the selection

@@ -119,7 +119,13 @@ Scene {
         property real style: Math.max(0, root.index)
         property size resolution: Qt.size(width, height)
         property color accent: Theme.accent
+        property var titleTex: title.texture
+        property size titleSize: title.size
         fragmentShader: Qt.resolvedUrl("../../shaders/pixel_transition.frag.qsb")
+    }
+    VerdictTitle {
+        id: title
+        text: Config.wallpaper.verdictTitle === "off" ? "" : Config.wallpaper.verdictTitle !== "auto" ? Config.wallpaper.verdictTitle : root.flip ? "ASCEND" : "DESCEND"
     }
     PxText {
         x: Theme.u * 2

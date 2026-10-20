@@ -365,6 +365,25 @@ PxPage {
             }
         }
         SettingRow {
+            visible: Config.wallpaper.transition === "verdict" || Config.wallpaper.transition === "random"
+            label: I18n.t("Слово «Вердикта»", "The verdict's word")
+            hint: I18n.t("«Авто» — DESCEND в ад, ASCEND обратно; без слова — пиксельный нимб. Своё слово — verdictTitle в settings.json", "Auto: DESCEND into hell, ASCEND back; no word: a pixel halo. A word of your own: verdictTitle in settings.json")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Авто", "Auto"),
+                        "value": "auto"
+                    },
+                    {
+                        "label": I18n.t("Без слова", "No word"),
+                        "value": "off"
+                    }
+                ]
+                currentValue: Config.wallpaper.verdictTitle === "off" ? "off" : "auto"
+                onActivated: v => Config.wallpaper.verdictTitle = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Длительность", "Duration")
             PxSlider {
                 width: parent.width
@@ -430,6 +449,65 @@ PxPage {
                 value: Config.wallpaper.releaseMarkOpacity
                 suffix: " %"
                 onMoved: v => Config.wallpaper.releaseMarkOpacity = v
+            }
+        }
+    }
+
+    // layered scenes (widgets/SceneWall): what stands behind their nearer layers
+    PxGroup {
+        id: sceneGroup
+        name: "scene-depth"
+        title: I18n.t("Обои-сцены", "Scene wallpapers")
+        icon: "image"
+        width: parent.width
+        // the scene on this screen: the picks below are its own (its release's)
+        readonly property string here: Wallpapers.sceneOf(Wallpapers.resolve(page.output, page.wsIdx))
+        visible: here !== ""
+        function value(key) {
+            return Wallpapers.own(here, key);
+        }
+        function pick(key, v) {
+            Wallpapers.setOwn(here, key, v);
+        }
+
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Только для этих обоев: " + Wallpapers.wallName(sceneGroup.here) + ". У других обоев свои.", "For this wallpaper only: " + Wallpapers.wallName(sceneGroup.here) + ". Other wallpapers keep their own.")
+        }
+        SettingRow {
+            label: I18n.t("За листвой", "Behind the leaves")
+            hint: I18n.t("Крупно в глубине сцены: ближние дома и листва закрывают надпись", "Big, deep in the scene: the nearer houses and leaves stand in front of it")
+            PxSegmented {
+                model: [["clock", "Часы", "Clock"], ["release", "Релиз", "Release"], ["", "Ничего", "Nothing"]].map(c => ({
+                            "label": I18n.t(c[1], c[2]),
+                            "value": c[0]
+                        }))
+                currentValue: sceneGroup.value("sceneDepth")
+                onActivated: v => sceneGroup.pick("sceneDepth", v)
+            }
+        }
+        SettingRow {
+            visible: sceneGroup.value("sceneDepth") !== ""
+            label: I18n.t("Стиль", "Look")
+            hint: I18n.t("Цвета сами — из палитры сцены, акцента темы и того, что за надписью", "The colours pick themselves: the scene's palette, the theme's accent and what is behind the text")
+            PxSegmented {
+                model: [["neon", "Неон", "Neon"], ["outline", "Наклейка", "Sticker"], ["chrome", "Хром", "Chrome"], ["cutout", "Вызов", "Calling card"], ["lcd", "Нокиа", "Nokia"], ["aqua", "Пузырь", "Aqua"]].map(c => ({
+                            "label": I18n.t(c[1], c[2]),
+                            "value": c[0]
+                        }))
+                currentValue: sceneGroup.value("sceneDepthStyle")
+                onActivated: v => sceneGroup.pick("sceneDepthStyle", v)
+            }
+        }
+        SettingRow {
+            visible: sceneGroup.value("sceneDepth") !== ""
+            label: I18n.t("Текстура", "Texture")
+            hint: I18n.t("У каждого стиля своя: сцена в хроме, печать на плашках вызова, блик наклейки, сетка экрана Нокиа, блик пузыря", "Each look has its own: the scene in the chrome, the print on the calling card, the sticker's gloss, the Nokia screen's grid, the bubble's gloss")
+            PxToggle {
+                checked: sceneGroup.value("sceneDepthTexture")
+                onToggled: c => sceneGroup.pick("sceneDepthTexture", c)
             }
         }
     }
@@ -585,6 +663,17 @@ PxPage {
         readonly property string path: Wallpapers.resolve(page.output, page.wsIdx)
         readonly property var fx: LiveWalls.effective(path)
         readonly property var over: LiveWalls.override(path)
+        // a scene (widgets/SceneWall) lives by itself: the half-alive effects never run on it
+        visible: Wallpapers.sceneOf(path) === ""
+        // what this picture has; the effects it has not are not offered
+        readonly property bool alive: Config.wallpaper.live && !!fx && fx.alive
+        readonly property bool stars: alive && fx.sky && fx.night >= 0.3
+        function value(key) {
+            return Wallpapers.own(path, key);
+        }
+        function pick(key, v) {
+            Wallpapers.setOwn(path, key, v);
+        }
         Component.onCompleted: LiveWalls.request(path)
         onPathChanged: LiveWalls.request(path)
 
@@ -676,8 +765,15 @@ PxPage {
                 allowed: liveThumb.status === Image.Ready && livePreview.visible
             }
         }
+        PxText {
+            visible: liveGroup.alive
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Заметность и эффекты ниже — только для этих обоев: " + Wallpapers.wallName(liveGroup.path) + ". У других обоев свои.", "How noticeable and the effects below: for this wallpaper only, " + Wallpapers.wallName(liveGroup.path) + ". Other wallpapers keep their own.")
+        }
         SettingRow {
-            visible: Config.wallpaper.live
+            visible: liveGroup.alive
             label: I18n.t("Заметность", "How noticeable")
             hint: I18n.t("насколько сильно мерцает и рябит", "how much it twinkles and ripples")
             PxSlider {
@@ -685,54 +781,54 @@ PxPage {
                 from: 10
                 to: 100
                 stepSize: 5
-                value: Config.wallpaper.liveStrength
+                value: liveGroup.value("liveStrength")
                 suffix: " %"
-                onMoved: v => Config.wallpaper.liveStrength = v
+                onMoved: v => liveGroup.pick("liveStrength", v)
             }
         }
         SettingRow {
-            visible: Config.wallpaper.live
+            visible: liveGroup.stars
             label: I18n.t("Звёзды мерцают", "Stars twinkle")
             hint: I18n.t("звёзды картинки и новые, которые появляются и гаснут", "the picture's stars and new ones that come and go")
             PxToggle {
-                checked: Config.wallpaper.liveStars
-                onToggled: c => Config.wallpaper.liveStars = c
+                checked: liveGroup.value("liveStars")
+                onToggled: c => liveGroup.pick("liveStars", c)
             }
         }
         SettingRow {
-            visible: Config.wallpaper.live
+            visible: liveGroup.stars
             label: I18n.t("Падающие звёзды", "Falling stars")
             hint: I18n.t("изредка, в верхней части неба", "now and then, high in the sky")
             PxToggle {
-                checked: Config.wallpaper.liveMeteors
-                onToggled: c => Config.wallpaper.liveMeteors = c
+                checked: liveGroup.value("liveMeteors")
+                onToggled: c => liveGroup.pick("liveMeteors", c)
             }
         }
         SettingRow {
-            visible: Config.wallpaper.live
+            visible: liveGroup.alive && liveGroup.fx.water
             label: I18n.t("Вода", "Water")
             hint: I18n.t("водопады текут, море колышется, туман в бездне, блики, тени облаков", "waterfalls pour, the sea sways, mist in the abyss, glints, clouds' shadows")
             PxToggle {
-                checked: Config.wallpaper.liveWater
-                onToggled: c => Config.wallpaper.liveWater = c
+                checked: liveGroup.value("liveWater")
+                onToggled: c => liveGroup.pick("liveWater", c)
             }
         }
         SettingRow {
-            visible: Config.wallpaper.live
+            visible: liveGroup.alive
             label: I18n.t("Редкие события", "Now and then")
             hint: I18n.t("раз в 12–35 секунд: блик по кольцу, камешек с обрыва, порыв ветра, глаз в облаке ночью, круги по воде; под музыку — в долю. В полноэкранном режиме сцена замирает", "every 12–35 seconds: a glint over a ring, a pebble off the edge, a gust, an eye in a cloud at night, rings over the water; with music, on the beat. Under a fullscreen window the scene holds still")
             PxToggle {
-                checked: Config.wallpaper.liveEvents
-                onToggled: c => Config.wallpaper.liveEvents = c
+                checked: liveGroup.value("liveEvents")
+                onToggled: c => liveGroup.pick("liveEvents", c)
             }
         }
         SettingRow {
-            visible: Config.wallpaper.live
+            visible: liveGroup.alive && liveGroup.fx.lights > 0
             label: I18n.t("Огоньки", "Lights")
             hint: I18n.t("окна и фонари на ночной картинке поблёскивают", "windows and lamps of a night picture glimmer")
             PxToggle {
-                checked: Config.wallpaper.liveLights
-                onToggled: c => Config.wallpaper.liveLights = c
+                checked: liveGroup.value("liveLights")
+                onToggled: c => liveGroup.pick("liveLights", c)
             }
         }
         SettingRow {

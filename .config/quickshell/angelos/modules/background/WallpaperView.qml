@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Window
+import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
@@ -21,7 +22,23 @@ Item {
     property real progress: 1
     // -1 = no transition; "random" picks again for every change
     property int styleIndex: Wallpapers.transitionIndex(Config.wallpaper.transition)
+    readonly property bool verdict: styleIndex >= 0 && styleIndex === Wallpapers.transitionIndex("verdict")
+    // the verdict's word: which way the change went (into hell or out of it), else down
+    property bool wasHell: Wallpapers.hellOn
+    property string verdictWord: ""
+    // the layered scene on show (widgets/SceneWall), for the desktop widgets to stand in; else null
+    readonly property Item sceneItem: sceneWall.covers ? sceneWall : null
 
+    // the part of a scene's picture SceneWall shows (its canvas inside the margin), or null
+    function sceneView(p) {
+        const m = Wallpapers.sceneOf(p) ? Wallpapers.meta[p] : null;
+        return m && m.w ? Qt.rect(sceneWall.margin, sceneWall.margin, m.w - 2 * sceneWall.margin, m.h - 2 * sceneWall.margin) : null;
+    }
+    // the codename of the release a scene came with (Pictures/AngelOS/NN-name/), else this one's
+    function releaseName(folder) {
+        const r = Wallpapers.releases.find(r => folder === r.dir || folder.startsWith(r.dir + "/")) || Updates.release;
+        return r ? r.codename || "angelOS " + r.number : "";
+    }
     function url(p) {
         const d = Wallpapers.display(p);
         return d ? (d.startsWith("/") ? "file://" + d : d) : "";
@@ -58,6 +75,9 @@ Item {
         const animate = (configChanged || variant) && styleIndex >= 0 && Niri.ready && shown !== "" && !Motion.still;
         configChanged = false;
         anim.stop();
+        const t = Config.wallpaper.verdictTitle;
+        verdictWord = t === "off" ? "" : t && t !== "auto" ? t : !Wallpapers.hellOn && wasHell ? "ASCEND" : "DESCEND";
+        wasHell = Wallpapers.hellOn;
         if (!animate) {
             shown = path;
             freeFrom();
@@ -76,7 +96,8 @@ Item {
     }
     property bool waitingForLoad: false
 
-    onTargetChanged: if (target !== shown)
+    // a change while a transition plays waits for its end: then only the latest one, if any
+    onTargetChanged: if (target !== shown && !anim.running)
         Qt.callLater(() => go(target))
     Component.onCompleted: {
         shown = target;
@@ -90,20 +111,32 @@ Item {
         property: "progress"
         from: 0
         to: 1
-        duration: Motion.ms(Config.wallpaper.duration)
+        duration: Motion.ms(root.verdict ? 800 : Config.wallpaper.duration)
         easing.type: Easing.Linear
-        onFinished: root.freeFrom()
+        onFinished: {
+            root.freeFrom();
+            if (root.target !== root.shown)
+                Qt.callLater(() => root.go(root.target));
+        }
+    }
+    VerdictTitle {
+        id: verdictTitle
+        text: root.verdict ? root.verdictWord : ""
     }
 
     Image {
         id: fromImg
         property string path
+        // a layered scene's still: its neutral frame, cut to the scene's view and drawn pixel
+        // for pixel as SceneWall draws it, so the scene takes over without a jump
+        readonly property var sceneRect: root.sceneView(path)
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
-        sourceSize: Qt.size(Math.ceil(root.width * root.dpr), Math.ceil(root.height * root.dpr))
+        sourceSize: sceneRect ? undefined : Qt.size(Math.ceil(root.width * root.dpr), Math.ceil(root.height * root.dpr))
+        sourceClipRect: sceneRect || Qt.rect(0, 0, 0, 0)
         asynchronous: true
         cache: true
-        smooth: true
+        smooth: !sceneRect
         visible: false
         onStatusChanged: if (status === Image.Error)
             Wallpapers.fit(path)
@@ -111,12 +144,16 @@ Item {
     Image {
         id: toImg
         property string path
+        // a layered scene's still: its neutral frame, cut to the scene's view and drawn pixel
+        // for pixel as SceneWall draws it, so the scene takes over without a jump
+        readonly property var sceneRect: root.sceneView(path)
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
-        sourceSize: Qt.size(Math.ceil(root.width * root.dpr), Math.ceil(root.height * root.dpr))
+        sourceSize: sceneRect ? undefined : Qt.size(Math.ceil(root.width * root.dpr), Math.ceil(root.height * root.dpr))
+        sourceClipRect: sceneRect || Qt.rect(0, 0, 0, 0)
         asynchronous: true
         cache: true
-        smooth: true
+        smooth: !sceneRect
         visible: false
         onStatusChanged: {
             if (status === Image.Error)
@@ -175,7 +212,7 @@ Item {
         // (#98, #100). Off only under a drawn LiveWall: no second full-screen pass under it
         ShaderEffect {
             anchors.fill: parent
-            visible: root.progress < 1 || !live.visible
+            visible: root.progress < 1 || !(live.visible || sceneWall.covers)
             property var fromTex: fromSrc
             property var toTex: toSrc
             property real progress: root.progress
@@ -183,6 +220,9 @@ Item {
             property real style: Math.max(0, root.styleIndex)
             property size resolution: Qt.size(width, height)
             property color accent: Theme.accent
+            property size phys: Qt.size(Math.ceil(width * root.dpr), Math.ceil(height * root.dpr))
+            property var titleTex: verdictTitle.texture
+            property size titleSize: verdictTitle.size
             fragmentShader: Qt.resolvedUrl("../../shaders/pixel_transition.frag.qsb")
         }
 
@@ -191,10 +231,80 @@ Item {
             id: live
             anchors.fill: parent
             screenName: root.screenName
-            path: root.shown
+            path: Wallpapers.sceneOf(root.shown) ? "" : root.shown
             picture: toSrc
             allowed: root.progress >= 1 && !anim.running
             levels: hearing.item ? hearing.item.levels : []
+        }
+        // a layered scene (widgets/SceneWall: parallax, wind, frames) over its still once the
+        // transition is over; still under Motion.still and with the stream's effects off
+        SceneWall {
+            id: sceneWall
+            readonly property string folder: Wallpapers.sceneOf(root.shown)
+            readonly property bool covers: visible && scene !== null
+            anchors.fill: parent
+            visible: folder !== "" && root.progress >= 1 && !anim.running && !Theme.hell
+            dir: visible ? folder : ""
+            still: Motion.still || !StreamMode.effectsOn(root.screenName)
+            wind: SceneWind.strength
+            windDir: SceneWind.dir
+            pulse: SceneWind.pulse
+            seed: SceneWind.seed
+            // the desk and the taskbar say where the pointer is; elsewhere the camera eases home
+            pointer: Pointer.screen === root.screenName && Pointer.over
+                ? Qt.point(Math.max(-1, Math.min(1, Pointer.x / Math.max(1, width) * 2 - 1)), Math.max(-1, Math.min(1, Pointer.y / Math.max(1, height) * 2 - 1)))
+                : Qt.point(0, 0)
+
+            // time on the desk's one clock like LiveWall (Config.wallpaper.liveFps, 24 on battery),
+            // or every frame of the screen; stopped in a fullscreen app or a game; wrapped hourly:
+            // float time in the shaders loses its fractions after days
+            readonly property bool running: visible && !still && !Shell.stillScreen(root.screenName)
+            readonly property bool timed: DeskClock.sceneFps > 0 && running
+            property bool counted: false
+            function count(on) {
+                if (on === counted)
+                    return;
+                counted = on;
+                DeskClock.walls += on ? 1 : -1;
+            }
+            function advance(dt) {
+                time = (time + Math.min(dt, 0.1)) % 3600;
+            }
+            onTimedChanged: count(timed)
+            Component.onDestruction: count(false)
+            Connections {
+                target: DeskClock
+                enabled: sceneWall.timed
+                function onTick(dt) {
+                    sceneWall.advance(dt);
+                }
+            }
+            FrameAnimation {
+                running: DeskClock.sceneFps <= 0 && sceneWall.running
+                onTriggered: sceneWall.advance(frameTime)
+            }
+
+            // behind the nearer layers: the clock or the release's name (Settings → Wallpaper)
+            depth: SceneDepthText {
+                visible: text !== ""
+                k: sceneWall.k
+                palette: sceneWall.palette
+                backdrop: sceneWall.depthLuma < 0 ? 0.5 : sceneWall.depthLuma
+                fixed: sceneWall.depthText || ({})
+                look: Wallpapers.own(sceneWall.folder, "sceneDepthStyle")
+                textured: Wallpapers.own(sceneWall.folder, "sceneDepthTexture")
+                textureSource: sceneWall.depthTexture
+                textureFrom: sceneWall.depthTextureFrom
+                reflectionSource: sceneWall.depthReflection
+                canvasSize: Qt.size(sceneWall.cw, sceneWall.ch)
+                time: sceneWall.time
+                text: Wallpapers.own(sceneWall.folder, "sceneDepth") === "clock" ? Qt.formatTime(clock.date, "hh:mm") : Wallpapers.own(sceneWall.folder, "sceneDepth") === "release" ? root.releaseName(sceneWall.folder) : ""
+            }
+            SystemClock {
+                id: clock
+                enabled: sceneWall.visible && Wallpapers.own(sceneWall.folder, "sceneDepth") === "clock"
+                precision: SystemClock.Minutes
+            }
         }
         // the cava behind the wallpaper's music lines: only while a picture with a place for
         // them is shown (MusicSpectrum: and only while music plays, and the desk is seen)

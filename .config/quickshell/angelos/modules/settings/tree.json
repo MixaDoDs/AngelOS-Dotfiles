@@ -463,6 +463,7 @@
           "blocks": [
             "wallpaper/@",
             "wallpaper/releases",
+            "wallpaper/scene-depth",
             "wallpaper/pixel",
             "wallpaper/live",
             "wallpaper/images"

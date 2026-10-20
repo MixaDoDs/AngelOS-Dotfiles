@@ -164,6 +164,19 @@ Item {
         DesktopWidgets.drag.x, DesktopWidgets.drag.y, width, height, area.width, area.height) : Qt.point(0, 0)
     x: dragging ? dragPlace.x : place.x
     y: dragging ? dragPlace.y : place.y
+    // in a layered wallpaper (the face's `sceneWall`, widgets/SceneWall) the face stands between
+    // its layers (WidgetDepth) and moves with the layer behind it, and its input copy with it,
+    // so the buttons stay under what you see
+    property Item sceneWall: null
+    readonly property WidgetDepth depth: WidgetDepth {
+        host: host
+        wall: host.face ? host.sceneWall : null
+    }
+    readonly property point depthShift: face ? depth.shift : faceTwin ? faceTwin.depthShift : Qt.point(0, 0)
+    transform: Translate {
+        x: host.depthShift.x
+        y: host.depthShift.y
+    }
 
     Component.onCompleted: {
         face ? DesktopWidgets.registerFace(uid, host) : DesktopWidgets.registerHost(uid, host);

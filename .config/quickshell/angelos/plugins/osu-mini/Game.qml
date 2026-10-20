@@ -15,6 +15,7 @@ Item {
 
     property var plugin
     signal quitRequested
+    signal modeRequested(string mode)      // ♡ hearts | ♪ rhythm (Rhythm.qml)
 
     readonly property var levels: ({
             "easy": {
@@ -598,6 +599,21 @@ Item {
                 style: Text.Outline
                 styleColor: Theme.edge
             }
+        }
+        PxSegmented {
+            anchors.horizontalCenter: parent.horizontalCenter
+            model: [
+                {
+                    "label": I18n.t("♡ Сердечки", "♡ Hearts"),
+                    "value": "hearts"
+                },
+                {
+                    "label": I18n.t("♪ Ритм", "♪ Rhythm"),
+                    "value": "rhythm"
+                }
+            ]
+            currentValue: "hearts"
+            onActivated: v => game.modeRequested(v)
         }
         PxText {
             anchors.horizontalCenter: parent.horizontalCenter

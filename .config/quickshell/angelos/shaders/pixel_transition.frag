@@ -2,7 +2,8 @@
 // Pixel transition between two wallpapers.
 // style: 0 mosaic + ordered dither, 1 mosaic only, 2 dither only, 3 heart iris,
 //        4 old TV (collapse to a line and back), 5 blinds, 6 diamonds (Win98),
-//        7 glitch, 8 melt (DOOM), 9 sparkle dissolve, 10 dithered wipe
+//        7 glitch, 8 melt (DOOM), 9 sparkle dissolve, 10 dithered wipe, 11 verdict (a theatrical
+//        cut-in: shutters, stripes and a title word on a 480×270 grid, 800 ms)
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 
@@ -14,10 +15,13 @@ layout(std140, binding = 0) uniform buf {
     float style;
     vec2 resolution;
     vec4 accent;
+    vec2 phys;          // the screen in physical pixels (verdict; 0: `resolution`)
+    vec2 titleSize;     // the cached title word's texture, its pixels (verdict; 0: no title)
 };
 
 layout(binding = 1) uniform sampler2D fromTex;
 layout(binding = 2) uniform sampler2D toTex;
+layout(binding = 3) uniform sampler2D titleTex;
 
 // ordered dither threshold without arrays (works on every GLSL profile)
 float bayer2(vec2 a) {
@@ -37,6 +41,121 @@ float heart(vec2 q) {
 }
 vec4 pick(vec2 uv, float t) {
     return mix(texture(fromTex, uv), texture(toTex, uv), t);
+}
+
+// ---- verdict: the overlay's own grid, 480×270 units of whole physical pixels, covering the
+// screen (cropped round a centre); the wallpapers themselves are sampled untouched ----
+const float VW = 480.0;
+const float VH = 270.0;
+float outE(float v) {
+    v = clamp(v, 0.0, 1.0);
+    return 1.0 - (1.0 - v) * (1.0 - v) * (1.0 - v);
+}
+float inE(float v) {
+    v = clamp(v, 0.0, 1.0);
+    return v * v * v;
+}
+// the graphic composition at a unit (g whole, gf the same unshifted but fractional, for the title)
+vec3 verdictGraphic(vec2 g, vec2 gf, float ms, float cu, vec3 ink, vec3 shade, vec3 paper, vec3 hot) {
+    vec3 c = ink;
+    float drift = floor(clamp((ms - 210.0) / 250.0, 0.0, 1.0) * 6.0 + 0.5);
+    // stepped diagonal stripes, 3-unit rows, paper and shade by turns
+    float cy = floor(g.y / 3.0) * 3.0 + 1.5;
+    float j0 = floor((g.x - drift - 100.0 + cy * 160.0 / VH) / 64.0);
+    for (int t = 0; t < 2; t++) {
+        float j = j0 - float(t);
+        if (j < -2.0 || j > 11.0)
+            continue;
+        float xs = floor((j * 64.0 + drift + 100.0 - cy * 160.0 / VH) / 3.0) * 3.0;
+        if (g.x >= xs && g.x < xs + 33.0)
+            c = mod(j, 2.0) > 0.5 ? paper : shade;
+    }
+    // dot grids in two corners
+    vec2 d6 = floor(g / 6.0) * 6.0;
+    if (g.x - d6.x < 2.0 && g.y - d6.y < 2.0 && mod(d6.x + d6.y, 12.0) < 0.5 && ((d6.x < 70.0 && d6.y > 180.0) || (d6.x > 405.0 && d6.y < 80.0)))
+        c = hot;
+    // the title band, a stepped slant
+    float xq = floor(g.x / 3.0) * 3.0 + 1.5;
+    if (cy >= 91.0 + xq / 60.0 && cy < 174.0 + xq / 60.0)
+        c = ink;
+    float p = clamp((ms - 150.0) / 110.0, 0.0, 1.0);
+    if (titleSize.x > 0.5) {
+        // the word punches in from the right, 1.2 → 1; its accent shadow 3 units down right
+        float z = p < 0.55 ? 1.2 - 0.2 * outE(p / 0.55) : 1.0;
+        float dx = floor((1.0 - outE(p)) * 110.0 + 0.5);
+        vec2 lc = (gf - vec2(floor((VW - VW * z) / 2.0 + 0.5) + dx, floor((VH - VH * z) / 2.0 + 0.5))) / z;
+        vec2 w0 = vec2(floor((VW - titleSize.x * cu) / 2.0), floor(138.0 - titleSize.y * cu / 2.0));
+        float so = 3.0 * cu / 8.0;
+        vec2 ts = floor((lc - w0 - so) / cu);
+        if (all(greaterThanEqual(ts, vec2(0.0))) && all(lessThan(ts, titleSize)) && texture(titleTex, (ts + 0.5) / titleSize).a > 0.5)
+            c = hot;
+        vec2 tc = floor((lc - w0) / cu);
+        if (all(greaterThanEqual(tc, vec2(0.0))) && all(lessThan(tc, titleSize)) && texture(titleTex, (tc + 0.5) / titleSize).a > 0.5)
+            c = paper;
+    } else {
+        // no title: a pixel halo in the band
+        vec2 h = floor((g - vec2(240.0, 136.0)) / 2.0) * 2.0;
+        float q = h.x * h.x / 4900.0 + h.y * h.y / 1444.0;
+        if (q < 1.0 && q > 0.72)
+            c = paper;
+    }
+    if (g.y >= 184.0 && g.y < 187.0)
+        c = hot;
+    if ((g.x >= 32.0 && g.x < 80.0 && g.y >= 80.0 && g.y < 83.0) || (g.x >= 398.0 && g.x < 448.0 && g.y >= 193.0 && g.y < 196.0))
+        c = paper;
+    return c;
+}
+vec4 verdict(vec2 uv, float p) {
+    float ms = p * 800.0;
+    vec2 scr = phys.x > 0.5 ? phys : resolution;
+    float U = ceil(max(scr.x / VW, scr.y / VH) - 0.001);
+    vec2 o = floor((scr - vec2(VW, VH) * U) * 0.5);
+    vec2 gf = (uv * scr - o) / U;
+    vec2 g = clamp(floor(gf), vec2(0.0), vec2(VW - 1.0, VH - 1.0));
+    // the title's cell: 8 units, smaller on a narrow screen, whole physical pixels
+    float cu = max(1.0, floor(min(8.0 * U, 0.9 * scr.x / max(titleSize.x, 1.0)))) / U;
+    vec3 hot = accent.rgb;
+    vec3 ink = mix(hot, vec3(0.0), 0.86);
+    vec3 shade = mix(hot, vec3(0.0), 0.62);
+    vec3 paper = mix(hot, vec3(1.0), 0.86);
+    if (ms < 70.0) {
+        // three thin lines sweep across the old picture's middle
+        for (int j = 0; j < 3; j++) {
+            float y = 95.0 + float(j) * 8.0;
+            if (g.y >= y && g.y < y + 2.0 && g.x < floor(VW * inE(ms / 70.0) + 0.5))
+                return vec4(j == 1 ? paper : hot, 1.0);
+        }
+        return texture(fromTex, uv);
+    }
+    if (ms < 205.0) {
+        // eighteen shutters from alternating sides, three stagger groups, sharp deceleration
+        float row = floor(g.y / 15.0);
+        float q = outE(((ms - 70.0) / 135.0 - mod(row, 3.0) * 0.055) / 0.89);
+        float dx = floor((mod(row, 2.0) > 0.5 ? 1.0 : -1.0) * VW * (1.0 - q) + 0.5);
+        float x = g.x - dx;
+        if (x < 0.0 || x >= VW)
+            return texture(fromTex, uv);
+        return vec4(verdictGraphic(vec2(x, g.y), gf - vec2(dx, 0.0), ms, cu, ink, shade, paper, hot), 1.0);
+    }
+    if (ms < 455.0)
+        return vec4(verdictGraphic(g, gf, ms, cu, ink, shade, paper, hot), 1.0);
+    if (ms < 535.0) {
+        // sliced into 9-unit strips, neighbours sheared apart, faster and faster
+        float dx = floor(inE((ms - 455.0) / 80.0) * (mod(floor(g.y / 9.0), 2.0) > 0.5 ? 80.0 : -80.0) + 0.5);
+        float x = g.x - dx;
+        if (x < 0.0 || x >= VW)
+            return vec4(ink, 1.0);
+        return vec4(verdictGraphic(vec2(x, g.y), gf - vec2(dx, 0.0), ms, cu, ink, shade, paper, hot), 1.0);
+    }
+    // the new picture under the shutters leaving to alternating sides (the composition whole again)
+    float row = floor(g.y / 15.0);
+    float delay = mod(row, 3.0) * 0.035;
+    float q = outE(((ms - 535.0) / 265.0 - delay) / (1.0 - delay));
+    float dx = floor((mod(row, 2.0) > 0.5 ? 1.0 : -1.0) * VW * q + 0.5);
+    float x = g.x - dx;
+    if (x < 0.0 || x >= VW)
+        return texture(toTex, uv);
+    return vec4(verdictGraphic(vec2(x, g.y), gf - vec2(dx, 0.0), ms, cu, ink, shade, paper, hot), 1.0);
 }
 
 void main() {
@@ -150,6 +269,8 @@ void main() {
         vec2 f = fract(px / cs) - 0.5;
         float plus = step(min(abs(f.x), abs(f.y)), 0.17);
         outc.rgb = mix(outc.rgb, mix(accent.rgb, vec3(1.0), 0.45), fresh * plus);
+    } else if (style > 10.5) {
+        outc = verdict(uv, p);
     } else {
         // dithered wipe: left to right with a ragged pixel edge
         vec2 cell = floor(px / 12.0);

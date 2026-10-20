@@ -1,0 +1,458 @@
+{
+ "schema": "angelos.layered-scene.v1",
+ "title": "AngelOS 2004 — Летнее утро",
+ "logical_canvas": {
+  "width": 656,
+  "height": 376
+ },
+ "palette": {
+  "file": "palette.json"
+ },
+ "neutral_pose": {
+  "reference": "reference/neutral-656x376.png"
+ },
+ "camera": {
+  "smoothing_seconds": 0.35
+ },
+ "depth_text": {
+  "z": 25,
+  "rect": [
+   234,
+   37,
+   80,
+   34
+  ],
+  "texture_layer": "01_sky"
+ },
+ "hold_masks": [
+  "masks/hold_shelf.png",
+  "masks/hold_monitor.png"
+ ],
+ "layers": [
+  {
+   "id": "01_sky",
+   "label_ru": "01_sky",
+   "file": "layers/01_sky.png",
+   "z": 10,
+   "visible": true,
+   "parallax_max_logical": [
+    0,
+    0
+   ],
+   "edge_mode": "clamp",
+   "bounds_logical": [
+    0,
+    0,
+    656,
+    376
+   ],
+   "animation": {
+    "type": "none"
+   }
+  },
+  {
+   "id": "02_clouds",
+   "label_ru": "02_clouds",
+   "file": "layers/02_clouds.png",
+   "z": 20,
+   "visible": true,
+   "parallax_max_logical": [
+    0,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    0,
+    19,
+    656,
+    133
+   ],
+   "animation": {
+    "type": "cloud_drift",
+    "amplitude": 6,
+    "period": 90
+   }
+  },
+  {
+   "id": "03_city",
+   "label_ru": "03_city",
+   "file": "layers/03_city.png",
+   "z": 30,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    0,
+    45,
+    656,
+    376
+   ],
+   "animation": {
+    "type": "none"
+   }
+  },
+  {
+   "id": "04_trees",
+   "label_ru": "04_trees",
+   "file": "layers/04_trees.png",
+   "z": 40,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    0,
+    81,
+    656,
+    376
+   ],
+   "animation": {
+    "type": "wind",
+    "root_y": 375,
+    "amplitude": 1.0,
+    "period": 9.5
+   },
+   "shed_z": 65
+  },
+  {
+   "id": "05_branch",
+   "label_ru": "05_branch",
+   "file": "layers/05_branch.png",
+   "z": 50,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    63,
+    0,
+    221,
+    97
+   ],
+   "animation": {
+    "type": "wind",
+    "root_y": 0,
+    "amplitude": 1.0,
+    "period": 7.5
+   },
+   "shed_z": 65
+  },
+  {
+   "id": "06_balcony",
+   "label_ru": "06_balcony",
+   "file": "layers/06_balcony.png",
+   "z": 60,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    35,
+    182,
+    341,
+    326
+   ],
+   "animation": {
+    "type": "none"
+   }
+  },
+  {
+   "id": "07_room",
+   "label_ru": "07_room",
+   "file": "layers/07_room.png",
+   "z": 70,
+   "visible": true,
+   "parallax_max_logical": [
+    0,
+    0
+   ],
+   "edge_mode": "clamp",
+   "bounds_logical": [
+    0,
+    0,
+    656,
+    376
+   ],
+   "animation": {
+    "type": "none"
+   }
+  },
+  {
+   "id": "08_curtain",
+   "label_ru": "08_curtain",
+   "file": "layers/08_curtain.png",
+   "z": 80,
+   "visible": true,
+   "parallax_max_logical": [
+    0,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    33,
+    0,
+    85,
+    329
+   ],
+   "animation": {
+    "type": "wind",
+    "root_y": 0,
+    "amplitude": 1.2,
+    "period": 11
+   },
+   "attach_to_layer": "07_room",
+   "shed": false
+  },
+  {
+   "id": "09_dresser",
+   "label_ru": "09_dresser",
+   "file": "layers/09_dresser.png",
+   "z": 90,
+   "visible": true,
+   "parallax_max_logical": [
+    0,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    0,
+    203,
+    59,
+    376
+   ],
+   "animation": {
+    "type": "none"
+   },
+   "attach_to_layer": "07_room"
+  },
+  {
+   "id": "10_plant_left",
+   "label_ru": "10_plant_left",
+   "file": "layers/10_plant_left.png",
+   "z": 100,
+   "visible": true,
+   "parallax_max_logical": [
+    0,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    0,
+    22,
+    59,
+    212
+   ],
+   "animation": {
+    "type": "wind",
+    "root_y": 205,
+    "amplitude": 2.5,
+    "period": 10
+   },
+   "attach_to_layer": "09_dresser",
+   "shed": false
+  },
+  {
+   "id": "11_plant_shelf",
+   "label_ru": "11_plant_shelf",
+   "file": "layers/11_plant_shelf.png",
+   "z": 110,
+   "visible": true,
+   "parallax_max_logical": [
+    0,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    366,
+    0,
+    480,
+    155
+   ],
+   "animation": {
+    "type": "wind",
+    "root_y": 27,
+    "amplitude": 2.5,
+    "period": 10.5
+   },
+   "attach_to_layer": "07_room",
+   "shed": false
+  },
+  {
+   "id": "12_desk",
+   "label_ru": "12_desk",
+   "file": "layers/12_desk.png",
+   "z": 120,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    266,
+    100,
+    656,
+    376
+   ],
+   "animation": {
+    "type": "none"
+   }
+  },
+  {
+   "id": "13_screen",
+   "label_ru": "13_screen",
+   "file": "layers/13_screen.png",
+   "z": 130,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    435,
+    118,
+    532,
+    202
+   ],
+   "animation": {
+    "type": "none"
+   },
+   "attach_to_layer": "12_desk"
+  },
+  {
+   "id": "14_ivy",
+   "label_ru": "14_ivy",
+   "file": "layers/14_ivy.png",
+   "z": 140,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    490,
+    98,
+    559,
+    221
+   ],
+   "animation": {
+    "type": "wind",
+    "root_y": 216,
+    "amplitude": 1.0,
+    "period": 9
+   },
+   "attach_to_layer": "12_desk",
+   "shed": false
+  },
+  {
+   "id": "15_grass_back",
+   "label_ru": "15_grass_back",
+   "file": "layers/15_grass_back.png",
+   "z": 150,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    429,
+    184,
+    549,
+    222
+   ],
+   "animation": {
+    "type": "wind",
+    "root_y": 220,
+    "amplitude": 1.6,
+    "period": 8
+   },
+   "attach_to_layer": "12_desk",
+   "shed": false
+  },
+  {
+   "id": "16_grass_right",
+   "label_ru": "16_grass_right",
+   "file": "layers/16_grass_right.png",
+   "z": 160,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    550,
+    211,
+    584,
+    233
+   ],
+   "animation": {
+    "type": "wind",
+    "root_y": 224,
+    "amplitude": 1.6,
+    "period": 8.4
+   },
+   "attach_to_layer": "12_desk",
+   "shed": false
+  },
+  {
+   "id": "17_grass_books",
+   "label_ru": "17_grass_books",
+   "file": "layers/17_grass_books.png",
+   "z": 170,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    351,
+    209,
+    379,
+    227
+   ],
+   "animation": {
+    "type": "wind",
+    "root_y": 226,
+    "amplitude": 1.6,
+    "period": 8.8
+   },
+   "attach_to_layer": "12_desk",
+   "shed": false
+  },
+  {
+   "id": "18_chair",
+   "label_ru": "18_chair",
+   "file": "layers/18_chair.png",
+   "z": 180,
+   "visible": true,
+   "parallax_max_logical": [
+    1,
+    0
+   ],
+   "edge_mode": "transparent",
+   "bounds_logical": [
+    300,
+    210,
+    477,
+    376
+   ],
+   "animation": {
+    "type": "none"
+   }
+  }
+ ]
+}

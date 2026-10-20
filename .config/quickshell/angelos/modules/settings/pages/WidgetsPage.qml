@@ -345,7 +345,8 @@ PxPage {
                                 "music": I18n.t("S — спектр, M — плеер, L — плеер и спектр", "S the spectrum, M the player, L both"),
                                 "picture": I18n.t("длинная сторона: 64 / 100 / 160", "The longer side: 64 / 100 / 160"),
                                 "note": I18n.t("ширина и сколько строк видно", "Its width and how many lines show"),
-                                "disks": I18n.t("S — системный диск, M — все диски, L — диски и папки", "S the system disk, M every disk, L disks and folders")
+                                "disks": I18n.t("S — системный диск, M — все диски, L — диски и папки", "S the system disk, M every disk, L disks and folders"),
+                                "chatrace": I18n.t("S — трасса и тройка лидеров, M — пятёрка, L — трасса крупнее и десятка", "S the track and the first three, M five, L a bigger track and ten")
                             })[card.w ? card.w.type : ""] || ""
                         PxSegmented {
                             model: DesktopWidgets.sizesOf(card.info).map(z => ({

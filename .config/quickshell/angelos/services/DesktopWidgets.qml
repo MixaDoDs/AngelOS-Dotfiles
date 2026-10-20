@@ -347,6 +347,15 @@ Singleton {
             "sizes": ["s", "m", "l"]
         },
         {
+            // the race of the stream's chat (services/StreamChat.race): a new track every stream,
+            // the writers as cats on it; S the first three, M five, L ten on a bigger track
+            "type": "chatrace",
+            "label": I18n.t("Гонка чата стрима", "Stream chat race"),
+            "icon": "fire",
+            "title": "chatrace",
+            "sizes": ["s", "m", "l"]
+        },
+        {
             // hell's own: offered, shown and spun only while the demon rules
             "type": "hellwheel",
             "label": I18n.t("Колесо Ада", "Wheel of Hell"),
@@ -456,6 +465,27 @@ Singleton {
                 "plate": I18n.t("Плашка", "Plate"),
                 "none": I18n.t("Без рамки", "No frame")
             })[f] || I18n.t("Как у всех", "Like the others");
+    }
+    // ---- its depth in a layered wallpaper (widgets/SceneWall, WidgetDepth): between the
+    // layers where the nearer ones cover a little of it (auto), more of it, over it all, or
+    // just behind one thing of the scene ("behind:<layer id>": the bench, the TV) ----
+    readonly property var depthKinds: ["", "deep", "front"]
+    function depthOk(d) {
+        return depthKinds.includes(d) || (typeof d === "string" && d.startsWith("behind:"));
+    }
+    function depthOf(w) {
+        return w && depthOk(w.depth) ? w.depth : "";
+    }
+    function setDepth(uid, depth) {
+        _patch(uid, {
+            "depth": depthOk(depth) ? depth : ""
+        });
+    }
+    function depthLabel(d) {
+        return ({
+                "deep": I18n.t("Глубже в кадре", "Deeper in the picture"),
+                "front": I18n.t("Поверх обоев", "Over the wallpaper")
+            })[d] || I18n.t("Сама (чуть за листвой)", "By itself (just behind the leaves)");
     }
     // the widget under the pointer (its input copy says so): the plate shows its name then
     property string hoverUid: ""

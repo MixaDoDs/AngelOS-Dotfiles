@@ -30,6 +30,7 @@ import qs.modules.circle
 import qs.modules.capture
 import qs.modules.quickshare
 import qs.modules.quicklook
+import qs.modules.convert
 import qs.modules.island
 import qs.modules.lenssearch
 import qs.modules.streamchat
@@ -83,6 +84,7 @@ ShellRoot {
     LensWindow {}
     ChatRunners {}
     QuickLookWindow {}
+    ConvertRing {}
     IslandProbe {}
     Ipc {}
     IpcEvents {}
@@ -171,6 +173,8 @@ ShellRoot {
         Cobweb.enabled; // cobwebs on windows nobody moved for a while (Settings → Windows → Cobwebs)
         Devices.holders; // the keyboard's lights follow the system's colour (no helper until needed)
         CircleHost.open; // the screenshot overlay's own process (scripts/circle-proc.sh), ready before the key
+        Timelapse.on; // the day's timelapse: recording all day when on, glued at midnight (Settings → Screenshots)
+        StreamChat.on; // the stream's chat on screen, from a chat bot's log (Settings → Stream)
     }
     // the shell going away (`angelos restart`/stop and the unit's ExecStop use `qs kill`, a reload):
     // what still waits in a save's debounce is written, else the next start reads the file from

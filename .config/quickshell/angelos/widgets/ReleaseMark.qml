@@ -18,7 +18,11 @@ Item {
 
     readonly property var release: Updates.release
     readonly property bool wanted: Config.wallpaper.releaseMark && !!release && !!release.number && !GoldenGate.on
-    visible: wanted
+    // a layered scene showing the release's name behind its leaves (WallpaperView) already says it
+    readonly property var ws: Niri.activeWorkspace(screenName)
+    readonly property string scene: Wallpapers.sceneOf(Wallpapers.resolve(screenName, ws ? ws.idx : 1))
+    readonly property bool inScene: scene !== "" && Wallpapers.own(scene, "sceneDepth") === "release"
+    visible: wanted && !inScene
 
     readonly property real gap: Theme.u * 6
     readonly property var corners: ["bottom-right", "bottom-left", "top-right", "top-left"]

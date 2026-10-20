@@ -47,9 +47,52 @@ Item {
         // physical pixels: sharp on a scaled monitor (issue #18)
         sourceSize: Qt.size(Math.ceil(width * Math.max(1, Screen.devicePixelRatio)), Math.ceil(height * Math.max(1, Screen.devicePixelRatio)))
         asynchronous: true
-        visible: !Config.lock.pixelate
+        visible: !Config.lock.pixelate && !scene.item
         onStatusChanged: if (status === Image.Error)
             Wallpapers.fit(root.wall)
+    }
+    // a layered wallpaper (widgets/SceneWall): the scene alive, and the clock in its place
+    // between the layers like the desktop's depth text, in the style picked for it there
+    Loader {
+        id: scene
+        readonly property bool clockIn: !!item && item.depthText !== null
+        anchors.fill: parent
+        active: !Config.lock.pixelate && Wallpapers.sceneOf(root.wall) !== ""
+        sourceComponent: SceneWall {
+            id: wall
+            dir: Wallpapers.sceneOf(root.wall)
+            still: Motion.still || !StreamMode.effectsOn(root.screenName)
+            wind: SceneWind.strength
+            windDir: SceneWind.dir
+            pulse: SceneWind.pulse
+            seed: SceneWind.seed
+            // the desk's rate for live wallpapers (24 on battery), else every frame
+            readonly property bool running: !still && !root.lockScope.unlocking
+            Timer {
+                running: wall.running && DeskClock.sceneFps > 0
+                interval: 1000 / Math.max(1, DeskClock.sceneFps)
+                repeat: true
+                onTriggered: wall.time = (wall.time + interval / 1000) % 3600
+            }
+            FrameAnimation {
+                running: wall.running && DeskClock.sceneFps <= 0
+                onTriggered: wall.time = (wall.time + Math.min(frameTime, 0.1)) % 3600
+            }
+            depth: SceneDepthText {
+                k: wall.k
+                palette: wall.palette
+                backdrop: wall.depthLuma < 0 ? 0.5 : wall.depthLuma
+                fixed: wall.depthText || ({})
+                look: Wallpapers.own(root.wall, "sceneDepthStyle")
+                textured: Wallpapers.own(root.wall, "sceneDepthTexture")
+                textureSource: wall.depthTexture
+                textureFrom: wall.depthTextureFrom
+                reflectionSource: wall.depthReflection
+                canvasSize: Qt.size(wall.cw, wall.ch)
+                time: wall.time
+                text: Qt.formatTime(root.now, "HH") + (root.now.getSeconds() % 2 || !root.reactions ? ":" : " ") + Qt.formatTime(root.now, "mm")
+            }
+        }
     }
     ShaderEffect {
         anchors.fill: parent
@@ -120,6 +163,8 @@ Item {
             fontSize: Theme.sizeHuge
         }
         PxText {
+            // in the scene's place instead (above)
+            visible: !scene.clockIn
             anchors.horizontalCenter: parent.horizontalCenter
             text: Qt.formatTime(root.now, "HH") + (root.now.getSeconds() % 2 || !root.reactions ? ":" : " ") + Qt.formatTime(root.now, "mm")
             font.family: Theme.fontTitle

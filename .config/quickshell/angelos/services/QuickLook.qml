@@ -16,6 +16,7 @@ Singleton {
     property bool open: false
     property string path: ""
     property var info: null                 // scripts/quicklook.py info
+    property string strip: ""               // a video's frames in a row (quicklook.py strip): the trimming strip
     property bool loading: false
     property bool fromNautilus: false
     property bool nameOurs: false           // Nautilus's previewer name is ours (else sushi's)
@@ -29,6 +30,8 @@ Singleton {
         fromNautilus = !!nautilus;
         path = p;
         info = null;
+        strip = "";
+        stripper.running = false;
         loading = true;
         reader.command = ["python3", script, "info", p];
         reader.running = true;
@@ -123,6 +126,10 @@ Singleton {
                     const j = JSON.parse(text);
                     if (j.path === root.path || !j.path)
                         root.info = j;
+                    if (j.kind === "video" && j.path === root.path) {
+                        stripper.command = ["python3", root.script, "strip", j.path];
+                        stripper.running = true;
+                    }
                 } catch (e) {
                     root.info = {
                         "error": "info"
@@ -131,5 +138,17 @@ Singleton {
             }
         }
         onExited: root.loading = false
+    }
+    Process {
+        id: stripper
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const j = JSON.parse(text);
+                    if (j.path === root.path && j.strip)
+                        root.strip = j.strip;
+                } catch (e) {}
+            }
+        }
     }
 }

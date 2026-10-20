@@ -106,6 +106,16 @@ PopupWindow {
         fn();
     }
 
+    // the scene's things the widget can stand behind, where it is (SceneWall.layersAt), 8 at most
+    function depthThings(uid) {
+        const f = DesktopWidgets.faces[uid];
+        const wall = f && f.depth ? f.sceneWall : null;
+        const r = Qt.rect(f.x, f.y, f.width, f.height);
+        // with how much of it the nearer layers would cover there
+        return wall ? wall.layersAt(r).slice(0, 8).map(l => Object.assign({}, l, {
+                    "covered": Math.round(wall.coverAt(r, l.z - 0.5) * 100)
+                })) : [];
+    }
     // ---- a widget's menu: its size, its frame, what it has of its own, settings, remove ----
     function widgetItems(uid) {
         const w = DesktopWidgets.byUid(uid);
@@ -143,6 +153,26 @@ PopupWindow {
                             "keepOpen": true,
                             "run": () => DesktopWidgets.setFrame(uid, f)
                         }))
+            });
+        // on a layered wallpaper: how deep it stands between the scene's layers
+        const ws = Niri.activeWorkspace(root.screenName);
+        if (Wallpapers.sceneOf(Wallpapers.resolve(root.screenName, ws ? ws.idx : 1)))
+            out.push({
+                "label": I18n.t("Глубина", "Depth"),
+                "icon": "layers",
+                "flyout": DesktopWidgets.depthKinds.map(d => ({
+                            "label": DesktopWidgets.depthLabel(d),
+                            "checkable": true,
+                            "checked": () => DesktopWidgets.depthOf(cur()) === d,
+                            "keepOpen": true,
+                            "run": () => DesktopWidgets.setDepth(uid, d)
+                        })).concat(depthThings(uid).map(l => ({
+                            "label": I18n.t("За: ", "Behind: ") + (l.label_ru || l.id).toLowerCase() + I18n.t(" · закрыто ", " · covered ") + l.covered + " %",
+                            "checkable": true,
+                            "checked": () => DesktopWidgets.depthOf(cur()) === "behind:" + l.id,
+                            "keepOpen": true,
+                            "run": () => DesktopWidgets.setDepth(uid, "behind:" + l.id)
+                        })))
             });
         const toggle = (key, label, icon, dflt) => ({
                 "label": label,

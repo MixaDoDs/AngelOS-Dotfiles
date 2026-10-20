@@ -58,6 +58,16 @@ PxPage {
                 onToggled: v => StrataSetup.portal(v)
             }
         }
+        // services/Convert: the ring over the selected files
+        SettingRow {
+            visible: StrataSetup.installed
+            label: I18n.t("Кольцо конвертации", "The conversion ring")
+            hint: I18n.t("Shift + правый клик по файлам в Strata — круговое меню: картинки, видео или звук и в какой формат. Готовое — в папку «Сконвертировано» рядом. Чтобы узнать выделенное, angelOS сам жмёт в Strata Ctrl+C и возвращает буфер обмена", "Shift + right click on files in Strata: a ring menu — pictures, video or sound and which format. Made files go to «Converted» beside them. To learn the selection angelOS presses Ctrl+C in Strata itself and puts the clipboard back")
+            PxToggle {
+                checked: Config.system.convertRing !== false
+                onToggled: v => Config.system.convertRing = v
+            }
+        }
         Flow {
             width: parent.width
             spacing: Theme.u * 3

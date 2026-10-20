@@ -7,7 +7,7 @@ Records what plays — Spotify's own stream, or everything the computer plays
 (the cava widget's "auto": a multichannel interface such as the RØDECaster is
 summed) — finds the beat and prints a JSON line about four times a second:
 
-  {"bpm": 128.0, "beat": <epoch ms of a recent beat>, "conf": 0..1, "level": 0..1}
+  {"bpm": 128.0, "beat": <epoch ms of a recent beat>, "conf": 0..1, "fit": 1.., "level": 0..1}
   {"idle": true, "why": "silence" | "no-spotify" | "no-output"}
 
 Onsets come from a bass-weighted spectral flux; the tempo from its
@@ -145,7 +145,7 @@ class Tracker:
         # tempo and phase together: a comb with a fractional lag near the peak,
         # sampled between frames, that collects the most onset energy
         pos = np.arange(len(x), dtype=np.float64)
-        best, best_lag, best_off = -1.0, lag, 0.0
+        best, best_lag, best_off, best_mean = -1.0, lag, 0.0, 1.0
         for L in np.arange(lag - 1.2, lag + 1.25, 0.05):
             if L < lo:
                 continue
@@ -156,7 +156,7 @@ class Tracker:
             sums = vals.sum(1)
             j = int(np.argmax(sums))
             if sums[j] > best:
-                best, best_lag, best_off = float(sums[j]), float(L), float(offs[j, 0])
+                best, best_lag, best_off, best_mean = float(sums[j]), float(L), float(offs[j, 0]), float(sums.mean())
         bpm = 60 * FPS / best_lag
         beat_idx = int(round(len(x) - 1 - best_off))
         # the flux peaks once the attack is inside the analysis window, ~20 ms late
@@ -173,7 +173,11 @@ class Tracker:
             self.bpm = bpm if not self.bpm else self.bpm * 0.7 + bpm * 0.3
             bpm = self.bpm
             self.pending = 0
-        return {"bpm": round(bpm, 2), "beat": round(beat_ms, 1), "conf": round(min(1.0, conf * 4), 3)}
+        # how much the onsets gather on the grid: the comb's best phase over its average one
+        # (a steady beat stands far out; free time, rubato, only noise hardly: the rhythm mode
+        # turns a track down on it)
+        fit = best / best_mean if best_mean > 0 else 0.0
+        return {"bpm": round(bpm, 2), "beat": round(beat_ms, 1), "conf": round(min(1.0, conf * 4), 3), "fit": round(fit, 2)}
 
 
 def main():

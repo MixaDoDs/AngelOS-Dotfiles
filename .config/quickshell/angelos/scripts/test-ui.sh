@@ -194,6 +194,8 @@ start suite capture_regions
 start suite island
 start suite lens
 start suite streamchat
+start suite videograb
+start suite rhythm
 start suite keys
 wait
 
@@ -210,7 +212,7 @@ for sh in "${SHARDS[@]}"; do
   rm -rf "${T:?}/$n"
   start driver "$n" "$from" "$until"
 done
-for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare timers halo shelf halo_buttons downloads links circle capture capture_regions island lens streamchat keys; do
+for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare timers halo shelf halo_buttons downloads links circle capture capture_regions island lens streamchat videograb rhythm keys; do
   [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" =~ ^(0|77)$ ]] && continue
   retried+=("$s")
   firsts+=("$s: $(grep -E '✕' "$T/suite-$s.out" | head -3 | sed 's/^ *//' | cut -c1-160 | tr '\n' ';')")
@@ -311,6 +313,11 @@ result island "island search: search and Lens in the island, ↗ hands the curre
 # spec, the window through every state
 # the stream's chat on screen (tests/streamchat, offline): a chat reader's log → the Halo, the cats
 result streamchat "stream chat: the follower, the Halo's capsule, paid and regular, the cats' queue" "stream chat" 15
+# video for Discord and from a link (tests/videograb, offline): real squeezes of made-up videos, a stand-in yt-dlp
+result videograb "video grab: squeezed under the limit with an exact cut, a link's download in the Halo's capsule, yt-dlp's failure" "video grab" 15
+# osu!mini's rhythm mode (tests/rhythm, offline): the beat lock over the tracker's guesses on made-up
+# drums, rounds on a song's words, on a beat alone, one turned down; the best of a track written
+result rhythm "rhythm mode: beat lock (even, jitter, tempo change, rubato down), rounds on words and on the beat, refusal, the track's best" "rhythm mode" 15
 result lens "Lens window: page reader (cards, prices, words, tabs, exact matches) and every state of the window" "Lens window" 15
 
 if ((fail)); then echo "» UI SELF-TEST FAILED"; exit 1; fi

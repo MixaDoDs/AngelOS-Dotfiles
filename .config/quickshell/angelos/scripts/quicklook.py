@@ -13,6 +13,8 @@
       what the window needs, one JSON object: kind (image|video|audio|text|pdf|folder|
       archive|font|other), mime, size, modified, and per kind: "picture" (a frame, a page,
       a cover — a PNG made in the runtime dir), "text", "list", "count", "tags", "duration".
+  quicklook.py strip <path>
+      a video's frames in a row for the trimming strip under it: {"path", "strip": a PNG}
 """
 import json
 import mimetypes
@@ -159,6 +161,26 @@ def info(path):
     else:
         d["kind"] = "other"
     return d
+
+
+STRIP_FRAMES = 12
+
+
+def strip(path):
+    """STRIP_FRAMES frames evenly along the video side by side, one ffmpeg (a seek per frame)"""
+    path = os.path.abspath(path)
+    pic = picture_path(path, "strip")
+    if not os.path.exists(pic):
+        dur = probe(path).get("duration") or 0
+        if dur <= 0:
+            return {"path": path}
+        cmd = ["ffmpeg", "-v", "quiet", "-y"]
+        for i in range(STRIP_FRAMES):
+            cmd += ["-ss", "%.3f" % (dur * (i + 0.5) / STRIP_FRAMES), "-i", path]
+        frames = ";".join("[%d:v:0]scale=-2:90,setsar=1,trim=end_frame=1[f%d]" % (i, i) for i in range(STRIP_FRAMES))
+        joined = "".join("[f%d]" % i for i in range(STRIP_FRAMES)) + "hstack=inputs=%d" % STRIP_FRAMES
+        run(cmd + ["-filter_complex", frames + ";" + joined, "-frames:v", "1", pic], timeout=30)
+    return {"path": path, "strip": pic} if os.path.exists(pic) else {"path": path}
 
 
 def probe(path):
@@ -327,6 +349,9 @@ def main():
         return 0
     if len(sys.argv) >= 3 and sys.argv[1] == "info":
         out(info(sys.argv[2]))
+        return 0
+    if len(sys.argv) >= 3 and sys.argv[1] == "strip":
+        out(strip(sys.argv[2]))
         return 0
     print(__doc__)
     return 2

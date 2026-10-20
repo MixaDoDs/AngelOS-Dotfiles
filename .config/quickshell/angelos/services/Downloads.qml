@@ -17,6 +17,8 @@ import qs.config
 //  · done = the half-file became its whole file, or a new whole file stopped growing: onto the
 //    Halo's shelf, and `finished` for a moment. A cancelled one (the half-file gone alone) says
 //    nothing, nor do the files there before.
+//  · told: what services/VideoGrab says of its own job (a link through yt-dlp, a video squeezed
+//    for Discord), the same as a browser's word.
 // shortcut: any new file there counts (a file moved in by hand too)
 Singleton {
     id: root
@@ -114,8 +116,16 @@ Singleton {
         halves = half;
         look();
     }
-    function done(name) {
-        Shelf.addDrop(["file://" + encodeURI(dir + "/" + name)], "", false);
+    // path: a file elsewhere (services/VideoGrab); one here isn't counted again by the next look
+    function done(name, path) {
+        if (known)
+            known.add(name);
+        if (growing[name]) {
+            const g = Object.assign({}, growing);
+            delete g[name];
+            growing = g;
+        }
+        Shelf.addDrop(["file://" + encodeURI(path || dir + "/" + name)], "", false);
         finished = "";
         finished = name;
         finishedOff.restart();
@@ -215,23 +225,27 @@ Singleton {
         onTriggered: root.readBridge()
     }
     function browserHas(path) {
-        return fromBrowser.some(b => b.file === path);
+        return fromBrowser.concat(told).some(b => b.file === path);
     }
+    // [{file, received, total}]: services/VideoGrab's job, about once a second
+    property var told: []
+    onToldChanged: look()
 
     // the folder's and the browsers' together
     function merge(seen) {
         const before = active;
         const now = [];
         const used = new Set();
+        const words = fromBrowser.concat(told);
         for (const s of seen) {
             const whole = s.path.replace(halfRe, "");
-            const b = fromBrowser.find(x => x.file === whole || x.file === s.path);
+            const b = words.find(x => x.file === whole || x.file === s.path);
             if (b)
                 used.add(b.file);
             now.push(entry(whole, b ? Math.max(s.size, Number(b.received) || 0) : s.size, b ? Number(b.total) || 0 : 0, b ? !!b.paused : false, before));
         }
         // a browser's download elsewhere (not in ~/Downloads)
-        for (const b of fromBrowser)
+        for (const b of words)
             if (!used.has(b.file))
                 now.push(entry(b.file, Number(b.received) || 0, Number(b.total) || 0, !!b.paused, before));
         active = now;

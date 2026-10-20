@@ -40,17 +40,56 @@ Item {
             onVisibleChanged: if (!visible)
                 Shell.gameOpen = false
 
-            Game {
+            // ♡ the hearts (Game) or ♪ the rhythm mode (Rhythm), as last picked; the Halo's «Ритм»
+            // and `angelos rhythm` (Shell.gameAsk = "rhythm") go straight into a round
+            property string mode: root.plugin.get("mode", "hearts")
+            function pick(m) {
+                mode = m;
+                root.plugin.set("mode", m);
+            }
+            function ask() {
+                if (Shell.gameAsk !== "rhythm")
+                    return;
+                Shell.gameAsk = "";
+                pick("rhythm");
+                Qt.callLater(() => game.item.start(false));
+            }
+            Component.onCompleted: ask()
+            // `qs ipc call osu demo`: the hearts play themselves
+            Connections {
+                target: root
+                function onDemoRequested() {
+                    win.pick("hearts");
+                    Qt.callLater(() => game.item.start(true));
+                }
+            }
+            Connections {
+                target: Shell
+                function onGameAskChanged() {
+                    win.ask();
+                }
+            }
+            Loader {
                 id: game
                 anchors.fill: parent
-                Connections {
-                    target: root
-                    function onDemoRequested() {
-                        game.start(true);
-                    }
+                focus: true
+                sourceComponent: win.mode === "rhythm" ? rhythm : hearts
+            }
+            Component {
+                id: hearts
+                Game {
+                    plugin: root.plugin
+                    onQuitRequested: Shell.gameOpen = false
+                    onModeRequested: m => win.pick(m)
                 }
-                plugin: root.plugin
-                onQuitRequested: Shell.gameOpen = false
+            }
+            Component {
+                id: rhythm
+                Rhythm {
+                    plugin: root.plugin
+                    onQuitRequested: Shell.gameOpen = false
+                    onModeRequested: m => win.pick(m)
+                }
             }
 
             RightClickGuard {}

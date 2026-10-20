@@ -7,7 +7,7 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// One screen of the lock: the look picked in Settings → Lock (NGO stream or heaven's gate).
+// One screen of the lock: the look picked in Settings → Lock (NGO stream, heaven's gate or 2004's save point).
 // When the password is right, Lock.qml asks every screen for a picture of itself
 // (captureNow): the unlock overlay plays it away over the desktop (UnlockReveal).
 Item {
@@ -26,11 +26,21 @@ Item {
     Loader {
         id: look
         anchors.fill: parent
-        sourceComponent: root.lockScope.look === "heaven" ? heaven : ngo
+        sourceComponent: root.lockScope.look === "heaven" ? heaven : root.lockScope.look === "2004" ? save : ngo
     }
     Component {
         id: ngo
         NgoLock {
+            screenName: root.screenName
+            primary: root.primary
+            lockScope: root.lockScope
+            now: clock.date
+            preview: root.preview
+        }
+    }
+    Component {
+        id: save
+        SaveLock {
             screenName: root.screenName
             primary: root.primary
             lockScope: root.lockScope

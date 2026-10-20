@@ -3,13 +3,19 @@
   "name": "osu!mini",
   "version": "1.0.0",
   "author": "angelOS",
-  "description": {"ru": "Мини-игра в духе osu!: пиксельные сердечки в такт, клик или Z/X, комбо, ранги и рекорды. Пуск → Мини-игра, «osu» в лаунчере.", "en": "An osu!-style mini game: pixel hearts on the beat, click or Z/X, combos, ranks and high scores. Start → Mini game, “osu” in the launcher."},
+  "description": {"ru": "Мини-игра в духе osu!: пиксельные сердечки в такт, клик или Z/X, комбо, ранги и рекорды. Режим «Ритм» — два барабана D/K под трек, который играет сейчас (слова песни и бит), рекорд на каждый трек. Пуск → Мини-игра, «osu» в лаунчере, «Ритм» в Нимбе у музыки.", "en": "An osu!-style mini game: pixel hearts on the beat, click or Z/X, combos, ranks and high scores. The rhythm mode: two drums, D/K, under the track playing now (the song's words and its beat), a best for each track. Start → Mini game, “osu” in the launcher, “Rhythm” on the Halo by the music."},
   "icon": "heart",
   "enabledByDefault": true,
   "themes": ["pixel"],
   "main": "Main.qml",
   "launcher": "Launcher.qml",
   "settings": "Settings.qml",
+  "achievements": [
+    { "id": "rhythm-record", "name": {"ru": "Свой рекорд", "en": "A best of your own"},
+      "desc": {"ru": "Поставить рекорд трека в режиме «Ритм»", "en": "Set a track's best in the rhythm mode"}, "icon": "music" },
+    { "id": "rhythm-library", "name": {"ru": "Своя библиотека", "en": "Your own library"},
+      "desc": {"ru": "Рекорды на десяти разных треках в «Ритме»", "en": "Bests on ten different tracks in the rhythm mode"}, "icon": "music", "goal": 10, "tier": 3 }
+  ],
   "menu": [
     { "label": "osu!mini ♡", "icon": "heart", "exec": "qs -c angelos ipc call osu start" }
   ]

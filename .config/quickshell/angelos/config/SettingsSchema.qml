@@ -96,6 +96,9 @@ JsonAdapter {
         property var workspaces: ({})       // "DP-1:2" -> path
         property string transition: "mosaic-dither" // mosaic-dither | mosaic | dither | none (only when the picture changes)
         property int duration: 750
+        // the verdict transition's word: "auto" (DESCEND into hell, ASCEND out of it, else
+        // DESCEND), "off" (a halo instead), or any text of one's own
+        property string verdictTitle: "auto"
         property int maxBlock: 48
         // every theme keeps its own wallpapers (services/GoldenGate: swapWalls): "pixel" (the pixel
         // skins) and "mac" (Golden Gate) -> {fallback, outputs, workspaces}; fallback/outputs/
@@ -128,6 +131,12 @@ JsonAdapter {
         property bool releaseMark: true
         property string releaseMarkCorner: "auto"   // auto | bottom-right | bottom-left | top-right | top-left
         property int releaseMarkOpacity: 35         // 10 … 80
+        property string sceneDepth: "clock"         // clock | release | "": behind a layered scene's nearer layers (WallpaperView)
+        property string sceneDepthStyle: "neon"     // outline | neon | chrome | cutout (widgets/SceneDepthText)
+        property bool sceneDepthTexture: true       // the text takes the picture's grain
+        // a wallpaper's own picks (services/Wallpapers: own): a release's folder (its wallpapers share them)
+        // or a picture -> {liveStrength, liveStars, …, sceneDepth, …}; what is not there is the value above
+        property var perWall: ({})
     }
 
     property JsonObject workspaces: JsonObject {
@@ -394,6 +403,9 @@ JsonAdapter {
         property string recordCodec: "auto" // auto (NVENC on NVIDIA, else VA-API, else x264) | nvenc | vaapi | x264
         property bool replay: false         // instant replay: the last seconds of the main screen kept in memory, Mod+Alt+G saves them (services/Capture)
         property int replaySec: 30
+        property int discordMb: 20          // «≤20 MB for Discord» (services/VideoGrab): the size a video is squeezed under
+        property bool timelapse: false      // the day's timelapse: gpu-screen-recorder writes the main screen at a frame a second, glued at midnight (services/Timelapse)
+        property int timelapseStep: 30      // a frame of the video every this many seconds of the day
     }
 
     property JsonObject plugins: JsonObject {
@@ -418,6 +430,7 @@ JsonAdapter {
 
     property JsonObject system: JsonObject {
         property string terminal: "kitty"
+        property bool convertRing: true     // Shift + right click on files in Strata: the conversion ring (services/Convert)
         property string fileManager: ""     // the Start menu's «Files»; "" = the default one (xdg-open: Strata)
         property string monitor: "auto"
         property string monitorProgram: ""

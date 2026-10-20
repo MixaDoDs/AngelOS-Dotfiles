@@ -358,6 +358,40 @@ PxPage {
                 onToggled: v => Config.capture.replay = v
             }
         }
+        // services/Timelapse: gpu-screen-recorder at a frame a second, glued at midnight
+        SettingRow {
+            label: I18n.t("Таймлапс дня", "The day's timelapse")
+            hint: !Capture.canReplay ? I18n.t("Нужен gpu-screen-recorder", "It needs gpu-screen-recorder") : I18n.t("главный экран весь день, кадр в секунду, маленький; в полночь — «Таймлапс <дата>.mp4» в папке записей, со временем в углу. Пишется всё — что выкладывать, решаешь ты", "The main screen all day, a frame a second, small; at midnight «Таймлапс <date>.mp4» in the recordings folder, the time in a corner. Everything is recorded: what to post is yours")
+            Row {
+                spacing: Theme.u * 3
+                PxButton {
+                    compact: true
+                    visible: Config.capture.timelapse
+                    icon: "play"
+                    text: Timelapse.building ? I18n.t("Собираю…", "Building…") : I18n.t("Собрать сегодня", "Build today")
+                    enabled: !Timelapse.building
+                    onClicked: Timelapse.buildToday()
+                }
+                PxToggle {
+                    enabled: Capture.canReplay
+                    checked: Config.capture.timelapse
+                    onToggled: v => Config.capture.timelapse = v
+                }
+            }
+        }
+        SettingRow {
+            visible: Config.capture.timelapse
+            label: I18n.t("Кадр ролика", "A frame of the video")
+            hint: I18n.t("раз во сколько секунд дня — меньше значит длиннее ролик (за 8 часов: 30 с — около 40 с видео)", "Every how many seconds of the day: less means a longer video (8 hours at 30 s: about 40 s of video)")
+            PxSegmented {
+                model: [10, 30, 60].map(n => ({
+                            "label": I18n.t(n + " с", n + " s"),
+                            "value": n
+                        }))
+                currentValue: Config.capture.timelapseStep
+                onActivated: v => Config.capture.timelapseStep = v
+            }
+        }
         SettingRow {
             visible: Config.capture.replay
             label: I18n.t("Длина повтора", "Replay length")
@@ -368,6 +402,19 @@ PxPage {
                         }))
                 currentValue: Config.capture.replaySec
                 onActivated: v => Config.capture.replaySec = v
+            }
+        }
+        // services/VideoGrab: the button in Quick Look and on the shelf
+        SettingRow {
+            label: I18n.t("Лимит для Discord", "Discord's limit")
+            hint: I18n.t("Кнопка «≤20 МБ» в просмотре видео и на Полке ужимает ролик под это число", "The «≤20 MB» button in a video's Quick Look and on the shelf squeezes it under this size")
+            PxSegmented {
+                model: [10, 20, 50, 500].map(n => ({
+                            "label": I18n.t(n + " МБ", n + " MB"),
+                            "value": n
+                        }))
+                currentValue: Config.capture.discordMb
+                onActivated: v => Config.capture.discordMb = v
             }
         }
         // the keys pressed, on screen (services/KeyCast): for guides and streams

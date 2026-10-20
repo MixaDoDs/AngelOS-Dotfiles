@@ -23,6 +23,13 @@ IpcHandler {
         Config.lyrics.screens = [];
         Lyrics.visibleToggle = true;
     }
+    // osu!mini's rhythm mode on the track that plays now (the Halo's «Ритм» by the music)
+    function rhythm(): void {
+        if (Shell.setupLocked)
+            return;
+        Shell.gameAsk = "rhythm";
+        Shell.gameOpen = true;
+    }
     // the people of the Discord call walking over the bar: on / off
     function discordCrew(): void {
         Config.discord.crew = !Config.discord.crew;
@@ -504,6 +511,10 @@ IpcHandler {
     function clip(): void {
         Capture.clip();
     }
+    // the day's timelapse: on | off | build (today so far)
+    function timelapse(mode: string): void {
+        Timelapse.set(mode);
+    }
     // the screenshot (Mod+Shift+S, Print): the frozen screen to pick, read, search, save —
     // the focused screen, or a named one; circle/circleOn are its old names
     function capture(): void {
@@ -558,6 +569,30 @@ IpcHandler {
         if (Shell.setupLocked)
             return;
         Island.open(url);
+    }
+    // one video link through yt-dlp into ~/Downloads, the Halo's capsule shows it (services/VideoGrab)
+    function grab(url: string): void {
+        if (Shell.setupLocked)
+            return;
+        VideoGrab.grab(url, false);
+    }
+    // the same, the sound alone (m4a)
+    function grabAudio(url: string): void {
+        if (Shell.setupLocked)
+            return;
+        VideoGrab.grab(url, true);
+    }
+    // the conversion ring over these files (one path a line; services/Convert)
+    function convert(paths: string): void {
+        if (Shell.setupLocked)
+            return;
+        Convert.show(paths.split("\n").filter(p => p !== ""));
+    }
+    // a video squeezed under Discord's limit (Settings → Screenshots and recording), on the shelf
+    function discord(path: string): void {
+        if (Shell.setupLocked)
+            return;
+        VideoGrab.shrink(path, 0, 0);
     }
     // a picture to Google Lens, the results in angelOS's window (services/LensSearch)
     function lensSearch(path: string): void {

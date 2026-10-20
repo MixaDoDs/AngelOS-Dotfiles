@@ -1484,12 +1484,14 @@ PanelWindow {
                 "icon": "bolt",
                 "text": Power.percent + "%"
             };
-        case "dl":
+        case "dl": {
+            // the ring beside it and the percent; the bytes of one when nobody knows the size
+            const far = Downloads.overall >= 0 ? Math.floor(Downloads.overall * 100) + "%" : n === 1 ? Downloads.bytes(Downloads.active[0].size) : "";
             return {
                 "icon": "download",
-                // the ring beside it says how far; the bytes only when nobody knows the size
-                "text": n > 1 ? I18n.t("Загрузки: ", "Downloads: ") + n : n ? (onAir ? "" : Downloads.active[0].name) + (Downloads.overall < 0 ? (onAir ? "" : " · ") + Downloads.bytes(Downloads.active[0].size) : "") : ""
+                "text": [n > 1 ? I18n.t("Загрузки: ", "Downloads: ") + n : n && !onAir ? Downloads.active[0].name : "", far].filter(x => x).join(" · ")
             };
+        }
         case "dlDone":
             return {
                 "icon": "download",
@@ -2520,6 +2522,22 @@ PanelWindow {
                     enabled: !!Lyrics.player && Lyrics.player.canGoNext
                     onClicked: Lyrics.player.next()
                 }
+                // osu!mini's rhythm mode on this track (plugin osu-mini, while it is on)
+                PxButton {
+                    id: rhythmBtn
+                    visible: JSON.parse(Plugins.enabledIds).includes("osu-mini")
+                    compact: true
+                    hell: win.hell
+                    icon: "music"
+                    iconPixel: Math.max(1, win.u - 1)
+                    text: I18n.t("Ритм", "Rhythm")
+                    enabled: Lyrics.playing
+                    onClicked: {
+                        Shell.gameAsk = "rhythm";
+                        Shell.gameOpen = true;
+                    }
+                    onHoveredChanged: win.hint(rhythmBtn, I18n.t("Ритм-игра под этот трек: D — слова, K — бит", "A rhythm game on this track: D the words, K the beat"), hovered)
+                }
                 // two players at once (Spotify and a video in the browser): the next one shown
                 PxButton {
                     id: swap
@@ -3495,6 +3513,7 @@ PanelWindow {
                         { "id": "folder", "icon": "folder", "tip": I18n.t("Показать в папке", "Show in folder") },
                         { "id": "share", "icon": "phone", "tip": "Quick Share" },
                         { "id": "copy", "icon": "document", "tip": I18n.t("В буфер", "Copy") },
+                        { "id": "discord", "icon": "chat", "tip": "≤" + VideoGrab.limitMb + I18n.t(" МБ для Discord", " MB for Discord") },
                         { "id": "fav", "icon": "star", "tip": I18n.t("Оставить навсегда", "Keep for good") },
                         { "id": "remove", "icon": "close", "tip": I18n.t("Убрать с полки", "Remove") }
                     ]
@@ -3502,7 +3521,7 @@ PanelWindow {
                         id: actBtn
                         required property var modelData
                         readonly property var it: acts.it
-                        visible: !!it && (modelData.id === "look" ? it.kind !== "link" && it.kind !== "text" : modelData.id === "folder" ? ["file", "image", "folder"].includes(it.kind) : true)
+                        visible: !!it && (modelData.id === "look" ? it.kind !== "link" && it.kind !== "text" : modelData.id === "folder" ? ["file", "image", "folder"].includes(it.kind) : modelData.id === "discord" ? it.kind === "file" && !it.missing && VideoGrab.isVideo(it.path) : true)
                         compact: true
                         hell: win.hell
                         icon: modelData.icon
@@ -3519,6 +3538,7 @@ PanelWindow {
                             case "folder": Shelf.showInFolder(i); break;
                             case "share": Shelf.share(i); break;
                             case "copy": Shelf.copy(i); break;
+                            case "discord": VideoGrab.shrink(it.path, 0, 0); break;
                             case "fav": Shelf.setFav(i, !it.fav); break;
                             case "remove":
                                 Shelf.remove(i);

@@ -1,0 +1,4884 @@
+{
+  "schema": "angelos.editable-scene.v2",
+  "title": "AngelOS 2004 — точные исходные растения, чистый фон",
+  "logical_canvas": {
+    "width": 656,
+    "height": 376
+  },
+  "hires_canvas": {
+    "width": 6560,
+    "height": 3760,
+    "integer_scale": 10
+  },
+  "coordinates": "All assets are full-canvas; top-left origin; all offsets are logical pixels.",
+  "rendering": {
+    "image_smoothing": false,
+    "texture_filter": "nearest",
+    "integer_positions": true,
+    "alpha_mode": "straight",
+    "colour_space": "sRGB"
+  },
+  "palette": {
+    "file": "palette.json",
+    "visible_rgb_colour_count": 64
+  },
+  "neutral_pose": {
+    "reference": "reference/neutral-656x376.png"
+  },
+  "layers": [
+    {
+      "id": "background_clean",
+      "file": "layers/background_clean.png",
+      "z": 0,
+      "role": "background",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "clamp",
+      "bounds_logical": [
+        0,
+        0,
+        656,
+        376
+      ],
+      "animation": {
+        "type": "none"
+      },
+      "label_ru": "Чистый фон"
+    },
+    {
+      "id": "clouds_main",
+      "file": "layers/clouds_main.png",
+      "z": 10,
+      "role": "clouds",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        418,
+        50,
+        602,
+        137
+      ],
+      "animation": {
+        "type": "cloud_drift",
+        "amplitude": 3,
+        "period": 72
+      },
+      "label_ru": "Основное облако"
+    },
+    {
+      "id": "clouds_wisps",
+      "file": "layers/clouds_wisps.png",
+      "z": 11,
+      "role": "clouds",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        411,
+        53,
+        597,
+        136
+      ],
+      "animation": {
+        "type": "cloud_drift",
+        "amplitude": 1,
+        "period": 91
+      },
+      "label_ru": "Мелкие облака"
+    },
+    {
+      "id": "architecture_occluder",
+      "file": "layers/architecture_occluder.png",
+      "z": 20,
+      "role": "background",
+      "visible": false,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "clamp",
+      "bounds_logical": [
+        0,
+        0,
+        656,
+        376
+      ],
+      "animation": {
+        "type": "none"
+      },
+      "label_ru": "Архитектура перед облаками",
+      "note": "angelos: off — source_background (z 21) stands in front of the clouds with the original pixels; this GPT redraw reached into the sky"
+    },
+    {
+      "id": "pergola_post",
+      "file": "layers/pergola_post.png",
+      "z": 43,
+      "role": "object",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        61,
+        0,
+        74,
+        227
+      ],
+      "animation": {
+        "type": "none"
+      },
+      "provenance": "source_visible;nearest-source-colour fill only behind vegetation",
+      "label_ru": "Стойка"
+    },
+    {
+      "id": "cable",
+      "file": "layers/cable.png",
+      "z": 44,
+      "role": "object",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        202,
+        156,
+        245,
+        223
+      ],
+      "animation": {
+        "type": "none"
+      },
+      "provenance": "source_visible;nearest-source-colour fill only behind vegetation",
+      "label_ru": "Кабель"
+    },
+    {
+      "id": "stool",
+      "file": "layers/stool.png",
+      "z": 46,
+      "role": "object",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        253,
+        278,
+        393,
+        376
+      ],
+      "animation": {
+        "type": "none"
+      },
+      "provenance": "source_visible;nearest-source-colour fill only behind vegetation",
+      "label_ru": "Табурет"
+    },
+    {
+      "id": "bench",
+      "file": "layers/bench.png",
+      "z": 50,
+      "role": "object",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        0,
+        225,
+        344,
+        376
+      ],
+      "animation": {
+        "type": "none"
+      },
+      "provenance": "source_visible;nearest-source-colour fill only behind vegetation",
+      "label_ru": "Лавочка"
+    },
+    {
+      "id": "crt_body",
+      "file": "layers/crt_body.png",
+      "z": 55,
+      "role": "object",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        243,
+        187,
+        390,
+        280
+      ],
+      "animation": {
+        "type": "none"
+      },
+      "provenance": "source_visible;nearest-source-colour fill only behind vegetation",
+      "label_ru": "Корпус телевизора"
+    },
+    {
+      "id": "crt_screen",
+      "file": "layers/crt_screen.png",
+      "z": 56,
+      "role": "screen",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        283,
+        198,
+        377,
+        263
+      ],
+      "animation": {
+        "type": "frame_sequence",
+        "frames": [
+          "effects/crt/00.png",
+          "effects/crt/01.png",
+          "effects/crt/02.png",
+          "effects/crt/03.png",
+          "effects/crt/04.png",
+          "effects/crt/05.png",
+          "effects/crt/06.png",
+          "effects/crt/07.png"
+        ],
+        "fps": 4,
+        "loop": true
+      },
+      "attach_to_layer": "crt_body",
+      "label_ru": "Экран телевизора"
+    },
+    {
+      "id": "canopy_left",
+      "file": "layers/canopy_left.png",
+      "z": 80,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        3,
+        1
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        0,
+        0,
+        201,
+        200
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 0,
+        "amplitude": 1.0,
+        "period": 7.5
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Листва слева"
+    },
+    {
+      "id": "canopy_middle",
+      "file": "layers/canopy_middle.png",
+      "z": 81,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        3,
+        1
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        198,
+        0,
+        416,
+        157
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 0,
+        "amplitude": 1.0,
+        "period": 7.87
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Листва в центре"
+    },
+    {
+      "id": "canopy_right",
+      "file": "layers/canopy_right.png",
+      "z": 82,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        3,
+        1
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        413,
+        0,
+        588,
+        106
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 0,
+        "amplitude": 1.0,
+        "period": 8.24
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Листва справа"
+    },
+    {
+      "id": "flowers_left",
+      "file": "layers/flowers_left.png",
+      "z": 83,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        1,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        0,
+        97,
+        291,
+        375
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 374,
+        "amplitude": 1.0,
+        "period": 8.61
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Цветы слева"
+    },
+    {
+      "id": "ivy_near_crt",
+      "file": "layers/ivy_near_crt.png",
+      "z": 84,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        1,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        234,
+        130,
+        370,
+        270
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 269,
+        "amplitude": 1.0,
+        "period": 8.98
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Зелень у телевизора"
+    },
+    {
+      "id": "bush_path_left",
+      "file": "layers/bush_path_left.png",
+      "z": 85,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        1,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        360,
+        165,
+        495,
+        301
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 300,
+        "amplitude": 1.0,
+        "period": 9.35
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Кусты у дорожки слева"
+    },
+    {
+      "id": "bush_path_right",
+      "file": "layers/bush_path_right.png",
+      "z": 86,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        1,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        549,
+        132,
+        656,
+        304
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 303,
+        "amplitude": 1.0,
+        "period": 9.719999999999999
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Кусты у дорожки справа"
+    },
+    {
+      "id": "grass_front_middle",
+      "file": "layers/grass_front_middle.png",
+      "z": 87,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        3,
+        1
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        253,
+        265,
+        527,
+        376
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 375,
+        "amplitude": 1.0,
+        "period": 10.09
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Трава спереди"
+    },
+    {
+      "id": "grass_front_right",
+      "file": "layers/grass_front_right.png",
+      "z": 88,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        3,
+        1
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        509,
+        284,
+        656,
+        376
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 375,
+        "amplitude": 1.0,
+        "period": 10.46
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Трава справа"
+    },
+    {
+      "id": "trees_far_left",
+      "file": "layers/trees_far_left.png",
+      "z": 89,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        1,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        369,
+        97,
+        486,
+        267
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 266,
+        "amplitude": 1.0,
+        "period": 10.83
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Деревья вдали слева"
+    },
+    {
+      "id": "trees_far_middle",
+      "file": "layers/trees_far_middle.png",
+      "z": 90,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        1,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        476,
+        177,
+        606,
+        296
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 295,
+        "amplitude": 1.0,
+        "period": 11.2
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Деревья вдали в центре"
+    },
+    {
+      "id": "trees_far_right",
+      "file": "layers/trees_far_right.png",
+      "z": 91,
+      "role": "vegetation",
+      "visible": true,
+      "parallax_max_logical": [
+        1,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        526,
+        93,
+        656,
+        274
+      ],
+      "animation": {
+        "type": "wind",
+        "root_y": 273,
+        "amplitude": 1.0,
+        "period": 11.57
+      },
+      "provenance": "exact_source_pixels_at_original_coordinates",
+      "label_ru": "Деревья вдали справа"
+    },
+    {
+      "role": "background",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        0,
+        0,
+        656,
+        376
+      ],
+      "animation": {
+        "type": "none"
+      },
+      "id": "source_sky",
+      "file": "layers/source_sky.png",
+      "z": 1,
+      "label_ru": "Небо из исходника (без облаков)",
+      "provenance": "angelos: original pixels where the sky is clear of clouds"
+    },
+    {
+      "role": "background",
+      "visible": true,
+      "parallax_max_logical": [
+        0,
+        0
+      ],
+      "edge_mode": "transparent",
+      "bounds_logical": [
+        0,
+        0,
+        656,
+        376
+      ],
+      "animation": {
+        "type": "none"
+      },
+      "id": "source_background",
+      "file": "layers/source_background.png",
+      "z": 21,
+      "label_ru": "Фон из исходника (тени, кабель)",
+      "provenance": "angelos: original pixels wherever the original shows no vegetation and no sky; under the vegetation the nearest of them"
+    }
+  ],
+  "groups": {
+    "vegetation": [
+      "canopy_left",
+      "canopy_middle",
+      "canopy_right",
+      "flowers_left",
+      "ivy_near_crt",
+      "bush_path_left",
+      "bush_path_right",
+      "grass_front_middle",
+      "grass_front_right",
+      "trees_far_left",
+      "trees_far_middle",
+      "trees_far_right"
+    ],
+    "props": [
+      "pergola_post",
+      "cable",
+      "stool",
+      "bench",
+      "crt_body",
+      "crt_screen"
+    ],
+    "clouds": [
+      "clouds_main",
+      "clouds_wisps"
+    ]
+  },
+  "effects": {
+    "windows": {
+      "frames": [
+        "effects/windows/00.png",
+        "effects/windows/01.png",
+        "effects/windows/02.png",
+        "effects/windows/03.png",
+        "effects/windows/04.png",
+        "effects/windows/05.png",
+        "effects/windows/06.png",
+        "effects/windows/07.png"
+      ],
+      "glass_mask": "masks/window_glass.png",
+      "z": 24,
+      "attach_to_layer": "background_clean",
+      "groups": [
+        {
+          "id": "window_01",
+          "pixels_logical": [
+            [
+              592,
+              92
+            ],
+            [
+              592,
+              93
+            ],
+            [
+              592,
+              94
+            ]
+          ],
+          "bounds_logical": [
+            592,
+            92,
+            593,
+            95
+          ]
+        },
+        {
+          "id": "window_02",
+          "pixels_logical": [
+            [
+              555,
+              93
+            ],
+            [
+              557,
+              93
+            ],
+            [
+              558,
+              93
+            ],
+            [
+              555,
+              94
+            ],
+            [
+              556,
+              94
+            ],
+            [
+              557,
+              94
+            ],
+            [
+              558,
+              94
+            ],
+            [
+              555,
+              95
+            ],
+            [
+              556,
+              95
+            ],
+            [
+              555,
+              96
+            ],
+            [
+              556,
+              96
+            ],
+            [
+              557,
+              96
+            ],
+            [
+              558,
+              96
+            ],
+            [
+              559,
+              96
+            ]
+          ],
+          "bounds_logical": [
+            555,
+            93,
+            560,
+            97
+          ]
+        },
+        {
+          "id": "window_03",
+          "pixels_logical": [
+            [
+              560,
+              93
+            ],
+            [
+              560,
+              94
+            ]
+          ],
+          "bounds_logical": [
+            560,
+            93,
+            561,
+            95
+          ]
+        },
+        {
+          "id": "window_04",
+          "pixels_logical": [
+            [
+              564,
+              95
+            ],
+            [
+              565,
+              95
+            ],
+            [
+              566,
+              95
+            ]
+          ],
+          "bounds_logical": [
+            564,
+            95,
+            567,
+            96
+          ]
+        },
+        {
+          "id": "window_05",
+          "pixels_logical": [
+            [
+              568,
+              95
+            ],
+            [
+              568,
+              96
+            ],
+            [
+              568,
+              97
+            ]
+          ],
+          "bounds_logical": [
+            568,
+            95,
+            569,
+            98
+          ]
+        },
+        {
+          "id": "window_06",
+          "pixels_logical": [
+            [
+              565,
+              97
+            ],
+            [
+              565,
+              98
+            ]
+          ],
+          "bounds_logical": [
+            565,
+            97,
+            566,
+            99
+          ]
+        },
+        {
+          "id": "window_07",
+          "pixels_logical": [
+            [
+              586,
+              100
+            ],
+            [
+              587,
+              100
+            ],
+            [
+              588,
+              100
+            ],
+            [
+              589,
+              100
+            ],
+            [
+              590,
+              100
+            ]
+          ],
+          "bounds_logical": [
+            586,
+            100,
+            591,
+            101
+          ]
+        },
+        {
+          "id": "window_08",
+          "pixels_logical": [
+            [
+              582,
+              103
+            ],
+            [
+              583,
+              103
+            ],
+            [
+              584,
+              103
+            ],
+            [
+              585,
+              103
+            ],
+            [
+              586,
+              103
+            ],
+            [
+              587,
+              103
+            ],
+            [
+              584,
+              104
+            ],
+            [
+              585,
+              104
+            ],
+            [
+              586,
+              104
+            ],
+            [
+              587,
+              104
+            ],
+            [
+              583,
+              105
+            ],
+            [
+              584,
+              105
+            ],
+            [
+              585,
+              105
+            ],
+            [
+              586,
+              105
+            ],
+            [
+              587,
+              105
+            ],
+            [
+              582,
+              106
+            ],
+            [
+              583,
+              106
+            ],
+            [
+              584,
+              106
+            ],
+            [
+              585,
+              106
+            ],
+            [
+              586,
+              106
+            ],
+            [
+              587,
+              106
+            ],
+            [
+              582,
+              107
+            ],
+            [
+              583,
+              107
+            ],
+            [
+              584,
+              107
+            ],
+            [
+              585,
+              107
+            ],
+            [
+              586,
+              107
+            ],
+            [
+              587,
+              107
+            ],
+            [
+              582,
+              108
+            ],
+            [
+              583,
+              108
+            ],
+            [
+              584,
+              108
+            ],
+            [
+              585,
+              108
+            ],
+            [
+              586,
+              108
+            ],
+            [
+              587,
+              108
+            ],
+            [
+              582,
+              109
+            ],
+            [
+              583,
+              109
+            ],
+            [
+              584,
+              109
+            ],
+            [
+              585,
+              109
+            ],
+            [
+              586,
+              109
+            ],
+            [
+              587,
+              109
+            ],
+            [
+              582,
+              110
+            ]
+          ],
+          "bounds_logical": [
+            582,
+            103,
+            588,
+            111
+          ]
+        },
+        {
+          "id": "window_09",
+          "pixels_logical": [
+            [
+              597,
+              104
+            ],
+            [
+              598,
+              104
+            ],
+            [
+              597,
+              105
+            ],
+            [
+              598,
+              105
+            ],
+            [
+              597,
+              106
+            ],
+            [
+              597,
+              107
+            ],
+            [
+              597,
+              108
+            ],
+            [
+              597,
+              109
+            ]
+          ],
+          "bounds_logical": [
+            597,
+            104,
+            599,
+            110
+          ]
+        },
+        {
+          "id": "window_10",
+          "pixels_logical": [
+            [
+              583,
+              116
+            ],
+            [
+              584,
+              116
+            ]
+          ],
+          "bounds_logical": [
+            583,
+            116,
+            585,
+            117
+          ]
+        },
+        {
+          "id": "window_11",
+          "pixels_logical": [
+            [
+              557,
+              117
+            ],
+            [
+              558,
+              117
+            ],
+            [
+              559,
+              117
+            ],
+            [
+              560,
+              117
+            ]
+          ],
+          "bounds_logical": [
+            557,
+            117,
+            561,
+            118
+          ]
+        },
+        {
+          "id": "window_12",
+          "pixels_logical": [
+            [
+              582,
+              117
+            ],
+            [
+              582,
+              118
+            ],
+            [
+              582,
+              119
+            ],
+            [
+              582,
+              120
+            ],
+            [
+              582,
+              121
+            ],
+            [
+              582,
+              122
+            ],
+            [
+              583,
+              122
+            ],
+            [
+              582,
+              123
+            ]
+          ],
+          "bounds_logical": [
+            582,
+            117,
+            584,
+            124
+          ]
+        },
+        {
+          "id": "window_13",
+          "pixels_logical": [
+            [
+              585,
+              118
+            ],
+            [
+              586,
+              118
+            ],
+            [
+              587,
+              118
+            ],
+            [
+              585,
+              119
+            ],
+            [
+              585,
+              120
+            ],
+            [
+              586,
+              120
+            ],
+            [
+              585,
+              121
+            ],
+            [
+              586,
+              121
+            ],
+            [
+              585,
+              122
+            ],
+            [
+              586,
+              122
+            ],
+            [
+              587,
+              122
+            ]
+          ],
+          "bounds_logical": [
+            585,
+            118,
+            588,
+            123
+          ]
+        },
+        {
+          "id": "window_14",
+          "pixels_logical": [
+            [
+              605,
+              123
+            ],
+            [
+              605,
+              124
+            ],
+            [
+              605,
+              125
+            ],
+            [
+              605,
+              126
+            ],
+            [
+              605,
+              127
+            ],
+            [
+              605,
+              128
+            ],
+            [
+              605,
+              129
+            ],
+            [
+              605,
+              130
+            ],
+            [
+              605,
+              131
+            ],
+            [
+              605,
+              132
+            ],
+            [
+              605,
+              133
+            ],
+            [
+              605,
+              134
+            ],
+            [
+              605,
+              135
+            ]
+          ],
+          "bounds_logical": [
+            605,
+            123,
+            606,
+            136
+          ]
+        },
+        {
+          "id": "window_15",
+          "pixels_logical": [
+            [
+              582,
+              129
+            ],
+            [
+              584,
+              129
+            ],
+            [
+              585,
+              129
+            ],
+            [
+              586,
+              129
+            ],
+            [
+              582,
+              130
+            ],
+            [
+              583,
+              130
+            ],
+            [
+              584,
+              130
+            ],
+            [
+              585,
+              130
+            ],
+            [
+              586,
+              130
+            ],
+            [
+              587,
+              130
+            ],
+            [
+              582,
+              131
+            ],
+            [
+              583,
+              131
+            ],
+            [
+              584,
+              131
+            ],
+            [
+              585,
+              131
+            ],
+            [
+              586,
+              131
+            ],
+            [
+              587,
+              131
+            ],
+            [
+              582,
+              132
+            ],
+            [
+              583,
+              132
+            ],
+            [
+              584,
+              132
+            ],
+            [
+              585,
+              132
+            ],
+            [
+              586,
+              132
+            ],
+            [
+              587,
+              132
+            ],
+            [
+              582,
+              133
+            ],
+            [
+              583,
+              133
+            ],
+            [
+              584,
+              133
+            ],
+            [
+              585,
+              133
+            ],
+            [
+              586,
+              133
+            ],
+            [
+              587,
+              133
+            ],
+            [
+              582,
+              134
+            ],
+            [
+              583,
+              134
+            ],
+            [
+              584,
+              134
+            ],
+            [
+              585,
+              134
+            ],
+            [
+              586,
+              134
+            ],
+            [
+              587,
+              134
+            ],
+            [
+              582,
+              135
+            ],
+            [
+              583,
+              135
+            ],
+            [
+              584,
+              135
+            ],
+            [
+              585,
+              135
+            ],
+            [
+              586,
+              135
+            ],
+            [
+              587,
+              135
+            ],
+            [
+              582,
+              136
+            ],
+            [
+              583,
+              136
+            ],
+            [
+              584,
+              136
+            ]
+          ],
+          "bounds_logical": [
+            582,
+            129,
+            588,
+            137
+          ]
+        },
+        {
+          "id": "window_16",
+          "pixels_logical": [
+            [
+              534,
+              132
+            ],
+            [
+              535,
+              132
+            ],
+            [
+              536,
+              132
+            ]
+          ],
+          "bounds_logical": [
+            534,
+            132,
+            537,
+            133
+          ]
+        },
+        {
+          "id": "window_17",
+          "pixels_logical": [
+            [
+              551,
+              137
+            ],
+            [
+              551,
+              138
+            ],
+            [
+              551,
+              139
+            ],
+            [
+              551,
+              140
+            ],
+            [
+              551,
+              141
+            ],
+            [
+              552,
+              141
+            ],
+            [
+              553,
+              141
+            ],
+            [
+              554,
+              141
+            ]
+          ],
+          "bounds_logical": [
+            551,
+            137,
+            555,
+            142
+          ]
+        },
+        {
+          "id": "window_18",
+          "pixels_logical": [
+            [
+              532,
+              142
+            ],
+            [
+              533,
+              142
+            ],
+            [
+              534,
+              142
+            ]
+          ],
+          "bounds_logical": [
+            532,
+            142,
+            535,
+            143
+          ]
+        },
+        {
+          "id": "window_19",
+          "pixels_logical": [
+            [
+              582,
+              142
+            ],
+            [
+              582,
+              143
+            ],
+            [
+              582,
+              144
+            ],
+            [
+              582,
+              145
+            ],
+            [
+              582,
+              146
+            ],
+            [
+              582,
+              147
+            ],
+            [
+              582,
+              148
+            ],
+            [
+              583,
+              148
+            ]
+          ],
+          "bounds_logical": [
+            582,
+            142,
+            584,
+            149
+          ]
+        },
+        {
+          "id": "window_20",
+          "pixels_logical": [
+            [
+              585,
+              142
+            ],
+            [
+              587,
+              142
+            ],
+            [
+              585,
+              143
+            ],
+            [
+              586,
+              143
+            ],
+            [
+              587,
+              143
+            ],
+            [
+              585,
+              144
+            ],
+            [
+              586,
+              144
+            ],
+            [
+              587,
+              144
+            ],
+            [
+              585,
+              145
+            ],
+            [
+              586,
+              145
+            ],
+            [
+              587,
+              145
+            ],
+            [
+              585,
+              146
+            ],
+            [
+              586,
+              146
+            ],
+            [
+              587,
+              146
+            ],
+            [
+              585,
+              147
+            ],
+            [
+              586,
+              147
+            ],
+            [
+              587,
+              147
+            ]
+          ],
+          "bounds_logical": [
+            585,
+            142,
+            588,
+            148
+          ]
+        },
+        {
+          "id": "window_21",
+          "pixels_logical": [
+            [
+              590,
+              150
+            ],
+            [
+              591,
+              150
+            ],
+            [
+              592,
+              150
+            ]
+          ],
+          "bounds_logical": [
+            590,
+            150,
+            593,
+            151
+          ]
+        },
+        {
+          "id": "window_22",
+          "pixels_logical": [
+            [
+              605,
+              152
+            ],
+            [
+              605,
+              153
+            ],
+            [
+              605,
+              154
+            ],
+            [
+              605,
+              155
+            ]
+          ],
+          "bounds_logical": [
+            605,
+            152,
+            606,
+            156
+          ]
+        },
+        {
+          "id": "window_23",
+          "pixels_logical": [
+            [
+              541,
+              153
+            ],
+            [
+              542,
+              153
+            ],
+            [
+              543,
+              153
+            ]
+          ],
+          "bounds_logical": [
+            541,
+            153,
+            544,
+            154
+          ]
+        },
+        {
+          "id": "window_24",
+          "pixels_logical": [
+            [
+              582,
+              154
+            ],
+            [
+              583,
+              154
+            ],
+            [
+              584,
+              154
+            ],
+            [
+              585,
+              154
+            ],
+            [
+              586,
+              154
+            ],
+            [
+              587,
+              154
+            ],
+            [
+              582,
+              155
+            ],
+            [
+              583,
+              155
+            ],
+            [
+              585,
+              155
+            ],
+            [
+              587,
+              155
+            ],
+            [
+              582,
+              156
+            ],
+            [
+              583,
+              156
+            ],
+            [
+              584,
+              156
+            ],
+            [
+              585,
+              156
+            ],
+            [
+              586,
+              156
+            ],
+            [
+              587,
+              156
+            ],
+            [
+              582,
+              157
+            ],
+            [
+              583,
+              157
+            ],
+            [
+              584,
+              157
+            ],
+            [
+              585,
+              157
+            ],
+            [
+              586,
+              157
+            ],
+            [
+              587,
+              157
+            ],
+            [
+              582,
+              158
+            ],
+            [
+              583,
+              158
+            ],
+            [
+              584,
+              158
+            ],
+            [
+              585,
+              158
+            ],
+            [
+              586,
+              158
+            ],
+            [
+              587,
+              158
+            ],
+            [
+              582,
+              159
+            ],
+            [
+              583,
+              159
+            ],
+            [
+              584,
+              159
+            ],
+            [
+              585,
+              159
+            ],
+            [
+              586,
+              159
+            ],
+            [
+              587,
+              159
+            ],
+            [
+              582,
+              160
+            ],
+            [
+              583,
+              160
+            ],
+            [
+              584,
+              160
+            ],
+            [
+              585,
+              160
+            ],
+            [
+              586,
+              160
+            ],
+            [
+              587,
+              160
+            ]
+          ],
+          "bounds_logical": [
+            582,
+            154,
+            588,
+            161
+          ]
+        },
+        {
+          "id": "window_25",
+          "pixels_logical": [
+            [
+              556,
+              155
+            ],
+            [
+              556,
+              156
+            ]
+          ],
+          "bounds_logical": [
+            556,
+            155,
+            557,
+            157
+          ]
+        },
+        {
+          "id": "window_26",
+          "pixels_logical": [
+            [
+              559,
+              156
+            ],
+            [
+              560,
+              156
+            ],
+            [
+              561,
+              156
+            ],
+            [
+              557,
+              157
+            ],
+            [
+              558,
+              157
+            ],
+            [
+              559,
+              157
+            ],
+            [
+              560,
+              157
+            ],
+            [
+              561,
+              157
+            ],
+            [
+              557,
+              158
+            ],
+            [
+              559,
+              158
+            ],
+            [
+              557,
+              159
+            ],
+            [
+              559,
+              159
+            ],
+            [
+              560,
+              159
+            ],
+            [
+              556,
+              160
+            ],
+            [
+              559,
+              160
+            ],
+            [
+              556,
+              161
+            ],
+            [
+              559,
+              161
+            ],
+            [
+              556,
+              162
+            ],
+            [
+              557,
+              162
+            ],
+            [
+              558,
+              162
+            ],
+            [
+              559,
+              162
+            ],
+            [
+              560,
+              162
+            ]
+          ],
+          "bounds_logical": [
+            556,
+            156,
+            562,
+            163
+          ]
+        },
+        {
+          "id": "window_27",
+          "pixels_logical": [
+            [
+              585,
+              167
+            ],
+            [
+              586,
+              167
+            ],
+            [
+              587,
+              167
+            ],
+            [
+              582,
+              168
+            ],
+            [
+              585,
+              168
+            ],
+            [
+              582,
+              169
+            ],
+            [
+              585,
+              169
+            ],
+            [
+              586,
+              169
+            ],
+            [
+              587,
+              169
+            ],
+            [
+              582,
+              170
+            ],
+            [
+              585,
+              170
+            ],
+            [
+              586,
+              170
+            ],
+            [
+              582,
+              171
+            ],
+            [
+              583,
+              171
+            ],
+            [
+              585,
+              171
+            ],
+            [
+              586,
+              171
+            ],
+            [
+              582,
+              172
+            ],
+            [
+              583,
+              172
+            ],
+            [
+              584,
+              172
+            ],
+            [
+              585,
+              172
+            ],
+            [
+              586,
+              172
+            ],
+            [
+              587,
+              172
+            ],
+            [
+              582,
+              173
+            ],
+            [
+              583,
+              173
+            ],
+            [
+              584,
+              173
+            ],
+            [
+              585,
+              173
+            ],
+            [
+              586,
+              173
+            ],
+            [
+              582,
+              174
+            ],
+            [
+              583,
+              174
+            ],
+            [
+              584,
+              174
+            ],
+            [
+              585,
+              174
+            ],
+            [
+              586,
+              174
+            ],
+            [
+              587,
+              174
+            ]
+          ],
+          "bounds_logical": [
+            582,
+            167,
+            588,
+            175
+          ]
+        },
+        {
+          "id": "window_28",
+          "pixels_logical": [
+            [
+              556,
+              169
+            ],
+            [
+              557,
+              169
+            ],
+            [
+              558,
+              169
+            ],
+            [
+              559,
+              169
+            ],
+            [
+              560,
+              169
+            ],
+            [
+              561,
+              169
+            ],
+            [
+              562,
+              169
+            ],
+            [
+              556,
+              170
+            ],
+            [
+              559,
+              170
+            ],
+            [
+              556,
+              171
+            ],
+            [
+              559,
+              171
+            ],
+            [
+              560,
+              171
+            ],
+            [
+              561,
+              171
+            ],
+            [
+              556,
+              172
+            ],
+            [
+              558,
+              172
+            ],
+            [
+              559,
+              172
+            ],
+            [
+              560,
+              172
+            ],
+            [
+              561,
+              172
+            ],
+            [
+              556,
+              173
+            ],
+            [
+              559,
+              173
+            ],
+            [
+              560,
+              173
+            ],
+            [
+              561,
+              173
+            ],
+            [
+              556,
+              174
+            ],
+            [
+              559,
+              174
+            ],
+            [
+              560,
+              174
+            ],
+            [
+              561,
+              174
+            ],
+            [
+              556,
+              175
+            ],
+            [
+              557,
+              175
+            ],
+            [
+              558,
+              175
+            ],
+            [
+              559,
+              175
+            ],
+            [
+              560,
+              175
+            ],
+            [
+              561,
+              175
+            ],
+            [
+              556,
+              176
+            ],
+            [
+              557,
+              176
+            ],
+            [
+              558,
+              176
+            ],
+            [
+              559,
+              176
+            ],
+            [
+              560,
+              176
+            ],
+            [
+              561,
+              176
+            ]
+          ],
+          "bounds_logical": [
+            556,
+            169,
+            563,
+            177
+          ]
+        },
+        {
+          "id": "window_29",
+          "pixels_logical": [
+            [
+              599,
+              169
+            ],
+            [
+              600,
+              169
+            ],
+            [
+              599,
+              170
+            ]
+          ],
+          "bounds_logical": [
+            599,
+            169,
+            601,
+            171
+          ]
+        },
+        {
+          "id": "window_30",
+          "pixels_logical": [
+            [
+              431,
+              178
+            ],
+            [
+              431,
+              179
+            ],
+            [
+              432,
+              179
+            ],
+            [
+              431,
+              180
+            ],
+            [
+              431,
+              181
+            ]
+          ],
+          "bounds_logical": [
+            431,
+            178,
+            433,
+            182
+          ]
+        },
+        {
+          "id": "window_31",
+          "pixels_logical": [
+            [
+              545,
+              180
+            ],
+            [
+              546,
+              180
+            ],
+            [
+              547,
+              180
+            ],
+            [
+              548,
+              180
+            ],
+            [
+              549,
+              180
+            ],
+            [
+              550,
+              180
+            ]
+          ],
+          "bounds_logical": [
+            545,
+            180,
+            551,
+            181
+          ]
+        },
+        {
+          "id": "window_32",
+          "pixels_logical": [
+            [
+              558,
+              180
+            ],
+            [
+              559,
+              180
+            ]
+          ],
+          "bounds_logical": [
+            558,
+            180,
+            560,
+            181
+          ]
+        },
+        {
+          "id": "window_33",
+          "pixels_logical": [
+            [
+              532,
+              181
+            ],
+            [
+              533,
+              181
+            ],
+            [
+              534,
+              181
+            ]
+          ],
+          "bounds_logical": [
+            532,
+            181,
+            535,
+            182
+          ]
+        },
+        {
+          "id": "window_34",
+          "pixels_logical": [
+            [
+              582,
+              181
+            ],
+            [
+              583,
+              181
+            ],
+            [
+              584,
+              181
+            ],
+            [
+              585,
+              181
+            ],
+            [
+              586,
+              181
+            ],
+            [
+              585,
+              182
+            ],
+            [
+              584,
+              183
+            ],
+            [
+              585,
+              183
+            ],
+            [
+              586,
+              183
+            ],
+            [
+              584,
+              184
+            ],
+            [
+              585,
+              184
+            ],
+            [
+              586,
+              184
+            ],
+            [
+              587,
+              184
+            ],
+            [
+              582,
+              185
+            ],
+            [
+              583,
+              185
+            ],
+            [
+              584,
+              185
+            ],
+            [
+              585,
+              185
+            ],
+            [
+              586,
+              185
+            ],
+            [
+              587,
+              185
+            ],
+            [
+              582,
+              186
+            ],
+            [
+              583,
+              186
+            ],
+            [
+              584,
+              186
+            ],
+            [
+              585,
+              186
+            ],
+            [
+              586,
+              186
+            ],
+            [
+              587,
+              186
+            ],
+            [
+              582,
+              187
+            ],
+            [
+              584,
+              187
+            ],
+            [
+              585,
+              187
+            ],
+            [
+              587,
+              187
+            ],
+            [
+              582,
+              188
+            ],
+            [
+              583,
+              188
+            ],
+            [
+              584,
+              188
+            ],
+            [
+              585,
+              188
+            ],
+            [
+              586,
+              188
+            ],
+            [
+              587,
+              188
+            ]
+          ],
+          "bounds_logical": [
+            582,
+            181,
+            588,
+            189
+          ]
+        },
+        {
+          "id": "window_35",
+          "pixels_logical": [
+            [
+              559,
+              182
+            ],
+            [
+              556,
+              183
+            ],
+            [
+              557,
+              183
+            ],
+            [
+              559,
+              183
+            ],
+            [
+              556,
+              184
+            ],
+            [
+              557,
+              184
+            ],
+            [
+              558,
+              184
+            ],
+            [
+              559,
+              184
+            ],
+            [
+              560,
+              184
+            ],
+            [
+              561,
+              184
+            ],
+            [
+              556,
+              185
+            ],
+            [
+              557,
+              185
+            ],
+            [
+              558,
+              185
+            ],
+            [
+              559,
+              185
+            ],
+            [
+              560,
+              185
+            ],
+            [
+              561,
+              185
+            ],
+            [
+              556,
+              186
+            ],
+            [
+              557,
+              186
+            ],
+            [
+              559,
+              186
+            ],
+            [
+              560,
+              186
+            ],
+            [
+              556,
+              187
+            ],
+            [
+              557,
+              187
+            ],
+            [
+              559,
+              187
+            ],
+            [
+              560,
+              187
+            ],
+            [
+              561,
+              187
+            ],
+            [
+              556,
+              188
+            ],
+            [
+              557,
+              188
+            ],
+            [
+              559,
+              188
+            ],
+            [
+              560,
+              188
+            ],
+            [
+              556,
+              189
+            ],
+            [
+              557,
+              189
+            ],
+            [
+              558,
+              189
+            ],
+            [
+              559,
+              189
+            ],
+            [
+              560,
+              189
+            ],
+            [
+              561,
+              189
+            ]
+          ],
+          "bounds_logical": [
+            556,
+            182,
+            562,
+            190
+          ]
+        },
+        {
+          "id": "window_36",
+          "pixels_logical": [
+            [
+              578,
+              187
+            ],
+            [
+              578,
+              188
+            ],
+            [
+              578,
+              189
+            ],
+            [
+              578,
+              190
+            ]
+          ],
+          "bounds_logical": [
+            578,
+            187,
+            579,
+            191
+          ]
+        },
+        {
+          "id": "window_37",
+          "pixels_logical": [
+            [
+              552,
+              188
+            ],
+            [
+              552,
+              189
+            ],
+            [
+              552,
+              190
+            ],
+            [
+              552,
+              191
+            ],
+            [
+              552,
+              192
+            ],
+            [
+              552,
+              193
+            ],
+            [
+              553,
+              193
+            ],
+            [
+              552,
+              194
+            ],
+            [
+              552,
+              195
+            ],
+            [
+              552,
+              196
+            ],
+            [
+              552,
+              197
+            ]
+          ],
+          "bounds_logical": [
+            552,
+            188,
+            554,
+            198
+          ]
+        },
+        {
+          "id": "window_38",
+          "pixels_logical": [
+            [
+              584,
+              192
+            ],
+            [
+              585,
+              192
+            ],
+            [
+              586,
+              192
+            ]
+          ],
+          "bounds_logical": [
+            584,
+            192,
+            587,
+            193
+          ]
+        },
+        {
+          "id": "window_39",
+          "pixels_logical": [
+            [
+              562,
+              193
+            ],
+            [
+              563,
+              193
+            ],
+            [
+              564,
+              193
+            ],
+            [
+              565,
+              193
+            ]
+          ],
+          "bounds_logical": [
+            562,
+            193,
+            566,
+            194
+          ]
+        },
+        {
+          "id": "window_40",
+          "pixels_logical": [
+            [
+              578,
+              193
+            ],
+            [
+              578,
+              194
+            ]
+          ],
+          "bounds_logical": [
+            578,
+            193,
+            579,
+            195
+          ]
+        },
+        {
+          "id": "window_41",
+          "pixels_logical": [
+            [
+              532,
+              194
+            ],
+            [
+              533,
+              194
+            ],
+            [
+              534,
+              194
+            ]
+          ],
+          "bounds_logical": [
+            532,
+            194,
+            535,
+            195
+          ]
+        },
+        {
+          "id": "window_42",
+          "pixels_logical": [
+            [
+              585,
+              195
+            ],
+            [
+              585,
+              196
+            ],
+            [
+              585,
+              197
+            ],
+            [
+              585,
+              198
+            ],
+            [
+              585,
+              199
+            ],
+            [
+              585,
+              200
+            ],
+            [
+              582,
+              201
+            ],
+            [
+              583,
+              201
+            ],
+            [
+              584,
+              201
+            ],
+            [
+              585,
+              201
+            ],
+            [
+              586,
+              201
+            ],
+            [
+              587,
+              201
+            ],
+            [
+              583,
+              202
+            ],
+            [
+              584,
+              202
+            ],
+            [
+              585,
+              202
+            ]
+          ],
+          "bounds_logical": [
+            582,
+            195,
+            588,
+            203
+          ]
+        },
+        {
+          "id": "window_43",
+          "pixels_logical": [
+            [
+              556,
+              196
+            ],
+            [
+              559,
+              196
+            ],
+            [
+              556,
+              197
+            ],
+            [
+              557,
+              197
+            ],
+            [
+              558,
+              197
+            ],
+            [
+              559,
+              197
+            ],
+            [
+              560,
+              197
+            ],
+            [
+              561,
+              197
+            ],
+            [
+              556,
+              198
+            ],
+            [
+              557,
+              198
+            ],
+            [
+              558,
+              198
+            ],
+            [
+              559,
+              198
+            ],
+            [
+              560,
+              198
+            ],
+            [
+              561,
+              198
+            ],
+            [
+              556,
+              199
+            ],
+            [
+              557,
+              199
+            ],
+            [
+              558,
+              199
+            ],
+            [
+              559,
+              199
+            ],
+            [
+              560,
+              199
+            ],
+            [
+              561,
+              199
+            ],
+            [
+              556,
+              200
+            ],
+            [
+              557,
+              200
+            ],
+            [
+              558,
+              200
+            ],
+            [
+              559,
+              200
+            ],
+            [
+              560,
+              200
+            ],
+            [
+              561,
+              200
+            ],
+            [
+              556,
+              201
+            ],
+            [
+              557,
+              201
+            ],
+            [
+              558,
+              201
+            ],
+            [
+              559,
+              201
+            ],
+            [
+              560,
+              201
+            ],
+            [
+              561,
+              201
+            ],
+            [
+              556,
+              202
+            ],
+            [
+              557,
+              202
+            ],
+            [
+              558,
+              202
+            ],
+            [
+              560,
+              202
+            ],
+            [
+              561,
+              202
+            ]
+          ],
+          "bounds_logical": [
+            556,
+            196,
+            562,
+            203
+          ]
+        },
+        {
+          "id": "window_44",
+          "pixels_logical": [
+            [
+              578,
+              201
+            ],
+            [
+              578,
+              202
+            ],
+            [
+              578,
+              203
+            ],
+            [
+              578,
+              204
+            ],
+            [
+              578,
+              205
+            ],
+            [
+              578,
+              206
+            ]
+          ],
+          "bounds_logical": [
+            578,
+            201,
+            579,
+            207
+          ]
+        },
+        {
+          "id": "window_45",
+          "pixels_logical": [
+            [
+              584,
+              205
+            ],
+            [
+              585,
+              205
+            ]
+          ],
+          "bounds_logical": [
+            584,
+            205,
+            586,
+            206
+          ]
+        },
+        {
+          "id": "window_46",
+          "pixels_logical": [
+            [
+              532,
+              207
+            ],
+            [
+              533,
+              207
+            ],
+            [
+              534,
+              207
+            ],
+            [
+              535,
+              207
+            ],
+            [
+              536,
+              207
+            ],
+            [
+              537,
+              207
+            ]
+          ],
+          "bounds_logical": [
+            532,
+            207,
+            538,
+            208
+          ]
+        },
+        {
+          "id": "window_47",
+          "pixels_logical": [
+            [
+              539,
+              207
+            ],
+            [
+              540,
+              207
+            ],
+            [
+              541,
+              207
+            ],
+            [
+              542,
+              207
+            ],
+            [
+              543,
+              207
+            ],
+            [
+              544,
+              207
+            ],
+            [
+              541,
+              208
+            ]
+          ],
+          "bounds_logical": [
+            539,
+            207,
+            545,
+            209
+          ]
+        },
+        {
+          "id": "window_48",
+          "pixels_logical": [
+            [
+              606,
+              207
+            ],
+            [
+              606,
+              208
+            ],
+            [
+              606,
+              209
+            ]
+          ],
+          "bounds_logical": [
+            606,
+            207,
+            607,
+            210
+          ]
+        },
+        {
+          "id": "window_49",
+          "pixels_logical": [
+            [
+              583,
+              208
+            ],
+            [
+              584,
+              208
+            ],
+            [
+              585,
+              208
+            ],
+            [
+              586,
+              208
+            ],
+            [
+              585,
+              209
+            ],
+            [
+              585,
+              210
+            ],
+            [
+              585,
+              211
+            ],
+            [
+              584,
+              212
+            ],
+            [
+              585,
+              212
+            ],
+            [
+              584,
+              213
+            ],
+            [
+              585,
+              213
+            ],
+            [
+              585,
+              214
+            ],
+            [
+              583,
+              215
+            ],
+            [
+              584,
+              215
+            ],
+            [
+              585,
+              215
+            ],
+            [
+              586,
+              215
+            ],
+            [
+              587,
+              215
+            ]
+          ],
+          "bounds_logical": [
+            583,
+            208,
+            588,
+            216
+          ]
+        },
+        {
+          "id": "window_50",
+          "pixels_logical": [
+            [
+              556,
+              209
+            ],
+            [
+              557,
+              209
+            ],
+            [
+              556,
+              210
+            ],
+            [
+              559,
+              210
+            ],
+            [
+              556,
+              211
+            ],
+            [
+              557,
+              211
+            ],
+            [
+              558,
+              211
+            ],
+            [
+              559,
+              211
+            ],
+            [
+              560,
+              211
+            ],
+            [
+              561,
+              211
+            ],
+            [
+              556,
+              212
+            ],
+            [
+              559,
+              212
+            ],
+            [
+              560,
+              212
+            ],
+            [
+              561,
+              212
+            ],
+            [
+              556,
+              213
+            ],
+            [
+              560,
+              213
+            ],
+            [
+              556,
+              214
+            ],
+            [
+              557,
+              214
+            ],
+            [
+              560,
+              214
+            ],
+            [
+              556,
+              215
+            ],
+            [
+              560,
+              215
+            ],
+            [
+              561,
+              215
+            ],
+            [
+              556,
+              216
+            ],
+            [
+              557,
+              216
+            ],
+            [
+              558,
+              216
+            ],
+            [
+              559,
+              216
+            ]
+          ],
+          "bounds_logical": [
+            556,
+            209,
+            562,
+            217
+          ]
+        },
+        {
+          "id": "window_51",
+          "pixels_logical": [
+            [
+              477,
+              219
+            ],
+            [
+              478,
+              219
+            ],
+            [
+              479,
+              219
+            ]
+          ],
+          "bounds_logical": [
+            477,
+            219,
+            480,
+            220
+          ]
+        },
+        {
+          "id": "window_52",
+          "pixels_logical": [
+            [
+              541,
+              220
+            ],
+            [
+              542,
+              220
+            ],
+            [
+              543,
+              220
+            ]
+          ],
+          "bounds_logical": [
+            541,
+            220,
+            544,
+            221
+          ]
+        },
+        {
+          "id": "window_53",
+          "pixels_logical": [
+            [
+              564,
+              220
+            ],
+            [
+              564,
+              221
+            ],
+            [
+              564,
+              222
+            ],
+            [
+              564,
+              223
+            ]
+          ],
+          "bounds_logical": [
+            564,
+            220,
+            565,
+            224
+          ]
+        },
+        {
+          "id": "window_54",
+          "pixels_logical": [
+            [
+              578,
+              222
+            ],
+            [
+              578,
+              223
+            ],
+            [
+              578,
+              224
+            ],
+            [
+              578,
+              225
+            ],
+            [
+              578,
+              226
+            ]
+          ],
+          "bounds_logical": [
+            578,
+            222,
+            579,
+            227
+          ]
+        },
+        {
+          "id": "window_55",
+          "pixels_logical": [
+            [
+              585,
+              222
+            ],
+            [
+              585,
+              223
+            ],
+            [
+              585,
+              224
+            ],
+            [
+              585,
+              225
+            ],
+            [
+              585,
+              226
+            ],
+            [
+              588,
+              226
+            ],
+            [
+              585,
+              227
+            ],
+            [
+              588,
+              227
+            ],
+            [
+              583,
+              228
+            ],
+            [
+              584,
+              228
+            ],
+            [
+              585,
+              228
+            ],
+            [
+              586,
+              228
+            ],
+            [
+              587,
+              228
+            ],
+            [
+              588,
+              228
+            ]
+          ],
+          "bounds_logical": [
+            583,
+            222,
+            589,
+            229
+          ]
+        },
+        {
+          "id": "window_56",
+          "pixels_logical": [
+            [
+              560,
+              224
+            ],
+            [
+              561,
+              224
+            ],
+            [
+              560,
+              225
+            ]
+          ],
+          "bounds_logical": [
+            560,
+            224,
+            562,
+            226
+          ]
+        },
+        {
+          "id": "window_57",
+          "pixels_logical": [
+            [
+              552,
+              227
+            ],
+            [
+              552,
+              228
+            ],
+            [
+              552,
+              229
+            ],
+            [
+              552,
+              230
+            ],
+            [
+              552,
+              231
+            ],
+            [
+              552,
+              232
+            ],
+            [
+              552,
+              233
+            ],
+            [
+              553,
+              233
+            ],
+            [
+              554,
+              233
+            ],
+            [
+              555,
+              233
+            ],
+            [
+              552,
+              234
+            ],
+            [
+              552,
+              235
+            ]
+          ],
+          "bounds_logical": [
+            552,
+            227,
+            556,
+            236
+          ]
+        },
+        {
+          "id": "window_58",
+          "pixels_logical": [
+            [
+              556,
+              228
+            ],
+            [
+              559,
+              228
+            ],
+            [
+              560,
+              228
+            ],
+            [
+              561,
+              228
+            ],
+            [
+              556,
+              229
+            ],
+            [
+              557,
+              229
+            ],
+            [
+              558,
+              229
+            ],
+            [
+              559,
+              229
+            ],
+            [
+              560,
+              229
+            ],
+            [
+              561,
+              229
+            ]
+          ],
+          "bounds_logical": [
+            556,
+            228,
+            562,
+            230
+          ]
+        },
+        {
+          "id": "window_59",
+          "pixels_logical": [
+            [
+              535,
+              233
+            ],
+            [
+              536,
+              233
+            ]
+          ],
+          "bounds_logical": [
+            535,
+            233,
+            537,
+            234
+          ]
+        },
+        {
+          "id": "window_60",
+          "pixels_logical": [
+            [
+              539,
+              233
+            ],
+            [
+              540,
+              233
+            ],
+            [
+              541,
+              233
+            ],
+            [
+              542,
+              233
+            ],
+            [
+              543,
+              233
+            ],
+            [
+              544,
+              233
+            ]
+          ],
+          "bounds_logical": [
+            539,
+            233,
+            545,
+            234
+          ]
+        },
+        {
+          "id": "window_61",
+          "pixels_logical": [
+            [
+              546,
+              233
+            ],
+            [
+              547,
+              233
+            ],
+            [
+              548,
+              233
+            ],
+            [
+              549,
+              233
+            ]
+          ],
+          "bounds_logical": [
+            546,
+            233,
+            550,
+            234
+          ]
+        },
+        {
+          "id": "window_62",
+          "pixels_logical": [
+            [
+              559,
+              233
+            ],
+            [
+              560,
+              233
+            ]
+          ],
+          "bounds_logical": [
+            559,
+            233,
+            561,
+            234
+          ]
+        },
+        {
+          "id": "window_63",
+          "pixels_logical": [
+            [
+              585,
+              235
+            ],
+            [
+              585,
+              236
+            ],
+            [
+              586,
+              236
+            ],
+            [
+              584,
+              237
+            ],
+            [
+              585,
+              237
+            ],
+            [
+              587,
+              237
+            ],
+            [
+              588,
+              237
+            ],
+            [
+              585,
+              238
+            ],
+            [
+              587,
+              238
+            ],
+            [
+              588,
+              238
+            ],
+            [
+              585,
+              239
+            ],
+            [
+              587,
+              239
+            ],
+            [
+              588,
+              239
+            ],
+            [
+              585,
+              240
+            ],
+            [
+              587,
+              240
+            ],
+            [
+              588,
+              240
+            ],
+            [
+              583,
+              241
+            ],
+            [
+              584,
+              241
+            ],
+            [
+              585,
+              241
+            ],
+            [
+              586,
+              241
+            ],
+            [
+              587,
+              241
+            ],
+            [
+              588,
+              241
+            ]
+          ],
+          "bounds_logical": [
+            583,
+            235,
+            589,
+            242
+          ]
+        },
+        {
+          "id": "window_64",
+          "pixels_logical": [
+            [
+              552,
+              237
+            ],
+            [
+              552,
+              238
+            ]
+          ],
+          "bounds_logical": [
+            552,
+            237,
+            553,
+            239
+          ]
+        },
+        {
+          "id": "window_65",
+          "pixels_logical": [
+            [
+              606,
+              237
+            ],
+            [
+              606,
+              238
+            ],
+            [
+              605,
+              239
+            ],
+            [
+              606,
+              239
+            ],
+            [
+              605,
+              240
+            ],
+            [
+              606,
+              240
+            ],
+            [
+              606,
+              241
+            ]
+          ],
+          "bounds_logical": [
+            605,
+            237,
+            607,
+            242
+          ]
+        },
+        {
+          "id": "window_66",
+          "pixels_logical": [
+            [
+              503,
+              240
+            ],
+            [
+              504,
+              240
+            ],
+            [
+              505,
+              240
+            ],
+            [
+              506,
+              240
+            ],
+            [
+              503,
+              241
+            ],
+            [
+              504,
+              241
+            ],
+            [
+              505,
+              241
+            ],
+            [
+              506,
+              241
+            ],
+            [
+              507,
+              241
+            ]
+          ],
+          "bounds_logical": [
+            503,
+            240,
+            508,
+            242
+          ]
+        },
+        {
+          "id": "window_67",
+          "pixels_logical": [
+            [
+              571,
+              240
+            ],
+            [
+              570,
+              241
+            ],
+            [
+              571,
+              241
+            ],
+            [
+              572,
+              241
+            ],
+            [
+              570,
+              242
+            ],
+            [
+              571,
+              242
+            ],
+            [
+              572,
+              242
+            ]
+          ],
+          "bounds_logical": [
+            570,
+            240,
+            573,
+            243
+          ]
+        },
+        {
+          "id": "window_68",
+          "pixels_logical": [
+            [
+              578,
+              240
+            ],
+            [
+              578,
+              241
+            ],
+            [
+              578,
+              242
+            ],
+            [
+              578,
+              243
+            ]
+          ],
+          "bounds_logical": [
+            578,
+            240,
+            579,
+            244
+          ]
+        },
+        {
+          "id": "window_69",
+          "pixels_logical": [
+            [
+              557,
+              241
+            ],
+            [
+              559,
+              241
+            ],
+            [
+              557,
+              242
+            ],
+            [
+              558,
+              242
+            ],
+            [
+              559,
+              242
+            ],
+            [
+              560,
+              242
+            ],
+            [
+              561,
+              242
+            ],
+            [
+              562,
+              242
+            ]
+          ],
+          "bounds_logical": [
+            557,
+            241,
+            563,
+            243
+          ]
+        },
+        {
+          "id": "window_70",
+          "pixels_logical": [
+            [
+              478,
+              242
+            ],
+            [
+              478,
+              243
+            ]
+          ],
+          "bounds_logical": [
+            478,
+            242,
+            479,
+            244
+          ]
+        },
+        {
+          "id": "window_71",
+          "pixels_logical": [
+            [
+              518,
+              242
+            ],
+            [
+              518,
+              243
+            ],
+            [
+              515,
+              244
+            ],
+            [
+              516,
+              244
+            ],
+            [
+              517,
+              244
+            ],
+            [
+              518,
+              244
+            ],
+            [
+              518,
+              245
+            ],
+            [
+              518,
+              246
+            ]
+          ],
+          "bounds_logical": [
+            515,
+            242,
+            519,
+            247
+          ]
+        },
+        {
+          "id": "window_72",
+          "pixels_logical": [
+            [
+              555,
+              242
+            ],
+            [
+              553,
+              243
+            ],
+            [
+              554,
+              243
+            ],
+            [
+              555,
+              243
+            ],
+            [
+              555,
+              244
+            ]
+          ],
+          "bounds_logical": [
+            553,
+            242,
+            556,
+            245
+          ]
+        },
+        {
+          "id": "window_73",
+          "pixels_logical": [
+            [
+              475,
+              243
+            ],
+            [
+              475,
+              244
+            ]
+          ],
+          "bounds_logical": [
+            475,
+            243,
+            476,
+            245
+          ]
+        },
+        {
+          "id": "window_74",
+          "pixels_logical": [
+            [
+              421,
+              244
+            ],
+            [
+              422,
+              244
+            ]
+          ],
+          "bounds_logical": [
+            421,
+            244,
+            423,
+            245
+          ]
+        },
+        {
+          "id": "window_75",
+          "pixels_logical": [
+            [
+              424,
+              245
+            ],
+            [
+              423,
+              246
+            ],
+            [
+              424,
+              246
+            ],
+            [
+              423,
+              247
+            ],
+            [
+              424,
+              247
+            ],
+            [
+              423,
+              248
+            ],
+            [
+              424,
+              248
+            ]
+          ],
+          "bounds_logical": [
+            423,
+            245,
+            425,
+            249
+          ]
+        },
+        {
+          "id": "window_76",
+          "pixels_logical": [
+            [
+              468,
+              245
+            ],
+            [
+              469,
+              245
+            ],
+            [
+              468,
+              246
+            ],
+            [
+              469,
+              246
+            ],
+            [
+              470,
+              246
+            ],
+            [
+              468,
+              247
+            ],
+            [
+              469,
+              247
+            ],
+            [
+              470,
+              247
+            ],
+            [
+              468,
+              248
+            ]
+          ],
+          "bounds_logical": [
+            468,
+            245,
+            471,
+            249
+          ]
+        },
+        {
+          "id": "window_77",
+          "pixels_logical": [
+            [
+              472,
+              245
+            ],
+            [
+              472,
+              246
+            ],
+            [
+              472,
+              247
+            ]
+          ],
+          "bounds_logical": [
+            472,
+            245,
+            473,
+            248
+          ]
+        },
+        {
+          "id": "window_78",
+          "pixels_logical": [
+            [
+              524,
+              246
+            ],
+            [
+              525,
+              246
+            ],
+            [
+              524,
+              247
+            ],
+            [
+              525,
+              247
+            ],
+            [
+              525,
+              248
+            ]
+          ],
+          "bounds_logical": [
+            524,
+            246,
+            526,
+            249
+          ]
+        },
+        {
+          "id": "window_79",
+          "pixels_logical": [
+            [
+              509,
+              247
+            ],
+            [
+              510,
+              247
+            ]
+          ],
+          "bounds_logical": [
+            509,
+            247,
+            511,
+            248
+          ]
+        },
+        {
+          "id": "window_80",
+          "pixels_logical": [
+            [
+              444,
+              248
+            ],
+            [
+              445,
+              248
+            ]
+          ],
+          "bounds_logical": [
+            444,
+            248,
+            446,
+            249
+          ]
+        },
+        {
+          "id": "window_81",
+          "pixels_logical": [
+            [
+              513,
+              248
+            ],
+            [
+              514,
+              248
+            ]
+          ],
+          "bounds_logical": [
+            513,
+            248,
+            515,
+            249
+          ]
+        },
+        {
+          "id": "window_82",
+          "pixels_logical": [
+            [
+              517,
+              248
+            ],
+            [
+              518,
+              248
+            ]
+          ],
+          "bounds_logical": [
+            517,
+            248,
+            519,
+            249
+          ]
+        },
+        {
+          "id": "window_83",
+          "pixels_logical": [
+            [
+              432,
+              249
+            ],
+            [
+              428,
+              250
+            ],
+            [
+              429,
+              250
+            ],
+            [
+              430,
+              250
+            ],
+            [
+              431,
+              250
+            ],
+            [
+              432,
+              250
+            ],
+            [
+              433,
+              250
+            ]
+          ],
+          "bounds_logical": [
+            428,
+            249,
+            434,
+            251
+          ]
+        },
+        {
+          "id": "window_84",
+          "pixels_logical": [
+            [
+              470,
+              249
+            ],
+            [
+              473,
+              249
+            ],
+            [
+              474,
+              249
+            ],
+            [
+              468,
+              250
+            ],
+            [
+              469,
+              250
+            ],
+            [
+              470,
+              250
+            ],
+            [
+              471,
+              250
+            ],
+            [
+              472,
+              250
+            ],
+            [
+              473,
+              250
+            ],
+            [
+              474,
+              250
+            ],
+            [
+              475,
+              250
+            ],
+            [
+              476,
+              250
+            ]
+          ],
+          "bounds_logical": [
+            468,
+            249,
+            477,
+            251
+          ]
+        },
+        {
+          "id": "window_85",
+          "pixels_logical": [
+            [
+              444,
+              250
+            ],
+            [
+              445,
+              250
+            ]
+          ],
+          "bounds_logical": [
+            444,
+            250,
+            446,
+            251
+          ]
+        },
+        {
+          "id": "window_86",
+          "pixels_logical": [
+            [
+              461,
+              250
+            ],
+            [
+              462,
+              250
+            ]
+          ],
+          "bounds_logical": [
+            461,
+            250,
+            463,
+            251
+          ]
+        },
+        {
+          "id": "window_87",
+          "pixels_logical": [
+            [
+              483,
+              250
+            ],
+            [
+              484,
+              250
+            ],
+            [
+              485,
+              250
+            ]
+          ],
+          "bounds_logical": [
+            483,
+            250,
+            486,
+            251
+          ]
+        },
+        {
+          "id": "window_88",
+          "pixels_logical": [
+            [
+              512,
+              250
+            ],
+            [
+              513,
+              250
+            ],
+            [
+              514,
+              250
+            ],
+            [
+              515,
+              250
+            ],
+            [
+              516,
+              250
+            ],
+            [
+              517,
+              250
+            ],
+            [
+              518,
+              250
+            ],
+            [
+              519,
+              250
+            ],
+            [
+              520,
+              250
+            ],
+            [
+              521,
+              250
+            ]
+          ],
+          "bounds_logical": [
+            512,
+            250,
+            522,
+            251
+          ]
+        },
+        {
+          "id": "window_89",
+          "pixels_logical": [
+            [
+              526,
+              250
+            ],
+            [
+              527,
+              250
+            ],
+            [
+              528,
+              250
+            ],
+            [
+              529,
+              250
+            ]
+          ],
+          "bounds_logical": [
+            526,
+            250,
+            530,
+            251
+          ]
+        }
+      ],
+      "interval_seconds": [
+        11,
+        27
+      ],
+      "flash_duration_seconds": [
+        0.3,
+        0.8
+      ]
+    }
+  },
+  "editing": {
+    "base_is_complete_opaque_background": true,
+    "hide_all_vegetation_reveals_clean_background": true,
+    "whole_layer_translation_supported": true,
+    "approved_visible_vegetation_is_not_regenerated": true,
+    "hidden_vegetation_is_not_invented": true,
+    "unrestricted_3d_rotation": false,
+    "original_shapes_outside_source_frame_are_unknown": true
+  },
+  "provenance_report": "qa/source-provenance.json",
+  "depth_text": {
+    "z": 12,
+    "rect": [
+      428,
+      56,
+      176,
+      56
+    ],
+    "texture_layer": "source_background",
+    "texture_from": [
+      20,
+      130
+    ]
+  },
+  "hold_masks": [
+    "masks/fence.png"
+  ]
+}

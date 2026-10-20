@@ -24,9 +24,9 @@ Scope {
     readonly property bool previewing: Shell.lockPreview && !Shell.locked
     readonly property bool shown: Shell.locked || previewing
     // Settings → Lock → Look; the unlock picked there ("auto": the look's own)
-    readonly property string look: Config.lock.style === "heaven" ? "heaven" : "ngo"
+    readonly property string look: Config.lock.style === "heaven" || Config.lock.style === "2004" ? Config.lock.style : "ngo"
     readonly property var fxStyles: ["heart", "pixels", "crt", "gate", "glitch"]
-    readonly property string fx: !Config.lock.reactions || Config.lock.unlockFx === "none" ? "none" : fxStyles.includes(Config.lock.unlockFx) ? Config.lock.unlockFx : look === "heaven" ? "gate" : "heart"
+    readonly property string fx: !Config.lock.reactions || Config.lock.unlockFx === "none" ? "none" : fxStyles.includes(Config.lock.unlockFx) ? Config.lock.unlockFx : look === "heaven" ? "gate" : look === "2004" ? "pixels" : "heart"
 
     signal shake
     signal success

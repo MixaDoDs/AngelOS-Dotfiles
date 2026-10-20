@@ -27,6 +27,8 @@
 #   first-run wizard at once, also from a text console (Ctrl+Alt+F3) when it is broken
 #   angelos keys [status] | pixel | macos | sync — the niri key profile of a theme (cfg/keybinds-*.kdl):
 #   it follows `angelos settingsSkin …` by itself while the shell runs; sync = the one settings.json asks for
+#   angelos grab <url> | grabAudio <url> — one video link (or its sound) through yt-dlp into ~/Downloads;
+#   angelos discord <file> — a video squeezed under Discord's limit onto the Halo's shelf
 #   angelos updates [status] | check | update — Settings → Updates from the terminal: follows the
 #   run to its end and says what happened (without a running shell the update runs right here)
 #   angelos events [signal] — follow angelOS (stream, awake, realm, circle, locked, angelSaid…) line by
@@ -528,6 +530,17 @@ case "$1" in
   quicklook)
     # Quick Look: `angelos quicklook <file>`
     exec qs -c angelos ipc call angelos quicklook "$(realpath -- "${2:-.}")" ;;
+  convert)
+    # the conversion ring over files: `angelos convert <files…>` (also Shift + right click in Strata)
+    shift
+    list=""
+    for f in "$@"; do p="$(realpath -- "$f" 2>/dev/null)" && list="$list$p
+"; done
+    exec qs -c angelos ipc call angelos convert "$list" ;;
+  discord)
+    # videos squeezed under Discord's limit, onto the shelf: `angelos discord <files…>`
+    shift
+    for f in "$@"; do qs -c angelos ipc call angelos discord "$(realpath -- "$f")"; done ;;
   circle)
     # the old name of `capture` (the screenshot overlay); a shell started before it existed: the old OCR
     out="$(qs -c angelos ipc call angelos circle 2>&1)"

@@ -86,6 +86,21 @@ def actions():
             "run": {"program": "python3", "args": [str(SHELL / "scripts/nautilus-setup.py"), "mediafix", "{paths}"],
                     "mode": "whole-selection"},
         },
+        # services/VideoGrab: Strata has no Space for Quick Look (Nautilus's previewer), so the menu
+        "angelos-quicklook": {
+            "name": "Просмотр angelOS: обрезка, Discord, монтаж" if r else "angelOS Quick Look: cut, Discord, editing",
+            "description": "Quick Look с метками обрезки и кнопками «≤20 МБ», «Для монтажа», «Звук WAV»" if r else "Quick Look with cut marks and «≤20 MB», «For editing», «Sound WAV»",
+            "icon": "video", "menu": "top",
+            "when": {"kinds": ["file"], "extensions": VIDEO, "max_items": 1},
+            "run": {"program": angelos, "args": ["quicklook", "{path}"], "mode": "per-item"},
+        },
+        "angelos-discord": {
+            "name": "Сжать для Discord" if r else "Squeeze for Discord",
+            "description": "Под лимит из настроек angelOS, на Полку и в буфер" if r else "Under the limit from angelOS's settings, onto the shelf and into the clipboard",
+            "icon": "video", "menu": "submenu",
+            "when": {"kinds": ["file"], "extensions": VIDEO},
+            "run": {"program": angelos, "args": ["discord", "{paths}"], "mode": "whole-selection"},
+        },
         "angelos-share": {
             "name": "Отправить рядом (LocalSend)" if r else "Send nearby (LocalSend)",
             "description": "Окно angelOS «Отправить рядом» с этими файлами" if r else "angelOS's Send nearby window with these files",

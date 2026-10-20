@@ -5,10 +5,11 @@ import Quickshell
 import qs.config
 import qs.services
 import qs.modules.streamchat
+import "../../modules/desktop/widgets"
 
 // tests/streamchat/run.sh, offscreen: a chat reader's session log (FAKE_DIR, written here line by
 // line) through services/StreamChat — the Halo's capsule, a paid message, a regular, the cats'
-// queue at the bottom (six at a time, the rest after), their switch. ANGELOS_CHAT_SHOTS=dir: the
+// line at the bottom (a burst one after another, not on one spot), their switch. ANGELOS_CHAT_SHOTS=dir: the
 // running cats in a picture.
 Scope {
     id: root
@@ -102,13 +103,31 @@ Scope {
             } else if (s === 3) {
                 root.until("paid-regular", () => {
                     const c = root.chatItem();
-                    return root.got.length === 2 && !!c && c.author === "@regular" && c.amount === "€5.00" && c.regular === true;
+                    return root.got.length === 2 && !!c && c.author === "@regular" && c.amount === "€5.00" && c.regular === true && root.got[0].newbie === true && root.got[1].newbie === false && StreamChat.mines.length === 1 && StreamChat.mines[0].by === "@regular";
                 }, 6000, () => JSON.stringify(root.got[1] || null) + " " + JSON.stringify(root.chatItem()));
-                if (root.step === 4)
+                if (root.step === 4) {
                     for (let i = 0; i < 6; i++)
                         root.say("@crowd" + i, "go " + i);
+                    root.say("@viewer", "again");
+                    root.say("@crowd2", "!розовый");
+                }
             } else if (s === 4) {
-                root.until("queue", () => root.got.length === 8 && StreamChat.runners.length === 6 && StreamChat.waiting.length === 2, 6000, () => StreamChat.runners.length + " running, " + StreamChat.waiting.length + " waiting, " + root.got.length + " got");
+                // a burst sets off as a line, one gapMs apart, not on one spot
+                root.until("line", () => {
+                    const c = StreamChat.runners.filter(r => r.author.indexOf("@crowd") === 0);
+                    return root.got.length === 10 && c.length === 7 && c.every((r, i) => !i || r.at - c[i - 1].at >= StreamChat.gapMs);
+                }, 6000, () => JSON.stringify(StreamChat.runners.map(r => r.author + "@" + (r.at - Date.now()))) + ", " + root.got.length + " got");
+                if (root.step === 5)
+                    // the race of the stream: who wrote twice leads, the plate says so
+                    root.report("race", StreamChat.runners.some(r => r.author === "@viewer" && r.count === 2 && r.place === 1) && !!StreamChat.race && StreamChat.race.top[0][0] === "@viewer" && StreamChat.race.top[0][1] === 2 && StreamChat.race.writers === 9, JSON.stringify(StreamChat.race));
+                if (root.step === 5)
+                    // «!розовый»: the cat pink from then on, the command not counted
+                    root.report("color", StreamChat.runners.some(r => r.author === "@crowd2" && r.color === "#ff7eb6") && StreamChat.race.top.some(t => t[0] === "@crowd2" && t[1] === 1 && t[2] === "#ff7eb6"), JSON.stringify(StreamChat.runners.filter(r => r.author === "@crowd2")));
+                if (root.step === 5) {
+                    // @regular's 450 ₽ mine takes @viewer (2 written): off the screen, the race takes 2
+                    StreamChat.hit(StreamChat.mines[0].id, StreamChat.runners.filter(r => r.author === "@viewer"));
+                    root.report("mine-hit", StreamChat.mines.length === 0 && !StreamChat.runners.some(r => r.author === "@viewer") && StreamChat.minus["@viewer"] === 2, JSON.stringify(StreamChat.minus));
+                }
                 if (root.step === 5 && root.shots)
                     root.shotAt = Date.now() + 500;
             } else if (s === 5) {
@@ -118,23 +137,47 @@ Scope {
                     root.shotTaken = true;
                     root.grabRunners();
                 }
-                // the first ones finish their run (9 s), the waiting two set off
-                root.until("queue-moves", () => StreamChat.waiting.length === 0 && StreamChat.runners.some(r => r.author === "@crowd5"), 14000, () => StreamChat.runners.length + " running, " + StreamChat.waiting.length + " waiting");
+                // the last of the line sets off in its turn, the first ones finish their run (9 s)
+                root.until("line-moves", () => StreamChat.runners.some(r => r.author === "@crowd5" && r.at <= Date.now()) && !StreamChat.runners.some(r => r.id === 1), 16000, () => JSON.stringify(StreamChat.runners.map(r => r.author + "@" + (r.at - Date.now()))));
                 if (root.step === 6) {
                     Config.stream.chatRunners = false;
                     root.say("@quiet", "no cat for me");
                 }
             } else if (s === 6) {
-                root.until("runners-off", () => root.got.some(m => m.author === "@quiet") && !StreamChat.runners.some(r => r.author === "@quiet") && !StreamChat.waiting.some(r => r.author === "@quiet"), 6000, () => JSON.stringify(StreamChat.runners.map(r => r.author)));
+                if (!root.racedBack) {
+                    root.racedBack = true;
+                    root.report("race-back", StreamChat.race.top.some(t => t[0] === "@viewer" && t[1] === 0) && StreamChat.race.top[0][0] !== "@viewer", JSON.stringify(StreamChat.race.top));
+                }
+                root.until("runners-off", () => root.got.some(m => m.author === "@quiet") && !StreamChat.runners.some(r => r.author === "@quiet"), 6000, () => JSON.stringify(StreamChat.runners.map(r => r.author)));
             } else if (s === 7) {
                 console.log("TEST DONE");
                 Qt.quit();
             }
         }
     }
+    // the desktop widget of the race, M and L
+    FloatingWindow {
+        implicitWidth: 1000
+        implicitHeight: 420
+        color: Theme.face
+        Row {
+            id: boards
+            x: 8
+            y: 8
+            spacing: 24
+            ChatraceWidget {
+                size: "m"
+            }
+            ChatraceWidget {
+                size: "l"
+            }
+        }
+    }
+    property bool racedBack: false
     property double shotAt: 0
     property bool shotTaken: false
     function grabRunners() {
         lane.grabToImage(r => r.saveToFile(root.shots + "/runners.png"));
+        boards.grabToImage(r => r.saveToFile(root.shots + "/race.png"));
     }
 }

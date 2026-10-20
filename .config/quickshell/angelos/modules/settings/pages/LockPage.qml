@@ -10,6 +10,8 @@ import qs.modules.idle
 
 PxPage {
     id: lockPage
+    // the stream's options belong to the NGO look only
+    readonly property bool ngo: Config.lock.style !== "heaven" && Config.lock.style !== "2004"
     heading: I18n.t("Блокировка и заставка", "Lock and idle screen")
     subtitle: I18n.t("Экран блокировки — NGO-стрим или небесные врата — и заставка-«простой» как в Omarchy: ASCII-арт с анимациями, любая клавиша возвращает рабочий стол.", "The lock screen — an NGO stream or heaven's gate — and an Omarchy-style idle screen: animated ASCII art, any key brings the desktop back.")
 
@@ -21,7 +23,7 @@ PxPage {
         SettingRow {
             id: lookRow
             label: I18n.t("Облик", "Look")
-            hint: I18n.t("NGO — пиксельный стрим с чатом; Небеса — экран входа как в Genshin Impact / ZZZ: врата над облаками, «нажмите любую клавишу», небо по времени суток", "NGO: a pixel stream with its chat; Heaven: a login screen like Genshin Impact / ZZZ — a gate above the clouds, “press any key”, the sky of the hour")
+            hint: I18n.t("NGO — пиксельный стрим с чатом; Небеса — экран входа как в Genshin Impact / ZZZ: врата над облаками, «нажмите любую клавишу», небо по времени суток; 2004 — игра на паузе у точки сохранения: живые обои-сцена, часы между её слоями, вход — слот карты памяти", "NGO: a pixel stream with its chat; Heaven: a login screen like Genshin Impact / ZZZ — a gate above the clouds, “press any key”, the sky of the hour; 2004: the game paused at a save point — the layered wallpaper alive, the clock between its layers, the login a memory card's slot")
             preview: "LockScreen"
             PxSegmented {
                 model: [
@@ -32,9 +34,13 @@ PxPage {
                     {
                         "label": I18n.t("Небеса", "Heaven"),
                         "value": "heaven"
+                    },
+                    {
+                        "label": "2004",
+                        "value": "2004"
                     }
                 ]
-                currentValue: Config.lock.style === "heaven" ? "heaven" : "ngo"
+                currentValue: Config.lock.style === "heaven" || Config.lock.style === "2004" ? Config.lock.style : "ngo"
                 onActivated: v => {
                     Config.lock.style = v;
                     lookRow.show(v === "heaven" ? "heaven" : "stream", v === "heaven" ? I18n.t("небеса", "heaven") : "NGO");
@@ -75,7 +81,7 @@ PxPage {
         SettingRow {
             id: fxRow
             label: I18n.t("Разблокировка", "Unlock")
-            hint: I18n.t("как экран блокировки уходит с рабочего стола: «Авто» — сердце у NGO, врата у Небес", "how the lock leaves the desktop: Auto is the heart for NGO, the gate for Heaven")
+            hint: I18n.t("как экран блокировки уходит с рабочего стола: «Авто» — сердце у NGO, врата у Небес, пиксели у 2004", "how the lock leaves the desktop: Auto is the heart for NGO, the gate for Heaven, pixels for 2004")
             preview: "LockScreen"
             PxCombo {
                 width: Theme.u * 110
@@ -112,7 +118,7 @@ PxPage {
                 currentValue: Config.lock.unlockFx
                 onActivated: v => {
                     Config.lock.unlockFx = v;
-                    const fx = v === "auto" ? (Config.lock.style === "heaven" ? "gate" : "heart") : v;
+                    const fx = v === "auto" ? (Config.lock.style === "heaven" ? "gate" : Config.lock.style === "2004" ? "pixels" : "heart") : v;
                     if (fx !== "none")
                         fxRow.show("fx:" + fx, I18n.t("разблокировка", "unlock"));
                 }
@@ -283,7 +289,7 @@ PxPage {
         width: parent.width
         SettingRow {
             id: streamRow
-            visible: Config.lock.style !== "heaven"
+            visible: lockPage.ngo
             label: I18n.t("NGO-стрим", "NGO stream")
             hint: I18n.t("LIVE, «зрители» и чат, который знает, что ты делал(а): программа (только название), трек, время, уведомления (только от кого), как печатаешь. Зрители растут с днями: в первый день никого, к 30-му — 1000–1500. Сейчас день %1. Всё выдумано локально.", "LIVE, “viewers” and a chat that knows what you did: the program (its name only), the song, the hour, notifications (who sent them only), how you type. The audience grows with the days: nobody on day 1, 1000–1500 by day 30. Today is day %1. All made up locally.").arg(LockStream.days)
             preview: "LockScreen"
@@ -297,7 +303,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.lock.stream && Config.lock.style !== "heaven"
+            visible: Config.lock.stream && lockPage.ngo
             label: I18n.t("Название «стрима»", "Stream title")
             PxField {
                 width: Theme.u * 130
@@ -307,7 +313,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.lock.stream && Config.lock.style !== "heaven"
+            visible: Config.lock.stream && lockPage.ngo
             label: I18n.t("Повтор эфира", "Replay")
             hint: I18n.t("через время на заднем плане идёт случайное видео с компьютера — без звука и в таком блюре, что ничего не прочесть (кадр ужимается до 32×18 точек). Не на экране, который сейчас стримится по-настоящему.", "after a while a random video from the computer plays behind the stream — silent, blurred past reading (each frame is shrunk to 32×18 dots). Never on a screen that is really being streamed.")
             PxToggle {
@@ -316,7 +322,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.lock.stream && Config.lock.replay && Config.lock.style !== "heaven"
+            visible: Config.lock.stream && Config.lock.replay && lockPage.ngo
             label: I18n.t("Повтор через", "Replay after")
             PxSpin {
                 from: 10
@@ -328,7 +334,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.lock.stream && Config.lock.replay && Config.lock.style !== "heaven"
+            visible: Config.lock.stream && Config.lock.replay && lockPage.ngo
             label: I18n.t("Папка с видео", "Video folder")
             hint: I18n.t("пусто — ~/Videos (записи экрана, клипы); берутся и вложенные папки", "empty: ~/Videos (screen recordings, clips); folders inside count too")
             PxField {
@@ -339,7 +345,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.lock.style !== "heaven" && Config.lock.stream
+            visible: lockPage.ngo && Config.lock.stream
             label: I18n.t("Вебка с ангелом", "Webcam with the angel")
             hint: I18n.t("спит, пока тебя нет, просыпается от клавиш, закрывает глаза на пароле, плачет при ошибке", "sleeps while you are away, wakes at a key, shuts her eyes on the password, cries at a mistake")
             PxToggle {
@@ -348,7 +354,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.lock.style !== "heaven" && Config.lock.stream
+            visible: lockPage.ngo && Config.lock.stream
             label: I18n.t("Шкалы как в NGO", "NGO stats")
             hint: I18n.t("подписчики, стресс (нагрузка процессора и аптайм), привязанность (дни с angelOS), тьма (ночь и ошибки)", "followers, stress (CPU load and uptime), affection (days with angelOS), darkness (night and mistakes)")
             PxToggle {
@@ -357,7 +363,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.lock.style !== "heaven" && Config.lock.stream
+            visible: lockPage.ngo && Config.lock.stream
             label: I18n.t("Опросы и алерты", "Polls and alerts")
             hint: I18n.t("опрос в чате, донаты, рейды, подписки, рубежи зрителей", "a poll in the chat, donations, raids, follows, viewer milestones")
             PxToggle {
@@ -366,7 +372,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.lock.style !== "heaven" && Config.lock.stream
+            visible: lockPage.ngo && Config.lock.stream
             label: I18n.t("Клипы и хайлайты", "Clips and highlights")
             hint: I18n.t("ошибки становятся клипами, при входе — короткие хайлайты стрима (клик или клавиша пропускают)", "mistakes become clips, the unlock shows the stream\u2019s highlights (a click or a key skips)")
             PxToggle {

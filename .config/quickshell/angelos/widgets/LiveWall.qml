@@ -96,12 +96,12 @@ ShaderEffect {
             k.push(1);
         if ((scene.rims || []).length > 0 && allowedFx("pebble"))
             k.push(2);
-        if (fx && fx.water && Config.wallpaper.liveWater && allowedFx("gust"))
+        if (fx && fx.water && Wallpapers.own(root.path, "liveWater") && allowedFx("gust"))
             k.push(3);
         // the Ophanim near (Uriel): an eye in a cloud at night, rings over the water
         if ((scene.eyes || []).length > 0 && night >= 0.5 && allowedFx("eye"))
             k.push(4);
-        if (fx && fx.water && Config.wallpaper.liveWater && (scene.ponds || []).length > 0 && allowedFx("rings"))
+        if (fx && fx.water && Wallpapers.own(root.path, "liveWater") && (scene.ponds || []).length > 0 && allowedFx("rings"))
             k.push(5);
         return k;
     }
@@ -143,7 +143,7 @@ ShaderEffect {
         id: nextEvent
         interval: 12000 + Math.random() * 23000
         repeat: true
-        running: root.running && root.kinds.length > 0 && Config.wallpaper.liveEvents
+        running: root.running && root.kinds.length > 0 && Wallpapers.own(root.path, "liveEvents")
         onTriggered: {
             interval = 12000 + Math.random() * 23000;
             if (root.event > 0 || root.asked)
@@ -160,7 +160,7 @@ ShaderEffect {
     Timer {
         interval: 90000 + Math.random() * 90000
         repeat: true
-        running: root.running && !!root.extras.blink && Config.wallpaper.liveEvents
+        running: root.running && !!root.extras.blink && Wallpapers.own(root.path, "liveEvents")
         onTriggered: {
             interval = 90000 + Math.random() * 90000;
             if (root.event === 0)
@@ -182,16 +182,16 @@ ShaderEffect {
     readonly property var extras: info.extras || ({})
     property var source: picture
     property var mask: maskImg
-    property real strength: Config.wallpaper.liveStrength / 100 * fade
+    property real strength: Wallpapers.own(root.path, "liveStrength") / 100 * fade
     property real night: fx ? fx.night : 0
     property real axis: fx ? fx.axis : 0.65
     property real mirror: fx && fx.mirror ? 1 : 0
     property real skyMode: fx ? fx.skyMode : 2
     property real waterMode: fx ? fx.waterMode : 2
-    property real stars: Config.wallpaper.liveStars && allowedFx("stars") ? 1 : 0
-    property real meteors: Config.wallpaper.liveMeteors && allowedFx("meteors") ? 1 : 0
-    property real water: Config.wallpaper.liveWater && allowedFx("water") ? 1 : 0
-    property real lights: Config.wallpaper.liveLights && allowedFx("lights") ? 1 : 0
+    property real stars: Wallpapers.own(root.path, "liveStars") && allowedFx("stars") ? 1 : 0
+    property real meteors: Wallpapers.own(root.path, "liveMeteors") && allowedFx("meteors") ? 1 : 0
+    property real water: Wallpapers.own(root.path, "liveWater") && allowedFx("water") ? 1 : 0
+    property real lights: Wallpapers.own(root.path, "liveLights") && allowedFx("lights") ? 1 : 0
     property real pixelArt: info.pixelArt ? 1 : 0
     property real seed: screenName.length * 7.13
     property size resolution: Qt.size(width, height)

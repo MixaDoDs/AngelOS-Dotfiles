@@ -135,14 +135,17 @@ def format_time(seconds: float | None) -> str:
     return f"{seconds // 3600:02d}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}"
 
 
-def run_conversion(info: ProbeInfo, final: Path, update) -> tuple[bool, str]:
+def run_conversion(info: ProbeInfo, final: Path, update, cut: tuple[float, float] | None = None) -> tuple[bool, str]:
+    """cut: (start, length) seconds — the video copied from the key frame at or before start"""
     if info.video is None:
         return False, "нет обычного видеопотока (обложка не считается видео)"
     if not info.audio:
         return False, "нет аудиодорожек — файл пропущен"
     tmp = temp_path(final)
     video_index = info.video.index
-    cmd = ["ffmpeg", "-hide_banner", "-nostdin", "-y", "-copyts", "-i", str(info.path),
+    span = ["-ss", f"{cut[0]:.3f}", "-t", f"{cut[1]:.3f}"] if cut else ["-copyts"]
+    length = cut[1] if cut else info.duration
+    cmd = ["ffmpeg", "-hide_banner", "-nostdin", "-y", *span, "-i", str(info.path),
            "-map", f"0:{video_index}"]
     for stream in info.audio:
         cmd += ["-map", f"0:{stream.index}"]
@@ -172,7 +175,7 @@ def run_conversion(info: ProbeInfo, final: Path, update) -> tuple[bool, str]:
                         out_ms = float(state.get("out_time_ms", "0"))
                     except ValueError:
                         out_ms = 0
-                    ratio = min(1.0, max(0.0, (out_ms / 1_000_000) / info.duration)) if info.duration else 0.0
+                    ratio = min(1.0, max(0.0, (out_ms / 1_000_000) / length)) if length else 0.0
                     update(ratio, state.get("speed", "?"), out_ms / 1_000_000)
         rc = proc.wait()
         thread.join(timeout=2)

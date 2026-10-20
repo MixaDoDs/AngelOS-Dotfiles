@@ -19,6 +19,42 @@ Singleton {
 
     property var images: []                  // heaven's pictures (Config.wallpaper.dir, not the Hell pack)
     property var hellImages: []              // hell's: the Hell pack, its cache, the drawn hells
+    property var scenes: ({})                // a layered scene's picture -> its folder (widgets/SceneWall)
+    function sceneOf(path) {
+        return scenes[path] || "";
+    }
+    // some settings belong to the wallpaper, not to the shell (Settings → Wallpaper, while it is shown):
+    // its live effects and its scene's text — water that suits one picture may not suit another.
+    // A release's wallpapers (Pictures/AngelOS/NN-name/) share theirs, any other picture keeps its
+    // own; what a wallpaper has not set is the common Config.wallpaper value
+    readonly property var ownKeys: ["liveStrength", "liveStars", "liveMeteors", "liveWater", "liveLights", "liveEvents", "sceneDepth", "sceneDepthStyle", "sceneDepthTexture"]
+    function wallKey(path) {
+        const p = sceneOf(path) || origin(path);
+        const r = p ? releases.find(r => p === r.dir || p.startsWith(r.dir + "/")) : null;
+        return r ? r.dir : p || "";
+    }
+    // what the settings call it: the release, else the picture
+    function wallName(path) {
+        const k = wallKey(path);
+        const r = releases.find(r => r.dir === k);
+        return r ? releaseLabel(r) : nameOf(path);
+    }
+    function own(path, key) {
+        const o = (Config.wallpaper.perWall || {})[wallKey(path)] || {};
+        return o[key] !== undefined ? o[key] : Config.wallpaper[key];
+    }
+    function setOwn(path, key, value) {
+        const k = wallKey(path);
+        if (!k) {
+            Config.wallpaper[key] = value;
+            return;
+        }
+        const all = Object.assign({}, Config.wallpaper.perWall || {});
+        all[k] = Object.assign({}, all[k] || {}, {
+            [key]: value
+        });
+        Config.wallpaper.perWall = all;
+    }
     readonly property bool hellOn: Angel.demon
     readonly property var hellWall: Story.player.hellWall || null
     // what the screens show: hell's once it is painted (until then the last picture stays)
@@ -42,7 +78,8 @@ Singleton {
         { "id": "glitch", "label": I18n.t("Глитч", "Glitch"), "hint": I18n.t("полосы дёргаются и расслаиваются по цветам", "Bands jump and split into colours") },
         { "id": "melt", "label": I18n.t("Плавление", "Melt"), "hint": I18n.t("старая картинка стекает столбиками, как в DOOM", "The old picture drips down in columns, like DOOM") },
         { "id": "sparkle", "label": I18n.t("Блёстки", "Sparkles"), "hint": I18n.t("пиксели меняются вразнобой и искрятся", "Pixels flip at random and sparkle") },
-        { "id": "wipe", "label": I18n.t("Шторка", "Wipe"), "hint": I18n.t("шторка слева направо с рваным краем", "A wipe from left to right with a ragged edge") }
+        { "id": "wipe", "label": I18n.t("Шторка", "Wipe"), "hint": I18n.t("шторка слева направо с рваным краем", "A wipe from left to right with a ragged edge") },
+        { "id": "verdict", "label": I18n.t("Вердикт", "Verdict"), "hint": I18n.t("театральная врезка как в Persona 5: шторки, полосы, слово, разрез — 0,8 с", "A theatrical cut-in like Persona 5: shutters, stripes, a word, a slice — 0.8 s") }
     ]
     function transitionIndex(id) {
         if (id === "random")
@@ -259,6 +296,10 @@ Singleton {
         return members(a).some(p => other.includes(p));
     }
     function nameOf(path) {
+        // a scene is called by its folder, not by its reference picture
+        const sc = sceneOf(path);
+        if (sc)
+            return sc.slice(sc.lastIndexOf("/") + 1);
         const i = meta[path];
         return members(path).length > 1 && i && i.name ? i.name : path.slice(path.lastIndexOf("/") + 1).replace(/\.[a-z0-9]+$/i, "");
     }
@@ -642,9 +683,21 @@ Singleton {
     Process {
         id: scanner
         // heaven's pictures: the Hell pack is hell's (C2: no picking the wrong realm by accident)
-        command: ["find", "-L", root.heavenDir, "-maxdepth", "3", "-type", "f", "(", "-iname", "*.png", "-o", "-iname", "*.jpg", "-o", "-iname", "*.jpeg", "-o", "-iname", "*.webp", "-o", "-iname", "*.gif", "-o", "-iname", "*.bmp", ")", "-not", "-path", "*/Screenshots/*", "-not", "-path", root.hellPack + "/*"]
+        // then the layered scenes (scripts/scene-list.py): a scene is one wallpaper, its neutral
+        // picture in the list, never its layers, masks and frames
+        command: ["sh", "-c", 'find -L "$1" -maxdepth 3 -type f "(" -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" -o -iname "*.gif" -o -iname "*.bmp" ")" -not -path "*/Screenshots/*" -not -path "$2/*"; echo "@scenes"; python3 "$3" "$1" "$4"', "sh", root.heavenDir, root.hellPack, Quickshell.shellDir + "/scripts/scene-list.py", root.releasesDir]
         stdout: StdioCollector {
-            onStreamFinished: root.images = text.split("\n").filter(l => l !== "").sort()
+            onStreamFinished: {
+                const [files, sc] = text.split("@scenes\n");
+                const scenes = {};
+                for (const l of (sc || "").split("\n").filter(l => l.includes("\t"))) {
+                    const [dir, ref] = l.split("\t");
+                    scenes[ref] = dir;
+                }
+                const dirs = Object.values(scenes);
+                root.scenes = scenes;
+                root.images = files.split("\n").filter(l => l !== "" && !dirs.some(d => l.startsWith(d + "/"))).concat(Object.keys(scenes)).sort();
+            }
         }
     }
     Process {

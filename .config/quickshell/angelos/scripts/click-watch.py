@@ -2,6 +2,9 @@
 """Report mouse clicks and key presses for the input sounds (Settings → System sounds).
 
   click-watch.py [--mouse] [--keys]     (no flag = --mouse)
+  click-watch.py --shift-right          only: shiftright — the right button went down with the left
+                                        Shift held, and both are up again (services/Convert's ring:
+                                        its Ctrl+C must not meet a held Shift)
 
   click left|right|middle      a mouse / touchpad button went down
   release left|right|middle    …and up (the "release" tick)
@@ -11,7 +14,7 @@
 The shell only sees clicks on its own windows, so this reads evdev like meta-tap.py,
 anywhere on the desktop. Runs only while one of these sounds is on.
 
-Privacy: nothing but "a button / some key went down" is printed — no positions, no
+Privacy: nothing but "a button / some key went down" (or that one combination) is printed — no positions, no
 key codes. Devices are opened read-only and never grabbed.
 """
 import glob
@@ -23,7 +26,7 @@ import time
 
 EV_KEY = 1
 BTN_LEFT, BTN_RIGHT, BTN_MIDDLE = 272, 273, 274
-KEY_A, KEY_SPACE = 30, 57
+KEY_A, KEY_SPACE, KEY_LEFTSHIFT = 30, 57, 42
 BUTTONS = {BTN_LEFT: "left", BTN_RIGHT: "right", BTN_MIDDLE: "middle"}
 EVENT = struct.Struct("llHHi")
 
@@ -49,8 +52,12 @@ def wanted(event_dir, mouse, keys):
 
 def main():
     args = set(sys.argv[1:])
-    keys = "--keys" in args
-    mouse = "--mouse" in args or not keys
+    combo = "--shift-right" in args
+    keys = "--keys" in args or combo
+    mouse = "--mouse" in args or not keys or combo
+    shifted = set()         # the keyboards with the left Shift down now
+    armed = False           # the right button went down with Shift
+    pending = False         # …and is up: said once Shift is up too
     fds = {}
     said_noperm = False
     last_scan = 0.0
@@ -91,6 +98,18 @@ def main():
             for off in range(0, len(data) - EVENT.size + 1, EVENT.size):
                 _, _, kind, code, value = EVENT.unpack_from(data, off)
                 if kind != EV_KEY:
+                    continue
+                if combo:
+                    if code == KEY_LEFTSHIFT:
+                        (shifted.add if value else shifted.discard)(fd)
+                    elif code == BTN_RIGHT and value == 1:
+                        armed = bool(shifted)
+                    elif code == BTN_RIGHT and value == 0 and armed:
+                        armed = False
+                        pending = True
+                    if pending and not shifted:
+                        pending = False
+                        print("shiftright", flush=True)
                     continue
                 if code in BUTTONS:
                     if mouse and value in (0, 1):

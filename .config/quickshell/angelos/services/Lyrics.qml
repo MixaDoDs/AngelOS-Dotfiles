@@ -201,10 +201,21 @@ Singleton {
                 stamps.push(parseInt(m[1]) * 60 + parseFloat(m[2].replace(":", ".")));
                 rest = rest.slice(m[0].length);
             }
+            // enhanced LRC: a <mm:ss.xx> before each word (amll's TTML keeps them, ttmlToLrc) —
+            // out of the text, kept as `w` (the words' times) for osu!mini's rhythm mode
+            const w = [];
+            const text = rest.replace(/<(\d+):(\d+(?:[.:]\d+)?)>/g, (m, mm, ss) => {
+                w.push(parseInt(mm) * 60 + parseFloat(ss.replace(":", ".")));
+                return "";
+            }).replace(/\s+/g, " ").trim();
             for (const t of stamps)
-                out.push({
+                out.push(w.length && stamps.length === 1 ? {
                     "t": t,
-                    "text": rest.trim()
+                    "text": text,
+                    "w": w
+                } : {
+                    "t": t,
+                    "text": text
                 });
         }
         return out.sort((a, b) => a.t - b.t);
@@ -222,10 +233,11 @@ Singleton {
             status = "instrumental";
         } else if (data.syncedLyrics) {
             const k = data.scale > 0.5 && data.scale < 2 ? data.scale : 1;
-            lines = parseLrc(data.syncedLyrics).map(l => k === 1 ? l : {
-                    "t": l.t * k,
-                    "text": l.text
-                });
+            lines = parseLrc(data.syncedLyrics).map(l => k === 1 ? l : Object.assign({}, l, {
+                    "t": l.t * k
+                }, l.w ? {
+                    "w": l.w.map(x => x * k)
+                } : {}));
             status = lines.length ? "ok" : "notfound";
         } else if (data.plainLyrics) {
             lines = [
@@ -1149,8 +1161,9 @@ Singleton {
                 "title": hit.t[0] || ""
             }));
     }
-    // TTML → LRC lines: each <p begin=…> is a line; its words are the spans' text; background
-    // vocals, translations and romanisations (ttm:role x-bg / x-translation / x-roman) left out
+    // TTML → LRC lines: each <p begin=…> is a line; its words are the spans' text, each with its
+    // own time as an enhanced-LRC <mm:ss.xx> (parseLrc keeps them apart); background vocals,
+    // translations and romanisations (ttm:role x-bg / x-translation / x-roman) left out
     function ttmlTime(v) {
         const p = String(v || "").split(":").map(Number);
         return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p.length === 2 ? p[0] * 60 + p[1] : p[0] || 0;
@@ -1187,8 +1200,9 @@ Singleton {
         const re = /<p\b[^>]*\bbegin="([^"]+)"[^>]*>([\s\S]*?)<\/p>/g;
         let m;
         while ((m = re.exec(String(xml || "")))) {
-            const text = entities(dropRoles(m[2]).replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
-            if (text)
+            const body = dropRoles(m[2]).replace(/<span\b[^>]*\bbegin="([^"]+)"[^>]*>/g, (s, t) => "\u0002" + lrcStamp(ttmlTime(t)).slice(1, -1) + "\u0003");
+            const text = entities(body.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").replace(/\u0002([^\u0003]*)\u0003/g, "<$1>").trim();
+            if (text.replace(/<[^>]*>/g, "").trim())
                 lines.push(lrcStamp(ttmlTime(m[1])) + text);
         }
         return lines.join("\n");

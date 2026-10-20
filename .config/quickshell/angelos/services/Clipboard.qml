@@ -41,7 +41,11 @@ Singleton {
         let rest = 0;
         return list.filter(h => h.fav || rest++ < limit);
     }
+    // services/Convert asks Strata for its selection with Ctrl+C: not an entry
+    property double quietUntil: 0
     function push(entry) {
+        if (Date.now() < quietUntil)
+            return;
         entry = normalize(entry);
         if (!entry.id || (entry.kind === "text" && !String(entry.text || "").trim()) || (entry.kind === "image" && !entry.path))
             return;

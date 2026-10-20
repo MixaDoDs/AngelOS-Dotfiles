@@ -71,6 +71,7 @@ Singleton {
     property bool clipboardOpen: false
     property bool diaryOpen: false          // the Angel's diary (services/Diary, modules/diary/DiaryBook)
     property bool gameOpen: false            // osu!mini window (plugin osu-mini)
+    property string gameAsk: ""              // "rhythm": the window opens on a round under the playing track
     property bool locked: false
     property bool lockPreview: false         // the lock screen in a normal overlay, nothing is checked
     property var lockPreviewTry: null        // (text) → plays the preview's reaction; never touches PAM

@@ -55,6 +55,25 @@ Variants {
                     anchors.fill: parent
                     screenName: scope.modelData.name
                 }
+                // in a layered wallpaper the widgets stand between its layers (WidgetDepth):
+                // their shadows on the layers behind them, the widgets, the nearer layers over them
+                Repeater {
+                    model: DesktopWidgets.uidsFor(scope.modelData.name)
+                    Rectangle {
+                        required property string modelData
+                        readonly property Item face: DesktopWidgets.faces[modelData] || null
+                        readonly property var depth: face ? face.depth : null
+                        visible: !!depth && depth.shadowed
+                        x: face ? face.x + depth.shift.x + depth.shadowOffset.x : 0
+                        y: face ? face.y + depth.shift.y + depth.shadowOffset.y : 0
+                        width: face ? face.width : 0
+                        height: face ? face.height : 0
+                        radius: face && face.mac ? DesktopWidgets.macRadius * face.zoom : 0
+                        antialiasing: !!face && face.mac
+                        color: depth ? depth.shade : "transparent"
+                        opacity: face ? face.opacity : 0
+                    }
+                }
                 Repeater {
                     model: DesktopWidgets.uidsFor(scope.modelData.name)
                     DesktopWidgetHost {
@@ -64,6 +83,21 @@ Variants {
                         screenName: scope.modelData.name
                         area: faceArea
                         backdrop: wallpaper
+                        sceneWall: wallpaper.sceneItem
+                    }
+                }
+                Repeater {
+                    model: DesktopWidgets.uidsFor(scope.modelData.name)
+                    // over the frame, its own hard shadow and the one it casts on the scene
+                    SceneFront {
+                        required property string modelData
+                        readonly property Item face: DesktopWidgets.faces[modelData] || null
+                        readonly property var depth: face ? face.depth : null
+                        readonly property int pad: Theme.u * 4
+                        readonly property point reach: depth ? Qt.point(Math.max(pad, depth.shadowOffset.x), Math.max(pad, depth.shadowOffset.y)) : Qt.point(0, 0)
+                        wall: depth ? depth.wall : null
+                        plane: depth && depth.covered ? depth.plane : Infinity
+                        area: face ? Qt.rect(face.x + depth.shift.x - pad, face.y + depth.shift.y - pad, face.width + pad + reach.x, face.height + pad + reach.y) : Qt.rect(0, 0, 0, 0)
                     }
                 }
                 DesktopGrid {
