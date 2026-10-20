@@ -107,6 +107,36 @@ PxPage {
                 onToggled: c => Config.stream.effects = c
             }
         }
+        // the stream's chat on screen (services/StreamChat): read from a chat reader's session log
+        SettingRow {
+            label: I18n.t("Чат на экране", "Chat on screen")
+            hint: I18n.t("папка, куда бот чата пишет журнал эфира (*.jsonl, строка на сообщение); пусто — выключено. Сам angelOS в YouTube не ходит", "The folder a chat bot writes the stream's log to (*.jsonl, a line a message); empty: off. angelOS itself never talks to YouTube")
+            PxField {
+                width: Theme.u * 110
+                text: Config.stream.chatLog
+                placeholder: "~/…/stream-logs"
+                kind: "mono"
+                input.onEditingFinished: Config.stream.chatLog = text.trim()
+            }
+        }
+        SettingRow {
+            visible: !!Config.stream.chatLog
+            label: I18n.t("Сообщения в Нимбе", "Messages on the Halo")
+            hint: I18n.t("ник и текст на несколько секунд, котик поднимает лапы; донат — с сердечком. Поверх игры тоже, пока идёт эфир", "The nick and the text for a few seconds, the cat raises its paws; a paid one with a heart. Over a game too while on air")
+            PxToggle {
+                checked: Config.stream.chatHalo !== false
+                onToggled: c => Config.stream.chatHalo = c
+            }
+        }
+        SettingRow {
+            visible: !!Config.stream.chatLog
+            label: I18n.t("Котики внизу экрана", "Cats along the bottom")
+            hint: I18n.t("кто написал — пробегает котиком со своим ником по низу экрана в эфире; у постоянных зрителей корона", "Whoever writes runs along the bottom of the streamed screen as a cat with the nick; regulars wear a crown")
+            PxToggle {
+                checked: Config.stream.chatRunners !== false
+                onToggled: c => Config.stream.chatRunners = c
+            }
+        }
     }
 
     // privacy on stream (services/Privacy, the dotfiles' niri-cast-privacy): which apps are

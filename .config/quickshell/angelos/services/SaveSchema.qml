@@ -116,6 +116,13 @@ JsonAdapter {
         property var pending: []
     }
 
+    // the bar's «Забег» (services/Waiting): the best score per command {"cargo build": n} and
+    // how many waits the cat ran to the end
+    property JsonObject runner: JsonObject {
+        property var best: ({})
+        property int runs: 0
+    }
+
     // every choice the player made: [{scene, node, choice, tone, at}] (the last 400)
     property var choices: []
     // the novel's progress (was ~/.local/state/angelos/novel.json) and the running scene

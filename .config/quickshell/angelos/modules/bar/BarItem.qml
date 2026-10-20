@@ -34,7 +34,7 @@ Loader {
     // an icon without words takes a square cell on the hell bar: one grid, equal steps
     readonly property bool iconOnly: !!item && item.barInk !== undefined && item.icon !== undefined && item.icon !== "" && item.text === ""
 
-    readonly property bool tall: wid === "start" || wid === "tasks" || wid === "media" || wid === "lyrics" || wid === "peripherals" || wid === "eq"
+    readonly property bool tall: wid === "start" || wid === "tasks" || wid === "media" || wid === "lyrics" || wid === "runner" || wid === "peripherals" || wid === "eq"
     // Windows 11-like centred taskbar: the window buttons as wide as they need, shrinking when crowded
     property bool centered: false
     // upright: "Windows" as wide as the bar and as tall as the room left (or its buttons, compact)
@@ -67,8 +67,11 @@ Loader {
             return Config.peripherals.show && Peripherals.onBar.length > 0;
         if (wid === "media")
             return Config.bar.showMedia && !!Lyrics.player && Lyrics.title !== "";
+        // «Забег»: only while a wait runs, on its one screen; the lyrics step aside meanwhile
+        if (wid === "runner")
+            return !vertical && Waiting.shown && Waiting.screen === bar.screenName;
         if (wid === "lyrics")
-            return !vertical && Config.lyrics.enabled && Lyrics.visibleToggle && Lyrics.hasLyrics && Lyrics.placeOn(bar.screenName) === "bar" && lyricsMax >= Theme.u * 50;
+            return !vertical && !(BarLayout.has("runner") && Waiting.shown && Waiting.screen === bar.screenName) && Config.lyrics.enabled && Lyrics.visibleToggle && Lyrics.hasLyrics && Lyrics.placeOn(bar.screenName) === "bar" && lyricsMax >= Theme.u * 50;
         return true;
     }
 
@@ -102,6 +105,8 @@ Loader {
             return tasksC;
         case "lyrics":
             return lyricsC;
+        case "runner":
+            return runnerC;
         case "media":
             return mediaC;
         case "tray":
@@ -162,6 +167,13 @@ Loader {
             screenName: root.bar.screenName
             maxWidth: root.lyricsMax
             fixedWidth: true
+        }
+    }
+    Component {
+        id: runnerC
+        Runner {
+            screenName: root.bar.screenName
+            maxWidth: root.lyricsMax
         }
     }
     Component {

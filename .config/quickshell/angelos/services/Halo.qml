@@ -204,6 +204,23 @@ Singleton {
     }
 
     // ---- a short event: its capsule a few seconds, the newest wins ----
+    // the stream's chat (services/StreamChat): the latest message a moment, its own capsule
+    property var chat: null
+    Connections {
+        target: StreamChat
+        enabled: Config.stream.chatHalo !== false
+        function onMessage(m) {
+            root.chat = Object.assign({
+                "id": Date.now()
+            }, m);
+            chatOff.interval = Math.min(9000, 4000 + 40 * String(m.text || "").length);
+            chatOff.restart();
+        }
+    }
+    Timer {
+        id: chatOff
+        onTriggered: root.chat = null
+    }
     property var flash: null
     // its card is open: it stays
     property bool flashHeld: false
@@ -462,7 +479,7 @@ Singleton {
     // a timer's end, an achievement, a moment's event, a recording, an update, downloads,
     // timers, the chest; the music (with its lyrics) is the least — in the pill only when nothing
     // else goes on; the shelf's stack is no event, it stays a bubble
-    readonly property var order: ["ring", "call", "trophy", "flash", "rec", "update", "dl", "timer", "chest", "music", "paused", "shelf"]
+    readonly property var order: ["ring", "call", "trophy", "flash", "rec", "update", "dl", "chat", "timer", "chest", "music", "paused", "shelf"]
     function rank(item) {
         const i = order.indexOf(["pick", "net", "power", "dlDone", "updated", "notif", "osd"].includes(item.kind) ? "flash" : item.kind);
         return i < 0 ? order.indexOf("flash") : i;
@@ -511,6 +528,15 @@ Singleton {
             l.push({
                 "key": "dl",
                 "kind": "dl"
+            });
+        if (chat)
+            l.push({
+                "key": "chat" + chat.id,
+                "kind": "chat",
+                "author": chat.author,
+                "text": chat.text,
+                "amount": chat.amount,
+                "regular": chat.regular
             });
         if (H.showTimers)
             for (const t of Timers.items)

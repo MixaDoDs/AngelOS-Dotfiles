@@ -26,6 +26,7 @@ Singleton {
     // a start that waits for the process
     property var pending: null
     property int fails: 0
+    property real helloAt: 0                 // when the running process said hello (ms, 0: not yet)
 
     readonly property bool test: Quickshell.env("ANGELOS_TEST") === "1"
     readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos"
@@ -90,7 +91,7 @@ Singleton {
     function take(sock, m) {
         if (m.t === "hello") {
             client = sock;
-            fails = 0;
+            helloAt = Date.now();
             learnedCount = m.learned || 0;
             send(shellState);
             if (pending) {
@@ -187,6 +188,11 @@ Singleton {
         onExited: code => {
             root.client = null;
             root.open = false;
+            // only a process that lived a while counts as well: one dying right after its hello
+            // was started again every 2 s for ever
+            if (root.helloAt && Date.now() - root.helloAt > 30000)
+                root.fails = 0;
+            root.helloAt = 0;
             again.interval = Math.min(60000, 2000 * Math.pow(2, root.fails++));
             again.restart();
         }

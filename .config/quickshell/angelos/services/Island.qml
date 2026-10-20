@@ -45,6 +45,7 @@ Singleton {
             corner = c;
         }
         keepIn.restart();
+        keepSize.restart();
     }
     function area() {
         const sc = Shell.screenByName(output);
@@ -104,9 +105,43 @@ Singleton {
             "cmd": "open",
             "url": u
         });
-        proc.command = ["qml6", Quickshell.shellPath("scripts/island/Island.qml"), "--", u, cmdFile, "460", "720"].concat(Shell.dev ? ["dev"] : [], ["shell-opens"]);
+        const s = startSize();
+        opened = s;
+        fitted = false;
+        proc.command = ["qml6", Quickshell.shellPath("scripts/island/Island.qml"), "--", u, cmdFile, String(s[0]), String(s[1])].concat(Shell.dev ? ["dev"] : [], ["shell-opens"]);
         proc.running = true;
     }
+    // landscape, like a window: the portrait "phone" (460×720) confused people (20.10); the user's
+    // own size once they resized it (Config.island.size); never more than the screen's free part
+    property var opened: []
+    property bool fitted: false             // niri gave it the size asked for (an older rule may not)
+    function startSize() {
+        const sc = Shell.screenByName(Niri.focusedOutput) || Shell.primaryScreen;
+        const W = sc ? sc.width : 1920, H = sc ? sc.height : 1080;
+        const s = Config.island.size || [];
+        const w = s.length === 2 ? s[0] : 960, h = s.length === 2 ? s[1] : 640;
+        return [Math.round(Math.max(360, Math.min(w, W * 0.9))), Math.round(Math.max(300, Math.min(h, H * 0.85)))];
+    }
+    // resized by hand: kept for the next time (moves and full screen don't change it)
+    Timer {
+        id: keepSize
+        interval: 800
+        onTriggered: {
+            const b = root.box, o = root.opened;
+            if (!b || o.length !== 2)
+                return;
+            // a size niri set itself (a rule of before) is no choice of the user's
+            if (Math.abs(b[2] - o[0]) < 8 && Math.abs(b[3] - o[1]) < 8) {
+                root.fitted = true;
+                return;
+            }
+            if (!root.fitted)
+                return;
+            root.opened = [Math.round(b[2]), Math.round(b[3])];
+            Config.island.size = root.opened;
+        }
+    }
+
     // the search engine's results for the words (Settings → Screenshots: Config.circle.engine)
     function searchUrl(text, engine) {
         const e = Engines.engines[engine || Config.circle.engine] || Engines.engines.google;
@@ -118,24 +153,53 @@ Singleton {
     }
     // a picture to Google Lens: a page of ours posts it (the PNG inline), the results come back here
     readonly property string lensFile: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos-island-lens.html"
-    function lensPage(b64, ts) {
-        return '<!doctype html><meta charset="utf-8"><title>Google Lens…</title>' + '<body style="background:#16141c;color:#d8d0ea;font:16px sans-serif;display:grid;place-items:center;height:100vh;margin:0">' + '<form id="f" method="post" enctype="multipart/form-data" action="https://lens.google.com/v3/upload?ep=ccm&amp;st=' + ts + '">' + '<input type="file" name="encoded_image" id="i" hidden></form><p>Google Lens…</p><script>' + 'const b = atob("' + b64 + '"), a = new Uint8Array(b.length);' + 'for (let k = 0; k < b.length; k++) a[k] = b.charCodeAt(k);' + 'const dt = new DataTransfer(); dt.items.add(new File([a], "circle.png", {type: "image/png"}));' + 'document.getElementById("i").files = dt.files; document.getElementById("f").submit();</script>';
+    function lensPage(b64, ts, mime) {
+        return '<!doctype html><meta charset="utf-8"><title>Google Lens…</title>' + '<body style="background:#16141c;color:#d8d0ea;font:16px sans-serif;display:grid;place-items:center;height:100vh;margin:0">' + '<form id="f" method="post" enctype="multipart/form-data" action="https://lens.google.com/v3/upload?ep=ccm&amp;st=' + ts + '">' + '<input type="file" name="encoded_image" id="i" hidden></form><p>Google Lens…</p><script>' + 'const b = atob("' + b64 + '"), a = new Uint8Array(b.length);' + 'for (let k = 0; k < b.length; k++) a[k] = b.charCodeAt(k);' + 'const dt = new DataTransfer(); dt.items.add(new File([a], "circle.png", {type: "' + mime + '"}));' + 'document.getElementById("i").files = dt.files; document.getElementById("f").submit();</script>';
     }
+    // a picture asked for while the last one is still read goes next (it was dropped); nothing to
+    // send is said, not silent
+    property string lensNext: ""
     function lens(png) {
-        if (!png)
+        if (!png) {
+            lensFailed();
             return;
+        }
+        // the results in angelOS's own window (services/LensSearch); off: Google's page here
+        if (Config.circle.lensWindow) {
+            LensSearch.search(png);
+            return;
+        }
+        if (lensReader.running) {
+            lensNext = png;
+            return;
+        }
+        lensReader.png = png;
         lensReader.command = ["base64", "-w0", png];
         lensReader.running = true;
     }
+    function lensFailed() {
+        Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "dialog-warning", "-t", "5000", I18n.t("Поиск по картинке не открылся", "Search by picture didn't open"), I18n.t("Снимок не сохранился — попробуйте ещё раз", "The shot wasn't saved — try again")]);
+    }
     Process {
         id: lensReader
+        property string png: ""
         stdout: StdioCollector {
             onStreamFinished: {
-                if (!/^[A-Za-z0-9+\/=]+$/.test(text))
+                if (!/^[A-Za-z0-9+\/=]+$/.test(text)) {
+                    root.lensFailed();
                     return;
-                lensOut.setText(root.lensPage(text, Date.now()));
+                }
+                // Settings → Screenshots may keep JPEGs (capture.shotFormat)
+                lensOut.setText(root.lensPage(text, Date.now(), /\.jpe?g$/i.test(lensReader.png) ? "image/jpeg" : "image/png"));
                 root.open("file://" + root.lensFile);
             }
+        }
+        onExited: {
+            if (!root.lensNext)
+                return;
+            const next = root.lensNext;
+            root.lensNext = "";
+            Qt.callLater(root.lens, next);
         }
     }
     FileView {

@@ -44,16 +44,25 @@ Singleton {
         sock.flush();
         return true;
     }
-    // a question with an answer later: done(answer)
+    // a question with an answer later: done(answer). Every one is kept till its answer (a save
+    // without done too): the frame is not removed while the shell may still be reading it
     function ask(obj, done) {
         const id = _next++;
-        if (done)
-            _pending[id] = done;
+        _pending[id] = done || null;
         obj.id = id;
-        if (!send(obj) && done) {
+        if (!send(obj)) {
             delete _pending[id];
-            done({});
+            if (done)
+                done({});
         }
+    }
+    // the last frame (6-25 MB of RAM in $XDG_RUNTIME_DIR) removed once the overlay has faded and
+    // the shell has answered every save of it; the next shot's grim used to be what removed it
+    function _drop() {
+        const f = CircleSearch.frame;
+        if (!f || CircleSearch.busy || CircleSearch.fading || Object.keys(_pending).length)
+            return;
+        Quickshell.execDetached(["rm", "-f", "--", f]);
     }
 
     function _take(m) {
@@ -68,10 +77,14 @@ Singleton {
             Motion.still = still;
             Theme.realm = hell ? "hell" : "heaven";
         } else if (m.t === "start" || m.t === "toggle") {
-            if (m.t === "toggle" && (CircleSearch.open || CircleSearch.fading)) {
+            // (not while it fades: the key did nothing for half a second after a copy)
+            if (m.t === "toggle" && CircleSearch.open) {
                 CircleSearch.close();
                 return;
             }
+            // a shot already being taken (grim): its windows and place stay as they were
+            if (CircleSearch.busy)
+                return;
             ws = m.ws || null;
             windows = m.windows || [];
             focusedWindowId = m.focused === undefined ? -1 : m.focused;
@@ -88,6 +101,7 @@ Singleton {
             delete _pending[m.id];
             if (done)
                 done(m.r || {});
+            _drop();
         }
     }
 
@@ -143,6 +157,9 @@ Singleton {
                 "on": CircleSearch.open,
                 "screen": CircleSearch.screenName
             });
+        }
+        function onFadingChanged() {
+            root._drop();
         }
         function onLearnedCountChanged() {
             root.send({

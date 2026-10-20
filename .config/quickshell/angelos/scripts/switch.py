@@ -85,8 +85,6 @@ RULES = '''
     window-rule {
         match title="^angelOS · Остров"
         open-floating true
-        default-column-width { fixed 460; }
-        default-window-height { fixed 720; }
         default-floating-position x=24 y=24 relative-to="bottom-right"
         geometry-corner-radius 16
         clip-to-geometry true
@@ -158,6 +156,14 @@ def patch_rules(t):
     if 'exclude app-id="^org.quickshell$" title="^angelOS"' not in t:
         t = t.replace('exclude app-id="^liquid-glass-test$"', 'exclude app-id="^liquid-glass-test$"\n    exclude app-id="^org.quickshell$" title="^angelOS"')
     t = t.replace('match title="^angelOS · "', 'match app-id="^org.quickshell$" title="^angelOS"')
+    # the island sizes itself now (landscape, the user's size kept: services/Island)
+    t = t.replace('''        match title="^angelOS · Остров"
+        open-floating true
+        default-column-width { fixed 460; }
+        default-window-height { fixed 720; }
+''', '''        match title="^angelOS · Остров"
+        open-floating true
+''')
     if "managed by angelos switch.py" in t:
         return t
     return t.rstrip() + "\n" + RULES

@@ -39,6 +39,8 @@ Item {
     property point up: Qt.point(-1, -1)      // where the pointer let go of the last pick: the bar comes there
     property bool fresh: true                // the bar was hidden (a drag, opening): it appears in place, no glide
     property int textTo: -1                  // a text drag's last word (the pick changes only when it does)
+    property point textAt: Qt.point(-1, -1)  // where a text drag began, frame pixels
+    property var textWords: []               // the words textFrom is an index into
     // the pointer's newest place, handled once a frame (an 8 kHz mouse sends 8000 moves a second)
     property real px: 0
     property real py: 0
@@ -188,8 +190,15 @@ Item {
         bar.glide = !fresh;
         if (fresh)
             settle.restart();
-        bar.rtl = L.rtl;
-        bar.at = Qt.point(L.bar.x, L.bar.y);
+        // under the pointer the bar stays where it is (kept on the screen): words coming in moved
+        // it, and its buttons, under a click; it goes to its place once the pointer leaves
+        if (barHover.hovered) {
+            const m = u * 4;
+            bar.at = Qt.point(Math.max(m, Math.min(width - bar.width - m, bar.at.x)), Math.max(m, Math.min(height - bar.height - m, bar.at.y)));
+        } else {
+            bar.rtl = L.rtl;
+            bar.at = Qt.point(L.bar.x, L.bar.y);
+        }
         if (!editing)   // not under the user's typing
             card.at = L.card;
     }
@@ -316,6 +325,8 @@ Item {
         drawMode = (mods & Qt.ShiftModifier) ? "rect" : (mods & Qt.AltModifier) ? "loop" : CircleSearch.mode;
         looped = drawMode === "loop";
         textFrom = drawMode === "text" ? CircleSearch.wordIndexAt(x / k, y / k) : -1;
+        textAt = Qt.point(x / k, y / k);
+        textWords = CircleSearch.words;
         stroke = [Qt.point(x, y)];
         drawing = true;
     }
@@ -374,6 +385,13 @@ Item {
         stroke = stroke.concat([Qt.point(x, y)]);
         if (drawMode === "auto" && !looped && strokeKind(stroke) === "loop")
             looped = true;
+        // the words came anew mid-drag (the piece near the pointer, then the whole read): the
+        // first word found again where the drag began (its old index picked from the new list)
+        if (drawMode === "text" && textFrom >= 0 && textWords !== CircleSearch.words) {
+            textWords = CircleSearch.words;
+            textFrom = CircleSearch.wordNear(textAt.x, textAt.y);
+            textTo = -1;
+        }
         if (drawMode === "text" && textFrom >= 0 && travel >= 6) {
             const b = CircleSearch.wordNear(x / k, y / k);
             // the pick changes only when the word under the pointer does
@@ -506,7 +524,19 @@ Item {
         to: 6
         duration: 400
         loops: Animation.Infinite
-        running: canvas.line.length > 1
+        running: canvas.line.length > 1 && canvas.marching && !Motion.calm
+    }
+    // the dashes march while the line changes and a moment after: for ever, the whole window was
+    // drawn again every frame while a pick sat there
+    property bool marching: false
+    onLineChanged: {
+        marching = true;
+        marchStop.restart();
+    }
+    Timer {
+        id: marchStop
+        interval: 1200
+        onTriggered: canvas.marching = false
     }
     // the hole in the dim (window pixels, closed): a rectangle being drawn or dragged, else the pick's shape
     readonly property var hole: {
@@ -1001,8 +1031,9 @@ Item {
                 width: parent.width
                 height: Math.min(canvas.u * 80, Math.max(canvas.u * 18, input.contentHeight + canvas.u * 12))
                 spell: false
-                text: CircleSearch.text
-                onTextChanged: if (text !== CircleSearch.text)
+                // only while it is seen: hidden (a drag) it laid the whole text out on every word
+                text: card.visible ? CircleSearch.text : ""
+                onTextChanged: if (card.visible && text !== CircleSearch.text)
                     CircleSearch.text = text
             }
             PxText {
@@ -1079,9 +1110,25 @@ Item {
         }
         property bool more: false
         // the clipboard first, always (the first button is lit): the text when there is some, else the picture
-        readonly property var order: !CircleSearch.box ? ["copy", "text", "save", "search", "lens", "translate", "share", "full", "window"] : CircleSearch.kind !== "text" ? ["text", "search", "copy", "more", "translate", "save", "lens", "share", "full", "window"] : CircleSearch.hasText ? ["text", "copy", "search", "translate", "more", "save", "lens", "share", "full", "window"] : ["copy", Config.circle.lens ? "lens" : "search", "save", "more", Config.circle.lens ? "search" : "lens", "translate", "share", "full", "window"]
+        readonly property var liveOrder: !CircleSearch.box ? ["copy", "text", "save", "search", "lens", "translate", "share", "full", "window"] : CircleSearch.kind !== "text" ? ["text", "search", "copy", "more", "translate", "save", "lens", "share", "full", "window"] : CircleSearch.hasText ? ["text", "copy", "search", "translate", "more", "save", "lens", "share", "full", "window"] : ["copy", Config.circle.lens ? "lens" : "search", "save", "more", Config.circle.lens ? "search" : "lens", "translate", "share", "full", "window"]
+        // what the buttons show: liveOrder, held while the pointer is on the bar (the words came
+        // and "Copy picture" under a click turned into "Copy text")
+        property var order: []
+        Component.onCompleted: order = liveOrder
+        onLiveOrderChanged: if (!barHover.hovered)
+            order = liveOrder
         readonly property int fold: order.indexOf("more")    // -1: everything shown
         onOrderChanged: more = false
+        HoverHandler {
+            id: barHover
+            onHoveredChanged: {
+                if (hovered)
+                    return;
+                if (bar.order.join() !== bar.liveOrder.join())
+                    bar.order = bar.liveOrder;
+                Qt.callLater(canvas.relayout);
+            }
+        }
         readonly property var acts: {
             const behind = id => fold >= 0 && !more && order.indexOf(id) > fold;
             const t = CircleSearch.hasText || CircleSearch.words.length > 0;
@@ -1246,6 +1293,7 @@ Item {
             height: canvas.height
             source: CircleSearch.frameUrl
             cache: true
+            asynchronous: true
             smooth: true
         }
         Rectangle {

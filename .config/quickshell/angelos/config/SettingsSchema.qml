@@ -700,6 +700,7 @@ JsonAdapter {
         property string idleLeft: "clock"
         property string idleRight: "weather"
         property string idleMiddle: "cat"   // ring | cat (modules/halo/HaloCat.js: RunCat's cat runs with the processor, sleeps after a minute without input; the old "angel" = cat)
+        property bool catBongo: true        // the cat taps a paw on its desk for each key pressed (services/KeyCast --taps: the side only)
         property int idleRotate: 0          // s; the right side turns through the others this often (0 = it stays)
         property int pauseKeep: 30          // s; paused music keeps the pill this long, then the pill rests and a ▶ bubble with its cover stays beside it (0 = at once)
         property bool musicSmart: true      // music without synced lyrics (a browser video, a song with none) doesn't take the pill: its cover and dancing bars take the right side, its title peeks 5 s on a new track
@@ -732,6 +733,7 @@ JsonAdapter {
     // the mini island (services/Island, scripts/island): links open in a small browser of its own
     property JsonObject island: JsonObject {
         property bool enabled: true         // links from Circle, the clipboard, notifications open there (else the browser)
+        property var size: []               // [w, h] once the user resized it (else landscape 960×640, fitted to the screen)
     }
 
     // the screenshot = Circle to Search / Live Text (services/CircleSearch, Mod+Shift+S / Print; Settings → Screenshots)
@@ -740,6 +742,7 @@ JsonAdapter {
         property string translateTo: "auto" // auto (Cyrillic → en, else → ru) | ru | en | uk | de | ja | …
         property bool liveText: true        // read the whole screen at once and outline the words
         property bool lens: true            // the "search the picture" button (Google Lens)
+        property bool lensWindow: true      // Lens's results in angelOS's own window (services/LensSearch), else Google's page in the island
     }
 
     // the lens at the pointer (services/Lens, Settings → Keyboard and mouse → Lens)
@@ -765,6 +768,10 @@ JsonAdapter {
         property bool dndSet: false         // stream mode switched DND on (switched off again when the stream ends)
         property bool suppressed: false     // switched off by hand during this stream (kept through a shell restart)
         property bool castHinted: false     // the angel told once that OBS can take her onto the stream (StreamMode.hintCast)
+        // the chat on screen (services/StreamChat): a chat reader's session log, read only
+        property string chatLog: ""         // the folder of its *.jsonl logs ("" = off)
+        property bool chatHalo: true        // each message a moment on the Halo, the cat there cheering
+        property bool chatRunners: true     // a little cat with the nick runs along the bottom of the streamed screen
         // privacy on stream (services/Privacy): the mode on by itself while OBS is live
         property bool privacyAuto: false
         property bool privacyPlates: true   // a «Privacy ON» plate over each hidden window, for the viewers alone (modules/y2k/PrivacyCast: OBS's window capture)

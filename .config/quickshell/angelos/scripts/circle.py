@@ -28,6 +28,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import struct
 import subprocess
 import sys
@@ -745,7 +746,7 @@ def read_segments(page, segs, langs, env, zoom=0, tmp=None, target=TARGET):
         path = os.path.join(tmp, "page%d.pgm" % len(procs))
         sheet.save(path)
         p = subprocess.Popen(["tesseract", path, "stdout", "-l", langs, "--psm", "4", "-c", "tessedit_create_tsv=1"],
-                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, env=env)
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, env=env, preexec_fn=die_with_parent)
         procs.append((p, slots))
     for p, slots in procs:
         try:
@@ -815,7 +816,8 @@ def reread(page, segs, langs, env, tmp, target, floor):
         path = os.path.join(tmp, "again-%s.pgm" % lang)  # one block of lines (psm 4 sees no column in a few words)
         sheet.save(path)
         procs.append((subprocess.Popen(["tesseract", path, "stdout", "-l", lang, "--psm", "6", "-c", "tessedit_create_tsv=1"],
-                                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, env=env), slots))
+                                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, env=env,
+                                       preexec_fn=die_with_parent), slots))
     for p, slots in procs:
         outp, _ = p.communicate(timeout=60)
         got = {}
@@ -965,8 +967,43 @@ def background():
         pass
 
 
+# prctl(2) from libc, loaded before any fork (the child only calls it)
+PRCTL = None
+
+
+def die_with_parent():
+    """preexec_fn of the tesseracts: killed when this process goes. The overlay stops a read it no
+    longer wants (SIGTERM, a newer shot) and the orphans read on for a minute."""
+    if PRCTL:
+        PRCTL(1, signal.SIGKILL)  # PR_SET_PDEATHSIG
+
+
+def tidy_tmp():
+    """The pages of reads killed before they could clean up (SIGKILL, an older circle.py): /tmp is
+    RAM, 32 of them took 320 MB once. A read takes seconds, so ten minutes old is left over."""
+    import time
+    root = tempfile.gettempdir()
+    try:
+        names = [n for n in os.listdir(root) if n.startswith("angelos-circle-")]
+    except OSError:
+        return
+    for n in names:
+        d = os.path.join(root, n)
+        try:
+            if time.time() - os.stat(d).st_mtime > 600:
+                shutil.rmtree(d, ignore_errors=True)
+        except OSError:
+            pass
+
+
 def ocr(args):
-    global BACKGROUND
+    global BACKGROUND, PRCTL
+    tidy_tmp()
+    try:
+        import ctypes
+        PRCTL = ctypes.CDLL(None, use_errno=True).prctl
+    except (OSError, AttributeError):
+        pass
     if "--background" in args:
         args = [a for a in args if a != "--background"]
         BACKGROUND = True
@@ -1123,7 +1160,7 @@ def ocr_plain(w, h, px, ox, oy, piece, zoom, poly, langs, env):
         write_pgm(src, w2, h2, g2)
         try:
             r = subprocess.run(["tesseract", src, "stdout", "-l", langs, "--psm", "3" if piece else "11", "-c", "tessedit_create_tsv=1"],
-                               capture_output=True, text=True, env=env, timeout=60)
+                               capture_output=True, text=True, env=env, timeout=60, preexec_fn=die_with_parent)
         except subprocess.TimeoutExpired:
             return out({"error": "timeout"})
     words = []
@@ -1327,6 +1364,9 @@ def fixlink(args):
 
 
 def main():
+    # killed mid-read (the overlay closed, the pick changed): out through SystemExit, so the
+    # temporary pages go with it (TemporaryDirectory) instead of staying in /tmp
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(128 + signal.SIGTERM))
     if len(sys.argv) < 2:
         print(__doc__)
         return 2

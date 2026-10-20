@@ -31,6 +31,8 @@ import qs.modules.capture
 import qs.modules.quickshare
 import qs.modules.quicklook
 import qs.modules.island
+import qs.modules.lenssearch
+import qs.modules.streamchat
 import qs.modules.halo
 import qs.modules.novel
 import qs.modules.diary
@@ -78,6 +80,8 @@ ShellRoot {
     LensOverlay {}
     ShotPreview {}
     ShareSheet {}
+    LensWindow {}
+    ChatRunners {}
     QuickLookWindow {}
     IslandProbe {}
     Ipc {}

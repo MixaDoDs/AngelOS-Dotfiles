@@ -159,7 +159,10 @@ function wordFixes(before, after) {
     return out.length > 8 ? [] : out;
 }
 function addFix(db, app, from, to, ok) {
-    for (const k of [app, ALL]) {
+    // a short word ("CB", "l") is a different word in every app: not fixed everywhere; no app is
+    // the common entry itself (it was counted twice there: once was "twice")
+    const keys = (app ? [app] : []).concat(from.length >= 3 ? [ALL] : []);
+    for (const k of keys) {
         const f = _app(db, k).fixes;
         const c = f[from] && f[from].to === to ? f[from] : {
             "to": to,

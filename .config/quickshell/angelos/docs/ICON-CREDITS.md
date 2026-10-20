@@ -69,3 +69,5 @@ Copyright 2020 Takuto Nakamura. Licensed under the Apache License, Version 2.0
 Used in `modules/halo/HaloCat.js` (Settings → Halo → At rest → «Cat»). Changes: the five running
 frames reduced by hand to 20×12 whole pixels in the theme's text colour, the eyes cut out; a
 sleeping pose (two frames) and a «z» added by angelOS.
+Also in `modules/bar/parts/RunnerSprites.js` (the bar's «Забег»): the same cat drawn again at
+13×7 pixels (four running frames, a jump and a tumble) by angelOS.

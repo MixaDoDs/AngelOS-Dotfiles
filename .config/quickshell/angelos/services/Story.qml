@@ -48,6 +48,8 @@ Singleton {
     property alias pets: save.pet
     // the flip phone's messages, calls and Snake (services/PhoneLine)
     property alias phone: save.phone
+    // the bar's «Забег»: its records (services/Waiting)
+    property alias runner: save.runner
     readonly property double createdAt: save.createdAt || 0
     readonly property var vars: save.vars || ({})
     readonly property var novelState: save.novel

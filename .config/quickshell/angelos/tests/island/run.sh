@@ -38,7 +38,7 @@ ShellRoot {
 }
 QML
 cat >"$H/.config/angelos/settings.json" <<'JSON'
-{"setup": {"complete": true}, "appearance": {"language": "ru"}, "circle": {"engine": "google"}}
+{"setup": {"complete": true}, "appearance": {"language": "ru"}, "circle": {"engine": "google", "lensWindow": false}}
 JSON
 cat >"$T/bin/xdg-open" <<'EOF2'
 #!/bin/sh

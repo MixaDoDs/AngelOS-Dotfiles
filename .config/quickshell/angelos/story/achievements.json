@@ -1258,6 +1258,63 @@
       },
       "on": "wellbeing.break:move",
       "count": 5
+    },
+    {
+      "id": "runner-first",
+      "tier": 1,
+      "icon": "package",
+      "name": {
+        "ru": "Дождался",
+        "en": "Waited it out"
+      },
+      "desc": {
+        "ru": "Котик на панели добежал до конца сборки или обновления",
+        "en": "The cat on the bar ran a build or an update to its end"
+      },
+      "on": "runner.finish"
+    },
+    {
+      "id": "runner-kinds",
+      "tier": 2,
+      "icon": "terminal",
+      "name": {
+        "ru": "Многостаночник",
+        "en": "Jack of all builds"
+      },
+      "desc": {
+        "ru": "Добежать до финиша четырёх разных программ: cargo, make, pacman, npm…",
+        "en": "Run to the finish of four different tools: cargo, make, pacman, npm…"
+      },
+      "on": "runner.finish",
+      "kinds": 4
+    },
+    {
+      "id": "runner-bugs",
+      "tier": 3,
+      "icon": "spider",
+      "name": {
+        "ru": "Ни одного бага",
+        "en": "Not a single bug"
+      },
+      "desc": {
+        "ru": "Перепрыгнуть 50 жучков за одну игру в «Забеге»",
+        "en": "Jump 50 bugs in one game of the bar run"
+      },
+      "on": "runner.streak"
+    },
+    {
+      "id": "runner-marathon",
+      "tier": 3,
+      "icon": "clock",
+      "name": {
+        "ru": "Марафон",
+        "en": "Marathon"
+      },
+      "desc": {
+        "ru": "Добежать до конца сборки дольше 10 минут и ни разу не врезаться",
+        "en": "Run a build longer than 10 minutes to its end without hitting a bug once"
+      },
+      "on": "runner.marathon"
     }
   ]
 }

@@ -513,6 +513,16 @@ PxPage {
                 onActivated: v => Config.halo.idleMiddle = v
             }
         }
+        // services/KeyCast --taps: the side of each key, never which one; nothing while a password is typed
+        SettingRow {
+            visible: Config.halo.idleMiddle !== "ring"
+            label: I18n.t("Бонго-котик", "Bongo cat")
+            hint: KeyCast.error !== "" ? KeyCast.error : I18n.t("стучит лапкой по столу на каждую клавишу: левая половина клавиатуры — левой, правая — правой; пока вводится пароль — сидит", "taps its desk for every key: the left half of the keyboard with the left paw, the right with the right; still while a password is typed")
+            PxToggle {
+                checked: Config.halo.catBongo !== false
+                onToggled: v => Config.halo.catBongo = v
+            }
+        }
         SettingRow {
             label: I18n.t("Менять правую сторону", "Change the right side")
             hint: I18n.t("справа по очереди: часы, погода, экранное время (кроме того, что слева)", "on the right in turn: the clock, the weather, the screen time (not the one on the left)")

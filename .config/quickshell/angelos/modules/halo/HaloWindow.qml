@@ -42,7 +42,8 @@ PanelWindow {
     // over a full-screen window only the timer's end
     // (the game's cards go to one screen only: Halo.gameScreen)
     // over a full-screen game or film: nothing (Settings → Halo), or only a timer's end
-    readonly property var baseItems: (full ? (Config.halo.overFullscreen === "timer" ? Halo.items.filter(i => i.kind === "ring") : []) : Halo.items).filter(i => !i.only || i.only === modelData.name)
+    // (the stream's chat goes over it too while on air: that is what the viewers watch)
+    readonly property var baseItems: (full ? Halo.items.filter(i => Config.halo.overFullscreen === "timer" && i.kind === "ring" || i.kind === "chat" && StreamMode.onAir) : Halo.items).filter(i => !i.only || i.only === modelData.name)
     // music without synced lyrics here (a browser video, a song with none) doesn't take the pill
     // (Settings → Halo → «Music without synced lyrics»): its title peeks 5 s on a new track or
     // a pause, then its cover and bars take the resting pill's right side (`musicEar`); beside
@@ -1528,6 +1529,11 @@ PanelWindow {
                 "icon": item.what === "brightness" ? "sun" : item.what === "kbd" ? "keyboard" : item.what === "mic" ? (Audio.micMuted ? "micMute" : "mic") : (Audio.muted ? "speakerMute" : "speaker"),
                 "text": Math.round(Halo.osdLevel(item.what) * 100) + "%"
             };
+        case "chat":
+            return {
+                "icon": item.amount ? "heart" : "chat",
+                "text": item.author + (item.amount ? " · " + item.amount : "") + (item.text ? ": " + item.text : "")
+            };
         case "call":
             return {
                 "icon": Halo.callMuted ? "micMute" : "phone",
@@ -1830,7 +1836,32 @@ PanelWindow {
         }
         readonly property bool napping: win.dozing && !win.pointerHere
         readonly property bool moving: visible && win.shown && !Motion.still
-        readonly property var frame: napping ? Kitty.nap[moving ? Math.floor(tick / 2) % 2 : 0] : moving ? Kitty.run[tick % 5] : Kitty.run[0]
+        // bongo (Settings → Halo): at its desk while keys are pressed, a paw down for each
+        // (KeyCast taps: the keyboard's side); both paws up between them, back to running after
+        property string paw: ""             // "" | up | left | right | both
+        Connections {
+            target: KeyCast
+            enabled: cat.moving
+            function onTapped(side) {
+                cat.paw = side === "l" ? "left" : side === "r" ? "right" : "both";
+                pawUp.restart();
+                pawOff.restart();
+            }
+        }
+        Timer {
+            id: pawUp
+            interval: 110
+            onTriggered: cat.paw = "up"
+        }
+        Timer {
+            id: pawOff
+            interval: 900
+            onTriggered: cat.paw = ""
+        }
+        // the stream's chat capsule: cheering, a heart for a paid message
+        property bool cheer: false
+        property bool gift: false
+        readonly property var frame: cheer ? Kitty.bongo.up : paw !== "" && moving ? Kitty.bongo[paw] : napping ? Kitty.nap[moving ? Math.floor(tick / 2) % 2 : 0] : moving ? Kitty.run[tick % 5] : Kitty.run[0]
         width: 20 * pixel
         height: 12 * pixel
         Timer {
@@ -1845,7 +1876,7 @@ PanelWindow {
             ink: cat.ink
         }
         PxIcon {
-            visible: cat.purring
+            visible: cat.purring || cat.gift
             name: "heart"
             pixel: cat.pixel
             x: 16 * cat.pixel
@@ -2119,9 +2150,17 @@ PanelWindow {
             smooth: false
         }
         PxIcon {
-            visible: !!cp.s && !notifPic.visible && cp.kind !== "call"
+            visible: !!cp.s && !notifPic.visible && cp.kind !== "call" && cp.kind !== "chat"
             anchors.verticalCenter: parent.verticalCenter
             name: cp.s ? cp.s.icon : "star"
+        }
+        // a viewer wrote in the stream's chat: the Halo's cat cheers it (a heart for a paid one)
+        RestCat {
+            visible: cp.kind === "chat"
+            anchors.verticalCenter: parent.verticalCenter
+            cheer: true
+            gift: cp.kind === "chat" && !!cp.item.amount
+            ink: win.textInk
         }
         // volume / brightness: the bar of blocks
         BlockBar {

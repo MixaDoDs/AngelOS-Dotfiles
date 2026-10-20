@@ -10,14 +10,14 @@ import QtWebEngine
 
 Window {
     id: win
-    // qml6 Island.qml -- URL CMDFILE WIDTH HEIGHT [dev] [shell-opens]   (the size is niri's rule's, this is a guess)
+    // qml6 Island.qml -- URL CMDFILE WIDTH HEIGHT [dev] [shell-opens]   (the size: services/Island.startSize)
     // shell-opens: the shell opens ↗'s page (a shell of before it: the island does)
     readonly property var args: {
         const a = Qt.application.arguments;
         return a.slice(a.indexOf("--") + 1);
     }
-    width: Number(args[2] || 460)
-    height: Number(args[3] || 720)
+    width: Number(args[2] || 960)
+    height: Number(args[3] || 640)
     visible: true
     color: "#16141c"
     // the niri rule finds it by this title (the page's own title goes into the strip)
@@ -30,14 +30,24 @@ Window {
 
     // our Lens page (services/Island.lens) is a file that posts the picture to Google: only it
     // may reach the net from file:// (a page loaded from a file can't otherwise)
+    property string origin: ""          // what it was last asked to open
     function go(u) {
+        origin = u;
         view.settings.localContentCanAccessRemoteUrls = /^file:\/\/.*\/angelos-island-lens\.html$/.test(u);
         view.url = u;
     }
+    // Google's "unusual traffic" check (/sorry/, a captcha: a profile Google doesn't know gets it,
+    // through a VPN all the more): the same request goes to the default browser, where the user
+    // is known (20.10). Our Lens page goes whole (its picture is in it); a link by its own address.
+    function sorry(u) {
+        const m = /[?&]continue=([^&]+)/.exec(u);
+        const back = m ? decodeURIComponent(m[1]) : "";
+        toBrowser(/angelos-island-lens\.html$/.test(origin) || !/^https?:/.test(back) ? origin : back);
+    }
     // ↗: the page it is on now (not the link it opened with) goes to the default browser —
     // the shell opens it (xdg-open, as all its links); on its own, the island opens it itself
-    function toBrowser() {
-        const u = view.url.toString();
+    function toBrowser(target) {
+        const u = target || view.url.toString();
         if (win.shellOpens)
             win.say({
                 "ev": "browser",
@@ -100,11 +110,17 @@ Window {
     WebEngineView {
         id: view
         anchors.fill: parent
-        profile: proto.instance()
-        Component.onCompleted: win.go(win.args[0] || "about:blank")
+        // the profile once the prototype is complete: bound in place, instance() ran before
+        // storageName was set and handed out an off-the-record profile (no login was ever kept)
+        Component.onCompleted: {
+            view.profile = proto.instance();
+            win.go(win.args[0] || "about:blank");
+        }
         opacity: win.through ? 0.82 : 1
         // a link that wants a new window stays here
         onNewWindowRequested: r => view.url = r.requestedUrl
+        onUrlChanged: if (/^https:\/\/(www\.|ipv4\.|ipv6\.)?google\.[a-z.]+\/sorry\//.test(url.toString()))
+            win.sorry(url.toString())
         onFullScreenRequested: r => {
             r.accept();
             win.say({

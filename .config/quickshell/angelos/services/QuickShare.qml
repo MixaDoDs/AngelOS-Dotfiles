@@ -143,13 +143,17 @@ Singleton {
         } while (n >= 1024 && i < 2)
         return (n < 10 ? n.toFixed(1) : Math.round(n)) + " " + u[i];
     }
-    function notify(title, body, actions, onAction) {
-        const args = ["notify-send", "-a", I18n.t("Отправить рядом", "Quick Share"), "-i", "folder-download"];
+    // within: seconds the question lasts (the daemon's own wait): the popup goes then, and
+    // `timeout` ends a notify-send that would wait for ever (they piled up, one per question)
+    function notify(title, body, actions, onAction, within) {
+        const args = (within ? ["timeout", String(within + 5)] : []).concat(["notify-send", "-a", I18n.t("Отправить рядом", "Quick Share"), "-i", "folder-download"]);
         for (const a of actions || [])
             args.push("-A", a[0] + "=" + a[1]);
+        if (within)
+            args.push("-t", String(within * 1000));
         if (actions && actions.length)
             args.push("--wait");
-        args.push(title, body);
+        args.push("--", title, body);
         const p = asker.createObject(root, {
             "command": args,
             "handler": onAction || null
@@ -157,6 +161,10 @@ Singleton {
         p.running = true;
     }
 
+    // what a sender typed, safe in a notification's body (it is markup there; the title is plain)
+    function esc(t) {
+        return String(t || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
     // what the daemon says
     function onEvent(ev) {
         if (ev.ev === "ready") {
@@ -184,20 +192,27 @@ Singleton {
             jobs = j;
         } else if (ev.ev === "ask") {
             const names = ev.files.slice(0, 3).map(f => f.name).join(", ") + (ev.files.length > 3 ? I18n.t(" и ещё ", " and ") + (ev.files.length - 3) : "");
-            notify(I18n.t(ev.from.alias + " хочет прислать: " + ev.files.length + " шт., " + size(ev.total), ev.from.alias + " wants to send " + ev.files.length + " file(s), " + size(ev.total)), names, [["accept", I18n.t("Принять", "Accept")], ["trust", I18n.t("Принять и всегда от ", "Accept, and always from ") + ev.from.alias], ["decline", I18n.t("Отклонить", "Decline")]], act => {
+            notify(I18n.t(ev.from.alias + " хочет прислать: " + ev.files.length + " шт., " + size(ev.total), ev.from.alias + " wants to send " + ev.files.length + " file(s), " + size(ev.total)), esc(names), [["accept", I18n.t("Принять", "Accept")], ["trust", I18n.t("Принять и всегда от ", "Accept, and always from ") + ev.from.alias], ["decline", I18n.t("Отклонить", "Decline")]], act => {
                 if (act === "trust")
                     root.trust(ev.from, true);
                 root.answer(ev.id, act === "accept" || act === "trust");
-            });
+            }, 120);
         } else if (ev.ev === "text") {
-            notify(I18n.t("Сообщение от ", "A message from ") + ev.from.alias + I18n.t(" · в буфере", " · on the clipboard"), ev.text, [], null);
+            // not a trusted device's: only shown, the clipboard by its button (anyone on the LAN can send)
+            if (ev.clip === false)
+                notify(I18n.t("Сообщение от ", "A message from ") + ev.from.alias, esc(ev.text), [["copy", I18n.t("В буфер", "Copy")]], act => {
+                    if (act === "copy")
+                        Quickshell.execDetached(["wl-copy", "--type", "text/plain;charset=utf-8", "--", ev.text]);
+                }, 120);
+            else
+                notify(I18n.t("Сообщение от ", "A message from ") + ev.from.alias + I18n.t(" · в буфере", " · on the clipboard"), esc(ev.text), [], null);
         } else if (ev.ev === "recv") {
             incoming = ev.state === "receiving" ? Object.assign({}, incoming || {}, ev) : null;
             if (ev.state === "done") {
                 const items = ev.items || ev.paths || [];
                 // one thing: a look at it in Quick Look first (the shell's own, no app to wait for)
                 const acts = (items.length === 1 && QuickLook.wanted ? [["look", I18n.t("Посмотреть", "Look")]] : []).concat([["open", I18n.t("Открыть", "Open")], ["folder", I18n.t("Показать в папке", "Show in folder")], ["copy", I18n.t("В буфер ещё раз", "Copy again")]]);
-                notify(I18n.t("Получено от " + ((ev.from || {}).alias || "?") + ": " + items.length + " шт. · в буфере", "Received from " + ((ev.from || {}).alias || "?") + ": " + items.length + " · on the clipboard"), items.map(p => p.split("/").pop()).slice(0, 4).join(", "), acts, act => {
+                notify(I18n.t("Получено от " + ((ev.from || {}).alias || "?") + ": " + items.length + " шт. · в буфере", "Received from " + ((ev.from || {}).alias || "?") + ": " + items.length + " · on the clipboard"), esc(items.map(p => p.split("/").pop()).slice(0, 4).join(", ")), acts, act => {
                     // up to three things open each in its app (the photo in the viewer, the video in
                     // the player, a folder in the file manager); more are shown in the folder, picked
                     if (act === "look")
@@ -213,7 +228,10 @@ Singleton {
                         root.reveal(items);
                 });
             } else if (ev.state === "error") {
-                notify(I18n.t("Не получилось принять", "Could not receive"), ev.msg || "", []);
+                notify(I18n.t("Не получилось принять", "Could not receive"), esc(ev.msg), []);
+            } else if (ev.state === "expired") {
+                // the question went unanswered: an Accept after this would go nowhere
+                notify(I18n.t("Не принято: вопрос от " + ((ev.from || {}).alias || "?") + " истёк", "Not received: the question from " + ((ev.from || {}).alias || "?") + " expired"), I18n.t("Пусть пришлют ещё раз", "Ask them to send it again"), []);
             }
         }
     }
@@ -261,14 +279,31 @@ Singleton {
     function restart() {
         if (!wanted)
             return;
+        stopping = true;
+        againTimer.stop();
         daemon.running = false;
         ready = false;
         restartTimer.restart();
     }
+    // a daemon that died by itself comes back, later each time it dies again soon (5 s … 5 min)
+    property bool stopping: false
+    property int crashes: 0
+    property double startedAt: 0
+    Timer {
+        id: againTimer
+        interval: Math.min(300000, 5000 * Math.pow(2, root.crashes))
+        onTriggered: {
+            root.crashes++;
+            daemon.running = root.wanted;
+        }
+    }
     Timer {
         id: restartTimer
         interval: 300
-        onTriggered: daemon.running = root.wanted
+        onTriggered: {
+            root.stopping = false;
+            daemon.running = root.wanted;
+        }
     }
 
     Process {
@@ -283,9 +318,16 @@ Singleton {
                 } catch (e) {}
             }
         }
+        onRunningChanged: if (running)
+            root.startedAt = Date.now()
         onExited: {
             root.ready = false;
             root.receiving = false;
+            // a minute up: it was no crash loop, the wait starts small again
+            if (Date.now() - root.startedAt > 60000)
+                root.crashes = 0;
+            if (root.wanted && !root.stopping)
+                againTimer.restart();
         }
     }
     Process {

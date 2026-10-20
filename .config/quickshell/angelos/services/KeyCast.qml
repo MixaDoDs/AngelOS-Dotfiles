@@ -16,6 +16,10 @@ Singleton {
     id: root
 
     readonly property bool on: Config.ready && Config.keycast.enabled && Quickshell.env("ANGELOS_TEST") !== "1"
+    // the Halo's bongo cat (Settings → Halo): the same script, the side of each key only (--taps)
+    readonly property bool drum: Config.ready && Config.halo.enabled && Config.halo.idleMiddle !== "ring" && Config.halo.catBongo !== false && Quickshell.env("ANGELOS_TEST") !== "1"
+    signal tapped(string side)          // "l" | "r" | "b"
+    readonly property var command: ["python3", Quickshell.shellDir + "/scripts/key-cast.py"].concat(on && Config.keycast.text ? ["--text"] : [], drum ? ["--taps"] : [])
     property var items: []                 // newest last: {id, text, kind: "keys" | "text", at}
     property int _n: 0
     property bool secret: false            // the script: a password is being typed now
@@ -80,9 +84,9 @@ Singleton {
 
     Process {
         id: proc
-        running: root.on
+        running: root.on || root.drum
         stdinEnabled: true
-        command: ["python3", Quickshell.shellDir + "/scripts/key-cast.py"].concat(Config.keycast.text ? ["--text"] : [])
+        command: root.command
         onRunningChanged: if (running)
             root._tell()
         stdout: SplitParser {
@@ -99,7 +103,10 @@ Singleton {
                         root.items = [];
                 } else if (j.error) {
                     root.error = j.error;
-                } else if (!root.secret && !root.shellSecret) {
+                } else if (j.tap) {
+                    if (!root.secret && !root.shellSecret)
+                        root.tapped(j.tap);
+                } else if (root.on && !root.secret && !root.shellSecret) {
                     if (j.keys)
                         root._add(j.keys, "keys");
                     else if (j.text)
@@ -108,14 +115,11 @@ Singleton {
             }
         }
     }
-    // --text changes the command: start again with it
-    Connections {
-        target: Config.keycast
-        function onTextChanged() {
-            if (proc.running) {
-                proc.running = false;
-                Qt.callLater(() => proc.running = Qt.binding(() => root.on));
-            }
+    // --text or --taps changes the command: start again with it
+    onCommandChanged: {
+        if (proc.running) {
+            proc.running = false;
+            Qt.callLater(() => proc.running = Qt.binding(() => root.on || root.drum));
         }
     }
 }

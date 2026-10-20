@@ -98,7 +98,11 @@ Singleton {
                         r = JSON.parse(last) || {};
                         if (r.path && !sr.noThumb)
                             root.shotSaved(r.path);
-                    } catch (e) {}
+                    } catch (e) {
+                        // no answer at all (python died): said once here — quiet callers (Lens,
+                        // share) said nothing; its own errors come with its own notification
+                        Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "dialog-error", "--", I18n.t("Скриншот не сохранился", "Screenshot not saved"), I18n.t("Не получилось сохранить снимок", "Could not keep the picture")]);
+                    }
                     if (sr.done)
                         sr.done(r);
                 }
@@ -137,7 +141,7 @@ Singleton {
     // the recording is saved (IPC recSaved from the script): onto the Halo's shelf
     function saved(path) {
         if (Config.halo.enabled && path)
-            Shelf.addDrop(["file://" + encodeURI(path)], "", false);
+            Shelf.addDrop([FileSearch.uri(path)], "", false);
     }
     Process {
         id: recLook
@@ -222,18 +226,27 @@ Singleton {
     function mac(kind) {
         launch(macTool, "niri msg action screenshot", [kind]);
     }
+    // each call its own timer: one shared, a second call within 220 ms dropped the first
     function launch(tool, fallback, args) {
-        later.tool = tool;
-        later.fallback = fallback;
-        later.args = args || [];
-        later.restart();
+        later.createObject(root, {
+            "tool": tool,
+            "fallback": fallback,
+            "args": args || []
+        });
     }
-    Timer {
+    Component {
         id: later
-        property string tool: ""
-        property string fallback: ""
-        property var args: []
-        interval: 220
-        onTriggered: Quickshell.execDetached(["sh", "-c", 't="$1"; f="$2"; shift 2; [ -x "$t" ] || exec sh -c "$f"; niri msg action spawn -- "$t" "$@" >/dev/null 2>&1 || exec "$t" "$@"', "sh", tool, fallback].concat(args))
+        Timer {
+            id: lt
+            property string tool: ""
+            property string fallback: ""
+            property var args: []
+            interval: 220
+            running: true
+            onTriggered: {
+                Quickshell.execDetached(["sh", "-c", 't="$1"; f="$2"; shift 2; [ -x "$t" ] || exec sh -c "$f"; niri msg action spawn -- "$t" "$@" >/dev/null 2>&1 || exec "$t" "$@"', "sh", tool, fallback].concat(args));
+                lt.destroy();
+            }
+        }
     }
 }

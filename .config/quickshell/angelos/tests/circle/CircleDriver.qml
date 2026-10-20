@@ -112,6 +112,11 @@ Scope {
         root.look();
         return shots.count > root.shots0 && shots.size === size;
     }
+    // the picture went to Lens: its window open, the worker it would start given the saved picture
+    function lensAsked() {
+        const c = LensSearch.lastCommand.join(" ");
+        return LensSearch.open && c.indexOf("scripts/lens/LensWorker.qml") >= 0 && /\.png /.test(c);
+    }
     function fileText(f) {
         f.reload();
         return f.text();
@@ -1135,11 +1140,14 @@ Scope {
             root.click("act-search");
             return true;
         },
-        () => root.until("Search-on-a-pick-without-text-goes-to-Lens", () => root.fileText(island).indexOf(Island.lensFile) >= 0 && /lens\.google\.com/.test(root.fileText(lensPage)), 8000, () => island.text()),
+        // Lens's results in angelOS's own window (services/LensSearch; a test starts no worker)
+        () => root.until("Search-on-a-pick-without-text-goes-to-Lens", () => root.lensAsked(), 8000, () => JSON.stringify(LensSearch.lastCommand)),
         () => {
             root.reopen();
             island.setText("");
             lensPage.setText("");
+            LensSearch.close();
+            LensSearch.lastCommand = [];
             // only a pick goes to Lens (the whole screen may have private messages on it)
             CircleSearch.pickRect({
                 "x": 40,
@@ -1150,7 +1158,8 @@ Scope {
             root.click("act-lens");
             return true;
         },
-        () => root.until("Search-the-picture-opens-Lens-in-the-island", () => root.fileText(island).indexOf(Island.lensFile) >= 0 && /lens\.google\.com/.test(root.fileText(lensPage)), 8000, () => island.text()),
+        // Lens's results in angelOS's own window (services/LensSearch; a test starts no worker)
+        () => root.until("Search-the-picture-opens-Lens-in-its-window", () => root.lensAsked(), 8000, () => JSON.stringify(LensSearch.lastCommand)),
         () => {
             root.reopen();
             root.click("act-translate");

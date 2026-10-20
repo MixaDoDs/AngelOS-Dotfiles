@@ -25,7 +25,7 @@ Singleton {
     readonly property bool hell: Config.ready && Angel.demon && Config.y2k.hellBar
     readonly property var defaults: ({
             "left": ["start", "workspaces", "tasks"],
-            "center": ["lyrics"],
+            "center": ["runner", "lyrics"],
             "right": ["media", "tray", "layout", "wired", "wifi", "bluetooth", "battery", "peripherals", "eq", "volume", "bell", "clock"]
         })
     readonly property var meta: ({
@@ -44,6 +44,13 @@ Singleton {
             "lyrics": {
                 "label": I18n.t("Лирика", "Lyrics"),
                 "icon": "mic"
+            },
+            // «Забег» (services/Waiting): the cat runs here while a build or an update runs,
+            // the lyrics step aside; nothing the rest of the time. Hidden = off
+            "runner": {
+                "label": I18n.t("Забег", "Build run"),
+                "icon": "gamepad",
+                "section": "center"
             },
             "media": {
                 "label": I18n.t("Плеер", "Player"),
@@ -144,8 +151,13 @@ Singleton {
         const fresh = pluginIds.filter(id => !placed[id] && !hid.includes(id));
         const missing = custom ? Object.keys(meta).filter(id => valid(id) && !placed[id] && !hid.includes(id)) : [];
         out.right = fresh.concat(out.right);
-        // a new built-in with a place of its own ("before") goes there, the rest to the end
+        // a new built-in with a place of its own ("before", or the start of its "section") goes
+        // there, the rest to the end
         for (const id of missing) {
+            if (meta[id].section && out[meta[id].section]) {
+                out[meta[id].section].unshift(id);
+                continue;
+            }
             const at = meta[id].before ? out.right.indexOf(meta[id].before) : -1;
             if (at >= 0)
                 out.right.splice(at, 0, id);

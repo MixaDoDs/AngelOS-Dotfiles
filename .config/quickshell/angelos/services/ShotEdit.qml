@@ -22,7 +22,6 @@ Singleton {
     property string path: ""                 // the shot in the corner / in the editor
     property string screenName: ""
     property bool temp: false                // only copied: the PNG is ours (shotsDir), not in the folders
-    property bool quiet: false               // our own "save into the folder": no new thumbnail for it
     property bool thumb: false               // the corner's picture is up
     property string at: "bottom-right"       // where it is (widgets/Place.js names): capture.shotPreviewAt, or a free place
     property bool editing: false             // the editor's window is open
@@ -45,12 +44,6 @@ Singleton {
     Connections {
         target: Capture
         function onShotSaved(p) {
-            // our own save of a copied shot: from now on it is that file
-            if (root.quiet) {
-                root.quiet = false;
-                root.moved(root.path, p);
-                return;
-            }
             // (Ctrl+Shift+C: the overlay stays for the next piece, no picture over it)
             if (!CircleHost.open)
                 root.shown(p, CircleHost.screenName || Niri.focusedOutput, false);
@@ -129,16 +122,41 @@ Singleton {
     }
     function close() {
         editing = false;
+        sweep();
     }
     // the work on a shot, kept (the editor writes it on every change)
     function keep(p, s) {
         const all = Object.assign({}, sessions);
+        // the one at work is the newest: it never goes as "the oldest" under the editor
+        delete all[p];
         all[p] = s;
+        for (const f of filesOf(s))
+            owned[f] = true;
         // a handful of shots' work, the oldest goes
         const keys = Object.keys(all);
         if (keys.length > 12)
             delete all[keys[0]];
         sessions = all;
+        if (keys.length > 12)
+            sweep();
+    }
+    // the step files a session holds (its picture, its undo and redo); only ours, never the shot
+    function filesOf(s) {
+        return [s.base].concat((s.undo || []).map(u => u.base), (s.redo || []).map(u => u.base)).filter(f => f && f.indexOf(dir + "/") === 0);
+    }
+    // step files that were a session's and are no one's now (a shot's work gone, an undo past
+    // its 80, a redo cut off) leave the runtime dir: it is memory, and they piled up
+    property var owned: ({})                 // file → true: every step file a session held
+    function sweep() {
+        const used = {};
+        for (const k in sessions)
+            for (const f of filesOf(sessions[k]))
+                used[f] = true;
+        const gone = Object.keys(owned).filter(f => !used[f]);
+        for (const f of gone)
+            delete owned[f];
+        if (gone.length)
+            Quickshell.execDetached(["rm", "-f", "--"].concat(gone));
     }
     // a copied shot saved into the folder: its work goes with it
     function moved(from, to) {
@@ -157,6 +175,33 @@ Singleton {
     function newFile() {
         made++;
         return dir + "/" + Date.now() + "-" + made + ".png";
+    }
+    // a picture under the shot's own name (<dir>/share-N/<name>.png): done(its path); for Quick
+    // Share, which sends the file's name along
+    function named(file, done) {
+        made++;
+        const to = dir + "/share-" + made + "/" + (path.split("/").pop().replace(/\.[^.]*$/, "") || "shot") + ".png";
+        const p = namer.createObject(root, {
+            "to": to,
+            "done": done,
+            "command": ["sh", "-c", 'mkdir -p -- "${2%/*}" && cp -- "$1" "$2"', "sh", file, to]
+        });
+        p.running = true;
+    }
+    Component {
+        id: namer
+        Process {
+            id: nm
+            property string to
+            property var done
+            onExited: code => {
+                if (code === 0)
+                    nm.done(nm.to);
+                else
+                    root.error = I18n.t("Не получилось", "Did not work");
+                Qt.callLater(nm.destroy);
+            }
+        }
     }
     // one step of scripts/shot_edit.py on a picture: done(file of the result) or done("") on failure
     function run(src, op, arg, done) {
@@ -200,10 +245,17 @@ Singleton {
     // silent: no notification of its own (the editor's Copy saves its changes too, and says "copied")
     function saveFile(file, silent) {
         if (temp) {
-            quiet = true;
+            // our own save of a copied shot: no new thumbnail for it, and from now on it is that
+            // file — told by its own answer (a flag waiting for the next shotSaved stuck when the
+            // save failed, and took the next real screenshot for this one)
+            const from = path;
             Capture.saveShot(file, null, {
                 "copy": false,
-                "quiet": !!silent
+                "quiet": !!silent,
+                "noThumb": true
+            }, r => {
+                if (r.path)
+                    root.moved(from, r.path);
             });
             return;
         }

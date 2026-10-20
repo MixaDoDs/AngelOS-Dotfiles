@@ -559,6 +559,12 @@ IpcHandler {
             return;
         Island.open(url);
     }
+    // a picture to Google Lens, the results in angelOS's window (services/LensSearch)
+    function lensSearch(path: string): void {
+        if (Shell.setupLocked)
+            return;
+        LensSearch.search(path);
+    }
     function islandThrough(): void {
         Island.setThrough(!Island.through);
     }

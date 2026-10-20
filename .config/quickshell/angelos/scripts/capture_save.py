@@ -74,13 +74,18 @@ def month_dir():
 
 
 def free_name(d, stamp, ext):
-    """The old tool's name; a second shot in the same second gets " (2)"."""
+    """The old tool's name; a second shot in the same second gets " (2)". The name is taken at
+    once (an empty file, the picture replaces it): two saves in one second took one name and
+    the second overwrote the first."""
     path = os.path.join(d, f"Screenshot from {stamp}.{ext}")
     n = 2
-    while os.path.exists(path):
-        path = os.path.join(d, f"Screenshot from {stamp} ({n}).{ext}")
-        n += 1
-    return path
+    while True:
+        try:
+            os.close(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644))
+            return path
+        except FileExistsError:
+            path = os.path.join(d, f"Screenshot from {stamp} ({n}).{ext}")
+            n += 1
 
 
 def copy(data, mime):
@@ -181,10 +186,21 @@ def main(argv):
     want_copy = cfg.get("shotCopy", True) if o["copy"] is None else o["copy"]
     path = ""
     if o["save"]:
-        path = free_name(month_dir(), time.strftime("%Y-%m-%d %H-%M-%S"), "jpg" if jpg else "png")
-        with open(path + ".part", "wb") as f:
-            f.write(data)
-        os.replace(path + ".part", path)
+        # a full disk, a folder gone: said like a bad frame (an empty answer told the shell nothing)
+        try:
+            path = free_name(month_dir(), time.strftime("%Y-%m-%d %H-%M-%S"), "jpg" if jpg else "png")
+            with open(path + ".part", "wb") as f:
+                f.write(data)
+            os.replace(path + ".part", path)
+        except OSError as e:
+            for p in (path + ".part", path) if path else ():
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
+            subprocess.run(["notify-send", "-a", "Screenshot", "Ошибка скриншота", str(e)])
+            print(json.dumps({"error": str(e)}))
+            return 1
     copied = copy(data, "image/jpeg" if jpg else "image/png") if want_copy or not o["save"] else False
     # no pling here: the notification brings the "screenshot" sound (services/Notifs → Sounds),
     # at the shell's volume and quiet with its quiet hours and stream mode; this one was a second,

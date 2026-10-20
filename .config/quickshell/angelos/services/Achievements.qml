@@ -268,6 +268,22 @@ Singleton {
             "key": "eyes | move"
         },
         {
+            "id": "runner.finish",
+            "ru": "Котик на панели добежал до конца сборки (Забег)",
+            "en": "The bar's cat ran a build to its end (bar run)",
+            "key": "cargo | make | pacman | npm | …"
+        },
+        {
+            "id": "runner.streak",
+            "ru": "50 жучков за одну игру в «Забеге»",
+            "en": "50 bugs jumped in one game of the bar run"
+        },
+        {
+            "id": "runner.marathon",
+            "ru": "Сборка дольше 10 минут до конца, ни разу не врезавшись",
+            "en": "A build over 10 minutes run to its end without a hit"
+        },
+        {
             "id": "angel.pet",
             "ru": "Погладить ангела (или демоницу)",
             "en": "Pet the angel (or the demon)",

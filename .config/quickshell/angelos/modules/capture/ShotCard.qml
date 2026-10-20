@@ -45,7 +45,7 @@ PxBox {
         y: card.u
         width: card.pic.width
         height: card.pic.height
-        source: ShotEdit.path ? "file://" + ShotEdit.path : ""
+        source: ShotEdit.path ? FileSearch.uri(ShotEdit.path) : ""
         sourceSize: Qt.size(card.u * 180, card.u * 140)
         fillMode: Image.PreserveAspectFit
         asynchronous: true
@@ -86,7 +86,7 @@ PxBox {
     Drag.imageSource: card.dragPic
     Drag.supportedActions: Qt.CopyAction
     Drag.mimeData: {
-        "text/uri-list": ShotEdit.path ? "file://" + encodeURI(ShotEdit.path) : ""
+        "text/uri-list": ShotEdit.path ? FileSearch.uri(ShotEdit.path) : ""
     }
     Drag.onDragFinished: action => {
         if (action !== Qt.IgnoreAction)

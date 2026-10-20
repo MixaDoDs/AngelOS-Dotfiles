@@ -192,6 +192,8 @@ start suite links
 start suite capture
 start suite capture_regions
 start suite island
+start suite lens
+start suite streamchat
 start suite keys
 wait
 
@@ -208,7 +210,7 @@ for sh in "${SHARDS[@]}"; do
   rm -rf "${T:?}/$n"
   start driver "$n" "$from" "$until"
 done
-for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare timers halo shelf halo_buttons downloads links circle capture capture_regions island keys; do
+for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare timers halo shelf halo_buttons downloads links circle capture capture_regions island lens streamchat keys; do
   [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" =~ ^(0|77)$ ]] && continue
   retried+=("$s")
   firsts+=("$s: $(grep -E '✕' "$T/suite-$s.out" | head -3 | sed 's/^ *//' | cut -c1-160 | tr '\n' ';')")
@@ -305,6 +307,11 @@ result keys "screenshot keys: IPC capture/captureOn/circle, classic, old \"circl
 result capture "screenshot saving: the part pixel-exact, month folder, clipboard, notification" "screenshot saving" 15
 result capture_regions "screenshot areas: windows, pictures side by side, text blocks, cards, shadows, edges to the pixel, < 400 ms" "screenshot areas" 10
 result island "island search: search and Lens in the island, ↗ hands the current page to the browser, browser when off" "island search" 15
+# Lens in angelOS's own window (tests/lens, offline): the page reader over pages made after the
+# spec, the window through every state
+# the stream's chat on screen (tests/streamchat, offline): a chat reader's log → the Halo, the cats
+result streamchat "stream chat: the follower, the Halo's capsule, paid and regular, the cats' queue" "stream chat" 15
+result lens "Lens window: page reader (cards, prices, words, tabs, exact matches) and every state of the window" "Lens window" 15
 
 if ((fail)); then echo "» UI SELF-TEST FAILED"; exit 1; fi
 echo "» UI self-test passed ♡"

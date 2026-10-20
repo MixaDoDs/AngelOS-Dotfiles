@@ -278,7 +278,7 @@ Item {
             readonly property real leftNeed: Theme.u * 2 + left.implicitWidth + (parent.tasksLeft && !root.hug ? (root.compact ? Theme.u * 4 : Theme.u * 44) : 0) + root.gap + (root.hug ? Theme.u * 10 : 0)
             // the lyrics box takes the song's longest line, up to all the room between the sides
             // (centred taskbar: the room left of the centred group)
-            lyricsMax: parent.centered && !root.hug ? Math.max(0, left.x - root.gap - Theme.u * 2 - (root.layout.center.length > 1 ? Theme.u * 60 : 0)) : Math.max(0, Math.min(parent.width * 0.6, right.x - root.gap - leftNeed - (root.hug ? Theme.u * 10 : 0) - (root.layout.center.length > 1 ? Theme.u * 60 : 0)))
+            lyricsMax: parent.centered && !root.hug ? Math.max(0, left.x - root.gap - Theme.u * 2 - (root.layout.center.filter(id => id !== "runner").length > 1 ? Theme.u * 60 : 0)) : Math.max(0, Math.min(parent.width * 0.6, right.x - root.gap - leftNeed - (root.hug ? Theme.u * 10 : 0) - (root.layout.center.filter(id => id !== "runner").length > 1 ? Theme.u * 60 : 0)))
         }
 
         BarSection {

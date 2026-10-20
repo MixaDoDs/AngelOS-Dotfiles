@@ -234,9 +234,10 @@ Item {
             ed.say(toFolder ? I18n.t("Сохранено в папку снимков", "Saved into the screenshots folder") : I18n.t("Сохранено", "Saved"));
         });
     }
+    // under the shot's own name (not the step's 1792…-3.png): that is the name the phone gets
     function share() {
         if (!busy)
-            flatten(f => QuickShare.share([f], ""));
+            flatten(f => ShotEdit.named(f, g => QuickShare.share([g], "")));
     }
 
     // ---- the tools at work
@@ -953,7 +954,7 @@ Item {
                         Image {
                             anchors.fill: parent
                             anchors.margins: Theme.u * 1.5
-                            source: "file://" + shot.modelData
+                            source: FileSearch.uri(shot.modelData)
                             sourceSize: Qt.size(Theme.u * 88, Theme.u * 56)
                             fillMode: Image.PreserveAspectFit
                             asynchronous: true
@@ -1029,7 +1030,7 @@ Item {
                             ed.crop = Marks.fitAspect(width, height, ed.aspect)
                         Image {
                             id: pic
-                            source: ed.base ? "file://" + ed.base : ""
+                            source: ed.base ? FileSearch.uri(ed.base) : ""
                             cache: false
                             smooth: true
                             mipmap: true

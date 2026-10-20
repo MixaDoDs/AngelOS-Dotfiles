@@ -95,7 +95,14 @@ try:
     a.cmd(cmd="send", job="t", to=fp, text="привет ♡")
     t = b.wait(lambda e: e["ev"] == "text")
     check(t and t["text"] == "привет ♡" and t["from"]["alias"] == "A" and sent("t") == "done", "a text arrives as is")
-    check(("text/plain;charset=utf-8", "привет ♡") in clips(), "the text is on the clipboard")
+    check(t and t.get("clip") is False and not any(c[0].startswith("text/plain") for c in clips()), "untrusted text: shown, not on the clipboard")
+    b.cmd(cmd="config", trusted=[a.ready["fingerprint"]])
+    time.sleep(0.2)
+    a.cmd(cmd="send", job="t2", to=fp, text="trusted ♡")
+    t = b.wait(lambda e: e["ev"] == "text")
+    check(t and t.get("clip") is True and sent("t2") == "done" and ("text/plain;charset=utf-8", "trusted ♡") in clips(), "trusted text: on the clipboard")
+    b.cmd(cmd="config", trusted=[])
+    time.sleep(0.2)
 
     src = os.path.join(T, "data.bin")
     blob = os.urandom(700 * 1024 + 13)   # more than two chunks

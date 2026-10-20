@@ -5,6 +5,8 @@ press on stdout. Keyboards are read through evdev (the input group), read-only a
   {"keys": "Ctrl+Shift+T"}    a shortcut, or a key of its own (Enter, Esc, F5, arrows…)
   {"text": "a"}               a plain character (only with --text; never while secret)
   {"secret": true|false}      a password is being typed now / no longer
+  {"tap": "l"|"r"|"b"}        with --taps, every key pressed: only the side of the keyboard (the
+                              Halo's bongo cat, a paw down) — never while secret
 
 Passwords never leave this script: while one is typed nothing is printed at all, not even
 shortcuts. Secret is
@@ -13,7 +15,7 @@ shortcuts. Secret is
   - the shell says so on stdin ("secret 1" / "secret 0"): its own password fields, the polkit
     dialog, the lock, a focused window that looks like a password prompt (services/KeyCast).
 
-  key-cast.py [--text]
+  key-cast.py [--text] [--taps]
   key-cast.py --self-test     the labels and the secret gate, no devices
 """
 import json
@@ -29,6 +31,10 @@ NAMES = {"ENTER": "Enter", "KPENTER": "Enter", "ESC": "Esc", "BACKSPACE": "⌫",
          "MINUS": "-", "EQUAL": "=", "LEFTBRACE": "[", "RIGHTBRACE": "]", "SEMICOLON": ";", "APOSTROPHE": "'",
          "GRAVE": "`", "BACKSLASH": "\\", "COMMA": ",", "DOT": ".", "SLASH": "/", "KPPLUS": "+", "KPMINUS": "-",
          "KPASTERISK": "*", "KPSLASH": "/", "KPDOT": "."}
+# the right hand's keys (QWERTY place, any layout): the bongo cat's right paw; Space is both
+RIGHT = {"6", "7", "8", "9", "0", "MINUS", "EQUAL", "BACKSPACE", "Y", "U", "I", "O", "P", "LEFTBRACE", "RIGHTBRACE",
+         "BACKSLASH", "H", "J", "K", "L", "SEMICOLON", "APOSTROPHE", "ENTER", "N", "M", "COMMA", "DOT", "SLASH",
+         "UP", "DOWN", "LEFT", "RIGHT", "HOME", "END", "PAGEUP", "PAGEDOWN", "INSERT", "DELETE"}
 # keys that are a command by themselves (shown without a modifier); the rest is typing
 SPECIAL = {"Enter", "Esc", "⌫", "Tab", "Del", "Ins", "Home", "End", "PgUp", "PgDn", "↑", "↓", "←", "→", "Caps", "PrtSc"}
 
@@ -46,8 +52,8 @@ def label(code):
 class Caster:
     """modifiers held → the line a press makes (None: nothing to say)"""
 
-    def __init__(self, text=False, out=print):
-        self.text, self.out = text, out
+    def __init__(self, text=False, out=print, taps=False):
+        self.text, self.out, self.taps = text, out, taps
         self.held = set()
         self.secret_focus = False      # AT-SPI
         self.secret_shell = False      # the shell (stdin)
@@ -76,6 +82,10 @@ class Caster:
             return
         if value != 1 or self.secret:
             return
+        if self.taps:
+            n = code[4:]
+            side = "b" if n == "SPACE" else "r" if n in RIGHT or n.startswith("KP") or (n[:1] == "F" and n[1:].isdigit() and int(n[1:]) > 6) else "l"
+            self.out(json.dumps({"tap": side}))
         name = label(code)
         mods = [m for m in ORDER if m in self.held]
         if mods and mods != ["Shift"]:
@@ -112,6 +122,15 @@ def self_test():
     quiet.key("KEY_A", 1)
     assert lines == [], "plain typing is not shown without --text"
     assert label("KEY_KP7") == "7" and label("KEY_SPACE") == "Space" and label("KEY_F12") == "F12"
+    drum = Caster(out=lines.append, taps=True)
+    lines.clear()
+    for code in ("KEY_A", "KEY_J", "KEY_SPACE", "KEY_LEFTSHIFT", "KEY_ENTER"):
+        drum.key(code, 1)
+    assert [json.loads(x) for x in lines] == [{"tap": "l"}, {"tap": "r"}, {"tap": "b"}, {"tap": "r"}, {"keys": "Shift+Enter"}], lines
+    lines.clear()
+    drum.set_secret(focus=True)
+    drum.key("KEY_A", 1)
+    assert [json.loads(x) for x in lines] == [{"secret": True}], "no paw while a password is typed: " + str(lines)
     print("key-cast ok")
 
 
@@ -168,7 +187,7 @@ def main():
         return 2
     from gi.repository import GLib
 
-    caster = Caster(text="--text" in sys.argv, out=lambda s: print(s, flush=True))
+    caster = Caster(text="--text" in sys.argv, out=lambda s: print(s, flush=True), taps="--taps" in sys.argv)
     devices = keyboards(evdev)
     if not devices:
         print(json.dumps({"error": "no keyboard readable: is this user in the input group?"}), flush=True)

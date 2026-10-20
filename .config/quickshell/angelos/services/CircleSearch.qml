@@ -52,7 +52,7 @@ Singleton {
     property string translation: ""
     property string translateError: ""
     property bool translating: false
-    property string error: ""
+    property string error: ""                // the OCR's ("tesseract": none here): kept till the next shot, a pick doesn't clear it
     // learning: the area tapped as it was found ({kind, box, app}), the line tapped (its words),
     // the picked words' text before any edit, the questions for after closing
     property var origin: null
@@ -71,6 +71,8 @@ Singleton {
     // links, mail and phones on the frame (services/Links.js over each line): [{kind, url, text, box}]
     property var screenLinks: []
 
+    // a shot being taken (grim) or shown: a second key press leaves it alone
+    readonly property bool busy: open || grab.running
     readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos"
     readonly property string script: Quickshell.shellPath("scripts/circle.py")
     readonly property bool hasText: text.trim() !== ""
@@ -89,7 +91,11 @@ Singleton {
         if (!sc)
             return;
         scale = sc.devicePixelRatio > 0 ? sc.devicePixelRatio : 1;
+        // the last one still fading: gone at once, not in this picture
+        fader.stop();
+        fading = false;
         reset();
+        error = "";
         history = [];
         nearDone = false;
         mode = "auto";
@@ -142,8 +148,8 @@ Singleton {
         poly = [];
         translation = "";
         translateError = "";
-        error = "";
         picker.running = false;
+        pickWait.stop();
         pickBusy = false;
         translator.running = false;
         translating = false;
@@ -172,6 +178,7 @@ Singleton {
         // the pick it replaces is not remembered again (Ctrl+Z twice steps back twice)
         history = history.slice(0, -1);
         picker.running = false;
+        pickWait.stop();
         pickBusy = false;
         translator.running = false;
         translating = false;
@@ -223,7 +230,8 @@ Singleton {
         const ws = Niri.activeWorkspace(name);
         if (!sc || !ws)
             return [];
-        const k = sc.devicePixelRatio > 0 ? sc.devicePixelRatio : 1;
+        // the frame's own scale (a fractional one too: devicePixelRatio is whole on Wayland)
+        const k = root.scale;
         return Niri.windowsOn(ws.id).filter(w => w.layout && (w.layout.tile_pos_in_workspace_view || w.layout.pos_in_scrolling_layout)).map(w => {
             const pos = w.layout.tile_pos_in_workspace_view, off = w.layout.window_offset_in_tile || [0, 0], size = w.layout.window_size;
             const cell = w.layout.pos_in_scrolling_layout || [0, 0];
@@ -391,11 +399,30 @@ Singleton {
         setPicked(inside);
         if (inside.length)
             return;
-        const p = points.map(q => Math.round(q.x) + "," + Math.round(q.y)).join(";");
-        picker.command = ["python3", script, "ocr", frame, String(Math.round(box.x)), String(Math.round(box.y)), String(Math.round(box.w)), String(Math.round(box.h)), "--poly", p];
+        // the whole read still on: it may find them (repick); asked after it if not. The arrows
+        // and grips pick again on every step: one closer read once they stop
+        pickBusy = true;
+        if (!reading)
+            pickWait.restart();
+    }
+    // the closer read of the pick (the whole frame had no words in it)
+    function readPick() {
+        if (!open || !box || picked.length || reading || picker.running)
+            return;
+        const p = (poly.length > 2 ? poly : []).map(q => Math.round(q.x) + "," + Math.round(q.y)).join(";");
+        // awaited: above the whole read, a step under niri and the overlay
+        picker.command = ["nice", "-n", "5", "python3", script, "ocr", frame, String(Math.round(box.x)), String(Math.round(box.y)), String(Math.round(box.w)), String(Math.round(box.h))].concat(p ? ["--poly", p] : []);
         pickBusy = true;
         picker.running = true;
     }
+    Timer {
+        id: pickWait
+        interval: 250
+        onTriggered: root.readPick()
+    }
+    // the whole read done (or failed): a pick still waiting for words is read on its own
+    onReadingChanged: if (!reading && pickBusy && !picker.running)
+        pickWait.restart()
     // the words came after the pick was made: its words from them (not over the user's edit)
     // (a line or words picked from the words near the pointer: the same ones from the whole read)
     function repick() {
@@ -603,12 +630,14 @@ Singleton {
         }
         if (readText && text !== readText)
             for (const [a, b] of Learn.wordFixes(readText, text)) {
+                // asked: learned only on "Remember" ("Just this once" twice was a rule)
                 if (Learn.fixUnsure(learned, app, a, b))
                     ask.push({
                         "fix": [a, b],
                         "app": app
                     });
-                Learn.addFix(learned, app, a, b);
+                else
+                    Learn.addFix(learned, app, a, b);
             }
         keep();
         if (ask.length)
@@ -625,9 +654,12 @@ Singleton {
             "ui": I18n.t("элемента", "an element")
         };
         const lines = items.map(q => q.edge ? I18n.t("рамку ", "the frame of ") + (kinds[q.kind] || q.kind) + I18n.t(" в ", " in ") + appName(q.app) + I18n.t(" — так же, как сейчас", " — as now") : "«" + q.fix[0] + "» → «" + q.fix[1] + "»" + I18n.t(" в ", " in ") + appName(q.app));
-        asker.items = items;
-        asker.command = ["notify-send", "-a", "angelOS", "-i", "edit-select-all", "--wait", "-t", "30000", "-A", "yes=" + I18n.t("Запомнить", "Remember"), "-A", "no=" + I18n.t("Разово", "Just this once"), I18n.t("Скриншот: запомнить?", "Screenshot: remember?"), lines.join("\n")];
-        asker.running = true;
+        // a process per question with its own items; `timeout`: the shell's popup hides at its
+        // timeout but the notification stays, so --wait never ended (and the next question was lost)
+        askRun.createObject(root, {
+            "items": items,
+            "command": ["timeout", "35", "notify-send", "-a", "angelOS", "-i", "edit-select-all", "--wait", "-t", "30000", "-A", "yes=" + I18n.t("Запомнить", "Remember"), "-A", "no=" + I18n.t("Разово", "Just this once"), I18n.t("Скриншот: запомнить?", "Screenshot: remember?"), lines.join("\n")]
+        });
     }
     function remember(items) {
         for (const q of items) {
@@ -660,14 +692,20 @@ Singleton {
             } catch (e) {}
         }
     }
-    Process {
-        id: asker
-        property var items: []
-        stdout: SplitParser {
-            onRead: line => {
-                if (line.trim() === "yes")
-                    root.remember(asker.items);
+    Component {
+        id: askRun
+        Process {
+            id: asker
+            property var items: []
+            running: true
+            stdout: SplitParser {
+                onRead: line => {
+                    if (line.trim() === "yes")
+                        root.remember(asker.items);
+                }
             }
+            onRunningChanged: if (!running)
+                Qt.callLater(asker.destroy)
         }
     }
 
@@ -855,6 +893,11 @@ Singleton {
             if (m) {
                 root.frameW = +m[1];
                 root.frameH = +m[2];
+                // frame pixels per logical one as they are (1.25, 1.5: devicePixelRatio says 2),
+                // when the frame is that screen's picture (both sides agree)
+                const sc = Shell.screenByName(root.screenName), kx = sc && sc.width > 0 && sc.height > 0 ? root.frameW / sc.width : 0;
+                if (kx > 0 && Math.abs(root.frameH / sc.height - kx) < 0.02)
+                    root.scale = kx;
             }
             root.frameUrl = "file://" + root.frame + "?" + Date.now();
             // the windows as they were when the picture was taken (after the wait)

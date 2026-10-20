@@ -17,10 +17,11 @@ Talks JSON lines: commands on stdin, events on stdout.
   stdout  {"ev":"ready", "receive": true|false, "busy": "...", "fingerprint", "alias", "ip"}
           {"ev":"device", "fp","alias","ip","port","protocol","type","model"}
           {"ev":"ask", "id","from":{..},"files":[{name,size,type}],"total"}
-          {"ev":"text", "from":{..},"text":"..."}
-          {"ev":"recv", "id","state":"receiving|done|cancelled|error","done","total","paths","items"}
+          {"ev":"text", "from":{..},"text":"...","clip":bool}   (clip: on the clipboard already — trusted only)
+          {"ev":"recv", "id","state":"receiving|done|cancelled|declined|expired|error","done","total","paths","items"}
               (items: what came, top level — a folder once, not its files; it is also put
-              on the clipboard: files as text/uri-list, one picture as itself, a message as text)
+              on the clipboard: files as text/uri-list, one picture as itself, a trusted device's message as text;
+              expired: nobody answered the question in time)
           {"ev":"send", "job","state":"pairing|waiting|sending|done|declined|busy|pin|error","done","total","msg"}
           {"ev":"kdc", "state":"ok|missing","why"}       KDE Connect's daemon (--kdeconnect 1)
               (its devices come as "device" too: fp "kdc:<id>", protocol "kdeconnect", "paired", "online")
@@ -227,11 +228,17 @@ def safe_path(base, name, dirs=None):
         parts[0] = dirs[top]
     path = os.path.join(base, *parts)
     root, ext = os.path.splitext(path)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     n = 1
-    while os.path.exists(path):
-        path = "%s (%d)%s" % (root, n, ext)
-        n += 1
-    return path
+    # the name is taken at once (an empty file, the upload replaces it): two uploads of the same
+    # name at a time got one name and the second overwrote the first
+    while True:
+        try:
+            os.close(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644))
+            return path
+        except FileExistsError:
+            path = "%s (%d)%s" % (root, n, ext)
+            n += 1
 
 
 def top_items(base, paths):
@@ -390,8 +397,12 @@ class Handler(BaseHTTPRequestHandler):
         if len(files) == 1:
             f = next(iter(files.values()))
             if (f.get("fileType") or "").startswith("text/") and f.get("preview"):
-                emit(ev="text", **{"from": frm, "text": f["preview"]})
-                clip(f["preview"].encode(), "text/plain;charset=utf-8")
+                # any device on the LAN can send one: only a trusted one's goes on the clipboard by
+                # itself, any other is only shown (its notification has a button for the clipboard)
+                trusted = fp in S.trusted
+                emit(ev="text", clip=trusted, **{"from": frm, "text": f["preview"]})
+                if trusted:
+                    clip(f["preview"].encode(), "text/plain;charset=utf-8")
                 return self.reply(204)
         with S.lock:
             if S.session:
@@ -400,17 +411,18 @@ class Handler(BaseHTTPRequestHandler):
         listed = [{"name": f.get("fileName") or "file", "size": int(f.get("size") or 0), "type": f.get("fileType") or ""} for f in files.values()]
         total = sum(f["size"] for f in listed)
         sid = secrets.token_hex(8)
-        accept = fp in S.trusted
+        accept = answered = fp in S.trusted
         if not accept:
             ev = threading.Event()
             S.asks[sid] = {"event": ev, "accept": False}
             emit(ev="ask", id=sid, files=listed, total=total, **{"from": frm})
-            ev.wait(120)
+            answered = ev.wait(120)
             accept = S.asks.pop(sid, {}).get("accept", False)
         if not accept:
             with S.lock:
                 S.session = None
-            emit(ev="recv", id=sid, state="declined")
+            # no answer in time: the shell says so (a late Accept would find no question)
+            emit(ev="recv", id=sid, state="declined" if answered else "expired", **{"from": frm})
             return self.reply(403, {"message": "declined"})
         tokens = {fid: secrets.token_hex(8) for fid in files}
         with S.lock:
@@ -448,10 +460,12 @@ class Handler(BaseHTTPRequestHandler):
                 raise OSError("got %d of %d bytes" % (got, want))
             os.replace(part, path)
         except (OSError, ValueError) as e:
-            try:
-                os.unlink(part)
-            except OSError:
-                pass
+            # the half file, and the empty one that held its name (safe_path)
+            for p in (part, path):
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
             # the sending is over: a session left open would refuse every next one (409)
             with S.lock:
                 if S.session is sess:
@@ -532,7 +546,11 @@ def send(job, to, files, text, pin=""):
         meta[fid] = ("text", data)
     for path, name in walk(files):
         fid = secrets.token_hex(6)
-        st = os.stat(path)
+        # gone since it was picked: the job says so (it waited for ever, the thread dead)
+        try:
+            st = os.stat(path)
+        except OSError as e:
+            return emit(ev="send", job=job, state="error", msg=str(e)[:200])
         entries[fid] = {"id": fid, "fileName": name, "size": st.st_size, "fileType": mime(path),
                         "metadata": {"modified": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(st.st_mtime))}}
         meta[fid] = ("file", path)

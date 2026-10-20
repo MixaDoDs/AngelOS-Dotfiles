@@ -253,6 +253,15 @@ PxPage {
             }
         }
         SettingRow {
+            visible: Config.circle.lens
+            label: I18n.t("Результаты Lens в окне angelOS", "Lens results in an angelOS window")
+            hint: I18n.t("похожие картинки, точные совпадения и текст — в своём окне; страница Google открывается кнопкой. Выключено — страница Google в мини-острове", "similar pictures, exact matches and text in a window of its own; Google's page is a button away. Off: Google's page in the mini island")
+            PxToggle {
+                checked: Config.circle.lensWindow
+                onToggled: v => Config.circle.lensWindow = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Чему научился", "What it has learned")
             hint: I18n.t("как вы поправляете рамки, сколько текста берёте, какие области отпускаете, какие слова исправляете — по приложениям; если не уверен, спрашивает после снимка", "how you fix frames, how much text you take, which areas you let go of, which words you correct — per app; when unsure it asks after the shot")
             PxButton {
