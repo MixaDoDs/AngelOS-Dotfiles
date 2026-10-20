@@ -317,12 +317,18 @@ Singleton {
         return Idle.active && (Config.idle.allScreens || name === primaryName || screens.length === 1);
     }
 
+    // the page id to store: an old id that leads to a group stays as it is, SettingsView.redirect
+    // resolves it and scrolls to the group (resolved here, the group would be lost)
+    function settingsPageFor(id) {
+        const r = SettingsTree.resolve(id);
+        return r.to ? id : r.page;
+    }
     // with no page given Settings open on Home (a window already open stays where it is)
     function openSettings(page, sub) {
         // an old page id leads to its page in the tree (SettingsTree.resolve: "bar" → taskbar…);
         // the views with a home of their own (a folder of icons, the tiles) open there
         if (page)
-            settingsPage = SettingsTree.resolve(page).page;
+            settingsPage = settingsPageFor(page);
         else if (!settingsOpen) {
             // a fresh window always opens on Home
             settingsPage = "main";
@@ -346,7 +352,7 @@ Singleton {
             return false;
         settingsMore.append({
             "key": ++settingsMoreKey,
-            "page": page ? SettingsTree.resolve(page).page : "home",
+            "page": page ? settingsPageFor(page) : "home",
             "sub": sub || ""
         });
         return true;
@@ -374,7 +380,7 @@ Singleton {
         const nav = settingsNavFor(item);
         if (nav === root)
             return openSettings(page, sub);
-        nav.settingsPage = SettingsTree.resolve(page).page;
+        nav.settingsPage = settingsPageFor(page);
         if (sub)
             nav.settingsSub = sub;
     }

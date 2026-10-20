@@ -47,8 +47,10 @@ Item {
             SettingsSearch.load();
         SettingsKeys.load();
         // built already open (LazyWindows, a new window): what opening does
-        if (settingsNav.settingsOpen)
+        if (settingsNav.settingsOpen) {
+            redirect();
             opened();
+        }
     }
     Component.onDestruction: {
         if (Shell.settingsView === win)
@@ -652,7 +654,7 @@ Item {
             return null;
         if (r.kind === "row" && item.label === r.target && item.hint !== undefined)
             return item;
-        if (r.kind === "group" && item.title === r.target && item.spacing !== undefined)
+        if (r.kind === "group" && (r.name ? item.name === r.name : item.title === r.target) && item.spacing !== undefined)
             return item;
         if (r.kind === "name" && item.name === r.target && item.advanced !== undefined)
             return item;

@@ -37,7 +37,7 @@ PxMenu {
         {
             "label": I18n.t("Выбрать системный монитор…", "Choose system monitor…"),
             "icon": "gear",
-            "run": () => Shell.openSettings("system")
+            "run": () => Shell.openSettings("taskmanager")
         },
         {
             "separator": true

@@ -9,7 +9,6 @@
 # onto the clipboard too, with a notification; niri's own screenshot UI when a tool is missing.
 dir="$HOME/Pictures/Screenshots"
 tools="$HOME/.local/bin"
-sorter="$(dirname "$0")/screenshot-sort.py"
 
 say() {
   command -v notify-send >/dev/null 2>&1 && notify-send -a Screenshot "$@"
@@ -24,23 +23,23 @@ pling() {
 case "${1:-screen}" in
   screen)
     command -v grim >/dev/null 2>&1 || exec niri msg action screenshot-screen
-    sorted="$(python3 "$sorter" dir 2>/dev/null)"
-    [ -d "$sorted" ] && dir="$sorted"
-    mkdir -p "$dir"
-    file="$dir/Screenshot from $(date '+%Y-%m-%d %H-%M-%S').png"
     out="$(niri msg -j focused-output 2>/dev/null | python3 -c 'import json, sys
 try:
     print((json.load(sys.stdin) or {}).get("name") or "")
 except Exception:
     pass' 2>/dev/null)"
+    frame="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/mac-shot.XXXXXX.ppm")" || exit 1
     if [ -n "$out" ]; then
-      grim -o "$out" "$file"
+      grim -t ppm -o "$out" "$frame"
     else
-      grim "$file"
-    fi || { say "Ошибка скриншота" "grim не смог снять экран"; exit 1; }
+      grim -t ppm "$frame"
+    fi || { rm -f "$frame"; say "Ошибка скриншота" "grim не смог снять экран"; exit 1; }
     pling
-    command -v wl-copy >/dev/null 2>&1 && wl-copy --type image/png < "$file"
-    say "Скриншот сохранён" "$file"
+    # the same keeping as the overlay's shots: folder, format, clipboard and opening by Settings → Screenshots
+    python3 "$(dirname "$0")/capture_save.py" save "$frame" >/dev/null
+    rc=$?
+    rm -f "$frame"
+    exit $rc
     ;;
   region)
     [ -x "$tools/niri-screenshot-region" ] && exec "$tools/niri-screenshot-region"

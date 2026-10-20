@@ -425,6 +425,8 @@ Singleton {
                 "kind": e.kind,
                 "title": title,
                 "target": e.kind === "page" ? "" : e[lang],
+                // a group by its stable name: its title may carry a changing number ("История (3)")
+                "name": e.kind === "group" && e.name ? e.name : "",
                 "crumb": e.kind === "row" && e.group && e.group[lang] ? info.label + " › " + e.group[lang] : e.kind === "page" ? "" : info.label,
                 "hint": e.hint ? e.hint[lang] : "",
                 // a plain switch ("section.key"): the results show it, flipped right there
