@@ -1,13 +1,1 @@
-// privacy block-out on (Mod+Shift+X) — written by niri-cast-privacy from angelos/privacy.json
-window-rule {
-    match app-id=r#"^org\.telegram\.desktop$"#
-    match app-id=r#"^io\.github\.snowyfluffy\.freshgram$"#
-    match app-id=r#"^Bitwarden$"#
-    match app-id=r#"^helium$"#
-    match app-id=r#"^discord$"#
-    block-out-from "screencast"
-}
-layer-rule {
-    match namespace="^angelos-circle-search$"
-    block-out-from "screencast"
-}
+// privacy block-out off (Mod+Shift+X)

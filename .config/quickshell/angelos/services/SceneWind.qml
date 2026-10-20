@@ -21,22 +21,25 @@ Singleton {
     property real climateDir: 1
     readonly property real strength: Math.max(0.05, climate * calm)
     property real calm: 1           // 1 at the computer, 0.25 away
-    property real dir: climateDir
+    property real dir: 1
     property real pulse: 0
 
-    Behavior on calm {
-        NumberAnimation {
-            duration: 20000
-        }
-    }
-    Behavior on dir {
-        NumberAnimation {
-            duration: 30000
-        }
-    }
-    Behavior on climate {
-        NumberAnimation {
-            duration: 60000
+    // where they are headed: the values above go there a step a second (about 20 s, 30 s and
+    // a minute to arrive). Not a Behavior: an animation ticks every frame of the screen, and with
+    // the weather new every minute it never stopped — every scene drew at the screen's rate
+    // (165 a second) instead of its own (Config.wallpaper.liveFps)
+    property real climateTo: 0.35
+    property real calmTo: 1
+    readonly property bool settled: Math.abs(climate - climateTo) < 0.002 && Math.abs(calm - calmTo) < 0.002 && Math.abs(dir - climateDir) < 0.002
+    Timer {
+        interval: 1000
+        repeat: true
+        running: !root.settled
+        onTriggered: {
+            const near = (v, to, k) => Math.abs(to - v) < 0.002 ? to : v + (to - v) * k;
+            root.climate = near(root.climate, root.climateTo, 0.06);
+            root.calm = near(root.calm, root.calmTo, 0.15);
+            root.dir = near(root.dir, root.climateDir, 0.1);
         }
     }
 
@@ -53,7 +56,7 @@ Singleton {
         const h = Date.now() / 3600000;
         // mostly a breeze, some still hours, now and then a windy afternoon
         const n = noise(h / 2.5) * 0.7 + noise(h / 0.7 + 50) * 0.3;
-        climate = 0.12 + Math.pow(n, 1.6) * 1.0;
+        climateTo = 0.12 + Math.pow(n, 1.6) * 1.0;
         climateDir = noise(h / 5 + 90) < 0.5 ? -1 : 1;
     }
     function gust(size) {
@@ -85,7 +88,7 @@ Singleton {
         id: away
         timeout: 180
         onIsIdleChanged: {
-            root.calm = isIdle ? 0.25 : 1;
+            root.calmTo = isIdle ? 0.25 : 1;
             if (!isIdle)
                 root.gust(0.9);
         }
