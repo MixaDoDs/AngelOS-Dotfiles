@@ -13,9 +13,14 @@
 #   - the gaming edition's packages (data/gaming-packages.txt), when it was set up here
 #   - the udev rule for the devices' charge (device_access above), missing or changed by the
 #     author; DEVICE_ACCESS=0 leaves it out
+#   - the memory settings that keep the picture from freezing when RAM fills up
+#     (extras/smooth-memory: a sysctl file), missing or changed by the author; SMOOTH_MEMORY=0
+#     leaves them out
 # Only for the real home of this user (never a test's or a chroot's) and never on the author's
 # own machine. FOLLOW_SYSTEM=0 skips it.
 FOLLOW_SYSTEM="${FOLLOW_SYSTEM:-1}"
+SMOOTH_MEMORY="${SMOOTH_MEMORY:-1}"
+SMOOTH_MEMORY_SH="$ROOT/.config/quickshell/angelos/extras/smooth-memory/install.sh"
 fish_asked() { # remembered: fish is offered once
   mkdir -p -- "$STATE_DIR"
   python3 - "$STATE_DIR/apps.json" <<'PY' || true
@@ -34,7 +39,7 @@ follow_system() {
   [[ "$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)" == "$HOME_DIR" ]] || return 0
   command -v pacman >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 || return 0
   local sddm_py="$ROOT/.config/quickshell/angelos/scripts/sddm-theme.py" sddm_src="$ROOT/.config/quickshell/angelos/extras/sddm/angelos"
-  local pkgs=() fish="" theme="" applied="" built="" root_sddm="" stamp="$STATE_DIR/sddm-theme.sha256" hash cur look="" pal="" hid=""
+  local pkgs=() fish="" theme="" applied="" built="" root_sddm="" stamp="$STATE_DIR/sddm-theme.sha256" hash cur look="" pal="" hid="" mem=""
   # what the user said no to stays out (an unattended update keeps the defaults: yes)
   local -a lists=(pacman.txt angelos.txt)
   [[ "$INSTALL_TOOLS" == 1 ]] && lists+=(tools.txt)
@@ -69,7 +74,11 @@ PY
   if ! { given DEVICE_ACCESS && [[ "$DEVICE_ACCESS" == 0 ]]; }; then
     case "$(hid_access_state)" in missing|old) hid="$HID_ACCESS" ;; esac
   fi
-  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid" ]] || return 0
+  # the memory settings: missing or older than the author's
+  if [[ "$SMOOTH_MEMORY" == 1 && -f "$SMOOTH_MEMORY_SH" ]]; then
+    case "$(sh "$SMOOTH_MEMORY_SH" --status 2>/dev/null)" in missing|old) mem="$SMOOTH_MEMORY_SH" ;; esac
+  fi
+  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid$mem" ]] || return 0
 
   if [[ -n "$theme" ]]; then
     local -a opts=()
@@ -83,8 +92,8 @@ PY
       theme=""
     fi
   fi
-  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid" ]] || return 0
-  say "$(_ "As the author has it:" "Как у автора:")${pkgs[*]:+ $(_ "packages" "пакеты") ${pkgs[*]};}${fish:+ $(_ "fish instead of bash;" "fish вместо bash;")}${theme:+ $(_ "the angelOS login screen;" "экран входа angelOS;")}${hid:+ $(_ "the devices' charge (a mouse's dongle: its service interface only)" "заряд устройств (донгл мыши: только служебный интерфейс)")} — $(_ "the admin password" "пароль администратора")"
+  ((${#pkgs[@]})) || [[ -n "$fish$theme$hid$mem" ]] || return 0
+  say "$(_ "As the author has it:" "Как у автора:")${pkgs[*]:+ $(_ "packages" "пакеты") ${pkgs[*]};}${fish:+ $(_ "fish instead of bash;" "fish вместо bash;")}${theme:+ $(_ "the angelOS login screen;" "экран входа angelOS;")}${hid:+ $(_ "the devices' charge (a mouse's dongle: its service interface only);" "заряд устройств (донгл мыши: только служебный интерфейс);")}${mem:+ $(_ "memory settings against freezes" "настройки памяти против подвисаний")} — $(_ "the admin password" "пароль администратора")"
 
   local -a root=()
   if ((EUID == 0)); then root=()
@@ -97,7 +106,7 @@ PY
   fi
   # shellcheck disable=SC2016  # the root script's own variables
   if "${root[@]}" sh -c '
-    pkgs="$1"; user="$2"; fish="$3"; src="$4"; sddm="$5"; uid="$6"; hid="$7"; rc=0
+    pkgs="$1"; user="$2"; fish="$3"; src="$4"; sddm="$5"; uid="$6"; hid="$7"; mem="$8"; rc=0
     if [ -n "$pkgs" ]; then
       # shellcheck disable=SC2086
       pacman -Syu --needed --noconfirm $pkgs || rc=1
@@ -112,7 +121,10 @@ PY
     if [ -n "$hid" ]; then
       sh "$hid" >/dev/null || rc=1
     fi
-    exit $rc' sh "${pkgs[*]}" "$(id -un)" "$fish" "${theme:+$built/angelos}" "$root_sddm" "$(id -u)" "$hid" </dev/null; then
+    if [ -n "$mem" ]; then
+      sh "$mem" >/dev/null || rc=1
+    fi
+    exit $rc' sh "${pkgs[*]}" "$(id -un)" "$fish" "${theme:+$built/angelos}" "$root_sddm" "$(id -u)" "$hid" "$mem" </dev/null; then
     applied=1
     say "$(_ "the system is as the author has it ♡" "система как у автора ♡")${fish:+ $(_ "(fish from the next login)" "(fish — со следующего входа)")}"
   else

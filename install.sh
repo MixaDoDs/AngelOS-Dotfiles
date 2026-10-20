@@ -65,6 +65,8 @@
 #                                  their dongles: a udev rule that opens only the maker's interface
 #                                  without input (extras/hid-access; default 1, or 0 together with
 #                                  SKIP_PACKAGES=1)
+#   SMOOTH_MEMORY=1|0              kernel memory settings that keep the picture from freezing when
+#                                  RAM fills up (extras/smooth-memory, a sysctl file; default 1)
 #   SKIP_PACKAGES=0|1              skip `pacman -Syu`
 #   INSTALL_VOXTYPE=0|1            voice input binary (checksum-verified download)
 #   DOWNLOAD_VOXTYPE_MODEL=0|1     Whisper large-v3-turbo model (~1.6 GB)
