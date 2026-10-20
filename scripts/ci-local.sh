@@ -116,7 +116,8 @@ for jid, job in (doc.get("jobs") or {}).items():
 (out / "jobs.json").write_text(json.dumps(jobs))
 PY
 
-ENGINE_FLAGS=(--network "${CI_NETWORK:-host}")
+# --init: as the workflow's container (options: --init) — a pid 1 that reaps orphans
+ENGINE_FLAGS=(--init --network "${CI_NETWORK:-host}")
 CPUS="${CI_CPUS:-$(nproc 2>/dev/null || echo 4)}"
 # fewer CPUs than here: pinned to that many, so nproc inside says so too (as on GitHub)
 (( CPUS < $(nproc 2>/dev/null || echo 4) )) && ENGINE_FLAGS+=(--cpuset-cpus "0-$((CPUS - 1))")
