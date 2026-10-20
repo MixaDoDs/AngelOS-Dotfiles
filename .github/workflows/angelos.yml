@@ -56,7 +56,7 @@ jobs:
           pacman -Syu --noconfirm --needed git dbus diffutils python python-pillow python-numpy python-gobject python-cairo \
             quickshell qt6-declarative qt6-5compat qt6-imageformats qt6-svg qt6-multimedia \
             qt6-multimedia-ffmpeg niri noto-fonts \
-            shellcheck ripgrep hunspell
+            shellcheck ripgrep hunspell imagemagick
           test -x /usr/lib/qt6/bin/qmlformat
       - uses: actions/checkout@v5
       # the checkout belongs to another user than the container's root

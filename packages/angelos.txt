@@ -41,6 +41,8 @@ hunspell
 cava
 wlsunset
 speedtest-cli
+# the conversion ring (modules/convert) and its sizes: pictures through ImageMagick
+imagemagick
 # what angelOS's features call (they stay quiet without them): the file chooser, the icon
 # sets, System info, Qt apps in the theme, the cursor in X11 apps, a polkit agent when the
 # shell's own is not up (polkit-agent-guard), Flathub apps themed, the user folders
