@@ -138,6 +138,7 @@ Singleton {
     property real slowdown: 1            // animations { slowdown } in cfg/animation.kdl
     property real niriSpeed: 1           // the speed that file was written with
     property int niriMs: 0               // its workspace-switch duration-ms
+    property bool niriStale: false       // the preset's earlier curve: written anew once
     // Settings → Workspaces → Switch speed (×): niri's slides and the captured effects
     readonly property real speed: Math.max(0.25, Math.min(4, Config.workspaces.switchSpeed > 0 ? Config.workspaces.switchSpeed : 1))
     readonly property int slideMs: niriMs > 0 ? niriMs : Math.round((({
@@ -197,7 +198,7 @@ Singleton {
     property bool routeSynced: false     // once per start: a failed write must not loop
     function syncRoute() {
         readDone = true;
-        if (Config.ready && !routeSynced && (routed !== wantsRoute(current) || !speedSynced(current)) && current.niri === niriPreset) {
+        if (Config.ready && !routeSynced && (routed !== wantsRoute(current) || !speedSynced(current) || niriStale) && current.niri === niriPreset) {
             routeSynced = true;
             reapply();
         }
@@ -359,6 +360,7 @@ Singleton {
                     root.niriSpeed = r.speed > 0 ? r.speed : 1;
                     root.niriMs = r.ms > 0 ? r.ms : 0;
                     root.routed = !!r.routed;
+                    root.niriStale = !!r.stale;
                     root.slowdown = r.slowdown > 0 ? r.slowdown : 1;
                     // one-time move from the old style names
                     if (root.legacy[Config.workspaces.switchFx])

@@ -5,7 +5,7 @@
 
         workspace-switch {
             duration-ms 230
-            curve "cubic-bezier" 0.22 1 0.36 1
+            curve "cubic-bezier" 0.3 0 0.15 1
         }
         window-open {
             // angelOS open: default

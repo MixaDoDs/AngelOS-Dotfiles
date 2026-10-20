@@ -26,14 +26,17 @@ import sys
 import tempfile
 
 PRESETS = {
-    # ease-out-quint: starts right away, settles softly
-    "soft": (380, 'curve "cubic-bezier" 0.22 1 0.36 1'),
+    # eases in over a few frames, then settles softly (no jump on the first frame)
+    "soft": (380, 'curve "cubic-bezier" 0.3 0 0.15 1'),
     # slow start, a dash, a tidy stop
     "dash": (460, 'curve "cubic-bezier" 0.8 0 0.12 1'),
     # very quick, a sharp stop
     "snap": (170, 'curve "ease-out-expo"'),
     "instant": None,
 }
+# a preset's earlier curves: still read as it, and "stale" so the shell writes the new one
+# (soft was ease-out-quint until 20.10: a 100 px jump on the first frame at 200 Hz)
+OLD = {"soft": ['curve "cubic-bezier" 0.22 1 0.36 1']}
 # niri's spring: a touch of overshoot. Speed X scales the stiffness by X² (the period by 1/X);
 # its length is only an estimate (for the desktop widgets' pictures, Settings)
 SPRING = (0.62, 620, 520)  # damping ratio, stiffness, ~ms
@@ -89,11 +92,19 @@ def current(text):
     for name, value in PRESETS.items():
         if value is None:
             continue
-        m = re.fullmatch(r"duration-ms (\d+) " + re.escape(normalize(value[1])), body)
-        if m and int(m.group(1)) > 0:
-            return name, round(value[0] / int(m.group(1)), 3), int(m.group(1))
+        for curve in [value[1]] + OLD.get(name, []):
+            m = re.fullmatch(r"duration-ms (\d+) " + re.escape(normalize(curve)), body)
+            if m and int(m.group(1)) > 0:
+                return name, round(value[0] / int(m.group(1)), 3), int(m.group(1))
     m = re.search(r"duration-ms (\d+)", body)
     return "custom", 1.0, int(m.group(1)) if m else 0
+
+
+def stale(text):
+    """the workspace-switch block has a preset's earlier curve"""
+    match = BLOCK.search(text)
+    body = normalize(match.group(2)) if match else ""
+    return any(re.fullmatch(r"duration-ms \d+ " + re.escape(normalize(c)), body) for olds in OLD.values() for c in olds)
 
 
 def update(text, preset, speed=1.0):
@@ -204,7 +215,8 @@ def main():
         if len(sys.argv) == 1:
             text = ANIMATIONS.read_text()
             preset, speed, ms = current(text)
-            print(json.dumps({"preset": preset, "speed": speed, "ms": ms, "routed": routed(KEYBINDS.read_text()), "slowdown": slowdown(text)}))
+            print(json.dumps({"preset": preset, "speed": speed, "ms": ms, "routed": routed(KEYBINDS.read_text()), "slowdown": slowdown(text),
+                              "stale": stale(text)}))
         else:
             mode = True if "--route" in sys.argv else False if "--native" in sys.argv else None
             speed = 1.0
