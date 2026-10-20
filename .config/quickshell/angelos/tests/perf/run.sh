@@ -15,7 +15,7 @@ DIR="$(cd "${1:-"$(dirname "$0")/../.."}" && pwd)"
 # one wake-up a second (2026-10-11) — nothing here waits for a screen, niri or sound. A 20 ms
 # timer left running (50/s) or a binding that never settles is over it
 MAX_CPU="${PERF_MAX_CPU:-1.0}"         # % of one core
-MAX_WAKE="${PERF_MAX_WAKE:-25}"        # context switches a second, all threads
+MAX_WAKE="${PERF_MAX_WAKE:-25}"        # voluntary context switches a second, all threads
 MAX_STARTS="${PERF_MAX_STARTS:-6}"     # processes started a minute
 
 QS="$(command -v quickshell || true)"
@@ -95,7 +95,8 @@ def snap():
         try:
             s = open("/proc/%d/task/%s/stat" % (pid, t)).read()
             f = s[s.rindex(")") + 2:].split()
-            sw = sum(int(l.split()[1]) for l in open("/proc/%d/task/%s/status" % (pid, t)) if "ctxt_switches" in l)
+            # voluntary only: the thread waking up itself; being preempted by the tests beside it is not its fault
+            sw = sum(int(l.split()[1]) for l in open("/proc/%d/task/%s/status" % (pid, t)) if l.startswith("voluntary_ctxt_switches"))
             th[t] = (int(f[11]) + int(f[12]), sw)
         except (OSError, ValueError):
             pass

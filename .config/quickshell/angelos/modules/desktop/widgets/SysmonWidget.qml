@@ -174,6 +174,36 @@ Item {
     }
 
     // ---- macOS look ----
+    // the Repeaters below count these and their delegates read them by index: a model bound to
+    // the readings themselves rebuilt every gauge on each new number (2 s)
+    readonly property var macReadings: [
+        {
+            "k": "CPU",
+            "v": root.cpu,
+            "d": root.deg(root.cpuTemp)
+        },
+        {
+            "k": "GPU",
+            "v": root.gpu,
+            "d": root.deg(root.gpuTemp)
+        },
+        {
+            "k": I18n.t("ОЗУ", "RAM"),
+            "v": root.ram,
+            "d": root.ramText
+        },
+        {
+            "k": "VRAM",
+            "v": root.vram,
+            "d": root.vramText
+        }
+    ]
+    readonly property var sReadings: [root.readings[0], root.readings[1], root.readings[2], {
+        "k": I18n.t("Сеть", "Net"),
+        "id": "net",
+        "big": "↓ " + root.human(root.rx).replace(/ .*/, ""),
+        "c": Theme.ok
+    }]
     readonly property real vram: vramText ? parseFloat(vramText) / Math.max(1, parseFloat(vramText.split("/")[1])) : -1
     function pct(v) {
         return v < 0 ? "—" : Math.round(v * 100) + "%";
@@ -188,36 +218,17 @@ Item {
         Row {
             spacing: DesktopWidgets.mpx(10)
             Repeater {
-                model: [
-                    {
-                        "k": "CPU",
-                        "v": root.cpu,
-                        "d": root.deg(root.cpuTemp)
-                    },
-                    {
-                        "k": "GPU",
-                        "v": root.gpu,
-                        "d": root.deg(root.gpuTemp)
-                    },
-                    {
-                        "k": I18n.t("ОЗУ", "RAM"),
-                        "v": root.ram,
-                        "d": root.ramText
-                    },
-                    {
-                        "k": "VRAM",
-                        "v": root.vram,
-                        "d": root.vramText
-                    }
-                ]
+                model: root.macReadings.length
                 Column {
                     id: gauge
-                    required property var modelData
+                    readonly property var modelData: root.macReadings[index]
                     required property int index
                     width: DesktopWidgets.mpx(72)
                     spacing: DesktopWidgets.mpx(2)
                     MacRing {
                         anchors.horizontalCenter: parent.horizontalCenter
+                        // a reading every 2 s, each gauge on its own beat: eased, the wallpaper window under them never rested
+                        animate: false
                         width: DesktopWidgets.mpx(60)
                         height: width
                         lineWidth: DesktopWidgets.mpx(7)
@@ -334,15 +345,11 @@ Item {
         columnSpacing: Theme.u * 6
         rowSpacing: Theme.u * 2
         Repeater {
-            model: [root.readings[0], root.readings[1], root.readings[2], {
-                    "k": I18n.t("Сеть", "Net"),
-                    "id": "net",
-                    "big": "↓ " + root.human(root.rx).replace(/ .*/, ""),
-                    "c": Theme.ok
-                }]
+            model: root.sReadings.length
             Column {
                 id: cell
-                required property var modelData
+                required property int index
+                readonly property var modelData: root.sReadings[index]
                 spacing: 0
                 PxText {
                     text: Theme.hell && cell.modelData.id !== "net" ? root.labelOf(cell.modelData) : cell.modelData.k
@@ -368,10 +375,11 @@ Item {
         spacing: Theme.u * 3
 
         Repeater {
-            model: root.readings
+            model: root.readings.length
             Column {
                 id: r
-                required property var modelData
+                required property int index
+                readonly property var modelData: root.readings[index]
                 width: col.width
                 spacing: Theme.u
                 Row {
