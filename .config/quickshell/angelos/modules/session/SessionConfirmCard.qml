@@ -6,13 +6,13 @@ import qs.widgets
 // "Restart the computer?": the one question before logging out, restarting or shutting down
 // (Shell.sessionAction asks, Shell.sessionConfirmed does it). The window around it is
 // SessionConfirm; the card alone is what the UI test drives (tests/session).
-// Cancel is picked first; a key held from the menu before (its repeats) and a click within
-// `grace` of the card showing do not say yes.
+// Cancel is picked first; a key held from the menu before (its repeats), a click within
+// `grace` of the card showing and a pointer that was resting where the yes appears do not say yes.
 PxWindow {
     id: card
 
     readonly property string action: Shell.sessionConfirm
-    readonly property int grace: 450
+    property int grace: 450
     property int current: 0                  // 0 = cancel, 1 = the action
     property bool ready: false
 
@@ -110,7 +110,8 @@ PxWindow {
                 icon: card.say[3]
                 danger: true
                 checked: card.current === 1
-                onHoveredChanged: if (hovered)
+                // only once it can be pressed: the pointer the card opened under picks nothing
+                onHoveredChanged: if (hovered && card.ready)
                     card.current = 1
                 onClicked: card.confirm()
             }

@@ -170,11 +170,24 @@ Scope {
             // a second ask while the first is up: one dialog, the newer question, Cancel again
             {
                 "act": () => {
+                    // the first moments last while these two look at them (a loaded runner is slow)
+                    card.grace = 600000;
                     card.current = 1;
                     Shell.sessionAction("poweroff");
                 },
                 "until": () => Shell.sessionConfirm === "poweroff",
                 "check": () => report("second-ask-replaces", Shell.sessionConfirm === "poweroff" && card.current === 0 && !card.ready && Shell.sessionRan.length === 0, state() + " picked " + card.current + " ready " + card.ready)
+            },
+            // the pointer over the yes as the card shows: nothing picked
+            {
+                "act": () => {
+                    const b = cardButton(1);
+                    const ev = Qt.createQmlObject("import QtTest; TestEvent {}", b);
+                    ev.mouseMove(b, b.width / 2, b.height / 2, -1, Qt.NoButton, Qt.NoModifier);
+                    ev.destroy();
+                },
+                "until": () => cardButton(1).hovered,
+                "check": () => report("hover-before-ready", cardButton(1).hovered && card.current === 0, "hovered " + cardButton(1).hovered + " picked " + card.current)
             },
             // the yes in the first moments (a double click, a key still down) does nothing
             {
@@ -187,7 +200,10 @@ Scope {
             },
             // a held key's repeats: nothing either, past the first moments too
             {
-                "act": () => {},
+                "act": () => {
+                    card.grace = 450;
+                    card.ready = true;
+                },
                 "until": () => settled(),
                 "check": () => {
                     card.current = 1;

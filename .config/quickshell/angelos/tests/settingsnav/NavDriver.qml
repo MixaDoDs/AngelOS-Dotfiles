@@ -202,9 +202,12 @@ Scope {
                     return report("f03-keys", false, "no focusable «Ещё…»");
                 // Tab from the search field (where an opened window's focus is) lands on it
                 const ev = Qt.createQmlObject("import QtTest; TestEvent {}", fold);
+                pg.flick.contentY = 0;
                 Shell.settingsView.focusSearch();
                 ev.keyClick(Qt.Key_Tab, Qt.NoModifier, -1);
                 const tabbed = fold.activeFocus;
+                const fy = fold.mapToItem(pg.flick.contentItem, 0, 0).y;
+                const inView = fy >= pg.flick.contentY && fy + fold.height <= pg.flick.contentY + pg.flick.height;
                 const focusShows = fold.activeFocus && Qt.colorEqual(fold.border.color, Theme.accent) && fold.border.width >= 2;
                 ev.keyClick(Qt.Key_Space, Qt.NoModifier, -1);
                 const bySpace = pg.moreOpen;
@@ -214,7 +217,7 @@ Scope {
                 const byPadEnter = pg.moreOpen;
                 ev.destroy();
                 SettingsTree.setMoreOpen("taskbar", false);
-                report("f03-keys", tabbed && focusShows && bySpace && byEnter && byPadEnter, "tab " + tabbed + ", focus shows " + focusShows + ", space opens " + bySpace + ", enter closes " + byEnter + ", keypad enter opens " + byPadEnter);
+                report("f03-keys", tabbed && inView && focusShows && bySpace && byEnter && byPadEnter, "tab " + tabbed + ", in view " + inView + " (y " + Math.round(fy) + ", view " + Math.round(pg.flick.height) + "), focus shows " + focusShows + ", space opens " + bySpace + ", enter closes " + byEnter + ", keypad enter opens " + byPadEnter);
             }
         },
         // F04 the history group by its name: no history, then three (the title «История (3)»)

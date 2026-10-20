@@ -134,6 +134,12 @@ PxPage {
         function toggle() {
             SettingsTree.setMoreOpen(root.pageKey, !root.moreOpen);
         }
+        // reached by Tab below the view: the page comes to it
+        onActiveFocusChanged: if (activeFocus) {
+            const y = mapToItem(root.flick.contentItem, 0, 0).y;
+            if (y < root.flick.contentY || y + height > root.flick.contentY + root.flick.height)
+                root.scrollBy(Math.max(0, y - Theme.u * 8) - root.flick.contentY);
+        }
         radius: macLook ? Theme.u * 5 : 0
         color: macLook ? (moreMouse.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(0, 0, 0, 0.06)) : (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035))) : moreMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.12) : Theme.mix(Theme.face, Theme.faceAlt, 0.55)
         border.width: activeFocus ? Math.max(2, Theme.u) : macLook ? 0 : Math.max(1, Theme.u / 2)
