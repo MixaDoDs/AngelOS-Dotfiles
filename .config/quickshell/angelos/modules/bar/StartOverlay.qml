@@ -10,9 +10,9 @@ import qs.modules.mac
 
 // Start menu as a layer-shell overlay: opens from the Start button, from a
 // Meta tap or over IPC, takes the keyboard and closes on a click outside.
-// Looks (Settings → Bar → Start): classic Win98 list, Windows 11 panel, Windose
-// (NGO) window — by the button; iPhone-like grid, PSP XMB, Wii channels — the whole
-// screen; Spotlight — a search pill centred in the upper third. All of them animate
+// Looks (Settings → Bar → Start): classic Win98 list, Windows 11 panel — by the button;
+// iPhone-like grid, PSP XMB — the whole screen; Spotlight — a search pill centred in the
+// upper third. All of them animate
 // through `reveal` (0 → 1) and share the body interface: closeRequested, current,
 // reset(), setQuery(text), key(event). While the demon rules: each of them in a hell
 // version (re-inked, the circle's rim on its edges), or hell's own (StartHell).
@@ -31,8 +31,8 @@ Variants {
         readonly property bool hellish: Angel.demon && Config.y2k.hellStart === "hell"
         readonly property bool hellSkin: Angel.demon && Config.y2k.hellStart === "skin"
         // the Golden Gate skin: its own Spotlight (modules/mac/MacSpotlight)
-        readonly property string style: hellish ? "hell" : GoldenGate.on ? "mac" : ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight"].includes(Config.bar.startStyle) ? Config.bar.startStyle : "classic"
-        readonly property bool full: style === "fullscreen" || style === "xmb" || style === "wii"
+        readonly property string style: hellish ? "hell" : GoldenGate.on ? "mac" : StartPrefs.styles.includes(Config.bar.startStyle) ? Config.bar.startStyle : "classic"
+        readonly property bool full: style === "fullscreen" || style === "xmb"
         readonly property bool spot: style === "spotlight" || style === "mac"
         property bool shown: false
         property real reveal: 0
@@ -72,6 +72,7 @@ Variants {
                 revealAnim.restart();
                 Qt.callLater(() => keys.forceActiveFocus());
             } else if (shown) {
+                appMenu.close();
                 revealAnim.to = 0;
                 revealAnim.duration = !win.prefs.anim ? 1 : Math.round((win.full ? 200 : 140) / win.prefs.speed);
                 revealAnim.easing.type = Easing.InCubic;
@@ -188,10 +189,10 @@ Variants {
         Loader {
             id: body
             active: keep.alive
-            // the room the look has on this screen, before its own zoom: a look taller than that
-            // (big fonts, a big art pixel, a small or 2× screen) fits itself in (`room` of the
-            // looks: fewer rows, a scrolling list) instead of running off the screen
-            readonly property real room: (win.full ? win.height : win.spot ? win.height * 0.75 : win.side ? win.height - Theme.u * 8 : win.above ? win.button.y - Theme.u * 4 : win.height - win.button.y - win.button.height - Theme.u * 4) / Math.max(0.25, win.full ? 1 : win.prefs.zoom || 1)
+            // the room the look has on this screen: a look taller than that (big fonts, a big art
+            // pixel, its own Scale, a small or 2× screen) fits itself in (`room` of the looks: fewer
+            // rows, a scrolling list) instead of running off the screen
+            readonly property real room: win.full ? win.height : win.spot ? win.height * 0.75 : win.side ? win.height - Theme.u * 8 : win.above ? win.button.y - Theme.u * 4 : win.height - win.button.y - win.button.height - Theme.u * 4
             Binding {
                 target: body.item
                 property: "room"
@@ -200,29 +201,29 @@ Variants {
             }
             // Settings → Bar → Start: auto keeps classic at the button and win11 centred;
             // left / center / right pin either of them there. Fullscreen fills.
-            readonly property real restY: win.side ? Math.max(Theme.u * 4, Math.min(win.height - height - Theme.u * 4, win.button.y)) : win.above ? win.button.y - height - Theme.u * 2 : win.button.y + win.button.height + Theme.u * 2
+            // (whole pixels at rest: the button's place comes from mapToItem and may be fractional)
+            readonly property real restY: Math.round(win.side ? Math.max(Theme.u * 4, Math.min(win.height - height - Theme.u * 4, win.button.y)) : win.above ? win.button.y - height - Theme.u * 2 : win.button.y + win.button.height + Theme.u * 2)
             readonly property string align: win.spot ? "center" : Config.bar.startAlign && Config.bar.startAlign !== "auto" ? Config.bar.startAlign : win.style === "win11" ? "center" : "button"
             readonly property real edge: Theme.u * 4
             readonly property real sideX: win.side === "left" ? win.button.x + win.button.width + Theme.u * 4 : win.button.x - width - Theme.u * 4
-            x: win.full ? 0 : win.side && !win.spot && (align === "button" || align === "center") ? sideX : align === "center" ? Math.round((win.width - width) / 2) : align === "left" ? edge : align === "right" ? win.width - width - edge : Math.max(Theme.u * 2, Math.min(win.width - width - Theme.u * 2, win.button.x))
+            x: Math.round(win.full ? 0 : win.side && !win.spot && (align === "button" || align === "center") ? sideX : align === "center" ? (win.width - width) / 2 : align === "left" ? edge : align === "right" ? win.width - width - edge : Math.max(Theme.u * 2, Math.min(win.width - width - Theme.u * 2, win.button.x)))
             // win11 (and anything over a centred taskbar) slides up like Windows 11;
             // Fine-tune → Animation can make any of them fade, slide or zoom instead
             readonly property string kind: win.prefs.animKind || "auto"
             readonly property bool slides: kind === "slide" || (kind === "auto" && (win.style === "win11" || Config.bar.taskbarAlign === "center"))
-            readonly property bool zooms: kind === "zoom" || (kind === "auto" && (win.style === "classic" || win.style === "windose" || win.style === "hell") && !slides)
+            readonly property bool zooms: kind === "zoom" || (kind === "auto" && (win.style === "classic" || win.style === "hell") && !slides)
             // Spotlight: a fifth down the screen, dropping in a little
             y: win.full ? 0 : win.spot ? Math.round(win.height * 0.2) - (kind === "auto" || kind === "slide" ? (1 - win.reveal) * Theme.u * 10 : 0) : restY + (slides && !win.side ? (win.above ? 1 : -1) * (1 - win.reveal) * Theme.u * 24 : 0)
             opacity: win.full ? 1 : win.reveal
-            // classic and Windose pop out of their corner, win11 slides, Spotlight swells;
-            // the look's own size (Fine-tune → Scale) on top
-            scale: (win.full ? 1 : win.prefs.zoom) * (win.spot && kind === "auto" ? 0.96 + 0.04 * win.reveal : zooms ? (kind === "zoom" ? 0.85 + 0.15 * win.reveal : 0.9 + 0.1 * win.reveal) : 1)
+            // classic pops out of its corner, win11 slides, Spotlight swells — while it opens or
+            // closes only: at rest the scale is exactly 1, so pixel art stays on whole pixels (a
+            // look's own size, Fine-tune → Scale, is laid out by the look: StartPrefs unit/iu)
+            scale: win.full ? 1 : 1 - (1 - win.reveal) * (win.spot && kind === "auto" ? 0.04 : zooms ? (kind === "zoom" ? 0.15 : 0.1) : 0)
             transformOrigin: win.side === "left" ? Item.TopLeft : win.side === "right" ? Item.TopRight : align === "right" ? (win.above ? Item.BottomRight : Item.TopRight) : align === "center" ? (win.above ? Item.Bottom : Item.Top) : (win.above ? Item.BottomLeft : Item.TopLeft)
             sourceComponent: ({
                     "fullscreen": fullComp,
                     "xmb": xmbComp,
-                    "wii": wiiComp,
                     "win11": win11Comp,
-                    "windose": windoseComp,
                     "spotlight": spotComp,
                     "mac": macComp,
                     "hell": hellComp
@@ -240,6 +241,11 @@ Variants {
             }
             onLoaded: {
                 item.closeRequested.connect(Shell.closeStart);
+                if (item.menuAsked)
+                    item.menuAsked.connect((items, from, x, y) => {
+                        const p = from.mapToItem(null, x, y);
+                        appMenu.popup(items, "", p.x, p.y);
+                    });
                 if (win.open && item.reset)
                     item.reset();
             }
@@ -248,6 +254,12 @@ Variants {
                 anchors.fill: parent
                 z: -1
             }
+        }
+        // a tile's right-click menu, for every look (menuAsked)
+        PxMenu {
+            id: appMenu
+            parentWindow: win
+            kind: "panel"
         }
         // hell's version: the circle's rim on the menu's edges (still; HellAmbient may stir it)
         HellEdge {
@@ -282,18 +294,6 @@ Variants {
                 width: win.width
                 height: win.height
             }
-        }
-        Component {
-            id: wiiComp
-            StartWii {
-                reveal: win.reveal
-                width: win.width
-                height: win.height
-            }
-        }
-        Component {
-            id: windoseComp
-            StartWindose {}
         }
         Component {
             id: spotComp

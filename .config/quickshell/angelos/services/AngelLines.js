@@ -28,7 +28,7 @@ const tips = [
     ["Mod+V — история буфера обмена. Там и картинки, и текст.", "Mod+V opens the clipboard history, pictures included.", ""],
     ["Mod+Space — поиск программ. Начни с «>», и это будет команда для терминала.", "Mod+Space finds apps. Start with “>” to run a command.", ""],
     ["Короткое нажатие Win открывает «Пуск», как в Windows.", "A short tap of the Win key opens Start, like on Windows.", "start"],
-    ["У «Пуска» семь видов: список Win98, плитки Win11, на весь экран, волна PSP, окошко NGO, каналы Wii и строка поиска как Spotlight.", "Start comes in seven looks: a Win98 list, Win11 tiles, full screen, a PSP wave, an NGO window, Wii channels and a Spotlight-like search bar.", "start"],
+    ["У «Пуска» пять видов: список Win98, плитки Win11, на весь экран, волна PSP и строка поиска как Spotlight.", "Start comes in five looks: a Win98 list, Win11 tiles, full screen, a PSP wave and a Spotlight-like search bar.", "start"],
     ["Панель бывает снизу, сверху или маленьким островом — страница «Панель задач».", "The bar can sit at the bottom, on top or float as an island: see the Taskbar page.", "taskbar"],
     ["Mod+Alt+Y включает текст песни прямо на панели. Караоке!", "Mod+Alt+Y shows song lyrics right in the bar. Karaoke time!", "lyrics"],
     ["Mod+Alt+T переключает светлую и тёмную тему.", "Mod+Alt+T flips between the light and the dark theme.", "theme"],
@@ -378,7 +378,6 @@ const demonTips = [
     ["«Твой сетап» в «О системе» считает, сколько ты потратил на железо. Я считаю, сколько душ это стоит.", "“Your setup” in About counts what you spent on gear. I count how many souls it's worth.", "about"],
     ["Плагины можно удалять. Они попадают в корзину — почти как в ад, только с кнопкой «Вернуть».", "Plugins can be removed. They go to the trash — almost like hell, only with a Restore button.", "plugins"],
     ["Мастер плагинов теперь делает виджеты и для моего мира. Наконец-то правильный дизайн.", "Plugin Studio makes widgets for my world now too. Proper design at last.", "studio"],
-    ["«Пуск» в стиле Wii? Каналы, музыка, детство… Как мило. Тошнит.", "A Wii-style Start? Channels, music, childhood… how cute. I feel sick.", "start"],
     ["Значок стола можно сделать CD-диском. Поставь — и представь, что на нём мой альбом.", "The desk sprite can be a CD. Pick it and pretend it's my album.", "workspaces"],
     ["Окна теперь умеют красиво умирать — анимации закрытия на странице «Окна».", "Windows can die beautifully now: close animations are on the Windows page.", "windows"]
 ];

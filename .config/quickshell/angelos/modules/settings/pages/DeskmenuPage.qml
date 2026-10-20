@@ -5,14 +5,62 @@ import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.settings
 
-// The right-click menu on the wallpaper (services/DeskMenu): the ring or the list,
-// what it holds, in which order, and the user's own entries.
+// Settings → Menus: the look of every pixel menu (services/MenuLook) and of one menu on its
+// own, Start's buttons, then the right-click menu on the wallpaper (services/DeskMenu): the
+// ring or the list, what it holds, in which order, and the user's own entries.
 PxPage {
     id: page
 
-    heading: I18n.t("ПКМ-меню", "Right-click menu")
-    subtitle: I18n.t("Меню по правой кнопке на пустых обоях: кольцо вокруг курсора или список как в Windows 11. Здесь — что в нём, в каком порядке и как оно выглядит.", "The menu a right click on the bare wallpaper opens: a ring around the pointer or a Windows 11-like list. What it holds, in which order and how it looks.")
+    heading: I18n.t("Меню", "Menus")
+    subtitle: I18n.t("Как выглядят меню по правой кнопке — на столе, у виджетов, на панели, в трее и у Нимба. Ниже — кнопки «Пуска» и меню рабочего стола: что в нём и в каком порядке.", "How the right-click menus look: on the desktop, on widgets, on the bar, in the tray and on the Halo. Below: Start's buttons and the desktop menu, what it holds and in which order.")
+
+    // a few entries of every kind a menu has, for the look previews
+    readonly property var demo: [
+        {
+            "label": I18n.t("Открыть", "Open"),
+            "icon": "folder",
+            "keys": "Enter"
+        },
+        {
+            "label": I18n.t("Закрепить", "Pin"),
+            "icon": "star",
+            "checkable": true,
+            "checked": true
+        },
+        {
+            "label": I18n.t("Обои", "Wallpaper"),
+            "icon": "image",
+            "children": [
+                {
+                    "label": "…"
+                }
+            ]
+        },
+        {
+            "separator": true
+        },
+        {
+            "label": I18n.t("Настройки", "Settings"),
+            "icon": "gear",
+            "keys": ["Mod", "I"]
+        }
+    ]
+    readonly property var kindNames: ({
+            "desktop": I18n.t("Рабочий стол", "Desktop"),
+            "widget": I18n.t("Виджет", "Widget"),
+            "panel": I18n.t("Панель", "Bar"),
+            "task": I18n.t("Кнопка задачи", "Task button"),
+            "tray": I18n.t("Трей", "Tray"),
+            "halo": I18n.t("Нимб", "Halo")
+        })
+    // Config.menus.per is one object: a new one, so the change is saved
+    function setPer(kind, look) {
+        const m = Object.assign({}, Config.menus.per || {});
+        m[kind] = look;
+        Config.menus.per = m;
+    }
 
     readonly property var quick: Config.desktop.menuQuick || []
     readonly property var entryIds: Config.desktop.menuItems || []
@@ -35,8 +83,110 @@ PxPage {
     }
 
     PxGroup {
+        name: "menu-look"
+        title: I18n.t("Облик меню для всех", "Menu look for all")
+        icon: "palette"
+        width: parent.width
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Один облик на все меню по правой кнопке. Отдельному меню можно дать свой — ниже.", "One look for every right-click menu. One menu can get its own below.")
+        }
+        Flow {
+            width: parent.width
+            spacing: Theme.u * 4
+            Repeater {
+                model: MenuLook.looks
+                PxButton {
+                    id: lookCard
+                    required property string modelData
+                    width: preview.width + Theme.u * 8
+                    height: preview.height + lookName.implicitHeight + Theme.u * 10
+                    checked: (Config.menus.look || "classic") === modelData
+                    onClicked: Config.menus.look = modelData
+                    PxMenuList {
+                        id: preview
+                        x: Theme.u * 4
+                        y: Theme.u * 4
+                        focus: false
+                        look: lookCard.modelData
+                        title: I18n.t("Рабочий стол", "Desktop")
+                        items: page.demo
+                        current: 1
+                        minWidth: Theme.u * 96
+                        maxWidth: Theme.u * 120
+                    }
+                    // the preview is a picture: its rows don't take the click or the hover
+                    MouseArea {
+                        anchors.fill: preview
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Config.menus.look = lookCard.modelData
+                    }
+                    PxText {
+                        id: lookName
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: Theme.u * 3
+                        kind: "tiny"
+                        font.bold: lookCard.checked
+                        text: (lookCard.checked ? "♡ " : "") + MenuLook.lookLabel(lookCard.modelData)
+                    }
+                }
+            }
+        }
+    }
+
+    PxGroup {
+        name: "menu-per"
+        title: I18n.t("Своё для отдельного меню", "Own look for one menu")
+        icon: "layers"
+        width: parent.width
+        Repeater {
+            model: MenuLook.kinds
+            SettingRow {
+                id: kindRow
+                required property string modelData
+                label: page.kindNames[modelData] || modelData
+                // the desktop's Y2K style wears its own gloss whatever is picked here
+                hint: MenuLook.lookFor(modelData) === "y2k" ? I18n.t("сейчас глянец Y2K — его включает стиль меню рабочего стола", "Y2K gloss now: the desktop menu's style turns it on") : ""
+                PxSegmented {
+                    model: [
+                        {
+                            "label": I18n.t("Как у всех", "As all"),
+                            "value": ""
+                        }
+                    ].concat(MenuLook.looks.map(l => ({
+                                "label": MenuLook.lookLabel(l),
+                                "value": l
+                            })))
+                    currentValue: (Config.menus.per || {})[kindRow.modelData] || ""
+                    onActivated: v => page.setPer(kindRow.modelData, v)
+                }
+            }
+        }
+    }
+
+    PxGroup {
+        name: "start-buttons"
+        title: I18n.t("Кнопки «Пуска»", "Start buttons")
+        icon: "power"
+        width: parent.width
+        StartButtonsEditor {
+            width: parent.width
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            text: I18n.t("Размер и вид самого «Пуска» — на странице «Пуск», в «Тонкой настройке».", "Start's own size and look are on the Start page, under fine-tuning.")
+        }
+    }
+
+    PxGroup {
         name: "look"
-        title: I18n.t("Вид", "Look")
+        title: I18n.t("Меню рабочего стола", "Desktop menu")
         icon: "palette"
         width: parent.width
         SettingRow {

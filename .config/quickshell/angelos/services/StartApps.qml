@@ -42,6 +42,37 @@ Singleton {
             ids.push(app.id);
         Config.bar.startPinned = ids;
     }
+    // a Start tile's right-click menu, in every look: pinning first (the middle button's quick
+    // action), then `open`, the look's own launch (it closes Start)
+    function menuFor(app, open) {
+        return [
+            {
+                "label": isPinned(app) ? I18n.t("Открепить", "Unpin") : I18n.t("Закрепить", "Pin"),
+                "icon": "pin",
+                "run": () => togglePin(app)
+            },
+            {
+                "label": I18n.t("Открыть", "Open"),
+                "icon": "play",
+                "run": open
+            }
+        ];
+    }
+    // a found file's: its folder first (the middle button's), then the file itself
+    function fileMenuFor(reveal, open) {
+        return [
+            {
+                "label": I18n.t("Показать в папке", "Show in folder"),
+                "icon": "folder",
+                "run": reveal
+            },
+            {
+                "label": I18n.t("Открыть", "Open"),
+                "icon": "document",
+                "run": open
+            }
+        ];
+    }
     function score(app, q) {
         const name = (app.name || "").toLowerCase();
         if (!q)

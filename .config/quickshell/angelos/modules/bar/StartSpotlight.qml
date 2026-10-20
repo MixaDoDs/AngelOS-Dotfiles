@@ -8,12 +8,14 @@ import qs.widgets
 
 // Spotlight / Raycast Start: one big search pill in the upper third of the screen and
 // the results under it in sections — the calculator, apps, settings, folders, actions.
-// Empty: the pinned apps and the actions. ↑↓ choose, Enter opens, right click pins,
+// Empty: the pinned apps and the actions. ↑↓ choose, Enter opens, right click a menu, middle pins,
 // Esc clears / closes. StartOverlay centres it.
 Item {
     id: root
 
     signal closeRequested
+    // a right click on an app (StartApps.menuFor): StartOverlay opens the menu at x, y in `item`
+    signal menuAsked(var items, Item item, real x, real y)
     property int current: 0
     property string query: ""
     readonly property bool searching: query.trim() !== ""
@@ -22,8 +24,19 @@ Item {
     readonly property color accentColor: prefs.accentColor
     readonly property real sizeFactor: prefs.size
     property real room: 0                       // StartOverlay: the screen's room for it
+    // every length is n units in whole pixels (StartPrefs.px): Fine-tune → Scale and Width keep
+    // every edge on a pixel; `iu` the art pixel of icons, a whole number
+    function px(n) {
+        return StartPrefs.px(prefs, n);
+    }
+    readonly property int iu: prefs.iu
+    readonly property int gap: px(4)                // between the pill and the results
+    readonly property int rowH: px(22)
+    readonly property int headH: px(11)             // a section's name over its first row
+    readonly property int rowPad: px(5)             // a row's sides: the icon box in, the text after it
+    readonly property int line: Math.max(1, Math.floor(iu / 2))
     // nine results, or what the screen has room for
-    readonly property int maxRows: room > 0 ? Math.max(3, Math.min(9, Math.floor((room - pill.height - footer.height - Theme.fit(11) * 2 - Theme.u * 12) / Theme.fit(22)))) : 9
+    readonly property int maxRows: room > 0 ? Math.max(3, Math.min(9, Math.floor((room - pill.height - footer.height - headH * 2 - px(12)) / rowH))) : 9
 
     function matches(label, q) {
         return String(label).toLowerCase().indexOf(q) >= 0;
@@ -46,7 +59,10 @@ Item {
             "run": () => StartApps.launch(a)
         };
     }
-    readonly property var actions: plain((prefs.power ? StartItems.power : []).concat(StartItems.settings.slice(0, 3)), I18n.t("Действия", "Actions"))
+    // Start's buttons as actions, without the ones Spotlight shows anyway (All settings and
+    // Update among the actions, Home among the folders)
+    readonly property var buttonRows: StartItems.rowsFor(["settings", "updates", "home"])
+    readonly property var actions: plain((prefs.power ? buttonRows : []).concat(StartItems.settings.slice(0, 3)), I18n.t("Действия", "Actions"))
     readonly property var rows: {
         if (!searching)
             return (prefs.pinned ? StartApps.pinned.slice(0, 6).map(a => appRow(a, I18n.t("Закреплённые", "Pinned"))) : []).concat(actions.slice(0, 3));
@@ -84,7 +100,7 @@ Item {
         for (const p of plain(StartItems.places, I18n.t("Папки", "Folders")))
             if (matches(p.label, q))
                 out.push(p);
-        for (const a of plain(StartItems.power, I18n.t("Действия", "Actions")))
+        for (const a of plain(buttonRows, I18n.t("Действия", "Actions")))
             if (matches(a.label, q))
                 out.push(a);
         // grouped by section, in the order they first show up (the best one leads)
@@ -145,34 +161,33 @@ Item {
         return true;
     }
 
-    width: Math.round(Math.min(Theme.u * 300, 760) * sizeFactor)
-    height: pill.height + (rows.length ? Theme.u * 4 + results.height : 0) + footer.height + Theme.u * 2
+    width: Math.round(Math.min(px(300), Math.round(760 * prefs.zoom)) * sizeFactor)
+    height: pill.height + (rows.length ? gap + results.height : 0) + Math.ceil(footer.implicitHeight) + px(2)
 
     // the search pill
     Rectangle {
         id: pill
         width: parent.width
-        height: Theme.fit(30)
+        height: root.px(30)
         radius: height / 2
         color: Qt.alpha(Theme.panel, root.prefs.opacity > 0 ? root.prefs.alpha : Math.max(0.88, Theme.panelAlpha))
-        border.width: Math.max(1, Theme.u / 2)
+        border.width: root.line
         border.color: Qt.alpha(root.accentColor, 0.6)
         PxIcon {
             id: lens
-            x: Theme.u * 10
-            anchors.verticalCenter: parent.verticalCenter
+            x: root.px(10)
+            y: Math.floor((parent.height - height) / 2)
             name: "search"
-            pixel: Math.max(1, Math.round(Theme.u * 1.5))
+            pixel: Math.max(1, Math.round(root.iu * 1.5))
             fill: root.accentColor
         }
         PxField {
             id: field
             keepFocus: true
-            anchors.left: lens.right
-            anchors.leftMargin: Theme.u * 4
-            anchors.right: pillUser.visible ? pillUser.left : parent.right
-            anchors.rightMargin: Theme.u * 12
-            anchors.verticalCenter: parent.verticalCenter
+            x: lens.x + lens.width + root.px(4)
+            y: Math.floor((parent.height - height) / 2)
+            width: (pillUser.visible ? pillUser.x : parent.width) - root.px(12) - x
+            height: Math.ceil(implicitHeight)
             kind: "title"
             placeholder: I18n.t("Что найти? Приложение, настройку, файл, .jpeg, 2+2…", "Find anything: an app, a setting, a file, .jpeg, 2+2…")
             onEdited: {
@@ -186,10 +201,9 @@ Item {
         StartUser {
             id: pillUser
             visible: root.prefs.user
-            anchors.right: parent.right
-            anchors.rightMargin: Theme.u * 8
-            anchors.verticalCenter: parent.verticalCenter
-            size: Theme.u * 18
+            x: parent.width - root.px(8) - width
+            y: Math.floor((parent.height - height) / 2)
+            size: root.iu * 18
             showName: false
             frameColor: root.accentColor
             onOpened: root.closeRequested()
@@ -200,9 +214,9 @@ Item {
     Rectangle {
         id: results
         visible: root.rows.length > 0
-        y: pill.height + Theme.u * 4
+        y: pill.height + root.gap
         width: parent.width
-        height: Math.min(root.rows.length, root.maxRows) * Theme.fit(22) + sectionsShown * Theme.fit(11) + Theme.u * 6
+        height: Math.min(root.rows.length, root.maxRows) * root.rowH + sectionsShown * root.headH + root.px(3) * 2
         readonly property int sectionsShown: {
             const seen = [];
             for (const r of root.rows.slice(0, root.maxRows))
@@ -210,9 +224,9 @@ Item {
                     seen.push(r.section);
             return seen.length;
         }
-        radius: Theme.u * 10
+        radius: root.px(10)
         color: Qt.alpha(Theme.panel, Math.max(0.9, Theme.panelAlpha))
-        border.width: Math.max(1, Theme.u / 2)
+        border.width: root.line
         border.color: Qt.alpha(Theme.edge, 0.5)
         clip: true
         Behavior on height {
@@ -224,7 +238,7 @@ Item {
         ListView {
             id: list
             anchors.fill: parent
-            anchors.margins: Theme.u * 3
+            anchors.margins: root.px(3)
             model: root.rows
             boundsBehavior: Flickable.StopAtBounds
             delegate: Item {
@@ -234,11 +248,11 @@ Item {
                 // a section's name over its first row
                 readonly property bool head: index === 0 || root.rows[index - 1].section !== modelData.section
                 width: list.width
-                height: row.height + (head ? Theme.fit(11) : 0)
+                height: row.height + (head ? root.headH : 0)
                 PxText {
                     visible: cell.head
-                    x: Theme.u * 6
-                    y: Theme.u * 2
+                    x: root.rowPad
+                    y: root.px(2)
                     kind: "tiny"
                     font.bold: true
                     color: root.accentColor
@@ -249,42 +263,27 @@ Item {
                     readonly property var modelData: cell.modelData
                     readonly property int index: cell.index
                     readonly property bool sel: index === root.current
-                    y: cell.head ? Theme.fit(11) : 0
+                    y: cell.head ? root.headH : 0
                     width: list.width
-                    height: Theme.fit(22)
-                    radius: Theme.u * 6
+                    height: root.rowH
+                    radius: root.px(6)
                     color: sel ? Qt.alpha(root.accentColor, Theme.dark ? 0.3 : 0.22) : rm.containsMouse ? Qt.alpha(root.accentColor, 0.1) : "transparent"
-                    Item {
+                    // a fixed icon box: the text starts at the same x on every row
+                    StartGlyph {
                         id: glyph
-                        x: Theme.u * 5
-                        width: Theme.u * 14
+                        x: root.rowPad
+                        width: root.iu * 14
                         height: parent.height
-                        AppIcon {
-                            visible: !!row.modelData.app
-                            anchors.centerIn: parent
-                            iconName: row.modelData.app ? row.modelData.app.icon || "" : ""
-                            appId: row.modelData.app ? row.modelData.app.id || "" : ""
-                            size: Math.round(Theme.u * 12 * root.prefs.icons)
-                        }
-                        FileThumb {
-                            id: thumb
-                            visible: ok
-                            anchors.centerIn: parent
-                            width: Math.round(Theme.u * 14 * root.prefs.icons)
-                            height: width
-                            hit: row.modelData.file || null
-                        }
-                        PxIcon {
-                            visible: !row.modelData.app && !thumb.ok
-                            anchors.centerIn: parent
-                            name: row.modelData.icon || "heart"
-                        }
+                        iu: root.iu
+                        app: row.modelData.app || null
+                        file: row.modelData.file || null
+                        icon: row.modelData.icon || ""
+                        appSize: root.iu * Math.round(12 * root.prefs.icons)
+                        thumbSize: root.iu * Math.round(14 * root.prefs.icons)
                     }
                     Column {
-                        anchors.left: glyph.right
-                        anchors.leftMargin: Theme.u * 5
-                        anchors.right: hint.left
-                        anchors.rightMargin: Theme.u * 4
+                        x: glyph.x + glyph.width + root.rowPad
+                        width: hint.x - root.px(4) - x
                         anchors.verticalCenter: parent.verticalCenter
                         PxText {
                             width: parent.width
@@ -303,8 +302,7 @@ Item {
                     }
                     PxText {
                         id: hint
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.u * 6
+                        x: parent.width - root.px(6) - Math.ceil(implicitWidth)
                         anchors.verticalCenter: parent.verticalCenter
                         kind: "tiny"
                         dim: true
@@ -315,16 +313,27 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                         onEntered: root.current = row.index
                         onClicked: m => {
-                            if (m.button === Qt.RightButton && row.modelData.app)
-                                StartApps.togglePin(row.modelData.app);
-                            else if (m.button === Qt.RightButton && row.modelData.file) {
-                                root.closeRequested();
-                                FileSearch.reveal(row.modelData.file);
-                            } else
-                                root.runRow(row.modelData);
+                            const r = row.modelData, mid = m.button === Qt.MiddleButton;
+                            if (m.button === Qt.LeftButton || (!r.app && !r.file)) {
+                                root.runRow(r);
+                            } else if (r.app) {
+                                if (mid)
+                                    StartApps.togglePin(r.app);
+                                else
+                                    root.menuAsked(StartApps.menuFor(r.app, () => root.runRow(r)), rm, m.x, m.y);
+                            } else {
+                                const reveal = () => {
+                                    root.closeRequested();
+                                    FileSearch.reveal(r.file);
+                                };
+                                if (mid)
+                                    reveal();
+                                else
+                                    root.menuAsked(StartApps.fileMenuFor(reveal, () => root.runRow(r)), rm, m.x, m.y);
+                            }
                         }
                     }
                 }
@@ -339,6 +348,6 @@ Item {
         color: Qt.alpha("#ffffff", 0.85)
         style: Text.Outline
         styleColor: Qt.alpha("#000000", 0.45)
-        text: I18n.t("↑↓ выбрать · Enter открыть · ПКМ закрепить (файл — показать в папке) · Esc закрыть", "↑↓ choose · Enter opens · right click pins (a file: show in folder) · Esc closes")
+        text: I18n.t("↑↓ выбрать · Enter открыть · ПКМ меню · средняя закрепить (файл — показать в папке) · Esc закрыть", "↑↓ choose · Enter opens · right click: menu · middle pins (a file: show in folder) · Esc closes")
     }
 }

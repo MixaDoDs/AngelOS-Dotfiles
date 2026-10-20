@@ -16,6 +16,7 @@ Item {
     property bool flat: settingsSkin === "windose" || (Theme.zine && !hell)
     property bool shadow: false
     property int shadowSize: Theme.u * 2
+    property color shadowColor: Qt.alpha(Theme.shadow, Theme.shadowAlpha)
     property color hiColor: hell ? Theme.hellHi : settingsSkin === "windose" ? Theme.windoseLine : Theme.hi
     property color loColor: hell ? Theme.hellLo : settingsSkin === "windose" ? Theme.windoseLine : Theme.lo
     property color edgeColor: hell ? Theme.hellEdge : settingsSkin === "windose" ? Theme.windoseLine : Theme.edge
@@ -30,7 +31,7 @@ Item {
         y: root.shadowSize
         width: root.shadowSize
         height: root.height
-        color: Qt.alpha(Theme.shadow, Theme.shadowAlpha)
+        color: root.shadowColor
     }
     Rectangle {
         visible: root.shadow
@@ -38,7 +39,7 @@ Item {
         y: root.height
         width: root.width
         height: root.shadowSize
-        color: Qt.alpha(Theme.shadow, Theme.shadowAlpha)
+        color: root.shadowColor
     }
 
     Rectangle {

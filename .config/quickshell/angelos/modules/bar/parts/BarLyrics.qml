@@ -7,7 +7,7 @@ import qs.widgets
 // Current lyric line on the bar: typewriter reveal, old line slides away.
 // The box is as wide as the song's longest line (up to maxWidth), so it stays
 // put during a song; a line that still doesn't fit glides sideways instead of
-// being cut. Left click: Lyrics settings, right click: pause / play.
+// being cut. Left click: Lyrics settings, right click: the song's menu, middle click: pause / play.
 // In hell (the demon rules, Y2K → Lyrics in hell): hell's blackletter (Theme.fontHell,
 // crisp at 21 px), no typewriter, no slide — the next line is simply there, the way
 // things are in hell; the bar's ink gives it the circle's text colour. The salute when a
@@ -409,15 +409,28 @@ Item {
     }
 
     MouseArea {
+        id: lineArea
         anchors.fill: parent
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         cursorShape: Qt.PointingHandCursor
         onClicked: m => {
-            if (m.button === Qt.RightButton) {
+            if (m.button === Qt.MiddleButton) {
                 if (Lyrics.player && Lyrics.player.canTogglePlaying)
                     Lyrics.player.togglePlaying();
+            } else if (m.button === Qt.RightButton) {
+                songMenu.active = true;
+                const p = lineArea.mapToItem(null, m.x, m.y);
+                if (songMenu.item)
+                    songMenu.item.popup(Lyrics.playerMenu(), "", p.x, p.y);
             } else
                 Shell.openSettings("lyrics");
+        }
+    }
+    LazyLoader {
+        id: songMenu
+        PxMenu {
+            parentWindow: root.QsWindow.window
+            kind: root.place === "halo" ? "halo" : "panel"
         }
     }
 }

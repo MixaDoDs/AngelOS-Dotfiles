@@ -164,11 +164,11 @@ PanelWindow {
     // the rest's button was pressed for this ring (Halo.rang)
     property var tipDone: null
     property bool expanded: false
-    property bool menu: false                // the right-click menu: a little list under the pill
+    readonly property bool menu: haloMenu.visible   // the right-click menu (haloMenu)
     onExpandedChanged: {
         tip = "";
         if (expanded)
-            menu = false;
+            haloMenu.close();
         if (!expanded) {
             multi = [];
             closeNote();
@@ -328,13 +328,6 @@ PanelWindow {
     }
     readonly property real pageMax: Math.max(0, pageContentH - pageView.height)
     onPageMaxChanged: pageScroll = Math.min(pageScroll, pageMax)
-    // the menu goes when the pointer has left it and the pill a moment
-    Timer {
-        id: menuOff
-        interval: 700
-        onTriggered: if (!hover.hovered && !menuHover.hovered)
-            win.menu = false
-    }
     // a hint under the pointer: what it is about, where (in the card's coordinates); it shows
     // after the pointer rests a moment (tipShow) and goes as it leaves
     property string tip: ""
@@ -515,9 +508,6 @@ PanelWindow {
         Region {
             item: privacy.visible ? privacy : null
         }
-        Region {
-            item: menuBox.visible ? menuBox : null
-        }
     }
 
     // the pill's size and corners, sprung on the render clock; the pill snaps to whole pixels
@@ -665,8 +655,6 @@ PanelWindow {
                 } else {
                     opener.stop();
                     win.closeSoon();
-                    if (win.menu)
-                        menuOff.restart();
                 }
             }
         }
@@ -693,13 +681,19 @@ PanelWindow {
                     Lyrics.player.togglePlaying();
             }
         }
-        // a right click: its menu, a little list under the pill (as the panel's)
+        // a right click: its menu at the pointer; a right click again closes it (the pill's own
+        // clicks still come while the menu holds the grab)
         TapHandler {
             acceptedButtons: Qt.RightButton
-            onTapped: {
+            onTapped: p => {
                 opener.stop();
                 win.expanded = false;
-                win.menu = !win.menu;
+                if (haloMenu.visible) {
+                    haloMenu.close();
+                    return;
+                }
+                const at = hit.mapToItem(null, p.position.x, p.position.y);
+                haloMenu.popup(win.menuItems(), "", at.x, at.y);
             }
         }
         // something dragged over it: open it on the drop targets; dropped beside them: the shelf
@@ -1253,45 +1247,27 @@ PanelWindow {
         }
     }
 
-    // the right-click menu: the panel's little list (WindowMenu's box and rows) under the pill
-    PxBox {
-        id: menuBox
-        visible: win.menu && win.shown
-        z: 6
-        hell: win.hell
-        width: Math.max(win.u * 110, menuCol.implicitWidth) + inset * 2
-        height: menuCol.implicitHeight + inset * 2
-        x: Math.round(hit.x + pill.x + (pill.width - width) / 2)
-        y: hit.y + pill.y + pill.height + win.u * 3
-        color: win.hell ? Theme.hellPanel : Qt.alpha(Theme.menuSurface, Math.max(0.92, Theme.panelAlpha))
-        shadow: Config.appearance.shadows
-        HoverHandler {
-            id: menuHover
-            onHoveredChanged: if (hovered)
-                menuOff.stop();
-            else
-                menuOff.restart()
-        }
-        Column {
-            id: menuCol
-            width: parent.width - menuBox.inset * 2
-            PxMenuItem {
-                text: I18n.t("Спрятать на час", "Hide for an hour")
-                icon: "moon"
-                onTriggered: {
-                    win.menu = false;
-                    Halo.hideFor(60 * 60 * 1000);
-                }
+    // the right-click menu, in the Halo's look (MenuLook); it goes with the pill
+    PxMenu {
+        id: haloMenu
+        parentWindow: win
+        kind: "halo"
+    }
+    onShownChanged: if (!shown)
+        haloMenu.close()
+    function menuItems() {
+        return [
+            {
+                "label": I18n.t("Спрятать на час", "Hide for an hour"),
+                "icon": "moon",
+                "run": () => Halo.hideFor(60 * 60 * 1000)
+            },
+            {
+                "label": I18n.t("Настройки Нимба…", "Halo settings…"),
+                "icon": "gear",
+                "run": () => Shell.openSettings("halo")
             }
-            PxMenuItem {
-                text: I18n.t("Настройки Нимба…", "Halo settings…")
-                icon: "gear"
-                onTriggered: {
-                    win.menu = false;
-                    Shell.openSettings("halo");
-                }
-            }
-        }
+        ];
     }
 
     // someone records the microphone (orange) or has the camera on (green), as on the iPhone:

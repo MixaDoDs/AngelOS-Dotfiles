@@ -12,17 +12,33 @@ Item {
     id: root
 
     signal closeRequested
+    // a right click on an app (StartApps.menuFor): StartOverlay opens the menu at x, y in `item`
+    signal menuAsked(var items, Item item, real x, real y)
     property real reveal: 1            // 0 → 1 while opening (driven by StartOverlay)
     property int current: -1
     property string query: ""
     // Settings → Bar → Start → Fine-tune (services/StartPrefs)
     readonly property var prefs: StartPrefs.of("fullscreen")
     readonly property color accentColor: prefs.accentColor
-    readonly property int tile: Math.round(Theme.u * 46 * prefs.icons)
-    readonly property int autoColumns: Math.max(3, Math.min(8, Math.floor((width - Theme.u * 40) / tile)))
-    readonly property int autoRows: Math.max(2, Math.min(5, Math.floor((height - Theme.u * 150) / (tile + Theme.u * 8))))
-    readonly property int columns: prefs.columns > 0 ? Math.min(prefs.columns, Math.max(2, Math.floor((width - Theme.u * 20) / (tile + Theme.u * 4)))) : autoColumns
-    readonly property int rows: prefs.rows > 0 ? Math.min(prefs.rows, Math.max(1, Math.floor((height - Theme.u * 120) / (tile + Theme.u * 16)))) : autoRows
+    // every length is n units in whole pixels (StartPrefs.px): Fine-tune → Scale keeps every edge
+    // on a pixel; `iu` the art pixel of icons, a whole number
+    function px(n) {
+        return StartPrefs.px(prefs, n);
+    }
+    readonly property int iu: prefs.iu
+    readonly property int pad: px(12)               // THE inset from the screen's edges (the user, the dock)
+    readonly property int line: Math.max(1, Math.floor(iu / 2))
+    // the grid: whole-pixel tiles and cells; a page's leftover pixels go to its sides
+    readonly property int tile: iu * Math.round(46 * prefs.icons)
+    readonly property int tileH: tile + px(10)      // with the label under it
+    readonly property int colGap: px(4)
+    readonly property int rowGap: px(6)
+    readonly property int cellW: tile + colGap
+    readonly property int cellH: tileH + rowGap
+    readonly property int autoColumns: Math.max(3, Math.min(8, Math.floor((width - px(40)) / cellW)))
+    readonly property int autoRows: Math.max(2, Math.min(5, Math.floor((height - px(150)) / cellH)))
+    readonly property int columns: prefs.columns > 0 ? Math.min(prefs.columns, Math.max(2, Math.floor((width - px(20)) / cellW))) : autoColumns
+    readonly property int rows: prefs.rows > 0 ? Math.min(prefs.rows, Math.max(1, Math.floor((height - px(120)) / cellH))) : autoRows
     readonly property int perPage: columns * rows
     readonly property var list: query.trim() !== "" ? StartApps.search(query).slice(0, perPage) : StartPrefs.sorted("fullscreen", StartApps.apps)
     // like Spotlight: the sum and matching settings above the apps; Enter opens the best match
@@ -157,7 +173,7 @@ Item {
         property real delay: 0
         readonly property real appear: Math.max(0, Math.min(1, root.reveal * 1.6 - delay * 0.6))
         width: root.tile
-        height: root.tile + (dockTile ? 0 : Theme.u * 10)
+        height: dockTile ? root.tile : root.tileH
         opacity: appear
         scale: (0.6 + 0.4 * appear) * (m.pressed ? 0.9 : m.containsMouse || sel ? 1.06 : 1)
         Behavior on scale {
@@ -168,15 +184,16 @@ Item {
         }
         Rectangle {
             id: plate
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: root.tile - Theme.u * 8
+            x: root.iu * 4
+            width: root.tile - root.iu * 8
             height: width
-            radius: width * 0.26
+            radius: Math.round(width * 0.26)
             color: Qt.alpha(Theme.face, Theme.dark ? 0.82 : 0.9)
-            border.width: t.sel ? Theme.u : Math.max(1, Theme.u / 2)
+            border.width: t.sel ? root.iu : root.line
             border.color: t.sel ? root.accentColor : Qt.alpha(Theme.edge, 0.35)
             AppIcon {
-                anchors.centerIn: parent
+                x: Math.floor((plate.width - width) / 2)
+                y: Math.floor((plate.height - height) / 2)
                 iconName: t.app ? t.app.icon || "" : ""
                 appId: t.app ? t.app.id || "" : ""
                 size: Math.round(plate.width * 0.68)
@@ -185,8 +202,8 @@ Item {
                 visible: !!t.app && StartApps.isPinned(t.app) && !t.dockTile
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: -Theme.u
-                width: Theme.u * 5
+                anchors.margins: -root.iu
+                width: root.px(5)
                 height: width
                 radius: width / 2
                 color: root.accentColor
@@ -195,9 +212,9 @@ Item {
         PxText {
             visible: !t.dockTile && root.prefs.labels
             anchors.top: plate.bottom
-            anchors.topMargin: Theme.u * 2
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: root.tile + Theme.u * 4
+            anchors.topMargin: root.px(2)
+            x: -Math.floor(root.colGap / 2)
+            width: root.tile + root.colGap
             horizontalAlignment: Text.AlignHCenter
             text: t.app ? t.app.name : ""
             kind: "tiny"
@@ -210,21 +227,29 @@ Item {
             id: m
             anchors.fill: parent
             hoverEnabled: true
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             cursorShape: Qt.PointingHandCursor
             onEntered: if (!t.dockTile)
                 root.current = t.gindex
-            onClicked: e => e.button === Qt.RightButton ? StartApps.togglePin(t.app) : root.run(t.app)
+            onClicked: e => {
+                const a = t.app;
+                if (e.button === Qt.MiddleButton)
+                    StartApps.togglePin(a);
+                else if (e.button === Qt.RightButton)
+                    root.menuAsked(StartApps.menuFor(a, () => root.run(a)), m, e.x, e.y);
+                else
+                    root.run(a);
+            }
         }
     }
 
     // ---- clock + search ----
     Column {
         id: top
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: Theme.u * 18 - (1 - root.reveal) * Theme.u * 16
+        x: Math.floor((root.width - width) / 2)
+        y: root.px(18) - Math.round((1 - root.reveal) * root.px(16))
         opacity: root.reveal
-        spacing: Theme.u * 3
+        spacing: root.px(3)
         PxText {
             id: clock
             visible: root.prefs.clock
@@ -244,14 +269,15 @@ Item {
         }
         Item {
             width: 1
-            height: Theme.u * 4
+            height: root.px(4)
         }
         PxField {
             id: field
             visible: root.prefs.search
             keepFocus: true
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(root.width - Theme.u * 40, Theme.u * 170)
+            x: Math.floor((parent.width - width) / 2)
+            width: Math.min(root.width - root.px(40), root.px(170))
+            height: Math.ceil(implicitHeight)
             icon: "search"
             placeholder: Config.launcher.settings !== false ? I18n.t("Поиск: приложения, настройки, 2+2", "Search: apps, settings, 2+2") : I18n.t("Поиск", "Search")
             onEdited: {
@@ -270,9 +296,9 @@ Item {
         // the calculator and settings found
         Column {
             visible: root.extras.length > 0
-            anchors.horizontalCenter: parent.horizontalCenter
+            x: Math.floor((parent.width - width) / 2)
             width: field.width
-            spacing: Theme.u * 2
+            spacing: root.px(2)
             Repeater {
                 model: root.extras
                 Rectangle {
@@ -283,31 +309,24 @@ Item {
                     readonly property bool isCalc: modelData.kind === "calc"
                     readonly property bool isFile: modelData.kind === "file"
                     width: parent.width
-                    height: (isCalc ? Theme.u * 22 : Theme.u * 17)
-                    radius: Theme.u * 6
+                    height: isCalc ? root.px(22) : root.px(17)
+                    radius: root.px(6)
                     color: Qt.alpha(Theme.panel, best || em.containsMouse ? 0.8 : 0.55)
-                    border.width: best ? Math.max(1, Theme.u / 2) : 0
+                    border.width: best ? root.line : 0
                     border.color: Qt.alpha("#ffffff", 0.6)
-                    PxIcon {
+                    // a fixed icon box: the text starts at the same x on every row
+                    StartGlyph {
                         id: extraIcon
-                        x: Theme.u * 5
-                        anchors.verticalCenter: parent.verticalCenter
-                        opacity: extraThumb.ok ? 0 : 1
-                        name: extra.isCalc ? "calc" : extra.isFile ? FileSearch.pixelIcon(extra.modelData.file) : extra.modelData.doc.icon || "gear"
-                    }
-                    FileThumb {
-                        id: extraThumb
-                        visible: ok
-                        anchors.centerIn: extraIcon
-                        width: Theme.u * 13
-                        height: width
-                        hit: extra.isFile ? extra.modelData.file : null
+                        x: root.px(5)
+                        y: Math.floor((parent.height - height) / 2)
+                        height: root.iu * 13
+                        iu: root.iu
+                        file: extra.isFile ? extra.modelData.file : null
+                        icon: extra.isCalc ? "calc" : extra.isFile ? FileSearch.pixelIcon(extra.modelData.file) : extra.modelData.doc.icon || "gear"
                     }
                     Column {
-                        anchors.left: extraIcon.right
-                        anchors.leftMargin: Theme.u * 5
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.u * 5
+                        x: extraIcon.x + extraIcon.width + root.px(5)
+                        width: parent.width - root.px(5) - x
                         anchors.verticalCenter: parent.verticalCenter
                         PxText {
                             width: parent.width
@@ -345,9 +364,9 @@ Item {
     ListView {
         id: pages
         anchors.top: top.bottom
-        anchors.topMargin: Theme.u * 12
+        anchors.topMargin: root.px(12)
         anchors.bottom: dots.top
-        anchors.bottomMargin: Theme.u * 4
+        anchors.bottomMargin: root.px(4)
         width: parent.width
         orientation: ListView.Horizontal
         snapMode: ListView.SnapOneItem
@@ -361,11 +380,12 @@ Item {
             required property int index
             width: pages.width
             height: pages.height
+            // centred: the page's leftover pixels are its side padding
             Grid {
-                anchors.horizontalCenter: parent.horizontalCenter
+                x: Math.floor((pg.width - width) / 2)
                 columns: root.columns
-                columnSpacing: Theme.u * 4
-                rowSpacing: Theme.u * 6
+                columnSpacing: root.colGap
+                rowSpacing: root.rowGap
                 Repeater {
                     // pg is gone for a moment while the pages are rebuilt (the list changed)
                     model: pg ? root.list.slice(pg.index * root.perPage, (pg.index + 1) * root.perPage) : []
@@ -384,17 +404,17 @@ Item {
     Row {
         id: dots
         anchors.bottom: dockBar.top
-        anchors.bottomMargin: Theme.u * 8
-        anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Theme.u * 3
+        anchors.bottomMargin: root.px(8)
+        x: Math.floor((root.width - width) / 2)
+        spacing: root.px(3)
         visible: root.pageCount > 1
         opacity: root.reveal
         Repeater {
             model: root.pageCount
             Rectangle {
                 required property int index
-                width: index === root.page ? Theme.u * 8 : Theme.u * 3
-                height: Theme.u * 3
+                width: index === root.page ? root.px(8) : root.px(3)
+                height: root.px(3)
                 radius: height / 2
                 color: index === root.page ? "#ffffff" : Qt.alpha("#ffffff", 0.45)
                 Behavior on width {
@@ -404,7 +424,7 @@ Item {
                 }
                 MouseArea {
                     anchors.fill: parent
-                    anchors.margins: -Theme.u * 2
+                    anchors.margins: -root.px(2)
                     onClicked: pages.currentIndex = parent.index
                 }
             }
@@ -413,39 +433,25 @@ Item {
 
     // the user and power, top left (Fine-tune → Sections)
     Row {
-        x: Theme.u * 12
-        y: Theme.u * 12 - (1 - root.reveal) * Theme.u * 16
+        id: corner
+        x: root.pad
+        y: root.pad - Math.round((1 - root.reveal) * root.px(16))
         opacity: root.reveal
-        spacing: Theme.u * 6
+        spacing: root.px(6)
         StartUser {
             visible: root.prefs.user
-            anchors.verticalCenter: parent.verticalCenter
-            size: Theme.u * 18
+            y: Math.floor((corner.height - height) / 2)
+            size: root.iu * 18
             frameColor: root.accentColor
             textColor: "#ffffff"
             kind: "title"
             onOpened: root.closeRequested()
         }
-        Row {
+        StartButtonRow {
             visible: root.prefs.power
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.u * 3
-            PxButton {
-                compact: true
-                icon: "lock"
-                onClicked: {
-                    root.closeRequested();
-                    Qt.callLater(() => Shell.lock());
-                }
-            }
-            PxButton {
-                compact: true
-                icon: "power"
-                onClicked: {
-                    root.closeRequested();
-                    Qt.callLater(() => Shell.sessionOpen = true);
-                }
-            }
+            y: Math.floor((corner.height - height) / 2)
+            unit: root.prefs.unit
+            iu: root.iu
         }
     }
 
@@ -453,20 +459,20 @@ Item {
     Rectangle {
         id: dockBar
         visible: root.dock.length > 0
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Theme.u * 10 - (1 - root.reveal) * Theme.u * 30
-        width: dockRow.width + Theme.u * 12
-        height: root.tile + Theme.u * 6
-        radius: Theme.u * 12
+        x: Math.floor((root.width - width) / 2)
+        y: root.height - root.pad - height + Math.round((1 - root.reveal) * root.px(30))
+        width: dockRow.width + root.px(6) * 2
+        height: root.tile + root.px(3) * 2
+        radius: root.px(12)
         color: Qt.alpha(Theme.panel, 0.55)
-        border.width: Math.max(1, Theme.u / 2)
+        border.width: root.line
         border.color: Qt.alpha("#ffffff", 0.25)
         opacity: root.reveal
         Row {
             id: dockRow
-            anchors.centerIn: parent
-            spacing: Theme.u * 3
+            x: root.px(6)
+            y: root.px(3)
+            spacing: root.px(3)
             Repeater {
                 model: root.dock
                 AppTile {

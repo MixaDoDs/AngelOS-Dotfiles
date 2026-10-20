@@ -58,6 +58,7 @@ ShellRoot {
     IdleScreen {}
     AwakeKeeper {}
     Lock {}
+    SleepFade {}
     PolkitDialog {}
     UpdatePrompt {}
     MainScreenPrompt {}

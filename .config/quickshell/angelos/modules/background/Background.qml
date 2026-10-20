@@ -162,6 +162,8 @@ Variants {
                 onMenu: (x, y) => GoldenGate.on ? MacMenus.openDesktop(win.modelData.name, x, y) : menu.openAt(x, y)
                 onOtherClicked: {
                     menu.close();
+                    // a popup's grab ends only on clicks outside angelOS: the Halo's or the bar's menu too
+                    PopupManager.barPressed();
                     DesktopWidgets.editMode = false;
                 }
             }

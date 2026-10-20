@@ -13,6 +13,18 @@ PxBox {
     property int current: -1
     // Settings → Bar → Start → Fine-tune (services/StartPrefs)
     readonly property var prefs: StartPrefs.of("classic")
+    // every length is n units in whole pixels (StartPrefs.px), so Fine-tune → Scale and Width
+    // land every edge on a pixel; `iu` the art pixel of icons, a whole number
+    function px(n) {
+        return StartPrefs.px(prefs, n);
+    }
+    readonly property int iu: prefs.iu
+    readonly property int pad: px(5)                // THE inset: the user, the dividers (a row's own, MenuLook pad 5)
+    // the entries' pixel icons: the art pixel × Fine-tune → Icons, whole
+    readonly property int iconPx: Math.max(1, Math.round(iu * prefs.icons))
+    readonly property int rowH: Math.ceil(Theme.sizeBody) + px(8)
+    // the buttons the entries above already are (Terminal, Files, Settings, Update) are not repeated
+    readonly property var shownElsewhere: ["terminal", "home", "settings"].concat(prefs.extras ? ["updates"] : [])
 
     readonly property var entries: [
         {
@@ -108,27 +120,15 @@ PxBox {
         },
         {
             "separator": true
-        },
-        {
-            "text": I18n.t("Заблокировать", "Lock"),
-            "power": true,
-            "icon": "lock",
-            "hint": "Mod+Alt+L",
-            "act": () => Shell.lock()
-        },
-        {
-            "text": I18n.t("Заставка", "Idle screen"),
-            "power": true,
-            "icon": "moon",
-            "act": () => Idle.start()
-        },
-        {
-            "text": I18n.t("Выключение…", "Power…"),
-            "power": true,
-            "icon": "power",
-            "act": () => Shell.sessionOpen = true
         }
-    ].filter(e => (e.show === undefined || e.show) && (prefs.extras || !e.extra) && (prefs.power || !e.power)).filter((e, i, a) => !e.separator || (i > 0 && i < a.length - 1 && !a[i - 1].separator))
+    // the power entries: Start's buttons (Config.bar.startButtons, services/StartItems), as rows
+    ].concat(StartItems.chosen.filter(b => !shownElsewhere.includes(b.id)).map(b => ({
+                "text": b.row,
+                "power": true,
+                "icon": b.icon,
+                "hint": b.id === "lock" ? "Mod+Alt+L" : "",
+                "act": b.run
+            }))).filter(e => (e.show === undefined || e.show) && (prefs.extras || !e.extra) && (prefs.power || !e.power)).filter((e, i, a) => !e.separator || (i > 0 && i < a.length - 1 && !a[i - 1].separator))
     readonly property var actionable: entries.map((e, i) => e.separator ? -1 : i).filter(i => i >= 0)
 
     function run(index) {
@@ -170,8 +170,8 @@ PxBox {
     }
 
     property real room: 0                       // StartOverlay: the screen's room for it
-    width: Math.round(Theme.u * 160 * prefs.size)
-    height: brand.height + userRow.height + Theme.u * 4 + colView.height + footer.height + inset * 2
+    width: Math.round(prefs.unit * 160 * prefs.size)
+    height: brand.height + userRow.height + px(4) + colView.height + footer.height + inset * 2
     // the selected entry stays in view when the list scrolls
     onCurrentChanged: if (current >= 0 && col.children[current]) {
         const it = col.children[current];
@@ -185,15 +185,17 @@ PxBox {
     Rectangle {
         id: brand
         width: parent.width
-        height: Theme.fit(27)
+        height: root.px(27)
         color: root.prefs.accent ? Theme.mix(Theme.menuHeader, root.prefs.accentColor, 0.45) : Theme.menuHeader
         AngelLogo {
-            anchors.centerIn: parent
+            x: Math.floor((parent.width - width) / 2)
+            y: Math.floor((parent.height - height) / 2)
+            pixel: root.iu
         }
         Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width
-            height: Theme.u
+            height: root.iu
             color: Theme.menuBorder
         }
     }
@@ -203,21 +205,21 @@ PxBox {
         id: userRow
         y: brand.height
         width: parent.width
-        height: root.prefs.user ? user.height + Theme.u * 6 : 0
+        height: root.prefs.user ? user.height + root.px(6) : 0
         visible: root.prefs.user
         StartUser {
             id: user
-            x: Theme.u * 6
-            anchors.verticalCenter: parent.verticalCenter
-            size: Theme.u * 15
+            x: root.pad
+            y: root.px(3)
+            size: root.iu * 15
             frameColor: root.prefs.accentColor
             onOpened: root.closeRequested()
         }
         Rectangle {
             anchors.bottom: parent.bottom
-            x: Theme.u * 4
-            width: parent.width - Theme.u * 8
-            height: Math.max(1, Theme.u / 2)
+            x: root.pad
+            width: parent.width - root.pad * 2
+            height: Math.max(1, Math.floor(root.iu / 2))
             color: Theme.menuBorder
         }
     }
@@ -225,9 +227,9 @@ PxBox {
     // the entries; on a screen too short for all of them (big fonts, a big art pixel) they scroll
     Flickable {
         id: colView
-        y: brand.height + userRow.height + Theme.u * 2
+        y: brand.height + userRow.height + root.px(2)
         width: parent.width
-        height: root.room > 0 ? Math.max(Theme.fit(14), Math.min(col.implicitHeight, root.room - brand.height - userRow.height - Theme.u * 4 - footer.height - root.inset * 2)) : col.implicitHeight
+        height: root.room > 0 ? Math.max(root.rowH, Math.min(col.implicitHeight, root.room - brand.height - userRow.height - root.px(4) - footer.height - root.inset * 2)) : col.implicitHeight
         contentHeight: col.implicitHeight
         interactive: contentHeight > height
         clip: interactive
@@ -245,7 +247,9 @@ PxBox {
                 icon: modelData.icon || ""
                 hint: modelData.hint || ""
                 highlighted: root.current === index
-                iconScale: root.prefs.icons
+                // whole pixels: the row's height, its icon's box and art pixel (iconScale × Theme.u)
+                height: separator ? root.px(5) : root.rowH
+                iconScale: root.iconPx / Theme.u
                 onHoveredChanged: if (hovered)
                     root.current = index
                 onTriggered: root.run(index)
@@ -258,7 +262,7 @@ PxBox {
         id: footer
         anchors.bottom: parent.bottom
         width: parent.width
-        height: implicitHeight + Theme.u * 4
+        height: Math.ceil(implicitHeight) + root.px(4)
         horizontalAlignment: Text.AlignHCenter
         kind: "tiny"
         dim: true

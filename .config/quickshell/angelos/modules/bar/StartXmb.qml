@@ -15,6 +15,8 @@ Item {
     id: root
 
     signal closeRequested
+    // a right click on an app (StartApps.menuFor): StartOverlay opens the menu at x, y in `item`
+    signal menuAsked(var items, Item item, real x, real y)
     property real reveal: 1
     property int current: -1                // unused here (StartOverlay resets it)
     property string query: ""
@@ -24,6 +26,14 @@ Item {
     // Settings → Bar → Start → Fine-tune (services/StartPrefs)
     readonly property var prefs: StartPrefs.of("xmb")
     readonly property color accentColor: prefs.accentColor
+    // every length is n units in whole pixels (StartPrefs.px): Fine-tune → Scale keeps every edge
+    // on a pixel; `iu` the art pixel of icons, a whole number
+    function px(n) {
+        return StartPrefs.px(prefs, n);
+    }
+    readonly property int iu: prefs.iu
+    readonly property int pad: px(20)               // THE inset from the screen's sides
+    readonly property int padY: px(12)              // … and from its top and bottom
 
     function appRow(a) {
         return {
@@ -218,10 +228,10 @@ Item {
     // ---- the user, top left ----
     StartUser {
         visible: root.prefs.user
-        x: Theme.u * 20
-        y: Theme.u * 12
+        x: root.pad
+        y: root.padY
         opacity: root.reveal
-        size: Theme.u * 16
+        size: root.iu * 16
         frameColor: root.accentColor
         textColor: "#ffffff"
         kind: "title"
@@ -231,9 +241,8 @@ Item {
     // ---- clock, top right (the PSP's corner) ----
     Column {
         visible: root.prefs.clock || root.searching
-        anchors.right: parent.right
-        anchors.rightMargin: Theme.u * 20
-        y: Theme.u * 14
+        x: root.width - root.pad - Math.ceil(width)
+        y: root.padY
         opacity: root.reveal
         PxText {
             visible: root.prefs.clock
@@ -256,10 +265,11 @@ Item {
     }
 
     // ---- the categories ----
-    readonly property real rowY: Math.round(height * 0.28)
-    readonly property real step: Theme.u * 58
-    readonly property real catX: Math.round(width * 0.24)
-    readonly property real iconBox: Math.round(Theme.u * 30 * prefs.icons)
+    readonly property int rowY: Math.round(height * 0.28)
+    readonly property int step: px(58)
+    readonly property int catX: Math.round(width * 0.24)
+    readonly property int iconBox: iu * Math.round(30 * prefs.icons)
+    readonly property int half: Math.floor(iconBox / 2)
     Repeater {
         model: root.categories
         Item {
@@ -267,10 +277,10 @@ Item {
             required property var modelData
             required property int index
             readonly property bool sel: index === root.cat
-            x: root.catX + (index - root.cat) * root.step - width / 2
-            y: root.rowY - root.iconBox / 2 - (1 - root.reveal) * Theme.u * 10
+            x: root.catX + (index - root.cat) * root.step - root.half
+            y: root.rowY - root.half - Math.round((1 - root.reveal) * root.px(10))
             width: root.iconBox
-            height: root.iconBox + Theme.u * 14
+            height: root.iconBox + root.px(14)
             opacity: root.reveal * (sel ? 1 : Math.max(0.25, 0.8 - Math.abs(index - root.cat) * 0.12))
             Behavior on x {
                 NumberAnimation {
@@ -279,9 +289,9 @@ Item {
                 }
             }
             PxIcon {
-                anchors.horizontalCenter: parent.horizontalCenter
+                x: Math.floor((parent.width - width) / 2)
                 name: catItem.modelData.icon
-                pixel: catItem.sel ? Theme.u * 3 : Theme.u * 2
+                pixel: catItem.sel ? root.iu * 3 : root.iu * 2
                 ink: "#ffffff"
                 fill: catItem.sel ? Theme.mix(root.accentColor, "#ffffff", 0.3) : Qt.alpha("#ffffff", 0.75)
                 fill2: Theme.accent2
@@ -312,8 +322,8 @@ Item {
     }
 
     // ---- the chosen column: the selected item under the row, earlier ones above ----
-    readonly property real itemH: Math.round(Theme.u * 22 * Math.max(0.8, prefs.icons))
-    readonly property real below: rowY + iconBox / 2 + Theme.u * 18
+    readonly property int itemH: px(22 * Math.max(0.8, prefs.icons))
+    readonly property int below: rowY + half + px(18)
     Repeater {
         model: root.column.rows
         Item {
@@ -323,9 +333,9 @@ Item {
             readonly property int off: index - root.item
             readonly property bool sel: off === 0
             visible: y > -height && y < root.height
-            x: root.catX - root.iconBox / 2 - Theme.u * 2
-            y: off >= 0 ? root.below + off * root.itemH + (off > 0 ? Theme.u * 10 : 0) : root.rowY - root.iconBox / 2 - Theme.u * 6 + off * root.itemH - root.itemH
-            width: root.width - x - Theme.u * 20
+            x: root.catX - root.half - root.px(2)
+            y: off >= 0 ? root.below + off * root.itemH + (off > 0 ? root.px(10) : 0) : root.rowY - root.half - root.px(6) + off * root.itemH - root.itemH
+            width: root.width - x - root.pad
             height: root.itemH
             opacity: root.reveal * (sel ? 1 : off < 0 ? 0.35 : Math.max(0.3, 0.85 - off * 0.08))
             Behavior on y {
@@ -334,38 +344,25 @@ Item {
                     easing.type: Easing.OutCubic
                 }
             }
-            Item {
+            // a fixed icon box, as wide as a category's: the text starts at the same x on every row
+            StartGlyph {
                 id: glyph
                 width: root.iconBox
                 height: root.itemH
-                AppIcon {
-                    visible: !!it.modelData.app
-                    anchors.centerIn: parent
-                    iconName: it.modelData.app ? it.modelData.app.icon || "" : ""
-                    appId: it.modelData.app ? it.modelData.app.id || "" : ""
-                    size: Math.round((it.sel ? Theme.u * 18 : Theme.u * 12) * root.prefs.icons)
-                }
-                FileThumb {
-                    id: fileGlyph
-                    visible: ok
-                    anchors.centerIn: parent
-                    width: Math.round((it.sel ? Theme.u * 18 : Theme.u * 12) * root.prefs.icons)
-                    height: width
-                    hit: it.modelData.file || null
-                }
-                PxIcon {
-                    visible: !it.modelData.app && !fileGlyph.ok
-                    anchors.centerIn: parent
-                    name: it.modelData.icon || "heart"
-                    pixel: it.sel ? Theme.u * 2 : Math.max(1, Math.round(Theme.u * 1.5))
-                    ink: "#ffffff"
-                    fill: Theme.mix(root.accentColor, "#ffffff", 0.35)
-                    light: "#ffffff"
-                }
+                iu: root.iu
+                app: it.modelData.app || null
+                file: it.modelData.file || null
+                icon: it.modelData.icon || ""
+                appSize: root.iu * Math.round((it.sel ? 18 : 12) * root.prefs.icons)
+                thumbSize: appSize
+                pixelIcon.pixel: it.sel ? root.iu * 2 : Math.max(1, Math.round(root.iu * 1.5))
+                pixelIcon.ink: "#ffffff"
+                pixelIcon.fill: Theme.mix(root.accentColor, "#ffffff", 0.35)
+                pixelIcon.light: "#ffffff"
             }
             Column {
                 anchors.left: glyph.right
-                anchors.leftMargin: Theme.u * 6
+                anchors.leftMargin: root.px(6)
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 PxText {
@@ -387,14 +384,18 @@ Item {
                 }
             }
             MouseArea {
+                id: im
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                 onClicked: m => {
-                    if (m.button === Qt.RightButton && it.modelData.app)
-                        StartApps.togglePin(it.modelData.app);
+                    const r = it.modelData;
+                    if (m.button === Qt.LeftButton || !r.app)
+                        root.runRow(r);
+                    else if (m.button === Qt.MiddleButton)
+                        StartApps.togglePin(r.app);
                     else
-                        root.runRow(it.modelData);
+                        root.menuAsked(StartApps.menuFor(r.app, () => root.runRow(r)), im, m.x, m.y);
                 }
             }
         }
@@ -402,19 +403,19 @@ Item {
     // nothing in this column (the search found nothing)
     PxText {
         visible: root.column.rows.length === 0
-        x: root.catX - root.iconBox / 2
+        x: root.catX - root.half
         y: root.below
         color: Qt.alpha("#ffffff", 0.7)
         text: I18n.t("Ничего не нашлось", "Nothing found")
     }
     // hints, bottom left
     PxText {
-        x: Theme.u * 20
+        x: root.pad
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: Theme.u * 12
+        anchors.bottomMargin: root.padY
         opacity: root.reveal * 0.7
         kind: "tiny"
         color: "#ffffff"
-        text: I18n.t("←→ разделы · ↑↓ пункты · Enter открыть · печатай — поиск · ПКМ — закрепить · Esc", "←→ sections · ↑↓ items · Enter opens · type to search · right click pins · Esc")
+        text: I18n.t("←→ разделы · ↑↓ пункты · Enter открыть · печатай — поиск · ПКМ — меню · средняя — закрепить · Esc", "←→ sections · ↑↓ items · Enter opens · type to search · right click: menu · middle pins · Esc")
     }
 }

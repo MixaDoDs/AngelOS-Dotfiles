@@ -21,6 +21,8 @@ Item {
     // has flipped back and forth stays shown until the content settles.
     readonly property bool overflows: flick.contentHeight > flick.height + 1
     property bool barVisible: false
+    property color trackColor: Theme.sunken  // a menu's look recolours its bar (PxMenuList)
+    property color handleColor: Theme.faceAlt
     property int barFlips: 0
     onOverflowsChanged: Qt.callLater(decideBar)
     Component.onCompleted: Qt.callLater(decideBar)
@@ -97,7 +99,7 @@ Item {
         anchors.bottom: parent.bottom
         width: Theme.u * 8
         sunken: true
-        color: Theme.sunken
+        color: root.trackColor
 
         PxBox {
             id: handle
@@ -105,7 +107,7 @@ Item {
             width: parent.width - bar.inset * 2
             height: Math.max(Theme.u * 12, (parent.height - bar.inset * 2) * flick.visibleArea.heightRatio)
             y: (parent.height - bar.inset * 2 - height) * (flick.contentY / Math.max(1, flick.contentHeight - flick.height))
-            color: handleMouse.pressed ? Theme.accent : Theme.faceAlt
+            color: handleMouse.pressed ? Theme.accent : root.handleColor
 
             MouseArea {
                 id: handleMouse

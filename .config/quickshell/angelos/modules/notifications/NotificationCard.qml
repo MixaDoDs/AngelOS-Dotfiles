@@ -14,6 +14,7 @@ PxWindow {
     readonly property bool critical: notification && notification.urgency === NotificationUrgency.Critical
     readonly property int timeout: critical ? 0 : (notification && notification.expireTimeout > 0 ? notification.expireTimeout : Config.notifications.timeout)
     property real remaining: 1
+    signal menuAsked(real x, real y)        // a right click: NotificationPopups opens Notifs.menuFor
 
     title: notification ? (notification.appName || I18n.t("уведомление", "notification")) : ""
     icon: critical ? "warn" : "bell"
@@ -210,10 +211,15 @@ PxWindow {
         anchors.fill: parent
         anchors.topMargin: root.titleHeight + Theme.u * 4
         z: -1
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         onClicked: m => {
-            if (m.button === Qt.RightButton) {
+            if (m.button === Qt.MiddleButton) {
                 Notifs.close(root.notification);
+                return;
+            }
+            if (m.button === Qt.RightButton) {
+                const p = mapToItem(null, m.x, m.y);
+                root.menuAsked(p.x, p.y);
                 return;
             }
             if (root.replying)

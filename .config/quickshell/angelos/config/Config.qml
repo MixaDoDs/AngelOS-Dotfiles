@@ -78,6 +78,7 @@ Singleton {
     property alias spell: adapter.spell
     property alias keycast: adapter.keycast
     property alias discord: adapter.discord
+    property alias menus: adapter.menus
     // the same schema, never loaded: every setting's default value
     readonly property SettingsSchema defaults: SettingsSchema {}
 
@@ -124,7 +125,7 @@ Singleton {
     // ---- Undo (Settings → "Undo"): every save remembers what the user changed ----
     // Each step is [{path, old, new}]; bookkeeping the shell does by itself
     // (counters, the angel's state, update checks) is never a step.
-    readonly property var sections: ["appearance", "bar", "wallpaper", "workspaces", "alttab", "lyrics", "setup", "notifications", "osd", "launcher", "voxtype", "desktop", "lock", "idle", "sidebar", "phone", "capture", "plugins", "dotfiles", "system", "developer", "settingsUi", "y2k", "cursor", "updates", "network", "power", "peripherals", "laptop", "gestures", "stream", "lens", "circle", "quickshare", "quicklook", "island", "halo", "decor", "windows", "novel", "game", "gaming", "mac", "recovery", "wellbeing", "vault", "spell", "keycast", "discord"]
+    readonly property var sections: ["appearance", "bar", "wallpaper", "workspaces", "alttab", "lyrics", "setup", "notifications", "osd", "launcher", "voxtype", "desktop", "lock", "idle", "sidebar", "phone", "capture", "plugins", "dotfiles", "system", "developer", "settingsUi", "y2k", "cursor", "updates", "network", "power", "peripherals", "laptop", "gestures", "stream", "lens", "circle", "quickshare", "quicklook", "island", "halo", "decor", "windows", "novel", "game", "gaming", "mac", "recovery", "wellbeing", "vault", "spell", "keycast", "discord", "menus"]
     readonly property var notUndoable: ["launcher.usage", "settingsUi.usage", "settingsUi.searchHistory", "settingsUi.expert", "settingsUi.skinChosen", "settingsUi.viewPicked", "settingsUi.win11Once", "updates.lastCheck", "updates.available", "updates.paperSeen", "updates.notifiedFor", "dotfiles.adminWarned", "setup.complete", "setup.gameAsked", "setup.keyboardAsked", "lyrics.sourcesVersion", "desktop.initialized", "plugins.data", "plugins.lastCheck", "plugins.notifiedFor", "plugins.storeRetired", "stream.dndSet", "stream.suppressed", "stream.castHinted", "stream.privacySet", "lock.chestNotified", "y2k.helperGreeted", "y2k.character", "y2k.demonSince", "y2k.pleas", "y2k.lastPlea", "y2k.pranks", "y2k.nextPrank", "y2k.seenTips", "y2k.angelSaved", "y2k.raysSeen", "y2k.returns", "cursor.beforeHell", "cursor.beforeHellSize", "cursor.beforeMac", "mac.wallBefore", "wallpaper.themes", "wallpaper.themeOf", "wallpaper.releaseSeen", "recovery.lastPush", "appearance.customAccentHell", "game.enabled"]
     property var undoStack: []
     readonly property bool canUndo: undoStack.length > 0
@@ -191,6 +192,23 @@ Singleton {
         const lang = /^ru/i.test(locale) ? "ru" : "en";
         if (adapter.appearance.language !== lang)
             adapter.appearance.language = lang;
+    }
+    // old values of keys that are gone, put right on load (before the snapshot: not an Undo step;
+    // the change is saved like any other). 2026-10-20: the Start looks Windose and Wii are
+    // gone — their users get win11, and those looks' Fine-tune sets go with them
+    function _migrate() {
+        const bar = adapter.bar;
+        if (!bar)
+            return;
+        if (bar.startStyle === "windose" || bar.startStyle === "wii")
+            bar.startStyle = "win11";
+        const prefs = bar.startPrefs;
+        if (prefs && (prefs.windose !== undefined || prefs.wii !== undefined)) {
+            const kept = Object.assign({}, prefs);
+            delete kept.windose;
+            delete kept.wii;
+            bar.startPrefs = kept;
+        }
     }
     // never before the file is read: the adapter still holds the defaults then
     function _write() {
@@ -300,6 +318,7 @@ Singleton {
                 const copy = JSON.parse(JSON.stringify(d));
                 adapter[sec] = copy;
             }
+            root._migrate();
             // a load while a change waits for its save (the echo of our own last write) keeps
             // the snapshot from before it: else that change was never an Undo step
             if (!saveTimer.running)

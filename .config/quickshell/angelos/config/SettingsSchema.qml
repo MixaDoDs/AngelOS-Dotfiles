@@ -54,8 +54,12 @@ JsonAdapter {
         property bool showSeconds: false
         property string clockFormat: "auto" // auto (12 h in English, 24 h in Russian) | 24 | 12
         property string startLabel: "angelOS"
-        property string startStyle: "classic" // classic (Win98 list) | win11 (centred, pinned grid) | fullscreen (iPhone-like app grid) | xmb (PSP) | windose (NGO window) | wii (channels) | spotlight (a search pill)
+        property string startButtonStyle: "classic" // the bar's Start button: classic (bevelled, the logo) | capsule (an XP-like "start" pill in the accent)
+        property string startStyle: "classic" // classic (Win98 list) | win11 (centred, pinned grid) | fullscreen (iPhone-like app grid) | xmb (PSP) | spotlight (a search pill)
         property var startPinned: []        // desktop entry ids pinned in Start
+        // the buttons along Start's bottom, in order (services/StartItems.buttons; unknown ids are skipped):
+        // downloads | lock | sleep | power | reboot | logout | settings | home | terminal | updates | idle
+        property var startButtons: ["updates", "lock", "sleep", "power"]
         property string startAlign: "auto" // auto (classic at the button, win11 centred) | left | center | right
         property string taskbarAlign: "left" // left | center — Start and the window buttons in the middle, like Windows 11
         property int startWidth: 100        // Start menu width, % of the default
@@ -864,5 +868,20 @@ JsonAdapter {
         property var efforts: ({})          // provider -> low | medium | high | xhigh | max | ultra ("" = model default)
         property int autoRepair: 1          // automatic repair rounds after failed checks (0–2)
         property int maxOutputTokens: 32000
+    }
+
+    // the pixel menus' look (services/MenuLook.lookFor, widgets/PxMenu): classic (the bevelled
+    // box) | save («Сейв», the 2004 lock's card) | sticker («Наклейка», a squared notebook page)
+    property JsonObject menus: JsonObject {
+        property string look: "classic"
+        // a menu's own look over `look`: desktop | widget | panel | task | tray | halo → a look, "" = as all
+        property var per: ({
+                "desktop": "",
+                "widget": "",
+                "panel": "",
+                "task": "",
+                "tray": "",
+                "halo": ""
+            })
     }
 }

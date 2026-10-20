@@ -32,7 +32,7 @@ Scope {
         const only = (Quickshell.env("ANGELOS_SCALE_ONLY") || "").trim();
         return only ? [allCombos[0]].concat(only.split(/\s+/).map(i => allCombos[Number(i)])) : allCombos;
     }
-    readonly property var surfaces: ["settings:home", "settings:appearance", "settings:updates", "settings:monitor", "settings:notifications", "settings:bar", "start:win11", "start:classic", "start:windose", "start:spotlight", "bar", "notification"]
+    readonly property var surfaces: ["settings:home", "settings:appearance", "settings:updates", "settings:monitor", "settings:notifications", "settings:bar", "start:win11", "start:classic", "start:spotlight", "bar", "notification"]
 
     FloatingWindow {
         id: win
@@ -44,7 +44,7 @@ Scope {
             id: stage
             anchors.fill: parent
             property string what: ""
-            sourceComponent: what.startsWith("settings") ? settingsC : what === "start:win11" ? win11C : what === "start:classic" ? classicC : what === "start:windose" ? windoseC : what === "start:spotlight" ? spotC : what === "bar" ? barC : what === "notification" ? notifC : null
+            sourceComponent: what.startsWith("settings") ? settingsC : what === "start:win11" ? win11C : what === "start:classic" ? classicC : what === "start:spotlight" ? spotC : what === "bar" ? barC : what === "notification" ? notifC : null
         }
     }
     Component {
@@ -66,15 +66,6 @@ Scope {
         id: classicC
         Item {
             StartMenuBody {
-                anchors.bottom: parent.bottom
-                room: parent.height - Theme.u * 4
-            }
-        }
-    }
-    Component {
-        id: windoseC
-        Item {
-            StartWindose {
                 anchors.bottom: parent.bottom
                 room: parent.height - Theme.u * 4
             }

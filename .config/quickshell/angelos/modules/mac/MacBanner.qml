@@ -9,8 +9,8 @@ import qs.widgets
 
 // A notification banner of the Golden Gate skin (NotificationPopups while the skin is on): a glass
 // card with the app's icon, the app and "now", the title in bold, the text in two lines and its
-// actions as buttons; × on hover. A click runs the default action, a right click dismisses it for
-// good; it goes on its own after the timeout unless the pointer is on it — a critical one stays.
+// actions as buttons; × on hover. A click runs the default action, a middle click dismisses it
+// for good, a right click opens its menu; it goes on its own after the timeout unless the pointer is on it — a critical one stays.
 Item {
     id: root
 
@@ -18,6 +18,7 @@ Item {
     readonly property bool critical: notification && notification.urgency === NotificationUrgency.Critical
     readonly property int timeout: critical ? 0 : (notification && notification.expireTimeout > 0 ? notification.expireTimeout : Config.notifications.timeout)
     property int elapsed: 0
+    signal menuAsked(real x, real y)        // a right click: NotificationPopups opens Notifs.menuFor
     implicitHeight: card.height
 
     Timer {
@@ -78,10 +79,15 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             onClicked: m => {
-                if (m.button === Qt.RightButton) {
+                if (m.button === Qt.MiddleButton) {
                     Notifs.close(root.notification);
+                    return;
+                }
+                if (m.button === Qt.RightButton) {
+                    const p = mapToItem(null, m.x, m.y);
+                    root.menuAsked(p.x, p.y);
                     return;
                 }
                 if (!root.replying)

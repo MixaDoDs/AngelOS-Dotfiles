@@ -183,7 +183,7 @@ Item {
     function isMain(id, me) {
         return Config.discord.crewMain === "me" ? me : Config.discord.crewMain === id;
     }
-    // one person's menu (right click): entries as DesktopMenu's lists take them. They look the
+    // one person's menu (right click): entries as PxMenu takes them. They look the
     // person up each time: the menu may stay open after they left
     function itemsFor(g) {
         const id = g.uid, me = g.me;
@@ -469,7 +469,8 @@ Item {
                     }
                 }
             }
-            MouseArea {
+            // the menu opens where the right button went down (ContextClick); the left one carries
+            ContextClick {
                 id: hand
                 hoverEnabled: true
                 x: guy.u * 2
@@ -478,24 +479,25 @@ Item {
                 height: guy.u * 27
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 cursorShape: guy.held ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                // the menu opens where the right button went down (as ContextClick does)
-                property point down
                 onPressed: m => {
-                    const p = mapToItem(win, m.x, m.y);
-                    if (m.button === Qt.RightButton)
-                        down = p;
-                    else
+                    if (m.button !== Qt.RightButton) {
+                        const p = mapToItem(win, m.x, m.y);
                         guy.grab(p.x, p.y);
+                    }
                 }
                 onPositionChanged: m => {
                     const p = mapToItem(win, m.x, m.y);
                     guy.dragTo(p.x, p.y);
                 }
                 onReleased: m => {
-                    if (m.button === Qt.RightButton && !guy.held)
-                        win.menuAsked(guy, down.x, down.y);
-                    else if (m.button !== Qt.RightButton)
+                    if (m.button !== Qt.RightButton)
                         guy.drop();
+                }
+                onMenu: (x, y) => {
+                    if (guy.held)
+                        return;
+                    const p = mapToItem(win, x, y);
+                    win.menuAsked(guy, p.x, p.y);
                 }
                 onCanceled: guy.drop()
             }

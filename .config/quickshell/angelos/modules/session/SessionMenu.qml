@@ -70,46 +70,10 @@ PanelWindow {
         }
     ]
 
+    // the actions themselves (and the goodbye chime) live in Shell.sessionAction
     function run(id) {
         Shell.sessionOpen = false;
-        if (id === "logout" || id === "reboot" || id === "poweroff") {
-            // let the Y2K goodbye chime play before the session goes away
-            if (Sounds.enabled("shutdown")) {
-                Sounds.play("shutdown");
-                bye.action = id;
-                bye.restart();
-                return;
-            }
-        }
-        act(id);
-    }
-    Timer {
-        id: bye
-        property string action
-        interval: 1300
-        onTriggered: win.act(action)
-    }
-    function act(id) {
-        switch (id) {
-        case "lock":
-            Shell.lock();
-            break;
-        case "idle":
-            Idle.start();
-            break;
-        case "suspend":
-            Shell.exec(["systemctl", "suspend"]);
-            break;
-        case "logout":
-            Niri.quit();
-            break;
-        case "reboot":
-            Shell.exec(["systemctl", "reboot"]);
-            break;
-        case "poweroff":
-            Shell.exec(["systemctl", "poweroff"]);
-            break;
-        }
+        Shell.sessionAction(id);
     }
 
     // built when it opens (shell.qml: LazyLoader), so the first showing is the creation itself

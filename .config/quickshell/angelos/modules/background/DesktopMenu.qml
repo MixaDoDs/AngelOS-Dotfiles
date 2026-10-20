@@ -1,8 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import Quickshell
-import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
@@ -11,47 +9,29 @@ import qs.widgets
 // then the entries with flyouts (Вид ▸ / Создать ▸ / Обои ▸ / Открыть ▸ / Показать больше ▸).
 // What it holds and in which order: services/DeskMenu (Settings → Right-click menu).
 // The "ring" look is RadialMenu: openAt() hands over to it, the flyouts' lists stay here.
-PopupWindow {
+// The list itself is the shared pixel menu (widgets/PxMenu) in its look (services/MenuLook).
+PxMenu {
     id: root
 
-    required property var parentWindow
     property var radial: null               // RadialMenu of the same screen
     // the ring, the tiles and the pentagram live in RadialMenu; the list here, plain or Y2K
     readonly property bool ringStyle: DeskMenu.overlay && !!radial
-    readonly property string skin: DeskMenu.style === "y2k" ? "y2k" : ""
     readonly property real k: ({
             "compact": 0.85,
             "large": 1.25
         })[Config.desktop.menuSize] || 1
     readonly property string screenName: parentWindow && parentWindow.screen ? parentWindow.screen.name : ""
-    property real px: 0
-    property real py: 0
 
-    // An open menu is hidden and shown again on the next turn of the event loop:
-    // shown in the same event, the new surface kept the old position and jumped
-    // aside. Clicks while that is pending only move the target, so a fast double
-    // right-click shows the menu once, where it was asked for last.
-    property bool reopening: false
     // a desktop widget's own menu (openWidget): its uid; "" = the desktop's
     property string widgetUid: ""
-    // a list of someone else's under a title (openList: the Discord people's menu, DiscordCrew)
-    property string listTitle: ""
-    readonly property bool own: widgetUid !== "" || listTitle !== ""
+    readonly property bool own: widgetUid !== ""
     function openWidget(uid, x, y) {
         widgetUid = uid;
-        listTitle = "";
         widgetList = widgetItems(uid);
-        show(x, y);
-    }
-    function openList(title, items, x, y) {
-        widgetUid = "";
-        listTitle = title || " ";
-        widgetList = items;
         show(x, y);
     }
     function openAt(x, y) {
         widgetUid = "";
-        listTitle = "";
         widgetList = [];
         Achievements.note("deskmenu.open", DeskMenu.style);
         if (ringStyle) {
@@ -62,35 +42,8 @@ PopupWindow {
         }
         show(x, y);
     }
-    function show(x, y) {
-        px = x;
-        py = y;
-        sub.hide();
-        anchor.rect.x = x;
-        anchor.rect.y = y;
-        if (!visible && !reopening) {
-            visible = true;
-            return;
-        }
-        visible = false;
-        if (reopening)
-            return;
-        reopening = true;
-        Qt.callLater(() => {
-            if (!reopening)
-                return;
-            reopening = false;
-            anchor.updateAnchor();
-            visible = true;
-        });
-    }
-    function close() {
-        reopening = false;
-        sub.hide();
-        visible = false;
-        if (radial && radial.visible)
-            radial.close();
-    }
+    onDismissed: if (radial && radial.visible)
+        radial.close()
     // a flyout's entries by name
     function listFor(name) {
         return ({
@@ -414,293 +367,167 @@ PopupWindow {
                 "run": () => Plugins.run(e)
             }))
 
-    anchor.window: parentWindow
-    anchor.rect.width: 1
-    anchor.rect.height: 1
-    // the menu starts one pixel past the pointer, so a second right-click on the
-    // same spot lands on the desktop (menu moves there) instead of its corner
-    anchor.edges: Edges.Bottom | Edges.Right
-    anchor.gravity: Edges.Bottom | Edges.Right
-    anchor.adjustment: PopupAdjustment.Flip | PopupAdjustment.Slide
-    grabFocus: !Shell.demo
-    color: "transparent"
-    implicitWidth: frame.width + Theme.u * 3
-    implicitHeight: frame.height + Theme.u * 3
-    onVisibleChanged: {
-        if (visible) {
-            if (Config.desktop.menuAnim !== false)
-                popAnim.restart();
-            if (PopupManager.active && PopupManager.active !== root)
-                PopupManager.close(PopupManager.active);
-            PopupManager.active = root;
-        } else {
-            sub.hide();
-            if (PopupManager.active === root)
-                PopupManager.active = null;
-        }
-    }
-    visible: false
-
-    BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
-    Region {
-        id: blurRegion
-        item: frame
-    }
-
-    DesktopSubmenu {
-        id: sub
-        parentMenu: root
-        onDone: root.close()
-    }
-    // hover opens flyouts after a short beat, like Windows
-    Timer {
-        id: hoverTimer
-        property Item item: null
-        property var list: []
-        interval: 160
-        onTriggered: if (item && item.hovered)
-            sub.openFor(item, list)
-    }
+    // the desktop's own entries (DeskMenu.items) in the menu's schema; flyouts are built as
+    // they open (listFor), "more" only when there is more
+    readonly property var deskItems: DeskMenu.items.filter(id => id !== "more" || moreItems.length > 0 || Plugins.menuComponents.length > 0).map(id => {
+        if (id === "sep")
+            return {
+                "separator": true
+            };
+        const e = DeskMenu.entry(id);
+        return e.flyout ? {
+            "id": id,
+            "label": e.label,
+            "icon": e.icon,
+            "children": () => root.listFor(id)
+        } : {
+            "id": id,
+            "label": e.label,
+            "icon": e.icon,
+            "run": () => DeskMenu.run(id, root.screenName)
+        };
+    })
     // scripting: open a flyout by name ("view" | "new" | "wallpaper" | "open" | "more")
-    property var subAnchors: ({})
     function openSub(name) {
         if (radial && radial.visible) {
             radial.openSub(name);
             return;
         }
-        const it = subAnchors[name];
-        if (it)
-            sub.openFor(it, listFor(name));
-    }
-    function hoverSub(item, list) {
-        if (sub.visible && sub.anchorItem === item)
-            return;
-        hoverTimer.item = item;
-        hoverTimer.list = list;
-        hoverTimer.restart();
+        const i = items.findIndex(e => e.id === name);
+        if (i >= 0)
+            openChild(i);
     }
 
-    PxBox {
-        id: frame
-        width: Math.max(Theme.u * 150 * root.k, quick.implicitWidth + Theme.u * 8, ...col.children.map(c => c.implicitWidth || 0)) + inset * 2
-        // a little pop when it opens (Settings → Right-click menu → Animation)
-        transformOrigin: Item.TopLeft
-        scale: popAnim.running ? popAnim.v : 1
-        NumberAnimation {
-            id: popAnim
-            property real v: 1
-            target: popAnim
-            property: "v"
-            from: 0.92
-            to: 1
-            duration: Motion.ms(120)
-            easing.type: Easing.OutCubic
+    kind: own ? "widget" : "desktop"
+    items: own ? widgetList : deskItems
+    title: {
+        if (own) {
+            const w = DesktopWidgets.byUid(root.widgetUid);
+            const info = w ? DesktopWidgets.typeInfo(w.type) : null;
+            return info ? DesktopWidgets.titleOf(info) + " · " + info.label : "";
         }
-        height: col.implicitHeight + inset * 2
-        color: root.skin === "y2k" ? "transparent" : Qt.alpha(Theme.menuSurface, Theme.panelAlpha)
-        outline: root.skin !== "y2k"
-        flat: root.skin === "y2k"
-        shadow: Config.appearance.shadows && root.skin !== "y2k"
-        focus: true
-        Keys.onEscapePressed: root.close()
-        // Y2K gloss: the chrome bubble instead of the bevelled box
-        Y2kGloss {
-            visible: root.skin === "y2k"
-            anchors.fill: parent
-            z: -1
-        }
+        // the 2004 looks carry a title bar; the classic list and the gloss have their quick row
+        return look === "save" || look === "sticker" ? I18n.t("Рабочий стол", "Desktop") : "";
+    }
+    icons: Config.desktop.menuIcons !== false
+    pop: Config.desktop.menuAnim !== false
+    minWidth: Math.max(Math.round(MenuLook.minWidth * k), own ? 0 : quick.implicitWidth + Theme.u * 8)
 
-        Column {
-            id: col
-            width: parent.width - frame.inset * 2
-            bottomPadding: root.skin === "y2k" ? Theme.u * 3 : 0
-
-            // Y2K gloss: a little title in the chrome
-            PxText {
-                visible: root.skin === "y2k" && !root.own
-                anchors.horizontalCenter: parent.horizontalCenter
-                topPadding: Theme.u * 4
-                kind: "tiny"
-                font.bold: true
-                color: Theme.text
-                style: Text.Outline
-                styleColor: Qt.alpha(Theme.accent, 0.6)
-                text: "✧ angelOS ✧"
-            }
-            // quick actions (Windows 11 puts cut/copy/paste here; we put the everyday stuff), signed
-            Row {
-                id: quick
-                visible: DeskMenu.quick.length > 0 && !root.own
-                anchors.horizontalCenter: parent.horizontalCenter
-                topPadding: Theme.u * 2
-                bottomPadding: Theme.u * 2
-                spacing: Theme.u
-                Repeater {
-                    model: DeskMenu.quick
-                    Item {
-                        id: qa
-                        required property string modelData
-                        readonly property var e: DeskMenu.entry(modelData)
-                        width: Math.round(Theme.u * 30 * root.k)
-                        height: qaCol.implicitHeight + Theme.u * 4
-                        PxBox {
-                            anchors.fill: parent
-                            visible: qm.containsMouse && root.skin !== "y2k"
-                            sunken: qm.pressed
-                            color: Theme.mix(Theme.face, Theme.accent, 0.18)
-                        }
-                        Rectangle {
-                            anchors.fill: parent
-                            visible: qm.containsMouse && root.skin === "y2k"
-                            radius: Theme.u * 5
-                            color: Qt.alpha(Theme.accent, qm.pressed ? 0.45 : 0.3)
-                            border.width: Math.max(1, Theme.u / 2)
-                            border.color: Qt.alpha("#ffffff", 0.55)
-                        }
-                        Column {
-                            id: qaCol
-                            anchors.centerIn: parent
-                            spacing: Theme.u
-                            Item {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: Theme.u * 12 * root.k
-                                height: width
-                                PxIcon {
-                                    anchors.centerIn: parent
-                                    name: qa.e ? qa.e.icon : "heart"
-                                    pixel: root.k > 1.1 ? Theme.u * 2 : Theme.u
-                                }
-                            }
-                            PxText {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: qa.width - Theme.u * 2
-                                horizontalAlignment: Text.AlignHCenter
-                                elide: Text.ElideRight
-                                text: qa.e ? (qa.e.short || qa.e.label) : ""
-                                kind: "tiny"
-                            }
-                        }
-                        MouseArea {
-                            id: qm
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onEntered: sub.hide()
-                            onClicked: {
-                                const e = qa.e;
-                                if (e && e.flyout)
-                                    sub.openFor(qa, root.listFor(qa.modelData));
-                                else
-                                    root.run(() => DeskMenu.run(qa.modelData, root.screenName));
-                            }
-                        }
-                    }
-                }
-            }
-            PxMenuItem {
-                visible: DeskMenu.quick.length > 0 && DeskMenu.items.length > 0 && !root.own
-                height: visible ? implicitHeight : 0
-                separator: true
-                skin: root.skin
-            }
-
-            // ---- a widget's menu: its name, then its entries ----
-            PxText {
-                visible: root.own
-                x: Theme.u * 4
-                topPadding: Theme.u * 2
-                bottomPadding: Theme.u
-                width: col.width - Theme.u * 8
-                elide: Text.ElideRight
-                kind: "tiny"
-                dim: true
-                text: {
-                    if (root.listTitle)
-                        return root.listTitle;
-                    const w = DesktopWidgets.byUid(root.widgetUid);
-                    const info = w ? DesktopWidgets.typeInfo(w.type) : null;
-                    return info ? DesktopWidgets.titleOf(info) + " · " + info.label : "";
-                }
-            }
+    header: [
+        // Y2K gloss: a little title in the chrome
+        PxText {
+            visible: root.look === "y2k" && !root.own
+            anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+            topPadding: Theme.u * 4
+            kind: "tiny"
+            font.bold: true
+            color: Theme.text
+            style: Text.Outline
+            styleColor: Qt.alpha(Theme.accent, 0.6)
+            text: "✧ angelOS ✧"
+        },
+        // quick actions (Windows 11 puts cut/copy/paste here; we put the everyday stuff), signed
+        Row {
+            id: quick
+            readonly property var t: MenuLook.tokens(root.look)
+            visible: DeskMenu.quick.length > 0 && !root.own
+            anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+            topPadding: Theme.u * 2
+            bottomPadding: Theme.u * 2
+            spacing: Theme.u
             Repeater {
-                model: root.widgetList
-                PxMenuItem {
-                    id: wItem
-                    required property var modelData
-                    readonly property bool fly: !!modelData.flyout
-                    separator: !!modelData.separator
-                    skin: root.skin
-                    text: modelData.label || ""
-                    icon: Config.desktop.menuIcons !== false ? (modelData.icon || "") : ""
-                    submenu: fly
-                    checkable: !!modelData.checkable
-                    checked: modelData.checked ? modelData.checked() : false
-                    onHoveredChanged: {
-                        if (!hovered)
-                            return;
-                        if (fly)
-                            root.hoverSub(wItem, modelData.flyout);
-                        else
-                            sub.hide();
-                    }
-                    onTriggered: {
-                        if (fly) {
-                            sub.openFor(wItem, modelData.flyout);
-                        } else if (modelData.keepOpen) {
-                            modelData.run();
-                        } else {
-                            const fn = modelData.run;
-                            root.run(fn);
-                        }
-                    }
-                }
-            }
-            Repeater {
-                model: root.own ? [] : DeskMenu.items
-                PxMenuItem {
-                    id: entryItem
+                model: DeskMenu.quick
+                Item {
+                    id: qa
                     required property string modelData
                     readonly property var e: DeskMenu.entry(modelData)
-                    readonly property bool fly: !!(e && e.flyout)
-                    visible: modelData !== "more" || root.moreItems.length > 0 || Plugins.menuComponents.length > 0
-                    height: visible ? implicitHeight : 0
-                    separator: modelData === "sep"
-                    skin: root.skin
-                    text: e ? e.label : ""
-                    icon: Config.desktop.menuIcons !== false && e ? e.icon : ""
-                    submenu: fly
-                    Component.onCompleted: if (fly)
-                        root.subAnchors[modelData] = entryItem
-                    onHoveredChanged: {
-                        if (!hovered)
-                            return;
-                        if (fly)
-                            root.hoverSub(entryItem, root.listFor(modelData));
-                        else
-                            sub.hide();
+                    width: Math.round(Theme.u * 30 * root.k)
+                    height: qaCol.implicitHeight + Theme.u * 4
+                    // the hover in the menu's look: a raised tile (classic), the gloss's bubble,
+                    // a flat tile in the row highlight's colour (save, sticker)
+                    PxBox {
+                        anchors.fill: parent
+                        visible: qm.containsMouse && root.look !== "y2k" && quick.t.tileBevel
+                        sunken: qm.pressed
+                        hell: quick.t.hellBox
+                        color: quick.t.tileBg
                     }
-                    onTriggered: {
-                        if (fly)
-                            sub.openFor(entryItem, root.listFor(modelData));
-                        else
-                            root.run(() => DeskMenu.run(modelData, root.screenName));
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: qm.containsMouse && root.look !== "y2k" && !quick.t.tileBevel
+                        color: quick.t.tileBg
+                        border.width: Theme.u
+                        border.color: quick.t.tileEdge
+                    }
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: qm.containsMouse && root.look === "y2k"
+                        radius: Theme.u * 5
+                        color: Qt.alpha(Theme.accent, qm.pressed ? 0.45 : 0.3)
+                        border.width: Math.max(1, Theme.u / 2)
+                        border.color: Qt.alpha("#ffffff", 0.55)
+                    }
+                    Column {
+                        id: qaCol
+                        anchors.centerIn: parent
+                        spacing: Theme.u
+                        Item {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: Theme.u * 12 * root.k
+                            height: width
+                            PxIcon {
+                                anchors.centerIn: parent
+                                name: qa.e ? qa.e.icon : "heart"
+                                pixel: root.k > 1.1 ? Theme.u * 2 : Theme.u
+                                ink: qm.containsMouse && !quick.t.tileBevel ? quick.t.litInk : quick.t.ink
+                            }
+                        }
+                        PxText {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: qa.width - Theme.u * 2
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            text: qa.e ? (qa.e.short || qa.e.label) : ""
+                            kind: "tiny"
+                            color: qm.containsMouse && !quick.t.tileBevel ? quick.t.litText : quick.t.text
+                            style: quick.t.outlineText !== "transparent" ? Text.Outline : Text.Normal
+                            styleColor: quick.t.outlineText
+                        }
+                    }
+                    MouseArea {
+                        id: qm
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onEntered: root.collapse(1)
+                        onClicked: {
+                            const e = qa.e;
+                            if (e && e.flyout)
+                                root.cascade(0, qa, root.listFor(qa.modelData), false);
+                            else
+                                root.run(() => DeskMenu.run(qa.modelData, root.screenName));
+                        }
                     }
                 }
             }
-            Repeater {
-                // QML menu components from plugins can't live in a flyout list; they stay inline
-                model: root.own ? [] : Plugins.menuComponents
-                Loader {
-                    required property var modelData
-                    width: col.width
-                    Component.onCompleted: setSource(Plugins.url(modelData, modelData.menuComponent), {
-                        "plugin": Plugins.context(modelData),
-                        "menu": root
-                    })
-                }
+        },
+        PxMenuItem {
+            visible: DeskMenu.quick.length > 0 && DeskMenu.items.length > 0 && !root.own
+            separator: true
+        }
+    ]
+    footer: [
+        Repeater {
+            // QML menu components from plugins can't live in a flyout list; they stay inline
+            model: root.own ? [] : Plugins.menuComponents
+            Loader {
+                required property var modelData
+                width: parent ? parent.width : 0
+                Component.onCompleted: setSource(Plugins.url(modelData, modelData.menuComponent), {
+                    "plugin": Plugins.context(modelData),
+                    "menu": root
+                })
             }
         }
-    }
-
-    RightClickGuard {}
+    ]
 }

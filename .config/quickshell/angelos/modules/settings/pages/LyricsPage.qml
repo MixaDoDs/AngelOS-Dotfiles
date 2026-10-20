@@ -6,7 +6,7 @@ import qs.widgets
 
 PxPage {
     heading: I18n.t("Лирика", "Lyrics")
-    subtitle: I18n.t("Текущая строка песни посередине панели или в Нимбе (выбирается для каждого экрана). Трек берётся из любого MPRIS-плеера (Spotify, браузер с YouTube, mpv…), текст ищется по названию песни в нескольких источниках. Клик по строке открывает эту страницу, правый клик ставит трек на паузу.", "The current lyric line appears in the bar or in the Halo (chosen per display). Any MPRIS player works (Spotify, a browser with YouTube, mpv…); lyrics are searched by the song title in several sources. Click the line to open this page; right-click pauses the track.")
+    subtitle: I18n.t("Текущая строка песни посередине панели или в Нимбе (выбирается для каждого экрана). Трек берётся из любого MPRIS-плеера (Spotify, браузер с YouTube, mpv…), текст ищется по названию песни в нескольких источниках. Клик по строке открывает эту страницу, правый — меню песни, средний ставит трек на паузу.", "The current lyric line appears in the bar or in the Halo (chosen per display). Any MPRIS player works (Spotify, a browser with YouTube, mpv…); lyrics are searched by the song title in several sources. Click the line to open this page; right-click for the song's menu; middle-click pauses the track.")
     id: page
 
     PxGroup {

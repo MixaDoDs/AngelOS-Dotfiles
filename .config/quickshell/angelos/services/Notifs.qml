@@ -111,6 +111,39 @@ Singleton {
         if (n && n.tracked)
             n.dismiss();
     }
+    // a card's right-click menu (NotificationCard, MacBanner): closing first, the middle
+    // button's quick action
+    function menuFor(n) {
+        return [
+            {
+                "label": I18n.t("Закрыть", "Close"),
+                "icon": "close",
+                "run": () => close(n)
+            },
+            {
+                "label": I18n.t("Открыть", "Open"),
+                "icon": "window",
+                "enabled": canOpen(n),
+                "run": () => open(n)
+            },
+            {
+                "separator": true
+            },
+            {
+                "label": I18n.t("Не беспокоить", "Do not disturb"),
+                "icon": "bellOff",
+                "checkable": true,
+                "checked": () => Config.notifications.dnd,
+                "keepOpen": true,
+                "run": () => Config.notifications.dnd = !Config.notifications.dnd
+            },
+            {
+                "label": I18n.t("Настройки уведомлений…", "Notification settings…"),
+                "icon": "gear",
+                "run": () => Shell.openSettings("notifications")
+            }
+        ];
+    }
     function clearHistory() {
         history = [];
         save();

@@ -92,24 +92,101 @@ Singleton {
             "run": () => Shell.openSettings("y2k")
         }
     ]
-    // reboot / power off / log out go through the session menu (it asks, plays the goodbye)
-    readonly property var power: [
-        {
-            "label": I18n.t("Заблокировать", "Lock"),
-            "icon": "lock",
-            "run": () => Shell.lock()
-        },
-        {
-            "label": I18n.t("Сон", "Sleep"),
-            "icon": "moon",
-            "run": () => Shell.exec(["systemctl", "suspend"])
-        },
-        {
-            "label": I18n.t("Выход, перезагрузка, выключение…", "Log out, restart, power off…"),
-            "icon": "power",
-            "run": () => Shell.sessionOpen = true
+    // ---- Start's buttons: the row along the bottom of a look (modules/bar/StartButtonRow) and
+    // the power entries of the list looks (classic, XMB, Spotlight) — which and in what order is
+    // Config.bar.startButtons (Settings → Start buttons: modules/settings/StartButtonsEditor).
+    // id → {icon, label (short: the tooltip, the shelf), row (the longer label in a list), run}.
+    // `run` does it at once: the caller closes Start first (sleep closes every menu itself).
+    readonly property var buttonIds: ["downloads", "lock", "sleep", "power", "reboot", "logout", "settings", "home", "terminal", "updates", "idle"]
+    readonly property var buttons: ({
+            "downloads": {
+                "icon": "download",
+                "label": I18n.t("Загрузки", "Downloads"),
+                "run": () => Shell.openPath(folder("Downloads"))
+            },
+            "lock": {
+                "icon": "lock",
+                "label": I18n.t("Замок", "Lock"),
+                "row": I18n.t("Заблокировать", "Lock"),
+                "run": () => Shell.sessionAction("lock")
+            },
+            "sleep": {
+                "icon": "moon",
+                "label": I18n.t("Сон", "Sleep"),
+                "run": () => Shell.suspend()
+            },
+            // the session menu: it asks, plays the goodbye
+            "power": {
+                "icon": "power",
+                "label": I18n.t("Питание", "Power"),
+                "row": I18n.t("Выход, перезагрузка, выключение…", "Log out, restart, power off…"),
+                "run": () => Shell.sessionOpen = true
+            },
+            "reboot": {
+                "icon": "refresh",
+                "label": I18n.t("Перезагрузка", "Restart"),
+                "run": () => Shell.sessionAction("reboot")
+            },
+            "logout": {
+                "icon": "logout",
+                "label": I18n.t("Выход", "Log out"),
+                "run": () => Shell.sessionAction("logout")
+            },
+            "settings": {
+                "icon": "gear",
+                "label": I18n.t("Настройки", "Settings"),
+                "run": () => Shell.openSettings("")
+            },
+            "home": {
+                "icon": "folder",
+                "label": I18n.t("Папка", "Folder"),
+                "row": I18n.t("Домашняя папка", "Home folder"),
+                "run": () => Shell.openPath(folder(""))
+            },
+            "terminal": {
+                "icon": "terminal",
+                "label": I18n.t("Терминал", "Terminal"),
+                "run": () => Shell.terminal()
+            },
+            "updates": {
+                "icon": "download",
+                "label": Updates.available ? I18n.t("Обновление готово ♡", "Update available ♡") : I18n.t("Обновление", "Update"),
+                "accent": Updates.available,
+                "run": () => Shell.openSettings("updates")
+            },
+            "idle": {
+                "icon": "sparkle",
+                "label": I18n.t("Заставка", "Idle screen"),
+                "run": () => Shell.sessionAction("idle")
+            }
+        })
+    // ids → [{id, icon, label, row, accent, run}], unknown and repeated ids skipped
+    function buttonsFor(ids) {
+        const out = [];
+        const list = ids || [];          // (the settings file's list arrives as a Qt sequence)
+        for (let i = 0; i < list.length; i++) {
+            const id = String(list[i]);
+            const b = buttonIds.includes(id) ? buttons[id] : null;
+            if (b && !out.some(o => o.id === id))
+                out.push(Object.assign({
+                    "id": id,
+                    "row": b.label,
+                    "accent": false
+                }, b));
         }
-    ]
+        return out;
+    }
+    readonly property var chosen: buttonsFor(Config.bar.startButtons)
+    // as rows {label, icon, run} for the list looks
+    readonly property var power: rowsFor([])
+    // the same without the ids a look already shows elsewhere (Spotlight's own actions, …)
+    function rowsFor(skip) {
+        return chosen.filter(b => !skip.includes(b.id)).map(b => ({
+                    "label": b.row,
+                    "icon": b.icon,
+                    "run": b.run
+                }));
+    }
 
     // ---- the apps in rough groups (XMB columns) ----
     function groupOf(app) {

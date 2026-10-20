@@ -8,7 +8,7 @@ import qs.modules.settings
 PxPage {
     id: page
     // the Start looks that fill the screen (no position, no size)
-    readonly property bool startFull: ["fullscreen", "xmb", "wii"].includes(Config.bar.startStyle)
+    readonly property bool startFull: ["fullscreen", "xmb"].includes(Config.bar.startStyle)
     heading: I18n.t("Панель и «Пуск»", "Bar and Start")
     subtitle: I18n.t("Шесть видов: таскбар как в Win98, полоса сверху, остров, док, капсулы и Windose. Всё остальное — по ссылкам ниже.", "Six styles: a Win98 taskbar, a strip on top, an island, a dock, capsules and Windose. Everything else is behind the links below.")
 
@@ -567,6 +567,24 @@ PxPage {
         icon: "pill"
         width: parent.width
         SettingRow {
+            label: I18n.t("Кнопка", "Button")
+            hint: Config.bar.startButtonStyle === "capsule" ? I18n.t("капсула «пуск», как в Windows XP, в цветах темы; на боковой панели — только значок", "A \"start\" capsule like Windows XP, in the theme's colours; on a side bar just the emblem") : I18n.t("кнопка с логотипом angelOS", "The button with the angelOS logo")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Как сейчас", "Classic"),
+                        "value": "classic"
+                    },
+                    {
+                        "label": I18n.t("Капсула", "Capsule"),
+                        "value": "capsule"
+                    }
+                ]
+                currentValue: Config.bar.startButtonStyle || "classic"
+                onActivated: v => Config.bar.startButtonStyle = v
+            }
+        }
+        SettingRow {
             id: startStyleRow
             readonly property var styles: [
                 {
@@ -577,7 +595,7 @@ PxPage {
                 {
                     "label": "Windows 11",
                     "value": "win11",
-                    "hint": I18n.t("по центру: поиск, закреплённые (ПКМ — закрепить), все приложения, питание", "Centred: search, pinned apps (right-click pins), all apps, power")
+                    "hint": I18n.t("по центру: поиск, закреплённые (средняя кнопка — закрепить), все приложения, питание", "Centred: search, pinned apps (middle-click pins), all apps, power")
                 },
                 {
                     "label": I18n.t("Как iPhone", "iPhone-like"),
@@ -588,16 +606,6 @@ PxPage {
                     "label": "PSP XMB",
                     "value": "xmb",
                     "hint": I18n.t("на весь экран, как PSP: разделы в строку, пункты столбиком, волна на фоне; ←→ ↑↓, печатай — поиск", "Full screen like a PSP: sections in a row, items in a column, the wave behind; ←→ ↑↓, type to search")
-                },
-                {
-                    "label": "Windose ♡",
-                    "value": "windose",
-                    "hint": I18n.t("розовое окно NEEDY GIRL OVERDOSE у кнопки: закреплённые наклейками, все программы с сердечками", "A pink NEEDY GIRL OVERDOSE window by the button: pinned apps as stickers, every program with hearts")
-                },
-                {
-                    "label": I18n.t("Wii «Каналы»", "Wii channels"),
-                    "value": "wii",
-                    "hint": I18n.t("на весь экран, как Wii: каналы 4×3, часы на дуге внизу, кнопки настроек и питания", "Full screen like a Wii: 4×3 channels, the clock on the curved band, settings and power buttons")
                 },
                 {
                     "label": "Spotlight",

@@ -8,8 +8,8 @@ import qs.widgets
 import qs.modules.bar
 
 // Settings → Bar → "Start: avatar and fine-tuning". The avatar and the name every Start
-// look shows (StartUser), then the deep settings of one look at a time (services/
-// StartPrefs) — the current look unless another is picked here: size and grid,
+// look shows (StartUser; the buttons along the bottom are on Settings → Menus), then the
+// deep settings of one look at a time (services/StartPrefs) — the current look unless another is picked here: size and grid,
 // sections, look and animation, behaviour. Only what that look uses is offered.
 Column {
     id: root
@@ -21,23 +21,20 @@ Column {
     readonly property var styleNames: ({
             "classic": I18n.t("Классика", "Classic"),
             "win11": "Windows 11",
-            "windose": "Windose ♡",
             "fullscreen": I18n.t("Как iPhone", "iPhone-like"),
             "xmb": "PSP XMB",
-            "wii": "Wii",
             "spotlight": "Spotlight"
         })
     // names and hints of the keys (StartPrefs.keys)
     readonly property var names: ({
             "width": [I18n.t("Ширина", "Width"), I18n.t("в % от обычной", "% of the usual")],
-            "height": [I18n.t("Высота", "Height"), I18n.t("в % от обычной", "% of the usual")],
             "columns": [I18n.t("Колонок", "Columns"), I18n.t("0 — сколько влезет", "0: as many as fit")],
             "rows": [I18n.t("Рядов", "Rows"), I18n.t("0 — сколько влезет", "0: as many as fit")],
             "iconScale": [I18n.t("Значки", "Icons"), I18n.t("размер иконок приложений", "app icon size")],
             "labels": [I18n.t("Подписи", "Labels"), I18n.t("названия под значками", "names under the icons")],
             "scale": [I18n.t("Масштаб всего меню", "Scale of the whole menu"), ""],
             "user": [I18n.t("Аватарка и имя", "Avatar and name"), ""],
-            "pinned": [I18n.t("Закреплённые", "Pinned"), I18n.t("ПКМ по приложению — закрепить", "right-click an app to pin it")],
+            "pinned": [I18n.t("Закреплённые", "Pinned"), I18n.t("средняя кнопка по приложению — закрепить", "middle-click an app to pin it")],
             "recommended": [I18n.t("«Рекомендуем»", "“Recommended”"), ""],
             "power": [I18n.t("Блокировка и питание", "Lock and power"), ""],
             "search": [I18n.t("Поиск", "Search"), ""],

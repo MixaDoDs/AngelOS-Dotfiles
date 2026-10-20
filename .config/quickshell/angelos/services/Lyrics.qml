@@ -32,6 +32,31 @@ Singleton {
         }
         return best;
     }
+    // the song's right-click menu (the bar's song, the lyric line): pause / play first, the
+    // middle button's quick action
+    function playerMenu() {
+        const p = player, on = !!p && p.isPlaying;
+        return [
+            {
+                "label": on ? I18n.t("Пауза", "Pause") : I18n.t("Играть", "Play"),
+                "icon": on ? "pause" : "play",
+                "enabled": !!p && p.canTogglePlaying,
+                "run": () => p.togglePlaying()
+            },
+            {
+                "label": I18n.t("Следующий", "Next"),
+                "icon": "next",
+                "enabled": !!p && p.canGoNext,
+                "run": () => p.next()
+            },
+            {
+                "label": I18n.t("Предыдущий", "Previous"),
+                "icon": "prev",
+                "enabled": !!p && p.canGoPrevious,
+                "run": () => p.previous()
+            }
+        ];
+    }
     // the one followed, kept outside the binding (a plain object's field notifies nobody)
     readonly property var _followed: ({
             "player": null

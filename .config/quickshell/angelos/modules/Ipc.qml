@@ -474,9 +474,9 @@ IpcHandler {
         Config.workspaces.heartAnim = style;
         return "ok";
     }
-    // classic | win11 | fullscreen | xmb | windose | wii | spotlight
+    // classic | win11 | fullscreen | xmb | spotlight
     function startStyle(style: string): string {
-        const styles = ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight"];
+        const styles = StartPrefs.styles;
         if (!styles.includes(style))
             return "styles: " + styles.join(", ");
         Config.bar.startStyle = style;

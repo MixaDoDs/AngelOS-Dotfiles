@@ -378,8 +378,6 @@ Scope {
                     "win11": stWin11,
                     "fullscreen": stFull,
                     "xmb": stXmb,
-                    "windose": stWindose,
-                    "wii": stWii,
                     "spotlight": stSpot
                 })[style] || null
         }
@@ -401,17 +399,6 @@ Scope {
         Component {
             id: stXmb
             StartXmb {
-                width: 1100
-                height: 780
-            }
-        }
-        Component {
-            id: stWindose
-            StartWindose {}
-        }
-        Component {
-            id: stWii
-            StartWii {
                 width: 1100
                 height: 780
             }
@@ -455,7 +442,7 @@ Scope {
     // variants worth playing per scene ("" = the scene's default)
     readonly property var variants: ({
             "WallpaperFx": Wallpapers.transitions.map(t => t.id),
-            "StartMenu": ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight"],
+            "StartMenu": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
             "BarStyle": ["taskbar", "top", "island", "dock", "capsules", "windose"],
             "DeskSwitch": WorkspaceAnim.styles.map(s => s.id),
             "OpenFx": WindowAnim.openStyles.map(s => s.id),
@@ -1338,7 +1325,7 @@ Scope {
             report("toggle-wrap", bad.length === 0, bad.length ? "overflow/one line: " + bad.join(", ") : "long labels wrap in " + Math.round(w.direct.width) + " px, short and free stay " + Math.round(w.short.height) + " px tall");
             wrapStage.active = false;
             console.log("TEST-PAGE start-styles");
-            startStyles = ["classic", "win11", "fullscreen", "xmb", "windose", "wii", "spotlight"];
+            startStyles = ["classic", "win11", "fullscreen", "xmb", "spotlight"];
             startSeen = [];
             phase = "start";
             return;
@@ -2369,14 +2356,14 @@ Scope {
             Achievements.note("act:joke.more");
             Achievements.check();
             const jokes = !!nine && nine.n === 9 && nine.of === 10 && Achievements.has("jokes") && Heaven.has("look.chibi");
-            // kinds: seven different Start looks
-            for (const st of ["classic", "win11", "fullscreen", "xmb", "windose", "wii"])
+            // kinds: five different Start looks
+            for (const st of ["classic", "win11", "fullscreen", "xmb"])
                 Achievements.note("start.open", st);
             Achievements.check();
-            const six = !Achievements.has("all-starts");
+            const four = !Achievements.has("all-starts");
             Achievements.note("start.open", "spotlight");
             Achievements.check();
-            const seven = six && Achievements.has("all-starts");
+            const five = four && Achievements.has("all-starts");
             // the demon's pranks: muted
             const w = Achievements.count("widget.add");
             Achievements.mute++;
@@ -2464,7 +2451,7 @@ Scope {
             Achievements.resetAll();
             const allGone = Achievements.earned === 0 && !Heaven.has("item.diary-key") && Object.keys(Diary.readMarks).length === 0;
             report("ach-hell-test", hellCard && askedHell && diaryCard && sim && lockGot && countsGone && allGone, "hell's card for «fall» " + hellCard + ", asked " + askedHell + "; a diary card " + diaryCard + "; simulate past the mute " + sim + " → «lock» " + lockGot + "; reset counts " + countsGone + ", reset all " + allGone);
-            report("ach-earn", earned && harp && harpGone && jokes && seven && muted && condBad.length === 0, "Settings → «settings» + mini " + earned + "; harp granted " + harp + ", taken back " + harpGone + "; 9/10 jokes then «jokes» + chibi " + jokes + "; seven Start looks " + seven + "; pranks muted " + muted + (condBad.length ? "; bad conditions: " + condBad.join(", ") : ""));
+            report("ach-earn", earned && harp && harpGone && jokes && five && muted && condBad.length === 0, "Settings → «settings» + mini " + earned + "; harp granted " + harp + ", taken back " + harpGone + "; 9/10 jokes then «jokes» + chibi " + jokes + "; five Start looks " + five + "; pranks muted " + muted + (condBad.length ? "; bad conditions: " + condBad.join(", ") : ""));
             Story.reset();
             Config.desktop.menuStyle = keepStyle;
             Config.y2k.angelLook = keepLook;

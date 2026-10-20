@@ -6,10 +6,10 @@ import Quickshell.Io
 import qs.config
 
 // Deep settings of every Start look (Settings → Bar → Start → "Fine-tune"), kept apart
-// per look in Config.bar.startPrefs: {"win11": {"columns": 8, …}, "wii": {…}}. A look
+// per look in Config.bar.startPrefs: {"win11": {"columns": 8, …}, "xmb": {…}}. A look
 // reads its resolved set with StartPrefs.of("win11") — every key, the user's value or
 // the default — and binds to it; keys a look doesn't use are not offered for it.
-//   size & grid   width, height, columns, rows, iconScale, labels, scale
+//   size & grid   width, columns, rows, iconScale, labels, scale
 //   sections      user (avatar + name), pinned, recommended, power, search, clock, extras
 //   look          opacity, accent, shadow
 //   animation     anim, animSpeed, animKind, sound
@@ -20,8 +20,8 @@ import qs.config
 Singleton {
     id: root
 
-    readonly property var styles: ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"]
-    readonly property var popups: ["classic", "win11", "windose", "spotlight"]   // by the button; the rest fill the screen
+    readonly property var styles: ["classic", "win11", "fullscreen", "xmb", "spotlight"]
+    readonly property var popups: ["classic", "win11", "spotlight"]   // by the button; the rest fill the screen
     readonly property var all: styles
 
     // every key: default, range or choices, the looks that use it, and where it is shown
@@ -32,16 +32,7 @@ Singleton {
                 "max": 180,
                 "step": 5,
                 "suffix": "%",
-                "styles": ["classic", "win11", "windose", "spotlight"],
-                "group": "size"
-            },
-            "height": {
-                "def": 100,
-                "min": 70,
-                "max": 160,
-                "step": 5,
-                "suffix": "%",
-                "styles": ["windose"],
+                "styles": ["classic", "win11", "spotlight"],
                 "group": "size"
             },
             "columns": {
@@ -50,7 +41,7 @@ Singleton {
                 "max": 10,
                 "step": 1,
                 "auto": true,
-                "styles": ["win11", "windose", "fullscreen", "wii"],
+                "styles": ["win11", "fullscreen"],
                 "group": "size"
             },
             "rows": {
@@ -59,7 +50,7 @@ Singleton {
                 "max": 6,
                 "step": 1,
                 "auto": true,
-                "styles": ["win11", "fullscreen", "wii"],
+                "styles": ["win11", "fullscreen"],
                 "group": "size"
             },
             "iconScale": {
@@ -68,31 +59,33 @@ Singleton {
                 "max": 160,
                 "step": 10,
                 "suffix": "%",
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "size"
             },
             "labels": {
                 "def": true,
-                "styles": ["win11", "windose", "fullscreen", "xmb", "wii"],
+                "styles": ["win11", "fullscreen", "xmb"],
                 "group": "size"
             },
+            // the whole menu bigger or smaller, laid out at that size on whole pixels (unit/iu below),
+            // never an Item scale
             "scale": {
                 "def": 100,
                 "min": 80,
                 "max": 140,
                 "step": 5,
                 "suffix": "%",
-                "styles": ["classic", "win11", "windose", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "size"
             },
             "user": {
                 "def": true,
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "sections"
             },
             "pinned": {
                 "def": true,
-                "styles": ["win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["win11", "fullscreen", "xmb", "spotlight"],
                 "group": "sections"
             },
             "recommended": {
@@ -102,17 +95,17 @@ Singleton {
             },
             "power": {
                 "def": true,
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "sections"
             },
             "search": {
                 "def": true,
-                "styles": ["win11", "windose", "fullscreen", "xmb", "wii"],
+                "styles": ["win11", "fullscreen", "xmb"],
                 "group": "sections"
             },
             "clock": {
                 "def": true,
-                "styles": ["fullscreen", "xmb", "wii"],
+                "styles": ["fullscreen", "xmb"],
                 "group": "sections"
             },
             "extras": {
@@ -127,12 +120,12 @@ Singleton {
                 "step": 5,
                 "auto": true,
                 "suffix": "%",
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "accent": {
                 "def": "",
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "shadow": {
@@ -142,7 +135,7 @@ Singleton {
             },
             "anim": {
                 "def": true,
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "animSpeed": {
@@ -151,45 +144,45 @@ Singleton {
                 "max": 200,
                 "step": 10,
                 "suffix": "%",
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "animKind": {
                 "def": "auto",
                 "choices": ["auto", "fade", "slide", "zoom"],
-                "styles": ["classic", "win11", "windose", "spotlight"],
+                "styles": ["classic", "win11", "spotlight"],
                 "group": "look"
             },
             "sound": {
                 "def": false,
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "sort": {
                 "def": "az",
                 "choices": ["az", "frequent"],
-                "styles": ["win11", "windose", "fullscreen", "xmb", "wii"],
+                "styles": ["win11", "fullscreen", "xmb"],
                 "group": "behavior"
             },
             "openOn": {
                 "def": "focused",
                 "choices": ["focused", "pointer", "primary"],
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "behavior"
             },
             "withBar": {
                 "def": false,
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "behavior"
             },
             "clickOutside": {
                 "def": true,
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii", "spotlight"],
+                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
                 "group": "behavior"
             },
             "typeSearch": {
                 "def": true,
-                "styles": ["classic", "win11", "windose", "fullscreen", "xmb", "wii"],
+                "styles": ["classic", "win11", "fullscreen", "xmb"],
                 "group": "behavior"
             }
         })
@@ -214,13 +207,21 @@ Singleton {
             o[key] = v;
         }
         o.size = Math.max(0.7, Math.min(1.8, o.width / 100));
-        o.tall = Math.max(0.7, Math.min(1.6, o.height / 100));
         o.icons = Math.max(0.6, Math.min(1.6, o.iconScale / 100));
         o.zoom = Math.max(0.8, Math.min(1.4, o.scale / 100));
+        // the look's size unit: one art pixel grown with the text (Theme.fit) and the look's
+        // Scale; a look rounds every length through px(o, n), so each edge lands on a whole
+        // pixel. `iu`: the art pixel at that Scale, a whole number, for pixel icons (crisp)
+        o.unit = Theme.u * Theme.textGrowth * o.zoom;
+        o.iu = Math.max(1, Math.round(Theme.u * o.zoom));
         o.alpha = o.opacity > 0 ? o.opacity / 100 : Theme.panelAlpha;
         o.accentColor = o.accent ? Qt.color(o.accent) : Theme.accent;
         o.speed = Math.max(0.5, Math.min(2, o.animSpeed / 100));
         return o;
+    }
+    // n units of a look's resolved set (of()), in whole pixels
+    function px(o, n) {
+        return Math.round(o.unit * n);
     }
     function set(style, key, value) {
         const all = Object.assign({}, stored);

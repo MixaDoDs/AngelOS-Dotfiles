@@ -545,4 +545,78 @@ Singleton {
     function openPath(path) {
         exec(["xdg-open", Config.expand(path)]);
     }
+
+    // ---- the session's actions: one place for the session menu, Start's buttons (services/
+    // StartItems) and the Golden Gate menus. lock | idle | suspend | logout | reboot | poweroff ----
+    function sessionAction(id) {
+        if (id === "logout" || id === "reboot" || id === "poweroff") {
+            // let the Y2K goodbye chime play before the session goes away
+            if (Sounds.enabled("shutdown")) {
+                Sounds.play("shutdown");
+                bye.action = id;
+                bye.restart();
+                return;
+            }
+        }
+        sessionNow(id);
+    }
+    property Timer bye: Timer {
+        property string action
+        interval: 1300
+        onTriggered: root.sessionNow(action)
+    }
+    function sessionNow(id) {
+        switch (id) {
+        case "lock":
+            lock();
+            break;
+        case "idle":
+            Idle.start();
+            break;
+        case "suspend":
+            suspend();
+            break;
+        case "logout":
+            Niri.quit();
+            break;
+        case "reboot":
+            exec(["systemctl", "reboot"]);
+            break;
+        case "poweroff":
+            exec(["systemctl", "poweroff"]);
+            break;
+        }
+    }
+
+    // Sleep at once, no question (like Windows): the menus close, every screen goes out like a
+    // CRT for ~0.3 s (modules/session/SleepFade), then systemd suspends. The cover goes on
+    // waking (logind via Lock: resumed) or a few seconds after anyway — a failed suspend never
+    // leaves a black screen; a click on it takes it away too. The dev stand never sleeps the
+    // machine: it plays the fade and only logs.
+    property bool sleepFx: false
+    function suspend() {
+        if (sleepFx)
+            return;
+        closeTransient("");
+        sleepFx = true;
+        sleepGo.restart();
+    }
+    property Timer sleepGo: Timer {
+        interval: Motion.calm ? 80 : 340
+        onTriggered: {
+            if (root.dev)
+                console.log("[dev] suspend skipped");
+            else
+                root.exec(["systemctl", "suspend"]);
+            root.sleepOff.restart();
+        }
+    }
+    property Timer sleepOff: Timer {
+        interval: 4000
+        onTriggered: root.sleepFx = false
+    }
+    onResumed: {
+        sleepOff.stop();
+        sleepFx = false;
+    }
 }

@@ -2,7 +2,7 @@ import QtQuick
 import qs.config
 import qs.widgets
 
-// Start menu: style (classic | win11 | fullscreen | xmb | windose | wii | spotlight) or position
+// Start menu: style (classic | win11 | fullscreen | xmb | spotlight) or position
 // (auto | left | center | right, for the current style). The button is clicked,
 // the menu opens where it will on the real screen.
 Scene {
@@ -101,52 +101,6 @@ Scene {
         }
     }
 
-    // Wii: light stripes, 4 × 3 rounded channels, the curved band
-    Rectangle {
-        visible: root.style === "wii" && root.shown
-        anchors.fill: parent
-        clip: true
-        opacity: root.open
-        color: Theme.dark ? "#1f2027" : "#eef0f4"
-        Grid {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: parent.height * 0.1
-            columns: 4
-            spacing: Theme.u * 2
-            Repeater {
-                model: 12
-                Rectangle {
-                    required property int index
-                    width: root.width * 0.17
-                    height: width / 1.6
-                    radius: height * 0.2
-                    color: index < 7 ? (Theme.dark ? "#2d2f38" : "#ffffff") : (Theme.dark ? "#25262e" : "#e2e5ea")
-                    border.width: Math.max(1, Theme.u / 2)
-                    border.color: index === 0 ? Theme.accent : (Theme.dark ? "#3c3f4a" : "#cfd4dc")
-                    Rectangle {
-                        visible: parent.index < 7
-                        anchors.centerIn: parent
-                        width: parent.height * 0.4
-                        height: width
-                        radius: width * 0.25
-                        color: [Theme.accent, Theme.accent2, Theme.accent3, Theme.accent4][parent.index % 4]
-                    }
-                }
-            }
-        }
-        Rectangle {
-            readonly property real r: root.width * 2
-            width: r * 2
-            height: r * 2
-            radius: r
-            x: root.width / 2 - r
-            y: root.height * 0.76
-            color: Theme.dark ? "#2d2f38" : "#ffffff"
-            border.width: Math.max(1, Theme.u)
-            border.color: Qt.alpha(Theme.accent, 0.7)
-        }
-    }
-
     // Spotlight: a pill in the upper third and a few rows under it
     Item {
         visible: root.style === "spotlight" && root.shown
@@ -183,52 +137,6 @@ Scene {
                         width: spotPill.width * (index === 0 ? 0.8 : 0.55)
                         height: Theme.u * 3
                         color: index === 0 ? Theme.accent : Theme.mix(Theme.face, Theme.text, 0.35)
-                    }
-                }
-            }
-        }
-    }
-
-    // Windose: a pink window by the button, stickers and a list with hearts
-    Rectangle {
-        visible: root.style === "windose" && root.shown
-        readonly property real w: root.width * 0.34
-        width: w
-        height: root.height * 0.7 * root.open
-        y: bar.y - height - Theme.u
-        x: root.align === "right" ? root.width - w - Theme.u * 2 : root.align === "center" ? (root.width - w) / 2 : Theme.u * 2
-        clip: true
-        color: Theme.mix(Theme.accent, "#ffb3d9", 0.5)
-        border.width: Math.max(1, Theme.u / 2)
-        border.color: "#4a2a5e"
-        Rectangle {
-            x: Theme.u
-            y: Theme.u
-            width: parent.width - Theme.u * 2
-            height: Theme.u * 5
-            color: Theme.mix(Theme.accent2, "#c7b5ff", 0.5)
-        }
-        Rectangle {
-            x: Theme.u
-            y: Theme.u * 7
-            width: parent.width - Theme.u * 2
-            height: parent.height - Theme.u * 8
-            color: Theme.dark ? "#2b1d33" : "#fff4fb"
-            Grid {
-                x: Theme.u * 3
-                y: Theme.u * 3
-                columns: 4
-                spacing: Theme.u * 2
-                Repeater {
-                    model: 8
-                    Rectangle {
-                        required property int index
-                        width: (parent.parent.width - Theme.u * 12) / 4
-                        height: width
-                        radius: Theme.u * 2
-                        color: "#ffffff"
-                        border.width: Math.max(1, Theme.u / 2)
-                        border.color: Theme.mix(Theme.accent, "#ffb3d9", 0.5)
                     }
                 }
             }

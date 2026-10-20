@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
@@ -65,17 +66,30 @@ Row {
             elide: Text.ElideRight
             color: root.barInk ? Theme.hellText : Theme.text
         }
-        // left: lyrics on/off, right: pause / play
+        // left: lyrics on/off, right: the song's menu, middle: pause / play
         MouseArea {
+            id: titleArea
             anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             cursorShape: Qt.PointingHandCursor
             onClicked: m => {
-                if (m.button === Qt.RightButton)
+                if (m.button === Qt.MiddleButton)
                     root.player.togglePlaying();
-                else
+                else if (m.button === Qt.RightButton) {
+                    songMenu.active = true;
+                    const p = titleArea.mapToItem(null, m.x, m.y);
+                    if (songMenu.item)
+                        songMenu.item.popup(Lyrics.playerMenu(), "", p.x, p.y);
+                } else
                     Lyrics.visibleToggle = !Lyrics.visibleToggle;
             }
+        }
+    }
+    LazyLoader {
+        id: songMenu
+        PxMenu {
+            parentWindow: root.QsWindow.window
+            kind: "panel"
         }
     }
 }

@@ -626,7 +626,8 @@
             "bar/angelos-logo"
           ],
           "links": [
-            "taskbar"
+            "taskbar",
+            "deskmenu"
           ]
         },
         {
@@ -647,12 +648,15 @@
         },
         {
           "id": "deskmenu",
-          "ru": "Меню правой кнопки",
-          "en": "Right-click menu",
+          "ru": "Меню",
+          "en": "Menus",
           "icon": "grid",
-          "hintRu": "вид, быстрые кнопки, свои пункты",
-          "hintEn": "the look, quick buttons, your own entries",
+          "hintRu": "облик всех меню, кнопки «Пуска», меню рабочего стола",
+          "hintEn": "the look of every menu, Start's buttons, the desktop menu",
           "blocks": [
+            "deskmenu/menu-look",
+            "deskmenu/menu-per",
+            "deskmenu/start-buttons",
             "deskmenu/look",
             "deskmenu/quick-buttons"
           ],
@@ -661,6 +665,7 @@
             "deskmenu/your-own-entries"
           ],
           "links": [
+            "start",
             "game:hell"
           ]
         },
@@ -1309,6 +1314,9 @@
   "legacy": {
     "appearance": {
       "page": "theme"
+    },
+    "menus": {
+      "page": "deskmenu"
     },
     "monitor": {
       "page": "display"

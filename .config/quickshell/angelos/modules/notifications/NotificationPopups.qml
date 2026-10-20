@@ -93,6 +93,7 @@ PanelWindow {
                 required property var modelData
                 notification: modelData
                 width: col.width
+                onMenuAsked: (x, y) => cardMenu.popup(Notifs.menuFor(modelData), "", x, y)
             }
         }
         Repeater {
@@ -102,8 +103,16 @@ PanelWindow {
                 required property var modelData
                 notification: modelData
                 width: col.width
+                onMenuAsked: (x, y) => cardMenu.popup(Notifs.menuFor(modelData), "", x, y)
             }
         }
+    }
+
+    // a card's right-click menu (Notifs.menuFor)
+    PxMenu {
+        id: cardMenu
+        parentWindow: win
+        kind: "panel"
     }
 
     RightClickGuard {}

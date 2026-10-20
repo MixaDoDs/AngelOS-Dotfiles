@@ -6,7 +6,6 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
-import qs.modules.background
 
 // The people of your Discord call as little pixel people over the bar of the main screen
 // (Config.discord.crew, services/DiscordVoice): a body of their own colour, their avatar for a
@@ -73,14 +72,15 @@ PanelWindow {
         function onMenuAsked(who, x, y) {
             personMenu.active = true;
             if (personMenu.item)
-                personMenu.item.openList(who.name, stage.itemsFor(who), x, y);
+                personMenu.item.popup(stage.itemsFor(who), who.name, x, y);
         }
     }
     Component.onCompleted: fit()
     LazyLoader {
         id: personMenu
-        DesktopMenu {
+        PxMenu {
             parentWindow: win
+            kind: "desktop"
         }
     }
     LazyLoader {

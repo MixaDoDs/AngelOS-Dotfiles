@@ -625,11 +625,11 @@
         "en": "Every door"
       },
       "desc": {
-        "ru": "Открыть «Пуск» в каждом из семи видов",
-        "en": "Open Start in each of its seven looks"
+        "ru": "Открыть «Пуск» в каждом из пяти видов",
+        "en": "Open Start in each of its five looks"
       },
       "on": "start.open",
-      "kinds": 7
+      "kinds": 5
     },
     {
       "id": "month",
