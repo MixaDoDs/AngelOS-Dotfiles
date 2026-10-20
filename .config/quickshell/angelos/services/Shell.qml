@@ -119,6 +119,8 @@ Singleton {
             clipboardOpen = false;
         if (keep !== "session")
             sessionOpen = false;
+        // anything else opening drops the question (no dialog under another, no yes left waiting)
+        sessionConfirm = "";
     }
     onLauncherOpenChanged: {
         if (launcherOpen && setupLocked)
@@ -554,24 +556,53 @@ Singleton {
 
     // ---- the session's actions: one place for the session menu, Start's buttons (services/
     // StartItems) and the Golden Gate menus. lock | idle | suspend | logout | reboot | poweroff ----
+    // Logging out, restarting and shutting down only ask (modules/session/SessionConfirm, one
+    // dialog for every way in: a click, a letter, Enter, Start's buttons); the yes there does it.
+    // One stray key used to switch the computer off (16.10)
+    readonly property var sessionAsks: ["logout", "reboot", "poweroff"]
+    property string sessionConfirm: ""       // the action the dialog asks about ("" = no dialog)
     function sessionAction(id) {
-        if (id === "logout" || id === "reboot" || id === "poweroff") {
-            // let the Y2K goodbye chime play before the session goes away
-            if (Sounds.enabled("shutdown")) {
-                Sounds.play("shutdown");
-                bye.action = id;
-                bye.restart();
+        if (sessionAsks.includes(id)) {
+            if (locked || setupLocked || bye.running)
                 return;
-            }
+            closeTransient("");
+            // a second ask takes the dialog's place, never a second dialog
+            sessionConfirm = id;
+            return;
         }
         sessionNow(id);
     }
+    // the dialog's yes: what it asked about, read here (not from the dialog), and asked only once
+    function sessionConfirmed() {
+        const id = sessionConfirm;
+        sessionConfirm = "";
+        if (!sessionAsks.includes(id) || locked || bye.running)
+            return;
+        // let the Y2K goodbye chime play before the session goes away
+        if (Sounds.enabled("shutdown")) {
+            Sounds.play("shutdown");
+            bye.action = id;
+            bye.restart();
+            return;
+        }
+        sessionNow(id);
+    }
+    onLockedChanged: if (locked)
+        sessionConfirm = ""
     property Timer bye: Timer {
         property string action
         interval: 1300
         onTriggered: root.sessionNow(action)
     }
+    // the UI tests (ANGELOS_TEST) never end the session: the action is only written down
+    readonly property bool sessionFake: Quickshell.env("ANGELOS_TEST") === "1"
+    property var sessionRan: []
     function sessionNow(id) {
+        if (sessionFake && sessionAsks.includes(id)) {
+            sessionRan = sessionRan.concat([id]);
+            console.log("[test] session " + id + " skipped");
+            return;
+        }
         switch (id) {
         case "lock":
             lock();

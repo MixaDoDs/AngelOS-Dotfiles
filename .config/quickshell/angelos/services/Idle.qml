@@ -32,6 +32,7 @@ Singleton {
         Shell.closeStart();
         Shell.launcherOpen = false;
         Shell.sessionOpen = false;
+        Shell.sessionConfirm = "";
         active = true;
     }
     function stop() {

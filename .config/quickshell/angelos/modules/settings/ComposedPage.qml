@@ -121,11 +121,23 @@ PxPage {
         Accessible.role: Accessible.Button
         Accessible.name: I18n.t("Ещё…", "More…") + (root.moreSummary ? ": " + root.moreSummary : "")
         Accessible.focusable: true
-        Accessible.onPressAction: SettingsTree.setMoreOpen(root.pageKey, !root.moreOpen)
+        Accessible.onPressAction: toggle()
+        // the keyboard: Tab reaches it, Enter or Space opens and closes it, the accent edge shows where the focus is
+        activeFocusOnTab: true
+        Keys.onPressed: e => {
+            if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter || e.key === Qt.Key_Space) {
+                if (!e.isAutoRepeat)
+                    toggle();
+                e.accepted = true;
+            }
+        }
+        function toggle() {
+            SettingsTree.setMoreOpen(root.pageKey, !root.moreOpen);
+        }
         radius: macLook ? Theme.u * 5 : 0
         color: macLook ? (moreMouse.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(0, 0, 0, 0.06)) : (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035))) : moreMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.12) : Theme.mix(Theme.face, Theme.faceAlt, 0.55)
-        border.width: macLook ? 0 : Math.max(1, Theme.u / 2)
-        border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.5)
+        border.width: activeFocus ? Math.max(2, Theme.u) : macLook ? 0 : Math.max(1, Theme.u / 2)
+        border.color: activeFocus ? Theme.accent : Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.5)
         Column {
             id: moreTexts
             anchors.left: parent.left
@@ -224,7 +236,7 @@ PxPage {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: SettingsTree.setMoreOpen(root.pageKey, !root.moreOpen)
+            onClicked: moreFold.toggle()
         }
     }
     Column {

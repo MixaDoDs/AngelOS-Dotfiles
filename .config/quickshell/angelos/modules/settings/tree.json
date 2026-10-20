@@ -2366,7 +2366,8 @@
         "page": "sound"
       },
       "taskmanager": {
-        "page": "defaults"
+        "page": "defaults",
+        "to": "system/task-manager"
       },
       "uisize": {
         "page": "mac-look"
@@ -2393,10 +2394,12 @@
         "page": "helper"
       },
       "hell": {
-        "page": "game"
+        "page": "game",
+        "to": "y2k/hell"
       },
       "novel": {
-        "page": "game"
+        "page": "game",
+        "to": "y2k/novel"
       },
       "main": {
         "page": "mac-look"

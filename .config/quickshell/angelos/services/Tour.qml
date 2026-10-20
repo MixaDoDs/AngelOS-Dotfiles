@@ -43,11 +43,16 @@ Singleton {
         return list.find(e => screenOf(e) === screen) || list[0] || null;
     }
 
+    // the key tips name the keys of the profile in front (services/KeyProfile): Golden Gate's
+    // Mac keys move the launcher, the overview and window focus; Golden Gate without them keeps
+    // the pixel ones
+    readonly property bool macKeys: KeyProfile.want === "macos"
+    readonly property string launcherKeys: macKeys ? "Mod+Alt+Space" : "Mod+Space"
     readonly property var steps: [
         {
             "key": "bar:start",
             "title": I18n.t("Меню «Пуск»", "Start menu"),
-            "text": I18n.t("Программы, настройки, тема, блокировка и выключение. Программы ещё открываются по Mod+Space.", "Apps, settings, theme, lock and power. Apps also open with Mod+Space.")
+            "text": I18n.t("Программы, настройки, тема, блокировка и выключение. Программы ещё открываются по ", "Apps, settings, theme, lock and power. Apps also open with ") + launcherKeys + "."
         },
         {
             "key": "bar:workspaces",
@@ -90,16 +95,16 @@ Singleton {
         {
             "key": "keys:launcher",
             "demo": "launcher",
-            "keys": ["Mod", "Space"],
+            "keys": launcherKeys.split("+"),
             "title": I18n.t("Программы", "Apps"),
             "text": I18n.t("Начни печатать название — Enter запускает. Там же калькулятор и поиск по настройкам.", "Start typing a name; Enter launches it. A calculator and the settings search are there too.")
         },
         {
             "key": "keys:overview",
             "demo": "overview",
-            "keys": ["Mod", "Tab"],
+            "keys": macKeys ? ["Ctrl", "↑"] : ["Mod", "Tab"],
             "title": I18n.t("Все окна сразу", "Every window at once"),
-            "text": I18n.t("Обзор niri: столы и окна мелко, перетаскивай их мышью. Mod+← → листают ленту окон.", "niri's overview: the workspaces and windows small, drag them around. Mod+← → scroll the window ribbon.")
+            "text": I18n.t("Обзор niri: столы и окна мелко, перетаскивай их мышью. ", "niri's overview: the workspaces and windows small, drag them around. ") + (macKeys ? "Mod+Alt+← →" : "Mod+← →") + I18n.t(" листают ленту окон.", " scroll the window ribbon.")
         },
         {
             "key": "keys:settings",

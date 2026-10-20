@@ -27,10 +27,6 @@ PanelWindow {
     WlrLayershell.keyboardFocus: visible ? (Shell.dev ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive) : WlrKeyboardFocus.None
 
     property int current: 0
-    // a letter for logging out, restarting or shutting down only picks it: a second press (or
-    // Enter) does it. One stray key used to switch the computer off (16.10)
-    property string armed: ""
-    readonly property var askFirst: ["logout", "reboot", "poweroff"]
     readonly property var actions: [
         {
             "id": "lock",
@@ -70,7 +66,8 @@ PanelWindow {
         }
     ]
 
-    // the actions themselves (and the goodbye chime) live in Shell.sessionAction
+    // the actions themselves live in Shell.sessionAction: logging out, restarting and shutting
+    // down open its own dialog (SessionConfirm) whichever way they are picked here
     function run(id) {
         Shell.sessionOpen = false;
         Shell.sessionAction(id);
@@ -83,7 +80,6 @@ PanelWindow {
         opened()
     function opened() {
         current = 0;
-        armed = "";
         keys.forceActiveFocus();
     }
 
@@ -111,6 +107,11 @@ PanelWindow {
             id: keys
             focus: true
             Keys.onPressed: e => {
+                // a held key's repeats pick nothing (the dialog after this one ignores them too)
+                if (e.isAutoRepeat) {
+                    e.accepted = true;
+                    return;
+                }
                 if (e.key === Qt.Key_Escape)
                     Shell.sessionOpen = false;
                 else if (e.key === Qt.Key_Left)
@@ -121,10 +122,7 @@ PanelWindow {
                     win.run(win.actions[win.current].id);
                 else {
                     const a = win.actions.find(a => a.key === e.text.toUpperCase());
-                    if (a && win.askFirst.includes(a.id) && win.armed !== a.id) {
-                        win.current = win.actions.indexOf(a);
-                        win.armed = a.id;
-                    } else if (a)
+                    if (a)
                         win.run(a.id);
                 }
                 e.accepted = true;
@@ -145,14 +143,6 @@ PanelWindow {
                 text: I18n.t("Что сделать с компьютером? ♡", "What would you like to do? ♡")
                 kind: "title"
             }
-            PxText {
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: win.armed !== ""
-                readonly property var act: win.actions.find(a => a.id === win.armed) || {}
-                text: I18n.t("Ещё раз [", "Press [") + (act.key || "") + I18n.t("] или Enter — ", "] again or Enter: ") + String(act.label || "").toLowerCase() + I18n.t(", Esc — отмена", ", Esc to cancel")
-                kind: "tiny"
-                color: Theme.danger
-            }
 
             Row {
                 id: row
@@ -169,10 +159,8 @@ PanelWindow {
                         checked: win.current === index
                         danger: modelData.id === "poweroff"
                         onClicked: win.run(modelData.id)
-                        onHoveredChanged: if (hovered) {
-                            win.current = index;
-                            win.armed = "";
-                        }
+                        onHoveredChanged: if (hovered)
+                            win.current = index
                         Column {
                             anchors.centerIn: parent
                             spacing: Theme.u * 3

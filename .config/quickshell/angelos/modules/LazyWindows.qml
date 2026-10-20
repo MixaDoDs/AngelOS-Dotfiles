@@ -90,6 +90,15 @@ Scope {
     }
 
     Linger {
+        id: sessionConfirmKeep
+        when: Shell.sessionConfirm !== ""
+    }
+    LazyLoader {
+        active: sessionConfirmKeep.alive
+        SessionConfirm {}
+    }
+
+    Linger {
         id: projectKeep
         when: Shell.projectOpen
     }

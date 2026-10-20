@@ -183,6 +183,8 @@ start suite tour
 start suite guard
 start suite eq
 start suite desk
+start suite session
+start suite settingsnav
 start suite quickshare
 start suite timers
 start suite shelf
@@ -212,7 +214,7 @@ for sh in "${SHARDS[@]}"; do
   rm -rf "${T:?}/$n"
   start driver "$n" "$from" "$until"
 done
-for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare timers halo shelf halo_buttons downloads links circle capture capture_regions island lens streamchat videograb rhythm keys; do
+for s in scale lock theme search tour sddm perf leak guard eq desk rescue quickshare timers halo shelf halo_buttons downloads links circle capture capture_regions island lens streamchat videograb rhythm keys session settingsnav; do
   [[ "$(cat "$T/suite-$s.code" 2>/dev/null)" =~ ^(0|77)$ ]] && continue
   retried+=("$s")
   firsts+=("$s: $(grep -E '✕' "$T/suite-$s.out" | head -3 | sed 's/^ *//' | cut -c1-160 | tr '\n' ';')")
@@ -302,6 +304,12 @@ result eq "bar equalizer: one service for every bar, an app found in EasyEffects
 # the desk's one clock (tests/desk): the spectrum keeps its blocks and moves on the clock of the
 # live wallpaper, LiveBeat hears a spectrum instead of a cava of its own, thumbnails only from the cache
 result desk "desk clock: spectrum blocks kept, bars on the scene's tick, LiveBeat from the spectrum, cached thumbnails" "desk clock" 15
+# logging out, restarting, shutting down (tests/session, stand-ins, nothing ends): every way in asks
+# once, only the yes does it, Lock and Sleep never ask
+result session "session: every way in asks first, only its yes ends it; Lock and Sleep at once" "session confirm" 15
+# where Settings land (tests/settingsnav): old ids keep their group in any window and both trees,
+# the bar's monitor entry, «Ещё…» from the keyboard, the search's «History (N)»
+result settingsnav "settings navigation: old ids keep their group, the monitor's row, «Ещё…» by keys, History (N)" "settings navigation" 15
 # the screenshot (tests/circle, keys, capture, capture_regions, island): the overlay, its keys,
 # saving, the areas it finds and the island search it opens
 result circle "screenshot overlay: areas, words, picks, keys, bar → Capture/Island/QuickShare; OCR reads both themes, no junk off pictures" "screenshot overlay" 20

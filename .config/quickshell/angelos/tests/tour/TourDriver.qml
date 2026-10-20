@@ -135,6 +135,22 @@ Scope {
             Shell.registerStartButton("HDMI-A-1", bar.item, bar.window);
             Config.stream.manual = false;
             report("tour-main-without-bar", nobar === "HDMI-A-2", "→ " + nobar);
+            // 5: the key tips name the profile in front's keys: pixel, Golden Gate with its Mac
+            // keys, Golden Gate keeping the pixel ones (Config.mac.keys off)
+            const tips = () => {
+                const s = k => Tour.steps.find(x => x.key === k);
+                return [s("keys:launcher").keys.join("+"), s("keys:overview").keys.join("+"), /Mod\+Alt\+← →/.test(s("keys:overview").text) ? "alt" : "plain", s("bar:start").text.slice(-14)].join(" ");
+            };
+            const pixel = tips();
+            Config.mac.keys = true;
+            Config.settingsUi.skin = "goldengate";
+            const mac = tips();
+            Config.mac.keys = false;
+            const ggPixel = tips();
+            Config.settingsUi.skin = "pixel";
+            report("tour-keys-pixel", pixel.startsWith("Mod+Space Mod+Tab plain") && pixel.endsWith(" Mod+Space."), pixel);
+            report("tour-keys-mac", mac.startsWith("Mod+Alt+Space Ctrl+↑ alt") && mac.endsWith("Mod+Alt+Space."), mac);
+            report("tour-keys-gg-pixel", ggPixel === pixel, ggPixel);
             console.log("TEST DONE " + failures);
             Qt.quit();
         }

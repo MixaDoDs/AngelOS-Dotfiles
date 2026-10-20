@@ -2,9 +2,11 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 import qs.services
 import qs.modules.desktop
+import qs.modules.background
 
 // The desk's one clock (started by tests/desk/run.sh, offscreen): the music spectrum keeps its
 // blocks when the levels move, its bars move on DeskClock's tick and not on cava's own
@@ -171,11 +173,87 @@ Scope {
                     root.report("files-thumb-cached", has.length === 1 && has[0].indexOf("/x-large/") > 0, has.join(" "));
                     root.report("files-thumb-no-guess", none.length === 0 && pic.length === 1 && pic[0].endsWith("/docs/pic.png"), none.join(" ") + " | " + pic.join(" "));
                 }
+                root.next();
+                break;
+            case 6:
+                {
+                    // the ring with the default entries: nothing moves into «Ещё» (no plugins: no «Ещё» at all)
+                    const r = ringLoader.item;
+                    const want = DeskMenu.quick.concat(DeskMenu.items.filter(id => id !== "sep" && id !== "more" && !DeskMenu.quick.includes(id)));
+                    root.report("ring-default-fits", !(r.overflow || []).length && JSON.stringify(r.slots) === JSON.stringify(want), r.slots.join(","));
+                    // 5 quick + 12 more (4 flyouts, a custom command last): 17, one past the ring
+                    Config.desktop.menuCustom = [{
+                            "id": "custom:1",
+                            "label": "F06",
+                            "icon": "heart",
+                            "kind": "command",
+                            "target": "touch \"$HOME/f06-ran\""
+                        }];
+                    Config.desktop.menuQuick = ["terminal", "files", "monitor", "wallpaperPick", "settings"];
+                    Config.desktop.menuItems = ["view", "new", "wallpaper", "open", "sep", "displaySettings", "personalize", "more", "record", "clipboard", "launcher", "note", "nextWallpaper", "custom:1"];
+                }
+                root.next();
+                break;
+            case 7:
+                {
+                    const r = ringLoader.item;
+                    const all = DeskMenu.quick.concat(DeskMenu.items.filter(id => id !== "sep" && id !== "more"));
+                    r.fly = "more";
+                    const inMore = r.flyItems.map(x => x.id);
+                    const lost = all.filter(id => !r.slots.includes(id) && !inMore.includes(id));
+                    root.report("ring-overflow-reachable", all.length === 17 && r.slots.length <= 16 && r.slots.includes("more") && lost.length === 0, "slots=" + r.slots.length + " " + r.slots.join(",") + " more=" + inMore.join(",") + " lost=" + lost.join(","));
+                    root.report("ring-overflow-custom-in-more", inMore.includes("custom:1") && !r.slots.includes("custom:1") && ["view", "new", "wallpaper", "open"].every(id => r.slots.includes(id)), inMore.join(","));
+                    // it runs what the list menu runs (DeskMenu.run → the custom command: a file in the test's HOME)
+                    r.activateSub(inMore.indexOf("custom:1"));
+                }
+                root.next();
+                break;
+            case 8:
+                if (Date.now() - root.since < 600)
+                    return;
+                ranCheck.running = true;
+                root.next();
+                break;
+            case 9:
+                if (ranCheck.running || ranCheck.code < 0) {
+                    if (Date.now() - root.since < 3000)
+                        return;
+                }
+                root.report("ring-overflow-runs", ranCheck.code === 0, "test -e exit " + ranCheck.code);
                 console.log("TEST DONE");
                 Qt.quit();
                 root.next();
                 break;
             }
         }
+    }
+
+    // the ring's host (modules/background/RadialMenu), built hidden; the list menu only lends its
+    // plugin entries (none here)
+    FloatingWindow {
+        id: deskWin
+        visible: false
+        implicitWidth: 640
+        implicitHeight: 480
+    }
+    QtObject {
+        id: noList
+        property var moreItems: []
+        function listFor(name) {
+            return [];
+        }
+    }
+    Loader {
+        id: ringLoader
+        sourceComponent: RadialMenu {
+            parentWindow: deskWin
+            listMenu: noList
+        }
+    }
+    Process {
+        id: ranCheck
+        property int code: -1
+        command: ["test", "-e", Quickshell.env("HOME") + "/f06-ran"]
+        onExited: c => code = c
     }
 }

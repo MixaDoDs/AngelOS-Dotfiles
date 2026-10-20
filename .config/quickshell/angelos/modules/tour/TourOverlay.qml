@@ -835,7 +835,8 @@ PanelWindow {
                         color: Theme.dark ? Theme.accent : Theme.edge
                     }
                     Repeater {
-                        model: [[["Mod", "Space"], I18n.t("Программы", "Apps")], [["Mod", "Tab"], I18n.t("Обзор столов и окон", "Workspaces and windows")], [["Mod", "S"], I18n.t("Настройки", "Settings")], [["Mod", "V"], I18n.t("Буфер обмена", "Clipboard")], [["Mod", "Q"], I18n.t("Закрыть окно", "Close the window")], [["Mod", "F"], I18n.t("Во весь экран", "Full screen")], [["Mod", "1…9"], I18n.t("Столы", "Workspaces")], [["Mod", "Shift", "S"], I18n.t("Скриншот области", "Region screenshot")]]
+                        // the profile in front's keys (Tour.macKeys: Golden Gate's Mac ones)
+                        model: [[Tour.launcherKeys.split("+"), I18n.t("Программы", "Apps")], [Tour.macKeys ? ["Ctrl", "↑"] : ["Mod", "Tab"], I18n.t("Обзор столов и окон", "Workspaces and windows")], [["Mod", "S"], I18n.t("Настройки", "Settings")], [["Mod", "V"], I18n.t("Буфер обмена", "Clipboard")], [["Mod", Tour.macKeys ? "W" : "Q"], I18n.t("Закрыть окно", "Close the window")], [Tour.macKeys ? ["Mod", "Ctrl", "F"] : ["Mod", "F"], I18n.t("Во весь экран", "Full screen")], [Tour.macKeys ? ["Mod", "Alt", "1…9"] : ["Mod", "1…9"], I18n.t("Столы", "Workspaces")], [["Mod", "Shift", "S"], I18n.t("Скриншот области", "Region screenshot")]]
                         Row {
                             id: bind
                             required property var modelData

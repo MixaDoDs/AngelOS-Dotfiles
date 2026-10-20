@@ -178,6 +178,28 @@ try:
     clear()
     rc, out = run(["save", frame, "--rect", "500,500,10,10"], e)
     check(rc != 0 and "error" in out and not clips(), "a part outside the frame: an error, nothing saved or copied")
+
+    # Golden Gate's whole-screen shot (⇧⌘3, its menu: scripts/mac-screenshot.sh screen) keeps the
+    # same settings: grim (a stand-in writing the frame) → capture_save.py
+    stub("grim", 'for a; do f="$a"; done; cp "' + frame + '" "$f"')
+    stub("niri", 'echo \'{"name": "HDMI-A-1"}\'')
+    mac = os.path.join(os.path.dirname(SCRIPT), "mac-screenshot.sh")
+
+    def mac_shot(e):
+        os.makedirs(e["XDG_RUNTIME_DIR"], exist_ok=True)
+        rc = subprocess.run(["sh", mac, "screen"], capture_output=True, env=e, timeout=30).returncode
+        shots = [os.path.join(r, f) for r, _, fs in os.walk(os.path.join(T, "shots")) for f in fs]
+        return rc, max(shots, key=os.path.getmtime) if shots else ""
+
+    clear()
+    rc, p = mac_shot(env(shotCopy=False, shotOpen=True))
+    o = logs("open", 3)
+    check(rc == 0 and os.path.isfile(p) and not clips() and o and open(o[0]).read() == p,
+          "Golden Gate ⇧⌘3: shotCopy off — not copied, shotOpen on — opened")
+    clear()
+    rc, p = mac_shot(env(shotFormat="jpg"))
+    check(rc == 0 and p.endswith(".jpg") and clips() and clips()[0][0] == "image/jpeg" and not logs("open", 0.5),
+          "Golden Gate ⇧⌘3: the defaults — copied, not opened; shotFormat jpg")
 finally:
     shutil.rmtree(T, ignore_errors=True)
 sys.exit(1 if fails else 0)

@@ -45,12 +45,36 @@ PopupWindow {
         })[Config.desktop.menuSize] || 1
     readonly property bool labels: Config.desktop.menuLabels !== false
     // the entries: the quick ones first, then the rest (no lines; "more" only when there is more)
-    readonly property var slots: {
+    readonly property var entries: {
         const q = DeskMenu.quick;
         const rest = DeskMenu.items.filter(id => id !== "sep" && !q.includes(id));
-        return q.concat(rest).filter(id => id !== "more" || (listMenu && (listMenu.moreItems.length > 0 || Plugins.menuComponents.length > 0))).slice(0, 16);
+        return q.concat(rest);
     }
-    readonly property var flyItems: fly && listMenu ? listMenu.listFor(fly).filter(x => !x.separator) : []
+    readonly property bool pluginMore: !!listMenu && (listMenu.moreItems.length > 0 || Plugins.menuComponents.length > 0)
+    // more than the ring's 16: the last plain entries go into «Ещё» (a flyout can't sit in a
+    // flyout, those stay), so every entry the list menu has is still reachable here
+    readonly property var overflow: {
+        const own = entries.filter(id => id !== "more");
+        if (!listMenu || own.length + (pluginMore && entries.includes("more") ? 1 : 0) <= 16)
+            return [];
+        let room = 15 - own.filter(id => (DeskMenu.entry(id) || {}).flyout).length;
+        return own.filter(id => !(DeskMenu.entry(id) || {}).flyout && room-- <= 0);
+    }
+    readonly property var slots: {
+        const ring = entries.filter(id => !overflow.includes(id) && (id !== "more" || pluginMore || overflow.length > 0));
+        return (overflow.length > 0 && !ring.includes("more") ? ring.concat(["more"]) : ring).slice(0, 16);
+    }
+    // «Ещё»: the entries past the ring first (run as the list menu runs them), then the plugins'
+    readonly property var overflowItems: overflow.map(id => {
+        const e = DeskMenu.entry(id);
+        return {
+            "id": id,
+            "label": e.label,
+            "icon": e.icon,
+            "run": () => DeskMenu.run(id, root.screenName)
+        };
+    })
+    readonly property var flyItems: fly && listMenu ? (fly === "more" ? overflowItems.concat(listMenu.listFor("more")) : listMenu.listFor(fly)).filter(x => !x.separator) : []
     readonly property var hoveredEntry: current >= 0 ? DeskMenu.entry(slots[current]) : null
     // opened, or moved by a right click elsewhere (the harp runs a glissando)
     signal opened
