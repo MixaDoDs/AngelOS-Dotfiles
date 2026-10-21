@@ -540,6 +540,11 @@ PanelWindow {
     // the open card's content starts under the window's title bar
     readonly property real cardTop: frame.chrome + frame.titleHeight + u * 4
     property real w: wantW
+    // snug at rest the sides differ: the pill moves by half the difference, the middle stays put
+    property real restShift: rest && !expanded && !(main || vol || seeking) && restRow.inRow ? (restRow.rightW - restRow.leftW) / 2 : 0
+    Behavior on restShift {
+        Spring {}
+    }
     property real h: wantH
     property real r: wantR
     Behavior on w {
@@ -642,7 +647,7 @@ PanelWindow {
         }
         width: (win.open ? pill.width : ring.width) + win.slack * 2
         height: Math.max(win.strip, (win.open ? pill.height : ring.height) + win.pillY + (win.expanded ? win.slack : win.u))
-        x: Math.round((win.width - width) / 2)
+        x: Math.round((win.width - width) / 2 + win.restShift)
 
         HoverHandler {
             id: hover
@@ -974,9 +979,17 @@ PanelWindow {
                 Item {
                     id: restRow
                     readonly property real gap: win.earsRest ? win.u * 14 : win.u * 6
-                    readonly property real sideW: Math.max(0, (width - restMid.width) / 2 - gap)
+                    // fixed width: the sides share what is left; snug (fixedWidth off) the Halo grows to
+                    // them, so no cap: a cap from its own width fed back through implicitWidth (a polish() loop)
+                    readonly property real sideW: win.fixedWidth ? Math.max(0, (width - restMid.width) / 2 - gap) : Infinity
                     anchors.fill: parent
-                    implicitWidth: (restL.visible ? restL.implicitWidth + gap : 0) + restMid.width + (restR.visible ? restR.implicitWidth + gap : 0)
+                    readonly property real leftW: restL.visible ? restL.implicitWidth + gap : 0
+                    readonly property real rightW: restR.visible ? restR.implicitWidth + gap : 0
+                    // snug, no ears: the pill hugs the three and moves over (win.restShift) so the
+                    // middle stays on the screen's centre; the ears keep it on the camera, room for
+                    // the wider side on both
+                    readonly property bool inRow: !win.fixedWidth && !win.earsRest
+                    implicitWidth: inRow ? leftW + restMid.width + rightW : restMid.width + 2 * Math.max(leftW, rightW)
                     // comes and goes in a pixel dissolve, the song's line the other way
                     readonly property bool on: win.rest && !win.expanded
                     property real vis: on ? 1 : 0
@@ -1047,7 +1060,8 @@ PanelWindow {
                         id: restMid
                         width: win.restCat ? restSprite.width : restArc.width
                         height: win.restCat ? restSprite.height : restArc.height
-                        anchors.centerIn: parent
+                        x: restRow.inRow ? (parent.width - restRow.implicitWidth) / 2 + restRow.leftW : (parent.width - width) / 2
+                        anchors.verticalCenter: parent.verticalCenter
                         Arc {
                             id: restArc
                             visible: !win.restCat
