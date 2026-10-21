@@ -61,4 +61,26 @@ Singleton {
             root.users = [];
         }
     }
+
+    // why Discord fell, as a notification (scripts/discord-crash-watch.py): sharing the screen
+    // with sound it dies when an app's audio stream goes away (2026-10-21), and an update of
+    // Discord or another app can bring that back
+    Process {
+        running: Config.ready && Quickshell.env("ANGELOS_TEST") !== "1" && !Shell.dev
+        command: ["python3", Quickshell.shellDir + "/scripts/discord-crash-watch.py"]
+        stdout: SplitParser {
+            onRead: line => {
+                let j;
+                try {
+                    j = JSON.parse(line);
+                } catch (e) {
+                    return;
+                }
+                const apps = j.apps || [];
+                const title = apps.length ? I18n.t("Discord упал во время стрима со звуком", "Discord fell while sharing with sound") : I18n.t("Discord упал", "Discord fell");
+                const body = apps.length ? I18n.t("Перед этим пропал звук: ", "Just before, this sound went away: ") + apps.join(", ") + I18n.t(". Discord падает, когда приложение закрывает свой звук посреди показа экрана.", ". Discord dies when an app closes its sound mid-share.") : I18n.t("Звук приложений тут ни при чём. Подробности: coredumpctl info ", "Not the apps' sound. Details: coredumpctl info ") + j.pid;
+                Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "dialog-warning", "--", title, body]);
+            }
+        }
+    }
 }

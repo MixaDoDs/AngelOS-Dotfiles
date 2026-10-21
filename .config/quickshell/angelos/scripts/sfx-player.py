@@ -8,8 +8,10 @@ Why not one pw-play per sound: every click then makes a new stream and drops it 
 later. Discord, sharing the screen with sound, opens a capture of its own for each new stream
 and tears it down again; a few clicks a second for an hour made it freeze the share and grow to
 13 GB (2026-10-07, logs: PulseAudioController "Creating stream for sink …" every second). Mixers
-jumped for the same reason. Here the stream stays while sounds play and closes after a quiet
-minute, so a share sees it come and go rarely, not per click.
+jumped for the same reason. Here the stream stays for good: after a quiet minute it is only no
+longer fed (an underrun, no CPU), never closed. Closing it once a minute still crashed Discord
+mid-share: its Voice thread died right after the stream went (2026-10-21, SIGTRAP, logs:
+"sink … deleted", then "sample rate diff: 67797%").
 
 Files are decoded once by ffmpeg (any format: ogg wav aiff caf mp3…) and kept in memory,
 mixed here and fed to pacat as raw float PCM; the pipe paces the loop in real time.
@@ -30,7 +32,7 @@ import numpy as np
 RATE = 48000
 CHANNELS = 2
 BLOCK = 480                # frames per write: 10 ms
-IDLE_CLOSE = 60.0          # s of silence before the stream closes
+IDLE_STOP = 60.0           # s of silence before the stream stops being fed (it stays open)
 CACHE_MAX = 96             # decoded files kept
 PIPE_SIZE = 8192           # bytes in the pipe to pacat (~21 ms): its latency on top of pacat's
 F_SETPIPE_SZ = 1031
@@ -160,9 +162,11 @@ def main():
             busy = bool(mixed)
         if busy:
             last_sound = now
-        elif now - last_sound > IDLE_CLOSE:
-            close_stream(proc)
-            proc = None
+        elif now - last_sound > IDLE_STOP:
+            with lock:
+                while not voices and not done:
+                    lock.wait()
+            last_sound = time.monotonic()
             continue
         np.clip(block, -1.0, 1.0, out=block)
         try:
