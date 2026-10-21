@@ -291,9 +291,19 @@ case "$1" in
     # up): every QML file is compiled first, nothing is created (scripts/qml-check.sh, ~3 s).
     # `angelos restart --force` skips it; a check that can't run (no compositor) doesn't block.
     if [ "${2:-}" != "--force" ] && [ -x "$SHELL_DIR/scripts/qml-check.sh" ]; then
-      "$SHELL_DIR/scripts/qml-check.sh" "$SHELL_DIR" >&2
-      if [ $? = 1 ]; then
+      out="$("$SHELL_DIR/scripts/qml-check.sh" "$SHELL_DIR" 2>&1)"
+      rc=$?
+      [ -n "$out" ] && printf '%s\n' "$out" >&2
+      if [ $rc = 1 ]; then
         echo "angelOS: not restarted — the shell would not load. Fix the errors above (or: angelos restart --force)" >&2
+        # the Settings' «Restart the shell» runs this detached: nobody reads stderr there, so the
+        # click did nothing at all (#112) — say it on screen, the errors kept in a file
+        mkdir -p "$RUN_DIR" && printf '%s\n' "$out" >"$RUN_DIR/restart-errors.txt"
+        case "${ANGELOS_LANG:-${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}}" in
+          ru*) t="Оболочка не перезапущена" b="Она бы не загрузилась: ошибки в QML. Подробности: $RUN_DIR/restart-errors.txt (или angelos restart --force)" ;;
+          *) t="The shell was not restarted" b="It would not load: QML errors. Details: $RUN_DIR/restart-errors.txt (or angelos restart --force)" ;;
+        esac
+        command -v notify-send >/dev/null 2>&1 && notify-send -a angelOS -u critical "$t" "$b" 2>/dev/null
         exit 1
       fi
     fi
