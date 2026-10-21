@@ -20,7 +20,19 @@ Item {
     readonly property bool flying: menu.fly !== ""
     readonly property var list: flying ? menu.flyItems : menu.slots
     readonly property int count: list.length + (flying ? 1 : 0)
-    readonly property int cols: Math.max(3, Math.min(4, Math.ceil(Math.sqrt(count))))
+    readonly property real m: Theme.u * 3
+    // no wider than the screen (a big UI on a small one), and a long flyout scrolls (below)
+    readonly property int fitCols: Math.max(1, Math.floor((width - m * 4 + gap) / (tile + gap)))
+    readonly property int cols: Math.min(fitCols, Math.max(3, Math.min(4, Math.ceil(Math.sqrt(count)))))
+    // scroll the selected tile into view (the "‹ back" tile comes first in a flyout)
+    function ensureIndex(i) {
+        const top = Math.floor((i + (flying ? 1 : 0)) / cols) * (tile + gap);
+        if (top < viewport.contentY)
+            viewport.contentY = top;
+        else if (top + tile > viewport.contentY + viewport.height)
+            viewport.contentY = top + tile - viewport.height;
+    }
+    onFlyingChanged: viewport.contentY = 0
     function nav(e) {
         const n = list.length;
         let cur = flying ? menu.subCurrent : menu.current;
@@ -50,15 +62,16 @@ Item {
             menu.subCurrent = cur;
         else
             menu.current = cur;
+        ensureIndex(cur);
         return true;
     }
     anchors.fill: parent
 
     Rectangle {
         id: panel
-        readonly property real m: Theme.u * 3
+        readonly property real m: look.m
         width: grid.width + m * 2
-        height: head.height + grid.height + m * 3
+        height: head.height + viewport.height + m * 3
         // next to the pointer, turned to where there is room
         x: look.menu.clamp(look.menu.cx + width + m > look.width ? look.menu.cx - width - Theme.u * 2 : look.menu.cx + Theme.u * 2, m, look.width - width - m)
         y: look.menu.clamp(look.menu.cy + height + m > look.height ? look.menu.cy - height - Theme.u * 2 : look.menu.cy + Theme.u * 2, m, look.height - height - m)
@@ -96,115 +109,134 @@ Item {
             }
         }
 
-        Grid {
-            id: grid
+        Flickable {
+            id: viewport
             x: panel.m
             y: head.y + head.height + panel.m
-            columns: look.cols
-            spacing: look.gap
-
-            // back out of a flyout
-            Rectangle {
-                visible: look.flying
-                width: look.tile
-                height: look.tile
-                radius: Theme.u * 6
-                color: backMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.3) : Qt.alpha(Theme.faceAlt, 0.7)
-                Column {
-                    anchors.centerIn: parent
-                    spacing: Theme.u
-                    PxIcon {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        name: "arrowLeft"
-                        pixel: look.k > 1.1 ? Theme.u * 2 : Theme.u
-                    }
-                    PxText {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        kind: "tiny"
-                        text: I18n.t("Назад", "Back")
-                    }
-                }
-                MouseArea {
-                    id: backMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: look.menu.fly = ""
+            width: grid.width
+            // the panel stays a margin off the screen's edges
+            height: Math.max(0, Math.min(grid.height, look.height - head.height - panel.m * 5))
+            contentWidth: grid.width
+            contentHeight: grid.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            interactive: false
+            WheelHandler {
+                onWheel: event => {
+                    const dy = event.angleDelta.y || event.pixelDelta.y;
+                    viewport.contentY = Math.max(0, Math.min(viewport.contentHeight - viewport.height, viewport.contentY - dy));
+                    event.accepted = true;
                 }
             }
 
-            Repeater {
-                model: look.list
+            Grid {
+                id: grid
+                columns: look.cols
+                spacing: look.gap
+
+                // back out of a flyout
                 Rectangle {
-                    id: t
-                    required property var modelData
-                    required property int index
-                    // an entry id (main grid) or a flyout item
-                    readonly property var e: look.flying ? null : DeskMenu.entry(modelData)
-                    readonly property var item: look.flying ? modelData : null
-                    readonly property bool sel: look.flying ? look.menu.subCurrent === index : look.menu.current === index
-                    readonly property bool on: !!item && !!item.checkable && (typeof item.checked === "function" ? !!item.checked() : !!item.checked)
+                    visible: look.flying
                     width: look.tile
                     height: look.tile
                     radius: Theme.u * 6
-                    color: on ? Theme.accent : sel || tm.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.3) : Qt.alpha(Theme.faceAlt, 0.7)
-                    border.width: sel ? Math.max(1, Theme.u / 2) : 0
-                    border.color: Theme.accent
-                    scale: tm.pressed ? 0.94 : 1
-                    opacity: t.item && t.item.enabled === false ? 0.5 : 1
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: Motion.ms(80)
-                        }
-                    }
+                    color: backMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.3) : Qt.alpha(Theme.faceAlt, 0.7)
                     Column {
                         anchors.centerIn: parent
-                        width: parent.width - Theme.u * 4
-                        spacing: Theme.u * 2
+                        spacing: Theme.u
                         PxIcon {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            name: t.item ? (t.item.checkable ? (t.on ? "check" : t.item.icon || "minus") : t.item.icon || "heart") : (t.e ? t.e.icon : "heart")
+                            name: "arrowLeft"
                             pixel: look.k > 1.1 ? Theme.u * 2 : Theme.u
-                            ink: t.on ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
-                            fill: t.on ? "#ffffff" : Theme.accent
                         }
                         PxText {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
                             kind: "tiny"
-                            elide: Text.ElideRight
-                            maximumLineCount: 2
-                            wrapMode: Text.Wrap
-                            color: t.on ? Theme.selectText : Theme.text
-                            text: t.item ? I18n.label(t.item.label || "") : t.e ? (t.e.short || t.e.label) : ""
+                            text: I18n.t("Назад", "Back")
                         }
                     }
-                    // a flyout: a corner mark
-                    PxText {
-                        visible: !!(t.e && t.e.flyout)
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.margins: Theme.u * 2
-                        kind: "tiny"
-                        color: Theme.accent
-                        text: "▸"
-                    }
                     MouseArea {
-                        id: tm
+                        id: backMouse
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: {
-                            if (look.flying)
-                                look.menu.subCurrent = t.index;
-                            else
-                                look.menu.current = t.index;
+                        onClicked: look.menu.fly = ""
+                    }
+                }
+
+                Repeater {
+                    model: look.list
+                    Rectangle {
+                        id: t
+                        required property var modelData
+                        required property int index
+                        // an entry id (main grid) or a flyout item
+                        readonly property var e: look.flying ? null : DeskMenu.entry(modelData)
+                        readonly property var item: look.flying ? modelData : null
+                        readonly property bool sel: look.flying ? look.menu.subCurrent === index : look.menu.current === index
+                        readonly property bool on: !!item && !!item.checkable && (typeof item.checked === "function" ? !!item.checked() : !!item.checked)
+                        width: look.tile
+                        height: look.tile
+                        radius: Theme.u * 6
+                        color: on ? Theme.accent : sel || tm.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.3) : Qt.alpha(Theme.faceAlt, 0.7)
+                        border.width: sel ? Math.max(1, Theme.u / 2) : 0
+                        border.color: Theme.accent
+                        scale: tm.pressed ? 0.94 : 1
+                        opacity: t.item && t.item.enabled === false ? 0.5 : 1
+                        Behavior on scale {
+                            NumberAnimation {
+                                duration: Motion.ms(80)
+                            }
                         }
-                        onClicked: {
-                            if (look.flying)
-                                look.menu.activateSub(t.index);
-                            else
-                                look.menu.activate(t.index);
+                        Column {
+                            anchors.centerIn: parent
+                            width: parent.width - Theme.u * 4
+                            spacing: Theme.u * 2
+                            PxIcon {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                name: t.item ? (t.item.checkable ? (t.on ? "check" : t.item.icon || "minus") : t.item.icon || "heart") : (t.e ? t.e.icon : "heart")
+                                pixel: look.k > 1.1 ? Theme.u * 2 : Theme.u
+                                ink: t.on ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
+                                fill: t.on ? "#ffffff" : Theme.accent
+                            }
+                            PxText {
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                                kind: "tiny"
+                                elide: Text.ElideRight
+                                maximumLineCount: 2
+                                wrapMode: Text.Wrap
+                                color: t.on ? Theme.selectText : Theme.text
+                                text: t.item ? I18n.label(t.item.label || "") : t.e ? (t.e.short || t.e.label) : ""
+                            }
+                        }
+                        // a flyout: a corner mark
+                        PxText {
+                            visible: !!(t.e && t.e.flyout)
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: Theme.u * 2
+                            kind: "tiny"
+                            color: Theme.accent
+                            text: "▸"
+                        }
+                        MouseArea {
+                            id: tm
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onEntered: {
+                                if (look.flying)
+                                    look.menu.subCurrent = t.index;
+                                else
+                                    look.menu.current = t.index;
+                            }
+                            onClicked: {
+                                if (look.flying)
+                                    look.menu.activateSub(t.index);
+                                else
+                                    look.menu.activate(t.index);
+                            }
                         }
                     }
                 }

@@ -20,6 +20,55 @@ Scope {
     property int step: 0
     property double since: Date.now()
     property bool lastMouseRan: false
+    property var tilesRan: []
+    // the tiles look's «Ещё» with 32 extras in a 640×480 window: the panel stays on the screen,
+    // the wheel brings the last tile in and a real click runs it, the keys walk to it and run it
+    function checkTiles(scale) {
+        const r = ringLoader.item;
+        const t = testTiles;
+        const n = r.flyItems.length;
+        const lastId = "extra:31";
+        const panel = t.blurItem;
+        const viewport = findItem(panel, it => it.contentY !== undefined && it.contentHeight !== undefined && it.clip);
+        // corners in the window / in the viewport (half a pixel for the rounding)
+        const onScreen = it => {
+            const a = it.mapToItem(null, 0, 0), b = it.mapToItem(null, it.width, it.height);
+            return a.x >= -0.5 && a.y >= -0.5 && b.x <= 640.5 && b.y <= 480.5;
+        };
+        const tileOf = () => findItem(panel, it => it.modelData && it.modelData.id === lastId && it.width > 0);
+        const inView = it => {
+            const p = it.mapToItem(viewport, 0, 0);
+            return p.y >= -0.5 && p.y + it.height <= viewport.height + 0.5;
+        };
+        root.report("tiles-" + scale + "-panel-on-screen", n >= 30 && onScreen(panel), "items=" + n + " cols=" + t.cols + " panel=" + panel.x + "," + panel.y + " " + panel.width + "×" + panel.height);
+        if (!viewport) {
+            root.report("tiles-" + scale + "-scrolls", false, "no viewport");
+            return;
+        }
+        // the mouse: the wheel over the tiles to the bottom, then a click where the last tile is
+        const ev = Qt.createQmlObject("import QtTest; TestEvent {}", viewport);
+        for (let i = 0; i < 60 && viewport.contentY < viewport.contentHeight - viewport.height; i++)
+            ev.mouseWheel(viewport, viewport.width / 2, viewport.height / 2, Qt.NoButton, Qt.NoModifier, 0, -120, -1);
+        root.report("tiles-" + scale + "-wheel-scrolls", viewport.contentY > 0 && viewport.contentY + viewport.height >= viewport.contentHeight, "scroll=" + viewport.contentY + " viewport=" + viewport.height + " content=" + viewport.contentHeight);
+        let last = tileOf();
+        const shown = !!last && onScreen(last) && inView(last);
+        root.tilesRan = [];
+        if (shown)
+            ev.mouseClick(last, last.width / 2, last.height / 2, Qt.LeftButton, Qt.NoModifier, -1);
+        root.report("tiles-" + scale + "-last-mouse-runs", shown && root.tilesRan.length === 1 && root.tilesRan[0] === 31, "shown=" + shown + " ran=" + root.tilesRan.join(","));
+        // the keys: from the first tile (scrolled back up) down and right to the last, Enter runs it
+        r.subCurrent = -1;
+        t.nav({key: Qt.Key_Right});
+        const fromTop = r.subCurrent === 0 && viewport.contentY === 0;
+        for (let i = 0; i < n && r.subCurrent < n - 1; i++)
+            t.nav({key: r.subCurrent + t.cols < n ? Qt.Key_Down : Qt.Key_Right});
+        last = tileOf();
+        const keyShown = r.subCurrent === n - 1 && !!last && onScreen(last) && inView(last);
+        root.tilesRan = [];
+        t.nav({key: Qt.Key_Return});
+        root.report("tiles-" + scale + "-last-keyboard-runs", fromTop && keyShown && root.tilesRan.length === 1 && root.tilesRan[0] === 31, "fromTop=" + fromTop + " shown=" + keyShown + " sub=" + r.subCurrent + " scroll=" + viewport.contentY + " ran=" + root.tilesRan.join(","));
+        ev.destroy();
+    }
     function report(name, ok, detail) {
         console.log("TEST " + name + " " + (ok ? "PASS" : "FAIL") + " " + (detail === undefined ? "" : detail));
     }
@@ -265,12 +314,46 @@ Scope {
                 root.next();
                 break;
             case 8:
+                {
+                    // the tiles look, normal size: 32 extras in «Ещё»
+                    noList.moreItems = Array.from({length: 32}, (_, i) => ({
+                        "id": "extra:" + i,
+                        "label": "Extra " + i,
+                        "run": () => root.tilesRan = root.tilesRan.concat([i]),
+                        "keepOpen": true
+                    }));
+                    ringLoader.item.cx = 600;
+                    ringLoader.item.cy = 400;
+                    ringLoader.item.fly = "more";
+                    tilesWin.visible = true;
+                }
+                root.next();
+                break;
+            case 9:
+                if (Date.now() - root.since < 400)
+                    return;
+                root.checkTiles("normal");
+                // …and a big UI
+                Config.appearance.px = 4;
+                Config.desktop.menuSize = "large";
+                root.next();
+                break;
+            case 10:
+                if (Date.now() - root.since < 400)
+                    return;
+                root.checkTiles("large");
+                Config.appearance.px = 2;
+                Config.desktop.menuSize = "normal";
+                tilesWin.visible = false;
+                root.next();
+                break;
+            case 11:
                 if (Date.now() - root.since < 600)
                     return;
                 ranCheck.running = true;
                 root.next();
                 break;
-            case 9:
+            case 12:
                 if (ranCheck.running || ranCheck.code < 0) {
                     if (Date.now() - root.since < 3000)
                         return;
@@ -293,6 +376,16 @@ Scope {
         implicitHeight: 480
         FlyColumn {
             id: testFly
+            menu: ringLoader.item
+        }
+    }
+    FloatingWindow {
+        id: tilesWin
+        visible: false
+        implicitWidth: 640
+        implicitHeight: 480
+        TilesLook {
+            id: testTiles
             menu: ringLoader.item
         }
     }
