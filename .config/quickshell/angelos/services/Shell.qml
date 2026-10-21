@@ -602,8 +602,9 @@ Singleton {
         interval: 1300
         onTriggered: root.sessionNow(action)
     }
-    // the UI tests (ANGELOS_TEST) never end the session: the action is only written down
-    readonly property bool sessionFake: Quickshell.env("ANGELOS_TEST") === "1"
+    // the UI tests (ANGELOS_TEST) and the dev stand (ANGELOS_DEV, like suspend) never end the
+    // session: the action is only written down
+    readonly property bool sessionFake: Quickshell.env("ANGELOS_TEST") === "1" || dev
     property var sessionRan: []
     function sessionNow(id) {
         if (sessionFake && sessionAsks.includes(id)) {

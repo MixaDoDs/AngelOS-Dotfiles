@@ -37,6 +37,10 @@ Item {
     readonly property int wheelRest: 400
 
     Component.onCompleted: {
+        // built already open (LazyWindows, a new window): a legacy id turns into its page before
+        // it becomes the first place of the history
+        if (settingsNav.settingsOpen)
+            redirect();
         lastLoc = loc;
         if (main)
             Shell.settingsView = win;
@@ -47,10 +51,8 @@ Item {
             SettingsSearch.load();
         SettingsKeys.load();
         // built already open (LazyWindows, a new window): what opening does
-        if (settingsNav.settingsOpen) {
-            redirect();
+        if (settingsNav.settingsOpen)
             opened();
-        }
     }
     Component.onDestruction: {
         if (Shell.settingsView === win)

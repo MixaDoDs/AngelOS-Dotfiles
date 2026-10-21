@@ -101,7 +101,7 @@ Item {
         width: parent.width - Theme.u
         height: parent.height - Theme.u
         radius: height / 2
-        color: root.danger ? Theme.danger : root.accent || root.checked ? Theme.windoseRose : mouse.containsMouse ? Theme.mix(Theme.windoseSticker, Theme.windoseLavender, 0.24) : Theme.windoseSticker
+        color: root.danger ? (root.checked ? Qt.darker(Theme.danger, 1.4) : Theme.danger) : root.accent || root.checked ? Theme.windoseRose : mouse.containsMouse ? Theme.mix(Theme.windoseSticker, Theme.windoseLavender, 0.24) : Theme.windoseSticker
         border.width: Math.max(1, Theme.u / 2)
         border.color: Theme.windoseLine
     }
@@ -110,7 +110,7 @@ Item {
         anchors.fill: parent
         anchors.margins: root.down ? Theme.u : 0
         radius: Theme.u * 2
-        color: root.danger ? Theme.danger : root.accent || root.checked ? Theme.streamLive : mouse.containsMouse ? Theme.mix(Theme.streamPanel, Theme.streamLive, 0.2) : Theme.streamPanel
+        color: root.danger ? (root.checked ? Qt.darker(Theme.danger, 1.4) : Theme.danger) : root.accent || root.checked ? Theme.streamLive : mouse.containsMouse ? Theme.mix(Theme.streamPanel, Theme.streamLive, 0.2) : Theme.streamPanel
         border.width: Math.max(1, Theme.u / 2)
         border.color: root.danger ? Theme.danger : Theme.streamLive
         Rectangle {

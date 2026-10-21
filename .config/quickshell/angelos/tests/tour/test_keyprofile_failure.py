@@ -28,4 +28,11 @@ with tempfile.TemporaryDirectory(prefix="aos-keyprofile-test-") as tmp:
     response = json.loads(result.stdout)
     assert result.returncode == 1 and response["error"] and response["profile"] == "macos", response
     assert "keybinds-macos.kdl" in (cfg / "keybinds.kdl").read_text()
+    # the first switch (no selector yet): the staged copy passes, the real config is refused
+    (cfg / "keybinds.kdl").unlink()
+    niri.write_text('#!/bin/sh\ncase "$3" in *angelos-keyprofile-*) exit 0;; esac\nexit 1\n')
+    result = subprocess.run(["python3", str(script), "apply", "macos"], env=env, capture_output=True, text=True)
+    response = json.loads(result.stdout)
+    assert result.returncode == 1 and response["error"] and response["profile"] != "macos", response
+    assert not (cfg / "keybinds.kdl").exists()
 print("TEST keyprofile-refused-keeps-pixel PASS")

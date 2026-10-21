@@ -33,7 +33,12 @@ Item {
         else if (top + tile > viewport.contentY + viewport.height)
             viewport.contentY = top + tile - viewport.height;
     }
-    onFlyingChanged: viewport.contentY = 0
+    onFlyingChanged: {
+        viewport.contentY = 0;
+        // back from a flyout: the tile it opened from in sight again
+        if (!flying)
+            Qt.callLater(() => ensureIndex(menu.current));
+    }
     function nav(e) {
         const n = list.length;
         let cur = flying ? menu.subCurrent : menu.current;

@@ -186,7 +186,8 @@ def apply(profile):
     # keybinds.py and workspace-anim.py edit the profiles under the same lock
     with (BACKUPS / ".anim.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        old = SELECTOR.read_text() if SELECTOR.exists() else ""
+        had = SELECTOR.exists()
+        old = SELECTOR.read_text() if had else ""
         made = init()
         new = selector_text(profile, old if current() else "")
         if old == new:
@@ -201,8 +202,11 @@ def apply(profile):
         try:
             validate(CONFIG)
         except Exception:
-            if old:
+            # back to what was there, a missing selector included (the first switch)
+            if had:
                 atomic_write(SELECTOR, old)
+            else:
+                SELECTOR.unlink(missing_ok=True)
             raise
         return {"profile": profile, "changed": True, "backup": str(folder), **made}
 
