@@ -39,7 +39,9 @@ Item {
         contentHeight: Math.max(height, root.fullHeight)
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        interactive: contentHeight > height
+        // Only the pills take clicks. Scrolling still works through the wheel handler,
+        // but the full-width viewport must not steal presses from the ring behind it.
+        interactive: false
         WheelHandler {
             onWheel: event => {
                 const dy = event.angleDelta.y || event.pixelDelta.y;

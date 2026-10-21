@@ -229,6 +229,13 @@ Scope {
                     const fly = testFly;
                     if (fly) {
                         const viewport = findItem(fly, it => it.contentY !== undefined && it.contentHeight !== undefined && it.clip);
+                        root.report("ring-overflow-keeps-ring-clickable", !!viewport && !viewport.interactive, viewport ? "interactive=" + viewport.interactive : "no viewport");
+                        if (viewport) {
+                            const wheel = Qt.createQmlObject("import QtTest; TestEvent {}", viewport);
+                            wheel.mouseWheel(viewport, viewport.width - 10, viewport.height / 2, Qt.NoButton, Qt.NoModifier, 0, -120, -1);
+                            wheel.destroy();
+                        }
+                        root.report("ring-overflow-wheel-scrolls", !!viewport && viewport.contentY > 0, viewport ? "scroll=" + viewport.contentY : "no viewport");
                         fly.ensureIndex(inMore.length - 1);
                         const last = findItem(fly, it => it.modelData && it.modelData.id === "extra:27" && it.width > 0);
                         const clickable = last ? findItem(last, it => it.cursorShape === Qt.PointingHandCursor) : null;
