@@ -19,56 +19,6 @@ Scope {
 
     property int step: 0
     property double since: Date.now()
-    property bool lastMouseRan: false
-    property var tilesRan: []
-    // the tiles look's «Ещё» with 32 extras in a 640×480 window: the panel stays on the screen,
-    // the wheel brings the last tile in and a real click runs it, the keys walk to it and run it
-    function checkTiles(scale) {
-        const r = ringLoader.item;
-        const t = testTiles;
-        const n = r.flyItems.length;
-        const lastId = "extra:31";
-        const panel = t.blurItem;
-        const viewport = findItem(panel, it => it.contentY !== undefined && it.contentHeight !== undefined && it.clip);
-        // corners in the window / in the viewport (half a pixel for the rounding)
-        const onScreen = it => {
-            const a = it.mapToItem(null, 0, 0), b = it.mapToItem(null, it.width, it.height);
-            return a.x >= -0.5 && a.y >= -0.5 && b.x <= 640.5 && b.y <= 480.5;
-        };
-        const tileOf = () => findItem(panel, it => it.modelData && it.modelData.id === lastId && it.width > 0);
-        const inView = it => {
-            const p = it.mapToItem(viewport, 0, 0);
-            return p.y >= -0.5 && p.y + it.height <= viewport.height + 0.5;
-        };
-        root.report("tiles-" + scale + "-panel-on-screen", n >= 30 && onScreen(panel), "items=" + n + " cols=" + t.cols + " panel=" + panel.x + "," + panel.y + " " + panel.width + "×" + panel.height);
-        if (!viewport) {
-            root.report("tiles-" + scale + "-scrolls", false, "no viewport");
-            return;
-        }
-        // the mouse: the wheel over the tiles to the bottom, then a click where the last tile is
-        const ev = Qt.createQmlObject("import QtTest; TestEvent {}", viewport);
-        for (let i = 0; i < 60 && viewport.contentY < viewport.contentHeight - viewport.height; i++)
-            ev.mouseWheel(viewport, viewport.width / 2, viewport.height / 2, Qt.NoButton, Qt.NoModifier, 0, -120, -1);
-        root.report("tiles-" + scale + "-wheel-scrolls", viewport.contentY > 0 && viewport.contentY + viewport.height >= viewport.contentHeight, "scroll=" + viewport.contentY + " viewport=" + viewport.height + " content=" + viewport.contentHeight);
-        let last = tileOf();
-        const shown = !!last && onScreen(last) && inView(last);
-        root.tilesRan = [];
-        if (shown)
-            ev.mouseClick(last, last.width / 2, last.height / 2, Qt.LeftButton, Qt.NoModifier, -1);
-        root.report("tiles-" + scale + "-last-mouse-runs", shown && root.tilesRan.length === 1 && root.tilesRan[0] === 31, "shown=" + shown + " ran=" + root.tilesRan.join(","));
-        // the keys: from the first tile (scrolled back up) down and right to the last, Enter runs it
-        r.subCurrent = -1;
-        t.nav({key: Qt.Key_Right});
-        const fromTop = r.subCurrent === 0 && viewport.contentY === 0;
-        for (let i = 0; i < n && r.subCurrent < n - 1; i++)
-            t.nav({key: r.subCurrent + t.cols < n ? Qt.Key_Down : Qt.Key_Right});
-        last = tileOf();
-        const keyShown = r.subCurrent === n - 1 && !!last && onScreen(last) && inView(last);
-        root.tilesRan = [];
-        t.nav({key: Qt.Key_Return});
-        root.report("tiles-" + scale + "-last-keyboard-runs", fromTop && keyShown && root.tilesRan.length === 1 && root.tilesRan[0] === 31, "fromTop=" + fromTop + " shown=" + keyShown + " sub=" + r.subCurrent + " scroll=" + viewport.contentY + " ran=" + root.tilesRan.join(","));
-        ev.destroy();
-    }
     function report(name, ok, detail) {
         console.log("TEST " + name + " " + (ok ? "PASS" : "FAIL") + " " + (detail === undefined ? "" : detail));
     }
@@ -240,11 +190,22 @@ Scope {
                 break;
             case 6:
                 {
-                    // the ring with the default entries: nothing moves into «Ещё» (no plugins: no «Ещё» at all)
-                    const r = ringLoader.item;
-                    const want = DeskMenu.quick.concat(DeskMenu.items.filter(id => id !== "sep" && id !== "more" && !DeskMenu.quick.includes(id)));
-                    root.report("ring-default-fits", !(r.overflow || []).length && JSON.stringify(r.slots) === JSON.stringify(want), r.slots.join(","));
-                    // 5 quick + 12 more (4 flyouts, a custom command last): 17, one past the ring
+                    // the menus' layouts: the owner's defaults, the limits, what suits each target
+                    const d = DeskMenu.layout("desktop");
+                    root.report("menu-desktop-defaults", JSON.stringify(d) === JSON.stringify(DeskMenu.defaults.desktop), JSON.stringify(d));
+                    root.report("menu-ring-default", JSON.stringify(DeskMenu.ring) === JSON.stringify(DeskMenu.ringDefault) && DeskMenu.ring.length === 8, DeskMenu.ring.join(","));
+                    Config.desktop.menuQuick = ["terminal", "files", "minimize", "sep", "terminal", "monitor", "note", "record", "lock", "start"];
+                    Config.desktop.menuItems = ["note", "sep", "sep", "kill", "a", "b", "addWidget", "lock", "start", "session", "settings", "launcher", "files", "halo"];
+                    const l = DeskMenu.layout("desktop");
+                    root.report("menu-limits", l.quick.length === 6 && !l.quick.includes("minimize") && !l.quick.includes("sep") && l.quick.filter(x => x === "terminal").length === 1 && l.items.length === 8 && !l.items.includes("kill"), JSON.stringify(l));
+                    root.report("menu-targets-own", DeskMenu.known("minimize", "task") && !DeskMenu.known("minimize", "desktop") && DeskMenu.catalog("panel").includes("autoHide") && !DeskMenu.catalog("widget").includes("terminal"), DeskMenu.catalog("panel").join(","));
+                    const m = DeskMenu.menu("panel", {
+                        "screen": ""
+                    });
+                    const last = m.items[m.items.length - 1];
+                    root.report("menu-customize-last", m.quick.length === 3 && !!last && !!last.run && m.items[m.items.length - 2].separator === true, JSON.stringify(m.items.map(x => x.label || "—")));
+                    DeskMenu.resetLayout("desktop");
+                    // an old layout (with the flyouts) starts from the new defaults, the own entries kept
                     Config.desktop.menuCustom = [{
                             "id": "custom:1",
                             "label": "F06",
@@ -253,112 +214,55 @@ Scope {
                             "target": "touch \"$HOME/f06-ran\""
                         }];
                     Config.desktop.menuQuick = ["terminal", "files", "monitor", "wallpaperPick", "settings"];
-                    Config.desktop.menuItems = ["view", "new", "wallpaper", "open", "sep", "displaySettings", "personalize", "more", "record", "clipboard", "launcher", "note", "nextWallpaper", "custom:1"];
+                    Config.desktop.menuItems = ["view", "new", "wallpaper", "open", "sep", "displaySettings", "personalize", "more", "custom:1"];
+                    Config.desktop.menuStyle = "tiles";
+                    Config._migrate();
+                    root.report("menu-migrated", JSON.stringify(Config.desktop.menuQuick) === JSON.stringify(DeskMenu.defaults.desktop.quick) && JSON.stringify(Config.desktop.menuItems) === JSON.stringify(DeskMenu.defaults.desktop.items.concat(["custom:1"])) && Config.desktop.menuStyle === "list", JSON.stringify(Config.desktop.menuItems) + " " + Config.desktop.menuStyle);
+                    deskWin.visible = true;
                 }
                 root.next();
                 break;
             case 7:
+                if (Date.now() - root.since < 300)
+                    return;
                 {
+                    // the middle button's ring: eight directions, a flick picks one, let go in the
+                    // middle and it stays
                     const r = ringLoader.item;
-                    const all = DeskMenu.quick.concat(DeskMenu.items.filter(id => id !== "sep" && id !== "more"));
-                    Config.appearance.px = 4;
-                    Config.desktop.menuSize = "large";
-                    deskWin.visible = true;
-                    noList.moreItems = Array.from({length: 28}, (_, i) => ({
-                        "id": "extra:" + i,
-                        "label": "Extra " + i,
-                        "run": () => { if (i === 27) root.lastMouseRan = true; },
-                        "keepOpen": true
-                    }));
-                    r.fly = "more";
-                    const inMore = r.flyItems.map(x => x.id);
-                    const lost = all.filter(id => !r.slots.includes(id) && !inMore.includes(id));
-                    root.report("ring-overflow-reachable", all.length === 17 && r.slots.length <= 16 && r.slots.includes("more") && lost.length === 0, "slots=" + r.slots.length + " " + r.slots.join(",") + " more=" + inMore.join(",") + " lost=" + lost.join(","));
-                    root.report("ring-overflow-custom-in-more", inMore.includes("custom:1") && !r.slots.includes("custom:1") && ["view", "new", "wallpaper", "open"].every(id => r.slots.includes(id)), inMore.join(","));
-                    const fly = testFly;
-                    if (fly) {
-                        const viewport = findItem(fly, it => it.contentY !== undefined && it.contentHeight !== undefined && it.clip);
-                        root.report("ring-overflow-keeps-ring-clickable", !!viewport && !viewport.interactive, viewport ? "interactive=" + viewport.interactive : "no viewport");
-                        if (viewport) {
-                            const wheel = Qt.createQmlObject("import QtTest; TestEvent {}", viewport);
-                            wheel.mouseWheel(viewport, viewport.width - 10, viewport.height / 2, Qt.NoButton, Qt.NoModifier, 0, -120, -1);
-                            wheel.destroy();
-                        }
-                        root.report("ring-overflow-wheel-scrolls", !!viewport && viewport.contentY > 0, viewport ? "scroll=" + viewport.contentY : "no viewport");
-                        fly.ensureIndex(inMore.length - 1);
-                        const last = findItem(fly, it => it.modelData && it.modelData.id === "extra:27" && it.width > 0);
-                        const clickable = last ? findItem(last, it => it.cursorShape === Qt.PointingHandCursor) : null;
-                        const mouseReachable = !!viewport && !!last && !!clickable && last.y - viewport.contentY >= 0 && last.y - viewport.contentY + last.height <= viewport.height;
-                        if (mouseReachable) {
-                            const event = Qt.createQmlObject("import QtTest; TestEvent {}", clickable);
-                            event.mouseClick(clickable, clickable.width / 2, clickable.height / 2, Qt.LeftButton, Qt.NoModifier, -1);
-                            event.destroy();
-                        }
-                        root.report("ring-overflow-last-mouse-runs", root.lastMouseRan, "last=" + inMore[inMore.length - 1]);
-                        r.subCurrent = 0;
-                        const firstVisible = viewport && viewport.contentY === 0;
-                        for (let i = 1; i < inMore.length; i++)
-                            r.walk({key: Qt.Key_Down});
-                        root.report("ring-overflow-last-mouse-visible", mouseReachable, last && viewport ? "y=" + last.y + " viewport=" + viewport.height + " px=" + Theme.u : "no last row");
-                        root.report("ring-overflow-last-keyboard-scrolls", !!viewport && firstVisible && r.subCurrent === inMore.length - 1 && viewport.contentY > 0 && viewport.contentY + viewport.height >= viewport.contentHeight, viewport ? "scroll=" + viewport.contentY + " viewport=" + viewport.height + " content=" + viewport.contentHeight : "no viewport");
-                    } else {
-                        root.report("ring-overflow-last-mouse-visible", false, "no scroll viewport");
-                        root.report("ring-overflow-last-keyboard-scrolls", false, "no scroll viewport");
-                    }
-                    // it runs what the list menu runs (DeskMenu.run → the custom command: a file in the test's HOME)
-                    r.activateSub(inMore.indexOf("custom:1"));
-                    Config.appearance.px = 2;
-                    Config.desktop.menuSize = "normal";
+                    DeskMenu.setRing(6, "custom:1");
+                    r.openRing(320, 240);
+                    root.report("ring-eight", r.ringMode && r.look === "ring" && r.slots.length === 8 && r.slots[6] === "custom:1", r.slots.join(","));
+                    root.report("ring-sectors", r.sector(320, 140) === 0 && r.sector(420, 240) === 2 && r.sector(320, 340) === 4 && r.sector(220, 240) === 6 && r.sector(390, 170) === 1 && r.sector(324, 244) === -1, [r.sector(320, 140), r.sector(420, 240), r.sector(320, 340), r.sector(220, 240), r.sector(390, 170), r.sector(324, 244)].join(","));
+                    r.aim(322, 242);
+                    r.release(322, 242);
+                    root.report("ring-stays-in-middle", r.visible && !r.armed && r.current === -1, "visible=" + r.visible + " armed=" + r.armed);
+                    r.close();
+                    r.openRing(320, 240);
+                    r.aim(250, 238);
+                    const aimed = r.current;
+                    r.release(200, 240);
+                    root.report("ring-flick-runs", aimed === 6 && !r.visible, "aimed=" + aimed + " visible=" + r.visible);
+                    // the right-click menu's own looks take the desktop's entries, no ring
+                    r.openAt(320, 240);
+                    root.report("overlay-desktop-entries", !r.ringMode && r.slots[0] === DeskMenu.layout("desktop").quick[0], r.slots.join(","));
+                    r.close();
+                    Config.menus.ring = [];
                     deskWin.visible = false;
                 }
                 root.next();
                 break;
             case 8:
-                {
-                    // the tiles look, normal size: 32 extras in «Ещё»
-                    noList.moreItems = Array.from({length: 32}, (_, i) => ({
-                        "id": "extra:" + i,
-                        "label": "Extra " + i,
-                        "run": () => root.tilesRan = root.tilesRan.concat([i]),
-                        "keepOpen": true
-                    }));
-                    ringLoader.item.cx = 600;
-                    ringLoader.item.cy = 400;
-                    ringLoader.item.fly = "more";
-                    tilesWin.visible = true;
-                }
-                root.next();
-                break;
-            case 9:
-                if (Date.now() - root.since < 400)
-                    return;
-                root.checkTiles("normal");
-                // …and a big UI
-                Config.appearance.px = 4;
-                Config.desktop.menuSize = "large";
-                root.next();
-                break;
-            case 10:
-                if (Date.now() - root.since < 400)
-                    return;
-                root.checkTiles("large");
-                Config.appearance.px = 2;
-                Config.desktop.menuSize = "normal";
-                tilesWin.visible = false;
-                root.next();
-                break;
-            case 11:
                 if (Date.now() - root.since < 600)
                     return;
                 ranCheck.running = true;
                 root.next();
                 break;
-            case 12:
+            case 9:
                 if (ranCheck.running || ranCheck.code < 0) {
                     if (Date.now() - root.since < 3000)
                         return;
                 }
-                root.report("ring-overflow-runs", ranCheck.code === 0, "test -e exit " + ranCheck.code);
+                root.report("ring-flick-ran-custom", ranCheck.code === 0, "test -e exit " + ranCheck.code);
                 console.log("TEST DONE");
                 Qt.quit();
                 root.next();
@@ -367,40 +271,17 @@ Scope {
         }
     }
 
-    // the ring's host (modules/background/RadialMenu), built hidden; the list menu only lends its
-    // plugin entries (none here)
+    // the ring's host (modules/background/RadialMenu), in a window shown for its step
     FloatingWindow {
         id: deskWin
         visible: false
         implicitWidth: 640
         implicitHeight: 480
-        FlyColumn {
-            id: testFly
-            menu: ringLoader.item
-        }
-    }
-    FloatingWindow {
-        id: tilesWin
-        visible: false
-        implicitWidth: 640
-        implicitHeight: 480
-        TilesLook {
-            id: testTiles
-            menu: ringLoader.item
-        }
-    }
-    QtObject {
-        id: noList
-        property var moreItems: []
-        function listFor(name) {
-            return name === "more" ? moreItems : [];
-        }
     }
     Loader {
         id: ringLoader
         sourceComponent: RadialMenu {
             parentWindow: deskWin
-            listMenu: noList
         }
     }
     Process {

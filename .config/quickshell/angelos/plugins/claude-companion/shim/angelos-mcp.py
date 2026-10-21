@@ -458,7 +458,7 @@ TOOLS = {
         lambda a: sh(["playerctl", "metadata", "--format", "{{artist}} - {{title}}"]),
     ),
     "get_shell_state": (
-        "angelOS shell state (theme, bar style, lyrics, plugins, screens) as JSON.",
+        "angelOS shell state (theme, bar edge, lyrics, plugins, screens) as JSON.",
         {},
         lambda a: sh(["qs", "-c", "angelos", "ipc", "call", "angelos", "status"]),
     ),

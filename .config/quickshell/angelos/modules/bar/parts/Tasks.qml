@@ -9,15 +9,12 @@ import qs.widgets
 // Titles show while every button still gets a readable width; when the windows
 // reach the lyrics or other widgets the row turns into icons, and when even the
 // icons don't fit it scrolls (mouse wheel, arrows at the edges).
-// The dock (`dock`): bare icons on the shelf that grow under the pointer and hop when
-// their window opens or is clicked, a dot under the focused one.
 Item {
     id: root
 
     required property string screenName
-    property bool iconsOnly: false         // compact / island bars, or titles switched off
+    property bool iconsOnly: false         // a compact bar, or titles switched off
     property bool above: true              // the window menu opens above a bottom bar
-    property bool dock: false              // the dock's icons (BarItem: style "dock")
     // a taskbar on the left or the right edge (BarItem): a column of icons, as wide as the bar,
     // scrolling up and down once there are more than fit
     property bool vertical: false
@@ -25,8 +22,6 @@ Item {
     // the hell bar (BarItem): flat buttons with the one plate rule, the focused window's the
     // active plate, app icons in the circle's ramp
     property bool barInk: false
-    // the pointer along the row, for the dock's magnification
-    readonly property real pointerX: dockHover.hovered ? dockHover.point.position.x + flick.contentX : -1e6
     readonly property var ws: Niri.activeWorkspace(screenName)
     // the windows of the desktop in front, and the ones minimized on this screen (dimmed, a click
     // brings one back — as Windows' taskbar keeps them); not an app hidden whole (⌘H)
@@ -51,11 +46,7 @@ Item {
     readonly property real naturalWidth: count * (iconsOnly ? iconWidth : maxW) + Math.max(0, count - 1) * spacing
     readonly property real naturalHeight: colHeight
 
-    clip: !dock || overflow
-    HoverHandler {
-        id: dockHover
-        enabled: root.dock
-    }
+    clip: true
 
     function scrollBy(dx) {
         if (vertical)
@@ -79,13 +70,6 @@ Item {
             scrollBy(x1 - flick.contentX - flick.width + Theme.u * 8);
     }
     onListChanged: Qt.callLater(reveal)
-    // the buttons that are there at start don't hop, the windows opened later do
-    property bool ready: false
-    Timer {
-        interval: 1500
-        running: true
-        onTriggered: root.ready = true
-    }
     onOverflowChanged: if (!overflow) {
         flick.contentX = 0;
         flick.contentY = 0;
@@ -126,41 +110,15 @@ Item {
                 PxButton {
                     id: btn
                     required property var modelData
-                    required property int index
                     width: root.buttonWidth
                     height: root.vertical ? root.cellH : flick.height
-                    flat: root.dock
                     barInk: root.barInk
-                    checked: modelData.is_focused && !root.dock
-                    // the dock: grows with the pointer near, up to 1.5×, from its foot
-                    readonly property real centreX: index * (root.buttonWidth + root.spacing) + root.buttonWidth / 2
-                    readonly property real near: root.dock ? Math.max(0, 1 - Math.abs(root.pointerX - centreX) / (root.buttonWidth * 2.4)) : 0
-                    readonly property real grow: 1 + 0.5 * near * near
-                    property real hop: 0
+                    checked: modelData.is_focused
                     // the pointer anywhere on the button, × included: the ×'s own MouseArea takes the
                     // hover from btn.hovered (a sibling), and hiding the × on that made it flicker
                     HoverHandler {
                         id: over
                     }
-                    SequentialAnimation {
-                        id: hopper
-                        NumberAnimation {
-                            target: btn
-                            property: "hop"
-                            to: Theme.u * 7
-                            duration: Motion.ms(150)
-                            easing.type: Easing.OutQuad
-                        }
-                        NumberAnimation {
-                            target: btn
-                            property: "hop"
-                            to: 0
-                            duration: Motion.ms(210)
-                            easing.type: Easing.OutBounce
-                        }
-                    }
-                    Component.onCompleted: if (root.dock && root.ready)
-                        hopper.restart()
                     middleButton: true
                     readonly property bool minimized: Minimize.isMinimized(modelData)
                     opacity: minimized ? 0.5 : 1
@@ -169,8 +127,6 @@ Item {
                             Minimize.restore(modelData.id);
                         else
                             Niri.focusWindow(modelData.id);
-                        if (root.dock)
-                            hopper.restart();
                     }
                     onMiddleClicked: if (Config.bar.taskMiddleClose)
                         Niri.closeWindow(modelData.id)
@@ -184,31 +140,13 @@ Item {
 
                     AppIcon {
                         id: ico
-                        x: (root.labels ? Theme.u * 4 : (btn.width - width) / 2) + (btn.down && !root.dock && !root.barInk ? Theme.u : 0)
+                        x: (root.labels ? Theme.u * 4 : (btn.width - width) / 2) + (btn.down && !root.barInk ? Theme.u : 0)
                         anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                        anchors.verticalCenterOffset: (btn.down && !root.dock && !root.barInk ? Theme.u : 0) - (root.dock ? Theme.u + btn.hop : 0)
+                        anchors.verticalCenterOffset: btn.down && !root.barInk ? Theme.u : 0
                         appId: btn.modelData.app_id || ""
-                        size: root.labels ? Theme.u * 8 : Math.max(Theme.u * 8, btn.height - Theme.u * (root.dock ? 7 : 6))
+                        size: root.labels ? Theme.u * 8 : Math.max(Theme.u * 8, btn.height - Theme.u * 6)
                         tint: Config.bar.tintTasks && !btn.modelData.is_focused ? Config.bar.trayTint : "off"
                         hellBar: root.barInk
-                        scale: btn.grow
-                        transformOrigin: Item.Bottom
-                        Behavior on scale {
-                            enabled: root.dock
-                            NumberAnimation {
-                                duration: Motion.ms(90)
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-                    }
-                    // the dock: a dot under the focused window
-                    Rectangle {
-                        visible: root.dock && btn.modelData.is_focused
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: btn.height - Theme.u * 2
-                        width: Theme.u * 2
-                        height: Theme.u * 2
-                        color: btn.modelData.is_urgent ? Theme.danger : Theme.accent
                     }
                     PxText {
                         visible: root.labels
@@ -228,8 +166,8 @@ Item {
                         ids: [btn.modelData.id]
                         hovered: over.hovered
                         pixel: Math.max(1, Math.round(Theme.u / 2))
-                        x: btn.width - width - (root.dock ? Theme.u * 2 : Theme.u)
-                        y: root.dock ? Theme.u - btn.hop : Theme.u
+                        x: btn.width - width - Theme.u
+                        y: Theme.u
                     }
                     // × on hover (Settings → Bar → Closing windows)
                     Rectangle {

@@ -18,8 +18,8 @@ FloatingWindow {
     title: Shell.appTitle + " · " + I18n.t("Настройки", "Settings") + (nav === Shell || !view.currentPage ? "" : " — " + view.currentPage.label)
     visible: nav.settingsOpen
     color: "transparent"
-    implicitWidth: 1040
-    implicitHeight: 740
+    implicitWidth: 1180
+    implicitHeight: 780
     minimumSize: Qt.size(720, 480)
     onClosed: nav.settingsOpen = false
     onVisibleChanged: if (!visible)

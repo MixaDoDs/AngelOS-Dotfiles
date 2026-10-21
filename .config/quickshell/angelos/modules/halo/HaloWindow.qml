@@ -241,6 +241,13 @@ PanelWindow {
     readonly property bool closing: closer.running
     // room round the open card where the pointer still counts as on it (no slip closes it)
     readonly property int slack: expanded ? u * 10 : u * 4
+    Connections {
+        target: Halo
+        function onOpenAsked(screen) {
+            if (screen === win.modelData.name)
+                win.openOn("");
+        }
+    }
     // a notification (any short event) stays while its card is open
     Binding {
         when: !!win.main && win.main === Halo.flash && (win.expanded || hover.hovered)

@@ -7,73 +7,42 @@ import qs.services
 import qs.widgets
 import qs.modules.settings
 
-// Settings → Menus: the look of every pixel menu (services/MenuLook) and of one menu on its
-// own, Start's buttons, then the right-click menu on the wallpaper (services/DeskMenu): the
-// ring or the list, what it holds, in which order, and the user's own entries.
+// Settings → Personalization → Right-click menu (services/DeskMenu): what each target's menu
+// holds — the desktop, the bar, a window's button, a widget — its row of icons and its short
+// list, with a picture of it; the middle button's ring; the plugins' entries; the desktop
+// menu's look and the user's own entries. (Start's buttons are a group here, shown on Start.)
 PxPage {
     id: page
 
-    heading: I18n.t("Меню", "Menus")
-    subtitle: I18n.t("Как выглядят меню по правой кнопке — на столе, у виджетов, на панели, в трее и у Нимба. Ниже — кнопки «Пуска» и меню рабочего стола: что в нём и в каком порядке.", "How the right-click menus look: on the desktop, on widgets, on the bar, in the tray and on the Halo. Below: Start's buttons and the desktop menu, what it holds and in which order.")
+    heading: I18n.t("Меню ПКМ", "Right-click menu")
+    subtitle: I18n.t("У каждой цели своё меню: сверху ряд частых действий значками, ниже короткий список. Средняя кнопка на столе — кольцо из восьми направлений.", "Every target has its own menu: a row of everyday actions as icons on top, a short list under it. The middle button on the desktop: a ring of eight directions.")
 
-    // a few entries of every kind a menu has, for the look previews
-    readonly property var demo: [
-        {
-            "label": I18n.t("Открыть", "Open"),
-            "icon": "folder",
-            "keys": "Enter"
-        },
-        {
-            "label": I18n.t("Закрепить", "Pin"),
-            "icon": "star",
-            "checkable": true,
-            "checked": true
-        },
-        {
-            "label": I18n.t("Обои", "Wallpaper"),
-            "icon": "image",
-            "children": [
-                {
-                    "label": "…"
-                }
-            ]
-        },
-        {
-            "separator": true
-        },
-        {
-            "label": I18n.t("Настройки", "Settings"),
-            "icon": "gear",
-            "keys": ["Mod", "I"]
-        }
-    ]
-    readonly property var kindNames: ({
-            "desktop": I18n.t("Рабочий стол", "Desktop"),
-            "widget": I18n.t("Виджет", "Widget"),
-            "panel": I18n.t("Панель", "Bar"),
-            "task": I18n.t("Кнопка задачи", "Task button"),
-            "tray": I18n.t("Трей", "Tray"),
-            "halo": I18n.t("Нимб", "Halo")
-        })
-    // Config.menus.per is one object: a new one, so the change is saved
-    function setPer(kind, look) {
-        const m = Object.assign({}, Config.menus.per || {});
-        m[kind] = look;
-        Config.menus.per = m;
-    }
-
-    readonly property var quick: Config.desktop.menuQuick || []
-    readonly property var entryIds: Config.desktop.menuItems || []
+    readonly property string target: DeskMenu.targets.includes(DeskMenu.editTarget) ? DeskMenu.editTarget : "desktop"
+    readonly property var layout: DeskMenu.layout(target)
     function label(id) {
         const e = DeskMenu.entry(id);
         return e ? e.label : id;
     }
-    function options(exclude, allowSep) {
-        return DeskMenu.catalog.concat(DeskMenu.custom.map(c => c.id)).filter(id => (allowSep && id === "sep") || !exclude.includes(id)).filter(id => allowSep || id !== "sep").map(id => ({
+    // what may be added: the target's entries not there yet (a line as often as wanted)
+    function options(target, exclude, allowSep) {
+        return DeskMenu.catalog(target).filter(id => id === "sep" ? allowSep : !exclude.includes(id)).map(id => ({
                     "label": page.label(id),
                     "value": id,
                     "icon": (DeskMenu.entry(id) || {}).icon
                 }));
+    }
+    // the picture: the menu's own rows, nothing runs
+    function shown(id) {
+        if (id === "sep")
+            return {
+                "separator": true
+            };
+        const e = DeskMenu.entry(id) || {};
+        return {
+            "label": e.label || id,
+            "short": e.short || e.label || id,
+            "icon": e.icon || "heart"
+        };
     }
     function openMenu() {
         const s = Shell.focusedScreen;
@@ -83,119 +52,278 @@ PxPage {
     }
 
     PxGroup {
-        name: "menu-look"
-        title: I18n.t("Облик меню для всех", "Menu look for all")
-        icon: "palette"
+        name: "targets"
+        title: I18n.t("Что в меню", "What the menu holds")
+        icon: "grid"
         width: parent.width
+        SettingRow {
+            label: I18n.t("Меню", "Menu")
+            PxSegmented {
+                model: DeskMenu.targets.map(t => ({
+                            "label": DeskMenu.targetLabel(t),
+                            "value": t
+                        }))
+                currentValue: page.target
+                onActivated: v => DeskMenu.editTarget = v
+            }
+        }
+        // how it looks now
+        PxMenuList {
+            focus: false
+            anchors.horizontalCenter: parent.horizontalCenter
+            quick: page.layout.quick.map(page.shown)
+            items: page.layout.items.map(page.shown).concat([
+                {
+                    "separator": true
+                },
+                {
+                    "label": I18n.t("Настроить меню…", "Customize the menu…"),
+                    "icon": "gear"
+                }
+            ])
+            minWidth: MenuLook.minWidth
+            // a picture: its rows don't take the click or the hover
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+            }
+        }
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Один облик на все меню по правой кнопке. Отдельному меню можно дать свой — ниже.", "One look for every right-click menu. One menu can get its own below.")
+            text: I18n.t("Значки сверху — до %1, список — до %2 пунктов. Пункт, которому нечего делать (один монитор, окно без процесса), в меню не показывается.", "Icons on top: up to %1; the list: up to %2 entries. An entry with nothing to do there (one monitor, a window without a process) is left out.").arg(DeskMenu.quickMax).arg(DeskMenu.itemsMax)
+        }
+        // the row of icons
+        PxText {
+            text: I18n.t("Значки сверху", "Icons on top")
+            font.bold: true
         }
         Flow {
             width: parent.width
-            spacing: Theme.u * 4
+            spacing: Theme.u * 3
             Repeater {
-                model: MenuLook.looks
-                PxButton {
-                    id: lookCard
+                model: page.layout.quick
+                PxBox {
+                    id: chip
                     required property string modelData
-                    width: preview.width + Theme.u * 8
-                    height: preview.height + lookName.implicitHeight + Theme.u * 10
-                    checked: (Config.menus.look || "classic") === modelData
-                    onClicked: Config.menus.look = modelData
-                    PxMenuList {
-                        id: preview
-                        x: Theme.u * 4
-                        y: Theme.u * 4
-                        focus: false
-                        look: lookCard.modelData
-                        title: I18n.t("Рабочий стол", "Desktop")
-                        items: page.demo
-                        current: 1
-                        minWidth: Theme.u * 96
-                        maxWidth: Theme.u * 120
+                    required property int index
+                    width: chipRow.implicitWidth + Theme.u * 6
+                    height: chipRow.implicitHeight + Theme.u * 4
+                    color: Theme.mix(Theme.face, Theme.accent, 0.12)
+                    Row {
+                        id: chipRow
+                        anchors.centerIn: parent
+                        spacing: Theme.u * 2
+                        PxIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            name: (DeskMenu.entry(chip.modelData) || {}).icon || "heart"
+                        }
+                        PxText {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: page.label(chip.modelData)
+                        }
+                        PxButton {
+                            compact: true
+                            icon: "arrowLeft"
+                            enabled: chip.index > 0
+                            onClicked: DeskMenu.setLayout(page.target, "quick", DeskMenu.moved(page.layout.quick, chip.modelData, -1))
+                        }
+                        PxButton {
+                            compact: true
+                            icon: "arrowRight"
+                            enabled: chip.index < page.layout.quick.length - 1
+                            onClicked: DeskMenu.setLayout(page.target, "quick", DeskMenu.moved(page.layout.quick, chip.modelData, 1))
+                        }
+                        PxButton {
+                            compact: true
+                            icon: "close"
+                            onClicked: DeskMenu.setLayout(page.target, "quick", page.layout.quick.filter(x => x !== chip.modelData))
+                        }
                     }
-                    // the preview is a picture: its rows don't take the click or the hover
-                    MouseArea {
-                        anchors.fill: preview
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: Config.menus.look = lookCard.modelData
+                }
+            }
+        }
+        PxCombo {
+            visible: page.layout.quick.length < DeskMenu.quickMax
+            width: Math.min(parent.width, Theme.u * 140)
+            placeholder: I18n.t("+ добавить значок…", "+ add an icon…")
+            model: page.options(page.target, page.layout.quick, false)
+            currentValue: ""
+            onActivated: v => DeskMenu.setLayout(page.target, "quick", page.layout.quick.concat([v]))
+        }
+        // the list
+        PxText {
+            text: I18n.t("Список", "The list")
+            font.bold: true
+        }
+        Column {
+            width: parent.width
+            spacing: Theme.u * 2
+            Repeater {
+                model: page.layout.items
+                PxBox {
+                    id: row
+                    required property string modelData
+                    required property int index
+                    width: parent.width
+                    height: Theme.u * 16
+                    sunken: true
+                    color: Qt.alpha(Theme.sunken, 0.5)
+                    function moveTo(j) {
+                        const l = page.layout.items.slice();
+                        l.splice(row.index, 1);
+                        if (j >= 0)
+                            l.splice(j, 0, row.modelData);
+                        DeskMenu.setLayout(page.target, "items", l);
+                    }
+                    PxIcon {
+                        id: rowIcon
+                        x: Theme.u * 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: (DeskMenu.entry(row.modelData) || {}).icon || "heart"
                     }
                     PxText {
-                        id: lookName
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.bottom: parent.bottom
-                        anchors.bottomMargin: Theme.u * 3
-                        kind: "tiny"
-                        font.bold: lookCard.checked
-                        text: (lookCard.checked ? "♡ " : "") + MenuLook.lookLabel(lookCard.modelData)
+                        anchors.left: rowIcon.right
+                        anchors.leftMargin: Theme.u * 4
+                        anchors.right: rowButtons.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        elide: Text.ElideRight
+                        text: page.label(row.modelData)
+                        dim: row.modelData === "sep"
+                    }
+                    Row {
+                        id: rowButtons
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.u * 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.u * 2
+                        PxButton {
+                            compact: true
+                            icon: "arrowUp"
+                            enabled: row.index > 0
+                            onClicked: row.moveTo(row.index - 1)
+                        }
+                        PxButton {
+                            compact: true
+                            icon: "arrowDown"
+                            enabled: row.index < page.layout.items.length - 1
+                            onClicked: row.moveTo(row.index + 1)
+                        }
+                        PxButton {
+                            compact: true
+                            icon: "close"
+                            onClicked: row.moveTo(-1)
+                        }
                     }
                 }
             }
         }
-    }
-
-    PxGroup {
-        name: "menu-per"
-        title: I18n.t("Своё для отдельного меню", "Own look for one menu")
-        icon: "layers"
-        width: parent.width
-        Repeater {
-            model: MenuLook.kinds
-            SettingRow {
-                id: kindRow
-                required property string modelData
-                label: page.kindNames[modelData] || modelData
-                // the desktop's Y2K style wears its own gloss whatever is picked here
-                hint: MenuLook.lookFor(modelData) === "y2k" ? I18n.t("сейчас глянец Y2K — его включает стиль меню рабочего стола", "Y2K gloss now: the desktop menu's style turns it on") : ""
-                PxSegmented {
-                    model: [
-                        {
-                            "label": I18n.t("Как у всех", "As all"),
-                            "value": ""
-                        }
-                    ].concat(MenuLook.looks.map(l => ({
-                                "label": MenuLook.lookLabel(l),
-                                "value": l
-                            })))
-                    currentValue: (Config.menus.per || {})[kindRow.modelData] || ""
-                    onActivated: v => page.setPer(kindRow.modelData, v)
-                }
+        PxCombo {
+            visible: page.layout.items.length < DeskMenu.itemsMax
+            width: Math.min(parent.width, Theme.u * 140)
+            placeholder: I18n.t("+ добавить пункт…", "+ add an entry…")
+            model: page.options(page.target, page.layout.items, true)
+            currentValue: ""
+            onActivated: v => DeskMenu.setLayout(page.target, "items", page.layout.items.concat([v]))
+        }
+        Row {
+            spacing: Theme.u * 4
+            PxButton {
+                compact: true
+                icon: "refresh"
+                text: I18n.t("Как было", "Reset")
+                onClicked: DeskMenu.resetLayout(page.target)
+            }
+            PxButton {
+                visible: page.target === "desktop"
+                compact: true
+                icon: "sparkle"
+                text: I18n.t("Открыть меню", "Open the menu")
+                onClicked: page.openMenu()
             }
         }
     }
 
     PxGroup {
-        name: "start-buttons"
-        title: I18n.t("Кнопки «Пуска»", "Start buttons")
-        icon: "power"
+        name: "ring"
+        title: I18n.t("Кольцо на средней кнопке", "The ring on the middle button")
+        icon: "sparkle"
         width: parent.width
-        StartButtonsEditor {
-            width: parent.width
-        }
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
-            kind: "tiny"
             dim: true
-            text: I18n.t("Размер и вид самого «Пуска» — на странице «Пуск», в «Тонкой настройке».", "Start's own size and look are on the Start page, under fine-tuning.")
+            text: I18n.t("Зажми среднюю кнопку на столе, махни в сторону и отпусти — сработает то, что там. Отпустишь на месте — кольцо останется, можно кликнуть.", "Hold the middle button on the desktop, flick a way and let go: what is there runs. Let go where you are: the ring stays for a click.")
+        }
+        Repeater {
+            model: 8
+            SettingRow {
+                id: dir
+                required property int index
+                label: ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"][index] + "  " + [I18n.t("вверх", "up"), I18n.t("вверх-вправо", "up-right"), I18n.t("вправо", "right"), I18n.t("вниз-вправо", "down-right"), I18n.t("вниз", "down"), I18n.t("вниз-влево", "down-left"), I18n.t("влево", "left"), I18n.t("вверх-влево", "up-left")][index]
+                PxCombo {
+                    width: Math.min(parent.width, Theme.u * 120)
+                    model: page.options("ring", [], false)
+                    currentValue: DeskMenu.ring[dir.index]
+                    onActivated: v => DeskMenu.setRing(dir.index, v)
+                }
+            }
+        }
+        PxButton {
+            compact: true
+            icon: "refresh"
+            text: I18n.t("Как было", "Reset")
+            onClicked: Config.menus.ring = []
+        }
+    }
+
+    PxGroup {
+        id: pluginGroup
+        name: "plugins"
+        title: I18n.t("Пункты плагинов", "Plugins' entries")
+        icon: "plug"
+        width: parent.width
+        readonly property var comps: Plugins.menuComponents.map(p => ({
+                    "key": p.id + ":menu",
+                    "label": p.name || p.id,
+                    "hint": p.id
+                }))
+        readonly property var rows: DeskMenu.pluginEntries.map(e => ({
+                    "key": e.key,
+                    "label": I18n.label(e.label || "?"),
+                    "hint": e.plugin
+                })).concat(comps)
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: pluginGroup.rows.length ? I18n.t("Плагины могут добавить пункты в меню стола. Сами они не появляются — включи нужные.", "Plugins can add entries to the desktop menu. They don't show up by themselves: switch on the ones you want.") : I18n.t("Включённые плагины ничего в меню не добавляют.", "No enabled plugin adds anything to the menu.")
+        }
+        Repeater {
+            model: pluginGroup.rows
+            SettingRow {
+                id: pr
+                required property var modelData
+                label: modelData.label
+                hint: modelData.hint
+                PxToggle {
+                    checked: DeskMenu.pluginOn(pr.modelData.key)
+                    onToggled: c => DeskMenu.setPluginOn(pr.modelData.key, c)
+                }
+            }
         }
     }
 
     PxGroup {
         name: "look"
-        title: I18n.t("Меню рабочего стола", "Desktop menu")
+        title: I18n.t("Облик меню стола", "The desktop menu's look")
         icon: "palette"
         width: parent.width
         SettingRow {
             label: I18n.t("Стиль", "Style")
             hint: !Heaven.menuOk(Config.desktop.menuStyle) ? DeskMenu.styleLabel(Config.desktop.menuStyle) + I18n.t(" выбрано, но ещё закрыто: ", " is picked but still locked: ") + Heaven.lockHint(Heaven.menuItem(Config.desktop.menuStyle)) + I18n.t(". Пока — обычный список", ". The usual list until then") : ["wings", "harp"].some(s => !Heaven.menuOk(s)) && !DeskMenu.hellish ? ["wings", "harp"].filter(s => !Heaven.menuOk(s)).map(s => DeskMenu.styleLabel(s) + " — " + Heaven.lockHint(Heaven.menuItem(s))).join("; ") : DeskMenu.hellish ? I18n.t("сейчас правит демоница — её «", "the demon rules now — her “") + DeskMenu.styleLabel(DeskMenu.style) + I18n.t("» («Помощница» → «Ангел или демон»)", "” (Helper → Angel or demon)") : ({
-                    "list": I18n.t("список как в Windows 11: быстрые кнопки сверху, подменю сбоку", "a Windows 11-like list: quick buttons on top, flyouts at the side"),
-                    "radial": I18n.t("кольцо вокруг курсора, подменю веером снаружи; 1–9 и стрелки", "a ring around the pointer, flyouts fan out outside; 1–9 and the arrows"),
-                    "y2k": I18n.t("глянцевый хромовый пузырь с радугой и блёстками", "a glossy chrome bubble with a rainbow and sparkles"),
-                    "tiles": I18n.t("матовая панель с плитками, как центр управления; переключатели светятся", "a frosted panel of tiles like a Control Center; toggles light up"),
+                    "list": I18n.t("как все меню: ряд значков сверху, короткий список под ним", "like every menu: a row of icons on top, a short list under it"),
                     "wings": I18n.t("райское: под нимбом раскрываются крылья, пункты — перья; ←/→ — на другое крыло, ↑/↓ — вдоль крыла", "heaven's own: wings unfold under a halo, the entries are feathers; ←/→ to the other wing, ↑/↓ along one"),
                     "harp": I18n.t("райское: арфа на облаке, пункты — струны; наведи — струна звенит, проведи поперёк — глиссандо", "heaven's own: a harp on a cloud, the entries are strings; hover plucks one, a sweep across is a glissando"),
                     "pentagram": I18n.t("пентаграмма ада: 5 главных на лучах, остальное — руны", "hell's pentagram: the main five on its points, the rest as runes")
@@ -266,16 +394,14 @@ PxPage {
             }
         }
         SettingRow {
-            visible: ["radial", "wings", "harp", "pentagram"].includes(DeskMenu.chosen)
-            label: DeskMenu.heavenly.includes(DeskMenu.chosen) ? I18n.t("Подписи у значков", "Names by the icons") : I18n.t("Подписи в кольце", "Names in the ring")
-            hint: DeskMenu.heavenly.includes(DeskMenu.chosen) ? I18n.t("короткие названия у перьев и струн; полное — у середины", "short names by the feathers and strings; the full one by the middle") : I18n.t("короткие названия под значками; полное — над серединой", "short names under the icons; the full one above the middle")
+            label: I18n.t("Подписи в кольце", "Names in the ring")
+            hint: I18n.t("короткие названия под значками кольца (и у перьев и струн райских меню); полное — над серединой", "short names under the ring's icons (and by heaven's feathers and strings); the full one above the middle")
             PxToggle {
                 checked: Config.desktop.menuLabels !== false
                 onToggled: c => Config.desktop.menuLabels = c
             }
         }
         SettingRow {
-            visible: DeskMenu.chosen === "list" || DeskMenu.chosen === "y2k"
             label: I18n.t("Значки в списке", "Icons in the list")
             PxToggle {
                 checked: Config.desktop.menuIcons !== false
@@ -292,7 +418,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Анимация", "Animation")
-            hint: I18n.t("кольцо вылетает из центра, список чуть «выпрыгивает»", "the ring flies out of the middle, the list pops")
+            hint: I18n.t("кольцо вылетает из центра, меню чуть «выпрыгивает»", "the ring flies out of the middle, the menu pops")
             PxToggle {
                 checked: Config.desktop.menuAnim !== false
                 onToggled: c => Config.desktop.menuAnim = c
@@ -307,157 +433,19 @@ PxPage {
     }
 
     PxGroup {
-        name: "quick-buttons"
-        title: I18n.t("Быстрые кнопки", "Quick buttons")
-        icon: "star"
+        name: "start-buttons"
+        title: I18n.t("Кнопки «Пуска»", "Start buttons")
+        icon: "power"
         width: parent.width
+        StartButtonsEditor {
+            width: parent.width
+        }
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
+            kind: "tiny"
             dim: true
-            text: I18n.t("Верхний ряд списка и первые места в кольце — до 6.", "The list's top row and the ring's first places — up to 6.")
-        }
-        Flow {
-            width: parent.width
-            spacing: Theme.u * 3
-            Repeater {
-                model: page.quick
-                PxBox {
-                    id: chip
-                    required property string modelData
-                    required property int index
-                    width: chipRow.implicitWidth + Theme.u * 6
-                    height: chipRow.implicitHeight + Theme.u * 4
-                    color: Theme.mix(Theme.face, Theme.accent, 0.12)
-                    Row {
-                        id: chipRow
-                        anchors.centerIn: parent
-                        spacing: Theme.u * 2
-                        PxIcon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            name: (DeskMenu.entry(chip.modelData) || {}).icon || "heart"
-                        }
-                        PxText {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: page.label(chip.modelData)
-                        }
-                        PxButton {
-                            compact: true
-                            icon: "arrowLeft"
-                            enabled: chip.index > 0
-                            onClicked: Config.desktop.menuQuick = DeskMenu.moved(page.quick, chip.modelData, -1)
-                        }
-                        PxButton {
-                            compact: true
-                            icon: "arrowRight"
-                            enabled: chip.index < page.quick.length - 1
-                            onClicked: Config.desktop.menuQuick = DeskMenu.moved(page.quick, chip.modelData, 1)
-                        }
-                        PxButton {
-                            compact: true
-                            icon: "close"
-                            onClicked: Config.desktop.menuQuick = page.quick.filter(x => x !== chip.modelData)
-                        }
-                    }
-                }
-            }
-        }
-        PxCombo {
-            visible: page.quick.length < 6
-            width: Math.min(parent.width, Theme.u * 140)
-            placeholder: I18n.t("+ добавить кнопку…", "+ add a button…")
-            model: page.options(page.quick, false)
-            currentValue: ""
-            onActivated: v => Config.desktop.menuQuick = page.quick.concat([v]).slice(0, 6)
-        }
-    }
-
-    PxGroup {
-        name: "entries"
-        title: I18n.t("Пункты", "Entries")
-        icon: "layers"
-        width: parent.width
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            dim: true
-            text: I18n.t("Остальное меню по порядку. В кольце разделители не видны, а быстрые кнопки не повторяются. «Показать больше» появляется, когда плагины что-то туда добавили.", "The rest of the menu in order. The ring skips separators and does not repeat quick buttons. “Show more options” shows up when plugins add something there.")
-        }
-        Column {
-            width: parent.width
-            spacing: Theme.u * 2
-            Repeater {
-                model: page.entryIds
-                PxBox {
-                    id: row
-                    required property string modelData
-                    required property int index
-                    width: parent.width
-                    height: Theme.u * 16
-                    sunken: true
-                    color: Qt.alpha(Theme.sunken, 0.5)
-                    PxIcon {
-                        id: rowIcon
-                        x: Theme.u * 4
-                        anchors.verticalCenter: parent.verticalCenter
-                        name: (DeskMenu.entry(row.modelData) || {}).icon || "heart"
-                    }
-                    PxText {
-                        anchors.left: rowIcon.right
-                        anchors.leftMargin: Theme.u * 4
-                        anchors.right: rowButtons.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        elide: Text.ElideRight
-                        text: page.label(row.modelData) + ((DeskMenu.entry(row.modelData) || {}).flyout ? "  ▸" : "")
-                        dim: row.modelData === "sep"
-                    }
-                    Row {
-                        id: rowButtons
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.u * 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: Theme.u * 2
-                        PxButton {
-                            compact: true
-                            icon: "arrowUp"
-                            enabled: row.index > 0
-                            onClicked: {
-                                const l = page.entryIds.slice();
-                                l.splice(row.index, 1);
-                                l.splice(row.index - 1, 0, row.modelData);
-                                Config.desktop.menuItems = l;
-                            }
-                        }
-                        PxButton {
-                            compact: true
-                            icon: "arrowDown"
-                            enabled: row.index < page.entryIds.length - 1
-                            onClicked: {
-                                const l = page.entryIds.slice();
-                                l.splice(row.index, 1);
-                                l.splice(row.index + 1, 0, row.modelData);
-                                Config.desktop.menuItems = l;
-                            }
-                        }
-                        PxButton {
-                            compact: true
-                            icon: "close"
-                            onClicked: {
-                                const l = page.entryIds.slice();
-                                l.splice(row.index, 1);
-                                Config.desktop.menuItems = l;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        PxCombo {
-            width: Math.min(parent.width, Theme.u * 140)
-            placeholder: I18n.t("+ добавить пункт…", "+ add an entry…")
-            model: page.options(page.entryIds, true)
-            currentValue: ""
-            onActivated: v => Config.desktop.menuItems = page.entryIds.concat([v])
+            text: I18n.t("Размер и вид самого «Пуска» — на странице «Пуск», в «Тонкой настройке».", "Start's own size and look are on the Start page, under fine-tuning.")
         }
     }
 
@@ -473,7 +461,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Программа, команда, папка или ссылка — появится в конце пунктов, дальше её можно передвинуть или сделать быстрой кнопкой.", "An app, a command, a folder or a link — it lands at the end of the entries; move it or make it a quick button from there.")
+            text: I18n.t("Программа, команда, папка или ссылка — для меню стола и кольца. Появится в конце списка (если там есть место), дальше её можно передвинуть или сделать значком.", "An app, a command, a folder or a link, for the desktop menu and the ring. It lands at the end of the list (if there is room); move it or make it an icon from there.")
         }
         Repeater {
             model: DeskMenu.custom

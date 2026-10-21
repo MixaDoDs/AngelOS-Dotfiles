@@ -64,8 +64,11 @@ Scope {
         id: panelMenu
         anchorItem: barSpot
     }
-    function runPanelEntry(label) {
-        const it = panelMenu.items.find(i => i.label === label);
+    // an entry of the bar's menu (services/DeskMenu, target "panel"), in its layout or not
+    function runPanelEntry(id) {
+        const it = DeskMenu.build("panel", id, {
+            "screen": ""
+        });
         if (it)
             it.run();
         return !!it;
@@ -183,7 +186,7 @@ Scope {
         {
             "act": () => {
                 closeAll();
-                runPanelEntry("Выбрать системный монитор…");
+                runPanelEntry("chooseMonitor");
             },
             "until": () => !!rowShown(Shell.settingsView, I18n.t("Системный монитор", "System monitor")),
             "check": () => report("f02-pixel", Shell.settingsPage === "taskmanager" && !!rowShown(Shell.settingsView, "Системный монитор"), where(Shell.settingsView))
@@ -289,7 +292,7 @@ Scope {
             "check": () => {}
         },
         {
-            "act": () => runPanelEntry("Выбрать системный монитор…"),
+            "act": () => runPanelEntry("chooseMonitor"),
             "until": () => !!rowShown(Shell.settingsView, "Системный монитор"),
             "check": () => report("f02-goldengate", Shell.settingsPage === "defaults" && !!rowShown(Shell.settingsView, "Системный монитор") && Shell.settingsView.pageItem.moreOpen, where(Shell.settingsView))
         },

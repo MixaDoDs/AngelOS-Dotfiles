@@ -64,6 +64,12 @@ Singleton {
         clock = Date.now();
         hiddenKept.setText("0");
     }
+    // the card opened on a screen (the wallpaper's ring): the Halo there takes it (HaloWindow)
+    signal openAsked(string screen)
+    function openOn(screen) {
+        show();
+        openAsked(screen);
+    }
     // through a restart of the shell (it came back at once after each, 16.10), not a reboot
     FileView {
         id: hiddenKept

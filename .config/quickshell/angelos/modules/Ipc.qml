@@ -1011,7 +1011,8 @@ IpcHandler {
             Shell.launcherOpen = true;
         Shell.launcherText = text;
     }
-    // open the right-click desktop menu (x, y in screen pixels); sub: "" | view | new | open | more
+    // open the right-click desktop menu (x, y in screen pixels); sub: no submenus any more, kept
+    // for old scripts
     function desktopMenu(screen: string, x: int, y: int, sub: string): string {
         if (Shell.setupLocked)
             return "the setup wizard holds the desktop (angelos setup skip)";
@@ -1024,8 +1025,6 @@ IpcHandler {
         }
         if (!m.visible)
             m.openAt(x, y);
-        if (sub)
-            m.openSub(sub);
         return "ok";
     }
     function tourNext(): void {
@@ -1184,9 +1183,6 @@ IpcHandler {
             return "usage: pixelWall status|on|off|size 1…32|colors 2…256|dither 0…100";
         const raw = Wallpapers.pick(Wallpapers.raw(scr, ws ? ws.idx : 1), scr);
         return (Config.wallpaper.pixel ? "on" : "off") + "  size " + Config.wallpaper.pixelSize + "  colors " + Config.wallpaper.pixelColors + "  dither " + Config.wallpaper.pixelDither + "\n" + raw + "\n" + Wallpapers.resolve(scr, ws ? ws.idx : 1) + "\n" + JSON.stringify(Wallpapers.pixelInfo(raw, scr));
-    }
-    function bar(style: string): void {
-        Config.bar.style = style;
     }
     // laptops: the brightness keys (cfg/angelos-laptop.kdl): up | down | 0…100
     function brightness(cmd: string): string {
@@ -1505,7 +1501,7 @@ IpcHandler {
         return JSON.stringify({
             "theme": Theme.dark ? "dark" : "light",
             "flavor": Config.appearance.flavor,
-            "bar": Config.bar.style,
+            "bar": BarLayout.edge,
             "lyrics": Lyrics.status,
             "track": Lyrics.title,
             "plugins": Plugins.enabledPlugins.map(p => p.id),

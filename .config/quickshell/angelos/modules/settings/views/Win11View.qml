@@ -6,15 +6,15 @@ import qs.services
 import qs.widgets
 import qs.modules.settings.views
 
-// Settings view "win11" (Config.settingsUi.view, the default), laid out like Windows 11's
-// Settings: on the left your account card, the search and the categories, each with its
-// tile; on the right where you are in big crumbs (Personalization › Taskbar) and the page as
-// cards — a row per setting, its control on the right; sub-pages open in place as cards that
-// unfold (PxGroup, SettingRow: SettingsView.fluent). A category with several pages has a page
-// of its own: its pages as cards with what is on them (CategoryPage). Narrow, the left column
-// keeps only the tiles and a magnifier; searching, it opens over the page with the field and
-// what it finds. ↑↓ walk the categories (the page follows), → or Enter opens the first page
-// of a category, ← goes back up to it.
+// Settings' own look (the view "win11" by its old name; Config.settingsUi.view): a sunken strip
+// on the left — the search, your account card, the categories with their tiles, the open one
+// unfolding its pages like a tree; on the right a title plate (the page's tile in its
+// category's colour, «Category ›» and the page's name big) and the page as raised cards in
+// columns (PxGroup, PxCards: SettingsView.fluent). A category with several pages has a page of
+// its own: its pages as cards (CategoryPage). Narrow, the strip keeps only the tiles and a
+// magnifier; searching, it opens over the page with the field and what it finds. ↑↓ walk the
+// categories (the page follows), → or Enter opens the first page of a category, ← goes back
+// up to it.
 Item {
     id: root
 
@@ -28,7 +28,9 @@ Item {
     property bool searchOpen: false
     readonly property bool rail: narrow && !searchOpen
     readonly property real railWidth: Theme.u * 22
-    readonly property real navWidth: rail ? railWidth : narrow ? Math.min(Theme.u * 128, width * 0.6) : Math.min(Theme.u * 128, width * 0.34)
+    readonly property real navWidth: rail ? railWidth : narrow ? Math.min(Theme.u * 120, width * 0.6) : Math.min(Theme.u * 120, width * 0.3)
+    readonly property string here: root.view.settingsNav.settingsPage
+    readonly property string hereSection: root.view.sectionOf(here)
 
     Connections {
         target: root.view
@@ -61,8 +63,8 @@ Item {
         }
         if (e.key === Qt.Key_Right || e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
             // a category's own page → its first page; on a page → the next one of the category
-            if (root.view.settingsNav.settingsPage.startsWith("cat:")) {
-                const s = view.navSectionOf(root.view.settingsNav.settingsPage);
+            if (root.here.startsWith("cat:")) {
+                const s = view.navSectionOf(root.here);
                 if (s && s.pages.length) {
                     root.view.settingsNav.settingsPage = s.pages[0];
                     root.view.settingsNav.settingsSub = "";
@@ -77,38 +79,74 @@ Item {
         }
         return false;
     }
+    function go(mouse, id) {
+        if (root.view.clickedNew(mouse, id))
+            return;
+        root.view.settingsNav.settingsPage = id;
+        root.view.settingsNav.settingsSub = "";
+        root.view.focusNav();
+    }
 
-    // ---- the left column: you, the search, the categories ----
+    // ---- the strip on the left: the search, you, the categories ----
     Item {
         id: nav
         z: 2
         width: root.navWidth
         height: parent.height
 
-        // opened over the page while searching in a narrow window
+        // sunken, a hard edge on its right
         Rectangle {
-            visible: root.narrow && !root.rail
             anchors.fill: parent
             anchors.margins: -Theme.u * 2
-            color: Theme.face
-            border.width: Math.max(1, Theme.u / 2)
-            border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.5)
+            anchors.rightMargin: 0
+            color: Theme.mix(Theme.face, Theme.sunken, Theme.dark ? 0.6 : 0.4)
+            Rectangle {
+                anchors.right: parent.right
+                width: Math.max(1, Theme.u / 2) * 2
+                height: parent.height
+                color: Qt.alpha(Theme.lo, Theme.dark ? 0.95 : 0.6)
+            }
+        }
+
+        // the search field (SettingsView puts it here); narrow, a magnifier that widens it
+        Item {
+            id: searchSlot
+            visible: !root.rail
+            x: Theme.u * 2
+            y: Theme.u * 2
+            width: parent.width - Theme.u * 6
+            height: root.view.searchFieldHeight
+        }
+        PxButton {
+            id: lens
+            visible: root.rail
+            y: Theme.u * 2
+            anchors.horizontalCenter: parent.horizontalCenter
+            compact: true
+            icon: "search"
+            onClicked: {
+                root.searchOpen = true;
+                Qt.callLater(() => root.view.focusSearch(true));
+            }
         }
 
         // you: the avatar, the name — your account
-        Rectangle {
+        PxBox {
             id: you
-            readonly property bool sel: root.view.sectionOf(root.view.settingsNav.settingsPage) === "account"
-            width: parent.width
-            height: root.rail ? Theme.fit(20) : Theme.fit(26)
-            color: sel ? Theme.mix(Theme.face, Theme.accent, 0.2) : youMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.1) : "transparent"
+            readonly property bool sel: root.hereSection === "account"
+            visible: !root.view.searching
+            x: root.rail ? Theme.u : Theme.u * 2
+            y: (root.rail ? lens.y + lens.height : searchSlot.y + searchSlot.height) + Theme.u * 4
+            width: parent.width - x - Theme.u * (root.rail ? 3 : 4)
+            height: root.rail ? Theme.fit(20) : Theme.fit(24)
+            color: sel ? Theme.mix(Theme.faceAlt, Theme.accent, 0.22) : youMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.1) : Theme.faceAlt
             PxBox {
                 id: face
-                x: root.rail ? (parent.width - width) / 2 : Theme.u * 2
+                x: root.rail ? (you.width - you.inset * 2 - width) / 2 : Theme.u * 2
                 anchors.verticalCenter: parent.verticalCenter
-                width: Theme.u * (root.rail ? 16 : 20)
+                width: Theme.u * (root.rail ? 13 : 15)
                 height: width
-                color: Theme.accent
+                color: Theme.accent2
                 Image {
                     id: avatarPic
                     anchors.fill: parent
@@ -154,105 +192,130 @@ Item {
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                 cursorShape: Qt.PointingHandCursor
-                onClicked: mouse => {
-                    if (root.view.clickedNew(mouse, SettingsTree.accountPage))
-                        return;
-                    root.view.settingsNav.settingsPage = SettingsTree.accountPage;
-                    root.view.settingsNav.settingsSub = "";
-                    root.view.focusNav();
-                }
+                onClicked: mouse => root.go(mouse, SettingsTree.accountPage)
             }
         }
 
-        // the search field (SettingsView puts it here); narrow, a magnifier that widens it
-        Item {
-            id: searchSlot
-            visible: !root.rail
-            y: you.height + Theme.u * 4
-            width: parent.width
-            height: root.view.searchFieldHeight
-        }
-        PxButton {
-            visible: root.rail
-            y: you.height + Theme.u * 4
-            anchors.horizontalCenter: parent.horizontalCenter
-            compact: true
-            icon: "search"
-            onClicked: {
-                root.searchOpen = true;
-                Qt.callLater(() => root.view.focusSearch(true));
-            }
-        }
-
-        // the categories, or what the search finds
+        // the categories — the open one shows its pages — or what the search finds
         PxScroll {
             id: cats
             visible: !root.view.searching
             anchors.fill: parent
-            anchors.topMargin: searchSlot.y + searchSlot.height + Theme.u * 4
-            contentHeight: catCol.implicitHeight
+            anchors.topMargin: you.y + you.height + Theme.u * 4
+            anchors.rightMargin: Theme.u * 2
+            contentHeight: catCol.implicitHeight + Theme.u * 4
 
             Column {
                 id: catCol
                 width: parent.width
-                spacing: Theme.u
                 Repeater {
                     model: root.view.visibleSections
-                    Rectangle {
+                    Column {
                         id: cat
                         required property var modelData
-                        readonly property bool sel: root.view.sectionOf(root.view.settingsNav.settingsPage) === modelData.id
+                        readonly property bool open: root.hereSection === modelData.id
+                        // its pages under it, like a tree (a category of one page is that page)
+                        readonly property bool tree: open && !root.rail && modelData.pages.length > 1
                         width: catCol.width
-                        height: Theme.fit(16)
-                        color: sel ? Theme.mix(Theme.face, Theme.accent, 0.2) : catMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.1) : "transparent"
-                        border.width: sel && root.view.navActive ? Math.max(1, Theme.u / 2) : 0
-                        border.color: Theme.accent
-                        // the picked one: a short accent bar on the left, like Windows 11
+
                         Rectangle {
-                            visible: cat.sel
-                            x: 0
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: Theme.u * 2
-                            height: parent.height * 0.55
-                            color: Theme.accent
-                        }
-                        Row {
-                            x: root.rail ? (parent.width - Theme.u * 11) / 2 : Theme.u * 4
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: Theme.u * 4
-                            SettingsTile {
+                            width: parent.width
+                            height: Theme.fit(16)
+                            color: cat.open && !cat.tree ? Theme.mix(Theme.face, Theme.accent, 0.2) : catMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.1) : "transparent"
+                            border.width: cat.open && root.view.navActive ? Math.max(1, Theme.u / 2) : 0
+                            border.color: Theme.accent
+                            Row {
+                                x: root.rail ? (parent.width - Theme.u * 9) / 2 : Theme.u * 3
                                 anchors.verticalCenter: parent.verticalCenter
-                                icon: cat.modelData.icon
-                                tint: cat.modelData.tint
+                                spacing: Theme.u * 4
+                                SettingsTile {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    size: Theme.u * 9
+                                    icon: cat.modelData.icon
+                                    tint: cat.modelData.tint
+                                }
+                                PxText {
+                                    visible: !root.rail
+                                    width: cat.width - Theme.u * 20 - (catStar.visible ? catStar.width + Theme.u * 4 : 0)
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    elide: Text.ElideRight
+                                    text: cat.modelData.label
+                                    font.bold: cat.open
+                                    color: cat.open ? Theme.accent : Theme.text
+                                }
                             }
-                            PxText {
-                                visible: !root.rail
-                                width: cat.width - Theme.u * 24 - (catStar.visible ? catStar.width + Theme.u * 4 : 0)
-                                anchors.verticalCenter: parent.verticalCenter
-                                elide: Text.ElideRight
-                                text: cat.modelData.label
-                                font.bold: cat.sel
+                            // something new in it (services/SettingsNews); on the rail, on the tile's corner
+                            NewStar {
+                                id: catStar
+                                visible: SettingsNews.sectionNew(cat.modelData)
+                                x: root.rail ? (parent.width + Theme.u * 9) / 2 - width / 2 : parent.width - width - Theme.u * 3
+                                y: root.rail ? Theme.u : (parent.height - height) / 2
+                            }
+                            MouseArea {
+                                id: catMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: mouse => {
+                                    if (root.view.clickedNew(mouse, root.view.sectionTarget(cat.modelData)))
+                                        return;
+                                    root.view.openSection(cat.modelData);
+                                    root.view.focusNav();
+                                }
                             }
                         }
-                        // something new in it (services/SettingsNews); on the rail, on the tile's corner
-                        NewStar {
-                            id: catStar
-                            visible: SettingsNews.sectionNew(cat.modelData)
-                            x: root.rail ? (parent.width + Theme.u * 11) / 2 - width / 2 : parent.width - width - Theme.u * 4
-                            y: root.rail ? Theme.u : (parent.height - height) / 2
-                        }
-                        MouseArea {
-                            id: catMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: mouse => {
-                                if (root.view.clickedNew(mouse, root.view.sectionTarget(cat.modelData)))
-                                    return;
-                                root.view.openSection(cat.modelData);
-                                root.view.focusNav();
+                        // the open category's pages; the one open filled in the accent, ▶ before it
+                        Repeater {
+                            model: cat.tree ? cat.modelData.pages : []
+                            Item {
+                                id: sub
+                                required property string modelData
+                                readonly property bool sel: root.here === modelData
+                                width: cat.width
+                                height: Theme.fit(13)
+                                PxText {
+                                    visible: sub.sel
+                                    x: Theme.u * 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "▶"
+                                    kind: "tiny"
+                                    color: Theme.accent
+                                }
+                                Rectangle {
+                                    x: Theme.u * 14
+                                    width: parent.width - x
+                                    height: parent.height
+                                    color: sub.sel ? Theme.accent : subMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.12) : "transparent"
+                                    PxText {
+                                        x: Theme.u * 3
+                                        width: parent.width - Theme.u * 6 - (subStar.visible ? subStar.width + Theme.u * 2 : 0)
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        elide: Text.ElideRight
+                                        text: root.view.labelOf(sub.modelData)
+                                        color: sub.sel ? Theme.selectText : subMouse.containsMouse ? Theme.text : Theme.textDim
+                                    }
+                                    NewStar {
+                                        id: subStar
+                                        visible: SettingsNews.pageNew(sub.modelData)
+                                        x: parent.width - width - Theme.u * 2
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+                                MouseArea {
+                                    id: subMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: mouse => root.go(mouse, sub.modelData)
+                                }
                             }
+                        }
+                        Item {
+                            visible: cat.tree
+                            width: 1
+                            height: Theme.u * 2
                         }
                     }
                 }
@@ -262,10 +325,11 @@ Item {
             id: resultsSlot
             anchors.fill: parent
             anchors.topMargin: searchSlot.y + searchSlot.height + Theme.u * 4
+            anchors.rightMargin: Theme.u * 2
         }
     }
 
-    // ---- the right side: where you are, then the page ----
+    // ---- the right side: the title plate, then the page ----
     Item {
         id: main
         // the page keeps its place when the search opens over it
@@ -274,52 +338,56 @@ Item {
         anchors.right: parent.right
         height: parent.height
 
-        // the crumbs, big: Personalization › Taskbar (the earlier ones a click back up)
+        // where you are: the page's tile, «Category › Page ›» small, the last one big
+        readonly property var crumbs: root.view.crumbs
+        readonly property var entry: root.view.currentPage
         Item {
             id: header
             width: parent.width
-            height: Math.max(crumbFlow.implicitHeight, undo.height) + Theme.u * 4
-            Flow {
-                id: crumbFlow
-                anchors.left: parent.left
+            height: Math.max(badge.height, titles.implicitHeight, undo.height) + Theme.u * 4
+            SettingsTile {
+                id: badge
+                anchors.verticalCenter: parent.verticalCenter
+                size: Theme.u * 20
+                iconFill: 0.62
+                icon: main.entry ? main.entry.icon || "gear" : "gear"
+                tint: root.hereSection === "account" ? Theme.accent : String(root.here).startsWith("cat:") ? (root.view.navSectionOf(root.here) || {}).tint || Theme.accent : root.view.tintOf(root.view.currentId)
+            }
+            Column {
+                id: titles
+                anchors.left: badge.right
+                anchors.leftMargin: Theme.u * 5
                 anchors.right: undo.visible ? undo.left : newWin.left
                 anchors.rightMargin: Theme.u * 3
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: Theme.u * 3
-                Repeater {
-                    model: root.view.crumbs
-                    Row {
-                        id: crumb
-                        required property var modelData
-                        required property int index
-                        readonly property bool last: index === root.view.crumbs.length - 1
-                        spacing: Theme.u * 3
+                // the earlier crumbs, each a click back up
+                Row {
+                    visible: main.crumbs.length > 1
+                    spacing: Theme.u * 2
+                    Repeater {
+                        model: main.crumbs.slice(0, -1)
                         PxText {
-                            visible: crumb.index > 0
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "›"
-                            kind: "big"
-                            dim: true
-                        }
-                        PxText {
-                            anchors.verticalCenter: parent.verticalCenter
-                            // a long name on its own line stays inside, clear of "Undo"
-                            width: Math.min(implicitWidth, crumbFlow.width - Theme.u * 12)
-                            elide: Text.ElideRight
-                            text: crumb.modelData
-                            kind: "big"
-                            font.bold: crumb.last
-                            color: crumb.last ? Theme.text : crumbMouse.containsMouse ? Theme.accent : Theme.textDim
+                            id: crumb
+                            required property string modelData
+                            required property int index
+                            text: modelData + " ›"
+                            color: crumbMouse.containsMouse ? Theme.accent : Theme.textDim
                             MouseArea {
                                 id: crumbMouse
                                 anchors.fill: parent
-                                enabled: !crumb.last
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: root.view.crumbClicked(crumb.index)
                             }
                         }
                     }
+                }
+                PxText {
+                    width: parent.width
+                    elide: Text.ElideRight
+                    text: main.crumbs.length ? main.crumbs[main.crumbs.length - 1] : ""
+                    kind: "big"
+                    font.bold: true
                 }
             }
             // "Undo": the last change of a setting (Config.undo)

@@ -443,7 +443,6 @@ Scope {
     readonly property var variants: ({
             "WallpaperFx": Wallpapers.transitions.map(t => t.id),
             "StartMenu": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
-            "BarStyle": ["taskbar", "top", "island", "dock", "capsules", "windose"],
             "DeskSwitch": WorkspaceAnim.styles.map(s => s.id),
             "OpenFx": WindowAnim.openStyles.map(s => s.id),
             "CloseFx": WindowAnim.closeStyles.map(s => s.id),
@@ -1279,8 +1278,7 @@ Scope {
             report("bar-widgets", ok, ok ? "wifi, bluetooth, wired, tray, workspaces; popups built on demand " + built : "status " + barStage.status + ", popups built " + built + " of " + lazy.length);
             barStage.active = false;
             console.log("TEST-PAGE bar-vertical");
-            viewNote = JSON.stringify([Config.bar.style, Config.bar.edge]);
-            Config.bar.style = "taskbar";
+            viewNote = Config.bar.edge;
             Config.bar.edge = "left";
             vbarStage.active = true;
             phase = "vbar";
@@ -1299,9 +1297,7 @@ Scope {
             const sides = BarLayout.vertical && BarLayout.side === "left" && !BarLayout.bottom;
             Config.bar.edge = "top";
             const top = BarLayout.edge === "top" && !BarLayout.vertical && !BarLayout.bottom;
-            const [st, ed] = JSON.parse(viewNote);
-            Config.bar.style = st;
-            Config.bar.edge = ed;
+            Config.bar.edge = viewNote;
             report("bar-vertical", items.length >= 3 && wids.includes("start") && wids.includes("clock") && !wids.includes("lyrics") && inside && apart && sides && top, wids.join(" ↓ ") + "; inside the bar " + inside + ", one under another " + apart + ", left: menus sideways " + sides + ", top " + top);
             vbarStage.active = false;
             console.log("TEST-PAGE toggle-wrap");
@@ -1408,7 +1404,7 @@ Scope {
             const heavenBad = [];
             const heavenT0 = Date.now();
             const cap = id => id.charAt(0).toUpperCase() + id.slice(1);
-            const sixteen = DeskMenu.catalog.filter(id => id !== "sep").slice(0, 16);
+            const sixteen = DeskMenu.catalog("desktop").filter(id => id !== "sep").slice(0, 16);
             const fake = (cx, cy, k) => ({
                     "k": k,
                     "slots": sixteen,
@@ -2637,17 +2633,17 @@ Scope {
             Presets.apply("calm");
             // what «Лёгкий» switched off and «Спокойный» doesn't name is back at its default
             const calm = Presets.active === "calm" && Config.appearance.motion === "calm" && Config.appearance.blur && Config.wallpaper.live && !Config.y2k.jokes;
-            const barWas = Config.bar.style;
-            Config.bar.style = barWas === "top" ? "taskbar" : "top";
+            const barWas = Config.bar.edge;
+            Config.bar.edge = barWas === "top" ? "bottom" : "top";
             const id = Presets.save("  Мой стрим  ");
             Presets.apply("author");
-            Config.bar.style = barWas;
+            Config.bar.edge = barWas;
             const author = Presets.active === "author" && Config.y2k.jokes;
             const differs = Presets.plan(id).length;
             Presets.apply(id);
-            const mine = Presets.own.length === 1 && Presets.own[0].name === "Мой стрим" && Presets.active === "calm" && Config.bar.style !== barWas && Presets.plan(id).length === 0 && !("game.enabled" in Presets.own[0].set) && !("setup.complete" in Presets.own[0].set);
+            const mine = Presets.own.length === 1 && Presets.own[0].name === "Мой стрим" && Presets.active === "calm" && Config.bar.edge !== barWas && Presets.plan(id).length === 0 && !("game.enabled" in Presets.own[0].set) && !("setup.complete" in Presets.own[0].set);
             // the last one applied is undone as a whole: the author's again, the bar as it was
-            const undone = Presets.canUndo && Presets.undo() && Presets.active === "author" && Config.bar.style === barWas && !Presets.canUndo;
+            const undone = Presets.canUndo && Presets.undo() && Presets.active === "author" && Config.bar.edge === barWas && !Presets.canUndo;
             const gone = Presets.remove(id) && Presets.own.length === 0 && Presets.apply("nope") === -1;
             // installed programs and autostart (services/Programs, services/Autostart): rows and
             // events fed in, no pacman

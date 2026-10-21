@@ -24,7 +24,7 @@ import qs.modules.settings.dresses
 // The keyboard is the same everywhere: Ctrl+F searches, ↓ from an empty search walks the
 // view's navigation (arrows, Enter; typing searches again), Ctrl+PgUp/PgDn the sections,
 // Ctrl+Tab the pages of a section, Alt+↑ goes up, Alt+←/→ through the history.
-// The skins (Config.settingsUi.skin: classic | windose | stream) dress any view. While the
+// The desktop skins (Config.settingsUi.skin: Windose, Stream) leave it in its own look. While the
 // demon rules it is her grimoire (GrimoireBook): the sidebar becomes the book's spread, any
 // other view is written on one parchment page inside the same leather cover — or the
 // circle's own dress (story/circles.json → dress, modules/settings/dresses: the case file,
@@ -897,8 +897,9 @@ Item {
         anchors.fill: parent
         anchors.rightMargin: Config.appearance.shadows ? Theme.u * 2 : 0
         anchors.bottomMargin: Config.appearance.shadows ? Theme.u * 2 : 0
-        skin: win.skin
-        title: win.viewId === "properties" ? I18n.t("Свойства: ", "Properties: ") + (win.navSectionOf(win.currentId) || win.accountSection).label : (win.skin === "windose" ? I18n.exe("settings") + " ♡ " : "angelOS · ") + (win.atHome ? win.homeLabel : win.currentPage ? win.currentPage.label : I18n.t("Настройки", "Settings"))
+        // Settings have one look of their own: the desktop skins (Windose, Stream) don't dress it
+        skin: ""
+        title: "angelOS · " + (win.currentPage ? win.currentPage.label : I18n.t("Настройки", "Settings"))
         icon: win.atHome ? "gear" : win.currentPage ? win.currentPage.icon : "gear"
         minimizable: false
         maximizable: true

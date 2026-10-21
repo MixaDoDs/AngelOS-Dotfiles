@@ -114,6 +114,8 @@ Singleton {
                     "more": p.more || [],
                     // pages next door ("lens", "game:y2k/hell" — a page, and a group on it)
                     "links": p.links || [],
+                    // a live preview over the page: {scene (widgets/previews), key: "section.key" its variant}
+                    "preview": p.preview || null,
                     "open": p.open || [],
                     "category": c.id,
                     "owner": !!p.owner,

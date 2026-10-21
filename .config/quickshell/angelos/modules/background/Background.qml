@@ -149,18 +149,30 @@ Variants {
                 onHoveredChanged: if (!hovered)
                     Pointer.left("desk", win.modelData.name)
             }
-            // the menu opens where the right button went down (ContextClick: B2)
+            // the menu opens where the right button went down (ContextClick: B2); the middle
+            // button opens the ring, aimed while it is held
             ContextClick {
                 anchors.fill: parent
-                acceptedButtons: Qt.RightButton | Qt.LeftButton
+                acceptedButtons: Qt.RightButton | Qt.LeftButton | Qt.MiddleButton
                 hoverEnabled: win.sparkles
                 onPositionChanged: m => {
                     if (win.sparkles)
                         trail.spawn(m.x, m.y);
+                    if (m.buttons & Qt.MiddleButton)
+                        ring.aim(m.x, m.y);
                 }
+                onMiddlePressed: (x, y) => {
+                    menu.close();
+                    if (!GoldenGate.on)
+                        ring.openRing(x, y);
+                }
+                onMiddleReleased: (x, y) => ring.release(x, y)
                 // Golden Gate: Finder's desktop menu in the skin's glass (MacMenus)
                 onMenu: (x, y) => GoldenGate.on ? MacMenus.openDesktop(win.modelData.name, x, y) : menu.openAt(x, y)
-                onOtherClicked: {
+                onOtherClicked: m => {
+                    // the middle button's ring stays: it closes by itself
+                    if (m.button === Qt.MiddleButton)
+                        return;
                     menu.close();
                     // a popup's grab ends only on clicks outside angelOS: the Halo's or the bar's menu too
                     PopupManager.barPressed();
@@ -217,11 +229,10 @@ Variants {
                 }
             }
 
-            // the ring look of the same menu (Settings → Right-click menu)
+            // the ring on the middle button, and the right-click menu's heaven's and hell's looks
             RadialMenu {
                 id: ring
                 parentWindow: win
-                listMenu: menu
             }
 
             // the surface is drawn inside every workspace, and its popups with it: an open menu

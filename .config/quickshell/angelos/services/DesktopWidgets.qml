@@ -765,6 +765,12 @@ Singleton {
             });
         }));
     }
+    // pinned in place: it does not move by its title bar or plate (the menu's «Закрепить на месте»)
+    function setLocked(uid, on) {
+        _patch(uid, {
+            "locked": !!on
+        });
+    }
     function setScreen(uid, screen) {
         _save((Config.desktop.widgets || []).map(w => w.uid === uid ? Object.assign({}, w, {
                     "screen": screen

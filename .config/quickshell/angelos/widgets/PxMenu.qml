@@ -6,16 +6,20 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 
-// angelOS's pixel context menu: one engine for every pixel menu, in the look MenuLook gives
-// its `kind`. A menu is a list of plain entries:
-//   {label, icon, hint, keys, separator, checkable, checked, enabled, keepOpen, run, children}
+// angelOS's pixel context menu: one engine for every pixel menu (services/MenuLook). A menu is
+// a row of everyday actions as signed icons (`quick`) over a list of plain entries (`items`):
+//   {label, short, icon, hint, keys, separator, checkable, checked, enabled, keepOpen, run,
+//    choices, children}
+//   short     the caption under its icon in the quick row (else the label)
 //   keys      a shortcut, ["Mod", "T"] or "Mod+T", shown on the right in one format
 //   checked   a bool or a function (read live: the tick follows the setting while open);
 //             the entry keeps its icon, the tick goes on the right
 //   enabled   a bool or a function; false greys it out
 //   keepOpen  the menu stays open after `run` (toggles, steppers)
-//   children  a list, or a function building it as it opens: a submenu beside the entry
-//             (`flyout` is read too: the desktop menu's older name). A function may give
+//   choices   a few small buttons on the row (or under the icon) instead of a submenu:
+//             [{label, checked, keepOpen, run}] — the desks 1 2 3 4, a widget's S M L
+//   children  a list, or a function building it as it opens: a submenu beside the entry —
+//             the tray's apps' own menus only (angelOS's menus have none). A function may give
 //             nothing yet: the submenu shows once refresh() finds entries (the tray's DBus menus)
 // Open it with popup(items, title, x, y) or show(x, y) (x, y in parentWindow, or in anchor.item
 // when a menu anchors itself to an item instead); close() closes it with its submenus.
@@ -28,9 +32,11 @@ PopupWindow {
     id: root
 
     property var parentWindow: null
-    property string kind: ""                // desktop | widget | panel | task | tray | halo (MenuLook.lookFor)
+    property string kind: ""                // desktop | widget | panel | task | tray | halo
     property string look: MenuLook.lookFor(kind)
     property var items: []
+    property var quick: []
+    property real tileScale: 1
     property string title: ""
     property bool icons: true               // icons on the menu's own entries (submenus keep theirs)
     property bool pop: false                // a little pop as it opens
@@ -60,6 +66,7 @@ PopupWindow {
         refitting = false;
         collapse(1);
         list.current = -1;
+        list.qcurrent = -1;
         anchor.rect.x = Math.round(x);
         anchor.rect.y = Math.round(y);
         if (!visible && !reopening) {
@@ -97,8 +104,36 @@ PopupWindow {
             cascade(l.level, l.rowAt(i), MenuLook.kidsOf(it), kb, it);
             return;
         }
-        const fn = it.run;
-        if (it.keepOpen) {
+        // a row of choices: its buttons choose (the keyboard: ←→ and Enter)
+        if (it.choices && !it.run)
+            return;
+        runIt(it.run, it.keepOpen);
+    }
+    // one of the icons in the quick row (`j`: one of its choices; -1: the icon itself — with
+    // choices, the keyboard steps to the next one)
+    function activateQuick(l, i, j) {
+        const it = l.quick[i];
+        if (!it || !MenuLook.on(it.enabled, true))
+            return;
+        const ch = it.choices ? Array.from(it.choices) : [];
+        if (ch.length) {
+            const at = ch.findIndex(c => MenuLook.on(c.checked, false));
+            const c = ch[j >= 0 ? j : (at + 1) % ch.length];
+            return runIt(c.run, c.keepOpen || it.keepOpen);
+        }
+        runIt(it.run, it.keepOpen);
+    }
+    // a row's choice `j`
+    function runChoice(l, i, j) {
+        const it = l.items[i];
+        const c = it && it.choices ? it.choices[j] : null;
+        if (!c || !MenuLook.on(it.enabled, true))
+            return;
+        l.current = i;
+        runIt(c.run, c.keepOpen || it.keepOpen);
+    }
+    function runIt(fn, keepOpen) {
+        if (keepOpen) {
             if (fn)
                 fn();
             return;
@@ -265,7 +300,7 @@ PopupWindow {
     Component.onDestruction: if (panelId !== "")
         PopupManager.unregisterPopup(root)
 
-    BackgroundEffect.blurRegion: Config.appearance.blur && (list.t.name === "classic" || list.t.name === "y2k") ? blurRegion : null
+    BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
     Region {
         id: blurRegion
         item: list
@@ -276,6 +311,8 @@ PopupWindow {
         menu: root
         level: 0
         items: root.items
+        quick: root.quick
+        tileScale: root.tileScale
         title: root.title
         look: root.look
         icons: root.icons

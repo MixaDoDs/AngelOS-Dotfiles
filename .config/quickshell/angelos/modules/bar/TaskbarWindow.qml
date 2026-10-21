@@ -148,7 +148,6 @@ PanelWindow {
             anchors.rightMargin: win.vertical ? 0 : Theme.u
             screenName: win.modelData.name
             barWindow: win
-            style: "taskbar"
             vertical: win.vertical
             compact: win.compact || win.vertical
             itemHeight: Theme.fit(15)

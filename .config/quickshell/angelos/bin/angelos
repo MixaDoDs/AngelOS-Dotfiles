@@ -2,7 +2,7 @@
 # angelOS control. `angelos help` lists IPC functions.
 #   angelos launcher | settings [page] | setup [skip] | lock | session | clipboard | lyrics
 #   angelos settingsView win11|sidebar|controlpanel|properties|tiles | settingsSkin classic|windose|stream
-#   angelos theme light|dark|auto|toggle | wallpaper <path|random> | bar taskbar|top|island
+#   angelos theme light|dark|auto|toggle | wallpaper <path|random>
 #   angelos startMenu | sidebar | idle | lockPreview | fontPreset arcade|soft|block|angelos
 #   angelos browser — the default browser (Mod+B; Settings → Default apps), an installed one when it isn't
 #   angelos files [DIR] — the default file manager (Mod+E; Settings → Default apps: Strata), on DIR or home

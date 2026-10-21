@@ -2,7 +2,7 @@ import QtQuick
 import qs.config
 
 // A small picture of a right-click menu look (Settings → Right-click menu, the setup
-// wizard): list | radial | y2k | tiles | wings | harp | pentagram.
+// wizard): list | wings | harp | pentagram.
 Item {
     id: root
 
@@ -52,92 +52,6 @@ Item {
                     width: index === 1 ? Theme.u * 28 : Theme.u * (18 + index * 2)
                     height: Theme.u * 2
                     color: index === 1 ? Theme.accent : Theme.textDim
-                }
-            }
-        }
-    }
-
-    // radial: a ring of slots
-    Item {
-        visible: root.style === "radial"
-        anchors.fill: parent
-        Repeater {
-            model: 8
-            Rectangle {
-                required property int index
-                readonly property real a: -Math.PI / 2 + index * Math.PI / 4
-                width: Theme.u * 6
-                height: width
-                color: index === 2 ? Theme.accent : Theme.menuSurface
-                border.width: Math.max(1, Theme.u / 2)
-                border.color: Theme.edge
-                x: root.width / 2 + Math.cos(a) * Theme.u * 14 - width / 2
-                y: root.height / 2 + Math.sin(a) * Theme.u * 14 - height / 2
-            }
-        }
-        Rectangle {
-            anchors.centerIn: parent
-            width: Theme.u * 7
-            height: width
-            color: Theme.accent
-            border.width: Math.max(1, Theme.u / 2)
-            border.color: Theme.edge
-        }
-    }
-
-    // y2k: the glossy bubble
-    Item {
-        visible: root.style === "y2k"
-        x: Theme.u * 12
-        y: Theme.u * 5
-        width: Theme.u * 34
-        height: Theme.u * 32
-        Y2kGloss {
-            anchors.fill: parent
-            radius: Theme.u * 5
-            sparkles: false
-        }
-        Column {
-            x: Theme.u * 3
-            y: Theme.u * 7
-            spacing: Theme.u * 2
-            Repeater {
-                model: 5
-                Rectangle {
-                    required property int index
-                    width: Theme.u * 28
-                    height: Theme.u * 3
-                    radius: height / 2
-                    color: index === 1 ? Theme.accent : Qt.alpha(Theme.text, 0.25)
-                }
-            }
-        }
-    }
-
-    // tiles: a frosted grid
-    Rectangle {
-        visible: root.style === "tiles"
-        x: Theme.u * 10
-        y: Theme.u * 5
-        width: Theme.u * 38
-        height: Theme.u * 32
-        radius: Theme.u * 4
-        color: Qt.alpha(Theme.menuSurface, 0.9)
-        border.width: Math.max(1, Theme.u / 2)
-        border.color: Qt.alpha("#ffffff", 0.3)
-        Grid {
-            x: Theme.u * 3
-            y: Theme.u * 4
-            columns: 3
-            spacing: Theme.u * 2
-            Repeater {
-                model: 6
-                Rectangle {
-                    required property int index
-                    width: Theme.u * 9
-                    height: Theme.u * 11
-                    radius: Theme.u * 2
-                    color: index === 4 ? Theme.accent : Qt.alpha(Theme.faceAlt, 0.9)
                 }
             }
         }

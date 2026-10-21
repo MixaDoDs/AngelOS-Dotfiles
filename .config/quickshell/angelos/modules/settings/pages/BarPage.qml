@@ -10,62 +10,15 @@ PxPage {
     // the Start looks that fill the screen (no position, no size)
     readonly property bool startFull: ["fullscreen", "xmb"].includes(Config.bar.startStyle)
     heading: I18n.t("Панель и «Пуск»", "Bar and Start")
-    subtitle: I18n.t("Шесть видов: таскбар как в Win98, полоса сверху, остров, док, капсулы и Windose. Всё остальное — по ссылкам ниже.", "Six styles: a Win98 taskbar, a strip on top, an island, a dock, capsules and Windose. Everything else is behind the links below.")
+    subtitle: I18n.t("Таскбар как в Win98 — снизу, сверху или сбоку. Всё остальное — по ссылкам ниже.", "A Win98 taskbar — at the bottom, on top or on a side. Everything else is behind the links below.")
 
     PxGroup {
         name: "style"
-        title: I18n.t("Стиль", "Style")
+        title: I18n.t("Положение", "Position")
         icon: "window"
         width: parent.width
-        SettingRow {
-            id: barStyleRow
-            preview: "BarStyle"
-            label: I18n.t("Вид панели", "Bar style")
-            PxCombo {
-                width: Math.min(parent.width, Theme.u * 140)
-                model: [
-                    {
-                        "label": I18n.t("Таскбар", "Taskbar"),
-                        "value": "taskbar"
-                    },
-                    {
-                        "label": I18n.t("Полоса", "Strip"),
-                        "value": "top"
-                    },
-                    {
-                        "label": I18n.t("Остров", "Island"),
-                        "value": "island"
-                    },
-                    {
-                        "label": I18n.t("Док", "Dock"),
-                        "value": "dock"
-                    },
-                    {
-                        "label": I18n.t("Капсулы", "Capsules"),
-                        "value": "capsules"
-                    },
-                    {
-                        "label": "Windose",
-                        "value": "windose"
-                    }
-                ]
-                currentValue: Config.bar.style
-                onActivated: v => {
-                    Config.bar.style = v;
-                    barStyleRow.show(v, ({
-                            "taskbar": I18n.t("таскбар", "taskbar"),
-                            "top": I18n.t("полоса", "strip"),
-                            "island": I18n.t("остров", "island"),
-                            "dock": I18n.t("док", "dock"),
-                            "capsules": I18n.t("капсулы", "capsules"),
-                            "windose": "Windose"
-                        })[v]);
-                }
-            }
-        }
         // like Windows 10: the taskbar on any edge; on the left or the right it stands upright
         SettingRow {
-            visible: Config.bar.style === "taskbar"
             label: I18n.t("Положение на экране", "Position on screen")
             hint: BarLayout.vertical ? I18n.t("сбоку панель стоит столбиком: «Пуск», воркспейсы и окна сверху, трей и часы снизу; меню открываются вбок, лирика сбоку не помещается", "On a side the bar stands upright: Start, workspaces and windows at the top, the tray and the clock at the bottom; menus open sideways, the lyrics don't fit there") : I18n.t("у какого края экрана панель, как в Windows 10", "Which screen edge the bar sits on, like Windows 10")
             PxSegmented {
@@ -92,7 +45,6 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.bar.style === "taskbar"
             label: I18n.t("Автоскрытие", "Auto-hide")
             hint: I18n.t("панель уезжает за край экрана и оставляет тонкую линию; подведи мышь к этому краю — вернётся. Окна получают весь экран", "The bar slides off its screen edge leaving a thin line; move the pointer to that edge to bring it back. Windows get the whole screen")
             PxToggle {
@@ -101,7 +53,7 @@ PxPage {
             }
         }
         SettingRow {
-            visible: Config.bar.style === "taskbar" && Config.bar.autoHide
+            visible: Config.bar.autoHide
             label: I18n.t("Прятать через", "Hide after")
             PxSlider {
                 width: Math.min(parent.width, Theme.u * 120)
@@ -448,7 +400,7 @@ PxPage {
 
     PxGroup {
         name: "sidebar-experimental"
-        title: I18n.t("Боковая панель", "Sidebar")
+        title: I18n.t("Боковая панель · эксперимент", "Sidebar · experiment")
 
         advanced: true
         icon: "layers"
@@ -635,7 +587,6 @@ PxPage {
         }
         SettingRow {
             id: taskbarAlignRow
-            visible: Config.bar.style !== "island"
             label: I18n.t("Панель задач", "Taskbar alignment")
             hint: Config.bar.taskbarAlign === "center" ? I18n.t("как в Windows 11: «Пуск» и окна посередине, лирика — слева; меню выезжает снизу", "Like Windows 11: Start and windows in the middle, lyrics on the left; the menu slides up") : I18n.t("«Пуск» и окна у левого края", "Start and windows at the left edge")
             PxSegmented {

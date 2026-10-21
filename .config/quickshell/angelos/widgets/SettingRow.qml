@@ -13,7 +13,8 @@ Item {
     property string hint: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
     readonly property bool streamLayout: settingsSkin === "stream"
-    // Settings in the Windows 11 look: every row a card of its own, the control on its right
+    // Settings (SettingsView.fluent): a row of its group's card, the control on its right, a
+    // hairline between rows
     readonly property bool fluent: Theme.fluentFor(root.parent)
     // the Golden Gate skin's System Settings: no card of its own — a row of its group's box with
     // a hairline between rows, the label regular
@@ -24,7 +25,7 @@ Item {
     property string previewVariant: ""
     property string previewCaption: ""
     property bool previewOpen: false
-    readonly property int rowHeight: streamLayout ? labels.implicitHeight + slot.childrenRect.height + Theme.u * 12 : fluent ? Math.max(Theme.fit(20), Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * 8) : Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (settingsSkin === "windose" ? 8 : 2)
+    readonly property int rowHeight: streamLayout ? labels.implicitHeight + slot.childrenRect.height + Theme.u * 12 : fluent ? Math.max(Theme.fit(mac ? 20 : 17), Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (mac ? 8 : 6)) : Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (settingsSkin === "windose" ? 8 : 2)
 
     // new since you last looked (services/SettingsNews): a star after the label. The row's group
     // and page file come from its place on the page
@@ -57,7 +58,7 @@ Item {
     width: parent ? parent.width : implicitWidth
     implicitHeight: rowHeight + (gif.item ? gif.item.implicitHeight + Theme.u * 3 : 0)
 
-    // Windows 11: the row's card
+    // the hairline above every row but the first of its card
     Rectangle {
         visible: root.mac && root.y > 0
         x: Theme.u * 5
@@ -66,12 +67,10 @@ Item {
         color: Theme.dark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.07)
     }
     Rectangle {
-        visible: root.fluent && !root.mac
+        visible: root.fluent && !root.mac && root.y > 0
         width: parent.width
-        height: root.rowHeight
-        color: Theme.mix(Theme.face, Theme.faceAlt, 0.55)
-        border.width: Math.max(1, Theme.u / 2)
-        border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.5)
+        height: Math.max(1, Theme.u / 2)
+        color: Qt.alpha(Theme.lo, Theme.dark ? 0.7 : 0.35)
     }
     // classic: a hairline between the rows of a card, in the middle of the gap above
     Rectangle {
@@ -102,7 +101,7 @@ Item {
 
     Column {
         id: labels
-        x: root.fluent ? Theme.u * 5 : root.settingsSkin === "classic" ? 0 : Theme.u * 6
+        x: root.mac ? Theme.u * 5 : root.fluent || root.settingsSkin === "classic" ? 0 : Theme.u * 6
         width: root.labelWidth
         y: root.streamLayout ? Theme.u * 4 : (root.rowHeight - implicitHeight) / 2
         PxText {
@@ -130,8 +129,8 @@ Item {
     Item {
         id: slot
         readonly property bool fixedWidth: true // PxToggle wraps its label to fit
-        x: root.streamLayout ? Theme.u * 6 : root.labelWidth + Theme.u * (root.fluent ? 10 : root.settingsSkin === "classic" ? 6 : 12)
-        width: root.width - x - (root.fluent ? Theme.u * 5 : root.settingsSkin === "classic" ? 0 : Theme.u * 5)
+        x: root.streamLayout ? Theme.u * 6 : labels.x + root.labelWidth + Theme.u * (root.fluent ? 5 : root.settingsSkin === "classic" ? 6 : 12)
+        width: root.width - x - (root.mac ? Theme.u * 5 : root.fluent || root.settingsSkin === "classic" ? 0 : Theme.u * 5)
         y: root.streamLayout ? labels.y + labels.implicitHeight + Theme.u * 3 : (root.rowHeight - height) / 2
         height: childrenRect.height
     }

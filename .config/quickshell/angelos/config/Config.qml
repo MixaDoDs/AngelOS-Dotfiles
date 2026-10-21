@@ -91,7 +91,7 @@ Singleton {
         const v = d[key];
         return v !== null && typeof v === "object" ? JSON.parse(JSON.stringify(v)) : v;
     }
-    // put settings back to their defaults: ["y2k.helper", "bar.style", …]
+    // put settings back to their defaults: ["y2k.helper", "bar.edge", …]
     function resetKeys(paths) {
         let n = 0;
         for (const path of paths || []) {
@@ -197,6 +197,21 @@ Singleton {
     // the change is saved like any other). 2026-10-20: the Start looks Windose and Wii are
     // gone — their users get win11, and those looks' Fine-tune sets go with them
     function _migrate() {
+        // 21.10: one shape for the right-click menus — the desktop's ring, gloss and tiles looks
+        // went, and so did its flyouts (Вид, Создать, Обои, Открыть, Ещё): a layout that had them
+        // is the old one, it starts from the new defaults (the own entries kept)
+        const desk = adapter.desktop;
+        if (desk) {
+            if (["radial", "y2k", "tiles"].includes(desk.menuStyle))
+                desk.menuStyle = "list";
+            const old = ["view", "new", "wallpaper", "open", "more"];
+            if ((desk.menuItems || []).some(id => old.includes(id)) || (desk.menuQuick || []).some(id => old.includes(id))) {
+                const d = defaults.desktop;
+                const own = (desk.menuItems || []).concat(desk.menuQuick || []).filter((id, i, a) => String(id).startsWith("custom:") && a.indexOf(id) === i);
+                desk.menuQuick = d.menuQuick.slice();
+                desk.menuItems = d.menuItems.concat(own).slice(0, 8);
+            }
+        }
         const bar = adapter.bar;
         if (!bar)
             return;

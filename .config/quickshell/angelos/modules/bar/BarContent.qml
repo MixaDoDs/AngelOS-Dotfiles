@@ -4,37 +4,28 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// Left / center / right sections from BarLayout. `inline` packs everything in one row (island,
-// dock). Capsules: the full-width layout, each section as wide as it needs (the window draws
-// a capsule behind each: leftBox / centerBox / rightBox give their places). In hell
+// Left / center / right sections from BarLayout, across the taskbar or (on a side edge) in one
+// column. In hell
 // (BarLayout.hell) the widgets draw themselves in the circle's colours — the bar's roles
 // (Theme.hellBar*, HellLook.barRoles): icons as outlines in one colour on one grid, a square
 // cell each, a flat plate only while hovered or open (one height, one rule: BarItem,
 // PxButton.barInk), the accent only for a state; app icons and plugins without a hell look
 // of their own through the sprite ramp (HellBarTint) — and `hellPlates` tells the window's
 // HellBarFrame where the runs of widgets are, so they sit on a calm plate and never on the
-// pattern. Nothing is re-rendered as a whole: each widget repaints only itself. The dock
-// stays as it is in hell.
+// pattern. Nothing is re-rendered as a whole: each widget repaints only itself.
 Item {
     id: root
 
     required property string screenName
     required property var barWindow
-    required property string style        // BarLayout.styles
-    readonly property bool hug: style === "capsules"
     property bool compact: false
-    property bool inline: false
     // a taskbar on the left or the right edge (BarLayout.vertical, like Windows 10): one column —
     // Start, the workspaces and the windows from the top, the rest (the centre's widgets
     // without the lyrics, then the right side's) at the bottom
     property bool vertical: false
     property int itemHeight: Theme.u * 15
-    readonly property bool above: (style === "taskbar" && BarLayout.edge === "bottom") || style === "dock" || style === "windose"
-    // the sections, for the capsules behind them (CapsuleWindow)
-    readonly property alias leftBox: left
-    readonly property alias centerBox: center
-    readonly property alias rightBox: right
-    readonly property bool hellInk: BarLayout.hell && style !== "dock"
+    readonly property bool above: BarLayout.edge === "bottom"
+    readonly property bool hellInk: BarLayout.hell
     // where a section's widgets really are, in its own coordinates: [from, to] or null (a
     // stretched "Windows" counts as wide as its buttons)
     function usedRange(sec) {
@@ -66,7 +57,7 @@ Item {
         const pad = Theme.u * 2;
         const h = itemHeight + Theme.u * 2;
         const y = Math.round((height - h) / 2);
-        const secs = inline ? [[inlineRow.children[0], inlineRow], [inlineRow.children[1], inlineRow], [inlineRow.children[2], inlineRow]] : vertical ? [[vTop, column], [vBottom, column]] : [[left, full], [center, full], [right, full]];
+        const secs = vertical ? [[vTop, column], [vBottom, column]] : [[left, full], [center, full], [right, full]];
         for (const [sec, holder] of secs) {
             if (!sec || !sec.visible)
                 continue;
@@ -134,7 +125,6 @@ Item {
             lyricsMax: center.lyricsMax
         };
     }
-    implicitWidth: inline ? inlineRow.implicitWidth : 0
     implicitHeight: itemHeight
 
     // Behind the widgets: right-clicks on task buttons keep their own action.
@@ -160,44 +150,11 @@ Item {
         }
     }
 
-    // ---- inline (island) ----
-    Row {
-        id: inlineRow
-        visible: root.inline
-        anchors.centerIn: parent
-        spacing: Theme.u * 5
-        BarSection {
-            anchors.verticalCenter: parent.verticalCenter
-            visible: root.layout.left.length > 0
-            ids: root.inline ? root.layout.left : []
-            bar: root
-            centered: root.style === "dock"
-            lyricsMax: root.compact ? Theme.u * 110 : Theme.u * 200
-        }
-        BarSection {
-            anchors.verticalCenter: parent.verticalCenter
-            visible: root.layout.center.length > 0
-            ids: root.inline ? root.layout.center : []
-            bar: root
-            centered: root.style === "dock"
-            lyricsMax: root.compact ? Theme.u * 110 : Theme.u * 200
-        }
-        BarSection {
-            anchors.verticalCenter: parent.verticalCenter
-            visible: root.layout.right.length > 0
-            ids: root.inline ? root.layout.right : []
-            bar: root
-            centered: root.style === "dock"
-            lyricsMax: root.compact ? Theme.u * 110 : Theme.u * 200
-            density: Config.bar.rightDensity || "normal"
-        }
-    }
-
     // ---- upright (a taskbar on the left or the right edge) ----
     Item {
         id: column
         anchors.fill: parent
-        visible: root.vertical && !root.inline
+        visible: root.vertical
         // sunken Win98 notification area behind the bottom run, as across
         PxBox {
             visible: vBottom.implicitHeight > 0 && !root.hellInk
@@ -217,7 +174,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: vBottom.top
             anchors.bottomMargin: root.gap + Theme.u * 3
-            ids: root.vertical && !root.inline ? root.layout.left : []
+            ids: root.vertical ? root.layout.left : []
             bar: root
             fillTasks: true
         }
@@ -227,17 +184,17 @@ Item {
             anchors.bottomMargin: Theme.u * 2
             anchors.left: parent.left
             anchors.right: parent.right
-            ids: root.vertical && !root.inline ? root.layout.center.filter(id => id !== "lyrics").concat(root.layout.right) : []
+            ids: root.vertical ? root.layout.center.filter(id => id !== "lyrics").concat(root.layout.right) : []
             bar: root
             density: Config.bar.rightDensity || "normal"
         }
     }
 
-    // ---- full width (taskbar / top) ----
+    // ---- full width ----
     Item {
         id: full
         anchors.fill: parent
-        visible: !root.inline && !root.vertical
+        visible: !root.vertical
 
         readonly property bool tasksLeft: root.layout.left.includes("tasks")
         readonly property real mid: width / 2
@@ -247,7 +204,7 @@ Item {
 
         // sunken Win98 notification area behind the right side of the taskbar
         PxBox {
-            visible: (root.style === "taskbar") && right.implicitWidth > 0 && !root.hellInk
+            visible: right.implicitWidth > 0 && !root.hellInk
             x: right.x - Theme.u * 4
             width: right.width + Theme.u * 6
             height: root.itemHeight
@@ -262,7 +219,7 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: Theme.u * 2
             anchors.verticalCenter: parent.verticalCenter
-            ids: root.inline || root.vertical ? [] : root.layout.right
+            ids: root.vertical ? [] : root.layout.right
             bar: root
             lyricsMax: Theme.u * 150
             density: Config.bar.rightDensity || "normal"
@@ -271,14 +228,14 @@ Item {
         BarSection {
             id: center
             anchors.verticalCenter: parent.verticalCenter
-            x: parent.centered && !root.hug ? Theme.u * 2 : Math.round(Math.max(leftNeed, Math.min(parent.mid - width / 2, right.x - root.gap - width)))
-            ids: root.inline || root.vertical ? [] : root.layout.center
+            x: parent.centered ? Theme.u * 2 : Math.round(Math.max(leftNeed, Math.min(parent.mid - width / 2, right.x - root.gap - width)))
+            ids: root.vertical ? [] : root.layout.center
             bar: root
             // widest centred run that still leaves room for the left side (+ a few task buttons) and the right side
-            readonly property real leftNeed: Theme.u * 2 + left.implicitWidth + (parent.tasksLeft && !root.hug ? (root.compact ? Theme.u * 4 : Theme.u * 44) : 0) + root.gap + (root.hug ? Theme.u * 10 : 0)
+            readonly property real leftNeed: Theme.u * 2 + left.implicitWidth + (parent.tasksLeft ? (root.compact ? Theme.u * 4 : Theme.u * 44) : 0) + root.gap
             // the lyrics box takes the song's longest line, up to all the room between the sides
             // (centred taskbar: the room left of the centred group)
-            lyricsMax: parent.centered && !root.hug ? Math.max(0, left.x - root.gap - Theme.u * 2 - (root.layout.center.filter(id => id !== "runner").length > 1 ? Theme.u * 60 : 0)) : Math.max(0, Math.min(parent.width * 0.6, right.x - root.gap - leftNeed - (root.hug ? Theme.u * 10 : 0) - (root.layout.center.filter(id => id !== "runner").length > 1 ? Theme.u * 60 : 0)))
+            lyricsMax: parent.centered ? Math.max(0, left.x - root.gap - Theme.u * 2 - (root.layout.center.filter(id => id !== "runner").length > 1 ? Theme.u * 60 : 0)) : Math.max(0, Math.min(parent.width * 0.6, right.x - root.gap - leftNeed - (root.layout.center.filter(id => id !== "runner").length > 1 ? Theme.u * 60 : 0)))
         }
 
         BarSection {
@@ -287,12 +244,12 @@ Item {
             // left: from the edge to the lyrics; centred: as wide as it needs, in the middle
             readonly property real room: right.x - root.gap - Theme.u * 2
             readonly property real centeredX: Math.round(Math.max(Theme.u * 2, Math.min((parent.width - width) / 2, right.x - root.gap - width)))
-            x: parent.centered && !root.hug ? centeredX : Theme.u * 2
-            width: parent.centered || root.hug ? Math.min(implicitWidth, room) : Math.max(implicitWidth, (center.implicitWidth > 0 && center.visible ? center.x : right.x - Theme.u * 6) - root.gap - x)
-            ids: root.inline || root.vertical ? [] : root.layout.left
+            x: parent.centered ? centeredX : Theme.u * 2
+            width: parent.centered ? Math.min(implicitWidth, room) : Math.max(implicitWidth, (center.implicitWidth > 0 && center.visible ? center.x : right.x - Theme.u * 6) - root.gap - x)
+            ids: root.vertical ? [] : root.layout.left
             bar: root
-            fillTasks: !parent.centered && !root.hug
-            centered: parent.centered || root.hug
+            fillTasks: !parent.centered
+            centered: parent.centered
             lyricsMax: Theme.u * 150
             // the Windows 11 slide when the alignment changes or a window button comes and goes
             Behavior on x {

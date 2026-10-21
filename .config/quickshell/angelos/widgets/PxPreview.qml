@@ -59,7 +59,7 @@ PxWindow {
             "OpenFx": openFx,
             "WallpaperFx": wallpaperFx,
             "StartMenu": startMenu,
-            "BarStyle": barStyle,
+            "Taskbar": taskbar,
             "DeskSwitch": deskSwitch,
             "LockScreen": lockScreen,
             "CaptureSkin": captureSkin,
@@ -107,8 +107,8 @@ PxWindow {
         StartMenu {}
     }
     Component {
-        id: barStyle
-        BarStyle {}
+        id: taskbar
+        Taskbar {}
     }
 
     Loader {

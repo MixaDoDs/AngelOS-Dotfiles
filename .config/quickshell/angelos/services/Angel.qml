@@ -1318,12 +1318,12 @@ Singleton {
             "en": "Open Start. Surprise! It has three styles, pick one in Bar settings."
         },
         {
-            "id": "barStyle",
-            "key": "bar.style",
-            "value": () => Config.bar.style === "island" ? "top" : "island",
+            "id": "barEdge",
+            "key": "bar.edge",
+            "value": () => Config.bar.edge === "top" ? "bottom" : "top",
             "page": "bar",
-            "ru": "Я переставила тебе панель. Бывает снизу, сверху и островом — всё в «Панели».",
-            "en": "I moved your bar. It can live at the bottom, on top or as an island — see Bar settings."
+            "ru": "Я переставила тебе панель. Бывает снизу, сверху и сбоку — всё в «Панели».",
+            "en": "I moved your bar. It can live at the bottom, on top or on a side — see Bar settings."
         },
         {
             "id": "px",

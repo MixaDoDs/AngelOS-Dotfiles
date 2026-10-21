@@ -9,6 +9,8 @@ Rectangle {
     property string icon: "gear"
     property color tint: Theme.accent
     property int size: Theme.u * 11
+    // how much of the tile the icon takes (a big tile: a title plate's badge, less)
+    property real iconFill: 1
 
     width: size
     height: size
@@ -27,7 +29,7 @@ Rectangle {
         anchors.centerIn: parent
         name: root.icon
         // a 9-pixel icon filling the tile, a pixel of the tint around it
-        pixel: Math.max(1, Math.floor((root.size - Theme.u * 2) / 9))
+        pixel: Math.max(1, Math.floor((root.size * root.iconFill - Theme.u * 2) / 9))
         // white outline, the fills a lighter tint, the body a darker one: reads on any tint
         ink: "#ffffff"
         fill: Qt.lighter(root.tint, 1.45)

@@ -4,17 +4,22 @@ import QtQuick
 import qs.config
 import qs.services
 
-// One level of a pixel menu (PxMenu's own, a PxMenuSub's): the look's frame (services/MenuLook),
-// an optional title, the rows of `items`, room for a menu's own parts above (`header`) and
-// below (`footer`) the rows, and the keyboard — the same in every menu:
-// ↑↓ go round, → opens a submenu, ← goes back, Enter/Space choose, Esc closes this level,
-// a letter jumps to the next entry starting with it. Rows taller than `maxHeight` scroll.
+// One level of a pixel menu (PxMenu's own, a PxMenuSub's): the frame (services/MenuLook), an
+// optional title, the everyday actions as signed icons in a row (`quick`, the menu's own level
+// only), the rows of `items`, room for a menu's own parts on top (`header`) and below (`footer`)
+// the rows, and the keyboard — the same in every menu: ↑↓ go round (↑ from the first row into
+// the icons, ←→ along them), → opens a submenu (the tray's), ← goes back, ←→ on a row of
+// choices picks one, Enter/Space choose, Esc closes this level, a letter jumps to the next entry
+// starting with it. Rows taller than `maxHeight` scroll.
 Item {
     id: list
 
     property var menu: null                 // the PxMenu it belongs to
     property int level: 0                   // 0: the menu itself, 1… its submenus
     property var items: []                  // see PxMenu for the entry schema
+    property var quick: []                  // the row of icons over the list (same schema)
+    property real tileScale: 1              // their size (Settings → Right-click menu → Size)
+    property int qcurrent: -1               // the keyboard's icon in that row (-1: on the rows)
     property string title: ""
     property string look: "classic"
     // what PxMenuItems inside take their colours from (MenuLook.tokensFor), plugins' rows too
@@ -94,21 +99,57 @@ Item {
         return -1;
     }
 
+    // the first usable row: ↑ from it goes up into the icons
+    function first() {
+        for (let i = 0; i < items.length; i++)
+            if (usable(i))
+                return i;
+        return -1;
+    }
+    function choicesAt(i) {
+        const it = items[i];
+        return it && it.choices ? Array.from(it.choices) : [];
+    }
     Keys.onPressed: e => {
         if (!menu)
             return;
         const k = e.key;
         e.accepted = true;
-        if (k === Qt.Key_Down || k === Qt.Key_Up)
+        // in the row of icons
+        if (qcurrent >= 0) {
+            if (k === Qt.Key_Left || k === Qt.Key_Right)
+                qcurrent = (qcurrent + (k === Qt.Key_Right ? 1 : -1) + quick.length) % quick.length;
+            else if (k === Qt.Key_Down) {
+                qcurrent = -1;
+                select(step(1));
+            } else if (k === Qt.Key_Return || k === Qt.Key_Enter || k === Qt.Key_Space)
+                menu.activateQuick(list, qcurrent, -1);
+            else if (k === Qt.Key_Escape)
+                menu.close();
+            else
+                e.accepted = false;
+            return;
+        }
+        const ch = current >= 0 ? choicesAt(current) : [];
+        if (k === Qt.Key_Up && quick.length > 0 && (current < 0 || current === first())) {
+            current = -1;
+            qcurrent = 0;
+        } else if (k === Qt.Key_Down || k === Qt.Key_Up)
             select(step(k === Qt.Key_Down ? 1 : -1));
-        else if (k === Qt.Key_Right) {
+        else if ((k === Qt.Key_Right || k === Qt.Key_Left) && ch.length > 0) {
+            const r = rows.itemAt(current);
+            if (r)
+                r.choice = (r.choice + (k === Qt.Key_Right ? 1 : -1) + ch.length) % ch.length;
+        } else if (k === Qt.Key_Right) {
             if (current >= 0 && MenuLook.hasKids(items[current]))
                 menu.activate(list, current, true);
         } else if (k === Qt.Key_Left) {
             if (level > 0)
                 menu.collapse(level);
         } else if (k === Qt.Key_Return || k === Qt.Key_Enter || k === Qt.Key_Space) {
-            if (current >= 0)
+            if (current >= 0 && ch.length > 0)
+                menu.runChoice(list, current, rows.itemAt(current) ? rows.itemAt(current).choice : 0);
+            else if (current >= 0)
                 menu.activate(list, current, true);
         } else if (k === Qt.Key_Escape) {
             if (level > 0)
@@ -143,13 +184,13 @@ Item {
 
     PxBox {
         id: frame
-        readonly property real natural: Math.max(list.minWidth, titleNeed, ...rowCol.children.map(list.need), ...headCol.children.map(list.need), ...footCol.children.map(list.need))
-        readonly property real titleNeed: list.title === "" ? 0 : list.t.head === "bar" ? barText.implicitWidth + (badge.visible ? badge.implicitWidth + Theme.u * 12 : Theme.u * 8) : list.t.head === "ink" ? inkText.implicitWidth + Theme.u * (list.t.pad + 20) : plainText.implicitWidth + Theme.u * 8
+        readonly property real natural: Math.max(list.minWidth, titleNeed, quickRow.visible ? quickRow.implicitWidth + Theme.u * 4 : 0, ...rowCol.children.map(list.need), ...headCol.children.map(list.need), ...footCol.children.map(list.need))
+        readonly property real titleNeed: list.title === "" ? 0 : plainText.implicitWidth + Theme.u * 8
         // the scroll bar's room on top of the widest row
         width: Math.min(list.maxWidth, Math.ceil(natural)) + inset * 2 + (scroll.barVisible ? Theme.u * 11 : 0)
         height: col.implicitHeight + inset * 2
         // everything but the rows: what a limited height leaves them
-        readonly property real chrome: (plainText.visible ? plainText.height : 0) + (barHead.visible ? barHead.height : 0) + (inkHead.visible ? inkHead.height : 0) + headCol.height + footCol.height + col.topPadding + col.bottomPadding + inset * 2
+        readonly property real chrome: (plainText.visible ? plainText.height : 0) + (quickRow.visible ? quickRow.height + quickLine.height : 0) + headCol.height + footCol.height + inset * 2
         hell: list.t.hellBox
         color: list.t.face
         outline: list.t.outline
@@ -161,40 +202,14 @@ Item {
         shadowColor: list.t.shadowColor
         shadowSize: Theme.u * list.t.shadowU
 
-        // Y2K gloss: the chrome bubble instead of the bevelled box
-        Y2kGloss {
-            visible: !!list.t.y2k
-            anchors.fill: parent
-            z: -1
-            sparkles: list.level === 0
-        }
-        // the sticker: the notebook's squares and its red margin
-        Image {
-            visible: !!list.t.grid
-            anchors.fill: parent
-            fillMode: Image.Tile
-            smooth: false
-            source: list.t.grid ? MenuLook.gridTile(Theme.u * list.t.gridCell, list.t.grid) : ""
-        }
-        Rectangle {
-            visible: !!list.t.margin
-            x: Theme.u * (list.t.pad + 14)
-            y: headCol.height > 0 ? headCol.y + headCol.height : 0
-            width: Theme.u
-            height: parent.height - y
-            color: list.t.margin || "transparent"
-        }
-
         Column {
             id: col
             width: parent.width
-            topPadding: list.t.y2k && list.level > 0 ? Theme.u * 4 : 0
-            bottomPadding: list.t.y2k ? Theme.u * (list.level > 0 ? 2 : 3) : 0
 
-            // the title: small and dim (classic), the accent bar (save), ink underlined in red (sticker)
+            // the title: small and dim
             PxText {
                 id: plainText
-                visible: list.title !== "" && list.t.head === "plain"
+                visible: list.title !== ""
                 x: Theme.u * 4
                 topPadding: Theme.u * 2
                 bottomPadding: Theme.u
@@ -205,74 +220,42 @@ Item {
                 color: list.t.headText
                 text: list.title
             }
-            Item {
-                id: barHead
-                visible: list.title !== "" && list.t.head === "bar"
-                width: col.width
-                height: bar.height + Theme.u * 2
-                Rectangle {
-                    id: bar
-                    width: parent.width
-                    height: barText.implicitHeight + Theme.u * 4
-                    color: list.t.headBg
-                    PxText {
-                        id: barText
-                        x: Theme.u * 4
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - x - (badge.visible ? badge.implicitWidth + Theme.u * 8 : Theme.u * 4)
-                        elide: Text.ElideRight
-                        kind: "tiny"
-                        font.bold: true
-                        color: list.t.headText
-                        text: list.t.caps ? list.title.toUpperCase() : list.title
-                    }
-                    PxText {
-                        id: badge
-                        visible: list.t.badge !== ""
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.u * 4
-                        anchors.verticalCenter: parent.verticalCenter
-                        kind: "tiny"
-                        color: list.t.headText
-                        text: list.t.badge
-                    }
-                }
-            }
-            Item {
-                id: inkHead
-                visible: list.title !== "" && list.t.head === "ink"
-                width: col.width
-                height: inkText.implicitHeight + Theme.u * 6
-                PxText {
-                    id: inkText
-                    x: Theme.u * (list.t.pad + 16)
-                    y: Theme.u * 2
-                    width: parent.width - x - Theme.u * 4
-                    elide: Text.ElideRight
-                    font.bold: true
-                    color: list.t.headText
-                    text: list.title
-                }
-                Row {
-                    x: inkText.x
-                    y: inkText.y + inkText.implicitHeight + Theme.u
-                    spacing: Theme.u
-                    Repeater {
-                        model: Math.max(0, Math.floor(Math.min(inkText.implicitWidth, inkText.width) / (Theme.u * 2)))
-                        Rectangle {
-                            width: Theme.u
-                            height: Theme.u
-                            color: list.t.margin || list.t.headText
-                        }
-                    }
-                }
-            }
-
-            // the menu's own parts over the rows (the desktop's quick tiles)
+            // the menu's own parts on top (a task's window and its name)
             Column {
                 id: headCol
                 width: parent.width
             }
+            // the everyday actions: signed icons in a row
+            Row {
+                id: quickRow
+                visible: list.quick.length > 0
+                anchors.horizontalCenter: parent.horizontalCenter
+                topPadding: Theme.u * 2
+                bottomPadding: Theme.u * 2
+                spacing: Theme.u
+                Repeater {
+                    model: list.quick
+                    PxMenuTile {
+                        required property var modelData
+                        required property int index
+                        entry: modelData
+                        scale_: list.tileScale
+                        highlighted: list.qcurrent === index
+                        onTriggered: if (list.menu)
+                            list.menu.activateQuick(list, index, -1)
+                        onChoiceTriggered: j => {
+                            if (list.menu)
+                                list.menu.activateQuick(list, index, j);
+                        }
+                    }
+                }
+            }
+            PxMenuItem {
+                id: quickLine
+                visible: quickRow.visible && list.items.length > 0
+                separator: true
+            }
+
             PxScroll {
                 id: scroll
                 width: parent.width
@@ -299,6 +282,11 @@ Item {
                             required property var modelData
                             required property int index
                             separator: !!modelData.separator
+                            choices: modelData.choices ? Array.from(modelData.choices) : []
+                            onChoiceTriggered: j => {
+                                if (list.menu)
+                                    list.menu.runChoice(list, index, j);
+                            }
                             text: modelData.label || ""
                             icon: list.icons ? (modelData.icon || "") : ""
                             hint: modelData.hint || ""
@@ -310,8 +298,10 @@ Item {
                             enabled: MenuLook.on(modelData.enabled, true)
                             hoverLights: false
                             highlighted: list.current === index
-                            onHoveredChanged: if (hovered && list.menu)
-                                list.menu.rowHovered(list, index)
+                            onHoveredChanged: if (hovered && list.menu) {
+                                list.qcurrent = -1;
+                                list.menu.rowHovered(list, index);
+                            }
                             onTriggered: if (list.menu)
                                 list.menu.activate(list, index, false)
                         }

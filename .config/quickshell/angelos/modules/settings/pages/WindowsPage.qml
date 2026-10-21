@@ -1138,7 +1138,7 @@ PxPage {
 
     PxGroup {
         name: "window-menu-experimental"
-        title: I18n.t("Меню окна", "Window menu")
+        title: I18n.t("Меню окна · эксперимент", "Window menu · experiment")
         advanced: true
         icon: "layers"
         width: parent.width

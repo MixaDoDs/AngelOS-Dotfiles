@@ -45,16 +45,12 @@ Scope {
             drv.step++;
             const s = drv.step;
             if (s === 1) {
-                const c = DeskMenu.canon(["circle", "screenshot", "sep", "terminal", "sep", "circle"]);
-                drv.check("menu-circle-is-screenshot", JSON.stringify(c) === '["screenshot","sep","terminal","sep"]', JSON.stringify(c));
-                Config.desktop.menuQuick = ["terminal", "circle"];
-                Config.desktop.menuItems = ["circle", "sep", "more"];
-                drv.check("menu-catalog-no-circle", DeskMenu.catalog.indexOf("circle") < 0 && DeskMenu.catalog.indexOf("screenshot") >= 0, "");
-                drv.check("menu-old-entry-label", DeskMenu.entry("circle").label === "Скриншот" && DeskMenu.entry("screenshot").label === "Скриншот", DeskMenu.entry("circle").label);
+                // Circle to Search is its own entry again (the ring's ↘), the screenshot its own
+                Config.desktop.menuQuick = ["terminal", "circle", "circle", "sep", "screenshot"];
+                drv.check("menu-circle-own", DeskMenu.entry("circle").label !== DeskMenu.entry("screenshot").label && DeskMenu.catalog("ring").includes("circle"), DeskMenu.entry("circle").label);
             }
             if (s === 2) {
-                drv.check("menu-quick", JSON.stringify(DeskMenu.quick) === '["terminal","screenshot"]', JSON.stringify(DeskMenu.quick));
-                drv.check("menu-items", JSON.stringify(DeskMenu.items) === '["screenshot","sep","more"]', JSON.stringify(DeskMenu.items));
+                drv.check("menu-quick", JSON.stringify(DeskMenu.layout("desktop").quick) === '["terminal","circle","screenshot"]', JSON.stringify(DeskMenu.layout("desktop").quick));
                 // the overlay runs in its own process (services/CircleHost), not started under
                 // ANGELOS_TEST: what the shell asks of it waits in CircleHost.pending
                 drv.ipc.capture();

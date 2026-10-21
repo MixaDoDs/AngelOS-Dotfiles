@@ -9,14 +9,10 @@ Singleton {
     id: root
 
     readonly property var sections: ["left", "center", "right"]
-    // the bar's looks (Settings → Bar → Style) and the ones along the bottom edge (their
-    // popups and menus open upwards)
-    readonly property var styles: ["taskbar", "top", "island", "dock", "capsules", "windose"]
-    readonly property string style: styles.includes(Config.bar.style) ? Config.bar.style : "taskbar"
     // the taskbar sits on any edge, like Windows 10 (Config.bar.edge); on the left or the right
     // it stands upright (BarContent.vertical) and its menus open sideways (`side`)
     readonly property var edges: ["bottom", "top", "left", "right"]
-    readonly property string edge: style === "taskbar" && edges.includes(Config.bar.edge) ? Config.bar.edge : style === "top" || style === "island" || style === "capsules" ? "top" : "bottom"
+    readonly property string edge: edges.includes(Config.bar.edge) ? Config.bar.edge : "bottom"
     readonly property bool vertical: edge === "left" || edge === "right"
     readonly property string side: vertical ? edge : ""
     readonly property bool bottom: edge === "bottom"

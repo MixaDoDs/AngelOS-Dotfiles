@@ -9,24 +9,27 @@ import qs.widgets
 import qs.modules.background.circles
 import "../../services/CobwebLayout.js" as Lay
 
-// The right-click menu on the wallpaper as a full-screen popup of the wallpaper window,
-// in one of its looks (services/DeskMenu.overlayLook): the ring around the pointer
-// (RingLook), a Control Center grid (TilesLook), heaven's wings and harp (WingsLook,
-// HarpLook), hell's pentagram (PentagramLook) and each circle's own
-// (modules/background/circles: QueueLook … ShardsLook, story/circles.json → dress).
-// This host keeps what they share: the entries (slots), the open flyout, the keyboard
-// selection, opening at the pointer, running an entry. The flyouts' contents come
-// from the list menu (DesktopMenu.listFor).
-//   mouse: hover an entry (flyouts open after a beat), click to run; click anywhere empty
-//   to close; a right click elsewhere moves the menu there.
-//   keys: arrows walk, Enter runs or opens, Esc goes back / closes, 1–9 pick an entry.
+// The wallpaper's full-screen menus, popups of the wallpaper window:
+//   the ring (RingLook) — the middle button: eight fixed directions around the pointer
+//   (DeskMenu.ring); hold the button, flick towards one, let go: it runs. Let go where it
+//   opened: it stays, a click picks.
+//   the right-click menu in heaven's and hell's own looks (services/DeskMenu.overlayLook):
+//   heaven's wings and harp (WingsLook, HarpLook), hell's pentagram (PentagramLook) and each
+//   circle's own (modules/background/circles: QueueLook … ShardsLook, story/circles.json →
+//   dress), with the desktop's entries (DeskMenu.layout).
+// This host keeps what they share: the entries (slots), the keyboard selection, opening at
+// the pointer, running an entry. (`fly`: the looks still draw a flyout, there are none now.)
+//   mouse: hover an entry, click to run; click anywhere empty to close; a right click
+//   elsewhere moves the menu there.
+//   keys: arrows walk, Enter runs, Esc closes, 1–9 pick an entry.
 PopupWindow {
     id: root
 
     required property var parentWindow
-    required property var listMenu          // DesktopMenu: the flyouts' contents
     readonly property string screenName: parentWindow && parentWindow.screen ? parentWindow.screen.name : ""
-    readonly property string look: DeskMenu.overlayLook
+    property bool ringMode: false           // opened by the middle button: the ring
+    property bool armed: false              // …and the button is still held: a flick picks
+    readonly property string look: ringMode ? "ring" : DeskMenu.overlayLook
     // hell's looks open slower, over a darker veil
     readonly property bool hellLook: look === "pentagram" || HellLook.dressMenuIds.includes(look)
     // …heaven's own over a little light instead
@@ -45,37 +48,14 @@ PopupWindow {
             "large": 1.25
         })[Config.desktop.menuSize] || 1
     readonly property bool labels: Config.desktop.menuLabels !== false
-    // the entries: the quick ones first, then the rest (no lines; "more" only when there is more)
-    readonly property var entries: {
-        const q = DeskMenu.quick;
-        const rest = DeskMenu.items.filter(id => id !== "sep" && !q.includes(id));
-        return q.concat(rest);
-    }
-    readonly property bool pluginMore: !!listMenu && (listMenu.moreItems.length > 0 || Plugins.menuComponents.length > 0)
-    // more than the ring's 16: the last plain entries go into «Ещё» (a flyout can't sit in a
-    // flyout, those stay), so every entry the list menu has is still reachable here
-    readonly property var overflow: {
-        const own = entries.filter(id => id !== "more");
-        if (!listMenu || own.length + (pluginMore && entries.includes("more") ? 1 : 0) <= 16)
-            return [];
-        let room = 15 - own.filter(id => (DeskMenu.entry(id) || {}).flyout).length;
-        return own.filter(id => !(DeskMenu.entry(id) || {}).flyout && room-- <= 0);
-    }
+    // the ring's eight, or the desktop's entries: the quick ones first, then the rest (no lines)
     readonly property var slots: {
-        const ring = entries.filter(id => !overflow.includes(id) && (id !== "more" || pluginMore || overflow.length > 0));
-        return (overflow.length > 0 && !ring.includes("more") ? ring.concat(["more"]) : ring).slice(0, 16);
+        if (ringMode)
+            return DeskMenu.ring;
+        const l = DeskMenu.layout("desktop");
+        return l.quick.concat(l.items.filter(id => id !== "sep" && !l.quick.includes(id))).slice(0, 16);
     }
-    // «Ещё»: the entries past the ring first (run as the list menu runs them), then the plugins'
-    readonly property var overflowItems: overflow.map(id => {
-        const e = DeskMenu.entry(id);
-        return {
-            "id": id,
-            "label": e.label,
-            "icon": e.icon,
-            "run": () => DeskMenu.run(id, root.screenName)
-        };
-    })
-    readonly property var flyItems: fly && listMenu ? (fly === "more" ? overflowItems.concat(listMenu.listFor("more")) : listMenu.listFor(fly)).filter(x => !x.separator) : []
+    readonly property var flyItems: []
     readonly property var hoveredEntry: current >= 0 ? DeskMenu.entry(slots[current]) : null
     // opened, or moved by a right click elsewhere (the harp runs a glissando)
     signal opened
@@ -91,7 +71,40 @@ PopupWindow {
     Linger {
         id: keep
     }
+    // the middle button went down at x, y: the ring, aimed while it is held
+    function openRing(x, y) {
+        ringMode = true;
+        place(x, y);
+        armed = true;
+    }
+    // where the pointer is while the button is held: the direction it points to is selected
+    // (a little way out from the middle; nearer, none)
+    function sector(x, y) {
+        const dx = x - cx, dy = y - cy;
+        if (Math.hypot(dx, dy) < Theme.u * 14)
+            return -1;
+        const n = slots.length;
+        return Math.round((Math.atan2(dy, dx) + Math.PI / 2) / (2 * Math.PI / n) + n) % n;
+    }
+    function aim(x, y) {
+        if (armed && visible)
+            current = sector(x, y);
+    }
+    // the button let go: towards a direction runs it, in the middle the ring stays for a click
+    function release(x, y) {
+        if (!armed)
+            return;
+        armed = false;
+        const i = sector(x, y);
+        if (visible && i >= 0)
+            activate(i);
+    }
     function openAt(x, y) {
+        ringMode = false;
+        place(x, y);
+    }
+    function place(x, y) {
+        armed = false;
         keep.when = true;
         // the look says how far it reaches from its middle (the tiles place themselves); a
         // wide one (the wings, the harp) says it apart for each way: reachX, reachY
@@ -117,6 +130,7 @@ PopupWindow {
     function close() {
         hoverTimer.stop();
         fly = "";
+        armed = false;
         visible = false;
         keep.when = false;
     }
@@ -166,7 +180,7 @@ PopupWindow {
         if (e && e.flyout) {
             hoverTimer.slot = i;
             hoverTimer.restart();
-        } else if (fly && look !== "tiles") {
+        } else if (fly) {
             fly = "";
         }
     }
@@ -232,7 +246,7 @@ PopupWindow {
                 PopupManager.active = null;
         }
     }
-    // the tiles' panel is frosted glass
+    // a look's frosted glass, if it has one
     BackgroundEffect.blurRegion: Config.appearance.blur && lookLoader.item && lookLoader.item.blurItem ? blurRegion : null
     Region {
         id: blurRegion
@@ -245,14 +259,21 @@ PopupWindow {
         color: root.look === "pentagram" ? Qt.alpha("#1a0508", 0.35 * root.reveal) : root.hellLook ? Qt.alpha(Theme.hellBody, 0.4 * root.reveal) : root.heavenLook ? Qt.alpha(Theme.face, 0.16 * root.reveal) : Qt.alpha(Theme.shadow, 0.1 * root.reveal)
     }
     // empty space: left closes, right moves the menu
+    // (the ring: the button still held, the pointer aims; its release may come here)
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+        hoverEnabled: root.armed
+        onPositionChanged: m => root.aim(m.x, m.y)
         onPressed: m => {
-            if (m.button === Qt.RightButton)
+            if (m.button === Qt.RightButton && !root.ringMode)
                 root.openAt(m.x, m.y);
             else
                 root.close();
+        }
+        onReleased: m => {
+            if (m.button === Qt.MiddleButton)
+                root.release(m.x, m.y);
         }
     }
 
@@ -283,7 +304,6 @@ PopupWindow {
         anchors.fill: parent
         active: keep.alive
         sourceComponent: ({
-                "tiles": tilesLook,
                 "wings": wingsLook,
                 "harp": harpLook,
                 "pentagram": pentagramLook,
@@ -301,12 +321,6 @@ PopupWindow {
     Component {
         id: ringLook
         RingLook {
-            menu: root
-        }
-    }
-    Component {
-        id: tilesLook
-        TilesLook {
             menu: root
         }
     }

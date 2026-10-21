@@ -36,7 +36,6 @@ JsonAdapter {
     }
 
     property JsonObject bar: JsonObject {
-        property string style: "taskbar"    // taskbar | top | island | dock | capsules | windose (BarLayout.styles)
         property bool autoHide: false       // taskbar: slides away below the screen edge, back on the pointer at the edge
         property string edge: "bottom"      // taskbar: the screen edge it sits on, like Windows 10 — bottom | top | left | right (BarLayout.edge)
         property int autoHideMs: 700        // how long it waits after the pointer leaves
@@ -257,9 +256,9 @@ JsonAdapter {
         property string titleSuffix: "exe"  // every angelOS window, widget and caption ends in .exe | .sh | .bin (I18n.exe)
         property string widgetStyle: "auto" // desktop widgets: auto (macOS cards with the Golden Gate skin, pixel windows otherwise) | pixel | mac (DesktopWidgets.macStyle)
         // the right-click menu on the wallpaper (services/DeskMenu, Settings → Right-click menu)
-        property string menuStyle: "list"   // list (the usual, Windows 11-like) | radial (a ring) | y2k (glossy bubble) | tiles (Control Center) | wings | harp (heaven's own; in hell the circle's own takes their place) | pentagram
-        property var menuQuick: ["terminal", "files", "monitor", "wallpaperPick", "settings"] // the list's top row, the ring's first slots (up to 6)
-        property var menuItems: ["view", "new", "wallpaper", "open", "sep", "displaySettings", "personalize", "more"] // the rest, in order; "sep" = a line in the list
+        property string menuStyle: "list"   // list (the usual) | wings | harp (heaven's own; in hell the circle's own takes their place) | pentagram
+        property var menuQuick: ["clipboard", "screenshot", "terminal", "nextWallpaper"] // the top row of signed icons (up to 6)
+        property var menuItems: ["addWidget", "note", "wallpaperPick", "displaySettings", "personalize"] // the list under it, in order (up to 8); "sep" = a line
         property var menuCustom: []         // own entries [{id: "custom:<n>", label, icon, kind: app|command|path|url, target}]
         property string menuSize: "normal"  // compact | normal | large
         property bool menuIcons: true       // icons in the list
@@ -870,18 +869,13 @@ JsonAdapter {
         property int maxOutputTokens: 32000
     }
 
-    // the pixel menus' look (services/MenuLook.lookFor, widgets/PxMenu): classic (the bevelled
-    // box) | save («Сейв», the 2004 lock's card) | sticker («Наклейка», a squared notebook page)
+    // what the right-click menus hold besides the desktop's (services/DeskMenu)
     property JsonObject menus: JsonObject {
-        property string look: "classic"
-        // a menu's own look over `look`: desktop | widget | panel | task | tray | halo → a look, "" = as all
-        property var per: ({
-                "desktop": "",
-                "widget": "",
-                "panel": "",
-                "task": "",
-                "tray": "",
-                "halo": ""
-            })
+        // panel | task | widget → {quick: [ids], items: [ids]}; missing = DeskMenu.defaults
+        property var layouts: ({})
+        // the middle button's ring on the wallpaper: eight ids clockwise from the top ([] = DeskMenu.ringDefault)
+        property var ring: []
+        // the plugins' entries switched on ("<plugin>:<n>", a menu component "<plugin>:menu")
+        property var plugins: []
     }
 }

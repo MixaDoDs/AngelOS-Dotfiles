@@ -54,6 +54,23 @@ PxPage {
         Component.onCompleted: load()
     }
 
+    // a live preview of what the page sets, playing its current value
+    Loader {
+        active: !!root.entry && !!root.entry.preview && root.focusGroup === ""
+        visible: active
+        width: parent.width
+        sourceComponent: PxPreview {
+            readonly property var key: String(root.entry.preview.key || "").split(".")
+            width: parent ? parent.width : 0
+            height: implicitHeight
+            closable: false
+            sceneHeight: Theme.u * 56
+            scene: root.entry.preview.scene
+            variant: key.length === 2 && Config[key[0]] ? String(Config[key[0]][key[1]]) : ""
+            caption: I18n.t("вживую", "live")
+        }
+    }
+
     Repeater {
         id: partRepeater
         model: root.parts

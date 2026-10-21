@@ -75,7 +75,7 @@ PanelWindow {
             PxText {
                 width: parent.width
                 wrapMode: Text.Wrap
-                text: I18n.t("Раз в неделю автору angelOS уходят версии и железо: процессор, видеокарта, память, экраны, версии Quickshell и системы. Имён, файлов и IP — нет. Скажешь «нет» — ничего не собирается. Передумать и посмотреть, что именно уходит: Настройки → Спонсор → Телеметрия.", "Once a week angelOS's author gets the versions and the hardware: CPU, graphics, memory, screens, the Quickshell and system versions. No names, files or IP. Say no and nothing is collected. To change your mind or see exactly what goes: Settings → Sponsor → Telemetry.")
+                text: I18n.t("Раз в неделю автору angelOS уходят версии и железо: процессор, видеокарта, память, экраны, версии Quickshell и системы. Имён, файлов и IP — нет. Скажешь «нет» — ничего не собирается. Передумать и посмотреть, что именно уходит: Настройки → angelOS → Телеметрия.", "Once a week angelOS's author gets the versions and the hardware: CPU, graphics, memory, screens, the Quickshell and system versions. No names, files or IP. Say no and nothing is collected. To change your mind or see exactly what goes: Settings → angelOS → Telemetry.")
             }
             Row {
                 anchors.right: parent.right

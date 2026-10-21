@@ -5,8 +5,8 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// A category's own page in the Windows 11 look (root.nav.settingsPage "cat:<id>"): each of its
-// pages as a card — its tile, its name, what is on it — that opens it. ↓ from the search and
+// A category's own page (root.nav.settingsPage "cat:<id>"): each of its pages as a card — its
+// tile, its name, what is on it — that opens it, two in a row on a wide page. ↓ from the search and
 // the arrows reach them through the left column (Win11View.navKey: → opens the first).
 PxPage {
     id: root
@@ -16,16 +16,19 @@ PxPage {
     pageId: "cat:" + categoryId
     heading: category ? category.label : ""
 
-    Column {
+    // the pages as cards, two in a row once there is room
+    Flow {
+        id: cards
         width: parent.width
-        spacing: Theme.u
+        spacing: Theme.u * 3
+        readonly property int cols: width >= Theme.u * 300 ? 2 : 1
         Repeater {
             model: root.category ? root.category.pages : []
             Rectangle {
                 id: card
                 required property string modelData
                 readonly property var entry: SettingsTree.page(modelData)
-                width: parent.width
+                width: (cards.width - cards.spacing * (cards.cols - 1)) / cards.cols - 0.5
                 height: Math.max(Theme.fit(24), texts.implicitHeight + Theme.u * 8)
                 color: cardMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.12) : Theme.mix(Theme.face, Theme.faceAlt, 0.55)
                 border.width: Math.max(1, Theme.u / 2)

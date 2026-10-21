@@ -237,8 +237,9 @@ Item {
         target: host.grip
         enabled: !host.face
         function onPressed(m) {
-            // a card moves only in edit mode (outside it the press is the content's)
-            if (host.mac && !DesktopWidgets.editMode)
+            // a card moves only in edit mode (outside it the press is the content's); a pinned
+            // widget only in edit mode too
+            if ((host.mac || (host.widget && host.widget.locked)) && !DesktopWidgets.editMode)
                 return;
             host.interactionStarted();
             host.dragStart = host.grip.mapToItem(host.area, m.x, m.y);
