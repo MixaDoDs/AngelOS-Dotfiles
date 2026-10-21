@@ -22,7 +22,8 @@ Item {
     readonly property int count: list.length + (flying ? 1 : 0)
     readonly property real m: Theme.u * 3
     // no wider than the screen (a big UI on a small one), and a long flyout scrolls (below)
-    readonly property int fitCols: Math.max(1, Math.floor((width - m * 4 + gap) / (tile + gap)))
+    readonly property var zone: menu.zone   // the bars' edges: the panel keeps off them
+    readonly property int fitCols: Math.max(1, Math.floor((width - zone.left - zone.right - m * 4 + gap) / (tile + gap)))
     readonly property int cols: Math.min(fitCols, Math.max(3, Math.min(4, Math.ceil(Math.sqrt(count)))))
     // scroll the selected tile into view (the "‹ back" tile comes first in a flyout)
     function ensureIndex(i) {
@@ -73,8 +74,8 @@ Item {
         width: grid.width + m * 2
         height: head.height + viewport.height + m * 3
         // next to the pointer, turned to where there is room
-        x: look.menu.clamp(look.menu.cx + width + m > look.width ? look.menu.cx - width - Theme.u * 2 : look.menu.cx + Theme.u * 2, m, look.width - width - m)
-        y: look.menu.clamp(look.menu.cy + height + m > look.height ? look.menu.cy - height - Theme.u * 2 : look.menu.cy + Theme.u * 2, m, look.height - height - m)
+        x: look.menu.clamp(look.menu.cx + width + m > look.width - look.zone.right ? look.menu.cx - width - Theme.u * 2 : look.menu.cx + Theme.u * 2, m + look.zone.left, look.width - width - m - look.zone.right)
+        y: look.menu.clamp(look.menu.cy + height + m > look.height - look.zone.bottom ? look.menu.cy - height - Theme.u * 2 : look.menu.cy + Theme.u * 2, m + look.zone.top, look.height - height - m - look.zone.bottom)
         radius: Theme.u * 8
         color: Qt.alpha(Theme.menuSurface, Config.appearance.blur ? 0.78 : 0.97)
         border.width: Math.max(1, Theme.u / 2)
@@ -114,8 +115,8 @@ Item {
             x: panel.m
             y: head.y + head.height + panel.m
             width: grid.width
-            // the panel stays a margin off the screen's edges
-            height: Math.max(0, Math.min(grid.height, look.height - head.height - panel.m * 5))
+            // the panel stays a margin off the screen's edges and the bars
+            height: Math.max(0, Math.min(grid.height, look.height - look.zone.top - look.zone.bottom - head.height - panel.m * 5))
             contentWidth: grid.width
             contentHeight: grid.height
             clip: true

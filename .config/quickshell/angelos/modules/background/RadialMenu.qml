@@ -7,6 +7,7 @@ import qs.config
 import qs.services
 import qs.widgets
 import qs.modules.background.circles
+import "../../services/CobwebLayout.js" as Lay
 
 // The right-click menu on the wallpaper as a full-screen popup of the wallpaper window,
 // in one of its looks (services/DeskMenu.overlayLook): the ring around the pointer
@@ -82,6 +83,9 @@ PopupWindow {
     function clamp(v, lo, hi) {
         return Math.max(lo, Math.min(hi, v));
     }
+    // what the bars keep on this screen by edge (services/Zones): the menu is drawn under
+    // them, so «Ещё» stays clear of it
+    readonly property var zone: Lay.zoneEdges(Zones.parts, screenName)
     // the look is built when the menu opens and kept a while after it closes; with the
     // list menu chosen it is never built at all
     Linger {

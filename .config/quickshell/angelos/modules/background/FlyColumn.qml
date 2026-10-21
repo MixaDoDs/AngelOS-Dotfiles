@@ -32,9 +32,9 @@ Item {
     Flickable {
         id: viewport
         x: 0
-        y: root.menu.clamp(root.menu.cy + Math.sin(root.angle) * root.radius - height / 2, root.margin, Math.max(root.margin, root.height - height - root.margin))
+        y: root.menu.clamp(root.menu.cy + Math.sin(root.angle) * root.radius - height / 2, root.margin + root.menu.zone.top, Math.max(root.margin + root.menu.zone.top, root.height - height - root.margin - root.menu.zone.bottom))
         width: root.width
-        height: Math.max(0, Math.min(root.fullHeight, root.height - root.margin * 2))
+        height: Math.max(0, Math.min(root.fullHeight, root.height - root.margin * 2 - root.menu.zone.top - root.menu.zone.bottom))
         contentWidth: width
         contentHeight: Math.max(height, root.fullHeight)
         clip: true
@@ -71,7 +71,7 @@ Item {
                 readonly property real dx: Math.max(Math.sqrt(Math.max(0, root.radius * root.radius - dy * dy)), Math.abs(dy) < root.reach ? Math.sqrt(root.reach * root.reach - dy * dy) + Theme.u * 6 : 0)
                 readonly property bool sel: root.menu.subCurrent === index
                 readonly property bool checked: typeof modelData.checked === "function" ? !!modelData.checked() : !!modelData.checked
-                x: root.menu.clamp(rightSide ? root.menu.cx + dx : root.menu.cx - dx - box.width, Theme.u * 2, root.width - box.width - Theme.u * 2)
+                x: root.menu.clamp(rightSide ? root.menu.cx + dx : root.menu.cx - dx - box.width, Theme.u * 2 + root.menu.zone.left, root.width - box.width - Theme.u * 2 - root.menu.zone.right)
                 y: yy - box.height / 2
                 width: box.width
                 height: box.height
