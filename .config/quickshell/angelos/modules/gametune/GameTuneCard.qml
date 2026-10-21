@@ -424,7 +424,7 @@ Column {
             required property string modelData
             width: root.width
             wrapMode: Text.Wrap
-            readonly property var r: root.bench.results[modelData]
+            readonly property var r: root.bench && root.bench.results ? root.bench.results[modelData] : undefined
             visible: r !== undefined
             font.bold: root.ranked.length > 0 && root.ranked[0] === modelData
             text: (root.ranked[0] === modelData && root.bench.done ? "★ " : "• ") + root.runName(modelData) + " — " + root.fmt(r)
@@ -435,7 +435,7 @@ Column {
         visible: !!root.bench
         spacing: Theme.u * 3
         PxButton {
-            visible: !!root.bench && root.bench.done && root.ranked.length > 0
+            visible: !!(root.bench && root.bench.done) && root.ranked.length > 0
             accent: true
             icon: "check"
             text: I18n.t("Оставить ", "Keep ") + (root.ranked.length ? root.runName(root.ranked[0]) : "")
