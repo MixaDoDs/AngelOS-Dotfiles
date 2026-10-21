@@ -1,7 +1,9 @@
 #!/bin/sh
 # angelOS: compile every QML file of the shell before a restart, without running it.
 #
-#   scripts/qml-check.sh [shell dir]     exit 0 = all compile, 1 = errors (printed), 2 = could not check
+#   scripts/qml-check.sh [shell dir]     exit 0 = all good, 1 = the shell's errors (printed), 2 = could not
+#                                        check, 3 = the shell is fine but the publish check would fail:
+#                                        a test's QML no longer compiles or a static check is broken
 #
 # Why: one load error anywhere in shell.qml's tree leaves the desktop without a shell, and a page
 # loaded by name (Settings → Drivers) fails only when opened. qmllint in PATH is Qt 5's and the Qt 6
@@ -13,6 +15,12 @@
 # so no window opens and no service starts. It runs on the real compositor (PanelWindow files
 # can't even compile offscreen) under a fake HOME and its own XDG_RUNTIME_DIR, so it can't touch
 # settings.json or answer the live shell's IPC.
+#
+# The tests' QML (tests/*/…Driver.qml) is compiled too, and the static checks run
+# (scripts/static-checks.sh): a change that removes a property a test still sets, or a window without
+# its guard, broke the whole publish check only at publishing (21.10: Driver.qml set the bar's
+# removed `style`, and all four parts of the UI self-test failed to load). Their errors don't stop a
+# restart (exit 3): the shell itself is fine.
 set -u
 SRC="${1:-$HOME/.config/quickshell/angelos}"
 P="$HOME/.local/opt/quickshell/usr"
@@ -28,7 +36,7 @@ trap 'rm -rf "$T"' EXIT INT TERM
 mkdir -p "$T/home" "$T/rt" "$T/shell"
 chmod 700 "$T/rt"
 ln -s "$RT/$WL" "$T/rt/$WL"
-tar -C "$SRC" --exclude=./graphify-out --exclude=./tests --exclude=./extras --exclude=./.git --exclude='*.bak*' -cf - . | tar -C "$T/shell" -xf -
+tar -C "$SRC" --exclude=./graphify-out --exclude=./extras --exclude=./.git --exclude='*.bak*' -cf - . | tar -C "$T/shell" -xf -
 cd "$T/shell" || exit 2
 mv shell.qml RealShell.qml
 
@@ -48,7 +56,7 @@ find . -name '*.qml' -not -name RealShell.qml | sed 's|^\./||' | sort >"$T/files
   while read -r f; do printf ', "%s"' "$f"; done <"$T/files"
   echo '];'
   cat <<'EOF'
-        let bad = 0;
+        let bad = 0, testsBad = 0;
         for (const f of files) {
             const a = Qt.createComponent(Quickshell.shellDir + "/" + f, Component.PreventCreation);
             if (a.status !== Component.Error)
@@ -56,10 +64,13 @@ find . -name '*.qml' -not -name RealShell.qml | sed 's|^\./||' | sort >"$T/files
             const b = f === "RealShell.qml" ? a : Qt.createComponent("file://" + Quickshell.shellDir + "/" + f, Component.PreventCreation);
             if (b.status !== Component.Error)
                 continue;
-            bad++;
+            if (f.startsWith("tests/"))
+                testsBad++;
+            else
+                bad++;
             console.log("QMLCHECK FAIL " + f + "\n" + a.errorString());
         }
-        console.log("QMLCHECK DONE " + files.length + " " + bad);
+        console.log("QMLCHECK DONE " + files.length + " " + bad + " " + testsBad);
         Qt.quit();
     }
 }
@@ -88,6 +99,13 @@ if ! grep -q 'QMLCHECK DONE' "$OUT"; then
 fi
 # a PanelWindow file may still say "No PanelWindow backend" — not an error of the file
 awk '/QMLCHECK FAIL/{p=1} /QMLCHECK DONE/{p=0} p' "$OUT" | sed 's/^.*QMLCHECK FAIL /FAIL /; s/^ *[A-Z]* *[a-z.]*: *//'
-set -- $(grep -o 'QMLCHECK DONE [0-9]* [0-9]*' "$OUT")
-echo "qml-check: $3 files, $4 with errors"
-[ "$4" = 0 ]
+set -- $(grep -o 'QMLCHECK DONE [0-9]* [0-9]* [0-9]*' "$OUT")
+echo "qml-check: $3 files, $4 with errors$( [ "$5" = 0 ] || echo " (+ $5 in tests/)")"
+[ "$4" = 0 ] || exit 1
+rc=0
+[ "$5" = 0 ] || rc=3
+if [ -x "$SRC/scripts/static-checks.sh" ]; then
+  sc="$("$SRC/scripts/static-checks.sh" "$SRC" 2>&1)" || { printf '%s\n' "$sc" | grep '✕'; rc=3; }
+fi
+[ "$rc" = 0 ] || echo "qml-check: the shell loads, but the publish check would fail — fix the lines above (tests/ or a static check)"
+exit "$rc"

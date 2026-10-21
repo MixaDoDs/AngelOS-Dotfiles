@@ -5,12 +5,14 @@ import Quickshell
 import Quickshell.Wayland
 import qs.config
 import qs.services
+import qs.widgets
 
 // Start → Sleep (Shell.suspend): every screen goes out like an old CRT in ~0.3 s — the picture
 // squeezes into a bright line, the line into a dot, the dot goes — and stays black until the
 // machine sleeps. Hard pixel edges only, every size on the art-pixel grid. Calm or no motion:
 // black at once, no flash. Shell takes it away on waking (or a few seconds after, if the
 // suspend never happened); a click takes it away as well.
+// takes input: the black screen is the machine going to sleep — a click there wakes the picture
 Scope {
     Variants {
         model: Shell.sleepFx ? Shell.screens : []
@@ -102,6 +104,8 @@ Scope {
                 anchors.fill: parent
                 onClicked: Shell.sleepFx = false
             }
+
+            RightClickGuard {}
         }
     }
 }

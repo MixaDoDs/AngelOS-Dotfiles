@@ -7,6 +7,7 @@ import qs.widgets
 
 // The window round SessionConfirmCard: up while Shell.sessionConfirm names an action.
 // A click beside the card cancels, like the session menu's.
+// takes input: the question is modal — a click beside the card is its «Отмена»
 PanelWindow {
     id: win
 

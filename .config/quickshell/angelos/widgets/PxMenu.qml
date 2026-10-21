@@ -301,9 +301,15 @@ PopupWindow {
         PopupManager.unregisterPopup(root)
 
     BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
+    // the box's own size, bound: the window is kept and reused for menus of every size, and a
+    // region given only `item` kept the size of the menu before (a strip without the blur along
+    // the right or the bottom edge, 21.10)
     Region {
         id: blurRegion
-        item: list
+        x: list.x
+        y: list.y
+        width: list.width
+        height: list.height
     }
 
     PxMenuList {

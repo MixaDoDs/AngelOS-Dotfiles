@@ -38,9 +38,16 @@ Scope {
     function label(r) {
         return r.page + "/" + (r.kind === "row" && r.crumb.includes(" › ") ? r.crumb.split(" › ").slice(-1)[0] + "/" : "") + r.title + (r.kind === "page" ? " [page]" : "");
     }
+    // the page a row of the table names, as the tree has it now: an old id leads where Settings
+    // send it (SettingsTree.resolve: tree.json "legacy", a page file's groups on another page), so
+    // a page renamed or merged doesn't break the table (21.10: lab → developer, lens → a11y)
+    function pageOf(id) {
+        const r = SettingsTree.resolve(id);
+        return r && r.page ? r.page : id;
+    }
     function matches(r, want) {
         const parts = want.toLowerCase().split("/");
-        if (r.page !== parts[0])
+        if (r.page !== parts[0] && r.page !== pageOf(parts[0]))
             return false;
         const hay = (r.crumb + " › " + r.title).toLowerCase().replace(/ё/g, "е");
         return parts.slice(1).every(p => hay.includes(p.replace(/ё/g, "е")));

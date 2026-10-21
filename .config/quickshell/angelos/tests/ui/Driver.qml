@@ -258,7 +258,6 @@ Scope {
                     anchors.fill: parent
                     screenName: "TEST-1"
                     barWindow: null
-                    style: "taskbar"
                     vertical: true
                     compact: true
                     itemHeight: Theme.fit(15)
@@ -857,7 +856,9 @@ Scope {
             if (d.status === Loader.Loading && ms < 20000)
                 return;
             const name = "page:" + pageSkin + ":" + list[index];
-            report(name, d.status === Loader.Ready && (macPass ? SettingsTree.mac && view.mac : view.frame.skin === pageSkin && d.settingsSkin === pageSkin),
+            // Settings wear their own pixel look whatever the desktop skin (21.10): the page loads in
+            // each, the frame stays undressed
+            report(name, d.status === Loader.Ready && (macPass ? SettingsTree.mac && view.mac : view.frame.skin === ""),
                    d.status === Loader.Ready ? ms + " ms, page skin " + d.settingsSkin : "status " + d.status + " " + d.source);
             if (!macPass && (list[index] === "home" || list[index] === "appearance"))
                 report("sidebar:" + pageSkin + ":" + list[index], d.sidebarVisible === true);
@@ -938,7 +939,10 @@ Scope {
             report("search-every-row", misses.length === 0, misses.length ? misses.length + " not found by name: " + misses.slice(0, 8).join("; ") : "all rows found by name");
             // everyday words lead to their page (among the first three)
             const wordsTo = [["fastfetch", "terminal"], ["неофетч", "terminal"], ["скрин", "capture"], ["запись экрана", "capture"], ["obs", "obs"], ["лупа", "lens"], ["контраст", "contrast"], ["хоткеи", "shortcuts"], ["блюр", "theme"], ["диктовка", "voice"], ["сундуки", "rewards"], ["заставка", "lock"], ["стример", "stream-angel"], ["режим разработчика", "lab"], ["таскбар", "taskbar"]];
-            const wrong = wordsTo.filter(([q, page]) => !SettingsSearch.search(q, 3).some(x => x.page === page)).map(([q, page]) => q + " → " + page + " (got " + SettingsSearch.search(q, 3).map(x => x.page).join(", ") + ")");
+            // a page id as the tree has it now (an old one leads where Settings send it: lab →
+            // developer, lens → a11y), so a page renamed or merged doesn't break the list
+            const pageNow = id => SettingsTree.resolve(id).page || id;
+            const wrong = wordsTo.filter(([q, page]) => !SettingsSearch.search(q, 3).some(x => x.page === page || x.page === pageNow(page))).map(([q, page]) => q + " → " + page + " (got " + SettingsSearch.search(q, 3).map(x => x.page).join(", ") + ")");
             report("search-words", wrong.length === 0, wrong.length ? wrong.join("; ") : wordsTo.length + " words lead to their pages");
             phase = "nav";
             return;
@@ -1405,26 +1409,17 @@ Scope {
             const heavenT0 = Date.now();
             const cap = id => id.charAt(0).toUpperCase() + id.slice(1);
             const sixteen = DeskMenu.catalog("desktop").filter(id => id !== "sep").slice(0, 16);
-            const fake = (cx, cy, k) => ({
-                    "k": k,
-                    "slots": sixteen,
-                    "labels": true,
-                    "cx": cx,
-                    "cy": cy,
-                    "reveal": 1,
-                    "current": -1,
-                    "fly": "",
-                    "flyIndex": -1,
-                    "subCurrent": -1,
-                    "flyItems": [],
-                    "hoveredEntry": null,
-                    "clamp": (v, lo, hi) => Math.max(lo, Math.min(hi, v)),
-                    "hoverEntry": i => {},
-                    "activate": i => {},
-                    "activateSub": j => {},
-                    "walk": e => false,
-                    "close": () => {}
-                });
+            // a QtObject, as RadialMenu is (the looks' Connections take it as their target, their
+            // flyout keeps off the bars by its `zone`), kept with the stage
+            const fakeSrc = 'import QtQuick; QtObject { property real k: 1; property var slots: []; property bool labels: true; property real cx: 0; property real cy: 0; property real reveal: 1; property int current: -1; property string fly: ""; property int flyIndex: -1; property int subCurrent: -1; property var flyItems: []; property var hoveredEntry: null; property var zone: ({"top": 0, "bottom": 0, "left": 0, "right": 0}); function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); } function hoverEntry(i) {} function activate(i) {} function activateSub(j) {} function walk(e) { return false; } function close() {} }';
+            const fake = (cx, cy, k) => {
+                const m = Qt.createQmlObject(fakeSrc, stage, "heavenFake");
+                m.k = k;
+                m.slots = sixteen;
+                m.cx = cx;
+                m.cy = cy;
+                return m;
+            };
             // what an entry takes on screen: itself (an icon's plate, a string) and its name
             const rectsOf = look => {
                 const out = [];
@@ -1598,26 +1593,9 @@ Scope {
             if (new Set(menuSet).size !== circleIds.length || menuSet.some(d => !HellLook.dressMenuIds.includes(d)))
                 dressBad.push("menus " + menuSet.join(" "));
             const cap = id => id.charAt(0).toUpperCase() + id.slice(1);
-            const fakeMenu = {
-                "k": 1,
-                "slots": ["terminal", "files", "monitor", "wallpaperPick", "settings", "view", "new", "open", "wallpaper", "more", "lock"],
-                "labels": true,
-                "cx": 400,
-                "cy": 300,
-                "reveal": 1,
-                "current": 2,
-                "fly": "",
-                "flyIndex": -1,
-                "subCurrent": -1,
-                "flyItems": [],
-                "hoveredEntry": null,
-                "clamp": (v, lo, hi) => Math.max(lo, Math.min(hi, v)),
-                "hoverEntry": i => {},
-                "activate": i => {},
-                "activateSub": j => {},
-                "walk": e => false,
-                "close": () => {}
-            };
+            // a QtObject, as RadialMenu is: the looks' Connections take it as their target, and
+            // their flyout keeps off the bars by its `zone`
+            const fakeMenu = Qt.createQmlObject('import QtQuick; QtObject { property real k: 1; property var slots: ["terminal", "files", "monitor", "wallpaperPick", "settings", "clipboard", "screenshot", "note", "addWidget", "personalize", "lock"]; property bool labels: true; property real cx: 400; property real cy: 300; property real reveal: 1; property int current: 2; property string fly: ""; property int flyIndex: -1; property int subCurrent: -1; property var flyItems: []; property var hoveredEntry: null; property var zone: ({"top": 0, "bottom": 0, "left": 0, "right": 0}); function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); } function hoverEntry(i) {} function activate(i) {} function activateSub(j) {} function walk(e) { return false; } function close() {} }', win.contentItem, "fakeMenu");
             for (const id of HellLook.dressMenuIds) {
                 const c = Qt.createComponent(Quickshell.shellDir + "/modules/background/circles/" + cap(id) + "Look.qml");
                 const o = c.status === Component.Ready ? c.createObject(win.contentItem, {
@@ -1664,7 +1642,7 @@ Scope {
             report("circle-dress", dressBad.length === 0, dressBad.join("; ") || circleIds.length + " circles: " + HellLook.dressSettingsIds.length + " Settings dresses, " + HellLook.dressMenuIds.length + " menus, distinct, built, readable");
             // hell's menu toys (circles/CircleToy): each look plays and its entries stay as they were
             const toyBad = [];
-            const toyMenu = Qt.createQmlObject('import QtQuick; QtObject { signal opened; property real k: 1; property var slots: ' + JSON.stringify(fakeMenu.slots) + '; property bool labels: true; property real cx: 400; property real cy: 300; property real reveal: 1; property int current: -1; property string fly: ""; property int flyIndex: -1; property int subCurrent: -1; property var flyItems: []; property var hoveredEntry: null; property string look: "test"; property bool visible: true; function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); } function hoverEntry(i) {} function activate(i) {} function activateSub(j) {} function walk(e) { return false; } function close() {} }', win.contentItem, "toyMenu");
+            const toyMenu = Qt.createQmlObject('import QtQuick; QtObject { signal opened; property real k: 1; property var slots: ' + JSON.stringify(fakeMenu.slots) + '; property bool labels: true; property real cx: 400; property real cy: 300; property real reveal: 1; property int current: -1; property string fly: ""; property int flyIndex: -1; property int subCurrent: -1; property var flyItems: []; property var hoveredEntry: null; property var zone: ({"top": 0, "bottom": 0, "left": 0, "right": 0}); property string look: "test"; property bool visible: true; function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); } function hoverEntry(i) {} function activate(i) {} function activateSub(j) {} function walk(e) { return false; } function close() {} }', win.contentItem, "toyMenu");
             const toyPlay = {
                 "roulette": o => {
                     o.turn = -(2 * Math.PI / o.n) * 2.5;

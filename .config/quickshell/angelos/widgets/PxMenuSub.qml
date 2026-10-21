@@ -121,10 +121,14 @@ PopupWindow {
     implicitHeight: menuList.height + Theme.u * 3
     visible: false
 
-    BackgroundEffect.blurRegion: Config.appearance.blur && (menuList.t.name === "classic" || menuList.t.name === "y2k") ? blurRegion : null
+    BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
+    // the box's own size, bound (as PxMenu's): a kept submenu window shows lists of every size
     Region {
         id: blurRegion
-        item: menuList
+        x: menuList.x
+        y: menuList.y
+        width: menuList.width
+        height: menuList.height
     }
 
     PxMenuList {

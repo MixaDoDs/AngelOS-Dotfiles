@@ -14,8 +14,10 @@ import qs.modules.settings
 Scope {
     id: root
 
-    readonly property int rounds: parseInt(Quickshell.env("LEAK_ROUNDS") || "6")
+    readonly property int rounds: parseInt(Quickshell.env("LEAK_ROUNDS") || "20")
     readonly property int dwell: parseInt(Quickshell.env("LEAK_DWELL_MS") || "120")
+    // LEAK_PAGES=a,b,c: only these pages (to find which one leaves something behind)
+    readonly property var only: (Quickshell.env("LEAK_PAGES") || "").split(",").filter(s => s)
     property var pages: []
     property int round: 0
     property int index: -1
@@ -49,7 +51,7 @@ Scope {
                 if (!(Config.ready && view.allPages.length > 0) && Date.now() - root.booted < 120000)
                     return;
                 // plugin pages and the author's own come and go with things outside the shell
-                root.pages = view.allPages.map(p => p.id).filter(id => !/^plugin/.test(id) && id !== "owner");
+                root.pages = view.allPages.map(p => p.id).filter(id => !/^plugin/.test(id) && id !== "owner" && (!root.only.length || root.only.includes(id)));
                 if (root.pages.length === 0) {
                     console.log("LEAK no settings pages");
                     Qt.quit();
