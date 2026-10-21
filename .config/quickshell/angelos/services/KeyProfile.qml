@@ -62,6 +62,9 @@ Singleton {
             try {
                 const r = JSON.parse(out.text);
                 if (r.error) {
+                    // apply() rolled the selector back; use what stayed in front even if
+                    // this was the first switch since the shell started.
+                    root.profile = r.profile || "";
                     root.error = r.error;
                     console.warn("angelOS keys: the", root.want, "profile was refused, the keys stay as they were:", r.error);
                     Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "dialog-warning", I18n.t("Горячие клавиши темы не переключились", "The theme's shortcuts did not switch"), r.error.slice(-300)]);

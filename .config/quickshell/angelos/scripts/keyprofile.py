@@ -296,7 +296,7 @@ def main():
         else:
             raise ValueError("usage: keyprofile.py status | apply pixel|macos | sync | init | path | merge BASE OURS NEW")
     except (OSError, ValueError) as e:
-        print(json.dumps({"error": str(e)}, ensure_ascii=False))
+        print(json.dumps({"error": str(e) or "niri rejected the key profile", "profile": current()}, ensure_ascii=False))
         return 1
     print(json.dumps(out, ensure_ascii=False))
     return 0

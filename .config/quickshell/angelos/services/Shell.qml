@@ -37,8 +37,11 @@ Singleton {
         settingsAfterSetup = false;
         settingsOpen = true;
     }
-    onSettingsOpenChanged: if (settingsOpen && setupLocked)
-        settingsOpen = false
+    onSettingsOpenChanged: if (settingsOpen) {
+        sessionConfirm = "";
+        if (setupLocked)
+            settingsOpen = false;
+    }
     signal resumed()                  // the machine woke from sleep (Lock: logind PrepareForSleep false)
     property bool settingsOpen: false
     property string settingsPage: "appearance"
@@ -49,6 +52,8 @@ Singleton {
     property string launcherPrefill: ""
     property bool sessionOpen: false
     property bool projectOpen: false         // the screens menu, Mod+P / the display key (modules/laptop/ProjectMenu)
+    onProjectOpenChanged: if (projectOpen)
+        sessionConfirm = ""
     signal projectNext()                      // …the key again while it is open: the next choice
     property bool bootOpen: false            // Y2K loading screen (modules/y2k/BootScreen)
     property bool settingsWarm: false        // the main Settings window is built ahead, hidden, while it is likely to be opened (modules/LazyWindows)
@@ -166,6 +171,7 @@ Singleton {
         screen = screen || StartPrefs.screenFor() || (focusedScreen ? focusedScreen.name : "");
         if (!screen || locked || setupLocked)
             return;
+        sessionConfirm = "";
         launcherOpen = false;
         startScreen = screen;
     }
@@ -327,6 +333,7 @@ Singleton {
     }
     // with no page given Settings open on Home (a window already open stays where it is)
     function openSettings(page, sub) {
+        sessionConfirm = "";
         // an old page id leads to its page in the tree (SettingsTree.resolve: "bar" → taskbar…);
         // the views with a home of their own (a folder of icons, the tiles) open there
         if (page)
@@ -352,6 +359,7 @@ Singleton {
     function newSettingsWindow(page, sub) {
         if (setupLocked || settingsMore.count >= settingsMoreMax)
             return false;
+        sessionConfirm = "";
         settingsMore.append({
             "key": ++settingsMoreKey,
             "page": page ? settingsPageFor(page) : "home",

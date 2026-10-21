@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtTest
 import Quickshell
 import Quickshell.Io
 import qs.config
@@ -18,6 +19,7 @@ Scope {
 
     property int step: 0
     property double since: Date.now()
+    property bool lastMouseRan: false
     function report(name, ok, detail) {
         console.log("TEST " + name + " " + (ok ? "PASS" : "FAIL") + " " + (detail === undefined ? "" : detail));
     }
@@ -33,6 +35,18 @@ Scope {
             walk(c, out);
         }
         return out;
+    }
+    function findItem(it, test) {
+        if (!it)
+            return null;
+        if (test(it))
+            return it;
+        for (const c of it.children || []) {
+            const found = findItem(c, test);
+            if (found)
+                return found;
+        }
+        return null;
     }
     // the block Rectangles of the first bar (the pixel look): the Column with `rows` children
     function blocks() {
@@ -198,13 +212,48 @@ Scope {
                 {
                     const r = ringLoader.item;
                     const all = DeskMenu.quick.concat(DeskMenu.items.filter(id => id !== "sep" && id !== "more"));
+                    Config.appearance.px = 4;
+                    Config.desktop.menuSize = "large";
+                    deskWin.visible = true;
+                    noList.moreItems = Array.from({length: 28}, (_, i) => ({
+                        "id": "extra:" + i,
+                        "label": "Extra " + i,
+                        "run": () => { if (i === 27) root.lastMouseRan = true; },
+                        "keepOpen": true
+                    }));
                     r.fly = "more";
                     const inMore = r.flyItems.map(x => x.id);
                     const lost = all.filter(id => !r.slots.includes(id) && !inMore.includes(id));
                     root.report("ring-overflow-reachable", all.length === 17 && r.slots.length <= 16 && r.slots.includes("more") && lost.length === 0, "slots=" + r.slots.length + " " + r.slots.join(",") + " more=" + inMore.join(",") + " lost=" + lost.join(","));
                     root.report("ring-overflow-custom-in-more", inMore.includes("custom:1") && !r.slots.includes("custom:1") && ["view", "new", "wallpaper", "open"].every(id => r.slots.includes(id)), inMore.join(","));
+                    const fly = testFly;
+                    if (fly) {
+                        const viewport = findItem(fly, it => it.contentY !== undefined && it.contentHeight !== undefined && it.clip);
+                        fly.ensureIndex(inMore.length - 1);
+                        const last = findItem(fly, it => it.modelData && it.modelData.id === "extra:27" && it.width > 0);
+                        const clickable = last ? findItem(last, it => it.cursorShape === Qt.PointingHandCursor) : null;
+                        const mouseReachable = !!viewport && !!last && !!clickable && last.y - viewport.contentY >= 0 && last.y - viewport.contentY + last.height <= viewport.height;
+                        if (mouseReachable) {
+                            const event = Qt.createQmlObject("import QtTest; TestEvent {}", clickable);
+                            event.mouseClick(clickable, clickable.width / 2, clickable.height / 2, Qt.LeftButton, Qt.NoModifier, -1);
+                            event.destroy();
+                        }
+                        root.report("ring-overflow-last-mouse-runs", root.lastMouseRan, "last=" + inMore[inMore.length - 1]);
+                        r.subCurrent = 0;
+                        const firstVisible = viewport && viewport.contentY === 0;
+                        for (let i = 1; i < inMore.length; i++)
+                            r.walk({key: Qt.Key_Down});
+                        root.report("ring-overflow-last-mouse-visible", mouseReachable, last && viewport ? "y=" + last.y + " viewport=" + viewport.height + " px=" + Theme.u : "no last row");
+                        root.report("ring-overflow-last-keyboard-scrolls", !!viewport && firstVisible && r.subCurrent === inMore.length - 1 && viewport.contentY > 0 && viewport.contentY + viewport.height >= viewport.contentHeight, viewport ? "scroll=" + viewport.contentY + " viewport=" + viewport.height + " content=" + viewport.contentHeight : "no viewport");
+                    } else {
+                        root.report("ring-overflow-last-mouse-visible", false, "no scroll viewport");
+                        root.report("ring-overflow-last-keyboard-scrolls", false, "no scroll viewport");
+                    }
                     // it runs what the list menu runs (DeskMenu.run → the custom command: a file in the test's HOME)
                     r.activateSub(inMore.indexOf("custom:1"));
+                    Config.appearance.px = 2;
+                    Config.desktop.menuSize = "normal";
+                    deskWin.visible = false;
                 }
                 root.next();
                 break;
@@ -235,12 +284,16 @@ Scope {
         visible: false
         implicitWidth: 640
         implicitHeight: 480
+        FlyColumn {
+            id: testFly
+            menu: ringLoader.item
+        }
     }
     QtObject {
         id: noList
         property var moreItems: []
         function listFor(name) {
-            return [];
+            return name === "more" ? moreItems : [];
         }
     }
     Loader {

@@ -46,7 +46,8 @@ Singleton {
     // the key tips name the keys of the profile in front (services/KeyProfile): Golden Gate's
     // Mac keys move the launcher, the overview and window focus; Golden Gate without them keeps
     // the pixel ones
-    readonly property bool macKeys: KeyProfile.want === "macos"
+    // Follow the selector actually applied: niri may reject a requested profile switch.
+    readonly property bool macKeys: KeyProfile.profile === "macos"
     readonly property string launcherKeys: macKeys ? "Mod+Alt+Space" : "Mod+Space"
     readonly property var steps: [
         {

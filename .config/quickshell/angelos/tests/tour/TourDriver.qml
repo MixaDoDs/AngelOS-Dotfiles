@@ -141,15 +141,28 @@ Scope {
                 const s = k => Tour.steps.find(x => x.key === k);
                 return [s("keys:launcher").keys.join("+"), s("keys:overview").keys.join("+"), /Mod\+Alt\+← →/.test(s("keys:overview").text) ? "alt" : "plain", s("bar:start").text.slice(-14)].join(" ");
             };
+            KeyProfile.profile = "pixel";
             const pixel = tips();
             Config.mac.keys = true;
             Config.settingsUi.skin = "goldengate";
+            KeyProfile.profile = "macos";
             const mac = tips();
+            // Simulate keyprofile.py rejecting the requested Mac profile: the last
+            // successfully applied selector remains pixel and hints must follow it.
+            KeyProfile.profile = "pixel";
+            const refused = tips();
+            Config.settingsUi.skin = "pixel";
+            KeyProfile.profile = "macos";
+            const reverseRefused = tips();
+            Config.settingsUi.skin = "goldengate";
             Config.mac.keys = false;
+            KeyProfile.profile = "pixel";
             const ggPixel = tips();
             Config.settingsUi.skin = "pixel";
             report("tour-keys-pixel", pixel.startsWith("Mod+Space Mod+Tab plain") && pixel.endsWith(" Mod+Space."), pixel);
             report("tour-keys-mac", mac.startsWith("Mod+Alt+Space Ctrl+↑ alt") && mac.endsWith("Mod+Alt+Space."), mac);
+            report("tour-keys-switch-refused", refused === pixel, refused);
+            report("tour-keys-reverse-switch-refused", reverseRefused === mac, reverseRefused);
             report("tour-keys-gg-pixel", ggPixel === pixel, ggPixel);
             console.log("TEST DONE " + failures);
             Qt.quit();

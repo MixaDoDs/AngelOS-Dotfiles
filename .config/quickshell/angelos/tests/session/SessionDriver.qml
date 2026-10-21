@@ -249,6 +249,56 @@ Scope {
                     Shell.launcherOpen = false;
                 }
             },
+            {
+                "act": () => {
+                    reset();
+                    Shell.sessionAction("reboot");
+                    Shell.openStart("HDMI-A-1");
+                },
+                "until": () => Shell.sessionConfirm === "",
+                "check": () => report("start-drops-pending-action", Shell.sessionConfirm === "" && Shell.sessionRan.length === 0, state())
+            },
+            {
+                "act": () => {
+                    Shell.sessionAction("reboot");
+                    Shell.openSettings("about");
+                },
+                "until": () => Shell.sessionConfirm === "",
+                "check": () => report("settings-drops-pending-action", Shell.sessionConfirm === "" && Shell.sessionRan.length === 0, state())
+            },
+            {
+                "act": () => {
+                    Shell.sessionAction("reboot");
+                    Shell.newSettingsWindow("about");
+                },
+                "until": () => Shell.sessionConfirm === "",
+                "check": () => report("extra-settings-drops-pending-action", Shell.sessionConfirm === "" && Shell.sessionRan.length === 0, state())
+            },
+            {
+                "act": () => {
+                    Shell.settingsOpen = false;
+                    Shell.sessionAction("reboot");
+                    Shell.settingsOpen = true;
+                },
+                "until": () => Shell.sessionConfirm === "",
+                "check": () => report("direct-settings-drops-pending-action", Shell.sessionConfirm === "" && Shell.sessionRan.length === 0, state())
+            },
+            {
+                "act": () => {
+                    Shell.sessionAction("reboot");
+                    Shell.projectOpen = true;
+                },
+                "until": () => Shell.sessionConfirm === "",
+                "check": () => {
+                    Shell.sessionConfirmed();
+                    report("screens-menu-drops-pending-action", Shell.sessionConfirm === "" && Shell.sessionRan.length === 0, state());
+                    Shell.projectOpen = false;
+                    Shell.startScreen = "";
+                    Shell.settingsOpen = false;
+                    while (Shell.settingsMore.count)
+                        Shell.settingsMore.remove(0);
+                }
+            },
             // Sleep and Lock never ask (the dev stand only plays the sleep's fade)
             {
                 "act": () => {
