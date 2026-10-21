@@ -581,7 +581,8 @@ PxPage {
                         PxBox {
                             id: choice
                             required property string modelData
-                            width: Math.min(choiceLabel.implicitWidth + Theme.u * 12, parent.width)
+                            // parent is null while the plan's questions are swapped
+                            width: Math.min(choiceLabel.implicitWidth + Theme.u * 12, parent ? parent.width : 0)
                             height: choiceLabel.implicitHeight + Theme.u * 10
                             enabled: !PluginStudio.busy
                             opacity: enabled ? 1 : 0.45
