@@ -506,7 +506,7 @@ PanelWindow {
     // the keyboard only for the quick buttons' fields
     WlrLayershell.keyboardFocus: expanded && (pages[page] === "buttons" || pages[page] === "shelf") && !menu && !dropping ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     // a full-screen window covers the Top layer: its timer's end comes over it
-    WlrLayershell.layer: full ? WlrLayer.Overlay : WlrLayer.Top
+    WlrLayershell.layer: Shell.bootOpen || Shell.bootCover ? WlrLayer.Top : WlrLayer.Overlay
     mask: Region {
         item: win.shown ? hit : null
         Region {
