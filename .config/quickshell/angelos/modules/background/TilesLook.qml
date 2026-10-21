@@ -122,6 +122,8 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             interactive: false
             WheelHandler {
+                // a real wheel on Wayland may come as a non-mouse device: take any
+                acceptedDevices: PointerDevice.AllDevices
                 onWheel: event => {
                     const dy = event.angleDelta.y || event.pixelDelta.y;
                     viewport.contentY = Math.max(0, Math.min(viewport.contentHeight - viewport.height, viewport.contentY - dy));
