@@ -346,9 +346,11 @@ case "$1" in
       cmd="$(tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)" || continue
       # the shell's own long-running helpers (night light, the sleep watch and its
       # inhibitor, the guard, usb-watch's udevadm, a notification's buttons waited on — the one
-      # who asked is gone with the shell); anything else in here is left alone
+      # who asked is gone with the shell; instant replay and the timelapse: left running, the
+      # next shell starts its own and two record the screen); anything else in here is left alone
       case "$cmd" in
         *"$SHELL_DIR/scripts/"*|*"$SHELL_DIR/plugins/"*|cava\ *angelos*|*/cava\ *angelos*|\
+        gpu-screen-recorder\ *|*/gpu-screen-recorder\ *|\
         wlsunset\ *|*/wlsunset\ *|*"gdbus monitor --system --dest org.freedesktop.login1"*|*systemd-inhibit\ *--who=angelOS*|\
         "udevadm monitor --udev --subsystem-match=usb/usb_device --property "*|\
         "notify-send "*" --wait "*|"timeout 900 notify-send "*) kill "$p" 2>/dev/null ;;
