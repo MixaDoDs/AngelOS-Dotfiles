@@ -37,6 +37,29 @@ Singleton {
         return w.app_id === "org.quickshell" && w.title === plateTitle;
     }
     property var windows: []
+    // niri's screencasts (CastsChanged…): who takes the screen now — Sensors' screen dot
+    property var casts: []
+    // angel-niri (our fork) minimizes for itself: a window reports is_minimized and is out of every
+    // workspace (workspace_id null). Stock niri has no minimizing: services/Minimize keeps such
+    // windows on a hidden workspace (isHidden above) instead
+    property bool nativeMinimize: false
+    property bool minimizeProbed: false     // asked once at start: stock niri answers Err to the action
+    function _probeMinimize() {
+        // a window id no session reaches: angel-niri knows the action and does nothing
+        request({
+            "Action": {
+                "MinimizeWindow": {
+                    "id": 9007199254740991,
+                    "now": true
+                }
+            }
+        }, (ok, err) => {
+            nativeMinimize = !err;
+            minimizeProbed = true;
+        }, true);
+    }
+    Component.onCompleted: if (available)
+        _probeMinimize()
     property int focusedWindowId: -1
     // A title alone changes many times a second (a terminal's spinner, a player's track):
     // it is patched into its window in place and announced by this tick only, so the
@@ -65,6 +88,10 @@ Singleton {
     signal hiddenActivated(var ws, var from)
     // the shell asked to focus a minimized window: services/Minimize brings it back
     signal restoreRequested(int id)
+    // angel-niri: a window is about to be minimized (its own button, a taskbar, a bind): where it
+    // is on `output` ([x, y, w, h], that output's logical px) and a PNG of it. niri minimizes it
+    // a moment later unless services/Minimize does it first (MinimizeWindow now)
+    signal minimizeRequested(int id, string output, var rect, string snapshot)
     signal layoutSwitched(string name)
     signal configLoaded(bool failed)
     signal windowClosed(int id)
@@ -131,7 +158,7 @@ Singleton {
     }
     function focusWindow(id) {
         const w = windows.find(x => x.id === id);
-        if (w && isHidden(workspaceById(w.workspace_id))) {
+        if (w && (w.is_minimized || isHidden(workspaceById(w.workspace_id)))) {
             restoreRequested(id);
             return;
         }
@@ -194,10 +221,11 @@ Singleton {
     // one request per connection (niri closes the socket after replying)
     property var _queue: []
     property var _current: null
-    function request(obj, cb) {
+    function request(obj, cb, quiet) {
         _queue.push({
             "body": JSON.stringify(obj),
-            "cb": cb
+            "cb": cb,
+            "quiet": !!quiet
         });
         _pump();
     }
@@ -229,7 +257,7 @@ Singleton {
                 const cur = root._current;
                 try {
                     const reply = JSON.parse(line);
-                    if (reply.Err)
+                    if (reply.Err && !(cur && cur.quiet))
                         console.warn("niri:", reply.Err);
                     if (cur && cur.cb)
                         cur.cb(reply.Ok !== undefined ? reply.Ok : null, reply.Err || null);
@@ -279,6 +307,11 @@ Singleton {
     // no workspace (workspace_id null) until it is dropped: the taskbar, Alt+Tab and the
     // window menu would lose it mid-drag. It keeps its last workspace, marked `moving`.
     function _keepWorkspace(w, old) {
+        if (w.is_minimized !== undefined && !nativeMinimize)
+            nativeMinimize = true;
+        // (a minimized window is on no workspace for real)
+        if (w.is_minimized)
+            return w;
         if (w.workspace_id === null || w.workspace_id === undefined) {
             if (old && old.workspace_id !== null && old.workspace_id !== undefined)
                 return Object.assign({}, w, {
@@ -394,6 +427,10 @@ Singleton {
                     windowOpened(d.window.id);
                 break;
             }
+        case "WindowMinimizeRequested":
+            if (ready)
+                minimizeRequested(d.id, d.output || "", d.rect || null, d.snapshot || "");
+            break;
         case "WindowClosed":
             if (d.id === castWindowId) {
                 castWindowId = -1;
@@ -443,6 +480,15 @@ Singleton {
             currentLayout = d.idx;
             if (ready)
                 layoutSwitched(layoutName);
+            break;
+        case "CastsChanged":
+            casts = d.casts;
+            break;
+        case "CastStartedOrChanged":
+            casts = casts.filter(c => c.stream_id !== d.cast.stream_id).concat([d.cast]);
+            break;
+        case "CastStopped":
+            casts = casts.filter(c => c.stream_id !== d.stream_id);
             break;
         case "OverviewOpenedOrClosed":
             overviewOpen = d.is_open;

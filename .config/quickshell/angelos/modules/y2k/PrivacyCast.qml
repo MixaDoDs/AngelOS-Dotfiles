@@ -26,7 +26,8 @@ Scope {
     readonly property string output: (StreamMode.screens || [])[0] || ""
     readonly property var outScreen: Quickshell.screens.find(s => s.name === root.output) || null
     // open the whole time OBS runs, so OBS is pointed at it once and always has it
-    readonly property bool wanted: Config.ready && Config.stream.privacyPlates && StreamMode.obsUp && !!outScreen && !Shell.dev
+    // angel-niri draws what the viewers see by itself (Privacy.nativeLook): no plates needed
+    readonly property bool wanted: Config.ready && Config.stream.privacyPlates && !Privacy.nativeLook && StreamMode.obsUp && !!outScreen && !Shell.dev
 
     // niri's layout settings (cfg/layout.kdl): the gaps and how the focused column is centred
     property int gaps: 16

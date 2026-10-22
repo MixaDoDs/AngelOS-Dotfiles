@@ -11,7 +11,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Обновления", "Updates")
-    subtitle: I18n.t("angelOS обновляется из репозитория dotfiles, из которого его установили: git pull и установщик без пакетов. Сначала снимок всех файлов, которые он может заменить, — если что-то пойдёт не так, отсюда же можно вернуть как было. Конфиги, которые ты менял, установщик не трогает.", "angelOS updates from the dotfiles repository it was installed from: git pull and the installer without packages. First a snapshot of every file it may replace — if something goes wrong, you can go back from here. Configs you changed are left alone.")
+    subtitle: I18n.t("angelOS обновляется из своего репозитория. Перед обновлением всё сохраняется — если что-то пойдёт не так, вернёшь здесь же. Твои правки конфигов не трогаются.", "angelOS updates from its own repository. Everything is saved first: if something goes wrong, roll back right here. Your own config edits stay.")
 
     Component.onCompleted: {
         Updates.find();

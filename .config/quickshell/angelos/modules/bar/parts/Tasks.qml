@@ -27,8 +27,7 @@ Item {
     // brings one back — as Windows' taskbar keeps them); not an app hidden whole (⌘H)
     readonly property var list: Niri.sortedWindows(Niri.windows.filter(w => !Minimize.isAppHidden(w) && (Config.bar.allWindows || (ws && w.workspace_id === ws.id) || minimizedHere(w))))
     function minimizedHere(w) {
-        const h = Minimize.isMinimized(w) ? Niri.workspaceById(w.workspace_id) : null;
-        return !!h && h.output === screenName;
+        return Minimize.isMinimized(w) && Minimize.outputOf(w) === screenName;
     }
     readonly property int count: list.length
     readonly property int spacing: Theme.u * 2

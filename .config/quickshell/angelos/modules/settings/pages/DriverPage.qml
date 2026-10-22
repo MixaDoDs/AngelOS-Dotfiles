@@ -659,7 +659,7 @@ PxPage {
                     wrapMode: Text.Wrap
                     kind: "tiny"
                     dim: true
-                    text: I18n.t("У этой клавиатуры служебный интерфейс нельзя отдавать драйверу ядра (она от этого сбрасывается и клавиши залипают), поэтому обычного узла hidraw у него нет, а USB-узел устройства открыт только администратору. «Разрешить» ставит маленькую системную службу-мост: она отдаёт тебе только служебный интерфейс и не пропускает команды прошивки. Через неё программа от твоего имени сможет менять настройки клавиатуры, но не читать нажатия и не прошивать её. Нужен пароль администратора, один раз. Подробно — docs/devices.md, раздел «Доступ».", "This keyboard's service interface must be kept from the kernel's driver (it resets and keys stick), so it has no hidraw node, and the device's USB node is the administrator's alone. \"Allow\" installs a small system bridge service: it hands you the service interface alone and passes no firmware command. Through it a program of yours can change the keyboard's settings, but neither read the keys nor flash it. It needs the admin password, once. The details: docs/devices.md, \"Access\".")
+                    text: I18n.t("Настройкам клавиатуры нужен доступ к её служебному интерфейсу. «Разрешить» ставит маленькую службу-мост: менять настройки можно, читать нажатия и прошивать — нельзя. Пароль администратора — один раз.", "The keyboard's settings need its service interface. Allow installs a small bridge service: settings can change, keystrokes can't be read and the firmware can't be flashed. The admin password, once.")
                 }
                 PxText {
                     visible: Devices.grantLog !== ""

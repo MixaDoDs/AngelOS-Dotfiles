@@ -85,12 +85,12 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Wi-Fi адаптер не найден. Если он есть — проверь драйвер (ip link) и что он не заблокирован (rfkill list).", "No Wi-Fi adapter found. If there is one, check its driver (ip link) and rfkill list.")
+            text: I18n.t("Wi-Fi-адаптер не найден. Если он есть — возможно, нужен драйвер или он выключен кнопкой на ноутбуке.", "No Wi-Fi adapter found. If there is one, it may need a driver or be switched off by a laptop key.")
         }
         SettingRow {
             visible: Wifi.hasWifi
             label: I18n.t("Wi-Fi включён", "Wi-Fi on")
-            hint: !Wifi.hardwareEnabled ? I18n.t("выключен кнопкой/rfkill на уровне железа", "turned off by a hardware switch / rfkill") : ""
+            hint: !Wifi.hardwareEnabled ? I18n.t("выключен кнопкой на ноутбуке", "Switched off by a laptop key") : ""
             PxToggle {
                 checked: Wifi.enabled
                 onToggled: c => Wifi.setEnabled(c)

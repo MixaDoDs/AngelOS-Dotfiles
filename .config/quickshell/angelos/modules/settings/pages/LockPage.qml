@@ -23,12 +23,12 @@ PxPage {
         SettingRow {
             id: lookRow
             label: I18n.t("Облик", "Look")
-            hint: I18n.t("NGO — пиксельный стрим с чатом; Небеса — экран входа как в Genshin Impact / ZZZ: врата над облаками, «нажмите любую клавишу», небо по времени суток; 2004 — игра на паузе у точки сохранения: живые обои-сцена, часы между её слоями, вход — слот карты памяти", "NGO: a pixel stream with its chat; Heaven: a login screen like Genshin Impact / ZZZ — a gate above the clouds, “press any key”, the sky of the hour; 2004: the game paused at a save point — the layered wallpaper alive, the clock between its layers, the login a memory card's slot")
+            hint: I18n.t("Стрим — замок как пиксельная трансляция с чатом; Небеса — врата над облаками; 2004 — игра на паузе у точки сохранения", "Stream: the lock as a pixel broadcast with a chat; Heaven: a gate above the clouds; 2004: a game paused at a save point")
             preview: "LockScreen"
             PxSegmented {
                 model: [
                     {
-                        "label": "NGO",
+                        "label": I18n.t("Стрим", "Stream"),
                         "value": "ngo"
                     },
                     {
@@ -43,7 +43,7 @@ PxPage {
                 currentValue: Config.lock.style === "heaven" || Config.lock.style === "2004" ? Config.lock.style : "ngo"
                 onActivated: v => {
                     Config.lock.style = v;
-                    lookRow.show(v === "heaven" ? "heaven" : "stream", v === "heaven" ? I18n.t("небеса", "heaven") : "NGO");
+                    lookRow.show(v === "heaven" ? "heaven" : "stream", v === "heaven" ? I18n.t("небеса", "heaven") : I18n.t("стрим", "stream"));
                 }
             }
         }
@@ -170,33 +170,6 @@ PxPage {
         }
     }
     PxGroup {
-        name: "lock-timers"
-        title: I18n.t("Когда блокировать", "When to lock")
-        icon: "lock"
-        width: parent.width
-        SettingRow {
-            label: I18n.t("Блокировать после простоя", "Lock when idle")
-            hint: I18n.t("0 = никогда", "0 = never")
-            PxSpin {
-                from: 0
-                to: 120
-                stepSize: 5
-                value: Config.lock.idleMinutes
-                suffix: I18n.t(" мин", " min")
-                onMoved: v => Config.lock.idleMinutes = v
-            }
-        }
-        SettingRow {
-            label: I18n.t("Блокировать перед сном", "Lock before sleep")
-            hint: I18n.t("экран блокируется до ухода в сон, после пробуждения сразу виден замок, а не рабочий стол; также срабатывает на loginctl lock-session", "The lock comes up before the system sleeps, so waking up shows the lock, never the desktop; loginctl lock-session works too")
-            PxToggle {
-                checked: Config.lock.onSleep
-                onToggled: c => Config.lock.onSleep = c
-            }
-        }
-        // each look below plays as a small gif when it is switched on
-    }
-    PxGroup {
         // services/Awake: a Wayland idle inhibitor — niri then never counts the system idle
         name: "awake"
         title: I18n.t("Не засыпать", "Stay awake")
@@ -275,7 +248,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Логотип", "Logo")
-            hint: I18n.t("логотип angelOS над часами (какой — Панель → Логотип)", "the angelOS logo above the clock (pick one in Bar → Logo)")
+            hint: I18n.t("логотип angelOS над часами (какой — «Пуск» → Ещё → «Логотип»)", "the angelOS logo above the clock (pick one in Start → More → Logo)")
             PxToggle {
                 checked: Config.lock.logo
                 onToggled: c => Config.lock.logo = c
@@ -291,7 +264,7 @@ PxPage {
             id: streamRow
             visible: lockPage.ngo
             label: I18n.t("NGO-стрим", "NGO stream")
-            hint: I18n.t("LIVE, «зрители» и чат, который знает, что ты делал(а): программа (только название), трек, время, уведомления (только от кого), как печатаешь. Зрители растут с днями: в первый день никого, к 30-му — 1000–1500. Сейчас день %1. Всё выдумано локально.", "LIVE, “viewers” and a chat that knows what you did: the program (its name only), the song, the hour, notifications (who sent them only), how you type. The audience grows with the days: nobody on day 1, 1000–1500 by day 30. Today is day %1. All made up locally.").arg(LockStream.days)
+            hint: I18n.t("LIVE-чат знает, что ты делал: программа, трек, время. Зрителей больше с каждым днём (сейчас день %1). Всё выдумано на компьютере и никуда не уходит.", "The LIVE chat knows what you did: the app, the track, the time. More viewers every day (day %1 now). All made up on this computer, nothing leaves it.").arg(LockStream.days)
             preview: "LockScreen"
             PxToggle {
                 checked: Config.lock.stream
@@ -315,7 +288,7 @@ PxPage {
         SettingRow {
             visible: Config.lock.stream && lockPage.ngo
             label: I18n.t("Повтор эфира", "Replay")
-            hint: I18n.t("через время на заднем плане идёт случайное видео с компьютера — без звука и в таком блюре, что ничего не прочесть (кадр ужимается до 32×18 точек). Не на экране, который сейчас стримится по-настоящему.", "after a while a random video from the computer plays behind the stream — silent, blurred past reading (each frame is shrunk to 32×18 dots). Never on a screen that is really being streamed.")
+            hint: I18n.t("через время на заднем плане идёт случайное видео с компьютера — без звука и так размыто, что ничего не прочесть", "After a while a random video from the computer plays behind — silent and so blurred nothing can be read")
             PxToggle {
                 checked: Config.lock.replay
                 onToggled: c => Config.lock.replay = c
@@ -886,24 +859,6 @@ PxPage {
                 text: I18n.t("Показать", "Show")
                 icon: "clock"
                 onClicked: Idle.start()
-            }
-        }
-    }
-    PxGroup {
-        name: "idle-timer"
-        title: I18n.t("Заставка после простоя", "Screensaver after idle")
-        icon: "moon"
-        width: parent.width
-        SettingRow {
-            label: I18n.t("Включать после простоя", "Start when idle")
-            hint: I18n.t("0 = только вручную: «Пуск», меню выключения или angelos idle", "0 = by hand only: Start, the power menu or `angelos idle`")
-            PxSpin {
-                from: 0
-                to: 60
-                stepSize: 1
-                value: Config.idle.minutes
-                suffix: I18n.t(" мин", " min")
-                onMoved: v => Config.idle.minutes = v
             }
         }
     }

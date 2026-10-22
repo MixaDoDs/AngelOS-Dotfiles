@@ -229,6 +229,26 @@ def render_stream_angel():
                       SA_END, ""])
 
 
+# the windows' frame: niri's focus ring around the focused one (its own default), a 2 px border
+# — one art pixel — around every window (the focused one in the accent, the others dark: the
+# colours are the theme's, ~/.config/niri/angelos.kdl), or none
+FRAMES = {
+    "focus": {"focus-ring": ["on", "width 4"], "border": ["off"]},
+    "all": {"focus-ring": ["off"], "border": ["on", "width 2"]},
+    "none": {"focus-ring": ["off"], "border": ["off"]},
+}
+
+
+def read_frame(text):
+    b = block(text, "border")
+    if b and re.search(r"^\s*on\s*$", text[b[0]:b[1]], re.M):
+        return "all"
+    f = block(text, "focus-ring")
+    if f and re.search(r"^\s*off\s*$", text[f[0]:f[1]], re.M):
+        return "none"
+    return "focus"
+
+
 def current():
     text = layout_path.read_text()
     presets = []
@@ -241,6 +261,7 @@ def current():
         "center": value(text, "center-focused-column", "never"),
         "defaultWidth": width_of(text[d[0]:d[1]]) if d else "",
         "presets": presets,
+        "frame": read_frame(text),
         "apps": read_apps(),
         "taskmgr": read_taskmgr(),
         "alttab": read_alttab(),
@@ -300,7 +321,7 @@ def atomic_write(path, content):
 
 
 def apply(changes):
-    unknown = set(changes) - {"gaps", "center", "defaultWidth", "presets", "apps", "taskmgr", "alttab", "lens", "quit", "streamAngel"}
+    unknown = set(changes) - {"gaps", "center", "defaultWidth", "presets", "frame", "apps", "taskmgr", "alttab", "lens", "quit", "streamAngel"}
     if unknown:
         raise ValueError("unknown keys: " + ", ".join(sorted(unknown)))
     layout = layout_path.read_text()
@@ -322,6 +343,11 @@ def apply(changes):
         if not ps:
             raise ValueError("need at least one preset")
         new_layout = set_block(new_layout, "preset-column-widths", ps)
+    if "frame" in changes:
+        if changes["frame"] not in FRAMES:
+            raise ValueError("invalid frame")
+        for name, lines in FRAMES[changes["frame"]].items():
+            new_layout = set_block(new_layout, name, lines)
 
     files = {layout_path: (layout, new_layout)} if new_layout != layout else {}
     if any(k in changes for k in ("apps", "taskmgr", "alttab", "lens", "quit", "streamAngel")):

@@ -32,14 +32,14 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Сейчас ни одно устройство не сообщает заряд. Bluetooth-устройства, мыши и клавиатуры Logitech и геймпады появятся сами; мыши LAMZU опрашиваются через донгл, USB-гарнитуры — через headsetcontrol, если он установлен. Проводные устройства заряд не сообщают.", "No device reports its charge right now. Bluetooth devices, Logitech mice and keyboards and gamepads turn up by themselves; LAMZU mice are asked through their dongle, USB headsets through headsetcontrol where it is installed. Wired devices report no charge.")
+            text: I18n.t("Пока ни одно устройство не сообщает заряд. Bluetooth, Logitech, LAMZU и геймпады появятся сами; проводные заряд не сообщают.", "No device reports its charge yet. Bluetooth, Logitech, LAMZU and gamepads show up by themselves; wired ones don't report it.")
         }
         // a dongle is there and the system won't let it be asked: the udev rule of extras/hid-access
         // (the dotfiles' install.sh installs it) with the admin password, once
         SettingRow {
             visible: Config.peripherals.vendor && (Peripherals.denied > 0 || Peripherals.grantLog !== "")
             label: I18n.t("Нет доступа к донглу", "No access to the dongle")
-            hint: Peripherals.grantLog !== "" ? Peripherals.grantLog : I18n.t("система не даёт спросить донгл. Разрешение откроет тебе только служебный интерфейс мыши — через него не прочитать ни клавиш, ни движения — и только пока ты сидишь за этим компьютером; нужен пароль администратора", "The system won't let the dongle be asked. The permission opens only the mouse's service interface to you — no keys or movement can be read through it — and only while you sit at this computer; it needs the admin password")
+            hint: Peripherals.grantLog !== "" ? Peripherals.grantLog : I18n.t("система не даёт спросить донгл. Разрешение откроет только служебный интерфейс мыши — ни клавиш, ни движения через него не прочитать; нужен пароль администратора", "The system won't let the dongle be asked. Allowing opens only the mouse's service interface — no keys or movement can be read through it; it takes the admin password")
             PxButton {
                 icon: "lock"
                 accent: true

@@ -493,8 +493,7 @@ PxPage {
         icon: "document"
         width: parent.width
         SettingRow {
-            label: I18n.t("Хранить дней", "Keep days")
-            hint: "~/.local/state/angelos/screen-time.json"
+            label: I18n.t("Сколько дней помнить", "Days to remember")
             PxSpin {
                 from: 7
                 to: 365

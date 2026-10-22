@@ -45,6 +45,7 @@ TIMING = {
         "default": (280, 'curve "ease-out-cubic"'),
         "pop": (420, 'curve "linear"'),
         "pixel": (460, 'curve "linear"'),
+        "dither": (180, 'curve "linear"'),
         "heart": (440, 'curve "linear"'),
         "star": (440, 'curve "linear"'),
         "cd": (520, 'curve "linear"'),
@@ -56,6 +57,7 @@ TIMING = {
     "close": {
         "default": (220, 'curve "ease-out-quad"'),
         "pixel": (460, 'curve "linear"'),
+        "dither": (160, 'curve "linear"'),
         "heart": (420, 'curve "linear"'),
         "fall": (520, 'curve "linear"'),
         "glitch": (380, 'curve "linear"'),

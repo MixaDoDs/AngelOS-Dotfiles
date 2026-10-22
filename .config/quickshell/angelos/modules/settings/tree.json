@@ -66,16 +66,18 @@
           "hintRu": "главный экран, яркость, расположение мониторов",
           "hintEn": "the main screen, brightness, arranging monitors",
           "blocks": [
-            "monitor/main-screen",
-            "monitor/brightness-colour",
-            "laptop/backlight",
             "monitor/arrangement",
             "monitor/output",
-            "monitor/@",
-            "laptop/tablet"
+            "monitor/brightness-colour",
+            "laptop/backlight",
+            "monitor/@"
           ],
           "links": [
             "power"
+          ],
+          "more": [
+            "monitor/main-screen",
+            "laptop/tablet"
           ]
         },
         {
@@ -99,7 +101,7 @@
         },
         {
           "id": "sfx",
-          "ru": "Звуки",
+          "ru": "Звуки системы",
           "en": "Sounds",
           "icon": "music",
           "hintRu": "щелчки, звуки событий, голос ангела, свои звуки",
@@ -136,14 +138,12 @@
           "ru": "Питание",
           "en": "Power",
           "icon": "power",
-          "hintRu": "профиль питания, когда блокировать и гасить экран",
-          "hintEn": "the power profile, when to lock and blank the screen",
+          "hintRu": "когда гасить экран, блокировать и засыпать; крышка",
+          "hintEn": "when to turn the screen off, lock and sleep; the lid",
           "blocks": [
-            "system/power",
             "laptop/power-idle",
+            "system/power",
             "laptop/lid",
-            "lock/lock-timers",
-            "lock/idle-timer",
             "lock/awake"
           ],
           "links": [
@@ -180,10 +180,10 @@
           "hintEn": "screenshots, recording, where they go",
           "blocks": [
             "capture/shots",
-            "capture/recording",
-            "capture/circle"
+            "capture/recording"
           ],
           "more": [
+            "capture/circle",
             "capture/shots-more",
             "capture/recording-more",
             "capture/skin"
@@ -191,7 +191,7 @@
         },
         {
           "id": "wellbeing",
-          "ru": "Благополучие",
+          "ru": "Экранное время",
           "en": "Wellbeing",
           "icon": "clock",
           "hintRu": "сколько ты за компьютером, лимит, напоминания ангела про воду и перерывы",
@@ -285,11 +285,25 @@
           ],
           "more": [
             "keyboard/key-repeat",
+            "sound/keyboard-osd",
             "laptop/laptop-keys"
           ],
           "links": [
             "shortcuts",
             "a11y:voice-typing-voxtype"
+          ]
+        },
+        {
+          "id": "spell",
+          "ru": "Орфография",
+          "en": "Spelling",
+          "icon": "pen",
+          "hintRu": "подчёркивать ошибки, словари по языкам",
+          "hintEn": "underline mistakes, a dictionary per language",
+          "blocks": [
+            "spell/check",
+            "spell/installed",
+            "spell/download"
           ]
         },
         {
@@ -333,45 +347,32 @@
           "hintEn": "the mouse, the keyboard, the headphones as ampoules on the bar",
           "blocks": [
             "peripherals/devices",
-            "peripherals/look",
-            "peripherals/liquid"
+            "peripherals/look"
           ],
           "more": [
+            "peripherals/liquid",
             "peripherals/alerts",
             "peripherals/sources"
           ]
         },
         {
           "id": "driver",
-          "ru": "Драйвер устройств",
+          "ru": "Игровые мышь и клавиатура",
           "en": "Device driver",
           "icon": "chip",
           "hintRu": "магнитные клавиатуры и мыши: ход клавиш вживую, Rapid Trigger",
           "hintEn": "Hall-effect keyboards and mice: key travel live, Rapid Trigger",
           "blocks": [
             "driver/devices",
-            "driver/keyboard",
-            "driver/mouse"
+            "driver/keyboard"
           ],
           "more": [
+            "driver/mouse",
             "driver/mouseBackup",
             "driver/support"
           ],
           "links": [
             "peripherals"
-          ]
-        },
-        {
-          "id": "spell",
-          "ru": "Орфография",
-          "en": "Spelling",
-          "icon": "pen",
-          "hintRu": "подчёркивать ошибки, словари по языкам",
-          "hintEn": "underline mistakes, a dictionary per language",
-          "blocks": [
-            "spell/check",
-            "spell/installed",
-            "spell/download"
           ]
         }
       ]
@@ -440,17 +441,18 @@
           "hintEn": "pictures, release wallpapers, alive wallpaper, the transition",
           "blocks": [
             "wallpaper/@",
+            "wallpaper/images",
+            "wallpaper/destination",
             "wallpaper/releases",
-            "wallpaper/scene-depth",
-            "wallpaper/pixel",
             "wallpaper/live",
-            "wallpaper/images"
+            "wallpaper/pixel"
           ],
           "more": [
-            "wallpaper/destination",
             "wallpaper/variants",
+            "wallpaper/transition",
             "wallpaper/release-mark",
-            "wallpaper/transition"
+            "wallpaper/scene-depth",
+            "wallpaper/scene-behind"
           ],
           "links": [
             "theme"
@@ -462,21 +464,21 @@
         },
         {
           "id": "theme",
-          "ru": "Цвета и тема",
+          "ru": "Тема",
           "en": "Colours and theme",
           "icon": "palette",
           "hintRu": "светлая или тёмная, цветовая схема, прозрачность, значки",
           "hintEn": "light or dark, the colour scheme, transparency, icons",
           "blocks": [
-            "appearance/skin",
             "appearance/theme"
           ],
           "more": [
+            "appearance/skin",
             "appearance/glass-pixels",
             "appearance/icons",
             "appearance/window-titles",
             "appearance/application-theme",
-            "y2k/glitter"
+            "windows/app-themes"
           ],
           "links": [
             "wallpaper",
@@ -515,6 +517,9 @@
           "links": [
             "a11y:shake-find-pointer",
             "game:cursor-hell"
+          ],
+          "more": [
+            "y2k/glitter"
           ]
         },
         {
@@ -535,8 +540,7 @@
             "bar/icons",
             "bar/taskbar-screens",
             "bar/sidebar-experimental",
-            "bar/taskbar-other",
-            "windows/closing-windows"
+            "bar/taskbar-other"
           ],
           "links": [
             "start",
@@ -573,7 +577,7 @@
         },
         {
           "id": "deskmenu",
-          "ru": "Меню ПКМ",
+          "ru": "Меню правой кнопки",
           "en": "Right-click menu",
           "icon": "grid",
           "hintRu": "меню стола, панели, окна и виджета, кольцо на средней кнопке",
@@ -585,7 +589,8 @@
           "more": [
             "deskmenu/look",
             "deskmenu/plugins",
-            "deskmenu/your-own-entries"
+            "deskmenu/your-own-entries",
+            "windows/closing-windows"
           ],
           "links": [
             "start",
@@ -600,14 +605,17 @@
           "hintRu": "капсулы сверху: музыка, таймеры, запись",
           "hintEn": "capsules at the top: music, timers, recording",
           "blocks": [
-            "halo/look",
             "halo/main",
-            "halo/show",
-            "halo/rest",
-            "halo/buttons"
+            "halo/show"
           ],
           "links": [
             "lyrics"
+          ],
+          "more": [
+            "halo/show-more",
+            "halo/rest",
+            "halo/look",
+            "halo/buttons"
           ]
         },
         {
@@ -619,11 +627,11 @@
           "hintEn": "clocks, the visualizer and more on the desktop",
           "blocks": [
             "widgets/add",
-            "widgets/discord",
-            "widgets/on-desktop"
+            "widgets/on-desktop",
+            "widgets/behavior"
           ],
           "more": [
-            "widgets/behavior"
+            "widgets/discord"
           ]
         },
         {
@@ -658,7 +666,6 @@
             "lock/lock-details",
             "laptop/fingerprint",
             "lock/lock-stream",
-            "lock/lock-rewards",
             "lock/login-screen",
             "lock/idle-screen",
             "lock/idle-aod",
@@ -684,18 +691,18 @@
           "ru": "Окна",
           "en": "Windows",
           "icon": "window",
-          "hintRu": "кнопки в заголовке, паутина, отступы, ширина новых окон",
-          "hintEn": "title bar buttons, cobwebs, gaps, new windows' width",
+          "hintRu": "плавающие окна, рамки и углы, отступы, ширина новых окон",
+          "hintEn": "floating windows, frames and corners, gaps, new windows' width",
           "blocks": [
-            "windows/window-decorations",
-            "windows/cobweb",
             "windows/floating",
+            "windows/frames",
             "windows/layout",
+            "windows/window-widths",
+            "windows/window-decorations",
             "windows/@"
           ],
           "more": [
-            "windows/window-widths",
-            "windows/window-menu-experimental"
+            "windows/cobweb"
           ],
           "links": [
             "alttab",
@@ -764,11 +771,11 @@
           "blocks": [
             "defaults/defaults",
             "defaults/files-strata",
-            "system/programs",
             "defaults/@"
           ],
           "more": [
-            "defaults/files-nautilus"
+            "defaults/files-nautilus",
+            "system/programs"
           ]
         },
         {
@@ -795,8 +802,7 @@
           "hintEn": "what is installed, remove what you don't need, clean the system up",
           "blocks": [
             "programs/bloat",
-            "programs/installed",
-            "programs/cleanup"
+            "programs/installed"
           ]
         },
         {
@@ -810,6 +816,7 @@
             "care/main",
             "care/clean",
             "care/games",
+            "system/games-background",
             "care/helper"
           ]
         },
@@ -874,11 +881,11 @@
         },
         {
           "id": "terminal",
-          "ru": "Терминал",
+          "ru": "Приветствие терминала",
           "en": "Terminal",
           "icon": "terminal",
-          "hintRu": "fastfetch: стиль, анимация, превью",
-          "hintEn": "fastfetch: style, animation, preview",
+          "hintRu": "картинка и анимация, когда открываешь терминал",
+          "hintEn": "the picture and animation when a terminal opens",
           "blocks": [
             "system/fastfetch"
           ],
@@ -1051,7 +1058,8 @@
             "stars/stars-album",
             "stars/stars-pass",
             "stars/stars-skins",
-            "achievements/heaven"
+            "achievements/heaven",
+            "lock/lock-rewards"
           ],
           "game": true,
           "links": [
@@ -1513,6 +1521,7 @@
               "care/main",
               "care/clean",
               "care/games",
+              "system/games-background",
               "care/helper"
             ]
           },
@@ -1525,8 +1534,7 @@
             "hintEn": "what is installed, remove what you don't need, clean the system up",
             "blocks": [
               "programs/bloat",
-              "programs/installed",
-              "programs/cleanup"
+              "programs/installed"
             ]
           },
           {
@@ -1629,8 +1637,6 @@
               "system/power",
               "laptop/power-idle",
               "laptop/lid",
-              "lock/lock-timers",
-              "lock/idle-timer",
               "lock/awake"
             ],
             "links": [
@@ -1669,8 +1675,7 @@
             ],
             "more": [
               "system/rendering",
-              "system/game-developer-tools",
-              "windows/window-menu-experimental"
+              "system/game-developer-tools"
             ]
           }
         ]
@@ -1742,6 +1747,7 @@
               "mac/windows",
               "windows/cobweb",
               "windows/floating",
+              "windows/frames",
               "windows/layout",
               "windows/window-widths",
               "windows/window-animations",

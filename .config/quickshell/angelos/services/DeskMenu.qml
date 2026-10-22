@@ -816,7 +816,7 @@ Singleton {
     // «Показать стол»: the windows of the screen's desktop minimized, again: back
     function showDesktop(screen) {
         const ws = Niri.activeWorkspace(screen);
-        const here = Niri.windows.filter(w => ws && w.workspace_id === ws.id && !Minimize.isAppHidden(w));
+        const here = Niri.windows.filter(w => ws && Minimize.wsOf(w) === ws.id && !Minimize.isAppHidden(w));
         const open = here.filter(w => !Minimize.isMinimized(w));
         if (open.length)
             open.forEach(w => Minimize.request(w.id, "menu"));

@@ -360,6 +360,52 @@ def restore_background(saved: dict[str, int]) -> None:
             pass
 
 
+def background_fps_wanted() -> int:
+    """angelOS's Settings → System → Games: the other screens' frame rate in a game (0 = as is)"""
+    try:
+        fps = (json.loads(SETTINGS.read_text()).get("gaming") or {}).get("backgroundFps", 30)
+        return max(0, int(fps))
+    except (OSError, ValueError, TypeError, AttributeError):
+        return 30
+
+
+def background_fps(fps: int, output: str | None = None) -> None:
+    """angel-niri draws the screens without the game at most `fps` times a second — never the
+    game's `output`, nor a screen a stream or recording shows (stock niri doesn't know the action:
+    nothing happens)"""
+    _run("niri", "msg", "action", "set-background-fps", str(fps), *(["--output", output] if output else []))
+
+
+def tearing_wanted() -> bool:
+    """angelOS's Settings → System → Games: a fullscreen game's frames may tear for less lag"""
+    try:
+        return (json.loads(SETTINGS.read_text()).get("gaming") or {}).get("tearing", True) is not False
+    except (OSError, ValueError, AttributeError):
+        return True
+
+
+def tearing(on: bool, output: str | None = None) -> None:
+    """angel-niri shows a fullscreen game's frames at once instead of at the next vblank (stock
+    niri doesn't know the action: nothing happens)"""
+    _run("niri", "msg", "action", "set-tearing", "--on", "true" if on else "false",
+         *(["--output", output] if output else []))
+
+
+def pointer_lock_wanted() -> bool:
+    """angelOS's Settings → System → Games: the pointer stays on the game's screen"""
+    try:
+        return (json.loads(SETTINGS.read_text()).get("gaming") or {}).get("pointerLock", True) is not False
+    except (OSError, ValueError, AttributeError):
+        return True
+
+
+def pointer_lock(on: bool, output: str | None = None) -> None:
+    """angel-niri keeps the pointer on a focused fullscreen game's output, Mod lets it out (stock
+    niri doesn't know the action: nothing happens)"""
+    _run("niri", "msg", "action", "set-pointer-lock", "--on", "true" if on else "false",
+         *(["--output", output] if output else []))
+
+
 def write_state(game: bool) -> None:
     RUN_DIR.mkdir(parents=True, exist_ok=True)
     tmp = STATE_FILE.with_name("state.tmp")
@@ -367,7 +413,7 @@ def write_state(game: bool) -> None:
     tmp.replace(STATE_FILE)
 
 
-def boost(on: bool) -> str:
+def boost(on: bool, output: str | None = None) -> str:
     """Game on: performance profile, niri up, voice typing off + the game flag; off: put back
     what was."""
     RUN_DIR.mkdir(parents=True, exist_ok=True)
@@ -389,11 +435,17 @@ def boost(on: bool) -> str:
         lower_background(saved.setdefault("background", {}))
         BOOST_SAVED.write_text(json.dumps(saved))
         _run("powerprofilesctl", "set", "performance")
+        background_fps(background_fps_wanted(), output)
+        tearing(tearing_wanted(), output)
+        pointer_lock(pointer_lock_wanted(), output)
         GAME_FLAG.touch()
         write_state(True)
         return "boost on: performance, niri nice %d" % NIRI_NICE
     GAME_FLAG.unlink(missing_ok=True)
     write_state(False)
+    background_fps(0)
+    tearing(False)
+    pointer_lock(False)
     try:
         saved = json.loads(BOOST_SAVED.read_text())
     except (OSError, ValueError):
@@ -476,8 +528,8 @@ def commit_boost(on: bool, state: State, dry_run: bool) -> None:
     if dry_run:
         print(f"boost {'on' if on else 'off'} (dry run)", file=sys.stderr, flush=True)
         return
-    msg = boost(on)
     hit = state.game() if on else None
+    msg = boost(on, hit[1] if hit else None)
     if hit:
         msg += f": {hit[0].get('app_id')} on {hit[1]}"
     print(msg, file=sys.stderr, flush=True)

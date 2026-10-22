@@ -3,7 +3,7 @@
 // style: 0 mosaic + ordered dither, 1 mosaic only, 2 dither only, 3 heart iris,
 //        4 old TV (collapse to a line and back), 5 blinds, 6 diamonds (Win98),
 //        7 glitch, 8 melt (DOOM), 9 sparkle dissolve, 10 dithered wipe, 11 verdict (a theatrical
-//        cut-in: shutters, stripes and a title word on a 480×270 grid, 800 ms)
+//        cut-in: shutters, stripes and a title word on a 480×270 grid, 800 ms), 12 cinema gate
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 
@@ -38,6 +38,17 @@ float hash(vec2 p) {
 float heart(vec2 q) {
     float a = q.x * q.x + q.y * q.y - 1.0;
     return a * a * a - q.x * q.x * q.y * q.y * q.y;
+}
+// smooth value noise: soft blots for the gate's developing picture
+float vnoise(vec2 x) {
+    vec2 i = floor(x);
+    vec2 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 vec4 pick(vec2 uv, float t) {
     return mix(texture(fromTex, uv), texture(toTex, uv), t);
@@ -269,13 +280,75 @@ void main() {
         vec2 f = fract(px / cs) - 0.5;
         float plus = step(min(abs(f.x), abs(f.y)), 0.17);
         outc.rgb = mix(outc.rgb, mix(accent.rgb, vec3(1.0), 0.45), fresh * plus);
-    } else if (style > 10.5) {
+    } else if (style > 10.5 && style < 11.5) {
         outc = verdict(uv, p);
-    } else {
+    } else if (style < 10.5) {
         // dithered wipe: left to right with a ragged pixel edge
         vec2 cell = floor(px / 12.0);
         float th = (cell.x * 12.0 / resolution.x) * 0.8 + bayer4(cell) * 0.2;
         outc = pick(uv, step(th, p));
+    } else {
+        // cinema gate: bars slam in to 21:9 with an overshoot (Danganronpa), the camera
+        // pushes in, an accent flash (Neon White), the new picture develops in blots
+        // (RDR2) while a pixel halo turns in the bar like a loading mark; bars fly out
+        float cs = max(3.0, floor(resolution.y / 240.0));
+        vec2 cpx = (floor(px / cs) + 0.5) * cs;
+        vec2 cuv = cpx / resolution;
+        float barH = max(0.5 * (1.0 - (resolution.x / resolution.y) / (21.0 / 9.0)), 0.06);
+        // in and out "on twos": held, jerky steps like limited animation
+        float c = floor(clamp(p / 0.24, 0.0, 1.0) * 14.0) / 14.0;
+        float o = floor(clamp((p - 0.76) / 0.22, 0.0, 1.0) * 14.0) / 14.0;
+        float k1 = 1.9;
+        float k3 = k1 + 1.0;
+        float cb = c - 1.0;
+        float inB = 1.0 + k3 * cb * cb * cb + k1 * cb * cb;   // back-out: overshoot, settle
+        float outB = k3 * o * o * o - k1 * o * o;             // back-in: pull in, then away
+        float h = barH * (inB - outB);
+        float hold = c * (1.0 - o);
+        // the cut edge is slanted while the bars move and flat while they hold
+        float sl = 0.05 * (1.0 - smoothstep(0.0, 1.0, c)) + 0.05 * smoothstep(0.0, 1.0, o);
+        float tilt = sl * (0.5 - cuv.x) - 0.5 * sl;
+        float dT = h + tilt - cuv.y;
+        float dB = cuv.y - (1.0 - h - tilt);
+        float inBar = max(step(0.0, dT), step(0.0, dB));
+
+        // the frame: the old picture under a slow push-in, dimmed while the gate holds
+        vec3 lumW = vec3(0.299, 0.587, 0.114);
+        vec3 oc = texture(fromTex, 0.5 + (uv - 0.5) / (1.0 + 0.035 * smoothstep(0.0, 0.5, p))).rgb;
+        float dim = smoothstep(0.24, 0.44, p);
+        oc = mix(oc, vec3(dot(oc, lumW)), 0.4 * dim) * (1.0 - 0.25 * dim);
+        // the new one settles from a closer, shifted camera
+        float pn = smoothstep(0.40, 1.0, p);
+        vec2 nuv = 0.5 + (uv - 0.5) / mix(1.06, 1.0, pn) + vec2(0.012 * (1.0 - pn), 0.0);
+        vec3 nc = texture(toTex, nuv).rgb;
+        // develops in soft blots, first toned in the accent, then in its own colours
+        float dev = clamp((p - 0.44) / 0.28, 0.0, 1.0);
+        float blot = vnoise(cuv * vec2(resolution.x / resolution.y, 1.0) * 3.5);
+        float shown = step(blot * 0.8 + bayer4(cpx / cs) * 0.2, dev * 1.15 - 0.05);
+        float nl = dot(nc, lumW);
+        vec3 tone = mix(vec3(nl), nl * accent.rgb * 1.5, 0.45) * 0.85;
+        vec3 pic = mix(oc, mix(tone, nc, smoothstep(0.55, 1.0, dev)), shown);
+        pic *= 1.0 - 0.35 * hold * smoothstep(0.35, 0.85, length((uv - 0.5) * vec2(1.0, 1.4)));
+        // the flash: a dithered accent fill for a blink
+        float f = exp(-pow((p - 0.44) / 0.03, 2.0));
+        pic = mix(pic, mix(accent.rgb, vec3(1.0), 0.45), step(bayer4(cpx / cs), f * 1.2) * f);
+
+        // the bars: near black in the accent, a dithered glow and a bright rim at the cut
+        vec3 bar = mix(vec3(0.015), accent.rgb, 0.08);
+        float d = max(dT, dB) * resolution.y;
+        bar = mix(bar, accent.rgb * 0.6, 0.6 * step(bayer4(cpx / cs), 0.5 * exp(-d / (cs * 6.0))));
+        bar = mix(bar, mix(accent.rgb, vec3(1.0), 0.35 * (1.0 - hold)), step(d, cs * 1.5));
+        // the halo turning in the lower bar, a light running round it
+        float bpx = barH * resolution.y;
+        if (bpx > 40.0) {
+            vec2 hc = vec2(resolution.x - bpx * 1.3, resolution.y * (1.0 - h * 0.5));
+            vec2 rr = vec2(bpx * 0.30, bpx * 0.11);
+            vec2 q = (cpx - hc) / rr;
+            float ring = step(length(q), 1.0) * step(1.0, length((cpx - hc) / max(rr - 2.0 * cs, vec2(1.0))));
+            float lit = 0.35 + 0.65 * smoothstep(0.6, 1.0, fract(atan(q.y, q.x) / 6.2831853 + 0.5 - p * 3.0));
+            bar = mix(bar, mix(accent.rgb, vec3(1.0), 0.3 * lit) * lit, ring * hold * step(0.0, dB));
+        }
+        outc = vec4(mix(pic, bar, inBar), 1.0);
     }
     fragColor = outc * qt_Opacity;
 }

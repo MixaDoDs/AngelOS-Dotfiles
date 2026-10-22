@@ -152,27 +152,21 @@ PxPage {
         advanced: true
         icon: "heart"
         width: parent.width
+        // one place for where volume and brightness show: services/Halo takes them while
+        // halo.osd is on and the Halo is there, modules/osd/Osd otherwise
         SettingRow {
-            label: I18n.t("Показывать громкость", "Show volume")
-            PxToggle {
-                checked: Config.osd.enabled
-                onToggled: c => Config.osd.enabled = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Показывать смену раскладки", "Show layout changes")
-            hint: I18n.t("маленький бейдж RU/EN", "Small RU/EN badge")
-            PxToggle {
-                checked: Config.osd.layout
-                onToggled: c => Config.osd.layout = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Показывать Caps Lock", "Show Caps Lock")
-            hint: I18n.t("стрелка на панели рядом с раскладкой, пока он включён", "An arrow on the bar next to the layout while it is on")
-            PxToggle {
-                checked: Config.osd.caps
-                onToggled: c => Config.osd.caps = c
+            label: I18n.t("Громкость и яркость", "Volume and brightness")
+            hint: I18n.t("«В Нимбе» — полоской в нём, на его экране", "In the Halo: a bar in it, on its screen")
+            PxSegmented {
+                model: [["box", "Окошко", "A box"], ["halo", "В Нимбе", "In the Halo"], ["off", "Нигде", "Nowhere"]].filter(c => c[0] !== "halo" || Config.halo.enabled).map(c => ({
+                            "label": I18n.t(c[1], c[2]),
+                            "value": c[0]
+                        }))
+                currentValue: !Config.osd.enabled ? "off" : Config.halo.enabled && Config.halo.osd !== false ? "halo" : "box"
+                onActivated: v => {
+                    Config.osd.enabled = v !== "off";
+                    Config.halo.osd = v === "halo";
+                }
             }
         }
         SettingRow {
@@ -197,6 +191,31 @@ PxPage {
         }
     }
 
+    // the keyboard's own badges (Settings → Keyboard → More)
+    PxGroup {
+        name: "keyboard-osd"
+        title: I18n.t("Раскладка на экране", "The layout on screen")
+        advanced: true
+        icon: "keyboard"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Показывать смену раскладки", "Show layout changes")
+            hint: I18n.t("маленький бейдж RU/EN", "Small RU/EN badge")
+            PxToggle {
+                checked: Config.osd.layout
+                onToggled: c => Config.osd.layout = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("Показывать Caps Lock", "Show Caps Lock")
+            hint: I18n.t("стрелка на панели рядом с раскладкой, пока он включён", "An arrow on the bar next to the layout while it is on")
+            PxToggle {
+                checked: Config.osd.caps
+                onToggled: c => Config.osd.caps = c
+            }
+        }
+    }
+
     PxGroup {
         name: "voice-typing-voxtype"
         title: I18n.t("Голосовой ввод", "Voice typing")
@@ -204,9 +223,15 @@ PxPage {
         advanced: true
         icon: "mic"
         width: parent.width
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Win+Shift+V — начать и закончить диктовку: что скажешь, напечатается там, где курсор.", "Win+Shift+V starts and stops dictation: what you say is typed where the cursor is.")
+        }
         SettingRow {
             label: I18n.t("Индикатор", "Indicator")
-            hint: I18n.t("«angelOS» — окошко " + I18n.exe("voice") + " в стиле райса, «старый» — прежний кружок", "“angelOS” — a " + I18n.exe("voice") + " window in the rice style, “classic” — the old circle")
+            hint: I18n.t("«angelOS» — окошко " + I18n.exe("voice") + ", «Старый» — прежний кружок", "“angelOS”: a " + I18n.exe("voice") + " window, “Classic”: the old circle")
             PxSegmented {
                 model: [
                     {

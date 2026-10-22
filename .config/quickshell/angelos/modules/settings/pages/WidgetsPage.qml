@@ -11,7 +11,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Виджеты", "Widgets")
-    subtitle: DesktopWidgets.macLook ? I18n.t("Карточки на рабочем столе. Двойной клик по карточке — режим правки: в нём карточку таскают за любое место, «−» убирает её. Ещё их можно добавить через ПКМ → Вид.", "Cards on the desktop. Double-click a card for edit mode: there you drag it anywhere, “−” removes it. You can also add them via right-click → View.") : I18n.t("Виджеты на рабочем столе. ПКМ по виджету — его размер S/M/L, рамка и настройки; таскаются за заголовок (без заголовка — за любое место), двойной клик — режим правки. Добавить — здесь или ПКМ по столу → Вид.", "Widgets on the desktop. Right-click one for its size S/M/L, frame and options; drag them by the title (without one, anywhere), double-click for edit mode. Add them here or via right-click on the desktop → View.")
+    subtitle: DesktopWidgets.macLook ? I18n.t("Карточки на рабочем столе. Двойной клик по карточке — режим правки: в нём карточку таскают за любое место, «−» убирает её. Ещё их можно добавить через ПКМ → Вид.", "Cards on the desktop. Double-click a card for edit mode: there you drag it anywhere, “−” removes it. You can also add them via right-click → View.") : I18n.t("Виджеты на рабочем столе. ПКМ по виджету — размер, рамка, настройки; двойной клик — режим правки.", "Widgets on the desktop. Right click one for its size, frame and settings; double click to edit.")
 
     property string newType: DesktopWidgets.types.length ? DesktopWidgets.types[0].type : ""
     property string newScreen: Shell.primaryName || (Quickshell.screens[0] ? Quickshell.screens[0].name : "")
@@ -396,7 +396,7 @@ PxPage {
                     SettingRow {
                         visible: !!card.w && card.w.type === "clock"
                         label: I18n.t("Погода", "Weather")
-                        hint: Weather.ok ? Weather.deg(Weather.now.temp) + " · " + Weather.words(Weather.now.code) + " · " + Weather.place.name : Weather.error ? I18n.t("не получилось: ", "failed: ") + Weather.error : I18n.t("Open-Meteo; город — в «Поведении» ниже", "Open-Meteo; the city is under Behavior below")
+                        hint: Weather.ok ? Weather.deg(Weather.now.temp) + " · " + Weather.words(Weather.now.code) + " · " + Weather.place.name : Weather.error ? I18n.t("не получилось: ", "failed: ") + Weather.error : I18n.t("город — в «Все виджеты» ниже", "The city: under All widgets below")
                         PxToggle {
                             checked: card.st.weather !== false
                             onToggled: c => DesktopWidgets.setSetting(card.modelData, "weather", c)
@@ -609,7 +609,7 @@ PxPage {
 
     PxGroup {
         name: "behavior"
-        title: I18n.t("Поведение", "Behavior")
+        title: I18n.t("Все виджеты", "All widgets")
         icon: "gear"
         width: parent.width
         SettingRow {

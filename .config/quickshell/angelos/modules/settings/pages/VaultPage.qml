@@ -12,7 +12,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Пароли", "Passwords")
-    subtitle: I18n.t("Bitwarden и 1Password в лаунчере: Mod+Space → pw и название. Enter копирует пароль.", "Bitwarden and 1Password in the launcher: Mod+Space → pw and a name. Enter copies the password.")
+    subtitle: I18n.t("Bitwarden и 1Password в лаунчере: Win+Space → pw и название. Enter копирует пароль.", "Bitwarden and 1Password in the launcher: Win+Space → pw and a name. Enter copies the password.")
     Component.onCompleted: Vault.refresh()
 
     function stateText(b) {
@@ -161,7 +161,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Первый вход делается один раз в терминале: там менеджер сам спросит почту, пароль и код 2FA. Для Bitwarden хватит одного из двух: официальный bw или быстрый rbw. 1Password проще всего подключить через его приложение (Настройки → Разработчику → «Интеграция с 1Password CLI»).", "The first sign-in happens once, in a terminal: the manager asks for the e-mail, the password and the 2FA code itself. One of the two is enough for Bitwarden: the official bw or the quick rbw. 1Password is easiest through its app (Settings → Developer → “Integrate with 1Password CLI”).")
+            text: I18n.t("Первый вход — один раз в терминале: менеджер сам спросит почту, пароль и код 2FA. Для 1Password включи в его приложении «Интеграция с 1Password CLI».", "The first login: once, in a terminal; the manager asks for the e-mail, password and 2FA code. For 1Password, switch on «Integrate with 1Password CLI» in its app.")
         }
     }
 
@@ -173,7 +173,7 @@ PxPage {
 
         SettingRow {
             label: I18n.t("Искать пароли в лаунчере", "Find passwords in the launcher")
-            hint: I18n.t("Mod+Space → «pw гитхаб»: Enter — пароль, Ctrl+Enter — логин, Shift+Enter — код 2FA", "Mod+Space → “pw github”: Enter copies the password, Ctrl+Enter the login, Shift+Enter the 2FA code")
+            hint: I18n.t("Win+Space → «pw гитхаб»: Enter — пароль, Ctrl+Enter — логин, Shift+Enter — код 2FA", "Win+Space → “pw github”: Enter copies the password, Ctrl+Enter the login, Shift+Enter the 2FA code")
             PxToggle {
                 checked: Config.vault.enabled
                 onToggled: c => Config.vault.enabled = c

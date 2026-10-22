@@ -93,10 +93,7 @@ Singleton {
             const ws = Niri.activeWorkspace(Niri.focusedOutput);
             list = list.filter(w => ws && w.workspace_id === ws.id);
         } else if (Config.alttab.scope === "output") {
-            list = list.filter(w => {
-                const ws = Niri.workspaceById(w.workspace_id);
-                return ws && ws.output === Niri.focusedOutput;
-            });
+            list = list.filter(w => Minimize.outputOf(w) === Niri.focusedOutput);
         }
         return list;
     }

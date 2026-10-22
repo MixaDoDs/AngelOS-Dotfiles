@@ -30,218 +30,6 @@ PxPage {
     // the main screen: where the desk lives (Shell.primaryScreen)
     readonly property int widgetsElsewhere: DesktopWidgets.widgets.filter(w => w.screen !== Shell.primaryName).length
     readonly property string angelOwn: Config.y2k.helperScreen && Config.y2k.helperScreen !== "focus" && Config.y2k.helperScreen !== Shell.primaryName ? Config.y2k.helperScreen : ""
-    PxGroup {
-        name: "main-screen"
-        title: I18n.t("Главный экран", "Main screen")
-        icon: "star"
-        width: parent.width
-        SettingRow {
-            label: I18n.t("Главный экран", "Main screen")
-            hint: Angel.hellShown ? I18n.t("здесь живут виджеты, ангел (и трещины демоницы, лучи, тряска), заставка и сайдбар; здесь же пароль и курсор на экране входа и блокировке; niri фокусирует его при входе. «Авто» — самый широкий экран", "Home of the widgets, the angel (and the demon's cracks, the rays, the quake), the idle screen and the sidebar; the password field and the pointer of the login and the lock are here; niri focuses it at login. “Auto” is the widest screen") : I18n.t("здесь живут виджеты, ангел (и её лучи, тряска), заставка и сайдбар; здесь же пароль и курсор на экране входа и блокировке; niri фокусирует его при входе. «Авто» — самый широкий экран", "Home of the widgets, the angel (and her rays, the quake), the idle screen and the sidebar; the password field and the pointer of the login and the lock are here; niri focuses it at login. “Auto” is the widest screen")
-            Flow {
-                width: parent.width
-                spacing: Theme.u * 2
-                Repeater {
-                    model: [
-                        {
-                            "label": I18n.t("Авто (", "Auto (") + (Shell.widestScreen ? Shell.widestScreen.name : "—") + ")",
-                            "value": ""
-                        }
-                    ].concat(Quickshell.screens.map(sc => ({
-                                "label": sc.name,
-                                "value": sc.name
-                            })))
-                    PxButton {
-                        required property var modelData
-                        compact: true
-                        icon: modelData.value && modelData.value === Shell.primaryName ? "star" : ""
-                        text: modelData.label
-                        checked: (Config.system.primaryScreen || "") === modelData.value
-                        enabled: !Outputs.busy
-                        onClicked: Outputs.setPrimary(modelData.value)
-                    }
-                }
-            }
-        }
-        SettingRow {
-            label: I18n.t("Экраны (как Win+P)", "Screens (like Win+P)")
-            hint: I18n.t("только этот, повторить, расширить, только второй — Mod+P", "This one only, duplicate, extend, the second only: Mod+P")
-            PxButton {
-                compact: true
-                icon: "monitor"
-                text: I18n.t("Открыть", "Open")
-                onClicked: Shell.projectOpen = true
-            }
-        }
-        SettingRow {
-            visible: page.widgetsElsewhere > 0
-            label: I18n.t("Виджеты на других экранах: ", "Widgets on other screens: ") + page.widgetsElsewhere
-            hint: I18n.t("перенести их все на главный (позиции сохранятся, лишнее прижмётся к краю)", "Move them all to the main screen (positions kept, anything off the edge snaps back)")
-            PxButton {
-                compact: true
-                icon: "layers"
-                text: I18n.t("Перенести сюда", "Move here")
-                onClicked: DesktopWidgets.moveAllTo(Shell.primaryName)
-            }
-        }
-        // her screen and the sidebar's are set on their own pages: links there
-        SettingLink {
-            visible: page.angelOwn !== ""
-            label: I18n.t("У ангела свой экран: ", "The angel has her own screen: ") + page.angelOwn
-            hint: I18n.t("«На каком экране»; пусто — главный, и её трещины и лучи тоже уйдут туда", "“Screen”; empty is the main one, and her cracks and rays move there too")
-            page: "helper"
-            group: "demon-corner"
-        }
-        SettingLink {
-            visible: !!Config.sidebar.screen && Config.sidebar.screen !== Shell.primaryName
-            label: I18n.t("У сайдбара свой экран: ", "The sidebar has its own screen: ") + Config.sidebar.screen
-            page: "taskbar"
-            group: "sidebar-experimental"
-        }
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            kind: "tiny"
-            dim: !Outputs.primaryLog.startsWith("niri: ")
-            color: Outputs.primaryLog.startsWith("niri: ") ? Theme.danger : Theme.textDim
-            text: Outputs.primaryLog || (Outputs.niriFocused.length ? I18n.t("niri при входе фокусирует: ", "niri focuses at login: ") + Outputs.niriFocused.join(", ") : I18n.t("niri при входе фокусирует первый экран (focus-at-startup не задан)", "niri focuses the first screen at login (no focus-at-startup)"))
-        }
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            kind: "tiny"
-            dim: true
-            visible: StreamMode.active && Config.stream.hideAngel && StreamMode.onStream(Shell.primaryName)
-            text: I18n.t("Сейчас идёт эфир: ангел и её эффекты ушли с этого экрана (Система → Стрим-режим)", "You're live: the angel and her effects have left this screen (System → Stream mode)")
-        }
-    }
-
-    PxGroup {
-        name: "brightness-colour"
-        title: I18n.t("Яркость и цвет", "Brightness and colour")
-        icon: "sun"
-        width: parent.width
-
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            kind: "tiny"
-            dim: true
-            text: I18n.t("Программно, через гамму видеокарты: подсветку монитора не трогает, на стрим и скриншоты не попадает. Ночной свет работает вместе с яркостью.", "In software, through the GPU's gamma: the monitor's backlight stays as it is, nothing shows on stream or in screenshots. The night light works together with it.") + (ScreenTune.nvidia ? "" : I18n.t(" Насыщенность — только на видеокартах NVIDIA.", " Saturation needs an NVIDIA GPU."))
-        }
-        Repeater {
-            model: Quickshell.screens.map(sc => sc.name)
-            delegate: Column {
-                id: tuneRow
-                required property string modelData
-                readonly property var info: Outputs.outputs[modelData] || null
-                width: parent.width
-                spacing: Theme.u * 2
-
-                PxText {
-                    text: (Shell.primaryName === tuneRow.modelData ? "★ " : "") + tuneRow.modelData + (tuneRow.info ? "  ·  " + ((tuneRow.info.make || "") + " " + (tuneRow.info.model || "")).trim() : "")
-                    font.bold: true
-                }
-                SettingRow {
-                    label: I18n.t("Яркость", "Brightness")
-                    hint: ScreenTune.stateOf(tuneRow.modelData) === "failed" ? I18n.t("гамму этого монитора держит другая программа (wlsunset, gammastep?) — закрой её", "Another program holds this monitor's gamma (wlsunset, gammastep?): close it") : ""
-                    PxSlider {
-                        width: parent.width
-                        from: 30
-                        to: 100
-                        stepSize: 1
-                        suffix: " %"
-                        value: Math.round(ScreenTune.brightnessOf(tuneRow.modelData) * 100)
-                        onMoved: v => ScreenTune.setTune(tuneRow.modelData, "brightness", v >= 100 ? null : Math.round(v) / 100)
-                    }
-                }
-                SettingRow {
-                    visible: ScreenTune.nvidia
-                    label: I18n.t("Насыщенность", "Saturation")
-                    hint: ScreenTune.vibranceError || I18n.t("NVIDIA Digital Vibrance: −100 % — серый, +100 % — вдвое ярче цвета", "NVIDIA Digital Vibrance: −100 % is grey, +100 % doubles the colour")
-                    PxSlider {
-                        width: parent.width
-                        from: -100
-                        to: 100
-                        stepSize: 5
-                        suffix: " %"
-                        value: Math.round(ScreenTune.saturationOf(tuneRow.modelData) * 100)
-                        onMoved: v => ScreenTune.setTune(tuneRow.modelData, "saturation", Math.round(v) === 0 ? null : Math.round(v) / 100)
-                    }
-                }
-                // gamma, contrast and the channels: the same gamma tables as brightness
-                Repeater {
-                    model: [
-                        {
-                            "key": "gamma",
-                            "label": I18n.t("Гамма", "Gamma"),
-                            "hint": I18n.t("больше 1 — светлее полутона, тени видно лучше", "Above 1 lifts the mid-tones, shadows show more"),
-                            "decimals": 2,
-                            "suffix": ""
-                        },
-                        {
-                            "key": "contrast",
-                            "label": I18n.t("Контраст", "Contrast"),
-                            "hint": "",
-                            "decimals": 0,
-                            "suffix": " %"
-                        },
-                        {
-                            "key": "red",
-                            "label": I18n.t("Красный", "Red"),
-                            "hint": "",
-                            "decimals": 0,
-                            "suffix": " %"
-                        },
-                        {
-                            "key": "green",
-                            "label": I18n.t("Зелёный", "Green"),
-                            "hint": "",
-                            "decimals": 0,
-                            "suffix": " %"
-                        },
-                        {
-                            "key": "blue",
-                            "label": I18n.t("Синий", "Blue"),
-                            "hint": "",
-                            "decimals": 0,
-                            "suffix": " %"
-                        }
-                    ]
-                    SettingRow {
-                        id: curveRow
-                        required property var modelData
-                        readonly property var range: ScreenTune.curve[modelData.key]
-                        // gamma as it is (1.00), the rest in per cent
-                        readonly property real scale: modelData.decimals ? 1 : 100
-                        width: parent.width
-                        label: modelData.label
-                        hint: modelData.hint
-                        PxSlider {
-                            width: parent.width
-                            from: curveRow.range[1] * curveRow.scale
-                            to: curveRow.range[2] * curveRow.scale
-                            stepSize: curveRow.modelData.decimals ? 0.05 : 1
-                            decimals: curveRow.modelData.decimals
-                            suffix: curveRow.modelData.suffix
-                            value: ScreenTune.curveOf(tuneRow.modelData, curveRow.modelData.key) * curveRow.scale
-                            onMoved: v => {
-                                const x = Math.round(v / curveRow.scale * 100) / 100;
-                                ScreenTune.setTune(tuneRow.modelData, curveRow.modelData.key, x === curveRow.range[0] ? null : x);
-                            }
-                        }
-                    }
-                }
-                PxButton {
-                    compact: true
-                    icon: "refresh"
-                    text: I18n.t("Как было", "As it was")
-                    visible: ScreenTune.tuned(tuneRow.modelData)
-                    onClicked: ScreenTune.reset(tuneRow.modelData)
-                }
-            }
-        }
-    }
 
     PxGroup {
         name: "arrangement"
@@ -384,7 +172,7 @@ PxPage {
             }
         }
         SettingRow {
-            label: I18n.t("Режим", "Mode")
+            label: I18n.t("Разрешение и частота", "Resolution and rate")
             PxCombo {
                 width: parent.width
                 model: page.o ? page.o.modes.map(m => ({
@@ -397,7 +185,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Масштаб", "Scale")
-            hint: page.d && Math.abs(page.d.scale - Math.round(page.d.scale)) > 0.001 ? I18n.t("Дробный масштаб размывает пиксельные шрифты и рамки angelOS: их пиксели ложатся между пикселями экрана. Чётко — целый масштаб (1, 2), а крупнее — размером пикселя и масштабом шрифтов («Тема и цвета» → «Размер пикселя», «Шрифты» → «Масштаб шрифтов»).", "A fractional scale blurs angelOS's pixel fonts and frames: their pixels fall between the screen's. Crisp: a whole scale (1, 2), and bigger with the pixel size and the font scale (Theme and colours → Pixel size, Fonts → Font scale).") : ""
+            hint: page.d && Math.abs(page.d.scale - Math.round(page.d.scale)) > 0.001 ? I18n.t("дробный масштаб размывает пиксели. Лучше 1 или 2, а крупнее — в «Доступности» → «Размер интерфейса»", "A fractional scale blurs the pixels. Better 1 or 2; bigger in Accessibility → Interface size") : ""
             PxSpin {
                 from: 0.5
                 to: 3
@@ -461,6 +249,219 @@ PxPage {
                 checked: page.d ? page.d.vrr : false
                 onToggled: c => Outputs.set(page.selected, "vrr", c)
             }
+        }
+    }
+
+    PxGroup {
+        name: "brightness-colour"
+        title: I18n.t("Яркость и цвет", "Brightness and colour")
+        icon: "sun"
+        width: parent.width
+
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            text: I18n.t("Программно, через гамму видеокарты: подсветку монитора не трогает, на стрим и скриншоты не попадает. Ночной свет работает вместе с яркостью.", "In software, through the GPU's gamma: the monitor's backlight stays as it is, nothing shows on stream or in screenshots. The night light works together with it.") + (ScreenTune.nvidia ? "" : I18n.t(" Насыщенность — только на видеокартах NVIDIA.", " Saturation needs an NVIDIA GPU."))
+        }
+        Repeater {
+            model: Quickshell.screens.map(sc => sc.name)
+            delegate: Column {
+                id: tuneRow
+                required property string modelData
+                readonly property var info: Outputs.outputs[modelData] || null
+                width: parent.width
+                spacing: Theme.u * 2
+
+                PxText {
+                    text: (Shell.primaryName === tuneRow.modelData ? "★ " : "") + tuneRow.modelData + (tuneRow.info ? "  ·  " + ((tuneRow.info.make || "") + " " + (tuneRow.info.model || "")).trim() : "")
+                    font.bold: true
+                }
+                SettingRow {
+                    label: I18n.t("Яркость", "Brightness")
+                    hint: ScreenTune.stateOf(tuneRow.modelData) === "failed" ? I18n.t("гамму этого монитора держит другая программа (wlsunset, gammastep?) — закрой её", "Another program holds this monitor's gamma (wlsunset, gammastep?): close it") : ""
+                    PxSlider {
+                        width: parent.width
+                        from: 30
+                        to: 100
+                        stepSize: 1
+                        suffix: " %"
+                        value: Math.round(ScreenTune.brightnessOf(tuneRow.modelData) * 100)
+                        onMoved: v => ScreenTune.setTune(tuneRow.modelData, "brightness", v >= 100 ? null : Math.round(v) / 100)
+                    }
+                }
+                SettingRow {
+                    visible: ScreenTune.nvidia
+                    label: I18n.t("Насыщенность", "Saturation")
+                    hint: ScreenTune.vibranceError || I18n.t("NVIDIA Digital Vibrance: −100 % — серый, +100 % — вдвое ярче цвета", "NVIDIA Digital Vibrance: −100 % is grey, +100 % doubles the colour")
+                    PxSlider {
+                        width: parent.width
+                        from: -100
+                        to: 100
+                        stepSize: 5
+                        suffix: " %"
+                        value: Math.round(ScreenTune.saturationOf(tuneRow.modelData) * 100)
+                        onMoved: v => ScreenTune.setTune(tuneRow.modelData, "saturation", Math.round(v) === 0 ? null : Math.round(v) / 100)
+                    }
+                }
+                // gamma, contrast and the channels: the same gamma tables as brightness
+                Repeater {
+                    model: [
+                        {
+                            "key": "gamma",
+                            "label": I18n.t("Гамма", "Gamma"),
+                            "hint": I18n.t("больше 1 — светлее полутона, тени видно лучше", "Above 1 lifts the mid-tones, shadows show more"),
+                            "decimals": 2,
+                            "suffix": ""
+                        },
+                        {
+                            "key": "contrast",
+                            "label": I18n.t("Контраст", "Contrast"),
+                            "hint": "",
+                            "decimals": 0,
+                            "suffix": " %"
+                        },
+                        {
+                            "key": "red",
+                            "label": I18n.t("Красный", "Red"),
+                            "hint": "",
+                            "decimals": 0,
+                            "suffix": " %"
+                        },
+                        {
+                            "key": "green",
+                            "label": I18n.t("Зелёный", "Green"),
+                            "hint": "",
+                            "decimals": 0,
+                            "suffix": " %"
+                        },
+                        {
+                            "key": "blue",
+                            "label": I18n.t("Синий", "Blue"),
+                            "hint": "",
+                            "decimals": 0,
+                            "suffix": " %"
+                        }
+                    ]
+                    SettingRow {
+                        id: curveRow
+                        required property var modelData
+                        readonly property var range: ScreenTune.curve[modelData.key]
+                        // gamma as it is (1.00), the rest in per cent
+                        readonly property real scale: modelData.decimals ? 1 : 100
+                        width: parent.width
+                        label: modelData.label
+                        hint: modelData.hint
+                        PxSlider {
+                            width: parent.width
+                            from: curveRow.range[1] * curveRow.scale
+                            to: curveRow.range[2] * curveRow.scale
+                            stepSize: curveRow.modelData.decimals ? 0.05 : 1
+                            decimals: curveRow.modelData.decimals
+                            suffix: curveRow.modelData.suffix
+                            value: ScreenTune.curveOf(tuneRow.modelData, curveRow.modelData.key) * curveRow.scale
+                            onMoved: v => {
+                                const x = Math.round(v / curveRow.scale * 100) / 100;
+                                ScreenTune.setTune(tuneRow.modelData, curveRow.modelData.key, x === curveRow.range[0] ? null : x);
+                            }
+                        }
+                    }
+                }
+                PxButton {
+                    compact: true
+                    icon: "refresh"
+                    text: I18n.t("Как было", "As it was")
+                    visible: ScreenTune.tuned(tuneRow.modelData)
+                    onClicked: ScreenTune.reset(tuneRow.modelData)
+                }
+            }
+        }
+    }
+
+    PxGroup {
+        name: "main-screen"
+        title: I18n.t("Главный экран", "Main screen")
+        icon: "star"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Главный экран", "Main screen")
+            hint: Angel.hellShown ? I18n.t("здесь виджеты, ангел и её эффекты, заставка, пароль на замке. «Авто» — самый широкий экран", "The widgets, the angel and her effects, the idle screen and the lock's password live here. Auto: the widest screen") : I18n.t("здесь виджеты, ангел, заставка, пароль на замке. «Авто» — самый широкий экран", "The widgets, the angel, the idle screen and the lock's password live here. Auto: the widest screen")
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 2
+                Repeater {
+                    model: [
+                        {
+                            "label": I18n.t("Авто (", "Auto (") + (Shell.widestScreen ? Shell.widestScreen.name : "—") + ")",
+                            "value": ""
+                        }
+                    ].concat(Quickshell.screens.map(sc => ({
+                                "label": sc.name,
+                                "value": sc.name
+                            })))
+                    PxButton {
+                        required property var modelData
+                        compact: true
+                        icon: modelData.value && modelData.value === Shell.primaryName ? "star" : ""
+                        text: modelData.label
+                        checked: (Config.system.primaryScreen || "") === modelData.value
+                        enabled: !Outputs.busy
+                        onClicked: Outputs.setPrimary(modelData.value)
+                    }
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Экраны (как Win+P)", "Screens (like Win+P)")
+            hint: I18n.t("только этот, повторить, расширить, только второй — Win+P", "This one only, duplicate, extend, the second only: Win+P")
+            PxButton {
+                compact: true
+                icon: "monitor"
+                text: I18n.t("Открыть", "Open")
+                onClicked: Shell.projectOpen = true
+            }
+        }
+        SettingRow {
+            visible: page.widgetsElsewhere > 0
+            label: I18n.t("Виджеты на других экранах: ", "Widgets on other screens: ") + page.widgetsElsewhere
+            hint: I18n.t("перенести их все на главный (позиции сохранятся, лишнее прижмётся к краю)", "Move them all to the main screen (positions kept, anything off the edge snaps back)")
+            PxButton {
+                compact: true
+                icon: "layers"
+                text: I18n.t("Перенести сюда", "Move here")
+                onClicked: DesktopWidgets.moveAllTo(Shell.primaryName)
+            }
+        }
+        // her screen and the sidebar's are set on their own pages: links there
+        SettingLink {
+            visible: page.angelOwn !== ""
+            label: I18n.t("У ангела свой экран: ", "The angel has her own screen: ") + page.angelOwn
+            hint: I18n.t("«На каком экране»; пусто — главный, и её трещины и лучи тоже уйдут туда", "“Screen”; empty is the main one, and her cracks and rays move there too")
+            page: "helper"
+            group: "demon-corner"
+        }
+        SettingLink {
+            visible: !!Config.sidebar.screen && Config.sidebar.screen !== Shell.primaryName
+            label: I18n.t("У сайдбара свой экран: ", "The sidebar has its own screen: ") + Config.sidebar.screen
+            page: "taskbar"
+            group: "sidebar-experimental"
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: !Outputs.primaryLog.startsWith("niri: ")
+            color: Outputs.primaryLog.startsWith("niri: ") ? Theme.danger : Theme.textDim
+            text: Outputs.primaryLog || (Outputs.niriFocused.length ? I18n.t("niri при входе фокусирует: ", "niri focuses at login: ") + Outputs.niriFocused.join(", ") : I18n.t("niri при входе фокусирует первый экран (focus-at-startup не задан)", "niri focuses the first screen at login (no focus-at-startup)"))
+        }
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            kind: "tiny"
+            dim: true
+            visible: StreamMode.active && Config.stream.hideAngel && StreamMode.onStream(Shell.primaryName)
+            text: I18n.t("Сейчас идёт эфир: ангел и её эффекты ушли с этого экрана (Стрим → Стрим-режим)", "You're live: the angel and her effects have left this screen (Streaming → Stream mode)")
         }
     }
 

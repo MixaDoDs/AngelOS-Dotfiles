@@ -16,7 +16,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Плагины · Community", "Plugins · Community")
-    subtitle: I18n.t("Один каталог: встроенные плагины, плагины сообщества и твои собственные. Установка, включение, обновление и удаление — здесь. Плагин — папка ~/.config/angelos/plugins/<id>/ с manifest.json (docs/PLUGINS.md).", "One catalog: bundled plugins, community plugins and your own. Install, enable, update and remove them here. A plugin is a folder ~/.config/angelos/plugins/<id>/ with manifest.json (docs/PLUGINS.md).")
+    subtitle: I18n.t("Встроенные плагины, плагины сообщества и твои собственные: установка, включение, обновление и удаление — здесь.", "Built-in plugins, community ones and your own: install, switch on, update and remove them here.")
 
     property string createLog: ""
     property string removeLog: ""
@@ -111,7 +111,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Каталог — только одобренные плагины из официального registry. Плагины работают с твоими правами; без SHA-256 в записи registry неизменность архива не подтверждена. Перед обновлением старая версия сохраняется, и если новая не загрузится, angelOS сам вернёт прежнюю.", "The catalog holds only approved plugins of the official registry. Plugins run with your user permissions; without a SHA-256 in the registry the archive cannot be verified. Before an update the old version is saved, and if the new one does not load angelOS puts the old one back by itself.")
+            text: I18n.t("Только одобренные плагины. Плагины работают с твоими правами. Перед обновлением старая версия сохраняется и вернётся сама, если новая не загрузится.", "Approved plugins only. Plugins run with your rights. The old version is kept before an update and comes back by itself if the new one fails to load.")
         }
         PxField {
             width: parent.width

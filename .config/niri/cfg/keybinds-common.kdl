@@ -56,6 +56,7 @@ binds {
     Mod+Shift+P                         { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
     Mod+Shift+X                         repeat=false allow-inhibiting=false hotkey-overlay-title="Приватность: зачернить в эфире программы из списка" { spawn "@HOME@/.local/bin/niri-cast-privacy"; }
     Mod+Ctrl+Shift+X                    repeat=false allow-inhibiting=false hotkey-overlay-title="Приватность: скрывать в эфире эту программу / нет" { spawn "@HOME@/.local/bin/niri-cast-privacy" "app" "toggle"; }
+    Mod+Alt+P                           repeat=false allow-inhibiting=false hotkey-overlay-title="Пауза для зрителей: заставка в эфире вместо экрана / снова эфир" { spawn-sh "qs -c angelos ipc call angelos castPause toggle"; }
     Mod+Ctrl+X                          repeat=false allow-inhibiting=false hotkey-overlay-title="Приватность: показать эту программу в эфире сейчас / снова скрыть" { spawn "@HOME@/.local/bin/niri-cast-privacy" "show" "toggle"; }
     Mod+Alt+Y                           hotkey-overlay-title="angelOS: лирика вкл/выкл" { spawn-sh "qs -c angelos ipc call angelos lyrics"; }
     Mod+Alt+T                           hotkey-overlay-title="angelOS: светлая/тёмная" { spawn-sh "qs -c angelos ipc call angelos theme toggle"; }

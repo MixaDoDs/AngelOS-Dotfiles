@@ -10,7 +10,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Курсор", "Cursor")
-    subtitle: I18n.t("Пиксельные курсоры одним нажатием — одинаковые в niri, GTK и Qt, X11/XWayland, Steam и Flatpak. Темы скачиваются с проверкой SHA-256.", "Pixel cursors in one click — the same in niri, GTK and Qt, X11/XWayland, Steam and Flatpak. Themes are downloaded with SHA-256 checks.")
+    subtitle: I18n.t("Пиксельные курсоры одним нажатием — одинаковые во всех программах и играх.", "Pixel cursors in one click — the same in every app and game.")
 
     Component.onCompleted: Cursors.refresh()
     readonly property int size: Config.cursor.size || 24
@@ -223,7 +223,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Увеличивать при встряхивании", "Grow when shaken")
-            hint: CursorShake.status === "noperm" ? I18n.t("нет доступа к мыши: нужна группа input (как для Meta → «Пуск»), затем перезайди", "no access to the mouse: the input group is needed (like Meta → Start), then log in again") : CursorShake.status === "noevdev" ? I18n.t("не нашлось ни мыши, ни тачпада", "no mouse or touchpad found") : I18n.t("потряси мышкой — курсор ненадолго станет большим, как в macOS. В играх на весь экран не срабатывает.", "shake the mouse and the pointer grows for a moment, like on macOS. Not in fullscreen games.")
+            hint: CursorShake.status === "noperm" ? I18n.t("нет доступа к мыши: нужна группа input (как для Win → «Пуск»), затем перезайди", "no access to the mouse: the input group is needed (like Win → Start), then log in again") : CursorShake.status === "noevdev" ? I18n.t("не нашлось ни мыши, ни тачпада", "no mouse or touchpad found") : I18n.t("потряси мышкой — курсор ненадолго станет большим, как в macOS. В играх на весь экран не срабатывает.", "shake the mouse and the pointer grows for a moment, like on macOS. Not in fullscreen games.")
             PxToggle {
                 checked: Config.cursor.shake
                 onToggled: c => Config.cursor.shake = c

@@ -392,7 +392,8 @@ case "$1" in
     # workspace switch through the shell (animated transitions), niri directly as a fallback
     target="$(printf '%s' "${2:-}" | tr -cd 'a-z0-9-')"
     sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/angelos/ctl.sock"
-    if [ -S "$sock" ] && command -v socat >/dev/null 2>&1 && printf 'ws %s\n' "$target" | socat -t1 - "UNIX-CONNECT:$sock" 2>/dev/null | grep -q '^ok'; then
+    # the press time: a shell that answers after socat gave up must not switch a second time
+    if [ -S "$sock" ] && command -v socat >/dev/null 2>&1 && printf 'ws %s %s\n' "$target" "$(date +%s%3N)" | socat -t1 - "UNIX-CONNECT:$sock" 2>/dev/null | grep -q '^ok'; then
       exit 0
     fi
     case "$target" in

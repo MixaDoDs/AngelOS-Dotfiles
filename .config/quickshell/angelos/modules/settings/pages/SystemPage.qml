@@ -377,6 +377,46 @@ PxPage {
         }
     }
 
+    // angel-niri: the screens without the game draw less while it runs, the game may tear
+    // (niri-game-mode → niri's set-background-fps, set-tearing); stock niri has no such thing
+    PxGroup {
+        name: "games-background"
+        visible: Niri.nativeMinimize
+        title: I18n.t("Игры", "Games")
+        icon: "gamepad"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Фон во время игры", "The rest while gaming")
+            hint: I18n.t("пока идёт игра, другие экраны и их окна рисуются не чаще этого — видеокарта остаётся игре. Экран с игрой и экран, который снимает OBS, — всегда как есть", "While a game runs, the other screens and their windows draw no more often than this, leaving the GPU to the game. The game's screen and any screen OBS captures always stay as they are")
+            PxSegmented {
+                model: [
+                    {"label": I18n.t("как есть", "as is"), "value": 0},
+                    {"label": "30", "value": 30},
+                    {"label": "60", "value": 60},
+                    {"label": "120", "value": 120}
+                ]
+                currentValue: Config.gaming.backgroundFps
+                onActivated: v => Config.gaming.backgroundFps = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Разрыв кадра", "Tearing")
+            hint: I18n.t("игра на весь экран показывает кадр сразу, не дожидаясь обновления монитора: меньше задержка мыши, но иногда видна горизонтальная полоса разрыва. Включится со следующей игры", "A fullscreen game shows each frame at once instead of waiting for the monitor's refresh: less mouse lag, but a horizontal tear line may show. Takes effect from the next game")
+            PxToggle {
+                checked: Config.gaming.tearing !== false
+                onToggled: c => Config.gaming.tearing = c
+            }
+        }
+        SettingRow {
+            label: I18n.t("Мышь не уходит из игры", "The mouse stays in the game")
+            hint: I18n.t("пока игра на весь экран в фокусе, курсор не перескакивает на другой монитор от резкого движения. Держи Win — выйдет. Включится со следующей игры", "While a fullscreen game has the focus, a quick flick no longer throws the pointer onto the other screen. Hold Win to leave. Takes effect from the next game")
+            PxToggle {
+                checked: Config.gaming.pointerLock !== false
+                onToggled: c => Config.gaming.pointerLock = c
+            }
+        }
+    }
+
     PxGroup {
         name: "this-computer"
         title: I18n.t("Этот компьютер", "This computer")
@@ -576,7 +616,7 @@ PxPage {
             wrapMode: Text.Wrap
             kind: "tiny"
             dim: true
-            text: I18n.t("Популярные клавиатуры, мыши и микрофоны дороже $", "Popular keyboards, mice and microphones over $") + Math.round(SystemInfo.gearThreshold) + I18n.t(" находятся сами (примерная цена на старте продаж). Что воткнуто в пульт и остальное — добавь сам: это хранится только у тебя (~/.config/angelos/gear.json) и никуда не публикуется. Всё это показывает и fastfetch.", " are found by themselves (roughly their launch price). What is plugged into the interface and the rest you add yourself: it stays only with you (~/.config/angelos/gear.json) and is never published. fastfetch shows it all too.")
+            text: I18n.t("Популярные клавиатуры, мыши и микрофоны дороже $", "Popular keyboards, mice and microphones over $") + Math.round(SystemInfo.gearThreshold) + I18n.t(" находятся сами. Остальное добавь сам — это хранится только у тебя и никуда не публикуется.", " are found by themselves. Add the rest yourself: it stays only with you and is never published.")
         }
         PxButton {
             compact: true
@@ -801,7 +841,7 @@ PxPage {
             kind: "tiny"
             dim: true
             visible: ffGroup.pick === "own"
-            text: I18n.t("Выше — «Компакт» для сравнения. Свой config.jsonc angelOS не меняет; значок в logo.txt рисует, если включено «fastfetch рисует этот значок» (Панель → Логотип).", "Above: Compact, to compare. angelOS leaves your config.jsonc alone; it draws the emblem into logo.txt if “fastfetch draws this emblem” is on (Bar → Logo).")
+            text: I18n.t("Выше — «Компакт» для сравнения. Свой config.jsonc angelOS не меняет; значок в logo.txt рисует, если включено «fastfetch рисует этот значок» («Пуск» → Ещё → «Логотип»).", "Above: Compact, to compare. angelOS leaves your config.jsonc alone; it draws the emblem into logo.txt if “fastfetch draws this emblem” is on (Start → More → Logo).")
         }
     }
 
@@ -982,7 +1022,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Всегда плавающее окно", "Always a floating window")
-            hint: I18n.t("правило niri для окна диспетчера: не встаёт в колонки, открывается поверх", "A niri rule: the task manager never joins the columns, it opens on top")
+            hint: I18n.t("окно диспетчера открывается поверх остальных", "The task manager opens on top of the rest")
             PxToggle {
                 checked: Config.system.monitorFloat
                 onToggled: c => Config.system.monitorFloat = c
@@ -1087,14 +1127,15 @@ PxPage {
 
     PxGroup {
         name: "programs"
-        title: I18n.t("Программы", "Programs")
+        title: I18n.t("Свои команды", "Your own commands")
         advanced: true
         icon: "terminal"
         width: parent.width
-        PxButton {
-            text: I18n.t("Блокировка и заставка →", "Lock and idle screen →")
-            icon: "lock"
-            onClicked: Shell.settingsGo(systemPage, "lock")
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Обычно их ставит выбор выше. Здесь — если нужна команда с ключами.", "The choice above sets them. Here: when a command needs its own options.")
         }
         SettingRow {
             label: I18n.t("Терминал", "Terminal")
@@ -1120,20 +1161,7 @@ PxPage {
         title: I18n.t("Игра", "The game")
         icon: "heart"
         width: parent.width
-        // the calm mode is one of the three motion levels now (config/Motion, C4): one place
-        SettingRow {
-            label: I18n.t("Спокойный режим", "Calm mode")
-            hint: I18n.t("теперь в «Доступность → Движение»: полное, спокойное (без вспышек, тряски и резких звуков) или выключено. Сейчас: ", "Now in Accessibility → Motion: full, calm (no flashes, shaking or sudden loud sounds) or off. Now: ") + ({
-                    "full": I18n.t("полное", "full"),
-                    "calm": I18n.t("спокойное", "calm"),
-                    "off": I18n.t("выключено", "off")
-                })[Motion.level]
-            PxButton {
-                icon: "sparkle"
-                text: I18n.t("Открыть", "Open")
-                onClicked: Shell.settingsGo(systemPage, "motion")
-            }
-        }
+        visible: !Config.game.enabled
         SettingRow {
             visible: !Config.game.enabled
             label: I18n.t("Игра выключена", "The game is off")

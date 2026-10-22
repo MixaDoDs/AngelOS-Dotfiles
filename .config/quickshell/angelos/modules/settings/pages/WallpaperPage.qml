@@ -10,7 +10,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Обои", "Wallpaper")
-    subtitle: I18n.t("Клик — поставить. Можно на все экраны, на монитор или на отдельный воркспейс.", "Click to apply to all displays, one monitor, or one workspace.")
+    subtitle: I18n.t("Клик — поставить. Можно на все экраны, на монитор или на отдельный рабочий стол.", "Click to apply to all displays, one monitor, or one workspace.")
 
     property string target: "all"   // all | output | workspace
     property string folder: ""
@@ -83,7 +83,129 @@ PxPage {
     }
 
     PxGroup {
+        name: "images"
+        title: I18n.t("Картинки (", "Images (") + page.filtered.length + ")"
+        icon: "image"
+        width: parent.width
+
+        Row {
+            spacing: Theme.u * 3
+            PxCombo {
+                width: Theme.u * 120
+                model: [
+                    {
+                        "label": I18n.t("все папки", "All folders"),
+                        "value": ""
+                    }
+                ].concat(page.folders.map(f => ({
+                            "label": f.replace(Config.home, "~"),
+                            "value": f
+                        })))
+                currentValue: page.folder
+                onActivated: v => page.folder = v
+            }
+            PxButton {
+                compact: true
+                icon: "arrowLeft"
+                enabled: page.pageNo > 0
+                onClicked: page.pageNo--
+            }
+            PxText {
+                anchors.verticalCenter: parent.verticalCenter
+                text: (page.pageNo + 1) + " / " + page.pages
+            }
+            PxButton {
+                compact: true
+                icon: "arrowRight"
+                enabled: page.pageNo + 1 < page.pages
+                onClicked: page.pageNo++
+            }
+        }
+
+        Grid {
+            id: grid
+            width: parent.width
+            columns: Math.max(2, Math.floor(width / (Theme.u * 72)))
+            spacing: Theme.u * 3
+            readonly property int cell: Math.floor((width - (columns - 1) * spacing) / columns)
+
+            Repeater {
+                model: page.filtered.slice(page.pageNo * page.perPage, (page.pageNo + 1) * page.perPage)
+                Item {
+                    id: thumb
+                    required property string modelData
+                    readonly property string currentHere: page.target === "all" ? Wallpapers.raw(Quickshell.screens[0].name, 1) : page.target === "output" ? Wallpapers.raw(page.output, -1) : Wallpapers.raw(page.output, page.wsIdx)
+                    readonly property bool active: Wallpapers.sameSet(currentHere, modelData)
+                    // the file this screen would show: the theme's, the screen's shape
+                    readonly property string shownFile: Wallpapers.pick(modelData, page.output)
+                    readonly property var tags: Wallpapers.variantTags(modelData)
+                    width: grid.cell
+                    height: Math.round(grid.cell * 9 / 16)
+
+                    PxBox {
+                        anchors.fill: parent
+                        sunken: true
+                        color: Theme.sunken
+                        edgeColor: thumb.active ? Theme.accent : Theme.edge
+                        Image {
+                            anchors.fill: parent
+                            source: "file://" + Wallpapers.display(thumb.shownFile)
+                            // in the grimoire (or a dress): an engraving the right way round, not a negative
+                            layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
+                            layer.effect: GrimoirePhoto {}
+                            sourceSize: Qt.size(width, height)
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            cache: true
+                            smooth: true
+                            onStatusChanged: if (status === Image.Error)
+                                Wallpapers.fit(thumb.shownFile)
+                        }
+                    }
+                    // what the wallpaper has: ☼ ☾ 16:9 21:9 9:16
+                    PxBox {
+                        visible: thumb.tags.length > 0
+                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                        anchors.margins: Theme.u * 2
+                        width: tagText.implicitWidth + Theme.u * 4
+                        height: tagText.implicitHeight + Theme.u * 2
+                        color: Qt.alpha(Theme.face, 0.85)
+                        PxText {
+                            id: tagText
+                            anchors.centerIn: parent
+                            kind: "tiny"
+                            text: thumb.tags.join(" ")
+                        }
+                    }
+                    Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.width: tm.containsMouse || thumb.active ? Theme.u * 2 : 0
+                        border.color: Theme.accent
+                    }
+                    PxIcon {
+                        visible: thumb.active
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: Theme.u * 3
+                        name: "heart"
+                    }
+                    MouseArea {
+                        id: tm
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: page.pick(thumb.modelData)
+                    }
+                }
+            }
+        }
+    }
+
+    PxGroup {
         name: "destination"
+        wide: true
         title: I18n.t("Куда", "Destination")
         icon: "monitor"
         width: parent.width
@@ -101,7 +223,7 @@ PxPage {
                         "value": "output"
                     },
                     {
-                        "label": I18n.t("Воркспейс", "Workspace"),
+                        "label": I18n.t("Стол", "Workspace"),
                         "value": "workspace"
                     }
                 ]
@@ -121,7 +243,7 @@ PxPage {
         }
         SettingRow {
             visible: page.target === "workspace"
-            label: I18n.t("Воркспейс", "Workspace")
+            label: I18n.t("Стол", "Workspace")
             PxCombo {
                 width: Theme.u * 100
                 model: Niri.workspacesOn(page.output).map(w => ({
@@ -202,28 +324,6 @@ PxPage {
                     }
                 }
             }
-        }
-    }
-
-    PxGroup {
-        name: "variants"
-        title: I18n.t("Варианты обоев", "Wallpaper variants")
-        icon: "layers"
-        width: parent.width
-        SettingRow {
-            label: I18n.t("Подбирать под тему и экран", "Fit the theme and the screen")
-            hint: I18n.t("Одни обои в нескольких файлах — это одна карточка: днём ставится дневной, ночью ночной, на широкий монитор 21:9 или 32:9, на повёрнутый вертикально — 9:16. Форма берётся из самой картинки, а в имени достаточно пометить день/ночь: «озеро.png», «озеро-ночь.png», «озеро-21x9.png», «озеро 9 на 16.png» или папка «Озеро/» с «day.png», «night.png». Выключено — каждый файл сам по себе.", "One wallpaper in several files is one card: the day file by day, the night one at night, 21:9 or 32:9 on a wide monitor, 9:16 on one turned on its side. The shape is read from the picture; the name only marks day or night: lake.png, lake-night.png, lake-21x9.png, lake-9x16.png, or a Lake/ folder with day.png and night.png. Off: every file on its own.")
-            PxToggle {
-                checked: Config.wallpaper.variants !== false
-                onToggled: c => Config.wallpaper.variants = c
-            }
-        }
-        PxText {
-            visible: Wallpapers.copiesHidden > 0
-            width: parent.width
-            wrapMode: Text.Wrap
-            dim: true
-            text: I18n.t("Одинаковые картинки показаны один раз: копий спрятано — ", "The same picture is shown once: copies left out — ") + Wallpapers.copiesHidden + I18n.t(". Файлы на месте, из списка убраны только повторы.", ". The files stay where they are, only the repeats are off the list.")
         }
     }
 
@@ -322,336 +422,6 @@ PxPage {
         }
     }
 
-    PxGroup {
-        name: "transition"
-        title: I18n.t("Переход", "Transition")
-        icon: "sparkle"
-        width: parent.width
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            text: I18n.t("Играет только когда меняешь картинку. При переключении воркспейсов обои меняются мгновенно.", "Runs when the image changes. Workspace wallpapers otherwise switch instantly.")
-            dim: true
-        }
-        SettingRow {
-            id: fxRow
-            preview: "WallpaperFx"
-            label: I18n.t("Эффект", "Effect")
-            hint: {
-                const s = Wallpapers.transitions.find(x => x.id === Config.wallpaper.transition);
-                return s ? s.hint : Config.wallpaper.transition === "random" ? I18n.t("каждый раз другой", "a different one every time") : I18n.t("картинка меняется сразу", "The picture changes at once");
-            }
-            PxCombo {
-                width: parent.width
-                model: Wallpapers.transitions.map(s => ({
-                            "label": s.label,
-                            "value": s.id
-                        })).concat([
-                        {
-                            "label": I18n.t("Случайный", "Random"),
-                            "value": "random"
-                        },
-                        {
-                            "label": I18n.t("Нет", "None"),
-                            "value": "none"
-                        }
-                    ])
-                currentValue: Config.wallpaper.transition
-                onActivated: v => {
-                    Config.wallpaper.transition = v;
-                    const s = Wallpapers.transitions.find(x => x.id === v);
-                    fxRow.show(v, s ? s.label : v === "random" ? I18n.t("случайный", "random") : I18n.t("без перехода", "none"));
-                }
-            }
-        }
-        SettingRow {
-            visible: Config.wallpaper.transition === "verdict" || Config.wallpaper.transition === "random"
-            label: I18n.t("Слово «Вердикта»", "The verdict's word")
-            hint: I18n.t("«Авто» — DESCEND в ад, ASCEND обратно; без слова — пиксельный нимб. Своё слово — verdictTitle в settings.json", "Auto: DESCEND into hell, ASCEND back; no word: a pixel halo. A word of your own: verdictTitle in settings.json")
-            PxSegmented {
-                model: [
-                    {
-                        "label": I18n.t("Авто", "Auto"),
-                        "value": "auto"
-                    },
-                    {
-                        "label": I18n.t("Без слова", "No word"),
-                        "value": "off"
-                    }
-                ]
-                currentValue: Config.wallpaper.verdictTitle === "off" ? "off" : "auto"
-                onActivated: v => Config.wallpaper.verdictTitle = v
-            }
-        }
-        SettingRow {
-            label: I18n.t("Длительность", "Duration")
-            PxSlider {
-                width: parent.width
-                from: 200
-                to: 2000
-                stepSize: 50
-                value: Config.wallpaper.duration
-                suffix: I18n.t(" мс", " ms")
-                onMoved: v => Config.wallpaper.duration = v
-            }
-        }
-        SettingRow {
-            label: I18n.t("Крупность мозаики", "Mosaic size")
-            PxSlider {
-                width: parent.width
-                from: 8
-                to: 128
-                stepSize: 8
-                value: Config.wallpaper.maxBlock
-                suffix: " px"
-                onMoved: v => Config.wallpaper.maxBlock = v
-            }
-        }
-    }
-
-    // the release's name on the desktop (widgets/ReleaseMark)
-    PxGroup {
-        name: "release-mark"
-        visible: !!Updates.release
-        title: I18n.t("Надпись релиза", "Release name")
-        icon: "sparkle"
-        width: parent.width
-
-        SettingRow {
-            label: I18n.t("Показывать на рабочем столе", "Show on the desktop")
-            hint: Updates.release ? "angelOS " + Updates.release.number + (Updates.release.codename ? " · " + Updates.release.codename : "") + I18n.t(" — мелко и прозрачно, в свободном углу", ": small and see-through, in a free corner") : ""
-            PxToggle {
-                checked: Config.wallpaper.releaseMark
-                onToggled: c => Config.wallpaper.releaseMark = c
-            }
-        }
-        SettingRow {
-            visible: Config.wallpaper.releaseMark
-            label: I18n.t("Где", "Where")
-            hint: I18n.t("«Само» — угол, который не заняли виджеты", "Auto: a corner no widget covers")
-            PxSegmented {
-                model: [["auto", "Само", "Auto"], ["top-left", "↖", "↖"], ["top-right", "↗", "↗"], ["bottom-left", "↙", "↙"], ["bottom-right", "↘", "↘"]].map(c => ({
-                            "label": I18n.t(c[1], c[2]),
-                            "value": c[0]
-                        }))
-                currentValue: Config.wallpaper.releaseMarkCorner
-                onActivated: v => Config.wallpaper.releaseMarkCorner = v
-            }
-        }
-        SettingRow {
-            visible: Config.wallpaper.releaseMark
-            label: I18n.t("Прозрачность", "Opacity")
-            PxSlider {
-                width: parent.width
-                from: 10
-                to: 80
-                stepSize: 5
-                value: Config.wallpaper.releaseMarkOpacity
-                suffix: " %"
-                onMoved: v => Config.wallpaper.releaseMarkOpacity = v
-            }
-        }
-    }
-
-    // layered scenes (widgets/SceneWall): what stands behind their nearer layers
-    PxGroup {
-        id: sceneGroup
-        name: "scene-depth"
-        title: I18n.t("Обои-сцены", "Scene wallpapers")
-        icon: "image"
-        width: parent.width
-        // the scene on this screen: the picks below are its own (its release's)
-        readonly property string here: Wallpapers.sceneOf(Wallpapers.resolve(page.output, page.wsIdx))
-        visible: here !== ""
-        function value(key) {
-            return Wallpapers.own(here, key);
-        }
-        function pick(key, v) {
-            Wallpapers.setOwn(here, key, v);
-        }
-
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            dim: true
-            text: I18n.t("Только для этих обоев: " + Wallpapers.wallName(sceneGroup.here) + ". У других обоев свои.", "For this wallpaper only: " + Wallpapers.wallName(sceneGroup.here) + ". Other wallpapers keep their own.")
-        }
-        SettingRow {
-            label: I18n.t("За листвой", "Behind the leaves")
-            hint: I18n.t("Крупно в глубине сцены: ближние дома и листва закрывают надпись", "Big, deep in the scene: the nearer houses and leaves stand in front of it")
-            PxSegmented {
-                model: [["clock", "Часы", "Clock"], ["release", "Релиз", "Release"], ["", "Ничего", "Nothing"]].map(c => ({
-                            "label": I18n.t(c[1], c[2]),
-                            "value": c[0]
-                        }))
-                currentValue: sceneGroup.value("sceneDepth")
-                onActivated: v => sceneGroup.pick("sceneDepth", v)
-            }
-        }
-        SettingRow {
-            visible: sceneGroup.value("sceneDepth") !== ""
-            label: I18n.t("Стиль", "Look")
-            hint: I18n.t("Цвета сами — из палитры сцены, акцента темы и того, что за надписью", "The colours pick themselves: the scene's palette, the theme's accent and what is behind the text")
-            PxSegmented {
-                model: [["neon", "Неон", "Neon"], ["outline", "Наклейка", "Sticker"], ["chrome", "Хром", "Chrome"], ["cutout", "Вызов", "Calling card"], ["lcd", "Нокиа", "Nokia"], ["aqua", "Пузырь", "Aqua"]].map(c => ({
-                            "label": I18n.t(c[1], c[2]),
-                            "value": c[0]
-                        }))
-                currentValue: sceneGroup.value("sceneDepthStyle")
-                onActivated: v => sceneGroup.pick("sceneDepthStyle", v)
-            }
-        }
-        SettingRow {
-            visible: sceneGroup.value("sceneDepth") !== ""
-            label: I18n.t("Текстура", "Texture")
-            hint: I18n.t("У каждого стиля своя: сцена в хроме, печать на плашках вызова, блик наклейки, сетка экрана Нокиа, блик пузыря", "Each look has its own: the scene in the chrome, the print on the calling card, the sticker's gloss, the Nokia screen's grid, the bubble's gloss")
-            PxToggle {
-                checked: sceneGroup.value("sceneDepthTexture")
-                onToggled: c => sceneGroup.pick("sceneDepthTexture", c)
-            }
-        }
-    }
-
-    // pixel wallpapers (services/Wallpapers: pixel): any picture redrawn in big pixels
-    PxGroup {
-        id: pixelGroup
-        name: "pixel"
-        title: I18n.t("Пиксельные обои", "Pixel wallpaper")
-        icon: "grid"
-        width: parent.width
-        // the picture of the screen these settings are open on, and what was made of it
-        readonly property string picked: Wallpapers.pick(Wallpapers.raw(page.output, page.wsIdx), page.output)
-        readonly property string shownFile: Wallpapers.resolve(page.output, page.wsIdx)
-        readonly property var info: Wallpapers.pixelInfo(picked, page.output)
-        readonly property bool busy: Config.wallpaper.pixel && !page.hell && !!picked && !info
-        readonly property string said: {
-            if (page.hell)
-                return I18n.t("в Аду свои картины: их не перерисовываю", "hell has its own paintings: they are not redrawn");
-            if (!picked)
-                return "";
-            if (!info)
-                return I18n.t("перерисовываю…", "redrawing…");
-            if (info.skip === "art")
-                return I18n.t("уже пиксель-арт — оставлена как есть", "pixel art already: left as it is");
-            if (info.skip === "animated")
-                return I18n.t("гифка — оставлена как есть", "a GIF that moves: left as it is");
-            if (info.error)
-                return I18n.t("не вышло, показываю как есть: ", "it did not work, shown as it is: ") + info.error;
-            if (info.small)
-                return I18n.t("маленькая картинка — только увеличена без сглаживания, ", "a small picture: only enlarged without smoothing, ") + info.art[0] + "×" + info.art[1];
-            return info.art[0] + "×" + info.art[1] + I18n.t(" пикселей, цветов: ", " pixels, colours: ") + info.colors;
-        }
-
-        PxText {
-            width: parent.width
-            wrapMode: Text.Wrap
-            dim: true
-            text: I18n.t("Любая картинка — фото, арт, скриншот — показывается перерисованной в крупных пикселях, как всё в angelOS: своя палитра из цветов картинки, дизеринг вместо плавных переходов, чистые края. Копия делается под каждый экран, пиксель в пиксель; сам файл не меняется. Живые обои, блокировка и экран входа берут уже пиксельную; цвета темы — по-прежнему из самой картинки.", "Any picture, a photo, a painting or a screenshot, is shown redrawn in big pixels like the rest of angelOS: a palette of the picture's own colours, dither instead of smooth gradients, clean edges. A copy is made for every screen, pixel for pixel; the file itself is not changed. The alive wallpaper, the lock and the login screen take the pixel one; the theme's colours still come from the picture itself.")
-        }
-        SettingRow {
-            label: I18n.t("Пиксельные обои", "Pixel wallpaper")
-            hint: I18n.t("для всех обоев сразу; уже пиксельные и гифки остаются как есть", "for every wallpaper at once; pixel art and GIFs stay as they are")
-            PxToggle {
-                checked: Config.wallpaper.pixel
-                onToggled: c => Config.wallpaper.pixel = c
-            }
-        }
-        // the copy of this screen's picture: whole, and its middle at the screen's own pixels
-        Row {
-            id: pixRow
-            visible: Config.wallpaper.pixel && !page.hell && !!pixelGroup.picked
-            width: parent.width
-            spacing: Theme.u * 4
-            Repeater {
-                model: 2
-                Item {
-                    id: pixBox
-                    required property int index
-                    width: Math.floor((pixRow.width - pixRow.spacing) / 2)
-                    height: Math.round(Math.min(width, Theme.u * 160) * 9 / 16)
-                    PxBox {
-                        anchors.fill: parent
-                        sunken: true
-                        color: Theme.sunken
-                    }
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Theme.u
-                        clip: true
-                        Image {
-                            anchors.centerIn: parent
-                            width: pixBox.index === 0 ? parent.width : implicitWidth
-                            height: pixBox.index === 0 ? parent.height : implicitHeight
-                            source: pixelGroup.shownFile ? "file://" + Wallpapers.display(pixelGroup.shownFile) : ""
-                            fillMode: pixBox.index === 0 ? Image.PreserveAspectCrop : Image.Pad
-                            asynchronous: true
-                            smooth: false
-                        }
-                    }
-                    PxText {
-                        x: Theme.u * 3
-                        y: Theme.u * 2
-                        kind: "tiny"
-                        color: "#ffffff"
-                        style: Text.Outline
-                        styleColor: "#000000"
-                        text: pixBox.index === 0 ? I18n.t("целиком", "whole") : I18n.t("как на экране", "as on the screen")
-                    }
-                }
-            }
-        }
-        SettingRow {
-            visible: Config.wallpaper.pixel
-            label: I18n.t("На этой картинке", "In this picture")
-            hint: pixelGroup.picked.replace(Config.home, "~")
-            PxText {
-                width: Math.min(Theme.u * 170, implicitWidth)
-                wrapMode: Text.Wrap
-                text: pixelGroup.said
-            }
-        }
-        SettingRow {
-            visible: Config.wallpaper.pixel
-            label: I18n.t("Размер пикселя", "Pixel size")
-            hint: I18n.t("сколько точек экрана в одном пикселе картинки (на экране Full HD; на большем — крупнее, вид тот же). 4 — как у обоев релизов", "how many screen dots make one pixel of the picture (on a Full HD screen; bigger on a bigger one, the look is the same). 4 is what the release wallpapers use")
-            PxSegmented {
-                model: [2, 3, 4, 5, 6, 8, 10, 12].map(v => ({
-                            "label": String(v),
-                            "value": v
-                        }))
-                currentValue: Config.wallpaper.pixelSize
-                onActivated: v => Config.wallpaper.pixelSize = v
-            }
-        }
-        SettingRow {
-            visible: Config.wallpaper.pixel
-            label: I18n.t("Цветов", "Colours")
-            hint: I18n.t("палитра собирается из цветов самой картинки; меньше — плакатнее", "the palette is made of the picture's own colours; fewer looks more like a poster")
-            PxSegmented {
-                model: [8, 12, 16, 24, 32, 48, 64].map(v => ({
-                            "label": String(v),
-                            "value": v
-                        }))
-                currentValue: Config.wallpaper.pixelColors
-                onActivated: v => Config.wallpaper.pixelColors = v
-            }
-        }
-        SettingRow {
-            visible: Config.wallpaper.pixel
-            label: I18n.t("Дизеринг", "Dither")
-            hint: I18n.t("шахматка между соседними цветами там, где картинка гладкая (небо, стены); на краях и деталях его нет. 0 — ровные пятна цвета", "a checker between neighbouring colours where the picture is smooth (a sky, a wall); none on edges and details. 0: flat patches of colour")
-            PxSlider {
-                width: parent.width
-                from: 0
-                to: 100
-                stepSize: 10
-                value: Config.wallpaper.pixelDither
-                suffix: " %"
-                onReleased: v => Config.wallpaper.pixelDither = Math.round(v)
-            }
-        }
-    }
-
     // half-alive wallpapers (services/LiveWalls): what in the picture may move a little
     PxGroup {
         id: liveGroup
@@ -681,7 +451,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Если на картинке есть ночное небо, вода или огоньки, они чуть-чуть оживают: звёзды мерцают и иногда падают, вода рябит и отражает небо, водопады текут, окна и звёзды поблёскивают. Ненавязчиво, по пикселям картинки. Картинку оболочка разглядывает сама, один раз.", "If the picture has a night sky, water or little lights, they come a little alive: stars twinkle and now and then fall, water ripples and mirrors the sky, waterfalls stream, windows and stars glimmer. Quietly, on the picture's own pixels. The shell looks at each picture by itself, once.")
+            text: I18n.t("Ночное небо, вода и огоньки на картинке чуть оживают: звёзды мерцают, вода рябит, окна поблёскивают.", "Night sky, water and lights in the picture come a little alive: stars twinkle, water ripples, windows glint.")
         }
         SettingRow {
             label: I18n.t("Живые обои", "Alive wallpaper")
@@ -907,124 +677,457 @@ PxPage {
         }
     }
 
+    // pixel wallpapers (services/Wallpapers: pixel): any picture redrawn in big pixels
     PxGroup {
-        name: "images"
-        title: I18n.t("Картинки (", "Images (") + page.filtered.length + ")"
-        icon: "image"
+        id: pixelGroup
+        name: "pixel"
+        title: I18n.t("Пиксельные обои", "Pixel wallpaper")
+        icon: "grid"
         width: parent.width
-
-        Row {
-            spacing: Theme.u * 3
-            PxCombo {
-                width: Theme.u * 120
-                model: [
-                    {
-                        "label": I18n.t("все папки", "All folders"),
-                        "value": ""
-                    }
-                ].concat(page.folders.map(f => ({
-                            "label": f.replace(Config.home, "~"),
-                            "value": f
-                        })))
-                currentValue: page.folder
-                onActivated: v => page.folder = v
-            }
-            PxButton {
-                compact: true
-                icon: "arrowLeft"
-                enabled: page.pageNo > 0
-                onClicked: page.pageNo--
-            }
-            PxText {
-                anchors.verticalCenter: parent.verticalCenter
-                text: (page.pageNo + 1) + " / " + page.pages
-            }
-            PxButton {
-                compact: true
-                icon: "arrowRight"
-                enabled: page.pageNo + 1 < page.pages
-                onClicked: page.pageNo++
-            }
+        // the picture of the screen these settings are open on, and what was made of it
+        readonly property string picked: Wallpapers.pick(Wallpapers.raw(page.output, page.wsIdx), page.output)
+        readonly property string shownFile: Wallpapers.resolve(page.output, page.wsIdx)
+        readonly property var info: Wallpapers.pixelInfo(picked, page.output)
+        readonly property bool busy: Config.wallpaper.pixel && !page.hell && !!picked && !info
+        readonly property string said: {
+            if (page.hell)
+                return I18n.t("в Аду свои картины: их не перерисовываю", "hell has its own paintings: they are not redrawn");
+            if (!picked)
+                return "";
+            if (!info)
+                return I18n.t("перерисовываю…", "redrawing…");
+            if (info.skip === "art")
+                return I18n.t("уже пиксель-арт — оставлена как есть", "pixel art already: left as it is");
+            if (info.skip === "animated")
+                return I18n.t("гифка — оставлена как есть", "a GIF that moves: left as it is");
+            if (info.error)
+                return I18n.t("не вышло, показываю как есть: ", "it did not work, shown as it is: ") + info.error;
+            if (info.small)
+                return I18n.t("маленькая картинка — только увеличена без сглаживания, ", "a small picture: only enlarged without smoothing, ") + info.art[0] + "×" + info.art[1];
+            return info.art[0] + "×" + info.art[1] + I18n.t(" пикселей, цветов: ", " pixels, colours: ") + info.colors;
         }
 
-        Grid {
-            id: grid
+        PxText {
             width: parent.width
-            columns: Math.max(2, Math.floor(width / (Theme.u * 72)))
-            spacing: Theme.u * 3
-            readonly property int cell: Math.floor((width - (columns - 1) * spacing) / columns)
-
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Любая картинка перерисовывается крупными пикселями, как всё в angelOS. Сам файл не меняется.", "Any picture is redrawn in big pixels, like the rest of angelOS. The file itself stays as it is.")
+        }
+        SettingRow {
+            label: I18n.t("Пиксельные обои", "Pixel wallpaper")
+            hint: I18n.t("для всех обоев сразу; уже пиксельные и гифки остаются как есть", "for every wallpaper at once; pixel art and GIFs stay as they are")
+            PxToggle {
+                checked: Config.wallpaper.pixel
+                onToggled: c => Config.wallpaper.pixel = c
+            }
+        }
+        // the copy of this screen's picture: whole, and its middle at the screen's own pixels
+        Row {
+            id: pixRow
+            visible: Config.wallpaper.pixel && !page.hell && !!pixelGroup.picked
+            width: parent.width
+            spacing: Theme.u * 4
             Repeater {
-                model: page.filtered.slice(page.pageNo * page.perPage, (page.pageNo + 1) * page.perPage)
+                model: 2
                 Item {
-                    id: thumb
-                    required property string modelData
-                    readonly property string currentHere: page.target === "all" ? Wallpapers.raw(Quickshell.screens[0].name, 1) : page.target === "output" ? Wallpapers.raw(page.output, -1) : Wallpapers.raw(page.output, page.wsIdx)
-                    readonly property bool active: Wallpapers.sameSet(currentHere, modelData)
-                    // the file this screen would show: the theme's, the screen's shape
-                    readonly property string shownFile: Wallpapers.pick(modelData, page.output)
-                    readonly property var tags: Wallpapers.variantTags(modelData)
-                    width: grid.cell
-                    height: Math.round(grid.cell * 9 / 16)
-
+                    id: pixBox
+                    required property int index
+                    width: Math.floor((pixRow.width - pixRow.spacing) / 2)
+                    height: Math.round(Math.min(width, Theme.u * 160) * 9 / 16)
                     PxBox {
                         anchors.fill: parent
                         sunken: true
                         color: Theme.sunken
-                        edgeColor: thumb.active ? Theme.accent : Theme.edge
+                    }
+                    Item {
+                        anchors.fill: parent
+                        anchors.margins: Theme.u
+                        clip: true
                         Image {
-                            anchors.fill: parent
-                            source: "file://" + Wallpapers.display(thumb.shownFile)
-                            // in the grimoire (or a dress): an engraving the right way round, not a negative
-                            layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
-                            layer.effect: GrimoirePhoto {}
-                            sourceSize: Qt.size(width, height)
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            cache: true
-                            smooth: true
-                            onStatusChanged: if (status === Image.Error)
-                                Wallpapers.fit(thumb.shownFile)
-                        }
-                    }
-                    // what the wallpaper has: ☼ ☾ 16:9 21:9 9:16
-                    PxBox {
-                        visible: thumb.tags.length > 0
-                        anchors.left: parent.left
-                        anchors.bottom: parent.bottom
-                        anchors.margins: Theme.u * 2
-                        width: tagText.implicitWidth + Theme.u * 4
-                        height: tagText.implicitHeight + Theme.u * 2
-                        color: Qt.alpha(Theme.face, 0.85)
-                        PxText {
-                            id: tagText
                             anchors.centerIn: parent
-                            kind: "tiny"
-                            text: thumb.tags.join(" ")
+                            width: pixBox.index === 0 ? parent.width : implicitWidth
+                            height: pixBox.index === 0 ? parent.height : implicitHeight
+                            source: pixelGroup.shownFile ? "file://" + Wallpapers.display(pixelGroup.shownFile) : ""
+                            fillMode: pixBox.index === 0 ? Image.PreserveAspectCrop : Image.Pad
+                            asynchronous: true
+                            smooth: false
                         }
                     }
-                    Rectangle {
-                        anchors.fill: parent
-                        color: "transparent"
-                        border.width: tm.containsMouse || thumb.active ? Theme.u * 2 : 0
-                        border.color: Theme.accent
+                    PxText {
+                        x: Theme.u * 3
+                        y: Theme.u * 2
+                        kind: "tiny"
+                        color: "#ffffff"
+                        style: Text.Outline
+                        styleColor: "#000000"
+                        text: pixBox.index === 0 ? I18n.t("целиком", "whole") : I18n.t("как на экране", "as on the screen")
                     }
-                    PxIcon {
-                        visible: thumb.active
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.margins: Theme.u * 3
-                        name: "heart"
+                }
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.pixel
+            label: I18n.t("На этой картинке", "In this picture")
+            hint: pixelGroup.picked.replace(Config.home, "~")
+            PxText {
+                width: Math.min(Theme.u * 170, implicitWidth)
+                wrapMode: Text.Wrap
+                text: pixelGroup.said
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.pixel
+            label: I18n.t("Размер пикселя", "Pixel size")
+            hint: I18n.t("сколько точек экрана в одном пикселе картинки (на экране Full HD; на большем — крупнее, вид тот же). 4 — как у обоев релизов", "how many screen dots make one pixel of the picture (on a Full HD screen; bigger on a bigger one, the look is the same). 4 is what the release wallpapers use")
+            PxSegmented {
+                model: [2, 3, 4, 5, 6, 8, 10, 12].map(v => ({
+                            "label": String(v),
+                            "value": v
+                        }))
+                currentValue: Config.wallpaper.pixelSize
+                onActivated: v => Config.wallpaper.pixelSize = v
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.pixel
+            label: I18n.t("Цветов", "Colours")
+            hint: I18n.t("палитра собирается из цветов самой картинки; меньше — плакатнее", "the palette is made of the picture's own colours; fewer looks more like a poster")
+            PxSegmented {
+                model: [8, 12, 16, 24, 32, 48, 64].map(v => ({
+                            "label": String(v),
+                            "value": v
+                        }))
+                currentValue: Config.wallpaper.pixelColors
+                onActivated: v => Config.wallpaper.pixelColors = v
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.pixel
+            label: I18n.t("Дизеринг", "Dither")
+            hint: I18n.t("шахматка между соседними цветами там, где картинка гладкая (небо, стены); на краях и деталях его нет. 0 — ровные пятна цвета", "a checker between neighbouring colours where the picture is smooth (a sky, a wall); none on edges and details. 0: flat patches of colour")
+            PxSlider {
+                width: parent.width
+                from: 0
+                to: 100
+                stepSize: 10
+                value: Config.wallpaper.pixelDither
+                suffix: " %"
+                onReleased: v => Config.wallpaper.pixelDither = Math.round(v)
+            }
+        }
+    }
+
+    PxGroup {
+        name: "variants"
+        title: I18n.t("Варианты обоев", "Wallpaper variants")
+        icon: "layers"
+        width: parent.width
+        SettingRow {
+            label: I18n.t("Подбирать под тему и экран", "Fit the theme and the screen")
+            hint: I18n.t("Файлы одной картинки — одна карточка: днём дневной, ночью ночной, на широкий и вертикальный монитор — свой. Пометь в имени: «озеро-ночь.png», «озеро-21x9.png».", "The files of one picture make one card: the day one by day, the night one at night, its own for wide and vertical screens. Mark it in the name: lake-night.png, lake-21x9.png.")
+            PxToggle {
+                checked: Config.wallpaper.variants !== false
+                onToggled: c => Config.wallpaper.variants = c
+            }
+        }
+        PxText {
+            visible: Wallpapers.copiesHidden > 0
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Одинаковые картинки показаны один раз: копий спрятано — ", "The same picture is shown once: copies left out — ") + Wallpapers.copiesHidden + I18n.t(". Файлы на месте, из списка убраны только повторы.", ". The files stay where they are, only the repeats are off the list.")
+        }
+    }
+
+    PxGroup {
+        name: "transition"
+        title: I18n.t("Переход", "Transition")
+        icon: "sparkle"
+        width: parent.width
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            text: I18n.t("Играет только когда меняешь картинку. При переключении столов обои меняются мгновенно.", "Runs when the image changes. Workspace wallpapers otherwise switch instantly.")
+            dim: true
+        }
+        SettingRow {
+            id: fxRow
+            preview: "WallpaperFx"
+            label: I18n.t("Эффект", "Effect")
+            hint: {
+                const s = Wallpapers.transitions.find(x => x.id === Config.wallpaper.transition);
+                return s ? s.hint : Config.wallpaper.transition === "random" ? I18n.t("каждый раз другой", "a different one every time") : I18n.t("картинка меняется сразу", "The picture changes at once");
+            }
+            PxCombo {
+                width: parent.width
+                model: Wallpapers.transitions.map(s => ({
+                            "label": s.label,
+                            "value": s.id
+                        })).concat([
+                        {
+                            "label": I18n.t("Случайный", "Random"),
+                            "value": "random"
+                        },
+                        {
+                            "label": I18n.t("Нет", "None"),
+                            "value": "none"
+                        }
+                    ])
+                currentValue: Config.wallpaper.transition
+                onActivated: v => {
+                    Config.wallpaper.transition = v;
+                    const s = Wallpapers.transitions.find(x => x.id === v);
+                    fxRow.show(v, s ? s.label : v === "random" ? I18n.t("случайный", "random") : I18n.t("без перехода", "none"));
+                }
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.transition === "verdict" || Config.wallpaper.transition === "random"
+            label: I18n.t("Слово «Вердикта»", "The verdict's word")
+            hint: I18n.t("«Авто» — DESCEND в ад, ASCEND обратно; без слова — пиксельный нимб. Своё слово — verdictTitle в settings.json", "Auto: DESCEND into hell, ASCEND back; no word: a pixel halo. A word of your own: verdictTitle in settings.json")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Авто", "Auto"),
+                        "value": "auto"
+                    },
+                    {
+                        "label": I18n.t("Без слова", "No word"),
+                        "value": "off"
                     }
-                    MouseArea {
-                        id: tm
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: page.pick(thumb.modelData)
+                ]
+                currentValue: Config.wallpaper.verdictTitle === "off" ? "off" : "auto"
+                onActivated: v => Config.wallpaper.verdictTitle = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Длительность", "Duration")
+            PxSlider {
+                width: parent.width
+                from: 200
+                to: 2000
+                stepSize: 50
+                value: Config.wallpaper.duration
+                suffix: I18n.t(" мс", " ms")
+                onMoved: v => Config.wallpaper.duration = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Крупность мозаики", "Mosaic size")
+            PxSlider {
+                width: parent.width
+                from: 8
+                to: 128
+                stepSize: 8
+                value: Config.wallpaper.maxBlock
+                suffix: " px"
+                onMoved: v => Config.wallpaper.maxBlock = v
+            }
+        }
+    }
+
+    // the release's name on the desktop (widgets/ReleaseMark)
+    PxGroup {
+        name: "release-mark"
+        visible: !!Updates.release
+        title: I18n.t("Надпись релиза", "Release name")
+        icon: "sparkle"
+        width: parent.width
+
+        SettingRow {
+            label: I18n.t("Показывать на рабочем столе", "Show on the desktop")
+            hint: Updates.release ? "angelOS " + Updates.release.number + (Updates.release.codename ? " · " + Updates.release.codename : "") + I18n.t(" — мелко и прозрачно, в свободном углу", ": small and see-through, in a free corner") : ""
+            PxToggle {
+                checked: Config.wallpaper.releaseMark
+                onToggled: c => Config.wallpaper.releaseMark = c
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.releaseMark
+            label: I18n.t("Где", "Where")
+            hint: I18n.t("«Само» — угол, который не заняли виджеты", "Auto: a corner no widget covers")
+            PxSegmented {
+                model: [["auto", "Само", "Auto"], ["top-left", "↖", "↖"], ["top-right", "↗", "↗"], ["bottom-left", "↙", "↙"], ["bottom-right", "↘", "↘"]].map(c => ({
+                            "label": I18n.t(c[1], c[2]),
+                            "value": c[0]
+                        }))
+                currentValue: Config.wallpaper.releaseMarkCorner
+                onActivated: v => Config.wallpaper.releaseMarkCorner = v
+            }
+        }
+        SettingRow {
+            visible: Config.wallpaper.releaseMark
+            label: I18n.t("Прозрачность", "Opacity")
+            PxSlider {
+                width: parent.width
+                from: 10
+                to: 80
+                stepSize: 5
+                value: Config.wallpaper.releaseMarkOpacity
+                suffix: " %"
+                onMoved: v => Config.wallpaper.releaseMarkOpacity = v
+            }
+        }
+    }
+
+    // layered scenes (widgets/SceneWall): what stands behind their nearer layers
+    PxGroup {
+        id: sceneGroup
+        name: "scene-depth"
+        title: I18n.t("Надпись в сцене", "The text in the scene")
+        icon: "image"
+        width: parent.width
+        // the scene on this screen: the picks below are its own (its release's)
+        readonly property string here: Wallpapers.sceneOf(Wallpapers.resolve(page.output, page.wsIdx))
+        visible: here !== ""
+        function value(key) {
+            return Wallpapers.own(here, key);
+        }
+        function pick(key, v) {
+            Wallpapers.setOwn(here, key, v);
+        }
+
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Только для этих обоев: " + Wallpapers.wallName(sceneGroup.here) + ". У других обоев свои.", "For this wallpaper only: " + Wallpapers.wallName(sceneGroup.here) + ". Other wallpapers keep their own.")
+        }
+        SettingRow {
+            label: I18n.t("За листвой", "Behind the leaves")
+            hint: I18n.t("Крупно в глубине сцены: ближние дома и листва закрывают надпись", "Big, deep in the scene: the nearer houses and leaves stand in front of it")
+            PxSegmented {
+                model: [["clock", "Часы", "Clock"], ["release", "Релиз", "Release"], ["", "Ничего", "Nothing"]].map(c => ({
+                            "label": I18n.t(c[1], c[2]),
+                            "value": c[0]
+                        }))
+                currentValue: sceneGroup.value("sceneDepth")
+                onActivated: v => sceneGroup.pick("sceneDepth", v)
+            }
+        }
+        SettingRow {
+            visible: sceneGroup.value("sceneDepth") !== ""
+            label: I18n.t("Стиль", "Look")
+            hint: I18n.t("Цвета сами — из палитры сцены, акцента темы и того, что за надписью", "The colours pick themselves: the scene's palette, the theme's accent and what is behind the text")
+            PxSegmented {
+                model: [["neon", "Неон", "Neon"], ["outline", "Наклейка", "Sticker"], ["chrome", "Хром", "Chrome"], ["cutout", "Вызов", "Calling card"], ["lcd", "Нокиа", "Nokia"], ["aqua", "Пузырь", "Aqua"]].map(c => ({
+                            "label": I18n.t(c[1], c[2]),
+                            "value": c[0]
+                        }))
+                currentValue: sceneGroup.value("sceneDepthStyle")
+                onActivated: v => sceneGroup.pick("sceneDepthStyle", v)
+            }
+        }
+        SettingRow {
+            visible: sceneGroup.value("sceneDepth") !== ""
+            label: I18n.t("Текстура", "Texture")
+            hint: I18n.t("У каждого стиля своя: сцена в хроме, печать на плашках вызова, блик наклейки, сетка экрана Нокиа, блик пузыря", "Each look has its own: the scene in the chrome, the print on the calling card, the sticker's gloss, the Nokia screen's grid, the bubble's gloss")
+            PxToggle {
+                checked: sceneGroup.value("sceneDepthTexture")
+                onToggled: c => sceneGroup.pick("sceneDepthTexture", c)
+            }
+        }
+    }
+
+    // windows behind a layered scene's nearer things (services/SceneBehind; angel-niri only)
+    PxGroup {
+        id: behindGroup
+        name: "scene-behind"
+        title: I18n.t("Окна за сценой", "Windows behind the scene")
+        icon: "image"
+        width: parent.width
+        visible: SceneBehind.on
+        // the apps of the windows open now that are not in the list
+        readonly property var candidates: {
+            const seen = {};
+            return Niri.windows.filter(w => {
+                const id = w.app_id || "";
+                if (!id || id === "org.quickshell" || SceneBehind.entryFor(id) || seen[id])
+                    return false;
+                seen[id] = true;
+                return true;
+            }).map(w => w.app_id);
+        }
+
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Плавающие окна этих программ стоят в сцене, как виджеты: ближние предметы закрывают их. Наведи мышь — окно выйдет вперёд.", "The floating windows of these apps stand in the scene like widgets: nearer things cover them. Point at one and it comes forward.")
+        }
+        Repeater {
+            model: SceneBehind.apps
+            SettingRow {
+                id: behindApp
+                required property var modelData
+                label: AppMenu.prettyName(modelData.id)
+                hint: modelData.id
+                Row {
+                    spacing: Theme.u * 3
+                    AppIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        appId: behindApp.modelData.id
+                        size: Theme.u * 8
+                    }
+                    // a click steps to the next depth, as a widget's menu → Depth does
+                    PxButton {
+                        compact: true
+                        icon: "image"
+                        text: SceneBehind.depthLabel(behindApp.modelData.id)
+                        onClicked: SceneBehind.setDepth(behindApp.modelData.id, SceneBehind.nextDepth(behindApp.modelData.id))
+                    }
+                    PxButton {
+                        compact: true
+                        icon: "trash"
+                        text: I18n.t("Убрать", "Remove")
+                        onClicked: SceneBehind.remove(behindApp.modelData.id)
+                    }
+                }
+            }
+        }
+        SettingRow {
+            visible: behindGroup.candidates.length > 0
+            label: I18n.t("Открыто сейчас", "Open right now")
+            hint: I18n.t("нажми на программу, чтобы её окна стояли в сцене", "Pick an app to stand its windows in the scene")
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 2
+                Repeater {
+                    model: behindGroup.candidates
+                    PxButton {
+                        required property string modelData
+                        compact: true
+                        icon: "plus"
+                        text: AppMenu.prettyName(modelData)
+                        onClicked: SceneBehind.add(modelData)
+                    }
+                }
+            }
+        }
+        SettingRow {
+            label: I18n.t("Другая программа", "Another app")
+            hint: I18n.t("если её нет среди открытых: имя программы, как его знает система", "If it isn't open: the app's name as the system knows it")
+            Row {
+                spacing: Theme.u * 3
+                PxField {
+                    id: behindId
+                    width: Theme.u * 60
+                    placeholder: "spotify"
+                    kind: "mono"
+                    input.onAccepted: behindAdd.clicked()
+                }
+                PxButton {
+                    id: behindAdd
+                    compact: true
+                    icon: "plus"
+                    text: I18n.t("Добавить", "Add")
+                    onClicked: {
+                        SceneBehind.add(behindId.text);
+                        behindId.text = "";
                     }
                 }
             }
         }
     }
+
 }

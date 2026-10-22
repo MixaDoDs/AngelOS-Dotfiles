@@ -18,6 +18,15 @@ layout {
     insert-hint {
         color "{{accent}}80"
     }
+    // no `on`: only angel-niri's pixel shadows turn it on (services/WindowConfig), as dots —
+    // the focused window glows in the accent
+    shadow {
+        softness 12
+        spread 0
+        offset x=0 y=0
+        color "{{accent}}b0"
+        inactive-color "#00000050"
+    }
 }
 
 recent-windows {

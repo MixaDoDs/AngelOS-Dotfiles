@@ -137,7 +137,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("NumLock при входе", "NumLock on login")
-            hint: InputConfig.numlockState === "noperm" ? I18n.t("niri включает его при своём запуске; включить сразу не вышло — нет доступа к /dev/uinput", "niri turns it on when it starts; turning it on right away failed: no access to /dev/uinput") : I18n.t("niri включает его при запуске, angelOS проверяет лампочку после входа и дожимает", "niri turns it on when it starts; angelOS checks the LED after login and makes sure")
+            hint: InputConfig.numlockState === "noperm" ? I18n.t("включится при следующем входе; сразу не вышло — нет доступа к клавиатуре", "On at the next login; it couldn't switch on right now — no access to the keyboard") : I18n.t("включается при входе", "On at login")
             PxToggle {
                 checked: InputConfig.numlock
                 onToggled: c => InputConfig.save({

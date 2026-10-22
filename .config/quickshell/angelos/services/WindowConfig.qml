@@ -10,6 +10,7 @@ Singleton {
     property string center: "never"
     property string defaultWidth: ""      // "proportion 0.5" | "fixed 1200" | "" (niri default)
     property var presets: []              // Mod+R cycle
+    property string frame: "focus"        // focus (niri's ring around the focused one) | all (a pixel border on every window) | none
     property var apps: ({})               // app-id -> width
     property var taskmgr: null            // task manager floating rule as written (window-config.py)
     property bool loaded: false
@@ -123,6 +124,71 @@ Singleton {
             "taskmgr": spec
         });
     }
+    // angel-niri (our fork, Niri.nativeMinimize): square windows get pixel staircase corners —
+    // two steps of one 2 px art pixel, the corner the GTK and Qt themes draw (templates/niri.kdl).
+    // Not in Golden Gate, whose windows round like a Mac's
+    readonly property bool pixelCorners: Niri.nativeMinimize && Config.windows.pixelCorners && !GoldenGate.on
+    function applyCorners() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetPixelCorners", {
+                "pixel": pixelCorners ? 2 : 0,
+                "steps": 2
+            });
+    }
+    onPixelCornersChanged: applyCorners()
+    // angel-niri: window shadows as dithered 2 px dots, the focused one in the accent (its glow);
+    // colours and softness are templates/niri.kdl's `shadow` (no `on` there: stock niri draws none)
+    readonly property bool pixelShadow: Niri.nativeMinimize && Config.windows.pixelShadow && !GoldenGate.on
+    function applyShadow() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetPixelShadow", {
+                "pixel": pixelShadow ? 2 : 0
+            });
+    }
+    onPixelShadowChanged: applyShadow()
+    // angel-niri: the overview in pixels — sharp thumbnails, a pixel frame and
+    // the desk's number in the title font (its native size × the art pixel) by each workspace
+    readonly property bool pixelOverview: Niri.nativeMinimize && Config.windows.pixelOverview && !GoldenGate.on
+    readonly property string overviewFont: Theme.fontTitle + " " + (Theme.fontNative[Theme.fontTitle] || 9) * Theme.u
+    function applyOverview() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetPixelOverview", {
+                "pixel": pixelOverview ? 2 : 0,
+                "font": overviewFont
+            });
+    }
+    onPixelOverviewChanged: applyOverview()
+    // angel-niri: a sparse grid of dark dots over every window but the focused one
+    readonly property bool inactiveDim: Niri.nativeMinimize && Config.windows.inactiveDim && !GoldenGate.on
+    function applyDim() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetInactiveDim", {
+                "pixel": inactiveDim ? 2 : 0,
+                "alpha": 0.5
+            });
+    }
+    onInactiveDimChanged: applyDim()
+    // angel-niri: a program opens where its last window was (niri keeps the places itself)
+    readonly property bool remember: Niri.nativeMinimize && Config.windows.remember
+    function applyRemember() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetRememberWindows", {
+                "on": remember
+            });
+    }
+    onRememberChanged: applyRemember()
+    onOverviewFontChanged: applyOverview()
+    Connections {
+        target: Niri
+        function onMinimizeProbedChanged() {
+            root.applyCorners();
+            root.applyShadow();
+            root.applyOverview();
+            root.applyDim();
+            root.applyRemember();
+        }
+    }
+
     readonly property bool busy: writer.running
     function save(changes) {
         if (writer.running)
@@ -142,6 +208,7 @@ Singleton {
                     root.center = v.center;
                     root.defaultWidth = v.defaultWidth || "";
                     root.presets = v.presets || [];
+                    root.frame = v.frame || "focus";
                     root.apps = v.apps || {};
                     root.taskmgr = v.taskmgr || null;
                     root.loaded = true;

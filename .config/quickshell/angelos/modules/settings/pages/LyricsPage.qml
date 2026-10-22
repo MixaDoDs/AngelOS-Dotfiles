@@ -6,7 +6,7 @@ import qs.widgets
 
 PxPage {
     heading: I18n.t("Лирика", "Lyrics")
-    subtitle: I18n.t("Текущая строка песни посередине панели или в Нимбе (выбирается для каждого экрана). Трек берётся из любого MPRIS-плеера (Spotify, браузер с YouTube, mpv…), текст ищется по названию песни в нескольких источниках. Клик по строке открывает эту страницу, правый — меню песни, средний ставит трек на паузу.", "The current lyric line appears in the bar or in the Halo (chosen per display). Any MPRIS player works (Spotify, a browser with YouTube, mpv…); lyrics are searched by the song title in several sources. Click the line to open this page; right-click for the song's menu; middle-click pauses the track.")
+    subtitle: I18n.t("Текущая строка песни на панели или в Нимбе. Работает с любым плеером: Spotify, YouTube в браузере, mpv. Клик — эта страница, ПКМ — меню песни.", "The current line of the song on the bar or in the Halo. Any player works: Spotify, YouTube in a browser, mpv. Click: this page, right click: the song's menu.")
     id: page
 
     PxGroup {
@@ -16,7 +16,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Включено", "Enabled")
-            hint: I18n.t("Mod+Alt+Y — быстро спрятать/показать", "Mod+Alt+Y toggles lyrics")
+            hint: I18n.t("Win+Alt+Y — быстро спрятать/показать", "Win+Alt+Y toggles lyrics")
             PxToggle {
                 checked: Config.lyrics.enabled
                 onToggled: c => Config.lyrics.enabled = c
@@ -230,7 +230,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Проверяются по порядку (стрелки меняют его), пока не найдётся текст с таймкодами. Название чистится от «(Official Video)», «[MV]», «(премьера клипа)», feat., хэштегов и «- Topic»; «Артист - Песня» и «Артист «Песня»» из браузера разбираются на части. Найденная песня сверяется с играющей: название, артист (кириллица и латиница — одно и то же), длительность и версия (ремикс, live, sped up), так что чужой текст не подставится. Для sped up / slowed подходит текст оригинала — его время растягивается. Голосовые из Telegram и звонки трек у музыкального плеера не перехватывают.", "Tried in order (arrows change it) until synced lyrics turn up. Titles lose “(Official Video)”, “[MV]”, feat., hashtags and “- Topic”; “Artist - Song” and “Artist «Song»” from a browser are split. A found song is checked against the playing one: title, artist (Cyrillic and Latin spellings meet), length and version (remix, live, sped up), so someone else's lyrics don't slip in. A sped up / slowed version takes the original's lyrics, stretched in time. Telegram voice messages and calls never take the song from a music player.")
+            text: I18n.t("Источники проверяются по порядку (стрелки меняют его), пока не найдётся текст с таймкодами. Чужой текст не подставится: сверяются название, артист и длительность.", "Sources are tried in order (the arrows change it) until lyrics with timestamps turn up. Wrong lyrics don't slip in: the title, artist and length are checked.")
         }
         Repeater {
             id: srcList

@@ -1277,7 +1277,8 @@ PanelWindow {
         ];
     }
 
-    // someone records the microphone (orange) or has the camera on (green), as on the iPhone:
+    // someone records the microphone (orange), has the camera on (green) or takes the screen
+    // (purple, as the Mac's screen recording), as on the iPhone:
     // a dot left of the pill or the arc (services/Sensors; Settings → Halo → «Privacy dot»)
     Item {
         id: privacy
@@ -1304,6 +1305,13 @@ PanelWindow {
                 height: win.u * 3
                 radius: win.u
                 color: "#30d158"
+            }
+            Rectangle {
+                visible: Sensors.screen.length > 0
+                width: win.u * 3
+                height: win.u * 3
+                radius: win.u
+                color: "#bf5af2"
             }
         }
         HoverHandler {
@@ -1466,6 +1474,11 @@ PanelWindow {
             return {
                 "icon": "bolt",
                 "text": Power.percent + "%"
+            };
+        case "castPause":
+            return {
+                "icon": "pause",
+                "text": I18n.t("Зрители видят паузу", "Viewers see the pause")
             };
         case "dl": {
             // the ring beside it and the percent; the bytes of one when nobody knows the size
@@ -3022,6 +3035,17 @@ PanelWindow {
                 onClicked: {
                     Notifs.open(Halo.flashNote);
                     Halo.flashDone();
+                    win.expanded = false;
+                }
+            }
+            PxButton {
+                visible: card.kind === "castPause"
+                compact: true
+                hell: win.hell
+                icon: "play"
+                text: I18n.t("Снова в эфир", "Back on air")
+                onClicked: {
+                    Privacy.pause("off");
                     win.expanded = false;
                 }
             }
