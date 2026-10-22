@@ -75,21 +75,25 @@ PxPage {
         property string fallback: ""
         property string pickTitle: ""
         Row {
+            width: parent.width
             spacing: Theme.u * 3
             PxText {
-                width: Math.min(implicitWidth, Theme.u * 110)
+                // the path gives way to the buttons: a narrow window elides it more
+                width: Math.max(0, Math.min(implicitWidth, Theme.u * 110, parent.width - chooseButton.width - (resetDir.visible ? resetDir.width + parent.spacing : 0) - parent.spacing))
                 anchors.verticalCenter: parent.verticalCenter
                 text: Config.capture[dirRow.key] || dirRow.fallback
                 elide: Text.ElideMiddle
                 dim: !Config.capture[dirRow.key]
             }
             PxButton {
+                id: chooseButton
                 compact: true
                 icon: "folder"
                 text: I18n.t("Выбрать…", "Choose…")
                 onClicked: page.pickDir(dirRow.key, dirRow.pickTitle)
             }
             PxButton {
+                id: resetDir
                 compact: true
                 visible: !!Config.capture[dirRow.key]
                 icon: "refresh"
@@ -138,16 +142,26 @@ PxPage {
             visible: Config.capture.shotPreview
             label: I18n.t("Где миниатюра", "Where the thumbnail goes")
             hint: I18n.t("«Сама» — в свободное место, мимо ангела и виджетов; или клик по месту на мониторе", "«By itself»: a free place, clear of the angel and the widgets; or click a place on the display")
-            Row {
+            Flow {
+                id: whereRow
+                width: parent.width
                 spacing: Theme.u * 4
-                PxButton {
-                    anchors.verticalCenter: parent.verticalCenter
-                    compact: true
-                    checked: (Config.capture.shotPreviewAt || "auto") === "auto"
-                    text: I18n.t("Сама", "By itself")
-                    onClicked: Config.capture.shotPreviewAt = "auto"
+                // side by side the button sits level with the monitor's middle; too narrow, the
+                // monitor goes under it (a Flow can't centre by anchors)
+                Item {
+                    width: autoButton.width
+                    height: whereRow.width >= autoButton.width + whereRow.spacing + wherePicker.width ? wherePicker.height : autoButton.height
+                    PxButton {
+                        id: autoButton
+                        anchors.verticalCenter: parent.verticalCenter
+                        compact: true
+                        checked: (Config.capture.shotPreviewAt || "auto") === "auto"
+                        text: I18n.t("Сама", "By itself")
+                        onClicked: Config.capture.shotPreviewAt = "auto"
+                    }
                 }
                 PxPositionPicker {
+                    id: wherePicker
                     value: Config.capture.shotPreviewAt === "auto" ? "" : Config.capture.shotPreviewAt
                     onPicked: v => Config.capture.shotPreviewAt = v
                 }

@@ -8,13 +8,18 @@ import qs.modules.cobweb
 
 PxPage {
     id: page
-    readonly property var openApps: {
+    // niri sends a window update on every step of a resize or a move: the rows are built again
+    // only when the set of apps changes (a string that stays equal doesn't notify)
+    readonly property string openAppIds: {
         const seen = {};
         for (const w of Niri.windows)
-            if (w.app_id && !seen[w.app_id])
-                seen[w.app_id] = w;
-        return Object.keys(seen).sort().map(k => seen[k]);
+            if (w.app_id)
+                seen[w.app_id] = true;
+        return Object.keys(seen).sort().join("\n");
     }
+    readonly property var openApps: openAppIds ? openAppIds.split("\n").map(id => ({
+                "app_id": id
+            })) : []
     property string customPreset: ""
 
     heading: I18n.t("Окна", "Windows")
@@ -532,14 +537,16 @@ PxPage {
                 label: DesktopEntries.heuristicLookup(appId) ? DesktopEntries.heuristicLookup(appId).name : appId
                 hint: appId
                 Row {
+                    width: parent.width
                     spacing: Theme.u * 3
                     AppIcon {
+                        id: appIcon
                         anchors.verticalCenter: parent.verticalCenter
                         appId: appRow.appId
                         size: Theme.u * 10
                     }
                     PxCombo {
-                        width: Theme.u * 80
+                        width: Math.max(Theme.u * 30, Math.min(Theme.u * 80, parent.width - appIcon.width - pxField.width - parent.spacing * 2))
                         model: [
                             {
                                 "label": I18n.t("по умолчанию", "default"),
@@ -550,6 +557,7 @@ PxPage {
                         onActivated: v => WindowConfig.setAppWidth(appRow.appId, v)
                     }
                     PxField {
+                        id: pxField
                         width: Theme.u * 34
                         placeholder: "px"
                         onEditingFinished: if (parseInt(text) > 100)
@@ -617,17 +625,24 @@ PxPage {
             visible: !Angel.hellShown
             label: I18n.t("Цвет панели браузера", "The browser's bar colour")
             hint: I18n.t("панель Helium и Chromium и открытая вкладка. В режиме «GTK» меняется сразу; в теме с заметной вкладкой — при следующем запуске браузера. «Авто» — чуть ярче заголовков окон", "The bar of Helium and Chromium and the open tab. On the “GTK” theme it changes at once; in the theme with a visible tab, at the browser's next start. “Auto”: a step brighter than the title bars")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
+                // a Flow can't centre by anchors: the swatch sits in a box as tall as the buttons
+                Item {
                     width: Theme.u * 12
-                    height: Theme.u * 8
-                    color: barRow.shown
-                    border.width: Math.max(1, Theme.u / 2)
-                    border.color: Theme.edge
+                    height: lighterButton.height
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        height: Theme.u * 8
+                        color: barRow.shown
+                        border.width: Math.max(1, Theme.u / 2)
+                        border.color: Theme.edge
+                    }
                 }
                 PxButton {
+                    id: lighterButton
                     compact: true
                     icon: "sun"
                     text: I18n.t("Светлее", "Lighter")
@@ -963,6 +978,7 @@ PxPage {
                 }
                 PxButton {
                     compact: true
+                    maxWidth: parent.width
                     visible: !!discordRow.info.discord
                     checked: discordRow.launcherOn
                     icon: "play"

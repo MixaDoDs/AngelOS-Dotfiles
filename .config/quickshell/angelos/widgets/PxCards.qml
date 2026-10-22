@@ -12,6 +12,13 @@ Item {
     readonly property real columnWidth: columns > 1 ? (width - spacing * (columns - 1)) / columns : width
     property real laidHeight: 0
     implicitHeight: laidHeight
+    // a resize (PxScroll.resizing): what lands wholly below the view (viewBottom, in this item)
+    // keeps its width and is placed only; it is laid out to the new width once the resize ends.
+    // Text wrapping again below the screen on every step is what a long page paid for
+    property bool resizing: false
+    property real viewBottom: Infinity
+    onResizingChanged: if (!resizing)
+        later()
 
     function isCard(c) {
         return c.advanced !== undefined && c.title !== undefined && c.wide !== true;
@@ -28,9 +35,13 @@ Item {
         }
         watched = watched.filter(c => children.indexOf(c) >= 0);
     }
-    // (a card's signal may come while the page is being torn down: nothing to lay out then)
+    // (a card's signal may come while the page is being torn down: nothing to lay out then.
+    // A flag, not a look at root.layout: reading a function off a page being torn down is what
+    // warned "QQmlVMEMetaObject: … invalid context" each time Settings closed)
+    property bool gone: false
+    Component.onDestruction: gone = true
     function later() {
-        if (root && typeof root.layout === "function")
+        if (!gone)
             Qt.callLater(root.layout);
     }
     function layout() {
@@ -41,7 +52,8 @@ Item {
             if (!c.visible)
                 continue;
             if (!isCard(c)) {
-                c.width = width;
+                if (!resizing || c.y <= viewBottom || c.width <= 0)
+                    c.width = width;
                 if (c.height <= 0)
                     continue;
             }
@@ -60,15 +72,17 @@ Item {
                 for (let j = 1; j < n; j++)
                     if (tops[j] < tops[k])
                         k = j;
-                c.width = columnWidth;
+                if (!resizing || tops[k] <= viewBottom || c.width <= 0)
+                    c.width = columnWidth;
                 c.x = k * (columnWidth + spacing);
                 c.y = tops[k];
                 tops[k] += c.height + spacing;
                 any = true;
                 return;
             }
-            c.width = width;
             const top = Math.max.apply(null, tops);
+            if (!resizing || top <= viewBottom || c.width <= 0)
+                c.width = width;
             c.x = 0;
             c.y = top;
             for (let j = 0; j < n; j++)

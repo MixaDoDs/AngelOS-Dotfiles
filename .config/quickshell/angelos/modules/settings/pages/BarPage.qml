@@ -436,7 +436,7 @@ PxPage {
             label: I18n.t("Вид", "Look")
             hint: I18n.t("телефон-раскладушка в 3D: клавиши — переключатели, на боку — звук, обои и тема", "A 3D flip phone: its keys are the toggles, on its side it holds sound, wallpapers and theme")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [{
                         "label": I18n.t("Телефон", "Phone"),
                         "value": "phone"
@@ -479,7 +479,7 @@ PxPage {
             visible: Config.sidebar.enabled
             label: I18n.t("Экран", "Screen")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [{
                         "label": I18n.t("Основной", "Primary"),
                         "value": ""

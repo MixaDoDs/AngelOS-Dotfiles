@@ -172,7 +172,8 @@ PxPage {
             visible: !Shell.setupOpen
             label: I18n.t("Мастер первого запуска", "The setup wizard")
             hint: I18n.t("пройти ещё раз на весь экран: язык, игра, раскладки, тема, движение", "Go through it again, full screen: language, the game, layouts, theme, motion")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 2
                 PxButton {
                     compact: true
@@ -244,7 +245,8 @@ PxPage {
         SettingRow {
             label: "GitHub"
             hint: !Recovery.checked ? I18n.t("проверяю…", "checking…") : !Recovery.gh ? I18n.t("нет входа: Мастер первого запуска → GitHub (или gh auth login)", "not logged in: the setup wizard → GitHub (or gh auth login)") : Recovery.exists ? I18n.t("последнее сохранение: ", "last save: ") + (Recovery.last || "?") : I18n.t("сохранений ещё нет", "no saves yet")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 2
                 PxButton {
                     compact: true
@@ -273,7 +275,8 @@ PxPage {
         SettingRow {
             label: I18n.t("Файл", "A file")
             hint: I18n.t("без GitHub: сохранить в ~/Documents или вернуть из файла", "without GitHub: save into ~/Documents or restore from a file")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 2
                 PxButton {
                     compact: true

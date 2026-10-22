@@ -351,11 +351,13 @@ PxPage {
             label: I18n.t("Выпито сегодня", "Drunk today")
             hint: Wellbeing.waterToday >= page.w.waterGoal ? I18n.t("норма есть ♡", "goal reached ♡") : I18n.t("ещё ", "") + (page.w.waterGoal - Wellbeing.waterToday) + I18n.t(" до нормы", " more to go")
             Row {
+                width: parent.width
                 spacing: Theme.u * 2
                 Flow {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.u
-                    width: Math.min(Theme.u * 80, Theme.u * 11 * Math.max(page.w.waterGoal, Wellbeing.waterToday))
+                    // the drops wrap sooner in a narrow row: the count and the button stay inside it
+                    width: Math.max(Theme.u * 11, Math.min(Theme.u * 80, Theme.u * 11 * Math.max(page.w.waterGoal, Wellbeing.waterToday), parent.width - waterCount.width - glassButton.width - parent.spacing * 2))
                     Repeater {
                         model: Math.max(page.w.waterGoal, Wellbeing.waterToday)
                         delegate: PxIcon {
@@ -369,11 +371,13 @@ PxPage {
                     }
                 }
                 PxText {
+                    id: waterCount
                     anchors.verticalCenter: parent.verticalCenter
                     text: Wellbeing.waterToday + " / " + page.w.waterGoal
                     kind: "title"
                 }
                 PxButton {
+                    id: glassButton
                     anchors.verticalCenter: parent.verticalCenter
                     text: I18n.t("+ стакан", "+ glass")
                     icon: "drop"
@@ -403,7 +407,8 @@ PxPage {
             visible: page.w.breaks
             label: I18n.t("Проверить", "Try it")
             hint: Wellbeing.quietWhy === "fullscreen" ? I18n.t("сейчас окно на весь экран — настоящее напоминание подождёт", "A window fills the screen now: a real reminder would wait") : Wellbeing.quietWhy === "stream" ? I18n.t("сейчас стрим — настоящее напоминание подождёт", "You're streaming: a real reminder would wait") : Wellbeing.quietWhy === "dnd" ? I18n.t("сейчас «Не беспокоить» — настоящее напоминание подождёт", "Do not disturb is on: a real reminder would wait") : I18n.t("так напомнит ", "This is how ") + page.who + I18n.t("", " will remind you")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 2
                 PxButton {
                     text: I18n.t("Глаза", "Eyes")

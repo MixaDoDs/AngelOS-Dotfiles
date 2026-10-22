@@ -97,9 +97,11 @@ PxPage {
         icon: "plus"
         width: parent.width
         Row {
+            width: parent.width
             spacing: Theme.u * 3
             PxCombo {
-                width: Theme.u * 100
+                // the kind gives way first: the screen and the button stay inside the card
+                width: Math.max(Theme.u * 30, Math.min(Theme.u * 100, parent.width - screenCombo.width - addButton.width - parent.spacing * 2))
                 model: DesktopWidgets.types.map(t => ({
                             "label": t.label,
                             "value": t.type,
@@ -109,12 +111,14 @@ PxPage {
                 onActivated: v => page.newType = v
             }
             PxCombo {
+                id: screenCombo
                 width: Theme.u * 60
                 model: page.screenModel
                 currentValue: page.newScreen
                 onActivated: v => page.newScreen = v
             }
             PxButton {
+                id: addButton
                 text: I18n.t("Добавить", "Add")
                 icon: "plus"
                 accent: true
@@ -161,7 +165,7 @@ PxPage {
             label: I18n.t("Размер", "Size")
             hint: I18n.t("Всех сразу. Одного — ПКМ по нему: «Увеличить», «Уменьшить»", "Of all of them. For one — right-click them: Bigger, Smaller")
             PxCombo {
-                width: Theme.u * 70
+                width: Math.min(Theme.u * 70, parent.width)
                 model: [
                     {
                         "label": I18n.t("Мелкие", "Small"),
@@ -185,7 +189,7 @@ PxPage {
             label: I18n.t("Главный", "The main one")
             hint: I18n.t("Он в полтора раза крупнее остальных. Выбрать любого — ПКМ по нему", "Half as big again as the rest. To pick anyone — right-click them")
             PxCombo {
-                width: Theme.u * 70
+                width: Math.min(Theme.u * 70, parent.width)
                 model: [
                     {
                         "label": I18n.t("Я", "Me"),
@@ -212,7 +216,7 @@ PxPage {
             visible: Config.discord.crew
             label: I18n.t("Экран", "Screen")
             PxCombo {
-                width: Theme.u * 70
+                width: Math.min(Theme.u * 70, parent.width)
                 model: [
                     {
                         "label": I18n.t("Главный экран", "The main screen"),
@@ -252,7 +256,8 @@ PxPage {
             visible: Config.discord.crew && (Config.discord.crewHidden.length > 0 || Object.keys(Config.discord.crewSteps).length > 0)
             label: I18n.t("Спрятанные и свои размеры", "The hidden and the resized")
             hint: I18n.t("Спрятано: ", "Hidden: ") + Config.discord.crewHidden.length + I18n.t(", со своим размером: ", ", with a size of their own: ") + Object.keys(Config.discord.crewSteps).length
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxButton {
                     compact: true
@@ -361,7 +366,7 @@ PxPage {
                         visible: !DesktopWidgets.macLook
                         label: I18n.t("Рамка", "Frame")
                         PxCombo {
-                            width: Theme.u * 90
+                            width: Math.min(Theme.u * 90, parent.width)
                             model: ["", "window", "plate", "none"].map(f => ({
                                         "label": DesktopWidgets.frameLabel(f),
                                         "value": f
@@ -581,7 +586,8 @@ PxPage {
                         visible: !!card.w && card.w.type === "note"
                         label: I18n.t("Текст", "Text")
                         hint: "~/.config/angelos/notes/" + card.modelData.replace(/[^\w-]/g, "_") + ".md"
-                        Row {
+                        Flow {
+                            width: parent.width
                             spacing: Theme.u * 2
                             PxButton {
                                 text: I18n.t("Редактировать", "Edit")
@@ -651,7 +657,7 @@ PxPage {
             label: I18n.t("Город для погоды", "Weather city")
             hint: Weather.place ? I18n.t("сейчас: ", "now: ") + Weather.place.name + (Weather.place.from === "ip" ? I18n.t(" (по IP)", " (by IP)") : "") : I18n.t("пусто — по IP (ip-api.com); погода — Open-Meteo, раз в 30 минут", "Empty: by IP (ip-api.com); the weather from Open-Meteo, every 30 minutes")
             PxField {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 placeholder: I18n.t("по IP", "by IP")
                 text: Config.desktop.weatherCity
                 // Weather waits for the typing to stop before it asks

@@ -280,7 +280,7 @@ Singleton {
         }
     }
     function _away(q) {
-        if (flightMs > 0 && shots[q.id] && q.rect && !q.flown) {
+        if (canFly && shots[q.id] && q.rect && !q.flown) {
             q.flown = true;
             fly(q.id, q.output, q.rect, false);
             Qt.callLater(() => goTimer.go(q));
@@ -449,7 +449,7 @@ Singleton {
         if (to)
             _setTo(id, to);
         const o = origin[id];
-        if (!instant && flightMs > 0 && shots[id] && o && o.rect && o.output === out) {
+        if (!instant && canFly && shots[id] && o && o.rect && o.output === out) {
             if (flying.indexOf(id) < 0)
                 fly(id, o.output, o.rect, true);
             return;
@@ -514,6 +514,9 @@ Singleton {
     // (only Golden Gate draws it: modules/mac/MacDesktop → MacMinimizeFx — elsewhere nothing would
     // land, and a window flying back would never come)
     readonly property int flightMs: GoldenGate.on ? Motion.ms(effect === "genie" ? 560 : 380) : 0
+    // only Golden Gate draws the flights (flightMs is 0 elsewhere): nothing would land one, and a
+    // window waiting for its landing never came back (#111)
+    readonly property bool canFly: flightMs > 0 && !Shell.desktopHeld
     property var flights: []                // [{key, id, output, rect, shot, back}]
     readonly property var flying: flights.map(f => f.id)
     property var dockSlots: ({})            // output + "|" + key -> [centre x, centre y, size], screen px

@@ -158,7 +158,8 @@ PxPage {
                 required property var modelData
                 required property int index
                 label: modelData.name || modelData.id
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 2
                     PxButton {
                         compact: true
@@ -393,7 +394,8 @@ PxPage {
         SettingRow {
             label: I18n.t("Свои звуки", "Your own sounds")
             hint: I18n.t("файл с именем события (notify, error, volume, screenshot, trash, usbIn, usbOut, power, lock, login; .aiff .caf .wav .ogg .flac .mp3) в этой папке играет вместо встроенного — например, звуки со своего Mac из /System/Library/Sounds", "a file named after the event (notify, error, volume, screenshot, trash, usbIn, usbOut, power, lock, login; .aiff .caf .wav .ogg .flac .mp3) in this folder plays instead of the built-in one — e.g. sounds from your own Mac's /System/Library/Sounds")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 2
                 PxButton {
                     text: I18n.t("Открыть папку", "Open folder")

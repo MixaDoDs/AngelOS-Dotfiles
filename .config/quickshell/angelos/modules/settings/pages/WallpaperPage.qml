@@ -153,7 +153,8 @@ PxPage {
                             // in the grimoire (or a dress): an engraving the right way round, not a negative
                             layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
                             layer.effect: GrimoirePhoto {}
-                            sourceSize: Qt.size(width, height)
+                            // in steps, not every pixel: resizing Settings decoded the whole grid again each frame
+                            sourceSize: Qt.size(Math.ceil(width / 64) * 64, Math.ceil(height / 64) * 64)
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                             cache: true
@@ -235,7 +236,7 @@ PxPage {
             visible: page.target !== "all"
             label: I18n.t("Монитор", "Monitor")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: Quickshell.screens.map(s => s.name)
                 currentValue: page.output
                 onActivated: v => page.output = v
@@ -245,7 +246,7 @@ PxPage {
             visible: page.target === "workspace"
             label: I18n.t("Стол", "Workspace")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: Niri.workspacesOn(page.output).map(w => ({
                             "label": (w.name || "#" + w.idx) + (w.is_active ? "  ♡" : ""),
                             "value": w.idx
@@ -258,11 +259,12 @@ PxPage {
             // hell's pictures have their own place (the Hell pack, the drawn hells)
             visible: !page.hell
             label: I18n.t("Папка", "Folder")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: dirField
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     text: Config.wallpaper.dir
                     onEditingFinished: Config.wallpaper.dir = text
                 }
@@ -294,7 +296,7 @@ PxPage {
             label: I18n.t("Добавить обои", "Add wallpapers")
             hint: Wallpapers.importNote || I18n.t("Скопирует картинки в папку выше. Можно перетащить файлы прямо сюда из файлового менеджера", "Copies the pictures into the folder above. Files can be dragged right here from the file manager")
             PxBox {
-                width: Theme.u * 150
+                width: Math.min(Theme.u * 150, parent.width)
                 height: Theme.u * 14
                 sunken: true
                 color: addDrop.containsDrag ? Qt.alpha(Theme.accent, 0.25) : Theme.sunken
@@ -302,6 +304,7 @@ PxPage {
                     anchors.centerIn: parent
                     spacing: Theme.u * 3
                     PxButton {
+                        id: pickFilesButton
                         compact: true
                         icon: "plus"
                         text: Wallpapers.importing ? "…" : I18n.t("Выбрать файлы…", "Pick files…")
@@ -309,6 +312,9 @@ PxPage {
                         onClicked: Wallpapers.pickToImport()
                     }
                     PxText {
+                        // a narrow box elides the words, the button stays whole
+                        width: Math.max(0, Math.min(implicitWidth, parent.parent.width - pickFilesButton.width - parent.spacing - Theme.u * 6))
+                        elide: Text.ElideRight
                         anchors.verticalCenter: parent.verticalCenter
                         dim: !addDrop.containsDrag
                         text: addDrop.containsDrag ? I18n.t("отпусти", "drop") : I18n.t("или перетащи сюда", "or drop here")
@@ -465,14 +471,16 @@ PxPage {
             label: I18n.t("На этой картинке", "In this picture")
             hint: liveGroup.path.replace(Config.home, "~")
             Row {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxText {
-                    width: Math.min(Theme.u * 150, implicitWidth)
+                    width: Math.max(0, Math.min(Theme.u * 150, implicitWidth, parent.width - againButton.width - parent.spacing))
                     wrapMode: Text.Wrap
                     anchors.verticalCenter: parent.verticalCenter
                     text: LiveWalls.describe(liveGroup.path)
                 }
                 PxButton {
+                    id: againButton
                     compact: true
                     icon: "refresh"
                     enabled: LiveWalls.busy === ""
@@ -508,7 +516,8 @@ PxPage {
                 anchors.fill: parent
                 anchors.margins: Theme.u
                 source: liveGroup.path ? "file://" + Wallpapers.display(liveGroup.path) : ""
-                sourceSize: Qt.size(Math.round(width * 2), Math.round(height * 2))
+                // in steps, not every pixel: resizing Settings decoded the wallpaper again each frame
+                sourceSize: Qt.size(Math.ceil(width * 2 / 128) * 128, Math.ceil(height * 2 / 128) * 128)
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 smooth: false
@@ -1062,19 +1071,26 @@ PxPage {
                 required property var modelData
                 label: AppMenu.prettyName(modelData.id)
                 hint: modelData.id
-                Row {
+                Flow {
+                    id: behindFlow
+                    width: parent.width
                     spacing: Theme.u * 3
-                    AppIcon {
-                        anchors.verticalCenter: parent.verticalCenter
-                        appId: behindApp.modelData.id
-                        size: Theme.u * 8
-                    }
-                    // a click steps to the next depth, as a widget's menu → Depth does
-                    PxButton {
-                        compact: true
-                        icon: "image"
-                        text: SceneBehind.depthLabel(behindApp.modelData.id)
-                        onClicked: SceneBehind.setDepth(behindApp.modelData.id, SceneBehind.nextDepth(behindApp.modelData.id))
+                    Row {
+                        spacing: Theme.u * 3
+                        AppIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            appId: behindApp.modelData.id
+                            size: Theme.u * 8
+                        }
+                        // a click steps to the next depth, as a widget's menu → Depth does
+                        PxButton {
+                            compact: true
+                            icon: "image"
+                            // beside the icon, at most the row: a long depth elides
+                            maxWidth: behindFlow.width - Theme.u * 11
+                            text: SceneBehind.depthLabel(behindApp.modelData.id)
+                            onClicked: SceneBehind.setDepth(behindApp.modelData.id, SceneBehind.nextDepth(behindApp.modelData.id))
+                        }
                     }
                     PxButton {
                         compact: true
@@ -1107,11 +1123,12 @@ PxPage {
         SettingRow {
             label: I18n.t("Другая программа", "Another app")
             hint: I18n.t("если её нет среди открытых: имя программы, как его знает система", "If it isn't open: the app's name as the system knows it")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: behindId
-                    width: Theme.u * 60
+                    width: Math.min(Theme.u * 60, parent.width)
                     placeholder: "spotify"
                     kind: "mono"
                     input.onAccepted: behindAdd.clicked()

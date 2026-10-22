@@ -147,6 +147,9 @@ Item {
     Component.onCompleted: {
         ready = true;
         count(live);
+        // the lead came before ready: writeConf skipped, start it now
+        if (leads && written === "")
+            writeConf();
     }
     onBarsChanged: writeConf()
     onSourceChanged: writeConf()

@@ -187,7 +187,7 @@ PxPage {
             visible: Backlight.available
             label: I18n.t("Яркость", "Brightness")
             PxSlider {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 from: 0
                 to: 100
                 stepSize: 1

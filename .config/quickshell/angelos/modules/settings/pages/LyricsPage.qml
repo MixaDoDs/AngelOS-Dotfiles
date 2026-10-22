@@ -105,7 +105,7 @@ PxPage {
             label: I18n.t("Любимый плеер", "Preferred player")
             hint: I18n.t("если играет несколько — брать этот", "Prefer this player when several are playing")
             PxField {
-                width: Theme.u * 90
+                width: Math.min(Theme.u * 90, parent.width)
                 text: Config.lyrics.preferPlayer
                 onEdited: Config.lyrics.preferPlayer = text
             }

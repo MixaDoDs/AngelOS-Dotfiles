@@ -29,22 +29,26 @@ Item {
         color: Theme.desk
     }
     // faint checker on the desk so it reads as a screen
-    Grid {
+    // (painted, not a Repeater of cells: a cell count follows the width, and every pixel of a
+    // resize built all the cells again)
+    Canvas {
         id: checker
         readonly property int cell: Theme.u * 6
-        readonly property int cols: Math.max(0, Math.ceil(root.width / cell))
+        readonly property color ink: Theme.accent
         anchors.fill: parent
-        columns: cols
         opacity: 0.06
-        Repeater {
-            // a preview laid out before its size (a moment of negative width) asked for −33 cells
-            model: checker.cols * Math.max(0, Math.ceil(root.height / checker.cell))
-            Rectangle {
-                required property int index
-                width: checker.cell
-                height: checker.cell
-                color: (index % checker.cols + Math.floor(index / checker.cols)) % 2 ? Theme.accent : "transparent"
-            }
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onCellChanged: requestPaint()
+        onInkChanged: requestPaint()
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = ink;
+            for (let r = 0; r * cell < height; r++)
+                for (let c = 0; c * cell < width; c++)
+                    if ((c + r) % 2)
+                        ctx.fillRect(c * cell, r * cell, cell, cell);
         }
     }
 }

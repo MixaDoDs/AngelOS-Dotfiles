@@ -345,13 +345,27 @@ PxPage {
                     }
                     Column {
                         id: cardSide
+                        // past half the card the buttons wrap under one another: the text keeps the rest
+                        width: Math.min(sideButtons.natural, parent.width * 0.45)
                         spacing: Theme.u * 3
                         PxToggle {
                             visible: !card.core
                             checked: card.on
                             onToggled: c => Plugins.setEnabled(card.modelData.id, c)
                         }
-                        Row {
+                        Flow {
+                            id: sideButtons
+                            // the shown buttons side by side
+                            readonly property real natural: {
+                                let w = 0, n = 0;
+                                for (const c of children)
+                                    if (c.visible) {
+                                        w += c.implicitWidth;
+                                        n++;
+                                    }
+                                return w + Math.max(0, n - 1) * spacing;
+                            }
+                            width: parent.width
                             spacing: Theme.u * 2
                             PxButton {
                                 visible: card.canUpdate

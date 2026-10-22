@@ -66,7 +66,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Переключать", "Switch with")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: InputConfig.switchOptions
                 currentValue: page.switchOption
                 onActivated: v => page.setOptions(page.optionList.filter(o => !o.startsWith("grp:")).concat([v]))

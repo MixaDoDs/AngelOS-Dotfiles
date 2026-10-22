@@ -318,7 +318,8 @@ PxPage {
             visible: !!Renderer.fix.qt
             label: I18n.t("Исправление Qt для NVIDIA", "Qt fix for NVIDIA")
             hint: "Qt " + (Renderer.fix.qt || "?") + " · " + (!Renderer.fix.needed ? I18n.t("не нужно: в этой версии Qt уже исправлено", "not needed: this Qt already has it") : Renderer.fix.built ? I18n.t("собрано ♡", "built ♡") : I18n.t("не собрано", "not built")) + (Renderer.fix.nvidia ? "" : I18n.t(" · видеокарта не NVIDIA", " · not an NVIDIA GPU"))
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxButton {
                     visible: !!Renderer.fix.needed
@@ -427,10 +428,21 @@ PxPage {
             spacing: Theme.u * 8
             width: parent.width
             PxIcon {
+                id: ghost
                 name: "ghost"
                 pixel: Theme.u * 5
             }
             Grid {
+                id: infoGrid
+                // the names' column: the values wrap in what is left
+                readonly property real namesWidth: {
+                    let w = 0;
+                    for (const c of children)
+                        if (c.modelData && c.modelData.dim)
+                            w = Math.max(w, c.implicitWidth);
+                    return w;
+                }
+                width: parent.width - ghost.width - parent.spacing
                 columns: 2
                 columnSpacing: Theme.u * 8
                 rowSpacing: Theme.u * 2
@@ -447,6 +459,8 @@ PxPage {
                         ]), [])
                     PxText {
                         required property var modelData
+                        width: modelData.dim ? implicitWidth : Math.max(0, Math.min(implicitWidth, infoGrid.width - infoGrid.namesWidth - infoGrid.columnSpacing))
+                        wrapMode: Text.Wrap
                         text: modelData.t
                         dim: modelData.dim
                     }
@@ -764,7 +778,7 @@ PxPage {
             label: I18n.t("Анимация", "Animation")
             hint: I18n.t("картинка оживает в новом терминале: машет крыльями, блестит, искрится; любая клавиша — сразу к делу", "the picture comes alive in a new terminal: wings flap, it shines and sparkles; any key gets you straight to work")
             PxCombo {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 model: [
                     {
                         "label": I18n.t("Выключена", "Off"),
@@ -795,7 +809,7 @@ PxPage {
             label: I18n.t("Показать", "Show")
             hint: I18n.t("рай — как сейчас; круги — как будет в аду (там fastfetch меняется сам)", "heaven is how it is now; the circles are how hell shows it (it changes there by itself)")
             PxCombo {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 model: [
                     {
                         "label": I18n.t("Рай", "Heaven"),
@@ -1006,7 +1020,7 @@ PxPage {
             label: I18n.t("Программа", "Executable")
             hint: I18n.t("Имя программы или полный путь, без аргументов", "Program name or full path, without arguments")
             PxField {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 text: Config.system.monitorProgram
                 placeholder: "missioncenter"
                 onEdited: Config.system.monitorProgram = text
@@ -1140,7 +1154,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Терминал", "Terminal")
             PxField {
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 text: Config.system.terminal
                 onEdited: Config.system.terminal = text
             }
@@ -1148,7 +1162,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Файловый менеджер", "File manager")
             PxField {
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 text: Config.system.fileManager
                 onEdited: Config.system.fileManager = text
             }

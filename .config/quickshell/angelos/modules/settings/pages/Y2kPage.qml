@@ -112,7 +112,7 @@ PxPage {
             label: I18n.t("Чат на экране", "Chat on screen")
             hint: I18n.t("папка, куда бот чата пишет журнал эфира (*.jsonl, строка на сообщение); пусто — выключено. Сам angelOS в YouTube не ходит", "The folder a chat bot writes the stream's log to (*.jsonl, a line a message); empty: off. angelOS itself never talks to YouTube")
             PxField {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 text: Config.stream.chatLog
                 placeholder: "~/…/stream-logs"
                 kind: "mono"
@@ -226,22 +226,28 @@ PxPage {
                 required property var modelData
                 label: modelData.name
                 hint: modelData.id
-                Row {
+                // a Flow: in a narrow card the look and the buttons wrap below the toggle
+                Flow {
+                    id: hiddenFlow
+                    width: parent.width
                     spacing: Theme.u * 3
-                    AppIcon {
-                        anchors.verticalCenter: parent.verticalCenter
-                        appId: hiddenApp.modelData.id
-                        size: Theme.u * 8
-                    }
-                    PxToggle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        checked: hiddenApp.modelData.on
-                        onToggled: c => Privacy.app(c ? "add" : "remove", hiddenApp.modelData.id)
+                    Row {
+                        spacing: Theme.u * 3
+                        AppIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            appId: hiddenApp.modelData.id
+                            size: Theme.u * 8
+                        }
+                        PxToggle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            checked: hiddenApp.modelData.on
+                            onToggled: c => Privacy.app(c ? "add" : "remove", hiddenApp.modelData.id)
+                        }
                     }
                     // its own look (angel-niri): "" — as every app
                     PxCombo {
                         visible: Privacy.nativeLook && hiddenApp.modelData.on
-                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.min(Theme.u * 100, hiddenFlow.width)
                         readonly property var own: Privacy.appLook(hiddenApp.modelData.id)
                         model: [{
                                 "label": I18n.t("Как у всех", "As the rest"),
@@ -306,11 +312,12 @@ PxPage {
         SettingRow {
             label: I18n.t("Другая программа", "Another app")
             hint: I18n.t("если её нет среди открытых: имя программы, как его знает система", "If it isn't open: the app's name as the system knows it")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: privacyId
-                    width: Theme.u * 60
+                    width: Math.min(Theme.u * 60, parent.width)
                     placeholder: "org.example.App"
                     kind: "mono"
                     input.onAccepted: privacyAdd.clicked()

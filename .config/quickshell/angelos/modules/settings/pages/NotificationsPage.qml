@@ -71,7 +71,7 @@ PxPage {
             label: I18n.t("Монитор", "Monitor")
             hint: I18n.t("где фокус, на главном экране (страница «Экраны») или на выбранном", "The focused display, the main one (Displays page) or a fixed one")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [
                     {
                         "label": I18n.t("где фокус", "Focused display"),

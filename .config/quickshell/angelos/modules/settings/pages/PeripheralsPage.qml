@@ -200,7 +200,7 @@ PxPage {
             label: I18n.t("Заряд для примера", "The preview's charge")
             hint: I18n.t("только для картинки выше: клавиатура заряжается, наушники садятся", "Only for the picture above: the keyboard charges, the headphones run low")
             PxSlider {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 from: 1
                 to: 100
                 stepSize: 1

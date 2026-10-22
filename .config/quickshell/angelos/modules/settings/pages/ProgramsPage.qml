@@ -259,7 +259,8 @@ PxPage {
         SettingRow {
             label: I18n.t("Показать", "Show")
             hint: I18n.t("«от автора» — то, что поставилось вместе с angelOS", "“the author's” is what came along with angelOS")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxSegmented {
                     model: [
@@ -296,7 +297,7 @@ PxPage {
             hint: Programs.loaded ? I18n.t("программ: ", "programs: ") + page.rows.length : I18n.t("читаю список…", "reading the list…")
             PxField {
                 id: search
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 icon: "search"
                 placeholder: I18n.t("название", "a name")
             }

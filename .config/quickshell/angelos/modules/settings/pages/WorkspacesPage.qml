@@ -87,7 +87,8 @@ PxPage {
                     "star": I18n.t("звезда-блёстка ✦: у активного стола мерцает", "A sparkle star ✦: twinkles on the active desk"),
                     "cd": I18n.t("радужный CD: у активного стола прокручивается", "A rainbow CD: spins on the active desk")
                 })[Config.workspaces.sprite] || I18n.t("пиксельное сердечко, как было", "The pixel heart, as before")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 Repeater {
                     model: [
@@ -476,7 +477,7 @@ PxPage {
                 readonly property string key: modelData.output + ":" + modelData.idx
                 label: modelData.output + " · #" + modelData.idx + (modelData.is_active ? "  ♡" : "")
                 PxField {
-                    width: Theme.u * 110
+                    width: Math.min(Theme.u * 110, parent.width)
                     placeholder: r.modelData.name || ("workspace " + r.modelData.idx)
                     text: (Config.workspaces.names || {})[r.key] || ""
                     onEdited: Config.setIn(Config.workspaces, "names", r.key, text)
