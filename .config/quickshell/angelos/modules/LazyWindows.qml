@@ -28,8 +28,20 @@ Scope {
         id: launcherKeep
         when: Shell.launcherOpen
     }
+    // …except where Settings is kept warm (16 GB or more: ANGELOS_SETTINGS_WARM): there the
+    // launcher (~28 MB) is built in the background once the boot screen is gone and stays, so
+    // Mod+Space shows it at once instead of building it first (~75 ms)
+    readonly property bool launcherWarm: Quickshell.env("ANGELOS_SETTINGS_WARM") !== "0" && !Shell.bootOpen && !Shell.bootCover
+    Connections {
+        target: Shell
+        function onLauncherOpenChanged() {
+            if (Shell.launcherOpen)
+                launcherLoader.active = true;
+        }
+    }
     LazyLoader {
-        active: launcherKeep.alive
+        id: launcherLoader
+        activeAsync: launcherKeep.alive || root.launcherWarm
         Launcher {}
     }
 

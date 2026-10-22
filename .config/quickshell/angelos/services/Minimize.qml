@@ -476,8 +476,10 @@ Singleton {
         // own), then focused there. A tiled window is a new column right of the focused one, and
         // focusing it scrolls the view: niri slides it in from the side while its snapshot has
         // landed in the middle. A screen transition freezes the screen (the snapshot where the
-        // window is going) over the move and the scroll and fades to the result.
-        if (!w.is_floating && to.is_active && Motion.ms(100) > 0)
+        // window is going) over the move and the scroll and fades to the result. Not on
+        // angel-niri: it brings the window back with the open animation itself, which the frozen
+        // screen hid, 200 ms late on top
+        if (!Niri.nativeMinimize && !w.is_floating && to.is_active && Motion.ms(100) > 0)
             Niri.action("DoScreenTransition", {
                 "delay_ms": 200
             });

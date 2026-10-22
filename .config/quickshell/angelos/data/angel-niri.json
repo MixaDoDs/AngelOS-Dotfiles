@@ -6,5 +6,10 @@
   "asset": "angel-niri-23a9bf59-x86_64.tar.zst",
   "sha256": "96cea6b0b07cd439c1695e7d69aa524ee58f80bde2183c3791d97771db1d8b05",
   "repo": "MixaDoDs/angel-niri",
-  "smithay_repo": "MixaDoDs/angel-smithay"
+  "smithay_repo": "MixaDoDs/angel-smithay",
+  "satellite_commit": "7aa7a30b90d97f57d46c2661748872ca0ceb0ee0",
+  "satellite_tag": "angelos-7aa7a30b",
+  "satellite_asset": "angel-satellite-7aa7a30b-x86_64.tar.zst",
+  "satellite_sha256": "810fbc2f93e167c2ad10574f228e18efdfbcacdee5dcb2f8c2caa154c6dd7daf",
+  "satellite_repo": "MixaDoDs/angel-satellite"
 }

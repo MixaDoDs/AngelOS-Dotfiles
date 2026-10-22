@@ -5,11 +5,11 @@ binds {
     // https://github.com/YaLTeR/niri/wiki/Configuration:-Key-Bindings
 
     // ─── Applications ───
-    Mod+T                          hotkey-overlay-title="Терминал" { spawn "kitty"; }
+    Mod+T                          hotkey-overlay-title="Терминал" { spawn "kitty" "--single-instance"; }
     Mod+B                               hotkey-overlay-title="Браузер" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos browser"; }
 
     // ─── angelOS ───
-    Mod+Space                    hotkey-overlay-title="angelOS: программы" { spawn-sh "qs -c angelos ipc call angelos launcher"; }
+    Mod+Space                    hotkey-overlay-title="angelOS: программы" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open launcher"; }
     Mod+ALT+L                           hotkey-overlay-title="angelOS: блокировка" { spawn-sh "qs -c angelos ipc call angelos lock"; }
 
     // Please set the text editor of your choice.
@@ -97,6 +97,7 @@ binds {
     Mod+Shift+F                         { maximize-column; }
     Mod+W                               { toggle-column-tabbed-display; }
     Mod+M                               { maximize-window-to-edges; }
+    Mod+Z                               hotkey-overlay-title="Свернуть окно" { spawn-sh "qs -c angelos ipc call angelos minimize"; }
 
     // ─── Screenshots (Win+Shift+S style) ───
     Mod+Alt+I                           repeat=false hotkey-overlay-title="angelOS: остров — клики насквозь вкл/выкл" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos islandThrough"; }

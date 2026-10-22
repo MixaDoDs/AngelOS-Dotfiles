@@ -7,6 +7,8 @@
 # stays installed, a drop-in of niri.service starts ours (from the next login) and
 # ~/.local/bin/niri is it for `niri msg`. angelOS works on stock niri too, without the fork's
 # features. A session that doesn't start: Ctrl+Alt+F3, log in, `angel-niri-install.sh off`.
+# Beside it angel-satellite, the fork of xwayland-satellite niri runs X11 apps with (drag and drop
+# into X11 apps, menus on two monitors): ~/.local/bin/xwayland-satellite, picked up from PATH.
 #
 #   angel-niri-install.sh [install]   the pinned build, made the session's niri
 #   angel-niri-install.sh off         back to the niri package (from the next login)
@@ -20,6 +22,8 @@ PIN="$SHELL_DIR/data/angel-niri.json"
 LIB="$HOME/.local/lib/angel-niri"
 DROPIN="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/niri.service.d/angel-niri.conf"
 LINK="$HOME/.local/bin/niri"
+SAT_LIB="$HOME/.local/lib/angel-satellite"
+SAT_LINK="$HOME/.local/bin/xwayland-satellite"
 case "${ANGELOS_LANG:-${LANG:-}}" in ru*) UI=ru ;; *) UI=en ;; esac
 _() { if [[ "$UI" == ru ]]; then printf '%s' "$2"; else printf '%s' "$1"; fi; }
 step() { echo "STEP $*"; }
@@ -35,21 +39,22 @@ works() {
   "$1" validate -c "$conf" >/dev/null 2>&1
 }
 
+# download DIR [PIN_PREFIX FILE NAME]: angel-niri, or with satellite_ the satellite
 download() {
-  local dir="$1" tmp actual url
+  local dir="$1" p="${2:-}" file="${3:-niri}" name="${4:-angel-niri}" tmp actual url
   command -v curl >/dev/null 2>&1 || return 1
   [[ "$(uname -m)" == x86_64 ]] || return 1
-  url="https://github.com/$(pin repo)/releases/download/$(pin tag)/$(pin asset)"
+  url="https://github.com/$(pin "${p}repo")/releases/download/$(pin "${p}tag")/$(pin "${p}asset")"
   tmp="$(mktemp -d)"
-  step "$(_ "downloading angel-niri $(pin tag)" "скачиваю angel-niri $(pin tag)")"
+  step "$(_ "downloading $name $(pin "${p}tag")" "скачиваю $name $(pin "${p}tag")")"
   if curl --fail --location --retry 3 --silent --show-error --output "$tmp/a.tar.zst" "$url"; then
     actual="$(sha256sum "$tmp/a.tar.zst" | awk '{print $1}')"
-    if [[ "$actual" == "$(pin sha256)" ]] && tar --zstd -xf "$tmp/a.tar.zst" -C "$tmp" niri; then
-      mkdir -p -- "$dir" && install -m 0755 "$tmp/niri" "$dir/niri"
+    if [[ "$actual" == "$(pin "${p}sha256")" ]] && tar --zstd -xf "$tmp/a.tar.zst" -C "$tmp" "$file"; then
+      mkdir -p -- "$dir" && install -m 0755 "$tmp/$file" "$dir/$file"
       rm -rf "$tmp"
       return 0
     fi
-    step "$(_ "SHA256 mismatch (expected $(pin sha256), got $actual)" "SHA256 не совпал (ждали $(pin sha256), пришёл $actual)")"
+    step "$(_ "SHA256 mismatch (expected $(pin "${p}sha256"), got $actual)" "SHA256 не совпал (ждали $(pin "${p}sha256"), пришёл $actual)")"
   fi
   rm -rf "$tmp"
   return 1
@@ -88,6 +93,26 @@ use() {
   systemctl --user daemon-reload >/dev/null 2>&1 || true
 }
 
+# shortcut: download only, no build from source; without it the xwayland-satellite package stays.
+satellite() {
+  local commit dir old
+  commit="$(pin satellite_commit 2>/dev/null)" || return 0
+  dir="$SAT_LIB/${commit:0:8}"
+  if ! "$dir/xwayland-satellite" --test-listenfd-support 2>/dev/null; then
+    rm -rf -- "$dir"
+    if ! download "$dir" satellite_ xwayland-satellite angel-satellite ||
+      ! "$dir/xwayland-satellite" --test-listenfd-support 2>/dev/null; then
+      rm -rf -- "$dir"
+      step "$(_ 'angel-satellite could not be downloaded; X11 apps stay on the xwayland-satellite package' 'angel-satellite не скачался; X11-программы остаются на xwayland-satellite из пакета')"
+      return 0
+    fi
+  fi
+  mkdir -p -- "${SAT_LINK%/*}" && ln -sfn -- "$dir/xwayland-satellite" "$SAT_LINK"
+  for old in "$SAT_LIB"/*/; do
+    [[ "${old%/}" == "$dir" ]] || rm -rf -- "$old"
+  done
+}
+
 install_it() {
   [[ -f "$PIN" ]] || fail "$(_ 'no data/angel-niri.json' 'нет data/angel-niri.json')"
   local commit dir
@@ -104,6 +129,7 @@ install_it() {
     fi
   fi
   use "$dir/niri"
+  satellite
   # older builds nobody starts any more
   local old
   for old in "$LIB"/*/; do
@@ -118,6 +144,7 @@ case "${1:-install}" in
   off)
     rm -f -- "$DROPIN"
     [[ "$(readlink "$LINK" 2>/dev/null)" == "$LIB"/* ]] && rm -f -- "$LINK"
+    [[ "$(readlink "$SAT_LINK" 2>/dev/null)" == "$SAT_LIB"/* ]] && rm -f -- "$SAT_LINK"
     systemctl --user daemon-reload >/dev/null 2>&1 || true
     step "$(_ 'the niri package starts with the next login' 'со следующего входа — niri из пакета')"
     echo DONE ;;

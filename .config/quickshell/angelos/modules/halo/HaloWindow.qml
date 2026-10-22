@@ -1688,9 +1688,20 @@ PanelWindow {
 
     // a little spectrum of pixel blocks (music.sh's, small): four columns dancing while it plays
     component EqBars: Row {
+        id: eq
         spacing: Math.max(1, win.u / 2)
+        // whole blocks on one shared timer, not an endless NumberAnimation per column: that one
+        // kept the whole Halo window drawing at the monitor's rate for four steps (22.10)
+        property int tick: 0
+        Timer {
+            interval: 130
+            repeat: true
+            running: eq.visible && Lyrics.playing && win.shown && !win.expanded && !Motion.still
+            onTriggered: eq.tick++
+        }
         Repeater {
-            model: [520, 380, 640, 450]
+            // each column's phase in the 1 → 4 → 1 swing
+            model: [0, 5, 2, 4]
             Item {
                 id: bar
                 required property int modelData
@@ -1698,7 +1709,7 @@ PanelWindow {
                 readonly property int gap: Math.max(1, win.u / 2)
                 width: blk
                 height: blk * 4 + gap * 3
-                property real v: 1
+                readonly property int v: 1 + [0, 1, 2, 3, 2, 1][(eq.tick + modelData) % 6]
                 Column {
                     anchors.bottom: parent.bottom
                     spacing: bar.gap
@@ -1711,20 +1722,6 @@ PanelWindow {
                             visible: index >= 4 - Math.round(bar.v)
                             color: Lyrics.playing ? Theme.mix(Theme.accent2, win.accent, (4 - index) / 4) : Theme.textDim
                         }
-                    }
-                }
-                SequentialAnimation on v {
-                    running: Lyrics.playing && win.shown && !win.expanded && !Motion.still
-                    loops: Animation.Infinite
-                    NumberAnimation {
-                        to: 4
-                        duration: bar.modelData
-                        easing.type: Easing.InOutSine
-                    }
-                    NumberAnimation {
-                        to: 1
-                        duration: bar.modelData
-                        easing.type: Easing.InOutSine
                     }
                 }
             }

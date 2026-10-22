@@ -376,17 +376,27 @@ PxPage {
                 onActivated: v => Power.setProfile(v)
             }
         }
+        SettingRow {
+            label: I18n.t("Окно в фокусе — первым", "The window in focus first")
+            hint: I18n.t("программа, в которой ты сейчас, получает процессор раньше фоновых: меньше подтормаживаний, когда что-то считается в фоне", "The program you're in gets the CPU before the ones in the background: fewer hitches while something works behind it")
+            PxToggle {
+                checked: Config.system.focusBoost !== false
+                onToggled: c => Config.system.focusBoost = c
+            }
+        }
     }
 
     // angel-niri: the screens without the game draw less while it runs, the game may tear
-    // (niri-game-mode → niri's set-background-fps, set-tearing); stock niri has no such thing
+    // (niri-game-mode → niri's set-background-fps, set-tearing); stock niri has no such thing.
+    // NVIDIA's clock (niri-game-mode → gpu-clocks) works on either
     PxGroup {
         name: "games-background"
-        visible: Niri.nativeMinimize
+        visible: Niri.nativeMinimize || ScreenTune.nvidia
         title: I18n.t("Игры", "Games")
         icon: "gamepad"
         width: parent.width
         SettingRow {
+            visible: Niri.nativeMinimize
             label: I18n.t("Фон во время игры", "The rest while gaming")
             hint: I18n.t("пока идёт игра, другие экраны и их окна рисуются не чаще этого — видеокарта остаётся игре. Экран с игрой и экран, который снимает OBS, — всегда как есть", "While a game runs, the other screens and their windows draw no more often than this, leaving the GPU to the game. The game's screen and any screen OBS captures always stay as they are")
             PxSegmented {
@@ -401,6 +411,7 @@ PxPage {
             }
         }
         SettingRow {
+            visible: Niri.nativeMinimize
             label: I18n.t("Разрыв кадра", "Tearing")
             hint: I18n.t("игра на весь экран показывает кадр сразу, не дожидаясь обновления монитора: меньше задержка мыши, но иногда видна горизонтальная полоса разрыва. Включится со следующей игры", "A fullscreen game shows each frame at once instead of waiting for the monitor's refresh: less mouse lag, but a horizontal tear line may show. Takes effect from the next game")
             PxToggle {
@@ -409,11 +420,21 @@ PxPage {
             }
         }
         SettingRow {
+            visible: Niri.nativeMinimize
             label: I18n.t("Мышь не уходит из игры", "The mouse stays in the game")
             hint: I18n.t("пока игра на весь экран в фокусе, курсор не перескакивает на другой монитор от резкого движения. Держи Win — выйдет. Включится со следующей игры", "While a fullscreen game has the focus, a quick flick no longer throws the pointer onto the other screen. Hold Win to leave. Takes effect from the next game")
             PxToggle {
                 checked: Config.gaming.pointerLock !== false
                 onToggled: c => Config.gaming.pointerLock = c
+            }
+        }
+        SettingRow {
+            visible: ScreenTune.nvidia
+            label: I18n.t("Видеокарта на полной частоте", "The video card at full speed")
+            hint: I18n.t("пока идёт игра, частота NVIDIA не падает ниже 60 % от максимума: лёгкие игры (CS2) не дёргаются, пока карта сбавляет и снова разгоняет частоту. Нужна игровая версия (Обслуживание → Игры). Включится со следующей игры", "While a game runs, the NVIDIA clock stays above 60 % of its maximum: light games (CS2) don't stutter while the card slows down and speeds up again. Needs the gaming edition (Maintenance → Games). Takes effect from the next game")
+            PxToggle {
+                checked: Config.gaming.gpuClocks !== false
+                onToggled: c => Config.gaming.gpuClocks = c
             }
         }
     }

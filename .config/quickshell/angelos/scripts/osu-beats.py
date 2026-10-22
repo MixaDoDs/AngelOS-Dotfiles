@@ -2,13 +2,17 @@
 """Beat tracker for osu!mini's music mode.
 
   osu-beats.py spotify|system
+  osu-beats.py app NAME…
 
-Records what plays — Spotify's own stream, or everything the computer plays
-(the cava widget's "auto": a multichannel interface such as the RØDECaster is
-summed) — finds the beat and prints a JSON line about four times a second:
+Records what plays — Spotify's own stream, one player's own stream (`app`: the
+playback stream whose application or node name has one of the NAMEs, as the
+lyric line's beat hears only its player — services/LyricsBeat), or everything
+the computer plays (the cava widget's "auto": a multichannel interface such as
+the RØDECaster is summed) — finds the beat and prints a JSON line about four
+times a second:
 
   {"bpm": 128.0, "beat": <epoch ms of a recent beat>, "conf": 0..1, "fit": 1.., "level": 0..1}
-  {"idle": true, "why": "silence" | "no-spotify" | "no-output"}
+  {"idle": true, "why": "silence" | "no-spotify" | "no-player" | "no-output"}
 
 Onsets come from a bass-weighted spectral flux; the tempo from its
 autocorrelation over the last six seconds (with a soft preference for ~120 BPM),
@@ -43,6 +47,12 @@ def say(obj):
 
 def spotify_node():
     """the Spotify playback stream: (node name, channel positions) or None"""
+    return app_node(["spotify"])
+
+
+def app_node(names):
+    """the playback stream of an application with one of `names` (lower case) in its
+    application name, binary or node name: (node name, channel positions) or None"""
     for o in tap.pw_dump():
         if o.get("type") != "PipeWire:Interface:Node":
             continue
@@ -51,14 +61,14 @@ def spotify_node():
         if p.get("media.class") != "Stream/Output/Audio":
             continue
         who = " ".join(str(p.get(k, "")) for k in ("application.name", "application.process.binary", "node.name")).lower()
-        if "spotify" in who:
+        if any(n in who for n in names):
             return p.get("node.name"), tap.positions(p, info) or ["FL", "FR"]
     return None
 
 
-def target(mode):
-    if mode == "spotify":
-        s = spotify_node()
+def target(mode, names=()):
+    if mode in ("spotify", "app"):
+        s = spotify_node() if mode == "spotify" else app_node(names)
         return (s[0], False, s[1]) if s else None
     r = tap.resolve("auto")
     return (r[0], r[1], r[2]) if r else None
@@ -182,15 +192,16 @@ class Tracker:
 
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "system"
+    names = [n.lower() for n in sys.argv[2:] if n.strip()]
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     tracker = Tracker()
     proc = None
     last_report = 0.0
     while True:
         if proc is None or proc.poll() is not None:
-            t = target(mode)
+            t = target(mode, names)
             if not t:
-                say({"idle": True, "why": "no-spotify" if mode == "spotify" else "no-output"})
+                say({"idle": True, "why": {"spotify": "no-spotify", "app": "no-player"}.get(mode, "no-output")})
                 time.sleep(2)
                 continue
             node, sink, pos = t

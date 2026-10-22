@@ -98,6 +98,15 @@ PxPage {
                 onToggled: c => Config.launcher.clipboardPaste = c
             }
         }
+        SettingRow {
+            visible: Niri.nativeMinimize
+            label: I18n.t("Буфер не пропадает", "Clipboard stays")
+            hint: I18n.t("скопировал и закрыл программу — текст, ссылки, файлы и картинка всё равно вставляются. Копия только в памяти; то, что копирует менеджер паролей, не хранится", "Copy, close the program, and the text, links, files and picture still paste. The copy lives in memory only; what a password manager copies is never kept")
+            PxToggle {
+                checked: Config.windows.clipboardKeep
+                onToggled: c => Config.windows.clipboardKeep = c
+            }
+        }
     }
 
     PxGroup {

@@ -70,16 +70,80 @@ Item {
     property string previous: ""
     property int typed: 0
     readonly property int typeStep: 1
-    readonly property real fullW: fm.advanceWidth(shown)
-    readonly property real typedW: typed >= shown.length ? fullW : fm.advanceWidth(shown.slice(0, typed))
+    // widths as drawn: a hidden copy of the text (the probes below). FontMetrics' advances drift
+    // from the native rendering by a few px over a line: the clip cut words in the middle and a
+    // snug Halo cut the line's first letter
+    readonly property real fullW: fullProbe.implicitWidth
+    readonly property real typedW: typed >= shown.length ? fullW : typedProbe.implicitWidth
     readonly property real overflowW: Math.max(0, fullW - textBox.width)
     property real scrollX: 0
+
+    // word by word (Lyrics.wordTimed): the words sung so far, no typewriter. The word just sung
+    // rises into place (`fresh`, freshIn); the ones before it stand (`settled` characters)
+    readonly property bool byWord: Lyrics.wordTimed && Lyrics.current !== ""
+    property int settled: 0
+    component Probe: PxText {
+        visible: false
+        font.family: root.fontFamily
+        font.pixelSize: root.fontPx
+        renderType: Text.NativeRendering
+        textFormat: Text.PlainText
+    }
+    Probe {
+        id: fullProbe
+        text: root.shown
+    }
+    Probe {
+        id: typedProbe
+        text: root.typed < root.shown.length ? root.shown.slice(0, root.typed) : ""
+    }
+    Probe {
+        id: clipProbe
+        text: root.clipChars < root.typed ? root.shown.slice(0, root.clipChars) : ""
+    }
+    readonly property int clipChars: byWord ? settled : typed
+    readonly property real clipW: clipChars >= shown.length ? fullW : clipChars === typed ? typedW : clipProbe.implicitWidth
+    Connections {
+        target: Lyrics
+        enabled: root.byWord
+        function onWordCharsChanged() {
+            const n = Math.min(root.shown.length, Lyrics.wordChars);
+            if (n > root.typed && root.visible) {
+                root.settled = root.typed;
+                root.typed = n;
+                freshIn.restart();
+            } else {
+                freshIn.stop();
+                root.typed = n;
+                root.settled = n;
+            }
+            // sung to its end: it stays where the caret pulled it (as the typewriter's line does)
+            if (root.typed >= root.shown.length)
+                root.scrollX = root.overflowW;
+        }
+    }
 
     onLineChanged: {
         previous = shown;
         shown = line;
         glide.stop();
         scrollX = 0;
+        if (byWord) {
+            typer.stop();
+            freshIn.stop();
+            typed = Math.min(shown.length, Lyrics.wordChars);
+            settled = typed;
+            if (hell) {
+                burnIn = 1;
+                burnOut = 1;
+                old.opacity = 0;
+            } else if (visible) {
+                slide.restart();
+            }
+            if (typed >= shown.length)
+                startGlide();
+            return;
+        }
         if (hell) {
             // no typewriter and no slide in hell: the line is just there
             typer.stop();
@@ -346,8 +410,8 @@ Item {
             id: cur
             // typing: the whole line is laid out once and a clip uncovers it (+ a caret item), instead of
             // rebuilding the rich text on every character
-            readonly property bool typing: root.typed < root.shown.length
-            width: typing ? root.typedW + Theme.u * 3 : Math.max(parent.width, root.fullW + Theme.u * 4)
+            readonly property bool typing: root.clipChars < root.shown.length
+            width: typing ? root.clipW + Theme.u * 3 : Math.max(parent.width, root.fullW + Theme.u * 4)
             clip: typing
             height: root.hell ? parent.height : implicitHeight
             font.family: root.fontFamily
@@ -363,8 +427,9 @@ Item {
                 property size texel: Qt.size(1 / Math.max(1, cur.width), 1 / Math.max(1, cur.height))
                 fragmentShader: Qt.resolvedUrl("../../../shaders/lyrics_burn.frag.qsb")
             }
-            // while typing, the caret pulls a long line along; afterwards scrollX holds / glides
-            x: typer.running ? -Math.max(0, root.typedW + Theme.u * 3 - textBox.width) : -Math.min(root.scrollX, root.overflowW)
+            // while typing (or the words coming), the caret pulls a long line along; afterwards
+            // scrollX holds / glides
+            x: typer.running || root.byWord && typing ? -Math.min(Math.max(0, root.typedW + Theme.u * 3 - textBox.width), root.byWord ? root.overflowW : Infinity) : -Math.min(root.scrollX, root.overflowW)
             anchors.verticalCenter: parent.verticalCenter
             textFormat: Text.StyledText
             color: root.hell ? (Lyrics.current === "" || !Lyrics.playing ? (root.burning ? "#b0b0b0" : Theme.hellTextDim) : (root.burning ? "white" : Theme.hellText)) : root.barInk ? (Lyrics.current === "" || !Lyrics.playing ? Theme.hellTextDim : Theme.hellText) : Lyrics.current === "" || !Lyrics.playing ? Theme.textDim : Theme.text
@@ -378,6 +443,42 @@ Item {
                 color: Theme.accent
                 text: "▌"
             }
+        }
+
+        // word by word: the word just sung, coming up into its place over the line
+        PxText {
+            id: fresh
+            visible: root.byWord && root.settled < root.typed
+            x: cur.x + root.clipW
+            anchors.verticalCenter: parent.verticalCenter
+            font.family: cur.font.family
+            font.pixelSize: cur.font.pixelSize
+            renderType: Text.NativeRendering
+            textFormat: Text.PlainText
+            color: cur.color
+            text: root.shown.slice(root.settled, root.typed)
+        }
+        ParallelAnimation {
+            id: freshIn
+            NumberAnimation {
+                target: fresh
+                property: "opacity"
+                from: 0.3
+                to: 1
+                duration: Motion.ms(90)
+                easing.type: Easing.OutQuad
+            }
+            // a hop on the beat: up from below, a little past its place and back
+            NumberAnimation {
+                target: fresh
+                property: "anchors.verticalCenterOffset"
+                from: Theme.u * 3
+                to: 0
+                duration: Motion.ms(200)
+                easing.type: Easing.OutBack
+                easing.overshoot: 3
+            }
+            onFinished: root.settled = root.typed
         }
 
         ParallelAnimation {

@@ -177,6 +177,41 @@ Singleton {
             });
     }
     onRememberChanged: applyRemember()
+    // angel-niri: a minimized window goes with the close animation (Golden Gate flies it into
+    // the Dock instead)
+    readonly property bool minimizeFade: Niri.nativeMinimize && !GoldenGate.on
+    function applyMinimizeFade() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetMinimizeFade", {
+                "on": minimizeFade
+            });
+    }
+    onMinimizeFadeChanged: applyMinimizeFade()
+    // angel-niri: the clipboard outlives the program it was copied from (niri keeps a copy in memory)
+    readonly property bool clipboardKeep: Niri.nativeMinimize && Config.windows.clipboardKeep
+    function applyClipboardKeep() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetClipboardKeep", {
+                "on": clipboardKeep
+            });
+    }
+    onClipboardKeepChanged: applyClipboardKeep()
+    // angel-niri: throwing floating windows — they fly on after a drag, bounce, squash, sway
+    readonly property var windowThrow: {
+        const w = Config.windows;
+        const on = Niri.nativeMinimize && w.throwOn;
+        return {
+            "strength": on ? w.throwStrength : 0,
+            "bounce": on ? w.throwBounce : 0,
+            "squash": on ? w.throwSquash : 0,
+            "wobble": on ? w.throwWobble : 0
+        };
+    }
+    function applyThrow() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetWindowThrow", windowThrow);
+    }
+    onWindowThrowChanged: applyThrow()
     onOverviewFontChanged: applyOverview()
     Connections {
         target: Niri
@@ -186,6 +221,9 @@ Singleton {
             root.applyOverview();
             root.applyDim();
             root.applyRemember();
+            root.applyMinimizeFade();
+            root.applyThrow();
+            root.applyClipboardKeep();
         }
     }
 

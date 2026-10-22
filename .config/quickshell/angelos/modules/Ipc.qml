@@ -836,6 +836,14 @@ IpcHandler {
     }
     // ⌘M of the Golden Gate skin's Mac shortcuts: the frontmost window goes to the Dock
     // (services/Minimize); with a window id: that one. "restore <id>" brings one back.
+    // the focused window minimized (the pixel keys' Mod+Z); back from the taskbar or Alt+Tab
+    function minimize(): string {
+        const w = Niri.focusedWindow;
+        if (Shell.setupLocked || !w)
+            return "nothing to minimize";
+        Minimize.request(w.id, "keys");
+        return "ok";
+    }
     function macMinimize(): string {
         if (!GoldenGate.on || !AppMenu.window)
             return "nothing to minimize";

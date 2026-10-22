@@ -329,6 +329,71 @@ PxPage {
                 onToggled: c => WindowConfig.setFloatAll(c)
             }
         }
+        SettingRow {
+            visible: Niri.nativeMinimize
+            label: I18n.t("Бросок окна", "Throwing windows")
+            hint: I18n.t("отпустил плавающее окно на ходу — оно летит дальше, отскакивает от краёв монитора и сплющивается о них; пока тащишь, отстаёт и колышется, как желе", "Let go of a floating window mid-drag and it flies on, bouncing off the monitor's edges and squashing against them; while dragged it lags and sways like jelly")
+            PxToggle {
+                checked: Config.windows.throwOn
+                onToggled: c => Config.windows.throwOn = c
+            }
+        }
+        SettingRow {
+            visible: Niri.nativeMinimize && Config.windows.throwOn
+            label: I18n.t("Сила броска", "Throw strength")
+            hint: I18n.t("насколько далеко улетает окно: чуть скользит … через весь экран", "How far a window flies: barely slides … across the screen")
+            PxSlider {
+                width: parent.width
+                from: 10
+                to: 200
+                stepSize: 10
+                suffix: "%"
+                value: Math.round(Config.windows.throwStrength * 100)
+                onReleased: v => Config.windows.throwStrength = v / 100
+            }
+        }
+        SettingRow {
+            visible: Niri.nativeMinimize && Config.windows.throwOn
+            label: I18n.t("Отскок от краёв", "Bounce off edges")
+            hint: I18n.t("0 — окно упирается в край и останавливается", "0: the window stops at the edge")
+            PxSlider {
+                width: parent.width
+                from: 0
+                to: 95
+                stepSize: 5
+                suffix: "%"
+                value: Math.round(Config.windows.throwBounce * 100)
+                onReleased: v => Config.windows.throwBounce = v / 100
+            }
+        }
+        SettingRow {
+            visible: Niri.nativeMinimize && Config.windows.throwOn
+            label: I18n.t("Сплющивание при ударе", "Squash on impact")
+            hint: I18n.t("0 — без сплющивания", "0: no squash")
+            PxSlider {
+                width: parent.width
+                from: 0
+                to: 200
+                stepSize: 10
+                suffix: "%"
+                value: Math.round(Config.windows.throwSquash * 100)
+                onReleased: v => Config.windows.throwSquash = v / 100
+            }
+        }
+        SettingRow {
+            visible: Niri.nativeMinimize && Config.windows.throwOn
+            label: I18n.t("Колыхание при перетаскивании", "Sway while dragging")
+            hint: I18n.t("0 — окно идёт ровно за мышью", "0: the window follows the mouse exactly")
+            PxSlider {
+                width: parent.width
+                from: 0
+                to: 200
+                stepSize: 10
+                suffix: "%"
+                value: Math.round(Config.windows.throwWobble * 100)
+                onReleased: v => Config.windows.throwWobble = v / 100
+            }
+        }
     }
     // the windows' frame (niri's focus ring or border, scripts/window-config.py) and, under
     // angel-niri, their pixel corners (services/WindowConfig)

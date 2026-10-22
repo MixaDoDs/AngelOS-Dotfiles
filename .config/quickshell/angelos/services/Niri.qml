@@ -258,7 +258,7 @@ Singleton {
                 try {
                     const reply = JSON.parse(line);
                     if (reply.Err && !(cur && cur.quiet))
-                        console.warn("niri:", reply.Err);
+                        console.warn("niri:", reply.Err, "←", cur ? cur.body.slice(0, 200) : "");
                     if (cur && cur.cb)
                         cur.cb(reply.Ok !== undefined ? reply.Ok : null, reply.Err || null);
                 } catch (e) {

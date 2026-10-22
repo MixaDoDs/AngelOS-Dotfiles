@@ -415,6 +415,15 @@ case "$1" in
       *) exec niri msg action focus-workspace "$target" ;;
     esac
     ;;
+  open)
+    # the launcher, the clipboard, the session menu (niri's keys): the shell's socket, else qs ipc
+    what="$(printf '%s' "${2:-launcher}" | tr -cd 'a-z')"
+    case "$what" in launcher|clipboard|session) ;; *) echo "open launcher|clipboard|session" >&2; exit 2 ;; esac
+    sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/angelos/ctl.sock"
+    if [ -S "$sock" ] && command -v socat >/dev/null 2>&1 && printf 'open %s\n' "$what" | socat -t1 - "UNIX-CONNECT:$sock" 2>/dev/null | grep -q '^ok'; then
+      exit 0
+    fi
+    exec qs -c angelos ipc call angelos "$what" ;;
   alttab)
     # Alt+Tab through the shell's switcher (niri's binds from Settings → Windows), ⌘Tab (apps)
     # and ⌘` (appwin) of the Golden Gate skin's Mac keys; niri's "previous window" as a

@@ -181,6 +181,14 @@ JsonAdapter {
         property bool pixelOverview: true   // angel-niri: the overview in pixels: sharp thumbnails, pixel frames and desk numbers (services/WindowConfig)
         property bool pixelShadow: true     // angel-niri: dithered window shadows, the focused one glows in the accent (services/WindowConfig)
         property bool remember: true        // angel-niri: a program opens where its last window was, as big (services/WindowConfig)
+        property bool clipboardKeep: true   // angel-niri: the clipboard outlives the program it was copied from (services/WindowConfig)
+        // angel-niri: a floating window let go mid-drag flies on, bounces off the edges, squashes
+        // against them and sways like jelly while dragged (services/WindowConfig); each 0 = off
+        property bool throwOn: true
+        property real throwStrength: 1      // 0.3 barely slides … 2 crosses the screen
+        property real throwBounce: 0.5      // speed kept off an edge, 0 … 0.95
+        property real throwSquash: 1        // 0 … 2
+        property real throwWobble: 1        // 0 … 2
         // cobwebs (services/Cobweb): a window nobody moved for a while gets a spider and its web
         property bool cobweb: false         // off for a new user: a web over the window took its clicks (16.10)
         property bool cobwebInside: true    // the web over the window itself (off: only the bar's buttons)
@@ -209,6 +217,9 @@ JsonAdapter {
         property int offsetMs: 0
         property string artwork: "note"          // note | cover
         property bool typewriter: true
+        property int wordLeadMs: 250        // word by word: each word this much before it is sung, to sing along (Lyrics.wordLead)
+        property bool byWord: true
+        property bool onBeat: true          // word by word: each word on the music's beat or half-beat nearest its time (services/LyricsBeat hears the player)          // a line with its words' times appears word by word as it is sung (Lyrics.wordChars), not typed
         property string preferPlayer: "spotify"
         property var sources: ["local", "player", "lrclib", "amll", "netease", "kugou", "qq", "lrccx", "musixmatch", "ovh"] // tried in this order
         property int sourcesVersion: 0      // 2 = the list knows kugou/qq/local/player, 3 = amll/lrccx/musixmatch (older lists get them once)
@@ -455,6 +466,7 @@ JsonAdapter {
         property string primaryScreen: ""   // the main screen (widgets, the angel, the lock…); "" = the widest
         property bool primaryAsked: false   // asked once (MainScreenPrompt) where the main screen is, or it was picked already
         property var screenTune: ({})       // Monitor → Brightness and colour: {output: {brightness 0.3–1 (gamma), saturation −1…1 (NVIDIA vibrance)}} (services/ScreenTune)
+        property bool focusBoost: true      // the focused window's processes a few nice steps up, back when the focus leaves (niri-game-mode)
         property string helpAgent: ""       // Maintenance → Helper: claude | codex | opencode — the agent «Call the helper» starts with (scripts/help-agent.sh: out of a limit → the next account, Claude profiles → Codex → opencode); "" = Claude
     }
 
@@ -683,6 +695,7 @@ JsonAdapter {
         property int backgroundFps: 30      // angel-niri: while a game runs, the other screens redraw at most this often (0 = as they are; niri-game-mode)
         property bool tearing: true         // angel-niri: a fullscreen game's frames shown at once, not at the next vblank (niri-game-mode → set-tearing)
         property bool pointerLock: true     // angel-niri: the pointer stays on a focused fullscreen game's screen, Mod lets it out (niri-game-mode → set-pointer-lock)
+        property bool gpuClocks: true       // NVIDIA: the graphics clock kept up while a game runs (niri-game-mode → scripts/gpu-clocks-setup.sh's helper)
     }
 
     // the novel (services/Novel, ~/AngelOs-Nov): chapters the angel plays out on the desktop

@@ -7,7 +7,7 @@ binds {
     Mod+Shift+Return                    hotkey-overlay-title="angelOS: обои" { spawn-sh "qs -c angelos ipc call angelos settings wallpaper"; }
     Mod+S                               hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
     Mod+Alt+S                           hotkey-overlay-title="angelOS: настройки" { spawn-sh "qs -c angelos ipc call angelos settings appearance"; }
-    Mod+Shift+Q                         hotkey-overlay-title="angelOS: выключение" { spawn-sh "qs -c angelos ipc call angelos session"; }
+    Mod+Shift+Q                         hotkey-overlay-title="angelOS: выключение" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open session"; }
     Mod+Shift+K                         repeat=false hotkey-overlay-title="angelOS: показ нажатых клавиш" { spawn-sh "qs -c angelos ipc call angelos keycast"; }
     Mod+E                               hotkey-overlay-title="Файлы" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos files"; }
     XF86AudioRaiseVolume                allow-when-locked=true allow-inhibiting=false { spawn-sh "qs -c angelos ipc call angelos volumeUp"; }
@@ -39,7 +39,7 @@ binds {
     Mod+Shift+WheelScrollUp             { focus-column-left; }
     Mod+CTRL+Shift+WheelScrollDown      { move-column-right; }
     Mod+CTRL+Shift+WheelScrollUp        { move-column-left; }
-    Mod+V                               hotkey-overlay-title="angelOS: буфер обмена" { spawn-sh "qs -c angelos ipc call angelos clipboard"; }
+    Mod+V                               hotkey-overlay-title="angelOS: буфер обмена" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open clipboard"; }
     Mod+Shift+C                         repeat=false hotkey-overlay-title="angelOS: пипетка (цвет с экрана)" { spawn-sh "qs -c angelos ipc call angelos pickColor"; }
     Mod+Alt+G                           repeat=false allow-inhibiting=false hotkey-overlay-title="angelOS: клип — последние секунды экрана на Полку" { spawn-sh "qs -c angelos ipc call angelos clip"; }
     Mod+Shift+S                         repeat=false hotkey-overlay-title="angelOS: скриншот — выделить, найти, текст, перевод" { spawn-sh "~/.config/quickshell/angelos/bin/angelos capture 2>&1 | grep -q . && exec ~/.local/bin/niri-screenshot-region"; }
@@ -50,7 +50,7 @@ binds {
     Mod+ESCAPE                          allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
     // as on Windows: Ctrl+Alt+Del is the power menu (it was niri's quit: one Enter in its
     // English dialog and the session was gone), Alt+F4 closes, Ctrl+Shift+Esc is the task manager
-    CTRL+ALT+Delete                     hotkey-overlay-title="angelOS: выключение" { spawn-sh "qs -c angelos ipc call angelos session"; }
+    CTRL+ALT+Delete                     hotkey-overlay-title="angelOS: выключение" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open session"; }
     ALT+F4                              hotkey-overlay-title="Закрыть окно" { close-window; }
     CTRL+Shift+Escape                   hotkey-overlay-title="angelOS: диспетчер задач" { spawn-sh "qs -c angelos ipc call angelos taskManager"; }
     Mod+Shift+P                         { power-off-monitors; } // Turn off screens (useful for OLED or privacy)

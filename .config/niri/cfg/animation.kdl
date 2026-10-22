@@ -8,8 +8,8 @@
             curve "cubic-bezier" 0.3 0 0.15 1
         }
         window-open {
-            // angelOS open: dither
-            duration-ms 180
+            // angelOS open: dither ×1.5
+            duration-ms 120
             curve "linear"
             custom-shader r#"
                 // angelOS open: the window appears pixel by pixel through an ordered (Bayer) dither, the grid of

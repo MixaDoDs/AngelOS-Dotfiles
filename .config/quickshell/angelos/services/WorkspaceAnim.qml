@@ -330,6 +330,15 @@ Singleton {
                     // Alt+Tab shares the socket (services/AltTab): one hop instead of `qs ipc`
                     // (and ⌘Tab / ⌘` of the Golden Gate skin's Mac keys: apps, appsback, appwin, appwinback)
                     const a = line.trim().match(/^alttab (next|prev|cancel|apps|appsback|appwin|appwinback)$/);
+                    // the launcher, the clipboard and the session menu (`angelos open …`): their keys
+                    // answer ~40 ms sooner than through `qs ipc`
+                    const o = line.trim().match(/^open (launcher|clipboard|session)$/);
+                    if (o) {
+                        client.reply("ok");
+                        if (!Shell.setupLocked)
+                            Shell[o[1] + "Open"] = !Shell[o[1] + "Open"];
+                        return;
+                    }
                     // the lens at the pointer, too (services/Lens)
                     const l = line.trim().match(/^lens (in|out|close|toggle|refresh)$/);
                     if (l) {

@@ -102,6 +102,38 @@ PxPage {
             }
         }
         SettingRow {
+            label: I18n.t("Слово за словом", "Word by word")
+            hint: I18n.t("строка появляется по словам, когда их поют: в такт, если у песни есть время каждого слова (NetEase — у многих популярных), у остальных — по слогам строки, почти в такт", "The line appears word by word as it is sung: in time where the song has each word's time (NetEase has it for many popular ones), by the line's syllables, nearly in time, for the rest")
+            PxToggle {
+                checked: Config.lyrics.byWord !== false
+                onToggled: c => Config.lyrics.byWord = c
+            }
+        }
+        SettingRow {
+            visible: Config.lyrics.byWord !== false
+            label: I18n.t("Слова на бит", "Words on the beat")
+            hint: I18n.t("слово появляется на ударе музыки, ближайшем к его времени, и подпрыгивает. Бит слышен только из самого плеера, не из всего компьютера", "Each word comes up on the music's beat nearest its time, with a hop. The beat is heard from the player only, not the whole computer")
+            PxToggle {
+                checked: Config.lyrics.onBeat !== false
+                onToggled: c => Config.lyrics.onBeat = c
+            }
+        }
+        SettingRow {
+            visible: Config.lyrics.byWord !== false
+            label: I18n.t("Слова чуть раньше", "Words ahead")
+            hint: I18n.t("слово появляется немного раньше, чем его поют, — успеваешь прочитать и подпеть", "Each word shows a moment before it is sung, so you can read it and sing along")
+            PxSegmented {
+                model: [
+                    {"label": I18n.t("нет", "no"), "value": 0},
+                    {"label": "0,15 с", "value": 150},
+                    {"label": "0,25 с", "value": 250},
+                    {"label": "0,4 с", "value": 400}
+                ]
+                currentValue: Config.lyrics.wordLeadMs
+                onActivated: v => Config.lyrics.wordLeadMs = v
+            }
+        }
+        SettingRow {
             label: I18n.t("Любимый плеер", "Preferred player")
             hint: I18n.t("если играет несколько — брать этот", "Prefer this player when several are playing")
             PxField {
