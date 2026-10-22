@@ -989,7 +989,8 @@ Item {
                     targetTimer.restart();
             }
             parent: page.parent
-            anchors.fill: parent
+            // a hidden one keeps its size: resizing the window doesn't lay out every kept page again, only the one on view
+            anchors.fill: visible ? parent : undefined
             layer.enabled: win.spread
             layer.effect: inkFx
             visible: current && !win.atHome
