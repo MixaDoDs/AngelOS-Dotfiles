@@ -17,6 +17,9 @@ Item {
     // second (a Settings page: laying it all out again each pixel is what made a resize stutter)
     property int widthLag: 0
     property real laidWidth: 0
+    // a resize is going on (and a moment after its last step): PxCards leaves what is below
+    // the view for its end
+    readonly property bool resizing: resizeEnd.running
 
     // The bar takes width from the content. A page that gets no taller when it is
     // narrower (a grid that changes its columns, text that rewraps) can fit once the
@@ -46,6 +49,10 @@ Item {
         barVisible = overflows;
         barFlips++;
         flipsReset.restart();
+    }
+    Timer {
+        id: resizeEnd
+        interval: 150
     }
     Timer {
         id: widthLater
@@ -88,6 +95,8 @@ Item {
         // the content a moment wider than the view doesn't make it scroll sideways
         flickableDirection: root.widthLag > 0 ? Flickable.VerticalFlick : Flickable.AutoFlickDirection
         onWidthChanged: {
+            if (root.widthLag > 0 && root.laidWidth > 0)
+                resizeEnd.restart();
             if (root.widthLag <= 0 || root.laidWidth <= 0)
                 root.laidWidth = width;
             else if (!widthLater.running)

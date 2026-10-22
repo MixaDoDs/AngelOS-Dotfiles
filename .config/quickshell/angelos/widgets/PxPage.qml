@@ -137,6 +137,8 @@ PxScroll {
         width: parent.width - (root.embedded ? 0 : Theme.u * 8)
         columns: root.cardColumns
         spacing: Theme.u * (root.fluent ? 5 : root.settingsSkin === "stream" ? 6 : 8)
+        resizing: root.resizing
+        viewBottom: root.contentY + root.height - y
 
         Column {
             id: head
