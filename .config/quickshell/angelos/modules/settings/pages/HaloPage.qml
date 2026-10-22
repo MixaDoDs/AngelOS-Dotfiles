@@ -8,7 +8,7 @@ import "../../halo/HaloCat.js" as Kitty
 // Settings → Halo (Нимб): the pixel Dynamic Island at the top centre (services/Halo, modules/halo)
 PxPage {
     heading: I18n.t("Нимб", "Halo")
-    subtitle: I18n.t("Капсулы сверху по центру экрана: музыка с лирикой, таймеры, запись экрана (средний клик — пауза), загрузки браузера, обновление angelOS; на миг — цвет пипетки, сеть, зарядка, достижения. Полка — карман на рабочем столе: брось на Нимб файл, картинку, ссылку или текст и вытащи в любое окно, когда понадобится; там же записки на потом (＋), они остаются, пока не отметишь ✓. Готовая запись и скачанный файл ложатся туда же. Держит свою полосу сверху, раскрытая карточка ложится поверх окон, в покое — часы, погода и котик (Настройки → «В покое»). Поверх полноэкранной игры или фильма показывается только конец таймера.", "Capsules at the top centre of the screen: music with its lyrics, timers, screen recording (a middle click pauses), browser downloads, an angelOS update; for a moment — the eyedropper's colour, the network, the charger, achievements. The shelf is a pocket on the desktop: drop a file, a picture, a link or text on the Halo and drag it into any window when it is needed; notes for later live there too (＋) and stay until you tick them ✓. A finished recording and a downloaded file land there as well. It keeps a strip of its own at the top, the open card lies over the windows; at rest the clock, the weather and the cat («At rest»). Over a full-screen game or film only a timer's end shows.")
+    subtitle: I18n.t("Капсулы сверху по центру: музыка, таймеры, запись, загрузки. Брось на Нимб файл, ссылку или текст — он ляжет на Полку и подождёт.", "Pills at the top centre: music, timers, recording, downloads. Drop a file, link or text on the Halo and it waits on the Shelf.")
     id: page
 
     // the look, as pictures: each a small Halo at rest in its colours
@@ -302,7 +302,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Таймеры", "Timers")
-            hint: I18n.t("идущие таймеры в капсуле; на странице «Кнопки» и конец таймера видны всегда", "running timers in the pill; the Buttons page and a timer's end always show them")
+            hint: I18n.t("идущие таймеры в капсуле; в «Быстрых кнопках» и конец таймера видны всегда", "running timers in the pill; the quick buttons and a timer's end always show them")
             PxToggle {
                 checked: Config.halo.showTimers
                 onToggled: c => Config.halo.showTimers = c
@@ -317,19 +317,27 @@ PxPage {
             }
         }
         SettingRow {
+            label: I18n.t("Звонки", "Calls")
+            hint: I18n.t("Discord, Telegram, Zoom… взяли микрофон — зелёная капсула: время звонка, «выключить микрофон» (только у этой программы, пульт и стрим не трогаются), «открыть»", "Discord, Telegram, Zoom… took the microphone — a green capsule: the call's time, mute (that program only, the mixer and the stream untouched), open")
+            PxToggle {
+                checked: Config.halo.calls !== false
+                onToggled: c => Config.halo.calls = c
+            }
+        }
+    }
+
+    // the rest of what it can show (Settings → Halo → More)
+    PxGroup {
+        name: "show-more"
+        title: I18n.t("Что ещё показывать", "What else it shows")
+        icon: "eye"
+        width: parent.width
+        SettingRow {
             label: I18n.t("Точка приватности", "Privacy dot")
-            hint: I18n.t("оранжевая — программа пишет микрофон, зелёная — включена камера; наведи — скажет какая", "orange: a program records the microphone, green: the camera is on; point at it to see which")
+            hint: I18n.t("оранжевая — программа пишет микрофон, зелёная — включена камера, фиолетовая — кто-то снимает экран (OBS, демонстрация в Discord); наведи — скажет какая", "orange: a program records the microphone, green: the camera is on, purple: something takes the screen (OBS, a Discord screen share); point at it to see which")
             PxToggle {
                 checked: Config.halo.privacyDot
                 onToggled: c => Config.halo.privacyDot = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Миниатюра скриншота", "Screenshot thumbnail")
-            hint: I18n.t("сохранённый скриншот на 4 с: утащи картинку или положи на полку", "a saved screenshot for 4 s: drag the picture out or put it on the shelf")
-            PxToggle {
-                checked: Config.halo.shotThumb
-                onToggled: c => Config.halo.shotThumb = c
             }
         }
         SettingRow {
@@ -373,30 +381,6 @@ PxPage {
             PxToggle {
                 checked: Config.halo.browserBridge
                 onToggled: c => Config.halo.browserBridge = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Уведомления", "Notifications")
-            hint: I18n.t("3 секунды в капсуле: иконка, программа, заголовок; наведи — весь текст. Угловое окошко тогда не появляется (кроме важных)", "3 seconds in the pill: icon, app, title; point at it for the text. The corner popup then stays away (but for critical ones)")
-            PxToggle {
-                checked: Config.halo.notify !== false
-                onToggled: c => Config.halo.notify = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Громкость и яркость", "Volume and brightness")
-            hint: I18n.t("полоской в Нимбе вместо отдельного окошка (на экране Нимба)", "a bar in the Halo instead of the separate box (on the Halo's screen)")
-            PxToggle {
-                checked: Config.halo.osd !== false
-                onToggled: c => Config.halo.osd = c
-            }
-        }
-        SettingRow {
-            label: I18n.t("Звонки", "Calls")
-            hint: I18n.t("Discord, Telegram, Zoom… взяли микрофон — зелёная капсула: время звонка, «выключить микрофон» (только у этой программы, пульт и стрим не трогаются), «открыть»", "Discord, Telegram, Zoom… took the microphone — a green capsule: the call's time, mute (that program only, the mixer and the stream untouched), open")
-            PxToggle {
-                checked: Config.halo.calls !== false
-                onToggled: c => Config.halo.calls = c
             }
         }
         SettingRow {

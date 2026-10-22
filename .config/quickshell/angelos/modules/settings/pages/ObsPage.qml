@@ -25,7 +25,8 @@ PxPage {
         SettingRow {
             label: I18n.t("Порт WebSocket", "WebSocket port")
             hint: I18n.t("как в настройках сервера WebSocket в OBS (обычно 4455)", "as in OBS's WebSocket server settings (usually 4455)")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: portField

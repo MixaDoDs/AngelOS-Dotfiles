@@ -14,7 +14,7 @@ PxPage {
 
     heading: I18n.t("Горячие клавиши", "Shortcuts")
     subtitle: (Keybinds.profile ? I18n.t("Профиль темы: ", "Theme profile: ") + (Keybinds.profile === "macos" ? I18n.t("macOS (Golden Gate)", "macOS (Golden Gate)") : I18n.t("пиксельная тема", "the pixel theme")) + " — " + String(Keybinds.file).split("/").pop() + I18n.t(". Изменения здесь меняют только эту тему; у другой темы свой профиль. ", ". Changes here touch this theme only; the other theme has its own profile. ") : "")
-        + I18n.t("Нажми на сочетание, чтобы поменять его; изменения проверяются niri и сохраняются с бэкапом. Внизу — общие для обеих тем клавиши (их можно переназначить здесь — только для этой темы) и сочетания, которые angelOS пишет сам (Alt+Tab, лупа): их клавиши заняты.", "Click a combination to change it; changes are validated by niri and backed up. Below: the keys both themes share (bind one here to replace it for this theme only) and the ones angelOS writes itself (Alt+Tab, the lens) — their keys are taken.")
+        + I18n.t("Нажми на сочетание, чтобы поменять его — сохраняется с бэкапом. Внизу — общие клавиши и те, что заняты самой angelOS (Alt+Tab, лупа).", "Click a shortcut to change it; it is saved with a backup. Below: the shared keys and the ones angelOS itself takes (Alt+Tab, the lens).")
 
     Component.onCompleted: Keybinds.refresh()
 
@@ -164,7 +164,7 @@ PxPage {
         SettingRow {
             visible: addGroup.kind === "app"
             label: I18n.t("Хоткей для приложения", "Shortcut for an app")
-            hint: I18n.t("запускается через gtk-launch, как из меню", "Started with gtk-launch, like from the menu")
+            hint: I18n.t("как из меню «Пуск»", "As from the Start menu")
             PxCombo {
                 width: parent.width
                 model: StartApps.apps.map(a => ({
@@ -179,7 +179,7 @@ PxPage {
         SettingRow {
             visible: addGroup.kind === "action"
             label: I18n.t("Системный вызов", "System call")
-            hint: I18n.t("действия angelOS (лаунчер, «Пуск», буфер, блокировка…) и niri", "angelOS actions (launcher, Start, clipboard, lock…) and niri ones")
+            hint: I18n.t("действия angelOS (лаунчер, «Пуск», буфер, блокировка…) и окон", "angelOS's actions (launcher, Start, clipboard, lock…) and the windows'")
             PxCombo {
                 width: parent.width
                 model: Keybinds.catalog.map((c, i) => ({
@@ -193,7 +193,7 @@ PxPage {
         SettingRow {
             visible: addGroup.kind === "command"
             label: I18n.t("Команда", "Command")
-            hint: I18n.t("выполняется через sh -c", "Run with sh -c")
+            hint: I18n.t("команда, как в терминале", "A command, as in a terminal")
             PxField {
                 id: cmdField
                 width: parent.width

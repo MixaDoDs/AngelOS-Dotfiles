@@ -66,7 +66,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Переключать", "Switch with")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: InputConfig.switchOptions
                 currentValue: page.switchOption
                 onActivated: v => page.setOptions(page.optionList.filter(o => !o.startsWith("grp:")).concat([v]))
@@ -96,6 +96,15 @@ PxPage {
             PxToggle {
                 checked: Config.launcher.clipboardPaste !== false
                 onToggled: c => Config.launcher.clipboardPaste = c
+            }
+        }
+        SettingRow {
+            visible: Niri.nativeMinimize
+            label: I18n.t("Буфер не пропадает", "Clipboard stays")
+            hint: I18n.t("скопировал и закрыл программу — текст, ссылки, файлы и картинка всё равно вставляются. Копия только в памяти; то, что копирует менеджер паролей, не хранится", "Copy, close the program, and the text, links, files and picture still paste. The copy lives in memory only; what a password manager copies is never kept")
+            PxToggle {
+                checked: Config.windows.clipboardKeep
+                onToggled: c => Config.windows.clipboardKeep = c
             }
         }
     }
@@ -137,7 +146,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("NumLock при входе", "NumLock on login")
-            hint: InputConfig.numlockState === "noperm" ? I18n.t("niri включает его при своём запуске; включить сразу не вышло — нет доступа к /dev/uinput", "niri turns it on when it starts; turning it on right away failed: no access to /dev/uinput") : I18n.t("niri включает его при запуске, angelOS проверяет лампочку после входа и дожимает", "niri turns it on when it starts; angelOS checks the LED after login and makes sure")
+            hint: InputConfig.numlockState === "noperm" ? I18n.t("включится при следующем входе; сразу не вышло — нет доступа к клавиатуре", "On at the next login; it couldn't switch on right now — no access to the keyboard") : I18n.t("включается при входе", "On at login")
             PxToggle {
                 checked: InputConfig.numlock
                 onToggled: c => InputConfig.save({

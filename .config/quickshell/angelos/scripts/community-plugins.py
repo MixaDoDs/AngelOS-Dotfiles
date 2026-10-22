@@ -179,7 +179,10 @@ def _unpack(data, root, expected_id, expected_version):
         raise ValueError("Plugin manifest id does not match registry")
     if manifest.get("version") != expected_version:
         raise ValueError("Plugin manifest version does not match registry")
-    if not isinstance(manifest.get("name"), str) or not manifest["name"].strip():
+    # a plain name or {"ru": …, "en": …} (the shell reads both through I18n.label)
+    name = manifest.get("name")
+    names = name.values() if isinstance(name, dict) else [name]
+    if not any(isinstance(n, str) and n.strip() for n in names):
         raise ValueError("Plugin manifest name is missing")
     return manifests[0].parent
 

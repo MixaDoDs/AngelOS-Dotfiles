@@ -227,6 +227,7 @@ Singleton {
         if (ch.focusFollowsMouse !== undefined) {
             const has = /^\s*focus-follows-mouse\b/m.test(t);
             if (ch.focusFollowsMouse && !has)
+                // only windows already fully in view: a new window that slid the old one aside keeps the focus
                 t = t.replace(/^(\s*)(workspace-auto-back-and-forth.*)$/m, (m, i, l) => i + "focus-follows-mouse\n" + i + l);
             else if (!ch.focusFollowsMouse && has)
                 t = t.replace(/^\s*focus-follows-mouse\b.*\n/m, "");

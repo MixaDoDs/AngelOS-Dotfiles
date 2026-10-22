@@ -318,7 +318,8 @@ PxPage {
             visible: !!Renderer.fix.qt
             label: I18n.t("Исправление Qt для NVIDIA", "Qt fix for NVIDIA")
             hint: "Qt " + (Renderer.fix.qt || "?") + " · " + (!Renderer.fix.needed ? I18n.t("не нужно: в этой версии Qt уже исправлено", "not needed: this Qt already has it") : Renderer.fix.built ? I18n.t("собрано ♡", "built ♡") : I18n.t("не собрано", "not built")) + (Renderer.fix.nvidia ? "" : I18n.t(" · видеокарта не NVIDIA", " · not an NVIDIA GPU"))
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxButton {
                     visible: !!Renderer.fix.needed
@@ -375,6 +376,67 @@ PxPage {
                 onActivated: v => Power.setProfile(v)
             }
         }
+        SettingRow {
+            label: I18n.t("Окно в фокусе — первым", "The window in focus first")
+            hint: I18n.t("программа, в которой ты сейчас, получает процессор раньше фоновых: меньше подтормаживаний, когда что-то считается в фоне", "The program you're in gets the CPU before the ones in the background: fewer hitches while something works behind it")
+            PxToggle {
+                checked: Config.system.focusBoost !== false
+                onToggled: c => Config.system.focusBoost = c
+            }
+        }
+    }
+
+    // angel-niri: the screens without the game draw less while it runs, the game may tear
+    // (niri-game-mode → niri's set-background-fps, set-tearing); stock niri has no such thing.
+    // NVIDIA's clock (niri-game-mode → gpu-clocks) works on either
+    PxGroup {
+        name: "games-background"
+        visible: Niri.nativeMinimize || ScreenTune.nvidia
+        title: I18n.t("Игры", "Games")
+        icon: "gamepad"
+        width: parent.width
+        SettingRow {
+            visible: Niri.nativeMinimize
+            label: I18n.t("Фон во время игры", "The rest while gaming")
+            hint: I18n.t("пока идёт игра, другие экраны и их окна рисуются не чаще этого — видеокарта остаётся игре. Экран с игрой и экран, который снимает OBS, — всегда как есть", "While a game runs, the other screens and their windows draw no more often than this, leaving the GPU to the game. The game's screen and any screen OBS captures always stay as they are")
+            PxSegmented {
+                model: [
+                    {"label": I18n.t("как есть", "as is"), "value": 0},
+                    {"label": "30", "value": 30},
+                    {"label": "60", "value": 60},
+                    {"label": "120", "value": 120}
+                ]
+                currentValue: Config.gaming.backgroundFps
+                onActivated: v => Config.gaming.backgroundFps = v
+            }
+        }
+        SettingRow {
+            visible: Niri.nativeMinimize
+            label: I18n.t("Разрыв кадра", "Tearing")
+            hint: I18n.t("игра на весь экран показывает кадр сразу, не дожидаясь обновления монитора: меньше задержка мыши, но иногда видна горизонтальная полоса разрыва. Включится со следующей игры", "A fullscreen game shows each frame at once instead of waiting for the monitor's refresh: less mouse lag, but a horizontal tear line may show. Takes effect from the next game")
+            PxToggle {
+                checked: Config.gaming.tearing !== false
+                onToggled: c => Config.gaming.tearing = c
+            }
+        }
+        SettingRow {
+            visible: Niri.nativeMinimize
+            label: I18n.t("Мышь не уходит из игры", "The mouse stays in the game")
+            hint: I18n.t("пока игра на весь экран в фокусе, курсор не перескакивает на другой монитор от резкого движения. Держи Win — выйдет. Включится со следующей игры", "While a fullscreen game has the focus, a quick flick no longer throws the pointer onto the other screen. Hold Win to leave. Takes effect from the next game")
+            PxToggle {
+                checked: Config.gaming.pointerLock !== false
+                onToggled: c => Config.gaming.pointerLock = c
+            }
+        }
+        SettingRow {
+            visible: ScreenTune.nvidia
+            label: I18n.t("Видеокарта на полной частоте", "The video card at full speed")
+            hint: I18n.t("пока идёт игра, частота NVIDIA не падает ниже 60 % от максимума: лёгкие игры (CS2) не дёргаются, пока карта сбавляет и снова разгоняет частоту. Нужна игровая версия (Обслуживание → Игры). Включится со следующей игры", "While a game runs, the NVIDIA clock stays above 60 % of its maximum: light games (CS2) don't stutter while the card slows down and speeds up again. Needs the gaming edition (Maintenance → Games). Takes effect from the next game")
+            PxToggle {
+                checked: Config.gaming.gpuClocks !== false
+                onToggled: c => Config.gaming.gpuClocks = c
+            }
+        }
     }
 
     PxGroup {
@@ -387,10 +449,21 @@ PxPage {
             spacing: Theme.u * 8
             width: parent.width
             PxIcon {
+                id: ghost
                 name: "ghost"
                 pixel: Theme.u * 5
             }
             Grid {
+                id: infoGrid
+                // the names' column: the values wrap in what is left
+                readonly property real namesWidth: {
+                    let w = 0;
+                    for (const c of children)
+                        if (c.modelData && c.modelData.dim)
+                            w = Math.max(w, c.implicitWidth);
+                    return w;
+                }
+                width: parent.width - ghost.width - parent.spacing
                 columns: 2
                 columnSpacing: Theme.u * 8
                 rowSpacing: Theme.u * 2
@@ -407,6 +480,8 @@ PxPage {
                         ]), [])
                     PxText {
                         required property var modelData
+                        width: modelData.dim ? implicitWidth : Math.max(0, Math.min(implicitWidth, infoGrid.width - infoGrid.namesWidth - infoGrid.columnSpacing))
+                        wrapMode: Text.Wrap
                         text: modelData.t
                         dim: modelData.dim
                     }
@@ -576,7 +651,7 @@ PxPage {
             wrapMode: Text.Wrap
             kind: "tiny"
             dim: true
-            text: I18n.t("Популярные клавиатуры, мыши и микрофоны дороже $", "Popular keyboards, mice and microphones over $") + Math.round(SystemInfo.gearThreshold) + I18n.t(" находятся сами (примерная цена на старте продаж). Что воткнуто в пульт и остальное — добавь сам: это хранится только у тебя (~/.config/angelos/gear.json) и никуда не публикуется. Всё это показывает и fastfetch.", " are found by themselves (roughly their launch price). What is plugged into the interface and the rest you add yourself: it stays only with you (~/.config/angelos/gear.json) and is never published. fastfetch shows it all too.")
+            text: I18n.t("Популярные клавиатуры, мыши и микрофоны дороже $", "Popular keyboards, mice and microphones over $") + Math.round(SystemInfo.gearThreshold) + I18n.t(" находятся сами. Остальное добавь сам — это хранится только у тебя и никуда не публикуется.", " are found by themselves. Add the rest yourself: it stays only with you and is never published.")
         }
         PxButton {
             compact: true
@@ -724,7 +799,7 @@ PxPage {
             label: I18n.t("Анимация", "Animation")
             hint: I18n.t("картинка оживает в новом терминале: машет крыльями, блестит, искрится; любая клавиша — сразу к делу", "the picture comes alive in a new terminal: wings flap, it shines and sparkles; any key gets you straight to work")
             PxCombo {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 model: [
                     {
                         "label": I18n.t("Выключена", "Off"),
@@ -755,7 +830,7 @@ PxPage {
             label: I18n.t("Показать", "Show")
             hint: I18n.t("рай — как сейчас; круги — как будет в аду (там fastfetch меняется сам)", "heaven is how it is now; the circles are how hell shows it (it changes there by itself)")
             PxCombo {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 model: [
                     {
                         "label": I18n.t("Рай", "Heaven"),
@@ -801,7 +876,7 @@ PxPage {
             kind: "tiny"
             dim: true
             visible: ffGroup.pick === "own"
-            text: I18n.t("Выше — «Компакт» для сравнения. Свой config.jsonc angelOS не меняет; значок в logo.txt рисует, если включено «fastfetch рисует этот значок» (Панель → Логотип).", "Above: Compact, to compare. angelOS leaves your config.jsonc alone; it draws the emblem into logo.txt if “fastfetch draws this emblem” is on (Bar → Logo).")
+            text: I18n.t("Выше — «Компакт» для сравнения. Свой config.jsonc angelOS не меняет; значок в logo.txt рисует, если включено «fastfetch рисует этот значок» («Пуск» → Ещё → «Логотип»).", "Above: Compact, to compare. angelOS leaves your config.jsonc alone; it draws the emblem into logo.txt if “fastfetch draws this emblem” is on (Start → More → Logo).")
         }
     }
 
@@ -966,7 +1041,7 @@ PxPage {
             label: I18n.t("Программа", "Executable")
             hint: I18n.t("Имя программы или полный путь, без аргументов", "Program name or full path, without arguments")
             PxField {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 text: Config.system.monitorProgram
                 placeholder: "missioncenter"
                 onEdited: Config.system.monitorProgram = text
@@ -982,7 +1057,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Всегда плавающее окно", "Always a floating window")
-            hint: I18n.t("правило niri для окна диспетчера: не встаёт в колонки, открывается поверх", "A niri rule: the task manager never joins the columns, it opens on top")
+            hint: I18n.t("окно диспетчера открывается поверх остальных", "The task manager opens on top of the rest")
             PxToggle {
                 checked: Config.system.monitorFloat
                 onToggled: c => Config.system.monitorFloat = c
@@ -1087,19 +1162,20 @@ PxPage {
 
     PxGroup {
         name: "programs"
-        title: I18n.t("Программы", "Programs")
+        title: I18n.t("Свои команды", "Your own commands")
         advanced: true
         icon: "terminal"
         width: parent.width
-        PxButton {
-            text: I18n.t("Блокировка и заставка →", "Lock and idle screen →")
-            icon: "lock"
-            onClicked: Shell.settingsGo(systemPage, "lock")
+        PxText {
+            width: parent.width
+            wrapMode: Text.Wrap
+            dim: true
+            text: I18n.t("Обычно их ставит выбор выше. Здесь — если нужна команда с ключами.", "The choice above sets them. Here: when a command needs its own options.")
         }
         SettingRow {
             label: I18n.t("Терминал", "Terminal")
             PxField {
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 text: Config.system.terminal
                 onEdited: Config.system.terminal = text
             }
@@ -1107,7 +1183,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Файловый менеджер", "File manager")
             PxField {
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 text: Config.system.fileManager
                 onEdited: Config.system.fileManager = text
             }
@@ -1120,20 +1196,7 @@ PxPage {
         title: I18n.t("Игра", "The game")
         icon: "heart"
         width: parent.width
-        // the calm mode is one of the three motion levels now (config/Motion, C4): one place
-        SettingRow {
-            label: I18n.t("Спокойный режим", "Calm mode")
-            hint: I18n.t("теперь в «Доступность → Движение»: полное, спокойное (без вспышек, тряски и резких звуков) или выключено. Сейчас: ", "Now in Accessibility → Motion: full, calm (no flashes, shaking or sudden loud sounds) or off. Now: ") + ({
-                    "full": I18n.t("полное", "full"),
-                    "calm": I18n.t("спокойное", "calm"),
-                    "off": I18n.t("выключено", "off")
-                })[Motion.level]
-            PxButton {
-                icon: "sparkle"
-                text: I18n.t("Открыть", "Open")
-                onClicked: Shell.settingsGo(systemPage, "motion")
-            }
-        }
+        visible: !Config.game.enabled
         SettingRow {
             visible: !Config.game.enabled
             label: I18n.t("Игра выключена", "The game is off")

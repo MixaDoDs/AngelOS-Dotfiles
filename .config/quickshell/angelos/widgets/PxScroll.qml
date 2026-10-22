@@ -12,6 +12,14 @@ Item {
     // false: as tall as its content, the wheel and drags go to the scroll it sits in (a part
     // of a settings page put together from groups, ComposedPage)
     property bool scrolls: true
+    // a resize: the content follows the width at most every `widthLag` ms (0: each step) and
+    // exactly when it ends: the edge moves every frame, the content is laid out a few times a
+    // second (a Settings page: laying it all out again each pixel is what made a resize stutter)
+    property int widthLag: 0
+    property real laidWidth: 0
+    // a resize is going on (and a moment after its last step): PxCards leaves what is below
+    // the view for its end
+    readonly property bool resizing: resizeEnd.running
 
     // The bar takes width from the content. A page that gets no taller when it is
     // narrower (a grid that changes its columns, text that rewraps) can fit once the
@@ -25,7 +33,10 @@ Item {
     property color handleColor: Theme.faceAlt
     property int barFlips: 0
     onOverflowsChanged: Qt.callLater(decideBar)
-    Component.onCompleted: Qt.callLater(decideBar)
+    Component.onCompleted: {
+        laidWidth = flick.width;
+        Qt.callLater(decideBar);
+    }
     function decideBar() {
         if (!scrolls) {
             barVisible = false;
@@ -38,6 +49,15 @@ Item {
         barVisible = overflows;
         barFlips++;
         flipsReset.restart();
+    }
+    Timer {
+        id: resizeEnd
+        interval: 150
+    }
+    Timer {
+        id: widthLater
+        interval: root.widthLag
+        onTriggered: root.laidWidth = flick.width
     }
     Timer {
         id: flipsReset
@@ -71,7 +91,17 @@ Item {
         anchors.fill: parent
         anchors.rightMargin: root.barVisible ? bar.width + Theme.u * 3 : 0
         clip: true
-        contentWidth: width
+        contentWidth: root.widthLag > 0 ? root.laidWidth : width
+        // the content a moment wider than the view doesn't make it scroll sideways
+        flickableDirection: root.widthLag > 0 ? Flickable.VerticalFlick : Flickable.AutoFlickDirection
+        onWidthChanged: {
+            if (root.widthLag > 0 && root.laidWidth > 0)
+                resizeEnd.restart();
+            if (root.widthLag <= 0 || root.laidWidth <= 0)
+                root.laidWidth = width;
+            else if (!widthLater.running)
+                widthLater.start();
+        }
         boundsBehavior: Flickable.StopAtBounds
         interactive: root.scrolls
         flickDeceleration: 4000

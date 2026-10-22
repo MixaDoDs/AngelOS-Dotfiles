@@ -20,6 +20,23 @@ PxPage {
                 onToggled: c => Config.notifications.dnd = c
             }
         }
+        // one place for where they show: the Halo's pill (services/Halo: halo.notify) or the corner
+        SettingRow {
+            visible: !!Config.halo.enabled
+            label: I18n.t("Окошком или в Нимбе", "A popup or the Halo")
+            hint: I18n.t("в Нимбе — 3 секунды в капсуле; важные всё равно в углу", "In the Halo: 3 seconds in the pill; urgent ones still in the corner")
+            PxSegmented {
+                model: [{
+                        "label": I18n.t("В углу", "In the corner"),
+                        "value": "corner"
+                    }, {
+                        "label": I18n.t("В Нимбе", "In the Halo"),
+                        "value": "halo"
+                    }]
+                currentValue: Config.halo.notify !== false ? "halo" : "corner"
+                onActivated: v => Config.halo.notify = v === "halo"
+            }
+        }
         SettingRow {
             label: I18n.t("Сколько висят", "How long they stay")
             PxSlider {
@@ -52,9 +69,9 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Монитор", "Monitor")
-            hint: I18n.t("где фокус, на главном экране (страница «Монитор») или на выбранном", "The focused display, the main one (Monitor page) or a fixed one")
+            hint: I18n.t("где фокус, на главном экране (страница «Экраны») или на выбранном", "The focused display, the main one (Displays page) or a fixed one")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [
                     {
                         "label": I18n.t("где фокус", "Focused display"),

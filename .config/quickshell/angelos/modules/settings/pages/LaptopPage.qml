@@ -15,7 +15,9 @@ PxPage {
     // a spin box per power source: mains | battery, side by side
     component Minutes: Row {
         id: mins
-        property string acKey: ""               // "" = only the battery's (the lock's own is on its group)
+        property string acKey: ""               // "" = only the battery's
+        property var acIn: Config.power         // where acKey lives (the lock's is Config.lock)
+        property var acSet: v => Config.power[acKey] = v
         required property string batKey
         property int inherit: -1                // −1 on battery = as on mains: this shows instead
         spacing: Theme.u * 4
@@ -31,9 +33,9 @@ PxPage {
             from: 0
             to: 240
             stepSize: 5
-            value: mins.acKey ? Config.power[mins.acKey] : 0
+            value: mins.acKey ? mins.acIn[mins.acKey] : 0
             suffix: I18n.t(" мин", " min")
-            onMoved: v => Config.power[mins.acKey] = v
+            onMoved: v => mins.acSet(v)
         }
         PxText {
             visible: Laptop.has("battery")
@@ -55,29 +57,42 @@ PxPage {
 
     PxGroup {
         name: "power-idle"
-        title: I18n.t("Когда никто не трогает", "When left alone")
+        title: I18n.t("Когда отошёл от компьютера", "When you step away")
         icon: "moon"
         width: parent.width
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: Laptop.has("battery") ? I18n.t("0 = никогда. От батареи обычно короче: экран — самое прожорливое в ноутбуке. Видео и игры на весь экран не дают этим таймерам сработать.", "0 = never. On battery usually shorter: the screen is what eats the most. Fullscreen video and games hold these timers off.") : I18n.t("0 = никогда. Видео и игры на весь экран не дают этим таймерам сработать.", "0 = never. Fullscreen video and games hold these timers off.")
+            text: I18n.t("По порядку, через сколько минут без мыши и клавиатуры. 0 = никогда. Видео и игры на весь экран не дают им сработать.", "In order: after how many minutes without the mouse and keyboard. 0 = never. Fullscreen video and games hold them off.")
+        }
+        // services/IdleWatch: the screensaver (modules/lock idle screen)
+        SettingRow {
+            label: I18n.t("Заставка", "Screensaver")
+            PxSpin {
+                from: 0
+                to: 60
+                stepSize: 1
+                value: Config.idle.minutes
+                suffix: I18n.t(" мин", " min")
+                onMoved: v => Config.idle.minutes = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Блокировать", "Lock")
+            Minutes {
+                acKey: "idleMinutes"
+                acIn: Config.lock
+                acSet: v => Config.lock.idleMinutes = v
+                batKey: "batteryLockMinutes"
+                inherit: Config.lock.idleMinutes
+            }
         }
         SettingRow {
             label: I18n.t("Гасить экран", "Turn the screen off")
             Minutes {
                 acKey: "screenOffMinutes"
                 batKey: "batteryScreenOffMinutes"
-            }
-        }
-        SettingRow {
-            visible: Laptop.has("battery")
-            label: I18n.t("Блокировать", "Lock")
-            hint: I18n.t("от сети — в «Когда блокировать» ниже", "On mains: When to lock, below")
-            Minutes {
-                batKey: "batteryLockMinutes"
-                inherit: Config.lock.idleMinutes
             }
         }
         SettingRow {
@@ -94,6 +109,14 @@ PxPage {
             PxToggle {
                 checked: Config.power.dim
                 onToggled: v => Config.power.dim = v
+            }
+        }
+        SettingRow {
+            label: I18n.t("Блокировать перед сном", "Lock before sleep")
+            hint: I18n.t("проснулся — сразу замок, а не рабочий стол", "Waking up shows the lock, never the desktop")
+            PxToggle {
+                checked: Config.lock.onSleep
+                onToggled: c => Config.lock.onSleep = c
             }
         }
     }
@@ -129,7 +152,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Когда подключён второй экран, закрытая крышка просто гасит экран ноутбука — работа идёт дальше. Экран блокируется перед сном всегда (Настройки → Блокировка).", "With a second screen plugged in, closing the lid only turns the laptop's panel off and you keep working. The lock always comes up before sleep (Settings → Lock).") + (Laptop.lidOurs ? I18n.t(" Сейчас крышку обрабатывает angelOS.", " angelOS handles the lid now.") : "")
+            text: I18n.t("Когда подключён второй экран, закрытая крышка просто гасит экран ноутбука — работа идёт дальше. Блокировать ли перед сном — в карточке «Когда отошёл от компьютера».", "With a second screen plugged in, closing the lid only turns the laptop's panel off and you keep working. Whether to lock before sleep: the «When you step away» card.") + (Laptop.lidOurs ? I18n.t(" Сейчас крышку обрабатывает angelOS.", " angelOS handles the lid now.") : "")
         }
         SettingRow {
             label: I18n.t("От батареи", "On battery")
@@ -164,7 +187,7 @@ PxPage {
             visible: Backlight.available
             label: I18n.t("Яркость", "Brightness")
             PxSlider {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 from: 0
                 to: 100
                 stepSize: 1
@@ -217,7 +240,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Клавиши angelOS", "angelOS keys")
-            hint: I18n.t("яркость, подсветка клавиатуры, тачпад, режим полёта, калькулятор и Mod+P — меню экранов", "Brightness, keyboard light, touchpad, airplane mode, calculator and Mod+P — the screens menu")
+            hint: I18n.t("яркость, подсветка клавиатуры, тачпад, режим полёта, калькулятор и Win+P — меню экранов", "Brightness, keyboard light, touchpad, airplane mode, calculator and Win+P — the screens menu")
             PxToggle {
                 checked: Config.laptop.keys
                 onToggled: v => Config.laptop.keys = v

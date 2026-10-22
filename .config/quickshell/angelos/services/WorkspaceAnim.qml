@@ -319,10 +319,26 @@ Singleton {
             }
             parser: SplitParser {
                 onRead: line => {
-                    const m = line.trim().match(/^ws ([0-9]{1,2}|up|down|prev)$/);
+                    // `ws <target> <press ms>`: a press older than socat's 1 s wait was already done by
+                    // niri itself (`angelos ws` falls back while the shell hangs) — doing it again on
+                    // waking threw the desks back and forth
+                    const m = line.trim().match(/^ws ([0-9]{1,2}|up|down|prev)(?: ([0-9]+))?$/);
+                    if (m && m[2] && Date.now() - Number(m[2]) > 800) {
+                        client.reply("err");
+                        return;
+                    }
                     // Alt+Tab shares the socket (services/AltTab): one hop instead of `qs ipc`
                     // (and ⌘Tab / ⌘` of the Golden Gate skin's Mac keys: apps, appsback, appwin, appwinback)
                     const a = line.trim().match(/^alttab (next|prev|cancel|apps|appsback|appwin|appwinback)$/);
+                    // the launcher, the clipboard and the session menu (`angelos open …`): their keys
+                    // answer ~40 ms sooner than through `qs ipc`
+                    const o = line.trim().match(/^open (launcher|clipboard|session)$/);
+                    if (o) {
+                        client.reply("ok");
+                        if (!Shell.setupLocked)
+                            Shell[o[1] + "Open"] = !Shell[o[1] + "Open"];
+                        return;
+                    }
                     // the lens at the pointer, too (services/Lens)
                     const l = line.trim().match(/^lens (in|out|close|toggle|refresh)$/);
                     if (l) {

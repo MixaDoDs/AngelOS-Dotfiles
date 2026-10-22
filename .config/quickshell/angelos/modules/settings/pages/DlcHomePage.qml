@@ -177,7 +177,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Потом можно сменить в «Тема и цвета» → «Вид настроек».", "You can change it later in Theme and colours → Settings look.")
+            text: I18n.t("Потом можно сменить в «Тема» → «Вид настроек».", "You can change it later in Theme → Settings look.")
         }
         Row {
             spacing: Theme.u * 4
@@ -420,7 +420,7 @@ PxPage {
             }
 
             PxText {
-                text: page.stream ? I18n.t("Суперчаты: разделы", "Super chats: sections") : "✧ " + I18n.t("Разделы", "Sections")
+                text: page.stream ? I18n.t("Суперчаты: разделы", "Win chats: sections") : "✧ " + I18n.t("Разделы", "Sections")
                 kind: "title"
                 color: page.stream ? Theme.streamText : Theme.text
             }

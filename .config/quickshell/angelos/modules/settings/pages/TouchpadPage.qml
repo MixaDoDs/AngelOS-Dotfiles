@@ -71,7 +71,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Скорость указателя", "Pointer speed")
             PxSlider {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 from: -1
                 to: 1
                 stepSize: 0.05
@@ -156,7 +156,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Скорость прокрутки", "Scroll speed")
             PxSlider {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 from: 0.2
                 to: 3
                 stepSize: 0.1
@@ -211,7 +211,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Свои у niri: 3 пальца влево-вправо — колонки окон, вверх-вниз — рабочие столы, 4 пальца вверх — обзор. Два пальца щипком — масштаб в приложениях. Остальное — ниже.", "niri's own: three fingers left/right move between columns, up/down between workspaces, four fingers up open the overview. A two-finger pinch zooms in apps. The rest is below.")
+            text: I18n.t("Уже есть: 3 пальца влево-вправо — колонки окон, вверх-вниз — рабочие столы, 4 пальца вверх — обзор. Щипок — масштаб в программах. Остальное — ниже.", "Built in: 3 fingers left-right for the window columns, up-down for desks, 4 up for the overview. Pinch zooms in apps. The rest is below.")
         }
         SettingRow {
             label: I18n.t("Жесты angelOS", "angelOS gestures")

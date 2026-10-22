@@ -53,6 +53,15 @@ Singleton {
         onTriggered: if (root.auto && root.wallpaper)
             root.generateFrom(root.wallpaper)
     }
+    // (local patch 56) Heaven's Gate: the colours at once, while its frozen frame hides the whole
+    // shell repainting (~0.1 s), not 0.9 s on in the middle of its animation
+    function settleNow() {
+        if (autoTimer.running) {
+            autoTimer.stop();
+            if (auto && wallpaper)
+                generateFrom(wallpaper);
+        }
+    }
 
     // "Generate from wallpaper" button: the picture on the focused screen
     function generate() {

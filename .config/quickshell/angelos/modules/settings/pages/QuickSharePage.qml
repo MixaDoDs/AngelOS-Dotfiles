@@ -57,7 +57,7 @@ PxPage {
             label: I18n.t("Имя этого компьютера", "This computer's name")
             hint: I18n.t("так его видно на телефоне", "how the phone shows it")
             PxField {
-                width: Theme.u * 90
+                width: Math.min(Theme.u * 90, parent.width)
                 text: Config.quickshare.alias
                 placeholder: QuickShare.alias
                 onEdited: Config.quickshare.alias = text
@@ -66,7 +66,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Куда сохранять", "Where files go")
             PxField {
-                width: Theme.u * 90
+                width: Math.min(Theme.u * 90, parent.width)
                 text: Config.quickshare.dir
                 placeholder: "~/Downloads/LocalSend"
                 onEdited: Config.quickshare.dir = text
@@ -76,7 +76,7 @@ PxPage {
             label: "PIN"
             hint: I18n.t("отправителю придётся его ввести; пусто — без PIN", "the sender types it; empty = none")
             PxField {
-                width: Theme.u * 40
+                width: Math.min(Theme.u * 40, parent.width)
                 text: Config.quickshare.pin
                 onEdited: Config.quickshare.pin = text
             }

@@ -8,12 +8,65 @@ import qs.widgets
 
 PxPage {
     heading: I18n.t("Приложения по умолчанию", "Default applications")
-    subtitle: I18n.t("Чем открывать ссылки, файлы и папки. Пишется в ~/.config/mimeapps.list (сначала бэкап).", "What opens links, files and folders. Written to ~/.config/mimeapps.list (backed up first).")
+    subtitle: I18n.t("Чем открывать ссылки, файлы и папки.", "What opens links, files and folders.")
 
     Component.onCompleted: {
         DefaultApps.refresh();
         NautilusSetup.refresh();
         StrataSetup.refresh();
+    }
+
+    PxGroup {
+        name: "defaults"
+        wide: true
+        title: I18n.t("По умолчанию", "Defaults")
+        icon: "star"
+        width: parent.width
+        enabled: !DefaultApps.busy
+
+        Repeater {
+            model: DefaultApps.categories
+            SettingRow {
+                id: row
+                required property var modelData
+                readonly property var info: DefaultApps.data[modelData.id] || ({
+                        "current": "",
+                        "candidates": []
+                    })
+                readonly property var cur: info.candidates.find(c => c.id === info.current) || null
+                label: modelData.label
+                hint: info.candidates.length === 0 ? I18n.t("нет подходящих приложений", "no matching applications") : ""
+                Row {
+                    spacing: Theme.u * 4
+                    Item {
+                        width: Theme.u * 12
+                        height: Theme.u * 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        AppIcon {
+                            anchors.centerIn: parent
+                            visible: !!row.cur
+                            iconName: row.cur ? row.cur.icon : ""
+                            size: Theme.u * 11
+                        }
+                        PxIcon {
+                            anchors.centerIn: parent
+                            visible: !row.cur
+                            name: row.modelData.icon
+                        }
+                    }
+                    PxCombo {
+                        width: Theme.u * 120
+                        model: row.info.candidates.map(c => ({
+                                    "label": c.name,
+                                    "value": c.id
+                                }))
+                        currentValue: row.info.current
+                        placeholder: row.info.current || "—"
+                        onActivated: v => DefaultApps.set(row.modelData.id, v)
+                    }
+                }
+            }
+        }
     }
 
     // Strata, the file manager angelOS installs (services/StrataSetup, scripts/strata-setup.py)
@@ -26,11 +79,11 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: StrataSetup.installed ? I18n.t("Файловый менеджер angelOS: колонки, превью на пробел, поиск по Ctrl+K. angelOS добавляет в его меню «Открыть в терминале», «Отправить рядом» и mediafix для видео, а его тема «angelOS» сама следует за раем и адом. Mod+E открывает тот менеджер, что выбран ниже в «Файлы».", "angelOS's file manager: columns, Space previews, Ctrl+K search. angelOS adds «Open in terminal», «Send nearby» and mediafix for videos to its menu, and its «angelOS» theme follows heaven and hell by itself. Mod+E opens whichever manager «File manager» below names.") : I18n.t("Strata — файловый менеджер, который ставит angelOS (колонки, превью на пробел, быстрый поиск). Его ещё нет: он ставится из релиза на GitHub, для твоего пользователя, а обновляется сам.", "Strata is the file manager angelOS installs (columns, Space previews, fast search). It isn't here yet: it comes from its GitHub release, for your user, and updates itself.")
+            text: StrataSetup.installed ? I18n.t("Файловый менеджер angelOS: колонки, превью на пробел, поиск по Ctrl+K, тема следует за раем и адом.", "angelOS's file manager: columns, preview on Space, search on Ctrl+K, its theme follows heaven and hell.") : I18n.t("Strata — файловый менеджер, который ставит angelOS (колонки, превью на пробел, быстрый поиск). Его ещё нет: он ставится из релиза на GitHub, для твоего пользователя, а обновляется сам.", "Strata is the file manager angelOS installs (columns, Space previews, fast search). It isn't here yet: it comes from its GitHub release, for your user, and updates itself.")
         }
         Repeater {
             model: !StrataSetup.installed ? [] : [
-                [I18n.t("Открывает папки (Mod+E, «Пуск»)", "Opens folders (Mod+E, Start)"), !!StrataSetup.status.default, I18n.t("кнопка «Сделать основным»", "the «Make it the default» button")],
+                [I18n.t("Открывает папки (Win+E, «Пуск»)", "Opens folders (Win+E, Start)"), !!StrataSetup.status.default, I18n.t("кнопка «Сделать основным»", "the «Make it the default» button")],
                 [I18n.t("«Показать в папке» из браузера и программ", "«Show in folder» from browsers and apps"), !!StrataSetup.status.fileManager1, I18n.t("включится вместе с «основным»", "comes with «the default»")],
                 [I18n.t("Открыть в терминале", "Open in terminal"), !!StrataSetup.status.actions && StrataSetup.status.actions["angelos-terminal"], ""],
                 [I18n.t("Отправить рядом (LocalSend)", "Send nearby (LocalSend)"), !!StrataSetup.status.actions && StrataSetup.status.actions["angelos-share"], ""],
@@ -62,7 +115,7 @@ PxPage {
         SettingRow {
             visible: StrataSetup.installed
             label: I18n.t("Кольцо конвертации", "The conversion ring")
-            hint: I18n.t("Shift + правый клик по файлам в Strata — круговое меню: картинки, видео или звук и в какой формат. Готовое — в папку «Сконвертировано» рядом. Чтобы узнать выделенное, angelOS сам жмёт в Strata Ctrl+C и возвращает буфер обмена", "Shift + right click on files in Strata: a ring menu — pictures, video or sound and which format. Made files go to «Converted» beside them. To learn the selection angelOS presses Ctrl+C in Strata itself and puts the clipboard back")
+            hint: I18n.t("Shift + ПКМ по файлам в Strata — круговое меню: в какой формат сконвертировать. Готовое — в папку «Сконвертировано» рядом.", "Shift + right click on files in Strata: a ring menu of formats to convert to. The result goes to a Converted folder beside them.")
             PxToggle {
                 checked: Config.system.convertRing !== false
                 onToggled: v => Config.system.convertRing = v
@@ -138,7 +191,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("angelOS добавляет в меню Nautilus «Открыть в терминале» (терминал из настроек angelOS) и «Подготовить для DaVinci Resolve (mediafix)» для видео, а ещё ставит настройки по умолчанию: архивы в 7z, мелкие значки, без дерева в списке. Старые копии этих пунктов переносятся в бэкап.", "angelOS adds «Open in terminal» (the angelOS terminal) and «Prepare for DaVinci Resolve (mediafix)» for videos to Nautilus, plus defaults: 7z archives, small icons, no tree in list view. Older copies of these items are moved to a backup.")
+            text: I18n.t("angelOS добавляет в меню Nautilus «Открыть в терминале» и «Подготовить для DaVinci Resolve», архивы делает в 7z.", "angelOS adds Open in terminal and Prepare for DaVinci Resolve to Nautilus's menu and makes archives 7z.")
         }
         Repeater {
             model: [
@@ -241,57 +294,6 @@ PxPage {
         }
     }
 
-    PxGroup {
-        name: "defaults"
-        title: I18n.t("По умолчанию", "Defaults")
-        icon: "star"
-        width: parent.width
-        enabled: !DefaultApps.busy
-
-        Repeater {
-            model: DefaultApps.categories
-            SettingRow {
-                id: row
-                required property var modelData
-                readonly property var info: DefaultApps.data[modelData.id] || ({
-                        "current": "",
-                        "candidates": []
-                    })
-                readonly property var cur: info.candidates.find(c => c.id === info.current) || null
-                label: modelData.label
-                hint: info.candidates.length === 0 ? I18n.t("нет подходящих приложений", "no matching applications") : ""
-                Row {
-                    spacing: Theme.u * 4
-                    Item {
-                        width: Theme.u * 12
-                        height: Theme.u * 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        AppIcon {
-                            anchors.centerIn: parent
-                            visible: !!row.cur
-                            iconName: row.cur ? row.cur.icon : ""
-                            size: Theme.u * 11
-                        }
-                        PxIcon {
-                            anchors.centerIn: parent
-                            visible: !row.cur
-                            name: row.modelData.icon
-                        }
-                    }
-                    PxCombo {
-                        width: Theme.u * 120
-                        model: row.info.candidates.map(c => ({
-                                    "label": c.name,
-                                    "value": c.id
-                                }))
-                        currentValue: row.info.current
-                        placeholder: row.info.current || "—"
-                        onActivated: v => DefaultApps.set(row.modelData.id, v)
-                    }
-                }
-            }
-        }
-    }
     PxText {
         width: parent.width
         wrapMode: Text.Wrap

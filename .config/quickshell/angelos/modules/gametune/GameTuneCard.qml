@@ -85,8 +85,10 @@ Column {
 
     // ---- how it runs
     Row {
+        width: parent.width
         spacing: Theme.u * 3
         PxPill {
+            id: tierPill
             width: tierLabel.implicitWidth + Theme.u * 6
             height: tierLabel.implicitHeight + Theme.u * 2
             color: ({
@@ -106,6 +108,8 @@ Column {
         }
         PxText {
             anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(0, parent.width - tierPill.width - parent.spacing)
+            wrapMode: Text.Wrap
             visible: root.game.rating.n > 0
             text: I18n.t("работает у %1 из %2", "runs for %1 of %2").replace("%1", root.game.rating.ok).replace("%2", root.game.rating.n) + (root.game.rating.oob !== null && root.game.rating.oob !== undefined ? I18n.t(", сразу без настроек — %1 %", ", out of the box — %1 %").replace("%1", Math.round(root.game.rating.oob * 100)) : "")
             kind: "tiny"
@@ -424,7 +428,7 @@ Column {
             required property string modelData
             width: root.width
             wrapMode: Text.Wrap
-            readonly property var r: root.bench.results[modelData]
+            readonly property var r: root.bench && root.bench.results ? root.bench.results[modelData] : undefined
             visible: r !== undefined
             font.bold: root.ranked.length > 0 && root.ranked[0] === modelData
             text: (root.ranked[0] === modelData && root.bench.done ? "★ " : "• ") + root.runName(modelData) + " — " + root.fmt(r)
@@ -435,7 +439,7 @@ Column {
         visible: !!root.bench
         spacing: Theme.u * 3
         PxButton {
-            visible: !!root.bench && root.bench.done && root.ranked.length > 0
+            visible: !!(root.bench && root.bench.done) && root.ranked.length > 0
             accent: true
             icon: "check"
             text: I18n.t("Оставить ", "Keep ") + (root.ranked.length ? root.runName(root.ranked[0]) : "")

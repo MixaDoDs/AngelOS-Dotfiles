@@ -8,7 +8,7 @@ import qs.widgets
 import qs.modules.workspace
 
 PxPage {
-    heading: I18n.t("Воркспейсы", "Workspaces")
+    heading: I18n.t("Рабочие столы", "Workspaces")
     subtitle: I18n.t("Анимации при переключении: сердечки на панели, переход между столами, NGO-попап и полоска сердечек.", "Switching animations: the hearts on the bar, the transition between desks, the popup and the heart strip.")
 
     PxGroup {
@@ -87,7 +87,8 @@ PxPage {
                     "star": I18n.t("звезда-блёстка ✦: у активного стола мерцает", "A sparkle star ✦: twinkles on the active desk"),
                     "cd": I18n.t("радужный CD: у активного стола прокручивается", "A rainbow CD: spins on the active desk")
                 })[Config.workspaces.sprite] || I18n.t("пиксельное сердечко, как было", "The pixel heart, as before")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 Repeater {
                     model: [
@@ -383,7 +384,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("«Мягкий», «Рывок», «Пружина» и «Щелчок» — анимация самого niri (cfg/animation.kdl, с бэкапом и проверкой): оба стола живые, задержки нет. Остальные — angelOS снимает экран, niri переключает мгновенно, а старый стол уходит эффектом в сторону переключения (вверх или вниз); для них клавиши Mod+1…9, Mod+колесо и Mod+O идут через angelOS (если оболочка не запущена — напрямую в niri). Переключения мышью в обзоре остаются мгновенными. В полноэкранных играх game-mode всё равно выключает анимации.", "Soft, Dash, Spring and Snap are niri's own animation (cfg/animation.kdl, backed up and validated): both desks stay live, no delay. For the rest angelOS grabs the screen, niri switches instantly and the old desk leaves with an effect that follows the switch (up or down); for them Mod+1…9, Mod+wheel and Mod+O go through angelOS (straight to niri if the shell is not running). Switching with the mouse in the overview stays instant. Game mode still turns animations off for fullscreen games.")
+            text: I18n.t("«Мягкий», «Рывок», «Пружина» и «Щелчок» — без задержки, оба стола живые. Остальные красивее, но старый стол на миг замирает. В играх на весь экран анимации нет.", "Soft, Dash, Spring and Snap have no delay and both desks stay live. The others look fancier, but the old desk freezes for a moment. No animation in fullscreen games.")
         }
     }
 
@@ -452,7 +453,7 @@ PxPage {
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
-            text: I18n.t("Смена фокуса между мониторами больше ничего не показывает — только настоящее переключение воркспейса.", "Animations play when switching workspaces, not when moving focus between monitors.")
+            text: I18n.t("Смена фокуса между мониторами больше ничего не показывает — только настоящее переключение стола.", "Animations play when switching workspaces, not when moving focus between monitors.")
             dim: true
         }
     }
@@ -476,7 +477,7 @@ PxPage {
                 readonly property string key: modelData.output + ":" + modelData.idx
                 label: modelData.output + " · #" + modelData.idx + (modelData.is_active ? "  ♡" : "")
                 PxField {
-                    width: Theme.u * 110
+                    width: Math.min(Theme.u * 110, parent.width)
                     placeholder: r.modelData.name || ("workspace " + r.modelData.idx)
                     text: (Config.workspaces.names || {})[r.key] || ""
                     onEdited: Config.setIn(Config.workspaces, "names", r.key, text)

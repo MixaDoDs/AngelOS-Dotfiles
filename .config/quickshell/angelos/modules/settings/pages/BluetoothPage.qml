@@ -91,7 +91,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: !Bt.serviceInstalled ? I18n.t("BlueZ не установлен: sudo pacman -S bluez bluez-utils", "BlueZ is not installed: sudo pacman -S bluez bluez-utils") : !Bt.serviceActive ? I18n.t("Служба bluetooth выключена.", "The bluetooth service is off.") : I18n.t("Bluetooth-адаптер не найден. Проверь, что он есть и не заблокирован (rfkill list).", "No Bluetooth adapter found. Check that there is one and it is not blocked (rfkill list).")
+            text: !Bt.serviceInstalled ? I18n.t("BlueZ не установлен: sudo pacman -S bluez bluez-utils", "BlueZ is not installed: sudo pacman -S bluez bluez-utils") : !Bt.serviceActive ? I18n.t("Служба bluetooth выключена.", "The bluetooth service is off.") : I18n.t("Bluetooth-адаптер не найден. Проверь, что он есть и не выключен кнопкой на ноутбуке.", "No Bluetooth adapter found. Check it is there and not switched off by a laptop key.")
         }
         PxButton {
             visible: Bt.serviceInstalled && !Bt.serviceActive
@@ -110,7 +110,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Bluetooth включён", "Bluetooth on")
-            hint: Bt.blocked ? I18n.t("заблокирован rfkill", "blocked by rfkill") : ""
+            hint: Bt.blocked ? I18n.t("выключен кнопкой на ноутбуке", "Switched off by a laptop key") : ""
             PxToggle {
                 checked: Bt.enabled
                 onToggled: c => Bt.setEnabled(c)

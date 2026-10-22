@@ -659,7 +659,7 @@ PxPage {
                     wrapMode: Text.Wrap
                     kind: "tiny"
                     dim: true
-                    text: I18n.t("У этой клавиатуры служебный интерфейс нельзя отдавать драйверу ядра (она от этого сбрасывается и клавиши залипают), поэтому обычного узла hidraw у него нет, а USB-узел устройства открыт только администратору. «Разрешить» ставит маленькую системную службу-мост: она отдаёт тебе только служебный интерфейс и не пропускает команды прошивки. Через неё программа от твоего имени сможет менять настройки клавиатуры, но не читать нажатия и не прошивать её. Нужен пароль администратора, один раз. Подробно — docs/devices.md, раздел «Доступ».", "This keyboard's service interface must be kept from the kernel's driver (it resets and keys stick), so it has no hidraw node, and the device's USB node is the administrator's alone. \"Allow\" installs a small system bridge service: it hands you the service interface alone and passes no firmware command. Through it a program of yours can change the keyboard's settings, but neither read the keys nor flash it. It needs the admin password, once. The details: docs/devices.md, \"Access\".")
+                    text: I18n.t("Настройкам клавиатуры нужен доступ к её служебному интерфейсу. «Разрешить» ставит маленькую службу-мост: менять настройки можно, читать нажатия и прошивать — нельзя. Пароль администратора — один раз.", "The keyboard's settings need its service interface. Allow installs a small bridge service: settings can change, keystrokes can't be read and the firmware can't be flashed. The admin password, once.")
                 }
                 PxText {
                     visible: Devices.grantLog !== ""
@@ -1035,7 +1035,7 @@ PxPage {
                 hint: I18n.t("на какой глубине клавиша нажимается; меньше — быстрее и легче задеть", "How deep the key presses; less is faster and easier to brush")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: page.limA.min
                     to: page.limA.max
                     stepSize: 0.01
@@ -1053,7 +1053,7 @@ PxPage {
                 hint: I18n.t("на сколько надо утопить клавишу, чтобы она нажалась снова", "How far down the key has to go to press again")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: page.limR.min
                     to: Math.min(2, page.limR.max)
                     stepSize: 0.01
@@ -1071,7 +1071,7 @@ PxPage {
                 hint: I18n.t("на сколько надо отпустить клавишу, чтобы она отжалась", "How far up the key has to come to let go")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: page.limR.min
                     to: Math.min(2, page.limR.max)
                     stepSize: 0.01
@@ -1089,7 +1089,7 @@ PxPage {
                 hint: I18n.t("ход от верха, который не считается: от случайных касаний", "Travel from the top that counts for nothing: against chance touches")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: 0
                     to: page.limD
                     stepSize: 0.01
@@ -1107,7 +1107,7 @@ PxPage {
                 hint: I18n.t("ход у дна, который не считается: клавиша не дребезжит, когда её держат в пол", "Travel at the bottom that counts for nothing: a key held to the floor does not chatter")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: 0
                     to: page.limD
                     stepSize: 0.01
@@ -1313,7 +1313,7 @@ PxPage {
                 label: I18n.t("Удержание с", "Hold after")
                 hint: I18n.t("сколько держать, чтобы считалось удержанием", "How long to hold for it to count as a hold")
                 PxSlider {
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: 10
                     to: 1000
                     stepSize: 10
@@ -1442,7 +1442,7 @@ PxPage {
                         label: I18n.t("Яркость", "Brightness")
                         PxSlider {
                             enabled: Devices.canWrite && !Devices.working
-                            width: Theme.u * 130
+                            width: Math.min(Theme.u * 130, parent.width)
                             from: 1
                             to: 100
                             stepSize: 1

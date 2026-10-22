@@ -485,7 +485,7 @@ Singleton {
     // a timer's end, an achievement, a moment's event, a recording, an update, downloads,
     // timers, the chest; the music (with its lyrics) is the least — in the pill only when nothing
     // else goes on; the shelf's stack is no event, it stays a bubble
-    readonly property var order: ["ring", "call", "trophy", "flash", "rec", "update", "dl", "chat", "timer", "chest", "music", "paused", "shelf"]
+    readonly property var order: ["ring", "call", "trophy", "flash", "castPause", "rec", "update", "dl", "chat", "timer", "chest", "music", "paused", "shelf"]
     function rank(item) {
         const i = order.indexOf(["pick", "net", "power", "dlDone", "updated", "notif", "osd"].includes(item.kind) ? "flash" : item.kind);
         return i < 0 ? order.indexOf("flash") : i;
@@ -511,6 +511,12 @@ Singleton {
             });
         if (flash)
             l.push(flash);
+        // the pause for viewers (Privacy.pause): on until switched off, so it can't be forgotten
+        if (Privacy.paused)
+            l.push({
+                "key": "castPause",
+                "kind": "castPause"
+            });
         if (H.showRec && Capture.recording)
             l.push({
                 "key": "rec",

@@ -112,7 +112,7 @@ PxPage {
             label: I18n.t("Чат на экране", "Chat on screen")
             hint: I18n.t("папка, куда бот чата пишет журнал эфира (*.jsonl, строка на сообщение); пусто — выключено. Сам angelOS в YouTube не ходит", "The folder a chat bot writes the stream's log to (*.jsonl, a line a message); empty: off. angelOS itself never talks to YouTube")
             PxField {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 text: Config.stream.chatLog
                 placeholder: "~/…/stream-logs"
                 kind: "mono"
@@ -137,6 +137,15 @@ PxPage {
                 onToggled: c => Config.stream.chatRunners = c
             }
         }
+        SettingRow {
+            visible: !!Config.stream.chatLog && Config.stream.chatRunners !== false && Niri.nativeMinimize
+            label: I18n.t("Котики только зрителям", "Cats for the viewers only")
+            hint: I18n.t("котики видны в эфире, но не на твоём мониторе", "The cats show on stream but not on your monitor")
+            PxToggle {
+                checked: Config.stream.chatRunnersViewersOnly !== false
+                onToggled: c => Config.stream.chatRunnersViewersOnly = c
+            }
+        }
     }
 
     // privacy on stream (services/Privacy, the dotfiles' niri-cast-privacy): which apps are
@@ -148,7 +157,7 @@ PxPage {
         icon: "eye"
         SettingRow {
             label: I18n.t("Сейчас", "Now")
-            hint: Privacy.error !== "" ? Privacy.error : Privacy.on ? (Privacy.hidden.length ? I18n.t("в записи и трансляции чёрные: ", "Black in recordings and on stream: ") + Privacy.hidden.map(a => a.name).join(", ") : I18n.t("включена, но в списке ничего не отмечено", "On, but nothing in the list is ticked")) : I18n.t("выключена: в эфире видно всё. Mod+Shift+X включает её с клавиатуры", "Off: the stream shows everything. Mod+Shift+X switches it from the keyboard")
+            hint: Privacy.error !== "" ? Privacy.error : Privacy.on ? (Privacy.hidden.length ? (Privacy.nativeLook ? I18n.t("в записи и трансляции закрыты: ", "Covered in recordings and on stream: ") : I18n.t("в записи и трансляции чёрные: ", "Black in recordings and on stream: ")) + Privacy.hidden.map(a => a.name).join(", ") : I18n.t("включена, но в списке ничего не отмечено", "On, but nothing in the list is ticked")) : I18n.t("выключена: в эфире видно всё. Win+Shift+X включает её с клавиатуры", "Off: the stream shows everything. Win+Shift+X switches it from the keyboard")
             PxButton {
                 icon: Privacy.on ? "close" : "eye"
                 accent: !Privacy.on
@@ -164,9 +173,41 @@ PxPage {
                 onToggled: c => Config.stream.privacyAuto = c
             }
         }
+        // angel-niri: what the viewers see, drawn into the stream by niri itself
         SettingRow {
+            visible: Privacy.nativeLook
+            label: I18n.t("Что видят зрители", "What the viewers see")
+            hint: I18n.t("на месте скрытого окна в эфире и на записи. Своя заглушка у программы — в списке ниже", "In the hidden window's place, on stream and in recordings. An app can have its own in the list below")
+            PxCombo {
+                model: Privacy.looks.map(l => ({
+                            "label": Privacy.lookName(l),
+                            "value": l
+                        }))
+                currentValue: Config.stream.privacyLook
+                onActivated: v => {
+                    if (v === "image" && !Config.stream.privacyImage)
+                        Privacy.pickImage("");
+                    else
+                        Config.stream.privacyLook = v;
+                }
+            }
+        }
+        SettingRow {
+            visible: Privacy.nativeLook && Config.stream.privacyLook === "image"
+            label: I18n.t("Картинка", "Picture")
+            hint: Config.stream.privacyImage ? Config.stream.privacyImage.split("/").pop() : I18n.t("не выбрана — пока плашка", "None yet — the plate meanwhile")
+            PxButton {
+                compact: true
+                icon: "image"
+                enabled: !Privacy.picking
+                text: I18n.t("Выбрать…", "Choose…")
+                onClicked: Privacy.pickImage("")
+            }
+        }
+        SettingRow {
+            visible: !Privacy.nativeLook
             label: I18n.t("Плашка «Privacy ON» для зрителей", "«Privacy ON» plate for the viewers")
-            hint: I18n.t("вместо чёрного прямоугольника зрители видят плашку на месте окна. Один раз в OBS: Источник → «Захват окна (PipeWire)» → «angelOS · Privacy для OBS», поставить над захватом экрана и растянуть на весь экран. У тебя на экране её не видно", "Instead of a black box the viewers see a plate where the window is. Once in OBS: Source → “Window Capture (PipeWire)” → “angelOS · Privacy для OBS”, put it above the screen capture, stretched over the whole screen. You don't see it on your screen")
+            hint: I18n.t("зрители видят плашку на месте окна. Один раз в OBS: «Захват окна (PipeWire)» → «angelOS · Privacy для OBS», над захватом экрана, на весь экран.", "The viewers see a plate in the window's place. Once in OBS: Window Capture (PipeWire) → «angelOS · Privacy для OBS», above the screen capture, over the whole screen.")
             PxToggle {
                 checked: Config.stream.privacyPlates
                 onToggled: c => Config.stream.privacyPlates = c
@@ -176,7 +217,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Что скрывать: окна отмеченных программ в эфире закрыты плашкой «Privacy ON» (или чёрным, если плашки нет в OBS), а у тебя на экране они как обычно. Mod+Ctrl+Shift+X добавляет в список программу окна в фокусе или убирает её; Mod+Ctrl+X показывает её в эфире, пока не нажмёшь ещё раз.", "What to hide: the windows of the ticked apps are covered with a «Privacy ON» plate on stream (black when the plate is not in OBS) and stay as usual on your screen. Mod+Ctrl+Shift+X takes the focused window's app into the list or out of it; Mod+Ctrl+X shows it on stream until you press it again.")
+            text: Privacy.nativeLook ? I18n.t("Окна отмеченных программ в эфире закрыты заглушкой, у тебя — как обычно. Win+Ctrl+Shift+X — добавить или убрать программу в фокусе, Win+Ctrl+X — показать её в эфире на время.", "The ticked apps' windows are covered on stream and look as usual to you. Win+Ctrl+Shift+X adds or removes the focused app, Win+Ctrl+X shows it on stream for now.") : I18n.t("Окна отмеченных программ в эфире закрыты плашкой «Privacy ON» (без неё в OBS — чёрным), у тебя — как обычно. Win+Ctrl+Shift+X — добавить или убрать программу в фокусе, Win+Ctrl+X — показать её в эфире на время.", "The ticked apps' windows get a «Privacy ON» plate on stream (black without it in OBS) and look as usual to you. Win+Ctrl+Shift+X adds or removes the focused app, Win+Ctrl+X shows it on stream for now.")
         }
         Repeater {
             model: Privacy.apps
@@ -185,17 +226,51 @@ PxPage {
                 required property var modelData
                 label: modelData.name
                 hint: modelData.id
-                Row {
+                // a Flow: in a narrow card the look and the buttons wrap below the toggle
+                Flow {
+                    id: hiddenFlow
+                    width: parent.width
                     spacing: Theme.u * 3
-                    AppIcon {
-                        anchors.verticalCenter: parent.verticalCenter
-                        appId: hiddenApp.modelData.id
-                        size: Theme.u * 8
+                    Row {
+                        spacing: Theme.u * 3
+                        AppIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            appId: hiddenApp.modelData.id
+                            size: Theme.u * 8
+                        }
+                        PxToggle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            checked: hiddenApp.modelData.on
+                            onToggled: c => Privacy.app(c ? "add" : "remove", hiddenApp.modelData.id)
+                        }
                     }
-                    PxToggle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        checked: hiddenApp.modelData.on
-                        onToggled: c => Privacy.app(c ? "add" : "remove", hiddenApp.modelData.id)
+                    // its own look (angel-niri): "" — as every app
+                    PxCombo {
+                        visible: Privacy.nativeLook && hiddenApp.modelData.on
+                        width: Math.min(Theme.u * 100, hiddenFlow.width)
+                        readonly property var own: Privacy.appLook(hiddenApp.modelData.id)
+                        model: [{
+                                "label": I18n.t("Как у всех", "As the rest"),
+                                "value": ""
+                            }].concat(Privacy.looks.map(l => ({
+                                        "label": Privacy.lookName(l),
+                                        "value": l
+                                    })))
+                        currentValue: own ? own.look : ""
+                        onActivated: v => {
+                            if (v === "image" && !(own && own.image))
+                                Privacy.pickImage(hiddenApp.modelData.id);
+                            else
+                                Privacy.setAppLook(hiddenApp.modelData.id, v);
+                        }
+                    }
+                    PxButton {
+                        visible: Privacy.nativeLook && hiddenApp.modelData.on && !!Privacy.appLook(hiddenApp.modelData.id) && Privacy.appLook(hiddenApp.modelData.id).look === "image"
+                        compact: true
+                        icon: "image"
+                        enabled: !Privacy.picking
+                        text: I18n.t("Картинка…", "Picture…")
+                        onClicked: Privacy.pickImage(hiddenApp.modelData.id)
                     }
                     // on stream for now, until pressed again (Mod+Ctrl+X for the focused window)
                     PxButton {
@@ -236,12 +311,13 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Другая программа", "Another app")
-            hint: I18n.t("её app-id, как в `niri msg windows`", "Its app-id, as `niri msg windows` shows it")
-            Row {
+            hint: I18n.t("если её нет среди открытых: имя программы, как его знает система", "If it isn't open: the app's name as the system knows it")
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: privacyId
-                    width: Theme.u * 60
+                    width: Math.min(Theme.u * 60, parent.width)
                     placeholder: "org.example.App"
                     kind: "mono"
                     input.onAccepted: privacyAdd.clicked()
@@ -272,7 +348,7 @@ PxPage {
         icon: "chat"
         SettingRow {
             label: I18n.t("Показывать на стриме", "Show her on stream")
-            hint: I18n.t("пока идёт эфир OBS, ангелочек (или демоница) переходит на экран в эфире и сидит на панели «Пуска», как за столом (панель не снизу — на нижнем краю экрана), и говорит твоим микрофоном. Клик, меню и бросок в ад работают как обычно; в эфире у неё свои реплики", "While OBS streams, the angel (or the demon) moves to the streamed screen and sits on the taskbar like at a desk (on the screen's bottom edge when the bar is elsewhere) and talks with your mic. Clicks, her menu and the throw into hell work as usual; on stream she has lines of her own")
+            hint: I18n.t("во время эфира ангелочек переходит на экран эфира, сидит на панели и говорит твоим микрофоном", "While you're live the angel moves to the streamed screen, sits on the bar and talks with your microphone")
             PxToggle {
                 checked: !!Config.stream.streamer
                 onToggled: c => Config.stream.streamer = c
@@ -398,7 +474,7 @@ PxPage {
         // Mod+Alt+A: off your own screen; her window for OBS has her either way
         SettingRow {
             label: I18n.t("Спрятать от себя", "Hide her from you")
-            hint: (StreamAngel.view === "obs" ? I18n.t("сейчас ты её не видишь, она только в окне для OBS. ", "You don't see her now, she's only in the window for OBS. ") : I18n.t("сейчас она и у тебя на экране. ", "She's on your screen too now. ")) + I18n.t("Окно для OBS рисует её всё время, пока OBS запущен, это только про твой экран", "The window for OBS draws her the whole time OBS runs; this is about your screen only") + (Config.stream.streamerKeys !== false ? I18n.t(". Переключает Mod+Alt+A, в игре тоже", ". Mod+Alt+A switches it, in games too") : "")
+            hint: (StreamAngel.view === "obs" ? I18n.t("сейчас ты её не видишь, она только в окне для OBS. ", "You don't see her now, she's only in the window for OBS. ") : I18n.t("сейчас она и у тебя на экране. ", "She's on your screen too now. ")) + I18n.t("Окно для OBS рисует её всё время, пока OBS запущен, это только про твой экран", "The window for OBS draws her the whole time OBS runs; this is about your screen only") + (Config.stream.streamerKeys !== false ? I18n.t(". Переключает Win+Alt+A, в игре тоже", ". Win+Alt+A switches it, in games too") : "")
             PxButton {
                 icon: StreamAngel.view === "screen" ? "close" : "eye"
                 text: StreamAngel.view === "screen" ? I18n.t("Спрятать", "Hide") : I18n.t("Показать", "Show")
@@ -407,10 +483,10 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Окно для OBS", "Window for OBS")
-            hint: (!StreamAngel.niriKeys ? I18n.t("нужна клавиша ниже: с ней niri прячет это окно с экрана. ", "Needs the key below: with it niri keeps the window off your screen. ") : StreamAngel.castOpen ? (Niri.castWindowId >= 0 ? I18n.t("открыто. ", "Open. ") : I18n.t("открывается… ", "Opening… ")) : I18n.t("откроется, когда запустится OBS. ", "Opens when OBS starts. ")) + I18n.t("Один раз в OBS: Источники → + → «Захват окна (PipeWire)» → «angelOS · ангел для OBS», поставь над панелью. Фон прозрачный, она там всё время, пока OBS запущен, с эфиром и без, рот под микрофон. Если в кадре и твой экран, спрячь её от себя, иначе ангелов будет два", "Once in OBS: Sources → + → «Window Capture (PipeWire)» → «angelOS · ангел для OBS», put it over the bar. The background is transparent; she's there the whole time OBS runs, live or not, the mouth on the mic. If your screen is in the shot too, hide her from you, or there'll be two of her")
+            hint: (!StreamAngel.niriKeys ? I18n.t("нужна клавиша ниже: с ней niri прячет это окно с экрана. ", "Needs the key below: with it niri keeps the window off your screen. ") : StreamAngel.castOpen ? (Niri.castWindowId >= 0 ? I18n.t("открыто. ", "Open. ") : I18n.t("открывается… ", "Opening… ")) : I18n.t("откроется, когда запустится OBS. ", "Opens when OBS starts. ")) + I18n.t("Один раз в OBS: Источники → + → «Захват окна (PipeWire)» → «angelOS · ангел для OBS», поверх панели. Фон прозрачный.", "Once in OBS: Sources → + → Window Capture (PipeWire) → «angelOS · ангел для OBS», over the bar. The background is see-through.")
         }
         SettingRow {
-            label: I18n.t("Клавиша Mod+Alt+A", "Mod+Alt+A key")
+            label: I18n.t("Клавиша Win+Alt+A", "Win+Alt+A key")
             hint: I18n.t("прячет её и возвращает, работает и в полноэкранной игре; заодно правило niri для окна OBS", "Hides her and brings her back, in fullscreen games too; also niri's rule for the OBS window")
             PxToggle {
                 checked: Config.stream.streamerKeys !== false
@@ -525,7 +601,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Блестящий курсор", "Glitter cursor")
-            hint: !Cursors.glitterOk ? Heaven.lockHint("cursor.glitter") : Cursors.theme === "angelOS-Glitter" ? I18n.t("стоит ♡ другие курсоры — на странице «Курсор»", "In use ♡ other cursors are on the Cursor page") : I18n.t("angelOS Pixel с мерцающими искорками, везде: niri, GTK, X11, Steam", "angelOS Pixel with twinkling sparkles, everywhere: niri, GTK, X11, Steam")
+            hint: !Cursors.glitterOk ? Heaven.lockHint("cursor.glitter") : Cursors.theme === "angelOS-Glitter" ? I18n.t("стоит ♡ другие курсоры — выше", "In use ♡ other cursors are above") : I18n.t("angelOS Pixel с мерцающими искорками, во всех программах", "angelOS Pixel with twinkling sparks, in every app")
             PxButton {
                 enabled: !Cursors.busy && Cursors.theme !== "angelOS-Glitter" && Cursors.glitterOk
                 icon: "cursor"
@@ -589,7 +665,7 @@ PxPage {
         // the game back — it used to stay on and show nothing
         SettingRow {
             label: I18n.t("Показывать", "Show her")
-            hint: !Story.enabled ? I18n.t("игра выключена (Система → «Игра выключена»), поэтому её нет; включишь — вернётся и игра", "The game is off (System → “The game is off”), so she isn't there; switch her on and the game comes back too") : Angel.demon ? I18n.t("сидит в правом нижнем углу, язвит, болтает и пакостит; клик по ней — меню", "Sits in the bottom-right corner, teases, chats and plays pranks; click her for a menu") : I18n.t("живёт в правом нижнем углу, подсказывает и радуется вместе с тобой; клик по ней — меню", "Lives in the bottom-right corner, gives tips and cheers you on; click her for a menu")
+            hint: !Story.enabled ? I18n.t("игра выключена («Ангелочек» → «Игра»), поэтому её нет; включишь — вернётся и игра", "The game is off (Angel → The game), so she isn't there; switch her on and the game comes back too") : Angel.demon ? I18n.t("сидит в правом нижнем углу, язвит, болтает и пакостит; клик по ней — меню", "Sits in the bottom-right corner, teases, chats and plays pranks; click her for a menu") : I18n.t("живёт в правом нижнем углу, подсказывает и радуется вместе с тобой; клик по ней — меню", "Lives in the bottom-right corner, gives tips and cheers you on; click her for a menu")
             PxToggle {
                 checked: Config.y2k.helper && Story.enabled
                 onToggled: c => {
@@ -1075,19 +1151,8 @@ PxPage {
         }
         SettingRow {
             visible: Angel.hellShown
-            label: I18n.t("Курсор в аду", "Cursor in hell")
-            hint: Cursors.byCircle ? I18n.t("пока правит демоница, у каждого круга свой курсор; выбрать одну тему — на странице «Курсор»", "While the demon rules each circle has its own pointer; one theme for all — on the Cursor page") : Config.cursor.hell ? I18n.t("пока правит демоница, курсор — ", "While the demon rules the pointer is ") + ((Cursors.entryOf(Config.cursor.hell) || {}).name || Config.cursor.hell) + I18n.t("; адские темы — на странице «Курсор»", "; the hell themes are on the Cursor page") : I18n.t("демоница не трогает курсор", "The demon leaves the cursor alone")
-            PxButton {
-                compact: true
-                icon: "cursor"
-                text: I18n.t("Выбрать", "Choose")
-                onClicked: page.nav.settingsPage = "cursor"
-            }
-        }
-        SettingRow {
-            visible: Angel.hellShown
             label: I18n.t("Какой ад на обоях", "Which hell on the wallpaper")
-            hint: I18n.t("пока правит демоница, на всех экранах всегда ад — любые другие обои она тут же снимает (они дождутся ангела). Картины — пиксельный ад из Мартина, Доре и Босха (пак Hell, скачается сам); нарисованный — пиксельная лава с луной-сердцем", "While the demon rules every screen always shows hell — any other wallpaper she takes down at once (it waits for the angel). Paintings: pixel hell from Martin, Doré and Bosch (the Hell pack, fetched if missing); drawn: pixel lava under a heart moon")
+            hint: I18n.t("пока правит демоница, на всех экранах ад, другие обои ждут ангела. Картины — пиксельный ад по Мартину, Доре и Босху; нарисованный — лава с луной-сердцем", "While the demon rules every screen shows hell; other wallpapers wait for the angel. Paintings: pixel hell after Martin, Doré and Bosch; drawn: lava under a heart moon")
             PxSegmented {
                 model: [
                     {

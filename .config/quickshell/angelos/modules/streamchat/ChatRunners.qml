@@ -35,6 +35,24 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     RightClickGuard {}
 
+    // angel-niri (Niri.nativeMinimize): the cats only in the stream's capture, not on the monitor
+    // (Settings → Stream → «Котики только зрителям»); needs the empty mask above
+    readonly property bool viewersOnly: Config.stream.chatRunnersViewersOnly !== false
+    function applyViewersOnly() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetCastOnlyLayer", {
+                "namespace": "angelos-chat-runners",
+                "on": viewersOnly
+            });
+    }
+    onViewersOnlyChanged: applyViewersOnly()
+    Connections {
+        target: Niri
+        function onMinimizeProbedChanged() {
+            win.applyViewersOnly();
+        }
+    }
+
     readonly property int pixel: Theme.u * 2
     readonly property int boomPx: Theme.u * 50           // «5 metres»: 100 px at the usual size
     property int booms: 0                                // bangs still on the screen
