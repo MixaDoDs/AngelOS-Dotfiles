@@ -28,9 +28,13 @@ Item {
         }
         watched = watched.filter(c => children.indexOf(c) >= 0);
     }
-    // (a card's signal may come while the page is being torn down: nothing to lay out then)
+    // (a card's signal may come while the page is being torn down: nothing to lay out then.
+    // A flag, not a look at root.layout: reading a function off a page being torn down is what
+    // warned "QQmlVMEMetaObject: … invalid context" each time Settings closed)
+    property bool gone: false
+    Component.onDestruction: gone = true
     function later() {
-        if (root && typeof root.layout === "function")
+        if (!gone)
             Qt.callLater(root.layout);
     }
     function layout() {
