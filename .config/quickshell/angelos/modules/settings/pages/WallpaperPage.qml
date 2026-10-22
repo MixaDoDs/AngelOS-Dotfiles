@@ -153,7 +153,8 @@ PxPage {
                             // in the grimoire (or a dress): an engraving the right way round, not a negative
                             layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
                             layer.effect: GrimoirePhoto {}
-                            sourceSize: Qt.size(width, height)
+                            // in steps, not every pixel: resizing Settings decoded the whole grid again each frame
+                            sourceSize: Qt.size(Math.ceil(width / 64) * 64, Math.ceil(height / 64) * 64)
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                             cache: true
