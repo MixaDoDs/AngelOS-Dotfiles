@@ -2507,8 +2507,10 @@ PanelWindow {
                 }
             }
             Row {
+                id: transport
                 spacing: win.u * 2
                 PxButton {
+                    id: prevBtn
                     compact: true
                     hell: win.hell
                     icon: "prev"
@@ -2533,14 +2535,25 @@ PanelWindow {
                     onClicked: Lyrics.player.next()
                 }
                 // osu!mini's rhythm mode on this track (plugin osu-mini, while it is on)
+                // the button's width with its word, measured unseen (a Row skips what isn't
+                // visible): in a narrow card the word goes and the note alone stays inside it
+                PxButton {
+                    id: rhythmProbe
+                    visible: false
+                    compact: true
+                    icon: "music"
+                    iconPixel: Math.max(1, win.u - 1)
+                    text: rhythmBtn.word
+                }
                 PxButton {
                     id: rhythmBtn
+                    readonly property string word: I18n.t("Ритм", "Rhythm")
                     visible: JSON.parse(Plugins.enabledIds).includes("osu-mini")
                     compact: true
                     hell: win.hell
                     icon: "music"
                     iconPixel: Math.max(1, win.u - 1)
-                    text: I18n.t("Ритм", "Rhythm")
+                    text: transport.parent.width >= prevBtn.width * 3 + transport.spacing * 3 + rhythmProbe.implicitWidth + (swap.visible ? swap.width + transport.spacing : 0) ? word : ""
                     enabled: Lyrics.playing
                     onClicked: {
                         Shell.gameAsk = "rhythm";
@@ -2647,7 +2660,8 @@ PanelWindow {
                 x: win.u * 4
                 y: win.u * 4
                 width: parent.width - win.u * 8
-                art: Math.round(Math.min((parent.width - win.u * 8) * 0.42, parent.height - win.u * 10 - (tileSpec.visible ? tileSpec.height : 0)) / win.u) * win.u
+                // the cassette is half as wide again as the cover: the same share of the tile
+                art: Math.round(Math.min((parent.width - win.u * 8) * 0.42 / ((Config.halo.musicView || "cover") === "cassette" ? 1.5 : 1), parent.height - win.u * 10 - (tileSpec.visible ? tileSpec.height : 0)) / win.u) * win.u
             }
             Spectrum {
                 id: tileSpec
