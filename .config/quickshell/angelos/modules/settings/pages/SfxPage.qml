@@ -130,7 +130,7 @@ PxPage {
                     }
                     PxCombo {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Math.max(Theme.u * 30, Math.min(Theme.u * 80, parent.width - soundToggle.width - playButton.width - (resetButton.visible ? resetButton.width + parent.spacing : 0) - parent.spacing * 2))
+                        width: Math.max(Theme.u * 16, Math.min(Theme.u * 80, parent.width - soundToggle.width - playButton.width - (resetButton.visible ? resetButton.width + parent.spacing : 0) - parent.spacing * 2))
                         model: page.choices(row.modelData)
                         currentValue: Sounds.soundOf(row.modelData)
                         onActivated: v => {
@@ -306,7 +306,8 @@ PxPage {
             enabled: Config.y2k.sounds
             opacity: enabled ? 1 : 0.5
             label: I18n.t("Какие кнопки щёлкают", "Which buttons tick")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 6
                 Repeater {
                     model: [["left", I18n.t("левая", "left")], ["right", I18n.t("правая", "right")], ["middle", I18n.t("колесо", "wheel")]]

@@ -428,10 +428,21 @@ PxPage {
             spacing: Theme.u * 8
             width: parent.width
             PxIcon {
+                id: ghost
                 name: "ghost"
                 pixel: Theme.u * 5
             }
             Grid {
+                id: infoGrid
+                // the names' column: the values wrap in what is left
+                readonly property real namesWidth: {
+                    let w = 0;
+                    for (const c of children)
+                        if (c.modelData && c.modelData.dim)
+                            w = Math.max(w, c.implicitWidth);
+                    return w;
+                }
+                width: parent.width - ghost.width - parent.spacing
                 columns: 2
                 columnSpacing: Theme.u * 8
                 rowSpacing: Theme.u * 2
@@ -448,6 +459,8 @@ PxPage {
                         ]), [])
                     PxText {
                         required property var modelData
+                        width: modelData.dim ? implicitWidth : Math.max(0, Math.min(implicitWidth, infoGrid.width - infoGrid.namesWidth - infoGrid.columnSpacing))
+                        wrapMode: Text.Wrap
                         text: modelData.t
                         dim: modelData.dim
                     }

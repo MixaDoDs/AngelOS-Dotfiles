@@ -97,9 +97,11 @@ PxPage {
         icon: "plus"
         width: parent.width
         Row {
+            width: parent.width
             spacing: Theme.u * 3
             PxCombo {
-                width: Theme.u * 100
+                // the kind gives way first: the screen and the button stay inside the card
+                width: Math.max(Theme.u * 30, Math.min(Theme.u * 100, parent.width - screenCombo.width - addButton.width - parent.spacing * 2))
                 model: DesktopWidgets.types.map(t => ({
                             "label": t.label,
                             "value": t.type,
@@ -109,12 +111,14 @@ PxPage {
                 onActivated: v => page.newType = v
             }
             PxCombo {
+                id: screenCombo
                 width: Theme.u * 60
                 model: page.screenModel
                 currentValue: page.newScreen
                 onActivated: v => page.newScreen = v
             }
             PxButton {
+                id: addButton
                 text: I18n.t("Добавить", "Add")
                 icon: "plus"
                 accent: true

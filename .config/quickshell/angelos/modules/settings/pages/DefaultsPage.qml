@@ -294,6 +294,59 @@ PxPage {
         }
     }
 
+    PxGroup {
+        name: "defaults"
+        title: I18n.t("По умолчанию", "Defaults")
+        icon: "star"
+        width: parent.width
+        enabled: !DefaultApps.busy
+
+        Repeater {
+            model: DefaultApps.categories
+            SettingRow {
+                id: row
+                required property var modelData
+                readonly property var info: DefaultApps.data[modelData.id] || ({
+                        "current": "",
+                        "candidates": []
+                    })
+                readonly property var cur: info.candidates.find(c => c.id === info.current) || null
+                label: modelData.label
+                hint: info.candidates.length === 0 ? I18n.t("нет подходящих приложений", "no matching applications") : ""
+                Row {
+                    width: parent.width
+                    spacing: Theme.u * 4
+                    Item {
+                        id: appGlyph
+                        width: Theme.u * 12
+                        height: Theme.u * 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        AppIcon {
+                            anchors.centerIn: parent
+                            visible: !!row.cur
+                            iconName: row.cur ? row.cur.icon : ""
+                            size: Theme.u * 11
+                        }
+                        PxIcon {
+                            anchors.centerIn: parent
+                            visible: !row.cur
+                            name: row.modelData.icon
+                        }
+                    }
+                    PxCombo {
+                        width: Math.max(0, Math.min(Theme.u * 120, parent.width - appGlyph.width - parent.spacing))
+                        model: row.info.candidates.map(c => ({
+                                    "label": c.name,
+                                    "value": c.id
+                                }))
+                        currentValue: row.info.current
+                        placeholder: row.info.current || "—"
+                        onActivated: v => DefaultApps.set(row.modelData.id, v)
+                    }
+                }
+            }
+        }
+    }
     PxText {
         width: parent.width
         wrapMode: Text.Wrap

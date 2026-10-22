@@ -548,17 +548,23 @@ PxPage {
                         width: parent.width - Theme.u * 10
                         spacing: Theme.u * 2
                         Row {
+                            width: parent.width
                             spacing: Theme.u * 3
                             PxIcon {
+                                id: lookIcon
                                 name: card.modelData.icon
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             PxText {
+                                // a narrow card elides the name: "· now" stays inside it
+                                width: Math.max(0, Math.min(implicitWidth, parent.width - lookIcon.width - parent.spacing - (nowMark.visible ? nowMark.width + parent.spacing : 0)))
+                                elide: Text.ElideRight
                                 text: card.modelData.name
                                 font.bold: true
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             PxText {
+                                id: nowMark
                                 visible: card.current
                                 text: I18n.t("· сейчас", "· now")
                                 kind: "tiny"

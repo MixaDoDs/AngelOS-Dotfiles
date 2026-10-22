@@ -87,7 +87,8 @@ PxPage {
                     "star": I18n.t("звезда-блёстка ✦: у активного стола мерцает", "A sparkle star ✦: twinkles on the active desk"),
                     "cd": I18n.t("радужный CD: у активного стола прокручивается", "A rainbow CD: spins on the active desk")
                 })[Config.workspaces.sprite] || I18n.t("пиксельное сердечко, как было", "The pixel heart, as before")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 Repeater {
                     model: [

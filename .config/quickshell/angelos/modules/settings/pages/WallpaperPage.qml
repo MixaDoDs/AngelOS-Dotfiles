@@ -303,6 +303,7 @@ PxPage {
                     anchors.centerIn: parent
                     spacing: Theme.u * 3
                     PxButton {
+                        id: pickFilesButton
                         compact: true
                         icon: "plus"
                         text: Wallpapers.importing ? "…" : I18n.t("Выбрать файлы…", "Pick files…")
@@ -310,6 +311,9 @@ PxPage {
                         onClicked: Wallpapers.pickToImport()
                     }
                     PxText {
+                        // a narrow box elides the words, the button stays whole
+                        width: Math.max(0, Math.min(implicitWidth, parent.parent.width - pickFilesButton.width - parent.spacing - Theme.u * 6))
+                        elide: Text.ElideRight
                         anchors.verticalCenter: parent.verticalCenter
                         dim: !addDrop.containsDrag
                         text: addDrop.containsDrag ? I18n.t("отпусти", "drop") : I18n.t("или перетащи сюда", "or drop here")

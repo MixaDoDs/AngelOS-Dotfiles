@@ -970,6 +970,7 @@ PxPage {
                 }
                 PxButton {
                     compact: true
+                    maxWidth: parent.width
                     visible: !!discordRow.info.discord
                     checked: discordRow.launcherOn
                     icon: "play"

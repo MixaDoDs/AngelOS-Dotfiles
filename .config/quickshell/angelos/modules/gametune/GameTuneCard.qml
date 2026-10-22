@@ -85,8 +85,10 @@ Column {
 
     // ---- how it runs
     Row {
+        width: parent.width
         spacing: Theme.u * 3
         PxPill {
+            id: tierPill
             width: tierLabel.implicitWidth + Theme.u * 6
             height: tierLabel.implicitHeight + Theme.u * 2
             color: ({
@@ -106,6 +108,8 @@ Column {
         }
         PxText {
             anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(0, parent.width - tierPill.width - parent.spacing)
+            wrapMode: Text.Wrap
             visible: root.game.rating.n > 0
             text: I18n.t("работает у %1 из %2", "runs for %1 of %2").replace("%1", root.game.rating.ok).replace("%2", root.game.rating.n) + (root.game.rating.oob !== null && root.game.rating.oob !== undefined ? I18n.t(", сразу без настроек — %1 %", ", out of the box — %1 %").replace("%1", Math.round(root.game.rating.oob * 100)) : "")
             kind: "tiny"

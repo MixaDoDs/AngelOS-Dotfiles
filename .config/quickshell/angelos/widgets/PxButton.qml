@@ -57,7 +57,10 @@ Item {
 
     // left + right padding; -1 = by `compact` (the bar's dense right side sets it)
     property real hpad: -1
-    implicitWidth: row.implicitWidth + (hpad >= 0 ? hpad : mac ? GoldenGate.px(compact ? 16 : 24) : compact ? Theme.u * 6 : Theme.pad * 2 + Theme.u * 2)
+    readonly property real pads: hpad >= 0 ? hpad : mac ? GoldenGate.px(compact ? 16 : 24) : compact ? Theme.u * 6 : Theme.pad * 2 + Theme.u * 2
+    // at most this wide (0: as wide as the words): past it the words elide
+    property real maxWidth: 0
+    implicitWidth: row.implicitWidth + pads
     implicitHeight: mac ? Math.max(row.implicitHeight + GoldenGate.px(10), GoldenGate.px(compact ? 24 : 28)) : Math.max(row.implicitHeight + Theme.u * (compact ? 5 : 8), Theme.u * (compact ? 11 : 15))
     opacity: enabled ? 1 : 0.45
 
@@ -129,6 +132,7 @@ Item {
         spacing: root.mac ? GoldenGate.px(6) : Theme.u * 3
 
         MacIcon {
+            id: macGlyph
             visible: root.macIcon !== ""
             name: root.macIcon || "circle-help"
             size: GoldenGate.px(15)
@@ -137,6 +141,7 @@ Item {
             color: root.accent || root.checked ? "#ffffff" : root.danger ? GoldenGate.lights[0] : GoldenGate.label
         }
         PxIcon {
+            id: glyph
             visible: root.icon !== "" && root.macIcon === ""
             name: root.icon || "heart"
             pixel: root.iconPixel
@@ -154,6 +159,8 @@ Item {
         }
         PxText {
             visible: root.text !== ""
+            width: root.maxWidth > 0 ? Math.max(0, Math.min(implicitWidth, root.maxWidth - root.pads - (macGlyph.visible ? macGlyph.width + row.spacing : 0) - (glyph.visible ? glyph.width + row.spacing : 0))) : implicitWidth
+            elide: Text.ElideRight
             text: root.text
             kind: root.kind
             anchors.verticalCenter: parent.verticalCenter
