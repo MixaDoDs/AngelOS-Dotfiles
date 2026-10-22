@@ -385,6 +385,27 @@ const icons = {
         ".#fff#...",
         "..###...."
     ],
+    // the bar's cup (modules/bar/parts/AwakeButton): its steam's second frame, and the cup cold
+    coffeeSteam: [
+        "..w.w....",
+        "...w.w...",
+        "#######..",
+        "#ooooo###",
+        "#fffff#.#",
+        "#fffff###",
+        ".#fff#...",
+        "..###...."
+    ],
+    coffeeCold: [
+        ".........",
+        ".........",
+        "#######..",
+        "#ooooo###",
+        "#fffff#.#",
+        "#fffff###",
+        ".#fff#...",
+        "..###...."
+    ],
     sun: [
         ".....y.....",
         ".y...y...y.",

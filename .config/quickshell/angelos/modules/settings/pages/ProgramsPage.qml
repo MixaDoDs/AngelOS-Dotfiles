@@ -259,7 +259,8 @@ PxPage {
         SettingRow {
             label: I18n.t("Показать", "Show")
             hint: I18n.t("«от автора» — то, что поставилось вместе с angelOS", "“the author's” is what came along with angelOS")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxSegmented {
                     model: [
@@ -296,7 +297,7 @@ PxPage {
             hint: Programs.loaded ? I18n.t("программ: ", "programs: ") + page.rows.length : I18n.t("читаю список…", "reading the list…")
             PxField {
                 id: search
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 icon: "search"
                 placeholder: I18n.t("название", "a name")
             }
@@ -319,53 +320,4 @@ PxPage {
         }
     }
 
-    PxGroup {
-        id: tidy
-        name: "cleanup"
-        title: I18n.t("Очистка", "Clean-up")
-        icon: "sparkle"
-        width: parent.width
-
-        readonly property var st: Programs.cleanup
-        readonly property bool mine: Programs.kind === "cleanup"
-
-        PxText {
-            visible: tidy.mine && (Programs.running || Programs.done)
-            width: parent.width
-            wrapMode: Text.Wrap
-            color: Programs.done && (Programs.failed.length || Programs.auth) ? Theme.danger : Theme.accent
-            text: Programs.status
-        }
-        SettingRow {
-            label: I18n.t("Пакеты, которые никому не нужны", "Packages nothing needs")
-            hint: !tidy.st ? I18n.t("считаю…", "counting…") : tidy.st.orphans.length ? tidy.st.orphans.slice(0, 6).map(o => o.name).join(", ") + (tidy.st.orphans.length > 6 ? I18n.t(" и ещё ", " and ") + (tidy.st.orphans.length - 6) : "") + " · " + Programs.fmt(tidy.st.orphansSize) : I18n.t("таких нет ♡", "none ♡")
-            PxButton {
-                icon: "trash"
-                enabled: !!Programs.cleanup && Programs.cleanup.orphans.length > 0 && !Programs.busy
-                text: I18n.t("Убрать", "Remove")
-                onClicked: Programs.clean(["orphans"])
-            }
-        }
-        SettingRow {
-            label: I18n.t("Кэш загрузок pacman", "pacman's download cache")
-            hint: !tidy.st ? I18n.t("считаю…", "counting…") : tidy.st.cache > 0 ? Programs.fmt(tidy.st.cache) + I18n.t(" · файлов: ", " · files: ") + tidy.st.cacheFiles + I18n.t(" · пакеты установленных версий останутся", " · the packages of the installed versions stay") : I18n.t("пусто ♡", "empty ♡")
-            PxButton {
-                icon: "trash"
-                enabled: !!Programs.cleanup && Programs.cleanup.cache > 0 && !Programs.busy
-                text: I18n.t("Очистить", "Clean")
-                onClicked: Programs.clean(["cache"])
-            }
-        }
-        SettingRow {
-            visible: !!tidy.st && tidy.st.flatpak
-            label: I18n.t("Неиспользуемые части Flatpak", "Flatpak's unused runtimes")
-            hint: I18n.t("среды выполнения, которые остались от удалённых программ", "runtimes left behind by apps that were removed")
-            PxButton {
-                icon: "trash"
-                enabled: !Programs.busy
-                text: I18n.t("Убрать", "Remove")
-                onClicked: Programs.clean(["flatpak"])
-            }
-        }
-    }
 }

@@ -20,7 +20,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Классика angelOS — исходное. Windose — с ярлыками на столе, Стрим — с панелью эфира; оба следуют за выбранными цветами. Golden Gate превращает весь стол в macOS 27: строка меню, Dock, Spotlight, окна со светофором.", "angelOS classic is the original. Windose has desktop shortcuts, Stream a broadcast panel; both follow your colours. Golden Gate turns the whole desktop into macOS 27: a menu bar, the Dock, Spotlight, windows with traffic lights.")
+            text: I18n.t("Классика — исходный вид. Windose — ярлыки на столе, Стрим — панель эфира. Golden Gate — весь стол как macOS: строка меню, Dock, Spotlight.", "Classic: the original look. Windose: icons on the desk; Stream: a live panel. Golden Gate: the whole desk as macOS — menu bar, Dock, Spotlight.")
         }
         Flow {
             id: skinFlow
@@ -144,7 +144,7 @@ PxPage {
             label: I18n.t("Экран с обоями", "Wallpaper screen")
             hint: I18n.t("чьи обои задают цвета", "Whose wallpaper sets the colours")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [{
                         "label": I18n.t("Основной", "Primary"),
                         "value": ""
@@ -162,7 +162,7 @@ PxPage {
             label: I18n.t("Откуда брать цвет", "Where the colour comes from")
             hint: I18n.t("часть обоев: небо, середина, низ или своя рамка — её рисуют мышью на картинке", "A part of the wallpaper: the sky, the middle, the ground, or your own frame drawn on the picture")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [
                     {
                         "label": I18n.t("Вся картинка", "The whole picture"),
@@ -335,11 +335,12 @@ PxPage {
         // the eyedropper (services/ColorPicker): any pixel of any screen, its hex in the clipboard
         SettingRow {
             label: I18n.t("Пипетка", "Eyedropper")
-            hint: I18n.t("Mod+Shift+C или кнопка: клик в любом месте экрана — hex цвета сразу в буфере обмена, Esc — отмена. Клик по образцу копирует его снова, ПКМ — делает акцентом", "Mod+Shift+C or the button: click anywhere on a screen and the colour's hex is in the clipboard, Esc cancels. A click on a swatch copies it again, a right click makes it the accent")
+            hint: I18n.t("взять цвет с экрана (Win+Shift+C): цвет сразу в буфере; ПКМ по образцу — сделать акцентом", "Pick a colour off the screen (Win+Shift+C): it goes to the clipboard; right click a swatch to make it the accent")
             Column {
                 width: parent.width
                 spacing: Theme.u * 2
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxButton {
                         text: ColorPicker.busy ? I18n.t("Кликни по цвету…", "Click a colour…") : I18n.t("Взять с экрана", "Pick from the screen")
@@ -461,7 +462,7 @@ PxPage {
 
         SettingRow {
             label: I18n.t("Стиль значков", "Icon style")
-            hint: I18n.t("значки самой оболочки — панель, настройки, меню, кнопки. Сердечки, рожки и пентаграмма остаются своими в любом стиле. Значки приложений — тема системы, она отдельно", "The shell's own icons — the bar, settings, menus, buttons. Hearts, horns and the pentagram stay ours in every style. App icons are the system's icon theme, a separate thing")
+            hint: I18n.t("значки панели, меню и настроек; значки программ — из темы системы", "The icons of the bar, menus and settings; apps' icons come from the system theme")
             IconStyleCards {}
         }
         SettingRow {
@@ -482,7 +483,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Окончание в названиях", "Name ending")
             // suffix-ok: the three endings themselves
-            hint: I18n.t("как подписаны все окошки angelOS — виджеты, панели, Alt+Tab, лок, плагины: calendar.exe, calendar.sh или calendar.bin", "How every angelOS window is titled — widgets, panels, Alt+Tab, the lock, plugins: calendar.exe, calendar.sh or calendar.bin")
+            hint: I18n.t("calendar.exe, .sh или .bin — для красоты, в подписях окошек angelOS", "calendar.exe, .sh or .bin — just for looks, in angelOS's window titles")
             PxSegmented {
                 model: I18n.suffixes.map(s => ({
                             "label": "." + s,
@@ -504,7 +505,7 @@ PxPage {
 
         SettingRow {
             label: I18n.t("Блюр под панелями", "Blur behind panels")
-            hint: I18n.t("ext-background-effect, рисует niri", "ext-background-effect, rendered by niri")
+            hint: I18n.t("размытие под панелями и меню", "Blur under the bars and menus")
             PxToggle {
                 checked: Config.appearance.blur
                 onToggled: c => Config.appearance.blur = c
@@ -525,7 +526,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Сила блюра", "Blur strength")
-            hint: I18n.t("Общая настройка niri; изменения сохраняются с бэкапом", "Global niri setting; changes are backed up")
+            hint: I18n.t("одна на всё: панели, меню и окна", "One for everything: bars, menus and windows")
             enabled: Config.appearance.blur && BlurConfig.supported && !BlurConfig.busy
             PxSlider {
                 width: parent.width
@@ -585,7 +586,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Размер пикселя", "Pixel size")
-            hint: I18n.t("1 арт-пиксель = N экранных; только целые — половинка размазала бы каждую рамку", "1 art pixel = N screen pixels; whole ones only — a half would smear every frame")
+            hint: I18n.t("крупнее всё: панели, окна, меню", "Everything bigger: bars, windows, menus")
             PxSpin {
                 from: 1
                 to: 4
@@ -606,7 +607,7 @@ PxPage {
 
         SettingRow {
             label: I18n.t("Красить приложения", "Theme applications")
-            hint: I18n.t("шаблоны → kitty, foot, alacritty, GTK, niri. Свои шаблоны: ~/.config/angelos/templates/*.json", "Templates for kitty, foot, alacritty, GTK and niri. Custom templates: ~/.config/angelos/templates/*.json")
+            hint: I18n.t("терминалы, GTK-программы и рамки окон в цветах темы", "Terminals, GTK apps and window frames in the theme's colours")
             PxToggle {
                 checked: Config.appearance.themeApps
                 onToggled: c => Config.appearance.themeApps = c
@@ -634,7 +635,7 @@ PxPage {
         SettingRow {
             visible: Config.appearance.themeApps
             label: I18n.t("Qt-приложения в стиле angelOS", "Qt apps in the angelOS look")
-            hint: I18n.t("через qt6ct: цвета темы (в аду — адские), квадратные углы, пиксельные кнопки и поля. Работает в kdenlive, qBittorrent, Prism Launcher и других Qt-программах; открытые меняются на лету, остальные — при следующем запуске. Выключение возвращает всё как было", "Through qt6ct: the theme's colours (hell's in hell), square corners, pixel buttons and fields. Works in kdenlive, qBittorrent, Prism Launcher and other Qt apps; open ones change on the fly, others on their next start. Off puts everything back")
+            hint: I18n.t("Qt-программы (kdenlive, qBittorrent, Prism Launcher…) в цветах темы, с пиксельными кнопками. Открытые меняются сразу, остальные — при запуске.", "Qt apps (kdenlive, qBittorrent, Prism Launcher…) in the theme's colours with pixel buttons. Open ones change at once, the rest on their next start.")
             PxToggle {
                 checked: Config.appearance.qtStyle
                 onToggled: c => Config.appearance.qtStyle = c

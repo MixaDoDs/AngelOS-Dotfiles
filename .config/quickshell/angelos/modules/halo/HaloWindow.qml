@@ -506,7 +506,7 @@ PanelWindow {
     // the keyboard only for the quick buttons' fields
     WlrLayershell.keyboardFocus: expanded && (pages[page] === "buttons" || pages[page] === "shelf") && !menu && !dropping ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     // a full-screen window covers the Top layer: its timer's end comes over it
-    WlrLayershell.layer: full ? WlrLayer.Overlay : WlrLayer.Top
+    WlrLayershell.layer: Shell.bootOpen || Shell.bootCover ? WlrLayer.Top : WlrLayer.Overlay
     mask: Region {
         item: win.shown ? hit : null
         Region {
@@ -540,6 +540,11 @@ PanelWindow {
     // the open card's content starts under the window's title bar
     readonly property real cardTop: frame.chrome + frame.titleHeight + u * 4
     property real w: wantW
+    // snug at rest the sides differ: the pill moves by half the difference, the middle stays put
+    property real restShift: rest && !expanded && !(main || vol || seeking) && restRow.inRow ? (restRow.rightW - restRow.leftW) / 2 : 0
+    Behavior on restShift {
+        Spring {}
+    }
     property real h: wantH
     property real r: wantR
     Behavior on w {
@@ -642,7 +647,7 @@ PanelWindow {
         }
         width: (win.open ? pill.width : ring.width) + win.slack * 2
         height: Math.max(win.strip, (win.open ? pill.height : ring.height) + win.pillY + (win.expanded ? win.slack : win.u))
-        x: Math.round((win.width - width) / 2)
+        x: Math.round((win.width - width) / 2 + win.restShift)
 
         HoverHandler {
             id: hover
@@ -974,9 +979,17 @@ PanelWindow {
                 Item {
                     id: restRow
                     readonly property real gap: win.earsRest ? win.u * 14 : win.u * 6
-                    readonly property real sideW: Math.max(0, (width - restMid.width) / 2 - gap)
+                    // fixed width: the sides share what is left; snug (fixedWidth off) the Halo grows to
+                    // them, so no cap: a cap from its own width fed back through implicitWidth (a polish() loop)
+                    readonly property real sideW: win.fixedWidth ? Math.max(0, (width - restMid.width) / 2 - gap) : Infinity
                     anchors.fill: parent
-                    implicitWidth: (restL.visible ? restL.implicitWidth + gap : 0) + restMid.width + (restR.visible ? restR.implicitWidth + gap : 0)
+                    readonly property real leftW: restL.visible ? restL.implicitWidth + gap : 0
+                    readonly property real rightW: restR.visible ? restR.implicitWidth + gap : 0
+                    // snug, no ears: the pill hugs the three and moves over (win.restShift) so the
+                    // middle stays on the screen's centre; the ears keep it on the camera, room for
+                    // the wider side on both
+                    readonly property bool inRow: !win.fixedWidth && !win.earsRest
+                    implicitWidth: inRow ? leftW + restMid.width + rightW : restMid.width + 2 * Math.max(leftW, rightW)
                     // comes and goes in a pixel dissolve, the song's line the other way
                     readonly property bool on: win.rest && !win.expanded
                     property real vis: on ? 1 : 0
@@ -1047,7 +1060,8 @@ PanelWindow {
                         id: restMid
                         width: win.restCat ? restSprite.width : restArc.width
                         height: win.restCat ? restSprite.height : restArc.height
-                        anchors.centerIn: parent
+                        x: restRow.inRow ? (parent.width - restRow.implicitWidth) / 2 + restRow.leftW : (parent.width - width) / 2
+                        anchors.verticalCenter: parent.verticalCenter
                         Arc {
                             id: restArc
                             visible: !win.restCat
@@ -1277,7 +1291,8 @@ PanelWindow {
         ];
     }
 
-    // someone records the microphone (orange) or has the camera on (green), as on the iPhone:
+    // someone records the microphone (orange), has the camera on (green) or takes the screen
+    // (purple, as the Mac's screen recording), as on the iPhone:
     // a dot left of the pill or the arc (services/Sensors; Settings → Halo → «Privacy dot»)
     Item {
         id: privacy
@@ -1304,6 +1319,13 @@ PanelWindow {
                 height: win.u * 3
                 radius: win.u
                 color: "#30d158"
+            }
+            Rectangle {
+                visible: Sensors.screen.length > 0
+                width: win.u * 3
+                height: win.u * 3
+                radius: win.u
+                color: "#bf5af2"
             }
         }
         HoverHandler {
@@ -1466,6 +1488,11 @@ PanelWindow {
             return {
                 "icon": "bolt",
                 "text": Power.percent + "%"
+            };
+        case "castPause":
+            return {
+                "icon": "pause",
+                "text": I18n.t("Зрители видят паузу", "Viewers see the pause")
             };
         case "dl": {
             // the ring beside it and the percent; the bytes of one when nobody knows the size
@@ -1661,9 +1688,20 @@ PanelWindow {
 
     // a little spectrum of pixel blocks (music.sh's, small): four columns dancing while it plays
     component EqBars: Row {
+        id: eq
         spacing: Math.max(1, win.u / 2)
+        // whole blocks on one shared timer, not an endless NumberAnimation per column: that one
+        // kept the whole Halo window drawing at the monitor's rate for four steps (22.10)
+        property int tick: 0
+        Timer {
+            interval: 130
+            repeat: true
+            running: eq.visible && Lyrics.playing && win.shown && !win.expanded && !Motion.still
+            onTriggered: eq.tick++
+        }
         Repeater {
-            model: [520, 380, 640, 450]
+            // each column's phase in the 1 → 4 → 1 swing
+            model: [0, 5, 2, 4]
             Item {
                 id: bar
                 required property int modelData
@@ -1671,7 +1709,7 @@ PanelWindow {
                 readonly property int gap: Math.max(1, win.u / 2)
                 width: blk
                 height: blk * 4 + gap * 3
-                property real v: 1
+                readonly property int v: 1 + [0, 1, 2, 3, 2, 1][(eq.tick + modelData) % 6]
                 Column {
                     anchors.bottom: parent.bottom
                     spacing: bar.gap
@@ -1684,20 +1722,6 @@ PanelWindow {
                             visible: index >= 4 - Math.round(bar.v)
                             color: Lyrics.playing ? Theme.mix(Theme.accent2, win.accent, (4 - index) / 4) : Theme.textDim
                         }
-                    }
-                }
-                SequentialAnimation on v {
-                    running: Lyrics.playing && win.shown && !win.expanded && !Motion.still
-                    loops: Animation.Infinite
-                    NumberAnimation {
-                        to: 4
-                        duration: bar.modelData
-                        easing.type: Easing.InOutSine
-                    }
-                    NumberAnimation {
-                        to: 1
-                        duration: bar.modelData
-                        easing.type: Easing.InOutSine
                     }
                 }
             }
@@ -2480,8 +2504,10 @@ PanelWindow {
                 }
             }
             Row {
+                id: transport
                 spacing: win.u * 2
                 PxButton {
+                    id: prevBtn
                     compact: true
                     hell: win.hell
                     icon: "prev"
@@ -2506,14 +2532,25 @@ PanelWindow {
                     onClicked: Lyrics.player.next()
                 }
                 // osu!mini's rhythm mode on this track (plugin osu-mini, while it is on)
+                // the button's width with its word, measured unseen (a Row skips what isn't
+                // visible): in a narrow card the word goes and the note alone stays inside it
+                PxButton {
+                    id: rhythmProbe
+                    visible: false
+                    compact: true
+                    icon: "music"
+                    iconPixel: Math.max(1, win.u - 1)
+                    text: rhythmBtn.word
+                }
                 PxButton {
                     id: rhythmBtn
+                    readonly property string word: I18n.t("Ритм", "Rhythm")
                     visible: JSON.parse(Plugins.enabledIds).includes("osu-mini")
                     compact: true
                     hell: win.hell
                     icon: "music"
                     iconPixel: Math.max(1, win.u - 1)
-                    text: I18n.t("Ритм", "Rhythm")
+                    text: transport.parent.width >= prevBtn.width * 3 + transport.spacing * 3 + rhythmProbe.implicitWidth + (swap.visible ? swap.width + transport.spacing : 0) ? word : ""
                     enabled: Lyrics.playing
                     onClicked: {
                         Shell.gameAsk = "rhythm";
@@ -2620,7 +2657,8 @@ PanelWindow {
                 x: win.u * 4
                 y: win.u * 4
                 width: parent.width - win.u * 8
-                art: Math.round(Math.min((parent.width - win.u * 8) * 0.42, parent.height - win.u * 10 - (tileSpec.visible ? tileSpec.height : 0)) / win.u) * win.u
+                // the cassette is half as wide again as the cover: the same share of the tile
+                art: Math.round(Math.min((parent.width - win.u * 8) * 0.42 / ((Config.halo.musicView || "cover") === "cassette" ? 1.5 : 1), parent.height - win.u * 10 - (tileSpec.visible ? tileSpec.height : 0)) / win.u) * win.u
             }
             Spectrum {
                 id: tileSpec
@@ -3022,6 +3060,17 @@ PanelWindow {
                 onClicked: {
                     Notifs.open(Halo.flashNote);
                     Halo.flashDone();
+                    win.expanded = false;
+                }
+            }
+            PxButton {
+                visible: card.kind === "castPause"
+                compact: true
+                hell: win.hell
+                icon: "play"
+                text: I18n.t("Снова в эфир", "Back on air")
+                onClicked: {
+                    Privacy.pause("off");
                     win.expanded = false;
                 }
             }

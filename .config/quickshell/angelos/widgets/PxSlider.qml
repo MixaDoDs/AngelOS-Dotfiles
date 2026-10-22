@@ -50,7 +50,8 @@ Item {
     Accessible.onIncreaseAction: nudge(1)
     Accessible.onDecreaseAction: nudge(-1)
 
-    implicitWidth: Theme.u * 110
+    // in a box marked fixedWidth (SettingRow's control column) no wider than it, as PxSegmented
+    implicitWidth: parent && parent.fixedWidth === true ? Math.min(Theme.u * 110, parent.width) : Theme.u * 110
     implicitHeight: Theme.u * 12
 
     readonly property real frac: to === from ? 0 : Math.max(0, Math.min(1, (shown - from) / (to - from)))

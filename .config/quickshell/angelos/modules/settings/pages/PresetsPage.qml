@@ -155,11 +155,12 @@ PxPage {
         SettingRow {
             label: I18n.t("Сохранить как сейчас", "Save as it is now")
             hint: I18n.t("все настройки под именем, чтобы вернуться к ним одним нажатием; то же имя — перезаписать", "every setting under a name, to come back to in one click; the same name saves over")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: nameField
-                    width: Theme.u * 70
+                    width: Math.min(Theme.u * 70, parent.width)
                     placeholder: I18n.t("имя набора", "a name")
                     input.onAccepted: saveBtn.clicked()
                 }
@@ -190,7 +191,8 @@ PxPage {
                 readonly property int changes: Presets.plan(modelData.id).length
                 label: modelData.name
                 hint: page.when(modelData.at) + " · " + (changes ? I18n.t("отличается настроек: ", "settings that differ: ") + changes : I18n.t("сейчас так", "on now"))
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxButton {
                         enabled: mine.changes > 0

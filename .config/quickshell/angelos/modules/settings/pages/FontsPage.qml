@@ -16,7 +16,7 @@ PxPage {
 
     PxGroup {
         name: "presets"
-        title: I18n.t("Готовые наборы", "Presets")
+        title: I18n.t("Наборы шрифтов", "Font sets")
         icon: "sparkle"
         width: parent.width
         Flow {
@@ -49,7 +49,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Масштаб шрифтов", "Font scale")
-            hint: I18n.t("Пиксельный шрифт чёток только в целое число своих клеток, поэтому шрифты растут ступенями, каждый в свой момент: на ×1.25 крупнеют заголовки, на ×1.5 — и основной текст. Строки, панель и меню растут вместе с текстом.", "A pixel font is crisp only at a whole number of its cells, so the fonts grow in steps, each at its own: at 1.25× the headings grow, at 1.5× the body text too. Rows, the bar and the menus grow with the text.")
+            hint: I18n.t("Пиксельные шрифты растут ступенями: на ×1.25 — заголовки, на ×1.5 — весь текст.", "Pixel fonts grow in steps: at ×1.25 the headings, at ×1.5 all the text.")
             PxSegmented {
                 model: [1, 1.25, 1.5, 1.75, 2].map(v => ({
                             "label": "×" + v,

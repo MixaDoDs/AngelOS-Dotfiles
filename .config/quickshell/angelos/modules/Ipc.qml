@@ -144,6 +144,16 @@ IpcHandler {
             "apps": Privacy.apps
         });
     }
+    // the pause for viewers (services/Privacy.pause): on | off | toggle | status
+    function castPause(mode: string): string {
+        if (!Privacy.nativeLook)
+            return "needs angel-niri";
+        if (["on", "off", "toggle"].includes(mode))
+            Privacy.pause(mode);
+        else if (mode !== "status" && mode !== "")
+            return "on | off | toggle | status";
+        return Privacy.paused ? "paused" : "live";
+    }
     // stay awake (services/Awake): on | off | toggle | status — by hand; stream mode and
     // full-screen windows switch it by themselves (Settings → Lock → Stay awake)
     function awake(mode: string): string {
@@ -826,6 +836,14 @@ IpcHandler {
     }
     // ⌘M of the Golden Gate skin's Mac shortcuts: the frontmost window goes to the Dock
     // (services/Minimize); with a window id: that one. "restore <id>" brings one back.
+    // the focused window minimized (the pixel keys' Mod+Z); back from the taskbar or Alt+Tab
+    function minimize(): string {
+        const w = Niri.focusedWindow;
+        if (Shell.setupLocked || !w)
+            return "nothing to minimize";
+        Minimize.request(w.id, "keys");
+        return "ok";
+    }
     function macMinimize(): string {
         if (!GoldenGate.on || !AppMenu.window)
             return "nothing to minimize";

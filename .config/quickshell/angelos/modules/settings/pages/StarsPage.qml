@@ -352,14 +352,16 @@ PxPage {
             text: I18n.t("Сезон — 30 дней (осталось %1). Опыт: минута за компьютером — 1, задание — 60, вход — 30; уровень — %2 опыта. Награды забираются сами.", "A season lasts 30 days (%1 left). Experience: a minute at the computer 1, a task 60, an unlock 30; a level takes %2. Rewards are taken by themselves.").arg(Math.ceil(HeavenStars.seasonDaysLeft)).arg(HeavenStars.levelXp)
         }
         Row {
+            width: parent.width
             spacing: Theme.u * 4
             PxText {
+                id: levelText
                 text: I18n.t("уровень %1 / 30", "level %1 / 30").arg(HeavenStars.level)
                 font.bold: true
                 anchors.verticalCenter: parent.verticalCenter
             }
             Rectangle {
-                width: Theme.u * 140
+                width: Math.max(0, Math.min(Theme.u * 140, parent.width - levelText.width - parent.spacing))
                 height: Theme.u * 6
                 anchors.verticalCenter: parent.verticalCenter
                 color: Theme.sunken

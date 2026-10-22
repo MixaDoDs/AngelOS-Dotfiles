@@ -11,7 +11,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Снимки и запись", "Screenshots and recording")
-    subtitle: I18n.t("Снимок области — Mod+Shift+S, запись области — Mod+Shift+R (ещё раз — стоп).", "A region screenshot is Mod+Shift+S, recording a region is Mod+Shift+R (again to stop).")
+    subtitle: I18n.t("Снимок области — Win+Shift+S, запись области — Win+Shift+R (ещё раз — стоп).", "A region screenshot is Win+Shift+S, recording a region is Win+Shift+R (again to stop).")
 
     readonly property var skins: [
         {
@@ -75,21 +75,25 @@ PxPage {
         property string fallback: ""
         property string pickTitle: ""
         Row {
+            width: parent.width
             spacing: Theme.u * 3
             PxText {
-                width: Math.min(implicitWidth, Theme.u * 110)
+                // the path gives way to the buttons: a narrow window elides it more
+                width: Math.max(0, Math.min(implicitWidth, Theme.u * 110, parent.width - chooseButton.width - (resetDir.visible ? resetDir.width + parent.spacing : 0) - parent.spacing))
                 anchors.verticalCenter: parent.verticalCenter
                 text: Config.capture[dirRow.key] || dirRow.fallback
                 elide: Text.ElideMiddle
                 dim: !Config.capture[dirRow.key]
             }
             PxButton {
+                id: chooseButton
                 compact: true
                 icon: "folder"
                 text: I18n.t("Выбрать…", "Choose…")
                 onClicked: page.pickDir(dirRow.key, dirRow.pickTitle)
             }
             PxButton {
+                id: resetDir
                 compact: true
                 visible: !!Config.capture[dirRow.key]
                 icon: "refresh"
@@ -117,28 +121,47 @@ PxPage {
                 onToggled: v => Config.capture.shotCopy = v
             }
         }
+        // one place for the thumbnail: the corner (services/ShotEdit) or the Halo's own
+        // (services/Halo: halo.shotThumb, only while the corner one is off)
         SettingRow {
-            label: I18n.t("Миниатюра в углу", "Thumbnail in the corner")
-            hint: I18n.t("снимок ждёт в углу экрана: нажмите — повернуть, обрезать, скрыть личное", "the shot waits in the screen's corner: click to turn, crop, hide what is private")
-            PxToggle {
-                checked: Config.capture.shotPreview
-                onToggled: v => Config.capture.shotPreview = v
+            label: I18n.t("Миниатюра снимка", "The shot's thumbnail")
+            hint: Config.capture.shotPreview ? I18n.t("ждёт в углу: повернуть, обрезать, скрыть личное", "Waits in the corner: turn, crop, hide what is private") : I18n.t("на 4 секунды: утащи картинку или положи на полку", "For 4 seconds: drag the picture out or put it on the shelf")
+            PxSegmented {
+                model: [["corner", "В углу", "In the corner"], ["halo", "В Нимбе", "In the Halo"], ["off", "Нигде", "Nowhere"]].filter(c => c[0] !== "halo" || Config.halo.enabled).map(c => ({
+                            "label": I18n.t(c[1], c[2]),
+                            "value": c[0]
+                        }))
+                currentValue: Config.capture.shotPreview ? "corner" : Config.halo.enabled && Config.halo.shotThumb !== false ? "halo" : "off"
+                onActivated: v => {
+                    Config.capture.shotPreview = v === "corner";
+                    Config.halo.shotThumb = v === "halo";
+                }
             }
         }
         SettingRow {
             visible: Config.capture.shotPreview
             label: I18n.t("Где миниатюра", "Where the thumbnail goes")
             hint: I18n.t("«Сама» — в свободное место, мимо ангела и виджетов; или клик по месту на мониторе", "«By itself»: a free place, clear of the angel and the widgets; or click a place on the display")
-            Row {
+            Flow {
+                id: whereRow
+                width: parent.width
                 spacing: Theme.u * 4
-                PxButton {
-                    anchors.verticalCenter: parent.verticalCenter
-                    compact: true
-                    checked: (Config.capture.shotPreviewAt || "auto") === "auto"
-                    text: I18n.t("Сама", "By itself")
-                    onClicked: Config.capture.shotPreviewAt = "auto"
+                // side by side the button sits level with the monitor's middle; too narrow, the
+                // monitor goes under it (a Flow can't centre by anchors)
+                Item {
+                    width: autoButton.width
+                    height: whereRow.width >= autoButton.width + whereRow.spacing + wherePicker.width ? wherePicker.height : autoButton.height
+                    PxButton {
+                        id: autoButton
+                        anchors.verticalCenter: parent.verticalCenter
+                        compact: true
+                        checked: (Config.capture.shotPreviewAt || "auto") === "auto"
+                        text: I18n.t("Сама", "By itself")
+                        onClicked: Config.capture.shotPreviewAt = "auto"
+                    }
                 }
                 PxPositionPicker {
+                    id: wherePicker
                     value: Config.capture.shotPreviewAt === "auto" ? "" : Config.capture.shotPreviewAt
                     onPicked: v => Config.capture.shotPreviewAt = v
                 }
@@ -168,7 +191,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Как вызвать", "How to open")
-            hint: I18n.t("Mod+Shift+S или Print: экран замирает, выберите область, окно или текст — сохранить, скопировать, перевести, найти", "Mod+Shift+S or Print: the screen freezes, pick a part, a window or text — save, copy, translate, search")
+            hint: I18n.t("Win+Shift+S или Print: экран замирает, выберите область, окно или текст — сохранить, скопировать, перевести, найти", "Win+Shift+S or Print: the screen freezes, pick a part, a window or text — save, copy, translate, search")
             PxButton {
                 text: I18n.t("Попробовать", "Try it")
                 icon: "search"
@@ -230,7 +253,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Подсвечивать слова сразу", "Outline the words at once")
-            hint: I18n.t("Live Text: весь экран читается при открытии, по строке можно просто нажать", "Live Text: the whole screen is read when it opens, click a line to pick it")
+            hint: I18n.t("весь экран читается сразу, по строке можно просто нажать", "The whole screen is read at once; click a line to pick it")
             PxToggle {
                 checked: Config.circle.liveText
                 onToggled: v => Config.circle.liveText = v
@@ -238,7 +261,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Ссылки — в мини-остров", "Links into the mini island")
-            hint: I18n.t("ссылка из Circle, буфера или уведомления открывается в маленьком окне в углу: убрать в любой край, клики насквозь (Mod+Alt+I), на весь экран. Выключено — в браузере", "a link from Circle, the clipboard or a notification opens in a small window in the corner: tuck it into any edge, clicks through it (Mod+Alt+I), full screen. Off: in the browser")
+            hint: I18n.t("ссылка из Circle, буфера или уведомления открывается в маленьком окне в углу: убрать в любой край, клики насквозь (Win+Alt+I), на весь экран. Выключено — в браузере", "a link from Circle, the clipboard or a notification opens in a small window in the corner: tuck it into any edge, clicks through it (Win+Alt+I), full screen. Off: in the browser")
             PxToggle {
                 checked: Config.island.enabled
                 onToggled: v => Config.island.enabled = v
@@ -351,7 +374,7 @@ PxPage {
         // services/Capture: gpu-screen-recorder's replay buffer
         SettingRow {
             label: I18n.t("Мгновенный повтор", "Instant replay")
-            hint: !Capture.canReplay ? I18n.t("Нужен gpu-screen-recorder", "It needs gpu-screen-recorder") : I18n.t("Mod+Alt+G — последние секунды главного экрана на Полку. Почти не ест FPS. Окна, скрытые от эфира, в повтор попадают", "Mod+Alt+G puts the main screen's last seconds on the shelf. Costs almost no FPS. Windows hidden from the stream do get into it")
+            hint: !Capture.canReplay ? I18n.t("Нужна программа записи gpu-screen-recorder — поставь её в «Программах»", "Needs the gpu-screen-recorder program; install it from Programs") : I18n.t("Win+Alt+G — последние секунды главного экрана на Полку. Почти не ест FPS. Окна, скрытые от эфира, в повтор попадают", "Win+Alt+G puts the main screen's last seconds on the shelf. Costs almost no FPS. Windows hidden from the stream do get into it")
             PxToggle {
                 enabled: Capture.canReplay
                 checked: Config.capture.replay
@@ -361,7 +384,7 @@ PxPage {
         // services/Timelapse: gpu-screen-recorder at a frame a second, glued at midnight
         SettingRow {
             label: I18n.t("Таймлапс дня", "The day's timelapse")
-            hint: !Capture.canReplay ? I18n.t("Нужен gpu-screen-recorder", "It needs gpu-screen-recorder") : I18n.t("главный экран весь день, кадр в секунду, маленький; в полночь — «Таймлапс <дата>.mp4» в папке записей, со временем в углу. Пишется всё — что выкладывать, решаешь ты", "The main screen all day, a frame a second, small; at midnight «Таймлапс <date>.mp4» in the recordings folder, the time in a corner. Everything is recorded: what to post is yours")
+            hint: !Capture.canReplay ? I18n.t("Нужна программа записи gpu-screen-recorder — поставь её в «Программах»", "Needs the gpu-screen-recorder program; install it from Programs") : I18n.t("главный экран весь день, кадр в секунду, маленький; в полночь — «Таймлапс <дата>.mp4» в папке записей, со временем в углу. Пишется всё — что выкладывать, решаешь ты", "The main screen all day, a frame a second, small; at midnight «Таймлапс <date>.mp4» in the recordings folder, the time in a corner. Everything is recorded: what to post is yours")
             Row {
                 spacing: Theme.u * 3
                 PxButton {
@@ -420,7 +443,7 @@ PxPage {
         // the keys pressed, on screen (services/KeyCast): for guides and streams
         SettingRow {
             label: I18n.t("Показывать нажатые клавиши", "Show the keys pressed")
-            hint: KeyCast.error !== "" ? KeyCast.error : I18n.t("Mod+Shift+K — вкл/выкл. Сочетания и особые клавиши внизу экрана; пока вводится пароль — ничего", "Mod+Shift+K turns it on and off. Shortcuts and special keys at the bottom of the screen; nothing while a password is typed")
+            hint: KeyCast.error !== "" ? KeyCast.error : I18n.t("Win+Shift+K — вкл/выкл. Сочетания и особые клавиши внизу экрана; пока вводится пароль — ничего", "Win+Shift+K turns it on and off. Shortcuts and special keys at the bottom of the screen; nothing while a password is typed")
             PxToggle {
                 checked: Config.keycast.enabled
                 onToggled: v => Config.keycast.enabled = v
@@ -568,7 +591,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Скин читают инструменты ~/.local/bin/niri-screenshot-region и niri-record-overlay из dotfiles. Снимки — в ~/Pictures/Screenshots, по папкам месяцев («2026-10 Октябрь»), записи — в ~/Videos.", "The skin is used by ~/.local/bin/niri-screenshot-region and niri-record-overlay from the dotfiles. Shots go to ~/Pictures/Screenshots, one folder per month (“2026-10 October”), recordings to ~/Videos.")
+            text: I18n.t("Снимки — в «Изображения → Screenshots», по месяцам, записи — в «Видео».", "Shots go to Pictures → Screenshots, by month; recordings to Videos.")
         }
     }
 }

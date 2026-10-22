@@ -12,7 +12,7 @@ PxPage {
     id: page
 
     heading: I18n.t("Пароли", "Passwords")
-    subtitle: I18n.t("Bitwarden и 1Password в лаунчере: Mod+Space → pw и название. Enter копирует пароль.", "Bitwarden and 1Password in the launcher: Mod+Space → pw and a name. Enter copies the password.")
+    subtitle: I18n.t("Bitwarden и 1Password в лаунчере: Win+Space → pw и название. Enter копирует пароль.", "Bitwarden and 1Password in the launcher: Win+Space → pw and a name. Enter copies the password.")
     Component.onCompleted: Vault.refresh()
 
     function stateText(b) {
@@ -52,7 +52,8 @@ PxPage {
                 required property var modelData
                 label: modelData.name
                 hint: page.stateText(modelData) + (Vault.errors[modelData.id] && modelData.state === "unlocked" ? " · ✕ " + Vault.errors[modelData.id] : "")
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxButton {
                         visible: !row.modelData.installed
@@ -70,7 +71,7 @@ PxPage {
                     PxField {
                         id: pw
                         visible: row.modelData.state === "locked" && Vault.wantsPassword(row.modelData.id)
-                        width: Theme.u * 60
+                        width: Math.min(Theme.u * 60, parent.width)
                         password: true
                         placeholder: Vault.asks(row.modelData.id) === "pin" ? "PIN" : I18n.t("мастер-пароль", "master password")
                         onAccepted: {
@@ -100,12 +101,13 @@ PxPage {
                 required property var modelData
                 label: I18n.t("Без мастер-пароля: ", "No master password: ") + modelData.name
                 hint: modelData.saved === "keyring" ? I18n.t("включено: хранилище открывается само, пока ты вошёл в систему", "on: the vault opens by itself while you are logged in") : modelData.saved === "pin" ? I18n.t("включено: вместо мастер-пароля спрашивается твой PIN", "on: your PIN is asked instead of the master password") : I18n.t("введи мастер-пароль один раз — он ляжет в связку ключей системы (её открывает вход в систему). Свой PIN — по желанию: тогда спрашивается он", "type the master password once: it goes into the system's keyring (opened by your login). A PIN of your own is optional: then that is asked")
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxField {
                         id: master
                         visible: !keep.modelData.saved
-                        width: Theme.u * 50
+                        width: Math.min(Theme.u * 50, parent.width)
                         password: true
                         placeholder: I18n.t("пароль", "password")
                     }
@@ -161,7 +163,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("Первый вход делается один раз в терминале: там менеджер сам спросит почту, пароль и код 2FA. Для Bitwarden хватит одного из двух: официальный bw или быстрый rbw. 1Password проще всего подключить через его приложение (Настройки → Разработчику → «Интеграция с 1Password CLI»).", "The first sign-in happens once, in a terminal: the manager asks for the e-mail, the password and the 2FA code itself. One of the two is enough for Bitwarden: the official bw or the quick rbw. 1Password is easiest through its app (Settings → Developer → “Integrate with 1Password CLI”).")
+            text: I18n.t("Первый вход — один раз в терминале: менеджер сам спросит почту, пароль и код 2FA. Для 1Password включи в его приложении «Интеграция с 1Password CLI».", "The first login: once, in a terminal; the manager asks for the e-mail, password and 2FA code. For 1Password, switch on «Integrate with 1Password CLI» in its app.")
         }
     }
 
@@ -173,7 +175,7 @@ PxPage {
 
         SettingRow {
             label: I18n.t("Искать пароли в лаунчере", "Find passwords in the launcher")
-            hint: I18n.t("Mod+Space → «pw гитхаб»: Enter — пароль, Ctrl+Enter — логин, Shift+Enter — код 2FA", "Mod+Space → “pw github”: Enter copies the password, Ctrl+Enter the login, Shift+Enter the 2FA code")
+            hint: I18n.t("Win+Space → «pw гитхаб»: Enter — пароль, Ctrl+Enter — логин, Shift+Enter — код 2FA", "Win+Space → “pw github”: Enter copies the password, Ctrl+Enter the login, Shift+Enter the 2FA code")
             PxToggle {
                 checked: Config.vault.enabled
                 onToggled: c => Config.vault.enabled = c

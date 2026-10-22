@@ -516,6 +516,10 @@ Singleton {
         let cls = [];
         if (appId)
             cls = base === "foot" ? ["--app-id=" + appId] : base === "ghostty" ? ["--class=" + appId] : base === "wezterm" ? ["--class", appId] : base === "kitty" || base === "alacritty" ? ["--class", appId] : [];
+        // kitty as one process: a new window in ~6 ms instead of ~150 (it takes the caller's
+        // environment and folder along)
+        if (base === "kitty")
+            cls = ["--single-instance"].concat(cls);
         if (!argv || argv.length === 0)
             return [t].concat(cls);
         if (base === "kitty" || base === "foot")

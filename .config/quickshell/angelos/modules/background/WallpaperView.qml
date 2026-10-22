@@ -74,10 +74,34 @@ Item {
         const variant = Wallpapers.settled && Wallpapers.sameSet(shown, path);
         const animate = (configChanged || variant) && styleIndex >= 0 && Niri.ready && shown !== "" && !Motion.still;
         configChanged = false;
+        // (local patch 56) a change while the gate runs (the day/night file resolved a moment
+        // later, another pick) goes into the scene; once it covers the screen, under it at once
+        if (gate.busy) {
+            gate.path = path;
+            if (gate.swapped) {
+                shown = path;
+                freeFrom();
+                load(toImg, path);
+                progress = 1;
+            }
+            return;
+        }
         anim.stop();
         const t = Config.wallpaper.verdictTitle;
         verdictWord = t === "off" ? "" : t && t !== "auto" ? t : !Wallpapers.hellOn && wasHell ? "ASCEND" : "DESCEND";
         wasHell = Wallpapers.hellOn;
+        // (local patch 56) Heaven's Gate: the scene freezes the screen first and the picture
+        // changes under it (gate.onCovered); over a full-screen window, or with no frame in
+        // time, the shader's cinema instead
+        const st = Wallpapers.transitions[styleIndex];
+        if (animate && st && st.scene) {
+            if (!gateFailed && !Shell.fullscreenOn(screenName) && gate.start(path)) {
+                Sounds.quietWallpaper(1500);
+                return;
+            }
+            styleIndex = Wallpapers.transitionIndex("cinema");
+        }
+        gateFailed = false;
         if (!animate) {
             shown = path;
             freeFrom();
@@ -95,6 +119,29 @@ Item {
             waitingForLoad = true;
     }
     property bool waitingForLoad: false
+    property bool gateFailed: false
+
+    GateScene {
+        id: gate
+        screenName: root.screenName
+        // a newer change while the scene ran went its own way: this one is stale
+        onCovered: path => {
+            if (path !== root.target)
+                return;
+            anim.stop();
+            root.shown = path;
+            root.freeFrom();
+            root.load(toImg, path);
+            root.progress = 1;
+        }
+        onFailed: path => {
+            if (path !== root.target)
+                return;
+            root.gateFailed = true;
+            root.configChanged = true;
+            root.go(path);
+        }
+    }
 
     // a change while a transition plays waits for its end: then only the latest one, if any
     onTargetChanged: if (target !== shown && !anim.running)
@@ -111,7 +158,7 @@ Item {
         property: "progress"
         from: 0
         to: 1
-        duration: Motion.ms(root.verdict ? 800 : Config.wallpaper.duration)
+        duration: Motion.ms(root.verdict ? 800 : Wallpapers.transitionMs(root.styleIndex))
         easing.type: Easing.Linear
         onFinished: {
             root.freeFrom();

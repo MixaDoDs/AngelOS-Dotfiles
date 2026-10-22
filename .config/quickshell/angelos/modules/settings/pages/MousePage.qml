@@ -86,7 +86,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Какая мышь", "Which mouse")
-            hint: I18n.t("часть имени из /dev/input/by-id; пусто — первая USB-мышь (у клавиатур на эффекте Холла бывает свой «мышиный» вход)", "A part of its /dev/input/by-id name; empty: the first USB mouse (Hall-effect keyboards have a mouse input of their own)")
+            hint: I18n.t("пусто — первая USB-мышь; если не та, впиши часть её названия", "Empty: the first USB mouse; if it's the wrong one, type a part of its name")
             PxField {
                 text: Config.gaming.mouseDevice || ""
                 placeholder: I18n.t("первая мышь", "the first mouse")
@@ -105,7 +105,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: Config.lens.mode === "snapshot" ? I18n.t("Круглая лупа едет за мышкой и увеличивает то, что под ней, — по снимку экрана: клик или R — новый снимок, остальной экран живой. Внутри: колесо — ближе/дальше, Shift+колесо — размер, ПКМ или Esc — убрать.", "A round lens follows the mouse and magnifies what is under it from a picture of the screen: a click or R takes a new one, the rest of the screen stays live. Inside: wheel — closer/farther, Shift+wheel — size, right click or Esc — away.") : I18n.t("Живая лупа: стекло рядом с курсором показывает то, что вокруг него, кадр за кадром — видео, текст, всё живое. Рядом, а не поверх: niri отдаёт кадр экрана вместе с самой лупой, и стекло над тем же местом показывало бы само себя. У края экрана стекло перебегает на другую сторону. Внутри: колесо — ближе/дальше, Shift+колесо — размер, ПКМ или Esc — убрать.", "A live lens: a glass beside the pointer shows what is around it frame by frame — video, text, everything live. Beside, not on top: niri's frame of the screen has the lens in it too, so a glass over the same spot would show itself. Near an edge it hops to the other side. Inside: wheel — closer/farther, Shift+wheel — size, right click or Esc — away.")
+            text: Config.lens.mode === "snapshot" ? I18n.t("Лупа едет за мышью и увеличивает снимок экрана: клик или R — новый снимок. Колесо — ближе/дальше, Shift+колесо — размер, ПКМ или Esc — убрать.", "The lens follows the mouse over a snapshot of the screen: click or R for a new one. Wheel: closer/further, Shift+wheel: size, right click or Esc: away.") : I18n.t("Стекло рядом с курсором показывает, что вокруг него, вживую. Колесо — ближе/дальше, Shift+колесо — размер, ПКМ или Esc — убрать.", "A glass beside the pointer shows what is around it, live. Wheel: closer/further, Shift+wheel: size, right click or Esc: away.")
         }
         SettingRow {
             label: I18n.t("Как увеличивает", "How it magnifies")
@@ -126,7 +126,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Клавиши", "Keys")
-            hint: Lens.log !== "" ? Lens.log : I18n.t("Meta+Alt+= ближе (и открыть), Meta+Alt+- дальше, Meta+Alt+0 убрать; Meta+= и Meta+- у niri заняты шириной колонки", "Meta+Alt+= closer (and open), Meta+Alt+- farther, Meta+Alt+0 away; niri uses Meta+= and Meta+- for the column width")
+            hint: Lens.log !== "" ? Lens.log : I18n.t("Win+Alt+= ближе (и открыть), Win+Alt+- дальше, Win+Alt+0 убрать", "Win+Alt+= closer (and open), Win+Alt+- further, Win+Alt+0 away")
             Row {
                 spacing: Theme.u * 3
                 PxToggle {

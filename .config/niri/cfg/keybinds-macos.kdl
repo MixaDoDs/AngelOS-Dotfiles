@@ -8,11 +8,11 @@ binds {
     // в keybinds-common.kdl. Активный профиль выбирает angelOS (scripts/keyprofile.py).
 
     // ─── Applications ───
-    Mod+T                               hotkey-overlay-title="Open Terminal: kitty" { spawn "kitty"; }
+    Mod+T                               hotkey-overlay-title="Open Terminal: kitty" { spawn "kitty" "--single-instance"; }
     Mod+B                               hotkey-overlay-title="Open Browser" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos browser"; }
 
     // ─── angelOS ───
-    Mod+Alt+Space                       hotkey-overlay-title="angelOS: программы (лаунчер; ⌘Пробел — Spotlight)" { spawn-sh "qs -c angelos ipc call angelos launcher"; }
+    Mod+Alt+Space                       hotkey-overlay-title="angelOS: программы (лаунчер; ⌘Пробел — Spotlight)" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open launcher"; }
 
     // Please set the text editor of your choice.
     // Mod+Shift+E                               hotkey-overlay-title="Open Text Editor: Zed" { spawn "zed"; }

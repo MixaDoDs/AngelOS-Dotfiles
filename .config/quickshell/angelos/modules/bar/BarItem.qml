@@ -119,6 +119,8 @@ Loader {
             return eqC;
         case "bell":
             return bellC;
+        case "awake":
+            return awakeC;
         case "wifi":
             return wifiC;
         case "bluetooth":
@@ -206,6 +208,10 @@ Loader {
             above: root.bar.above
             vertical: root.vertical
         }
+    }
+    Component {
+        id: awakeC
+        AwakeButton {}
     }
     Component {
         id: bellC

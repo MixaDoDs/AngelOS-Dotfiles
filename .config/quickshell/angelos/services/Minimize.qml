@@ -18,6 +18,12 @@ import qs.config
 // on its output and given up when empty. When the skin goes every minimized window comes back.
 // What is minimized is niri's state (the windows on that workspace), so it outlives a restart of
 // the shell; the snapshots, the order and which ones are hidden are kept in `stateFile`.
+//
+// angel-niri, our fork of niri (Niri.nativeMinimize), minimizes for itself: no hidden workspace,
+// no LD_PRELOAD hook. Every minimize (the apps' own buttons included) goes to niri as a request;
+// niri snapshots the window and tells us where it is (Niri.minimizeRequested), the snapshot flies
+// into the Dock and the window goes then (MinimizeWindow now). Bringing one back is the same
+// MoveWindowToWorkspace + FocusWindow: niri brings a minimized window back onto that workspace.
 Singleton {
     id: root
 
@@ -30,7 +36,7 @@ Singleton {
     readonly property string dir: Quickshell.env("XDG_RUNTIME_DIR") + "/angelos-minimized"
     // the minimized windows (the Dock's), in the order they were minimized
     readonly property var windows: {
-        const mine = Niri.windows.filter(w => Niri.isHidden(Niri.workspaceById(w.workspace_id)) && !hidden[w.id]);
+        const mine = Niri.windows.filter(w => isMinimized(w) && !hidden[w.id]);
         const at = id => {
             const i = order.indexOf(id);
             return i < 0 ? 1e9 + id : i;
@@ -38,10 +44,21 @@ Singleton {
         return mine.sort((a, b) => at(a.id) - at(b.id));
     }
     // the windows of hidden apps (⌘H)
-    readonly property var hiddenWindows: Niri.windows.filter(w => Niri.isHidden(Niri.workspaceById(w.workspace_id)) && !!hidden[w.id])
-    // minimized or hidden: on a hidden workspace
+    readonly property var hiddenWindows: Niri.windows.filter(w => isMinimized(w) && !!hidden[w.id])
+    // minimized or hidden: minimized by angel-niri, or on a hidden workspace
     function isMinimized(w) {
-        return !!w && Niri.isHidden(Niri.workspaceById(w.workspace_id));
+        return !!w && (!!w.is_minimized || Niri.isHidden(Niri.workspaceById(w.workspace_id)));
+    }
+    // the screen a window is on — a minimized one: the screen it left
+    function outputOf(w) {
+        const ws = w ? Niri.workspaceById(w.workspace_id) : null;
+        if (ws)
+            return ws.output;
+        return w ? (origin[w.id] || {}).output || Niri.focusedOutput : "";
+    }
+    // the desktop a window is on — a minimized one: the desktop it left
+    function wsOf(w) {
+        return isMinimized(w) ? (origin[w.id] || {}).ws : w.workspace_id;
     }
     function isAppHidden(w) {
         return isMinimized(w) && !!hidden[w.id];
@@ -98,8 +115,9 @@ Singleton {
     // shows a minimized window dimmed and brings it back (modules/bar/parts/Tasks), so the
     // «Minimize» button the wizard's «from Windows» adds works there too
     readonly property string socketPath: Quickshell.env("XDG_RUNTIME_DIR") + "/angelos-minimize.sock"
+    // (angel-niri gets the buttons itself: with the socket closed the hook lets them through)
     SocketServer {
-        active: true
+        active: !Niri.nativeMinimize
         path: root.socketPath
         handler: Socket {
             id: app
@@ -117,8 +135,18 @@ Singleton {
     // login (extras/minimize-hook/install.sh puts it in angelos.service and niri's config; the
     // dotfiles' install.sh too, for everyone) — not once `install.sh --remove` left minimize-hook.off
     readonly property string hookLib: Quickshell.env("HOME") + "/.local/lib/angelos/$LIB/libangelos-minimize.so"
+    // (not under angel-niri, which needs no hook: there the preload is taken out again)
+    Connections {
+        target: Niri
+        function onMinimizeProbedChanged() {
+            if (Niri.nativeMinimize)
+                Quickshell.execDetached(["sh", "-c", 'cur=$(systemctl --user show-environment 2>/dev/null | sed -n "s/^LD_PRELOAD=//p" | sed "s/^\\$\x27\\(.*\\)\x27$/\\1/"); case "$cur" in *libangelos-minimize.so*) ;; *) exit 0 ;; esac; v=$(printf %s "$cur" | tr : "\\n" | grep -v libangelos-minimize.so | paste -sd:); if [ -n "$v" ]; then systemctl --user set-environment "LD_PRELOAD=$v"; else systemctl --user unset-environment LD_PRELOAD; fi']);
+            else
+                hookEnv.running = true;
+        }
+    }
     Process {
-        running: true
+        id: hookEnv
         command: ["sh", "-c", 'lib="$1"; [ -f "$(printf %s "$lib" | sed "s/\\$LIB/lib/")" ] || exit 0; [ -e "$HOME/.config/angelos/minimize-hook.off" ] && exit 0; cur=$(systemctl --user show-environment 2>/dev/null | sed -n "s/^LD_PRELOAD=//p" | sed "s/^\\$\x27\\(.*\\)\x27$/\\1/"); case "$cur" in *libangelos-minimize.so*) exit 0 ;; "") v="$lib" ;; *) v="$cur:$lib" ;; esac; systemctl --user set-environment "LD_PRELOAD=$v"', "sh", root.hookLib]
     }
     // which window of that process: the one with that title (Nautilus runs all its windows in one
@@ -138,6 +166,16 @@ Singleton {
     // ---- away ----
     property var _queue: []
     function minimize(id) {
+        if (Niri.nativeMinimize) {
+            // niri snapshots it and asks back (minimizeRequested → fromNiri)
+            const w = Niri.windows.find(x => x.id === id);
+            if (w && !isMinimized(w))
+                Niri.action("MinimizeWindow", {
+                    "id": id,
+                    "now": false
+                });
+            return;
+        }
         const w = Niri.windows.find(x => x.id === id);
         const ws = w ? Niri.workspaceById(w.workspace_id) : null;
         if (!w || !ws || isMinimized(w) || _queue.some(q => q.id === id))
@@ -242,13 +280,21 @@ Singleton {
         }
     }
     function _away(q) {
-        if (flightMs > 0 && shots[q.id] && q.rect && !q.flown) {
+        if (canFly && shots[q.id] && q.rect && !q.flown) {
             q.flown = true;
             fly(q.id, q.output, q.rect, false);
             Qt.callLater(() => goTimer.go(q));
             return;
         }
         _queue = _queue.filter(x => x !== q);
+        if (q.native) {
+            Niri.action("MinimizeWindow", {
+                "id": q.id,
+                "now": true
+            });
+            order = order.filter(x => x !== q.id).concat([q.id]);
+            return;
+        }
         const w = Niri.windows.find(x => x.id === q.id);
         const name = Niri.hiddenPrefix + q.output;
         // the output's hidden workspace, or its last one (niri keeps an empty one there) named so;
@@ -274,6 +320,36 @@ Singleton {
         _next();
     }
 
+    // angel-niri is about to minimize a window (its own button, the Dock, a key): its snapshot goes
+    // over it and flies, then the window goes (_away). rect: on `output`, in its logical px
+    function fromNiri(id, output, rect, snapshot) {
+        const w = Niri.windows.find(x => x.id === id);
+        if (!w || isMinimized(w) || _queue.some(q => q.id === id))
+            return;
+        const s = Shell.screenByName(output);
+        const r = s && rect ? [Math.round(s.x + rect[0]), Math.round(s.y + rect[1]), Math.round(rect[2]), Math.round(rect[3])] : null;
+        const o = Object.assign({}, origin);
+        o[id] = {
+            "ws": w.workspace_id,
+            "output": output || Niri.focusedOutput,
+            "rect": r
+        };
+        origin = o;
+        if (snapshot) {
+            const sh = Object.assign({}, shots);
+            sh[id] = "file://" + snapshot;
+            shots = sh;
+        }
+        const q = {
+            "id": id,
+            "output": output,
+            "rect": r,
+            "native": true
+        };
+        _queue = _queue.concat([q]);
+        _away(q);
+    }
+
     // ---- hidden with the app (⌘H) ----
     // every window of the app (its app id) that is out goes the way ⌘M sends one — the snapshot
     // flies (Genie or Scale) into the app's own Dock icon, not into a place of its own: hidden
@@ -284,6 +360,15 @@ Singleton {
         if (!w)
             return;
         const mine = Niri.windows.filter(x => x.app_id === w.app_id && !isMinimized(x) && !_queue.some(q => q.id === x.id));
+        if (Niri.nativeMinimize) {
+            const h = Object.assign({}, hidden);
+            for (const x of mine)
+                h[x.id] = true;
+            hidden = h;
+            for (const x of mine)
+                minimize(x.id);
+            return;
+        }
         const h = Object.assign({}, hidden);
         const o = Object.assign({}, origin);
         const jobs = [];
@@ -364,7 +449,7 @@ Singleton {
         if (to)
             _setTo(id, to);
         const o = origin[id];
-        if (!instant && flightMs > 0 && shots[id] && o && o.rect && o.output === out) {
+        if (!instant && canFly && shots[id] && o && o.rect && o.output === out) {
             if (flying.indexOf(id) < 0)
                 fly(id, o.output, o.rect, true);
             return;
@@ -380,10 +465,10 @@ Singleton {
         const w = Niri.windows.find(x => x.id === id);
         if (!w || !isMinimized(w))
             return;
-        const hid = Niri.workspaceById(w.workspace_id);
+        const hid = Niri.workspaceById(w.workspace_id); // (angel-niri: none)
         let to = Niri.workspaceById(_to[id]);
         if (!to || Niri.isHidden(to))
-            to = currentDesk(Niri.focusedOutput) || currentDesk(hid.output);
+            to = currentDesk(Niri.focusedOutput) || (hid ? currentDesk(hid.output) : null);
         if (!to)
             return;
         // First quietly onto the desktop (by id, focus false: niri switches no workspace — its
@@ -391,8 +476,10 @@ Singleton {
         // own), then focused there. A tiled window is a new column right of the focused one, and
         // focusing it scrolls the view: niri slides it in from the side while its snapshot has
         // landed in the middle. A screen transition freezes the screen (the snapshot where the
-        // window is going) over the move and the scroll and fades to the result.
-        if (!w.is_floating && to.is_active && Motion.ms(100) > 0)
+        // window is going) over the move and the scroll and fades to the result. Not on
+        // angel-niri: it brings the window back with the open animation itself, which the frozen
+        // screen hid, 200 ms late on top
+        if (!Niri.nativeMinimize && !w.is_floating && to.is_active && Motion.ms(100) > 0)
             Niri.action("DoScreenTransition", {
                 "delay_ms": 200
             });
@@ -426,7 +513,12 @@ Singleton {
     // Genie (the window bends and pours into the Dock) or Scale (it shrinks into it), as macOS's
     // "Minimise windows using"; Genie takes a little longer, as there
     readonly property string effect: Config.mac.minimizeEffect === "scale" ? "scale" : "genie"
-    readonly property int flightMs: Motion.ms(effect === "genie" ? 560 : 380)
+    // (only Golden Gate draws it: modules/mac/MacDesktop → MacMinimizeFx — elsewhere nothing would
+    // land, and a window flying back would never come)
+    readonly property int flightMs: GoldenGate.on ? Motion.ms(effect === "genie" ? 560 : 380) : 0
+    // only Golden Gate draws the flights (flightMs is 0 elsewhere): nothing would land one, and a
+    // window waiting for its landing never came back (#111)
+    readonly property bool canFly: flightMs > 0 && !Shell.desktopHeld
     property var flights: []                // [{key, id, output, rect, shot, back}]
     readonly property var flying: flights.map(f => f.id)
     property var dockSlots: ({})            // output + "|" + key -> [centre x, centre y, size], screen px
@@ -518,6 +610,9 @@ Singleton {
         target: Niri
         function onRestoreRequested(id) {
             root.restore(id, true);
+        }
+        function onMinimizeRequested(id, output, rect, snapshot) {
+            root.fromNiri(id, output, rect, snapshot);
         }
         // scrolled onto the hidden workspace: on to the next one the same way (back, if it is
         // the last); in the overview it may be looked at — what is focused there when the

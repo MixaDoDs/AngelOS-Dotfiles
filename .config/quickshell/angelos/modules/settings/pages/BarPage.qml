@@ -20,7 +20,7 @@ PxPage {
         // like Windows 10: the taskbar on any edge; on the left or the right it stands upright
         SettingRow {
             label: I18n.t("Положение на экране", "Position on screen")
-            hint: BarLayout.vertical ? I18n.t("сбоку панель стоит столбиком: «Пуск», воркспейсы и окна сверху, трей и часы снизу; меню открываются вбок, лирика сбоку не помещается", "On a side the bar stands upright: Start, workspaces and windows at the top, the tray and the clock at the bottom; menus open sideways, the lyrics don't fit there") : I18n.t("у какого края экрана панель, как в Windows 10", "Which screen edge the bar sits on, like Windows 10")
+            hint: BarLayout.vertical ? I18n.t("сбоку панель стоит столбиком: «Пуск», столы и окна сверху, трей и часы снизу; меню открываются вбок, лирика сбоку не помещается", "On a side the bar stands upright: Start, workspaces and windows at the top, the tray and the clock at the bottom; menus open sideways, the lyrics don't fit there") : I18n.t("у какого края экрана панель, как в Windows 10", "Which screen edge the bar sits on, like Windows 10")
             PxSegmented {
                 model: [
                     {
@@ -65,6 +65,24 @@ PxPage {
                 decimals: 1
                 suffix: I18n.t(" с", " s")
                 onMoved: v => Config.bar.autoHideMs = Math.round(v)
+            }
+        }
+        SettingRow {
+            label: I18n.t("Кнопки на панели", "Taskbar alignment")
+            hint: Config.bar.taskbarAlign === "center" ? I18n.t("как в Windows 11: «Пуск» и окна посередине, лирика — слева; меню выезжает снизу", "Like Windows 11: Start and windows in the middle, lyrics on the left; the menu slides up") : I18n.t("«Пуск» и окна у левого края", "Start and windows at the left edge")
+            PxSegmented {
+                model: [
+                    {
+                        "label": I18n.t("Слева", "Left"),
+                        "value": "left"
+                    },
+                    {
+                        "label": I18n.t("По центру", "Center"),
+                        "value": "center"
+                    }
+                ]
+                currentValue: Config.bar.taskbarAlign || "left"
+                onActivated: v => Config.bar.taskbarAlign = v
             }
         }
     }
@@ -119,7 +137,7 @@ PxPage {
             }
         }
         SettingRow {
-            label: I18n.t("Воркспейсы на панели", "Workspaces on the bar")
+            label: I18n.t("Столы на панели", "Workspaces on the bar")
             hint: I18n.t("сердечки, иконки открытых приложений или всё вместе", "hearts, icons of open apps, or both")
             PxSegmented {
                 model: [
@@ -144,7 +162,7 @@ PxPage {
         }
         SettingRow {
             visible: Config.bar.workspaceStyle !== "hearts"
-            label: I18n.t("Иконок на воркспейс", "Icons per workspace")
+            label: I18n.t("Значков на стол", "Icons per workspace")
             PxSpin {
                 from: 1
                 to: 6
@@ -239,7 +257,7 @@ PxPage {
             }
         }
         SettingRow {
-            label: I18n.t("Окна со всех воркспейсов", "Windows from all workspaces")
+            label: I18n.t("Окна со всех столов", "Windows from all workspaces")
             PxToggle {
                 checked: Config.bar.allWindows
                 onToggled: c => Config.bar.allWindows = c
@@ -271,7 +289,7 @@ PxPage {
         PxText {
             width: parent.width
             wrapMode: Text.Wrap
-            text: I18n.t("Перетаскивай элементы между частями панели. «Окна» растягиваются на свободное место слева (или по содержимому — настройка ниже), «Лирика» лучше всего смотрится в центре. Виджеты новых плагинов сами появляются справа.", "Drag widgets between sections. Windows use the free space on the left (or only what they need — below); lyrics fit best in the center. New plugin widgets appear on the right.")
+            text: I18n.t("Перетаскивай элементы между частями панели. Виджеты новых плагинов появляются справа сами.", "Drag items between the bar's parts. New plugins' widgets appear on the right by themselves.")
             dim: true
         }
         BarLayoutEditor {
@@ -418,7 +436,7 @@ PxPage {
             label: I18n.t("Вид", "Look")
             hint: I18n.t("телефон-раскладушка в 3D: клавиши — переключатели, на боку — звук, обои и тема", "A 3D flip phone: its keys are the toggles, on its side it holds sound, wallpapers and theme")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [{
                         "label": I18n.t("Телефон", "Phone"),
                         "value": "phone"
@@ -461,7 +479,7 @@ PxPage {
             visible: Config.sidebar.enabled
             label: I18n.t("Экран", "Screen")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [{
                         "label": I18n.t("Основной", "Primary"),
                         "value": ""
@@ -586,25 +604,6 @@ PxPage {
             }
         }
         SettingRow {
-            id: taskbarAlignRow
-            label: I18n.t("Панель задач", "Taskbar alignment")
-            hint: Config.bar.taskbarAlign === "center" ? I18n.t("как в Windows 11: «Пуск» и окна посередине, лирика — слева; меню выезжает снизу", "Like Windows 11: Start and windows in the middle, lyrics on the left; the menu slides up") : I18n.t("«Пуск» и окна у левого края", "Start and windows at the left edge")
-            PxSegmented {
-                model: [
-                    {
-                        "label": I18n.t("Слева", "Left"),
-                        "value": "left"
-                    },
-                    {
-                        "label": I18n.t("По центру", "Center"),
-                        "value": "center"
-                    }
-                ]
-                currentValue: Config.bar.taskbarAlign || "left"
-                onActivated: v => Config.bar.taskbarAlign = v
-            }
-        }
-        SettingRow {
             id: startPosRow
             preview: "StartMenu"
             visible: !page.startFull && Config.bar.startStyle !== "spotlight"
@@ -671,8 +670,8 @@ PxPage {
             }
         }
         SettingRow {
-            label: I18n.t("Открывать по нажатию Meta", "Open with a Meta tap")
-            hint: I18n.t("короткое нажатие Super — меню «Пуск», как в Windows. Зажатая клавиша и сочетания (Mod+…) меню не открывают.", "A short Super tap opens Start, like on Windows. Holding it or shortcuts (Mod+…) never do.")
+            label: I18n.t("Открывать по нажатию Win", "Open with a Win tap")
+            hint: I18n.t("короткое нажатие Win — меню «Пуск», как в Windows. Зажатая клавиша и сочетания (Win+…) меню не открывают.", "A short Win tap opens Start, like on Windows. Holding it or shortcuts (Win+…) never do.")
             PxToggle {
                 checked: Config.bar.metaTap
                 onToggled: c => Config.bar.metaTap = c
@@ -681,7 +680,7 @@ PxPage {
     }
     PxGroup {
         name: "start-meta"
-        title: I18n.t("Пуск по клавише Meta", "Start on the Meta key")
+        title: I18n.t("Пуск по клавише Win", "Start on the Win key")
         icon: "keyboard"
         width: parent.width
         SettingRow {
@@ -725,7 +724,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: I18n.t("niri не умеет назначать действие на одиночный модификатор, поэтому angelOS слушает клавиатуры сам (только чтение). Запоминается лишь «Meta нажата» и «было что-то ещё» — какие клавиши нажимались, никуда не пишется.", "niri cannot bind a bare modifier, so angelOS reads keyboards itself (read-only). It only tracks “Meta is down” and “something else happened”; which keys you press is never stored.")
+            text: I18n.t("angelOS сам слушает клавиатуру (только чтение): запоминает лишь «Win нажата» и «нажато что-то ещё», никуда не пишет.", "angelOS listens to the keyboard itself (read only): it keeps only «Win pressed» and «something else pressed», and writes nothing down.")
         }
     }
 
@@ -878,7 +877,7 @@ PxPage {
             width: parent.width
             wrapMode: Text.Wrap
             dim: true
-            text: Angel.hellShown ? I18n.t("Classic 95 и Angel + — шрифтом темы, Windose, Hell и Y2K Chrome — пиксельные буквы. Цвета следуют теме (Hell всегда кровавый). Этот же значок рисует fastfetch (Система → fastfetch).", "Classic 95 and Angel + use the theme font; Windose, Hell and Y2K Chrome are pixel letters. Colours follow the theme (Hell is always blood red). fastfetch draws this emblem too (System → fastfetch).") : I18n.t("Classic 95 и Angel + — шрифтом темы, Windose и Y2K Chrome — пиксельные буквы. Цвета следуют теме. Этот же значок рисует fastfetch (Система → fastfetch).", "Classic 95 and Angel + use the theme font; Windose and Y2K Chrome are pixel letters. Colours follow the theme. fastfetch draws this emblem too (System → fastfetch).")
+            text: Angel.hellShown ? I18n.t("Classic 95 и Angel + — шрифтом темы, Windose, Hell и Y2K Chrome — пиксельные буквы. Цвета следуют теме (Hell всегда кровавый). Этот же значок рисует fastfetch (Приложения → Приветствие терминала).", "Classic 95 and Angel + use the theme font; Windose, Hell and Y2K Chrome are pixel letters. Colours follow the theme (Hell is always blood red). fastfetch draws this emblem too (System → fastfetch).") : I18n.t("Classic 95 и Angel + — шрифтом темы, Windose и Y2K Chrome — пиксельные буквы. Цвета следуют теме. Этот же значок рисует fastfetch (Приложения → Приветствие терминала).", "Classic 95 and Angel + use the theme font; Windose and Y2K Chrome are pixel letters. Colours follow the theme. fastfetch draws this emblem too (System → fastfetch).")
         }
     }
 }

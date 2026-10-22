@@ -63,6 +63,9 @@ packages() {
 if [[ "${1:-}" == --plan ]]; then
   _ 'Steam, Proton (CachyOS build, umu with automatic per-game fixes, ProtonPlus for GE), 32-bit drivers' 'Steam, Proton (сборка CachyOS, umu с автопочинками для игр, ProtonPlus для GE), 32-битные драйверы'; echo
   _ 'gamemode, MangoHud, gamescope, sched-ext schedulers; shader cache 10 GB' 'gamemode, MangoHud, gamescope, планировщики sched-ext; кэш шейдеров 10 ГБ'; echo
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    _ 'the NVIDIA card at full speed while a game runs' 'видеокарта NVIDIA на полной частоте, пока идёт игра'; echo
+  fi
   if ! btrfs_root; then
     _ 'no snapshots: the system disk is not btrfs' 'без снимков: системный диск не btrfs'; echo
   elif [[ -f /etc/snapper/configs/root ]]; then
@@ -99,6 +102,13 @@ __GL_SHADER_DISK_CACHE_SIZE=10737418240
 __GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1
 MESA_SHADER_CACHE_MAX_SIZE=10G
 EOF
+
+# NVIDIA: the game boost (niri-game-mode) keeps the clock up while a game runs — a root helper
+# with its two fixed commands allowed without a password (scripts/gpu-clocks-setup.sh)
+if command -v nvidia-smi >/dev/null 2>&1; then
+  sudo bash "$HERE/gpu-clocks-setup.sh" >/dev/null ||
+    warn 'The video card clock helper did not install' 'Помощник частот видеокарты не поставился'
+fi
 
 # snapshots: snap-pac takes one before and after each pacman transaction once snapper has a
 # config for /; no timeline (a snapshot an hour fills the disk), the last 10 pairs kept.

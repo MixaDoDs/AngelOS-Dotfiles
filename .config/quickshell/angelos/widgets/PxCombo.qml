@@ -29,7 +29,8 @@ Item {
     readonly property int currentIndex: items.findIndex(i => i.value === currentValue)
     readonly property string currentLabel: currentIndex >= 0 ? items[currentIndex].label : placeholder
 
-    implicitWidth: Theme.u * 100
+    // in a box marked fixedWidth (SettingRow's control column) no wider than it, as PxSegmented
+    implicitWidth: parent && parent.fixedWidth === true ? Math.min(Theme.u * 100, parent.width) : Theme.u * 100
     implicitHeight: mac ? GoldenGate.px(28) : Theme.sizeBody + Theme.u * 10
 
     PxBox {

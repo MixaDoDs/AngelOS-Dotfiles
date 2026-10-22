@@ -148,7 +148,6 @@ wallpaper.dir
 wallpaper.duration
 wallpaper.maxBlock
 wallpaper.transition
-windows.floatButtons
 workspaces.heartAnim
 workspaces.heartSpeed
 workspaces.indicator

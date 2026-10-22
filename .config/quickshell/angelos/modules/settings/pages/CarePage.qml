@@ -88,7 +88,8 @@ PxPage {
                     color: Theme.danger
                     text: I18n.t("Без пароля администратора: ", "No admin password: ") + Care.authError
                 }
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxButton {
                         text: I18n.t("Обслуживание", "Maintain")
@@ -224,7 +225,8 @@ PxPage {
                 required property var modelData
                 label: modelData.name
                 hint: (modelData.shaderBytes > 0 ? I18n.t("кэш шейдеров ", "shader cache ") + Care.size(modelData.shaderBytes) : I18n.t("кэша шейдеров нет", "no shader cache")) + (page.armed === modelData.id ? I18n.t(" · префикс уйдёт в копию (steamapps/angelos-prefix-backups), Steam создаст чистый", " · the prefix moves to a copy (steamapps/angelos-prefix-backups), Steam makes a clean one") : "")
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 2
                     PxButton {
                         compact: true
@@ -271,7 +273,7 @@ PxPage {
 
         SettingRow {
             label: I18n.t("Агент", "Agent")
-            hint: I18n.t("Начинает с выбранного. Кончился лимит — берёт следующий аккаунт: все профили Claude (~/.claude-profiles), потом Codex, потом opencode; перед запуском каждому крошечный запрос-проверка. Входишь в свой аккаунт; angelOS ключей не хранит.", "Starts with the chosen one. Out of its limit: the next account takes over — every Claude profile (~/.claude-profiles), then Codex, then opencode; each gets a tiny check request first. You log in to your own account; angelOS keeps no keys.")
+            hint: I18n.t("Начинает с выбранного. Кончился лимит — берёт следующий: Claude, потом Codex, потом opencode. Входишь в свой аккаунт; angelOS ключей не хранит.", "Starts with the chosen one. Out of limits: the next — Claude, then Codex, then opencode. You log in to your own account; angelOS keeps no keys.")
             PxSegmented {
                 model: [
                     {

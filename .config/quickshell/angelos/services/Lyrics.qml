@@ -138,6 +138,65 @@ Singleton {
     readonly property string next: index >= -1 && index + 1 < lines.length ? lines[index + 1].text : ""
     readonly property real lineStart: index >= 0 && index < lines.length ? lines[index].t : 0
     readonly property real lineEnd: index + 1 < lines.length ? lines[index + 1].t : length
+    // the line has its words' times (and Settings → Lyrics → «Word by word» is on): it is shown
+    // as far as it is sung — wordChars characters of `current`, a word appearing as it starts.
+    // The times are the song's own (`w`: enhanced LRC, AMLL, NetEase's YRC — wordsUpgrade) or,
+    // without them, the line's time shared by its syllables (`ws`: estimateWords)
+    readonly property bool wordTimed: Config.lyrics.byWord !== false && index >= 0 && index < lines.length && !!lines[index].s
+    property int wordChars: 0
+    property real _wordPos: 0
+    // a word comes up a moment before it is sung (Settings → Lyrics → «Words ahead»): read in
+    // time to sing along
+    readonly property real wordLead: Math.max(0, Config.lyrics.wordLeadMs) / 1000
+    // when a word comes up (song time): wordLead before its time, on the nearest beat or
+    // half-beat while LyricsBeat hears one
+    function wordAt(t) {
+        return LyricsBeat.snap(t - wordLead, position);
+    }
+    function sungChars(l) {
+        const ws = l.ws || l.w;
+        let n = 0;
+        while (n < ws.length && wordAt(ws[n]) <= position)
+            n++;
+        const sung = l.s.slice(0, n + 1).join("").replace(/\s+/g, " ").trim().length;
+        // times by syllable (NetEase, AMLL): a word shows whole from its first one
+        const space = l.text.indexOf(" ", sung);
+        return sung === 0 || sung >= l.text.length || l.text[sung] === " " ? sung : space < 0 ? l.text.length : space;
+    }
+    // a line without its words' times: the time to the next line shared by the words' syllables
+    // (their vowels), sung at most 0.3 s a syllable — the rest of a long gap is a pause
+    function estimateWords(ls, total) {
+        const vowels = /[аеёиоуыэюяaeiouyäöüéèàáíóú]/gi;
+        for (let i = 0; i < ls.length; i++) {
+            const l = ls[i];
+            // a dash or a lone mark is no word of its own: it goes with the one before
+            const words = l.w || !l.text ? [] : l.text.split(" ").reduce((a, x) => {
+                if (a.length && !/[0-9A-Za-z\u00c0-\u024f\u0400-\u04ff\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]/.test(x))
+                    a[a.length - 1] += " " + x;
+                else
+                    a.push(x);
+                return a;
+            }, []);
+            if (words.length < 2)
+                continue;
+            const end = i + 1 < ls.length ? ls[i + 1].t : total > l.t ? total : l.t + 4;
+            const syl = words.map(x => Math.max(1, (x.match(vowels) || []).length));
+            const sum = syl.reduce((a, b) => a + b, 0);
+            const span = Math.min((end - l.t) * 0.85, sum * 0.3);
+            const ws = [], s = [""];
+            let acc = 0;
+            for (let k = 0; k < words.length; k++) {
+                ws.push(l.t + span * acc / sum);
+                s.push((k ? " " : "") + words[k]);
+                acc += syl[k];
+            }
+            ls[i] = Object.assign({}, l, {
+                "ws": ws,
+                "s": s
+            });
+        }
+        return ls;
+    }
     property bool visibleToggle: true
 
     property var _mem: ({})
@@ -168,8 +227,14 @@ Singleton {
         onTriggered: {
             root.player.positionChanged();
             root.updateIndex();
-            const next = root.index + 1 < root.lines.length ? root.lines[root.index + 1].t : -1;
-            interval = next > root.position ? Math.max(30, Math.min(250, Math.round((next - root.position) * 1000))) : 250;
+            let next = root.index + 1 < root.lines.length ? root.lines[root.index + 1].t : -1;
+            if (root.wordTimed) {
+                const l = root.lines[root.index];
+                const word = (l.ws || l.w).map(t => root.wordAt(t)).find(t => t > root.position);
+                if (word !== undefined && (next < 0 || word < next))
+                    next = word;
+            }
+            interval = next > root.position ? Math.max(15, Math.min(250, Math.round((next - root.position) * 1000))) : 250;
         }
     }
 
@@ -203,6 +268,15 @@ Singleton {
             i = -1;
         while (i + 1 < lines.length && lines[i + 1].t <= position)
             i++;
+        // before the index: a binding on wordTimed sees the new line's count already
+        let chars = i >= 0 && lines[i].s ? sungChars(lines[i]) : 0;
+        // a player's position steps back a little now and then (a browser's resync): a word once
+        // up stays, unless the song was wound back (over a second)
+        if (i === index && chars < wordChars && position > _wordPos - 1)
+            chars = wordChars;
+        _wordPos = position;
+        if (chars !== wordChars)
+            wordChars = chars;
         if (i !== index)
             index = i;
     }
@@ -227,17 +301,23 @@ Singleton {
                 rest = rest.slice(m[0].length);
             }
             // enhanced LRC: a <mm:ss.xx> before each word (amll's TTML keeps them, ttmlToLrc) —
-            // out of the text, kept as `w` (the words' times) for osu!mini's rhythm mode
+            // out of the text, kept as `w` (the words' times) for osu!mini's rhythm mode, and the
+            // pieces they start as `s` (`s[0]`: what comes before the first one) for the line
+            // shown word by word as it is sung (wordChars)
             const w = [];
-            const text = rest.replace(/<(\d+):(\d+(?:[.:]\d+)?)>/g, (m, mm, ss) => {
-                w.push(parseInt(mm) * 60 + parseFloat(ss.replace(":", ".")));
-                return "";
-            }).replace(/\s+/g, " ").trim();
+            const parts = rest.split(/<(\d+):(\d+(?:[.:]\d+)?)>/);
+            const s = [parts[0]];
+            for (let k = 1; k + 2 < parts.length; k += 3) {
+                w.push(parseInt(parts[k]) * 60 + parseFloat(parts[k + 1].replace(":", ".")));
+                s.push(parts[k + 2] || "");
+            }
+            const text = s.join("").replace(/\s+/g, " ").trim();
             for (const t of stamps)
                 out.push(w.length && stamps.length === 1 ? {
                     "t": t,
                     "text": text,
-                    "w": w
+                    "w": w,
+                    "s": s
                 } : {
                     "t": t,
                     "text": text
@@ -258,12 +338,13 @@ Singleton {
             status = "instrumental";
         } else if (data.syncedLyrics) {
             const k = data.scale > 0.5 && data.scale < 2 ? data.scale : 1;
-            lines = parseLrc(data.syncedLyrics).map(l => k === 1 ? l : Object.assign({}, l, {
+            lines = estimateWords(parseLrc(data.syncedLyrics).map(l => k === 1 ? l : Object.assign({}, l, {
                     "t": l.t * k
                 }, l.w ? {
                     "w": l.w.map(x => x * k)
-                } : {}));
+                } : {})), length);
             status = lines.length ? "ok" : "notfound";
+            wordsUpgrade(trackKey, data);
         } else if (data.plainLyrics) {
             lines = [
                 {
@@ -570,6 +651,68 @@ Singleton {
             "title": t,
             "artist": a
         };
+    }
+
+    // ---- word by word: the song's own words' times for one found without them ----
+    // NetEase keeps them for many songs (YRC: popular ones, foreign mostly); looked for once a song
+    // (`wordsTried` in its cache file), the lyrics replaced when they are there
+    function wordsUpgrade(key, data) {
+        if (Config.lyrics.byWord === false || !data || !data.syncedLyrics || data.wordsTried || data.source === "local" || /<\d+:\d+/.test(data.syncedLyrics))
+            return;
+        const c = cleaned, d = length;
+        const tried = () => {
+            if (_mem[key] === data)
+                store(key, Object.assign({}, data, {
+                    "wordsTried": true
+                }));
+        };
+        http("https://music.163.com/api/cloudsearch/pc?" + query({
+            "s": (c.title + " " + c.artist).trim(),
+            "type": 1,
+            "limit": 10
+        }), (code, body) => {
+            const songs = body && body.result && body.result.songs ? body.result.songs : [];
+            const match = songs.find(x => root.matches({
+                    "title": x.name,
+                    "artist": (x.ar || []).map(a => a.name).join(", "),
+                    "duration": (x.dt || 0) / 1000
+                }, c, d));
+            if (!match)
+                return tried();
+            http("https://music.163.com/api/song/lyric/v1?id=" + match.id + "&lv=1&yv=1", (code2, lyr) => {
+                const lrc = lyr && lyr.yrc ? root.yrcToLrc(lyr.yrc.lyric) : "";
+                if (!root.goodLrc(lrc) || root._mem[key] !== data)
+                    return tried();
+                const up = {
+                    "source": "NetEase",
+                    "syncedLyrics": lrc,
+                    "trackName": match.name,
+                    "duration": (match.dt || 0) / 1000,
+                    "wordsTried": true
+                };
+                if (root.tempoVersion && up.duration > 0 && d > 0 && Math.abs(up.duration - d) > 3)
+                    up.scale = d / up.duration;
+                root.store(key, up);
+                if (key === root.trackKey)
+                    root.apply(up);
+            });
+        });
+    }
+    // YRC: `[start,len](start,len,0)word (start,len,0)word…` in ms, credits as JSON lines → enhanced LRC
+    function yrcToLrc(yrc) {
+        const stamp = ms => {
+            const t = Math.max(0, ms) / 1000, m = Math.floor(t / 60), s = t - m * 60;
+            return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s.toFixed(2);
+        };
+        const out = [];
+        for (const raw of String(yrc || "").split(/\r?\n/)) {
+            const m = raw.match(/^\[(\d+),\d+\](.*)$/);
+            if (!m)
+                continue;
+            const words = m[2].replace(/\((\d+),\d+,\d+\)/g, (x, t) => "<" + stamp(parseInt(t)) + ">");
+            out.push("[" + stamp(parseInt(m[1])) + "]" + words);
+        }
+        return stripCredits(out.join("\n"));
     }
 
     // NetEase LRC starts with credit lines ("作词 : …"); drop them

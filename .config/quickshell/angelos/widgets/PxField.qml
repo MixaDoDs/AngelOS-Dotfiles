@@ -28,7 +28,8 @@ Item {
     signal editingFinished
     signal keyPressed(var event)
 
-    implicitWidth: Theme.u * 100
+    // in a box marked fixedWidth (SettingRow's control column) no wider than it, as PxSegmented
+    implicitWidth: parent && parent.fixedWidth === true ? Math.min(Theme.u * 100, parent.width) : Theme.u * 100
     implicitHeight: mac ? input.font.pixelSize + GoldenGate.px(14) : input.font.pixelSize + Theme.u * 10
 
     function focusField() {

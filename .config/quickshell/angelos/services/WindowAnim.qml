@@ -30,6 +30,11 @@ Singleton {
             "hint": I18n.t("собирается из пиксельных блоков: сначала крупно, потом чётко", "assembles from pixel blocks: chunky first, then sharp")
         },
         {
+            "id": "dither",
+            "label": I18n.t("Рассыпание", "Dither"),
+            "hint": I18n.t("проявляется по пикселю, ровной пиксельной сеткой", "appears pixel by pixel through an even pixel grid")
+        },
+        {
             "id": "heart",
             "label": I18n.t("Сердечко", "Heart"),
             "hint": I18n.t("проявляется в растущем сердце цвета темы", "appears inside a growing heart in the theme's colour")
@@ -80,6 +85,11 @@ Singleton {
             "id": "pixel",
             "label": I18n.t("Пиксели", "Pixels"),
             "hint": I18n.t("рассыпается на пиксельные блоки, они гаснут по одному", "crumbles into pixel blocks that blink out one by one")
+        },
+        {
+            "id": "dither",
+            "label": I18n.t("Рассыпание", "Dither"),
+            "hint": I18n.t("рассыпается по пикселю по всему окну сразу", "dissolves pixel by pixel all over the window at once")
         },
         {
             "id": "heart",

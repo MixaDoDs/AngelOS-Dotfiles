@@ -599,7 +599,9 @@ Singleton {
     Timer {
         id: wallpaperDebounce
         interval: 200
-        onTriggered: root.play("wallpaper")
+        // (local patch 56) not under Heaven's Gate: it has its own sounds, started in the 200 ms
+        onTriggered: if (Date.now() > root.wallpaperQuietUntil)
+            root.play("wallpaper")
     }
 
     // synthesise once if the pack is missing (or older than the event list)

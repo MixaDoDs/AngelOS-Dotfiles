@@ -79,12 +79,21 @@ Singleton {
         { "id": "melt", "label": I18n.t("Плавление", "Melt"), "hint": I18n.t("старая картинка стекает столбиками, как в DOOM", "The old picture drips down in columns, like DOOM") },
         { "id": "sparkle", "label": I18n.t("Блёстки", "Sparkles"), "hint": I18n.t("пиксели меняются вразнобой и искрятся", "Pixels flip at random and sparkle") },
         { "id": "wipe", "label": I18n.t("Шторка", "Wipe"), "hint": I18n.t("шторка слева направо с рваным краем", "A wipe from left to right with a ragged edge") },
-        { "id": "verdict", "label": I18n.t("Вердикт", "Verdict"), "hint": I18n.t("театральная врезка как в Persona 5: шторки, полосы, слово, разрез — 0,8 с", "A theatrical cut-in like Persona 5: shutters, stripes, a word, a slice — 0.8 s") }
+        { "id": "verdict", "label": I18n.t("Вердикт", "Verdict"), "hint": I18n.t("театральная врезка как в Persona 5: шторки, полосы, слово, разрез — 0,8 с", "A theatrical cut-in like Persona 5: shutters, stripes, a word, a slice — 0.8 s") },
+        // (local patch 56) a scene of its own, not a blink: it brings its own length (ms)
+        { "id": "cinema", "label": I18n.t("Кино", "Cinema"), "hint": I18n.t("полосы 21:9 захлопываются, вспышка, новая картинка проявляется, как на загрузке", "21:9 bars slam shut, a flash, the new picture develops like a loading screen"), "ms": 2600 },
+        // not the shader's: GateScene over the whole screen, with sound (the shader draws it
+        // as "cinema" in the settings' preview and when the scene can't run)
+        { "id": "gate", "label": I18n.t("Небесные врата", "Heaven's Gate"), "hint": I18n.t("экран загрузки: врата поверх всего, титульная карта, новые обои проявляются фотографией, со звуком", "A loading screen: the gates over everything, a title card, the new picture develops like a photograph, with sound"), "ms": 2600, "scene": true }
     ]
     function transitionIndex(id) {
         if (id === "random")
             return Math.floor(Math.random() * transitions.length);
         return transitions.findIndex(t => t.id === id);
+    }
+    function transitionMs(index) {
+        const t = transitions[index];
+        return t && t.ms ? t.ms : Config.wallpaper.duration;
     }
     readonly property string dir: hellOn ? hellPack : Config.expand(Config.wallpaper.dir)
     readonly property string heavenDir: Config.expand(Config.wallpaper.dir)

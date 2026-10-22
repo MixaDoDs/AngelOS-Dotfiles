@@ -15,6 +15,9 @@ import qs.config
 //   camera      scripts/cam-watch.py: inotify on /dev/video*, who holds one open; a program
 //               that takes the camera through PipeWire (the portal) shows as PipeWire there,
 //               its name comes from PipeWire's video capture stream instead
+//   screen      niri's screencasts (Niri.casts): a PipeWire one by the program whose stream is
+//               linked to niri's node (OBS, Discord's Go Live, a browser's call), a screencopy one
+//               by its pid
 // Settings → Halo → «Privacy dot».
 Singleton {
     id: root
@@ -67,9 +70,48 @@ Singleton {
         }
         return out;
     }
-    readonly property bool active: mic.length > 0 || cam.length > 0
-    // "Микрофон: Discord, OBS · Камера: chromium"
-    readonly property string who: [mic.length ? I18n.t("Микрофон: ", "Microphone: ") + mic.join(", ") : "", cam.length ? I18n.t("Камера: ", "Camera: ") + cam.join(", ") : ""].filter(x => x).join(" · ")
+    readonly property var screen: {
+        if (!wanted)
+            return [];
+        const out = [];
+        for (const c of Niri.casts) {
+            if (!c.is_active)
+                continue;
+            let n = "";
+            if (c.pw_node_id !== null && c.pw_node_id !== undefined) {
+                for (const l of Pipewire.links.values)
+                    if (l.source && l.target && l.source.id === c.pw_node_id && app(l.target)) {
+                        n = app(l.target);
+                        break;
+                    }
+            } else if (c.pid)
+                n = pidNames[c.pid] || "";
+            n = n || I18n.t("программа", "a program");
+            if (!out.includes(n))
+                out.push(n);
+        }
+        return out;
+    }
+    // screencopy casts' programs by pid: /proc/<pid>/comm, read once
+    property var pidNames: ({})
+    Instantiator {
+        model: root.wanted ? Niri.casts.filter(c => c.pid && !(c.pid in root.pidNames)) : []
+        delegate: Process {
+            required property var modelData
+            running: true
+            command: ["cat", "/proc/" + modelData.pid + "/comm"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    const m = Object.assign({}, root.pidNames);
+                    m[modelData.pid] = text.trim();
+                    root.pidNames = m;
+                }
+            }
+        }
+    }
+    readonly property bool active: mic.length > 0 || cam.length > 0 || screen.length > 0
+    // "Микрофон: Discord, OBS · Камера: chromium · Экран: Discord"
+    readonly property string who: [mic.length ? I18n.t("Микрофон: ", "Microphone: ") + mic.join(", ") : "", cam.length ? I18n.t("Камера: ", "Camera: ") + cam.join(", ") : "", screen.length ? I18n.t("Экран: ", "Screen: ") + screen.join(", ") : ""].filter(x => x).join(" · ")
 
     Process {
         id: watch

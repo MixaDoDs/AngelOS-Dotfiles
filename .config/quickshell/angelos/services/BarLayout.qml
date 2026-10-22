@@ -22,7 +22,7 @@ Singleton {
     readonly property var defaults: ({
             "left": ["start", "workspaces", "tasks"],
             "center": ["runner", "lyrics"],
-            "right": ["media", "tray", "layout", "wired", "wifi", "bluetooth", "battery", "peripherals", "eq", "volume", "bell", "clock"]
+            "right": ["media", "tray", "layout", "wired", "wifi", "bluetooth", "battery", "peripherals", "eq", "awake", "volume", "bell", "clock"]
         })
     readonly property var meta: ({
             "start": {
@@ -67,6 +67,12 @@ Singleton {
             "eq": {
                 "label": I18n.t("Эквалайзер", "Equalizer"),
                 "icon": "music",
+                "before": "volume"
+            },
+            // a cup of coffee: «Stay awake» (services/Awake) on and off, steaming while on
+            "awake": {
+                "label": I18n.t("Не выключать", "Stay awake"),
+                "icon": "coffee",
                 "before": "volume"
             },
             "bell": {

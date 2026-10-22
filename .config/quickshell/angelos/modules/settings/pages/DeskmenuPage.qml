@@ -322,7 +322,7 @@ PxPage {
         width: parent.width
         SettingRow {
             label: I18n.t("Стиль", "Style")
-            hint: !Heaven.menuOk(Config.desktop.menuStyle) ? DeskMenu.styleLabel(Config.desktop.menuStyle) + I18n.t(" выбрано, но ещё закрыто: ", " is picked but still locked: ") + Heaven.lockHint(Heaven.menuItem(Config.desktop.menuStyle)) + I18n.t(". Пока — обычный список", ". The usual list until then") : ["wings", "harp"].some(s => !Heaven.menuOk(s)) && !DeskMenu.hellish ? ["wings", "harp"].filter(s => !Heaven.menuOk(s)).map(s => DeskMenu.styleLabel(s) + " — " + Heaven.lockHint(Heaven.menuItem(s))).join("; ") : DeskMenu.hellish ? I18n.t("сейчас правит демоница — её «", "the demon rules now — her “") + DeskMenu.styleLabel(DeskMenu.style) + I18n.t("» («Помощница» → «Ангел или демон»)", "” (Helper → Angel or demon)") : ({
+            hint: !Heaven.menuOk(Config.desktop.menuStyle) ? DeskMenu.styleLabel(Config.desktop.menuStyle) + I18n.t(" выбрано, но ещё закрыто: ", " is picked but still locked: ") + Heaven.lockHint(Heaven.menuItem(Config.desktop.menuStyle)) + I18n.t(". Пока — обычный список", ". The usual list until then") : ["wings", "harp"].some(s => !Heaven.menuOk(s)) && !DeskMenu.hellish ? ["wings", "harp"].filter(s => !Heaven.menuOk(s)).map(s => DeskMenu.styleLabel(s) + " — " + Heaven.lockHint(Heaven.menuItem(s))).join("; ") : DeskMenu.hellish ? I18n.t("сейчас правит демоница — её «", "the demon rules now — her “") + DeskMenu.styleLabel(DeskMenu.style) + I18n.t("» («Ангелочек» → «Игра»)", "” (Angel → The game)") : ({
                     "list": I18n.t("как все меню: ряд значков сверху, короткий список под ним", "like every menu: a row of icons on top, a short list under it"),
                     "wings": I18n.t("райское: под нимбом раскрываются крылья, пункты — перья; ←/→ — на другое крыло, ↑/↓ — вдоль крыла", "heaven's own: wings unfold under a halo, the entries are feathers; ←/→ to the other wing, ↑/↓ along one"),
                     "harp": I18n.t("райское: арфа на облаке, пункты — струны; наведи — струна звенит, проведи поперёк — глиссандо", "heaven's own: a harp on a cloud, the entries are strings; hover plucks one, a sweep across is a glissando"),
@@ -445,7 +445,7 @@ PxPage {
             wrapMode: Text.Wrap
             kind: "tiny"
             dim: true
-            text: I18n.t("Размер и вид самого «Пуска» — на странице «Пуск», в «Тонкой настройке».", "Start's own size and look are on the Start page, under fine-tuning.")
+            text: I18n.t("Размер и вид самого «Пуска» — ниже, в «Ещё».", "Start's own size and look: below, under More.")
         }
     }
 
