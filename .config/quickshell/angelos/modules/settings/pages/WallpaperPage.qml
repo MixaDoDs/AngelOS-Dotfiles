@@ -508,7 +508,8 @@ PxPage {
                 anchors.fill: parent
                 anchors.margins: Theme.u
                 source: liveGroup.path ? "file://" + Wallpapers.display(liveGroup.path) : ""
-                sourceSize: Qt.size(Math.round(width * 2), Math.round(height * 2))
+                // in steps, not every pixel: resizing Settings decoded the wallpaper again each frame
+                sourceSize: Qt.size(Math.ceil(width * 2 / 128) * 128, Math.ceil(height * 2 / 128) * 128)
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 smooth: false
@@ -744,6 +745,32 @@ PxPage {
                         anchors.margins: Theme.u
                         clip: true
                         Image {
+                            anchors.fill: parent
+                            source: "file://" + Wallpapers.display(thumb.shownFile)
+                            // in the grimoire (or a dress): an engraving the right way round, not a negative
+                            layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
+                            layer.effect: GrimoirePhoto {}
+                            // in steps, not every pixel: resizing Settings decoded the whole grid again each frame
+                            sourceSize: Qt.size(Math.ceil(width / 64) * 64, Math.ceil(height / 64) * 64)
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            cache: true
+                            smooth: true
+                            onStatusChanged: if (status === Image.Error)
+                                Wallpapers.fit(thumb.shownFile)
+                        }
+                    }
+                    // what the wallpaper has: ☼ ☾ 16:9 21:9 9:16
+                    PxBox {
+                        visible: thumb.tags.length > 0
+                        anchors.left: parent.left
+                        anchors.bottom: parent.bottom
+                        anchors.margins: Theme.u * 2
+                        width: tagText.implicitWidth + Theme.u * 4
+                        height: tagText.implicitHeight + Theme.u * 2
+                        color: Qt.alpha(Theme.face, 0.85)
+                        PxText {
+                            id: tagText
                             anchors.centerIn: parent
                             width: pixBox.index === 0 ? parent.width : implicitWidth
                             height: pixBox.index === 0 ? parent.height : implicitHeight
