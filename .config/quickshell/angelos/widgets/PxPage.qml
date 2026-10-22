@@ -31,6 +31,7 @@ PxScroll {
     property string srcName: ""             // its page file's id ("bar" for BarPage.qml): SettingsNews' ids
     property var unfold: []                 // groups shown open, never a sub-page here ("*": all of them)
     scrolls: !embedded
+    widthLag: embedded ? 0 : 50
     implicitHeight: embedded ? contentHeight : 0
     function wants(g) {
         return !only || only.length === 0 || only.indexOf(g.name) >= 0;
