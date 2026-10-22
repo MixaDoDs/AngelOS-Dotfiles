@@ -8,13 +8,18 @@ import qs.modules.cobweb
 
 PxPage {
     id: page
-    readonly property var openApps: {
+    // niri sends a window update on every step of a resize or a move: the rows are built again
+    // only when the set of apps changes (a string that stays equal doesn't notify)
+    readonly property string openAppIds: {
         const seen = {};
         for (const w of Niri.windows)
-            if (w.app_id && !seen[w.app_id])
-                seen[w.app_id] = w;
-        return Object.keys(seen).sort().map(k => seen[k]);
+            if (w.app_id)
+                seen[w.app_id] = true;
+        return Object.keys(seen).sort().join("\n");
     }
+    readonly property var openApps: openAppIds ? openAppIds.split("\n").map(id => ({
+                "app_id": id
+            })) : []
     property string customPreset: ""
 
     heading: I18n.t("Окна", "Windows")
