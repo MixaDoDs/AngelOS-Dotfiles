@@ -84,7 +84,7 @@ PxPage {
             hint: I18n.t("как экран блокировки уходит с рабочего стола: «Авто» — сердце у NGO, врата у Небес, пиксели у 2004", "how the lock leaves the desktop: Auto is the heart for NGO, the gate for Heaven, pixels for 2004")
             preview: "LockScreen"
             PxCombo {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 model: [
                     {
                         "label": I18n.t("Авто (по облику)", "Auto (the look's own)"),
@@ -279,7 +279,7 @@ PxPage {
             visible: Config.lock.stream && lockPage.ngo
             label: I18n.t("Название «стрима»", "Stream title")
             PxField {
-                width: Theme.u * 130
+                width: Math.min(Theme.u * 130, parent.width)
                 text: Config.lock.streamTitle
                 placeholder: I18n.t("ангел ушёл на перерыв ♡ скоро вернусь", "angel is on a break ♡ be right back")
                 onEdited: Config.lock.streamTitle = text
@@ -311,7 +311,7 @@ PxPage {
             label: I18n.t("Папка с видео", "Video folder")
             hint: I18n.t("пусто — ~/Videos (записи экрана, клипы); берутся и вложенные папки", "empty: ~/Videos (screen recordings, clips); folders inside count too")
             PxField {
-                width: Theme.u * 130
+                width: Math.min(Theme.u * 130, parent.width)
                 text: Config.lock.replayDir
                 placeholder: "~/Videos"
                 onEdited: Config.lock.replayDir = text
@@ -707,7 +707,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Эффект", "Effect")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [{
                         "label": I18n.t("Случайный", "Random"),
                         "value": "random"

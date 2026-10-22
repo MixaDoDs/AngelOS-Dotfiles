@@ -64,7 +64,7 @@ PxPage {
             label: I18n.t("Попробовать", "Try it")
             hint: I18n.t("напиши что-нибудь с ашибкой", "write something with a mistaik")
             PxTextArea {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 height: Theme.u * 42
                 placeholder: I18n.t("пиши здесь…", "write here…")
             }
@@ -132,7 +132,7 @@ PxPage {
             hint: I18n.t("всего их ", "there are ") + Spell.catalog.length + I18n.t("; ниже — частые", " of them; the usual ones are below")
             PxField {
                 id: find
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 icon: "search"
                 placeholder: I18n.t("польский, de…", "Polish, de…")
             }

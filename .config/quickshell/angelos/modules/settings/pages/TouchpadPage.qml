@@ -71,7 +71,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Скорость указателя", "Pointer speed")
             PxSlider {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 from: -1
                 to: 1
                 stepSize: 0.05
@@ -156,7 +156,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Скорость прокрутки", "Scroll speed")
             PxSlider {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 from: 0.2
                 to: 3
                 stepSize: 0.1

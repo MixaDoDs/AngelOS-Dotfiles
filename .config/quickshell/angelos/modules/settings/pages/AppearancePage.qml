@@ -144,7 +144,7 @@ PxPage {
             label: I18n.t("Экран с обоями", "Wallpaper screen")
             hint: I18n.t("чьи обои задают цвета", "Whose wallpaper sets the colours")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [{
                         "label": I18n.t("Основной", "Primary"),
                         "value": ""
@@ -162,7 +162,7 @@ PxPage {
             label: I18n.t("Откуда брать цвет", "Where the colour comes from")
             hint: I18n.t("часть обоев: небо, середина, низ или своя рамка — её рисуют мышью на картинке", "A part of the wallpaper: the sky, the middle, the ground, or your own frame drawn on the picture")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: [
                     {
                         "label": I18n.t("Вся картинка", "The whole picture"),

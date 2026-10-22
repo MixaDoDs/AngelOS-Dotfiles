@@ -112,7 +112,7 @@ PxPage {
             label: I18n.t("Чат на экране", "Chat on screen")
             hint: I18n.t("папка, куда бот чата пишет журнал эфира (*.jsonl, строка на сообщение); пусто — выключено. Сам angelOS в YouTube не ходит", "The folder a chat bot writes the stream's log to (*.jsonl, a line a message); empty: off. angelOS itself never talks to YouTube")
             PxField {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 text: Config.stream.chatLog
                 placeholder: "~/…/stream-logs"
                 kind: "mono"

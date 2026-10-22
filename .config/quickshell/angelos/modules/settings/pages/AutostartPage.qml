@@ -86,7 +86,7 @@ PxPage {
             hint: I18n.t("начни печатать её название", "start typing its name")
             PxField {
                 id: search
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 icon: "search"
                 placeholder: I18n.t("название", "its name")
             }

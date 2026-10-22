@@ -765,7 +765,7 @@ PxPage {
             label: I18n.t("Анимация", "Animation")
             hint: I18n.t("картинка оживает в новом терминале: машет крыльями, блестит, искрится; любая клавиша — сразу к делу", "the picture comes alive in a new terminal: wings flap, it shines and sparkles; any key gets you straight to work")
             PxCombo {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 model: [
                     {
                         "label": I18n.t("Выключена", "Off"),
@@ -796,7 +796,7 @@ PxPage {
             label: I18n.t("Показать", "Show")
             hint: I18n.t("рай — как сейчас; круги — как будет в аду (там fastfetch меняется сам)", "heaven is how it is now; the circles are how hell shows it (it changes there by itself)")
             PxCombo {
-                width: Theme.u * 110
+                width: Math.min(Theme.u * 110, parent.width)
                 model: [
                     {
                         "label": I18n.t("Рай", "Heaven"),
@@ -1007,7 +1007,7 @@ PxPage {
             label: I18n.t("Программа", "Executable")
             hint: I18n.t("Имя программы или полный путь, без аргументов", "Program name or full path, without arguments")
             PxField {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 text: Config.system.monitorProgram
                 placeholder: "missioncenter"
                 onEdited: Config.system.monitorProgram = text
@@ -1141,7 +1141,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Терминал", "Terminal")
             PxField {
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 text: Config.system.terminal
                 onEdited: Config.system.terminal = text
             }
@@ -1149,7 +1149,7 @@ PxPage {
         SettingRow {
             label: I18n.t("Файловый менеджер", "File manager")
             PxField {
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 text: Config.system.fileManager
                 onEdited: Config.system.fileManager = text
             }

@@ -1035,7 +1035,7 @@ PxPage {
                 hint: I18n.t("на какой глубине клавиша нажимается; меньше — быстрее и легче задеть", "How deep the key presses; less is faster and easier to brush")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: page.limA.min
                     to: page.limA.max
                     stepSize: 0.01
@@ -1053,7 +1053,7 @@ PxPage {
                 hint: I18n.t("на сколько надо утопить клавишу, чтобы она нажалась снова", "How far down the key has to go to press again")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: page.limR.min
                     to: Math.min(2, page.limR.max)
                     stepSize: 0.01
@@ -1071,7 +1071,7 @@ PxPage {
                 hint: I18n.t("на сколько надо отпустить клавишу, чтобы она отжалась", "How far up the key has to come to let go")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: page.limR.min
                     to: Math.min(2, page.limR.max)
                     stepSize: 0.01
@@ -1089,7 +1089,7 @@ PxPage {
                 hint: I18n.t("ход от верха, который не считается: от случайных касаний", "Travel from the top that counts for nothing: against chance touches")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: 0
                     to: page.limD
                     stepSize: 0.01
@@ -1107,7 +1107,7 @@ PxPage {
                 hint: I18n.t("ход у дна, который не считается: клавиша не дребезжит, когда её держат в пол", "Travel at the bottom that counts for nothing: a key held to the floor does not chatter")
                 PxSlider {
                     enabled: page.canEdit
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: 0
                     to: page.limD
                     stepSize: 0.01
@@ -1313,7 +1313,7 @@ PxPage {
                 label: I18n.t("Удержание с", "Hold after")
                 hint: I18n.t("сколько держать, чтобы считалось удержанием", "How long to hold for it to count as a hold")
                 PxSlider {
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     from: 10
                     to: 1000
                     stepSize: 10
@@ -1442,7 +1442,7 @@ PxPage {
                         label: I18n.t("Яркость", "Brightness")
                         PxSlider {
                             enabled: Devices.canWrite && !Devices.working
-                            width: Theme.u * 130
+                            width: Math.min(Theme.u * 130, parent.width)
                             from: 1
                             to: 100
                             stepSize: 1

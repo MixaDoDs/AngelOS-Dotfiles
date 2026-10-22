@@ -297,7 +297,7 @@ PxPage {
             hint: Programs.loaded ? I18n.t("программ: ", "programs: ") + page.rows.length : I18n.t("читаю список…", "reading the list…")
             PxField {
                 id: search
-                width: Theme.u * 80
+                width: Math.min(Theme.u * 80, parent.width)
                 icon: "search"
                 placeholder: I18n.t("название", "a name")
             }

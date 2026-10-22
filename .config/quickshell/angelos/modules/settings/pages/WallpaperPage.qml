@@ -235,7 +235,7 @@ PxPage {
             visible: page.target !== "all"
             label: I18n.t("Монитор", "Monitor")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: Quickshell.screens.map(s => s.name)
                 currentValue: page.output
                 onActivated: v => page.output = v
@@ -245,7 +245,7 @@ PxPage {
             visible: page.target === "workspace"
             label: I18n.t("Стол", "Workspace")
             PxCombo {
-                width: Theme.u * 100
+                width: Math.min(Theme.u * 100, parent.width)
                 model: Niri.workspacesOn(page.output).map(w => ({
                             "label": (w.name || "#" + w.idx) + (w.is_active ? "  ♡" : ""),
                             "value": w.idx
@@ -295,7 +295,7 @@ PxPage {
             label: I18n.t("Добавить обои", "Add wallpapers")
             hint: Wallpapers.importNote || I18n.t("Скопирует картинки в папку выше. Можно перетащить файлы прямо сюда из файлового менеджера", "Copies the pictures into the folder above. Files can be dragged right here from the file manager")
             PxBox {
-                width: Theme.u * 150
+                width: Math.min(Theme.u * 150, parent.width)
                 height: Theme.u * 14
                 sunken: true
                 color: addDrop.containsDrag ? Qt.alpha(Theme.accent, 0.25) : Theme.sunken
