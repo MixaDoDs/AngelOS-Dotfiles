@@ -164,6 +164,25 @@ KDL
   fi
 }
 
+# Discord's Go Live with sound crashes now and then when a program's sound stream comes or goes.
+# With a mixer whose virtual outputs carry all the sound (a RØDECaster and the like: the default
+# output is a PipeWire loopback), extras/discord-shield hides single programs' streams from
+# Discord, which streams the mixes instead; without one it does nothing. A WirePlumber 0.5 script,
+# linked into WirePlumber's own folders and read at its next start. DISCORD_SHIELD=0, or
+# ~/.config/angelos/discord-shield.off, leaves it out.
+install_discord_shield() {
+  [[ "$DESKTOP_SHELL" == angelos && "$DISCORD_SHIELD" == 1 ]] || return 0
+  [[ -e "$HOME_DIR/.config/angelos/discord-shield.off" ]] && return 0
+  local src="$HOME_DIR/.config/quickshell/angelos/extras/discord-shield"
+  local scripts="$HOME_DIR/.local/share/wireplumber/scripts/angelos"
+  local conf="$HOME_DIR/.config/wireplumber/wireplumber.conf.d"
+  [[ -f "$src/discord-shield.lua" ]] || return 0
+  wireplumber --version 2>/dev/null | grep -q 'libwireplumber 0\.5' || return 0
+  mkdir -p -- "$scripts" "$conf"
+  ln -sfn -- "$src/discord-shield.lua" "$scripts/discord-shield.lua"
+  ln -sfn -- "$src/90-angelos-discord-shield.conf" "$conf/90-angelos-discord-shield.conf"
+}
+
 # fish as the login shell (FISH_DEFAULT): fish installed by this run is added to /etc/shells
 # and made the login shell; one that was there before is left as it is unless asked for.
 # SYSROOT (tests): /etc/shells under it and a log line instead of chsh.
@@ -227,6 +246,7 @@ install_apps() {
 # the steps of this file, in the order of the run (see step() in installer/lib/core.sh)
 step 25 install_shell "angelOS" "angelOS"
 step 30 install_minimize_hook "the windows' minimize button" "кнопка «свернуть» у окон"
+step 32 install_discord_shield "Discord streams with a mixer" "стрим Discord с пультом"
 step 45 install_apps "the apps" "программы"
 step 50 setup_fish_shell "fish" "fish"
 step 75 enable_services "user services" "user-сервисы"
