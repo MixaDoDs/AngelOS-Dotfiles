@@ -318,7 +318,8 @@ PxPage {
             visible: !!Renderer.fix.qt
             label: I18n.t("Исправление Qt для NVIDIA", "Qt fix for NVIDIA")
             hint: "Qt " + (Renderer.fix.qt || "?") + " · " + (!Renderer.fix.needed ? I18n.t("не нужно: в этой версии Qt уже исправлено", "not needed: this Qt already has it") : Renderer.fix.built ? I18n.t("собрано ♡", "built ♡") : I18n.t("не собрано", "not built")) + (Renderer.fix.nvidia ? "" : I18n.t(" · видеокарта не NVIDIA", " · not an NVIDIA GPU"))
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxButton {
                     visible: !!Renderer.fix.needed

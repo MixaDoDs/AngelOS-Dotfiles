@@ -88,7 +88,8 @@ PxPage {
                     color: Theme.danger
                     text: I18n.t("Без пароля администратора: ", "No admin password: ") + Care.authError
                 }
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxButton {
                         text: I18n.t("Обслуживание", "Maintain")
@@ -224,7 +225,8 @@ PxPage {
                 required property var modelData
                 label: modelData.name
                 hint: (modelData.shaderBytes > 0 ? I18n.t("кэш шейдеров ", "shader cache ") + Care.size(modelData.shaderBytes) : I18n.t("кэша шейдеров нет", "no shader cache")) + (page.armed === modelData.id ? I18n.t(" · префикс уйдёт в копию (steamapps/angelos-prefix-backups), Steam создаст чистый", " · the prefix moves to a copy (steamapps/angelos-prefix-backups), Steam makes a clean one") : "")
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 2
                     PxButton {
                         compact: true

@@ -52,7 +52,8 @@ PxPage {
                 required property var modelData
                 label: modelData.name
                 hint: page.stateText(modelData) + (Vault.errors[modelData.id] && modelData.state === "unlocked" ? " · ✕ " + Vault.errors[modelData.id] : "")
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxButton {
                         visible: !row.modelData.installed
@@ -70,7 +71,7 @@ PxPage {
                     PxField {
                         id: pw
                         visible: row.modelData.state === "locked" && Vault.wantsPassword(row.modelData.id)
-                        width: Theme.u * 60
+                        width: Math.min(Theme.u * 60, parent.width)
                         password: true
                         placeholder: Vault.asks(row.modelData.id) === "pin" ? "PIN" : I18n.t("мастер-пароль", "master password")
                         onAccepted: {
@@ -100,12 +101,13 @@ PxPage {
                 required property var modelData
                 label: I18n.t("Без мастер-пароля: ", "No master password: ") + modelData.name
                 hint: modelData.saved === "keyring" ? I18n.t("включено: хранилище открывается само, пока ты вошёл в систему", "on: the vault opens by itself while you are logged in") : modelData.saved === "pin" ? I18n.t("включено: вместо мастер-пароля спрашивается твой PIN", "on: your PIN is asked instead of the master password") : I18n.t("введи мастер-пароль один раз — он ляжет в связку ключей системы (её открывает вход в систему). Свой PIN — по желанию: тогда спрашивается он", "type the master password once: it goes into the system's keyring (opened by your login). A PIN of your own is optional: then that is asked")
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxField {
                         id: master
                         visible: !keep.modelData.saved
-                        width: Theme.u * 50
+                        width: Math.min(Theme.u * 50, parent.width)
                         password: true
                         placeholder: I18n.t("пароль", "password")
                     }

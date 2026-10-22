@@ -403,7 +403,8 @@ PxPage {
             visible: page.w.breaks
             label: I18n.t("Проверить", "Try it")
             hint: Wellbeing.quietWhy === "fullscreen" ? I18n.t("сейчас окно на весь экран — настоящее напоминание подождёт", "A window fills the screen now: a real reminder would wait") : Wellbeing.quietWhy === "stream" ? I18n.t("сейчас стрим — настоящее напоминание подождёт", "You're streaming: a real reminder would wait") : Wellbeing.quietWhy === "dnd" ? I18n.t("сейчас «Не беспокоить» — настоящее напоминание подождёт", "Do not disturb is on: a real reminder would wait") : I18n.t("так напомнит ", "This is how ") + page.who + I18n.t("", " will remind you")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 2
                 PxButton {
                     text: I18n.t("Глаза", "Eyes")

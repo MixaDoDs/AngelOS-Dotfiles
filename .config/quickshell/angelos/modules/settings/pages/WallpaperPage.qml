@@ -258,11 +258,12 @@ PxPage {
             // hell's pictures have their own place (the Hell pack, the drawn hells)
             visible: !page.hell
             label: I18n.t("Папка", "Folder")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: dirField
-                    width: Theme.u * 130
+                    width: Math.min(Theme.u * 130, parent.width)
                     text: Config.wallpaper.dir
                     onEditingFinished: Config.wallpaper.dir = text
                 }
@@ -465,14 +466,16 @@ PxPage {
             label: I18n.t("На этой картинке", "In this picture")
             hint: liveGroup.path.replace(Config.home, "~")
             Row {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxText {
-                    width: Math.min(Theme.u * 150, implicitWidth)
+                    width: Math.max(0, Math.min(Theme.u * 150, implicitWidth, parent.width - againButton.width - parent.spacing))
                     wrapMode: Text.Wrap
                     anchors.verticalCenter: parent.verticalCenter
                     text: LiveWalls.describe(liveGroup.path)
                 }
                 PxButton {
+                    id: againButton
                     compact: true
                     icon: "refresh"
                     enabled: LiveWalls.busy === ""

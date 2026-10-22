@@ -259,7 +259,8 @@ PxPage {
         SettingRow {
             label: I18n.t("Показать", "Show")
             hint: I18n.t("«от автора» — то, что поставилось вместе с angelOS", "“the author's” is what came along with angelOS")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxSegmented {
                     model: [

@@ -117,7 +117,8 @@ PxPage {
         SettingRow {
             label: I18n.t("Своя команда", "A command of your own")
             hint: I18n.t("имя и то, что выполнить при входе", "a name and what to run at login")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: cmdName
@@ -126,7 +127,7 @@ PxPage {
                 }
                 PxField {
                     id: cmdLine
-                    width: Theme.u * 60
+                    width: Math.min(Theme.u * 60, parent.width)
                     placeholder: I18n.t("команда", "the command")
                     kind: "mono"
                     input.onAccepted: cmdAdd.clicked()

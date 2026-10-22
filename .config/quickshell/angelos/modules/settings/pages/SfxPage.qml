@@ -120,15 +120,17 @@ PxPage {
                 width: parent.width
                 spacing: Theme.u * 2
                 Row {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxToggle {
+                        id: soundToggle
                         anchors.verticalCenter: parent.verticalCenter
                         checked: Sounds.isOn(row.modelData)
                         onToggled: c => Sounds.setOn(row.modelData, c)
                     }
                     PxCombo {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Theme.u * 80
+                        width: Math.max(Theme.u * 30, Math.min(Theme.u * 80, parent.width - soundToggle.width - playButton.width - (resetButton.visible ? resetButton.width + parent.spacing : 0) - parent.spacing * 2))
                         model: page.choices(row.modelData)
                         currentValue: Sounds.soundOf(row.modelData)
                         onActivated: v => {
@@ -142,12 +144,14 @@ PxPage {
                         }
                     }
                     PxButton {
+                        id: playButton
                         anchors.verticalCenter: parent.verticalCenter
                         compact: true
                         icon: "play"
                         onClicked: Sounds.preview(row.modelData)
                     }
                     PxButton {
+                        id: resetButton
                         anchors.verticalCenter: parent.verticalCenter
                         visible: row.t.vol !== undefined || !!row.t.sound
                         compact: true
@@ -406,6 +410,8 @@ PxPage {
             text: I18n.t("Положи .ogg, .wav, .mp3 или .flac в папку ниже — они появятся в списке у каждого звука. Или «Выбрать файл…» прямо в списке.", "Drop .ogg, .wav, .mp3 or .flac files into the folder below — they show up in every sound's list. Or use “Pick a file…” right in the list.")
         }
         PxText {
+            width: parent.width
+            wrapMode: Text.WrapAnywhere
             text: Sounds.customDir.replace(Config.home, "~") + "  ·  " + Sounds.customFiles.length + I18n.t(" файл(ов)", " file(s)")
             kind: "mono"
         }

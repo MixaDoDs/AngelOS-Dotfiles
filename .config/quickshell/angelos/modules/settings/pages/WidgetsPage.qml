@@ -252,7 +252,8 @@ PxPage {
             visible: Config.discord.crew && (Config.discord.crewHidden.length > 0 || Object.keys(Config.discord.crewSteps).length > 0)
             label: I18n.t("Спрятанные и свои размеры", "The hidden and the resized")
             hint: I18n.t("Спрятано: ", "Hidden: ") + Config.discord.crewHidden.length + I18n.t(", со своим размером: ", ", with a size of their own: ") + Object.keys(Config.discord.crewSteps).length
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxButton {
                     compact: true
@@ -581,7 +582,8 @@ PxPage {
                         visible: !!card.w && card.w.type === "note"
                         label: I18n.t("Текст", "Text")
                         hint: "~/.config/angelos/notes/" + card.modelData.replace(/[^\w-]/g, "_") + ".md"
-                        Row {
+                        Flow {
+                            width: parent.width
                             spacing: Theme.u * 2
                             PxButton {
                                 text: I18n.t("Редактировать", "Edit")

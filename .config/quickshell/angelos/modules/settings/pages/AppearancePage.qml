@@ -339,7 +339,8 @@ PxPage {
             Column {
                 width: parent.width
                 spacing: Theme.u * 2
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: Theme.u * 3
                     PxButton {
                         text: ColorPicker.busy ? I18n.t("Кликни по цвету…", "Click a colour…") : I18n.t("Взять с экрана", "Pick from the screen")

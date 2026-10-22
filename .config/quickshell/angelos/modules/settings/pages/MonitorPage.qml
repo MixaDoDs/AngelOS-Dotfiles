@@ -227,7 +227,8 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Позиция", "Position")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     width: Theme.u * 40

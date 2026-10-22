@@ -305,12 +305,13 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Другая программа", "Another app")
-            hint: I18n.t("если её нет среди открытых: имя программы, как его знает система", "If it isn't open: the app's name as the system knows it")
-            Row {
+            hint: I18n.t("её app-id, как в `niri msg windows`", "Its app-id, as `niri msg windows` shows it")
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: privacyId
-                    width: Theme.u * 60
+                    width: Math.min(Theme.u * 60, parent.width)
                     placeholder: "org.example.App"
                     kind: "mono"
                     input.onAccepted: privacyAdd.clicked()
