@@ -752,32 +752,6 @@ PxPage {
                         anchors.margins: Theme.u
                         clip: true
                         Image {
-                            anchors.fill: parent
-                            source: "file://" + Wallpapers.display(thumb.shownFile)
-                            // in the grimoire (or a dress): an engraving the right way round, not a negative
-                            layer.enabled: Theme.inkWindows.length > 0 && Theme.inkWindows.includes(Window.window)
-                            layer.effect: GrimoirePhoto {}
-                            // in steps, not every pixel: resizing Settings decoded the whole grid again each frame
-                            sourceSize: Qt.size(Math.ceil(width / 64) * 64, Math.ceil(height / 64) * 64)
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            cache: true
-                            smooth: true
-                            onStatusChanged: if (status === Image.Error)
-                                Wallpapers.fit(thumb.shownFile)
-                        }
-                    }
-                    // what the wallpaper has: ☼ ☾ 16:9 21:9 9:16
-                    PxBox {
-                        visible: thumb.tags.length > 0
-                        anchors.left: parent.left
-                        anchors.bottom: parent.bottom
-                        anchors.margins: Theme.u * 2
-                        width: tagText.implicitWidth + Theme.u * 4
-                        height: tagText.implicitHeight + Theme.u * 2
-                        color: Qt.alpha(Theme.face, 0.85)
-                        PxText {
-                            id: tagText
                             anchors.centerIn: parent
                             width: pixBox.index === 0 ? parent.width : implicitWidth
                             height: pixBox.index === 0 ? parent.height : implicitHeight
@@ -1096,19 +1070,26 @@ PxPage {
                 required property var modelData
                 label: AppMenu.prettyName(modelData.id)
                 hint: modelData.id
-                Row {
+                Flow {
+                    id: behindFlow
+                    width: parent.width
                     spacing: Theme.u * 3
-                    AppIcon {
-                        anchors.verticalCenter: parent.verticalCenter
-                        appId: behindApp.modelData.id
-                        size: Theme.u * 8
-                    }
-                    // a click steps to the next depth, as a widget's menu → Depth does
-                    PxButton {
-                        compact: true
-                        icon: "image"
-                        text: SceneBehind.depthLabel(behindApp.modelData.id)
-                        onClicked: SceneBehind.setDepth(behindApp.modelData.id, SceneBehind.nextDepth(behindApp.modelData.id))
+                    Row {
+                        spacing: Theme.u * 3
+                        AppIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            appId: behindApp.modelData.id
+                            size: Theme.u * 8
+                        }
+                        // a click steps to the next depth, as a widget's menu → Depth does
+                        PxButton {
+                            compact: true
+                            icon: "image"
+                            // beside the icon, at most the row: a long depth elides
+                            maxWidth: behindFlow.width - Theme.u * 11
+                            text: SceneBehind.depthLabel(behindApp.modelData.id)
+                            onClicked: SceneBehind.setDepth(behindApp.modelData.id, SceneBehind.nextDepth(behindApp.modelData.id))
+                        }
                     }
                     PxButton {
                         compact: true
@@ -1141,11 +1122,12 @@ PxPage {
         SettingRow {
             label: I18n.t("Другая программа", "Another app")
             hint: I18n.t("если её нет среди открытых: имя программы, как его знает система", "If it isn't open: the app's name as the system knows it")
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 3
                 PxField {
                     id: behindId
-                    width: Theme.u * 60
+                    width: Math.min(Theme.u * 60, parent.width)
                     placeholder: "spotify"
                     kind: "mono"
                     input.onAccepted: behindAdd.clicked()

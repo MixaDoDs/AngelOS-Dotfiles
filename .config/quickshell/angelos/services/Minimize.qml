@@ -511,10 +511,12 @@ Singleton {
     // Genie (the window bends and pours into the Dock) or Scale (it shrinks into it), as macOS's
     // "Minimise windows using"; Genie takes a little longer, as there
     readonly property string effect: Config.mac.minimizeEffect === "scale" ? "scale" : "genie"
-    readonly property int flightMs: Motion.ms(effect === "genie" ? 560 : 380)
-    // only Golden Gate draws the flights (MacMinimizeFx, in MacDesktop): elsewhere nothing would
-    // land one, and a window waiting for its landing never came back (#111)
-    readonly property bool canFly: flightMs > 0 && GoldenGate.on && !Shell.desktopHeld
+    // (only Golden Gate draws it: modules/mac/MacDesktop → MacMinimizeFx — elsewhere nothing would
+    // land, and a window flying back would never come)
+    readonly property int flightMs: GoldenGate.on ? Motion.ms(effect === "genie" ? 560 : 380) : 0
+    // only Golden Gate draws the flights (flightMs is 0 elsewhere): nothing would land one, and a
+    // window waiting for its landing never came back (#111)
+    readonly property bool canFly: flightMs > 0 && !Shell.desktopHeld
     property var flights: []                // [{key, id, output, rect, shot, back}]
     readonly property var flying: flights.map(f => f.id)
     property var dockSlots: ({})            // output + "|" + key -> [centre x, centre y, size], screen px

@@ -226,22 +226,28 @@ PxPage {
                 required property var modelData
                 label: modelData.name
                 hint: modelData.id
-                Row {
+                // a Flow: in a narrow card the look and the buttons wrap below the toggle
+                Flow {
+                    id: hiddenFlow
+                    width: parent.width
                     spacing: Theme.u * 3
-                    AppIcon {
-                        anchors.verticalCenter: parent.verticalCenter
-                        appId: hiddenApp.modelData.id
-                        size: Theme.u * 8
-                    }
-                    PxToggle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        checked: hiddenApp.modelData.on
-                        onToggled: c => Privacy.app(c ? "add" : "remove", hiddenApp.modelData.id)
+                    Row {
+                        spacing: Theme.u * 3
+                        AppIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            appId: hiddenApp.modelData.id
+                            size: Theme.u * 8
+                        }
+                        PxToggle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            checked: hiddenApp.modelData.on
+                            onToggled: c => Privacy.app(c ? "add" : "remove", hiddenApp.modelData.id)
+                        }
                     }
                     // its own look (angel-niri): "" — as every app
                     PxCombo {
                         visible: Privacy.nativeLook && hiddenApp.modelData.on
-                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.min(Theme.u * 100, hiddenFlow.width)
                         readonly property var own: Privacy.appLook(hiddenApp.modelData.id)
                         model: [{
                                 "label": I18n.t("Как у всех", "As the rest"),
@@ -305,7 +311,7 @@ PxPage {
         }
         SettingRow {
             label: I18n.t("Другая программа", "Another app")
-            hint: I18n.t("её app-id, как в `niri msg windows`", "Its app-id, as `niri msg windows` shows it")
+            hint: I18n.t("если её нет среди открытых: имя программы, как его знает система", "If it isn't open: the app's name as the system knows it")
             Flow {
                 width: parent.width
                 spacing: Theme.u * 3
