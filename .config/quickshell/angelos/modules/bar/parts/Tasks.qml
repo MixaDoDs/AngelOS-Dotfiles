@@ -25,7 +25,13 @@ Item {
     readonly property var ws: Niri.activeWorkspace(screenName)
     // the windows of the desktop in front, and the ones minimized on this screen (dimmed, a click
     // brings one back — as Windows' taskbar keeps them); not an app hidden whole (⌘H)
-    readonly property var list: Niri.sortedWindows(Niri.windows.filter(w => !Minimize.isAppHidden(w) && (Config.bar.allWindows || (ws && w.workspace_id === ws.id) || minimizedHere(w))))
+    readonly property var liveList: Niri.sortedWindows(Niri.windows.filter(w => !Minimize.isAppHidden(w) && (Config.bar.allWindows || (ws && w.workspace_id === ws.id) || minimizedHere(w))))
+    // niri sends a window update on every step of a resize or a move: the buttons are built
+    // again only when what they show changes (the order, the title, the focus, the alert)
+    readonly property string listKey: JSON.stringify(liveList.map(w => [w.id, w.app_id, w.title, w.is_focused, w.is_urgent, w.workspace_id]))
+    property var list: []
+    onListKeyChanged: list = liveList
+    Component.onCompleted: list = liveList
     function minimizedHere(w) {
         return Minimize.isMinimized(w) && Minimize.outputOf(w) === screenName;
     }
