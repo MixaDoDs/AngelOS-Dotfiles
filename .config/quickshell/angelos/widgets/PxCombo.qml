@@ -7,11 +7,15 @@ import "A11y.js" as A11y
 // Dropdown. model: array of strings or {label, value, icon}.
 Item {
     id: root
+    // inside the P5 settings window: its colours (Theme.tone)
+    readonly property bool p5: Theme.p5For(root.parent)
 
     property var model: []
     property var currentValue
     property string placeholder: "—"
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
+    // the P5 settings window draws like the classic look, in its own colours
+    readonly property bool classicLike: settingsSkin === "classic" || settingsSkin === "p5"
     // the Golden Gate skin's System Settings: a Mac pop-up button (the value and ⌃⌄), a glass menu
     readonly property bool mac: settingsSkin === "goldengate"
     signal activated(var value)
@@ -35,9 +39,9 @@ Item {
 
     PxBox {
         anchors.fill: parent
-        visible: root.settingsSkin === "classic"
+        visible: root.classicLike
         sunken: true
-        color: Theme.sunken
+        color: Theme.tone("sunken", root.p5)
     }
     Rectangle {
         visible: root.mac
@@ -66,7 +70,7 @@ Item {
         }
     }
     Rectangle {
-        visible: root.settingsSkin !== "classic" && !root.mac
+        visible: !root.classicLike && !root.mac
         anchors.fill: parent
         radius: root.settingsSkin === "stream" ? Theme.u * 2 : 0
         color: root.settingsSkin === "stream" ? Theme.streamPanel : Theme.windoseSticker
@@ -89,7 +93,7 @@ Item {
         anchors.margins: Theme.u * 2
         width: height
         sunken: mouse.pressed
-        visible: root.settingsSkin === "classic"
+        visible: root.classicLike
         PxIcon {
             anchors.centerIn: parent
             name: "arrowDown"
@@ -97,7 +101,7 @@ Item {
         }
     }
     PxIcon {
-        visible: root.settingsSkin !== "classic" && !root.mac
+        visible: !root.classicLike && !root.mac
         anchors.centerIn: arrow
         name: "arrowDown"
         ink: root.settingsSkin === "stream" ? Theme.streamLive : Theme.windoseInk
@@ -126,7 +130,7 @@ Item {
             PxBox {
                 anchors.fill: parent
                 visible: !root.mac
-                color: Theme.face
+                color: Theme.tone("face", root.p5)
                 shadow: true
             }
             MacGlass {
@@ -146,7 +150,7 @@ Item {
                 active: list.contentHeight > list.height
                 contentItem: Rectangle {
                     implicitWidth: Theme.u * 2
-                    color: Theme.text
+                    color: Theme.tone("text", root.p5)
                     opacity: 0.5
                     visible: parent.active
                 }
@@ -158,7 +162,7 @@ Item {
                 width: list.width
                 height: Theme.sizeBody + Theme.u * 7
                 radius: root.mac ? GoldenGate.px(6) : 0
-                color: optMouse.containsMouse ? (root.mac ? GoldenGate.accent : Theme.select) : index === root.currentIndex && !root.mac ? Theme.faceAlt : "transparent"
+                color: optMouse.containsMouse ? (root.mac ? GoldenGate.accent : Theme.select) : index === root.currentIndex && !root.mac ? Theme.tone("faceAlt", root.p5) : "transparent"
                 Row {
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.u * 4
@@ -171,7 +175,7 @@ Item {
                     }
                     PxText {
                         text: opt.modelData.label
-                        color: optMouse.containsMouse ? Theme.selectText : Theme.text
+                        color: optMouse.containsMouse ? Theme.selectText : Theme.tone("text", root.p5)
                     }
                 }
                 MouseArea {

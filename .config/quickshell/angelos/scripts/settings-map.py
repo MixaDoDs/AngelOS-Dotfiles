@@ -77,7 +77,7 @@ def where(src, name):
 def main():
     out = ["# Настройки: карта «было → стало»", "",
            "Собрана из данных: дерево — `modules/settings/tree.json`, настройки — группы `PxGroup { name: … }` "
-           "в `modules/settings/pages/*.qml`. Перенести группу — передвинуть её `\"файл/имя\"` в tree.json и "
+           "в `modules/settings/catalog/*.qml`. Перенести группу — передвинуть её `\"файл/имя\"` в tree.json и "
            "пересобрать карту: `python3 scripts/settings-map.py > docs/SETTINGS-MAP.md`. "
            "Тест `tests/settings/test_tree.py` следит, чтобы каждая группа была ровно на одной странице и ни одна "
            "настройка не пропала.", "", "## Новое дерево", ""]

@@ -6,14 +6,16 @@ import qs.services
 import qs.widgets
 import "../../widgets/Place.js" as Place
 
-// Small volume / mic / layout / brightness / keyboard light OSD, and the laptop's switch keys. Position comes from Settings → Звук → OSD.
+// Small volume / mic / layout / brightness / keyboard light OSD, the laptop's switch keys, and
+// Desktop or the Strip (with its keys the first time Desktop comes). Position comes from
+// Settings → Звук → OSD.
 PanelWindow {
     id: win
 
     property string kind: "volume"
     property bool shown: false
     readonly property string pos: Config.osd.position || "bottom-center"
-    readonly property bool compactLayout: kind === "layout" || kind === "flag"
+    readonly property bool compactLayout: kind === "layout" || kind === "flag" || kind === "hint"
     // the meter: volume, mic, the backlight, the keyboard's light (0…1)
     readonly property real meter: kind === "brightness" ? Backlight.level : kind === "kbd" ? (Backlight.kbdMax > 0 ? Backlight.kbd / Backlight.kbdMax : 0) : kind === "mic" ? (Audio.micMuted ? 0 : Audio.micVolume) : (Audio.muted ? 0 : Math.min(1, Audio.volume))
 
@@ -25,7 +27,7 @@ PanelWindow {
             return;
         kind = k;
         shown = true;
-        hide.interval = k === "layout" || k === "flag" ? Math.round(Config.osd.ms * 0.7) : Config.osd.ms;
+        hide.interval = k === "hint" ? 9000 : k === "layout" || k === "flag" ? Math.round(Config.osd.ms * 0.7) : Config.osd.ms;
         hide.restart();
     }
 
@@ -45,7 +47,15 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     exclusiveZone: 0
     color: "transparent"
-    mask: Region {}
+    // only the hint takes a click (to go away)
+    mask: kind === "hint" && shown ? hintRegion : noRegion
+    Region {
+        id: noRegion
+    }
+    Region {
+        id: hintRegion
+        item: box
+    }
     WlrLayershell.namespace: "angelos-osd"
     WlrLayershell.layer: WlrLayer.Overlay
 
@@ -83,6 +93,20 @@ PanelWindow {
             win.show("flag");
         }
     }
+    // Desktop or the Strip (services/WindowConfig): the first time Desktop comes, its keys too
+    Connections {
+        target: WindowConfig
+        function onModeFlipped(desktop, locked) {
+            win.flagIcon = desktop ? "layers" : "strip";
+            win.flagText = locked ? I18n.t("Golden Gate — всегда Desktop", "Golden Gate is always Desktop") : desktop ? "Desktop" : I18n.t("Лента", "Strip");
+            if (desktop && !locked && !Config.windows.desktopHintSeen) {
+                Config.windows.desktopHintSeen = true;
+                win.show("hint");
+            } else {
+                win.show("flag");
+            }
+        }
+    }
     Connections {
         target: Niri
         function onLayoutSwitched() {
@@ -93,8 +117,8 @@ PanelWindow {
 
     PxBox {
         id: box
-        width: row.implicitWidth + Theme.u * (win.compactLayout ? 10 : 14)
-        height: win.compactLayout ? Theme.u * 15 : Theme.u * 17
+        width: (win.kind === "hint" ? hint.implicitWidth : row.implicitWidth) + Theme.u * (win.compactLayout ? 10 : 14)
+        height: win.kind === "hint" ? hint.implicitHeight + Theme.u * 10 : win.compactLayout ? Theme.u * 15 : Theme.u * 17
         color: Theme.panel
         shadow: Config.appearance.shadows
         opacity: win.shown ? 1 : 0
@@ -105,8 +129,42 @@ PanelWindow {
             }
         }
 
+        MouseArea {
+            anchors.fill: parent
+            enabled: win.kind === "hint"
+            onClicked: win.shown = false
+        }
+
+        Column {
+            id: hint
+            visible: win.kind === "hint"
+            anchors.centerIn: parent
+            spacing: Theme.u * 2
+            Row {
+                spacing: Theme.u * 4
+                PxIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    name: "layers"
+                }
+                PxText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: I18n.t("Desktop: окна как в обычной системе", "Desktop: windows as on a usual system")
+                    font.bold: true
+                }
+            }
+            Repeater {
+                model: [I18n.t("Mod+Ctrl+Shift+M — назад в Ленту", "Mod+Ctrl+Shift+M — back to the Strip"), I18n.t("Mod+← → — половина экрана, ↑ — во весь, ↓ — свернуть", "Mod+← → — half the screen, ↑ — all of it, ↓ — minimize"), I18n.t("Mod+D — показать рабочий стол", "Mod+D — show the desktop"), I18n.t("потряси окно за заголовок — остальные свернутся", "shake a window by its title — the rest minimize"), I18n.t("колесо по заголовку — шторка, Alt+Пробел — меню окна", "the wheel over a title — roll it up, Alt+Space — the window's menu")]
+                PxText {
+                    required property string modelData
+                    text: modelData
+                    dim: true
+                }
+            }
+        }
+
         Row {
             id: row
+            visible: win.kind !== "hint"
             anchors.centerIn: parent
             spacing: Theme.u * 4
 

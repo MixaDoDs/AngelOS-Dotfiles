@@ -4,6 +4,8 @@ import "A11y.js" as A11y
 
 Row {
     id: root
+    // inside the P5 settings window: its colours (Theme.tone)
+    readonly property bool p5: Theme.p5For(root.parent)
 
     property real value: 0
     // the step just taken, shown until the owner's binding answers (as PxSlider): `value` is
@@ -45,7 +47,7 @@ Row {
         width: Theme.u * 34
         height: parent.children[0].height
         sunken: true
-        color: Theme.sunken
+        color: Theme.tone("sunken", root.p5)
         PxText {
             anchors.centerIn: parent
             text: root.shown.toFixed(root.decimals) + root.suffix

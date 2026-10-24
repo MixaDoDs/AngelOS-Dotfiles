@@ -1,15 +1,15 @@
 {
   "_comment": [
     "The settings tree: categories on the left, their pages, and what each page is made of.",
-    "A page is a list of blocks: \"monitor\" = everything on modules/settings/pages/MonitorPage.qml,",
-    "\"bar/style\" = only its group named \"style\" (PxGroup { name: \"style\" }). Every group is in",
+    "A page is a list of blocks: \"monitor\" = everything in modules/settings/catalog/Monitor.qml,",
+    "\"bar/style\" = only its group named \"style\" (CatGroup { name: \"style\" }). Every group is in",
     "exactly one page (tests/settings checks it, and that no setting of the old tree got lost).",
     "Blocks of one source file show in that file's order. Two levels only: category › page.",
     "\"legacy\": the old page ids (links in the wizard, the tour, the helper, `angelos settings`)",
     "and where they lead now; \"to\" may name a group, the page scrolls to it.",
     "\"developer\"/\"owner\"/\"game\": shown only in developer mode / to the owner / while the game is on. \"plugins\": the category",
     "where plugins' own settings pages are listed (\"after\": a plugin page that goes after a page).",
-    "\"mac\": the Golden Gate skin's own tree (services/GoldenGate.on): its look-and-feel pages (modules/settings/pages/MacPage.qml and the groups of the other files that fit a Mac) and the system pages without the pixel skins' groups. Its own \"legacy\" leads the old ids there; an id it doesn't know goes to \"fallback\". The pixel tree's pages are not shown while the skin is on.",
+    "\"mac\": the Golden Gate skin's own tree (services/GoldenGate.on): its look-and-feel pages (modules/settings/catalog/Mac.qml and the groups of the other files that fit a Mac) and the system pages without the pixel skins' groups. Its own \"legacy\" leads the old ids there; an id it doesn't know goes to \"fallback\". The pixel tree's pages are not shown while the skin is on.",
     "2026-10-07 rebuild: Windows 11 sections, each with short pages. A page shows its \"blocks\" at once and folds its \"more\" under «Ещё…» (loaded when opened; the search opens it). \"src/@\" adds what sits outside src's groups (the Apply buttons, a log line). \"ruHell\"/\"enHell\": the name while the demon rules.",
     "\"preview\": a live preview over the page (PxPreview): its scene (widgets/previews) and the setting whose value it plays."
   ],
@@ -143,12 +143,17 @@
           "blocks": [
             "laptop/power-idle",
             "system/power",
+            "system/games-background",
             "laptop/lid",
             "lock/awake"
           ],
           "links": [
             "battery",
             "lock"
+          ],
+          "more": [
+            "lock/idle-screen",
+            "lock/idle-aod"
           ]
         },
         {
@@ -246,7 +251,8 @@
           "links": [
             "a11y:lens-at-pointer",
             "a11y:shake-find-pointer",
-            "cursor"
+            "cursor",
+            "driver:mouse"
           ],
           "more": [
             "mouse/games"
@@ -321,7 +327,7 @@
           ],
           "links": [
             "keyboard",
-            "stream-angel:stream-angel-obs"
+            "obs:stream-angel-obs"
           ]
         },
         {
@@ -536,6 +542,7 @@
           "more": [
             "bar/taskbar-windows",
             "bar/taskbar-buttons",
+            "windows/closing-windows",
             "bar/layout",
             "bar/icons",
             "bar/taskbar-screens",
@@ -556,16 +563,17 @@
           "ru": "Пуск",
           "en": "Start",
           "icon": "heart",
-          "hintRu": "стиль, кнопки, где открывается, поиск, логотип",
-          "hintEn": "the style, buttons, where it opens, search, the logo",
+          "hintRu": "вид меню и его настройка, кнопка «Пуск», логотип, кнопки внизу, поиск",
+          "hintEn": "the menu look and its settings, the Start button, the logo, the buttons along the bottom, search",
           "blocks": [
             "bar/start-button",
+            "bar/start-avatar-fine",
+            "bar/angelos-logo",
             "deskmenu/start-buttons"
           ],
           "more": [
-            "bar/start-meta",
-            "bar/start-avatar-fine",
-            "bar/angelos-logo"
+            "bar/start-search",
+            "bar/start-meta"
           ],
           "links": [
             "taskbar"
@@ -589,8 +597,7 @@
           "more": [
             "deskmenu/look",
             "deskmenu/plugins",
-            "deskmenu/your-own-entries",
-            "windows/closing-windows"
+            "deskmenu/your-own-entries"
           ],
           "links": [
             "start",
@@ -667,12 +674,10 @@
             "laptop/fingerprint",
             "lock/lock-stream",
             "lock/login-screen",
-            "lock/idle-screen",
-            "lock/idle-aod",
             "y2k/loading-screen"
           ],
           "links": [
-            "power"
+            "power:idle-screen"
           ]
         }
       ]
@@ -691,11 +696,12 @@
           "ru": "Окна",
           "en": "Windows",
           "icon": "window",
-          "hintRu": "плавающие окна, рамки и углы, отступы, ширина новых окон",
-          "hintEn": "floating windows, frames and corners, gaps, new windows' width",
+          "hintRu": "Desktop или Лента, рамки и углы, отступы, ширина новых окон",
+          "hintEn": "Desktop or Strip, frames and corners, gaps, new windows' width",
           "blocks": [
             "windows/floating",
             "windows/frames",
+            "windows/window-places",
             "windows/layout",
             "windows/window-widths",
             "windows/window-decorations",
@@ -728,12 +734,11 @@
           "hintRu": "как открываются окна и переключаются столы",
           "hintEn": "how windows open and desks switch",
           "blocks": [
+            "appearance/motion",
             "windows/window-animations",
             "workspaces/switch-animation"
           ],
-          "links": [
-            "a11y:motion"
-          ]
+          "links": []
         },
         {
           "id": "workspaces",
@@ -748,6 +753,9 @@
           ],
           "more": [
             "workspaces/workspace-switching"
+          ],
+          "links": [
+            "taskbar"
           ]
         }
       ]
@@ -816,8 +824,10 @@
             "care/main",
             "care/clean",
             "care/games",
-            "system/games-background",
             "care/helper"
+          ],
+          "links": [
+            "power:games-background"
           ]
         },
         {
@@ -921,7 +931,8 @@
           ],
           "links": [
             "stream-angel",
-            "capture"
+            "capture",
+            "obs"
           ]
         },
         {
@@ -932,7 +943,8 @@
           "hintRu": "подключение к OBS: состояние и порт",
           "hintEn": "the link to OBS: status and port",
           "blocks": [
-            "obs/obs"
+            "obs/obs",
+            "y2k/stream-angel-obs"
           ],
           "links": [
             "stream",
@@ -950,8 +962,7 @@
             "y2k/stream-angel"
           ],
           "more": [
-            "y2k/stream-angel-voice",
-            "y2k/stream-angel-obs"
+            "y2k/stream-angel-voice"
           ],
           "links": [
             "stream"
@@ -977,7 +988,6 @@
           "hintEn": "size, motion, contrast, magnifier, pointer, voice",
           "blocks": [
             "appearance/ui-size",
-            "appearance/motion",
             "accessibility/contrast",
             "mouse/lens-at-pointer",
             "cursor/shake-find-pointer",
@@ -985,7 +995,8 @@
           ],
           "links": [
             "fonts",
-            "animations"
+            "animations",
+            "animations:motion"
           ]
         }
       ]
@@ -1007,11 +1018,10 @@
           "hintRu": "показывать, размер, экран, болтовня, внешность",
           "hintEn": "show her, size, screen, chatter, looks",
           "blocks": [
-            "y2k/demon-corner"
-          ],
-          "more": [
+            "y2k/demon-corner",
             "y2k/looks"
           ],
+          "more": [],
           "ruHell": "Демоница",
           "enHell": "The demon",
           "links": [
@@ -1282,7 +1292,7 @@
       "to": "appearance/ui-size"
     },
     "motion": {
-      "page": "a11y",
+      "page": "animations",
       "to": "appearance/motion"
     },
     "contrast": {
@@ -1748,6 +1758,7 @@
               "windows/cobweb",
               "windows/floating",
               "windows/frames",
+              "windows/window-places",
               "windows/layout",
               "windows/window-widths",
               "windows/window-animations",

@@ -77,8 +77,9 @@ Singleton {
             };
         const d = Theme.dark;
         const h = c => Theme.hex(c);
-        // windows float like on a Mac (Config.mac.floating)
-        const rules = Config.mac.floating ? "window-rule {\n    open-floating true\n}\n" : "";
+        // Golden Gate is always Desktop: windows float like on a Mac; on angel-niri the stacking
+        // mode floats them (WindowConfig), a rule would keep them floating after it
+        const rules = Niri.nativeMinimize ? "" : "window-rule {\n    open-floating true\n}\n";
         // no keys here: the Mac keys are Golden Gate's key profile (~/.config/niri/cfg/keybinds-macos.kdl,
         // switched with the theme in one step by services/KeyProfile — a key rendered here, later
         // than the theme switch, would mix the two themes' keys for a moment)
@@ -98,14 +99,17 @@ Singleton {
             "macSelectedSidebar": d ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)",
             "macLightOff": d ? "#4a4a4d" : "#d1d1d6",
             "macOverview": d ? "#101012" : "#2c2c30",
-            "macWindowRules": rules
+            "macWindowRules": rules,
+            // angel-niri draws Mac title bars for the windows that let it (stacking, WindowConfig)
+            "macCsd": Niri.nativeMinimize ? "true" : "false"
         };
     }
 
-    // Settings → Windows → Floating windows: every new window floats (templates/niri.kdl)
+    // Settings → Windows → Floating windows: every new window floats (templates/niri.kdl);
+    // not on angel-niri, where the switch is the stacking mode (WindowConfig)
     function windowsPalette() {
         return {
-            "floatRules": Config.windows.floatAll ? "// every window floats (Settings → Windows → Floating windows)\nwindow-rule {\n    open-floating true\n}\n" : ""
+            "floatRules": Config.windows.floatAll && !Niri.nativeMinimize ? "// every window floats (Settings → Windows → Desktop)\nwindow-rule {\n    open-floating true\n}\n" : ""
         };
     }
 
@@ -127,7 +131,8 @@ Singleton {
             "browserBarText": barText,
             "realm": hell ? "hell" : "heaven",
             "decorGtk": Config.decor.gtkButtons ? "1" : "",
-            "decorButtons": /^[a-z,]*$/.test(Config.decor.gtkLayout || "") ? Config.decor.gtkLayout : "maximize,close",
+            // Desktop: all three, as niri's lights and any usual desktop; the Strip: as set
+            "decorButtons": WindowConfig.floatAll && !GoldenGate.on ? "minimize,maximize,close" : /^[a-z,]*$/.test(Config.decor.gtkLayout || "") ? Config.decor.gtkLayout : "maximize,close",
             "decorHeader": h(hell ? Theme.mix(Theme.hellFaceAlt, Theme.hellBlood, 0.35) : Theme.menuHeader),
             "decorFace": h(hell ? Theme.hellFace : Theme.face),
             "decorFaceAlt": h(hell ? Theme.hellFace : Theme.faceAlt),

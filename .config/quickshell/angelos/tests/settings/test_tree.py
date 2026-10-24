@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""The settings tree (modules/settings/tree.json) against the pages it is put together from.
+"""The settings tree (modules/settings/tree.json) against the catalog it is put together from.
 
 - every group of every page file is on exactly one page of the tree (or the page file is
   there whole); every block names a file and a group that exist. The Golden Gate skin's own
-  tree ("mac"): its page file (MacPage.qml) is all on it, each group once, and its blocks from
+  tree ("mac"): its catalog (catalog/Mac.qml) is all on it, each group once, and its blocks from
   the other files exist; the pixel files' groups it borrows stay on the pixel tree too
 - no setting got lost: every configuration key the interface could change before the
   rebuild (ui-keys-before.txt, from scripts/settings-inventory.py --keys) is on a page of
@@ -28,7 +28,7 @@ TREE = json.loads((ROOT / "modules/settings/tree.json").read_text())
 spec = importlib.util.spec_from_file_location("inventory", ROOT / "scripts/settings-inventory.py")
 inventory = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(inventory)
-INV = inventory.inventory(ROOT / "modules/settings/pages")
+INV = inventory.inventory(ROOT / "modules/settings/catalog")
 SKIN_HOMES = set(TREE.get("skinHomes", []))
 
 

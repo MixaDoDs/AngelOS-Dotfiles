@@ -652,6 +652,58 @@ Singleton {
                 return p.zoomedFrame === true;
         return false;
     }
+    // ---- the P5 settings window (modules/settings/p5): black, paper and the accent ----
+    // The window puts settingsSkin "p5" on what it shows; the pixel widgets inside take these
+    // colours (and their own P5 shapes), and a catalog's own parts ask tone() for theirs.
+    // The dark theme turns the card over: "black" is the ink, "paper" what it is written on, so
+    // there the paper is near-black and the ink light (a white card glared at night — the owner).
+    readonly property color p5Black: dark ? mix("#ffffff", accent, 0.08) : mix("#000000", accent, 0.07)
+    readonly property color p5Paper: dark ? mix("#000000", accent, 0.12) : mix("#ffffff", accent, 0.05)
+    readonly property color p5White: dark ? mix("#000000", accent, 0.19) : mix("#ffffff", accent, 0.02)
+    readonly property color p5Paper2: dark ? mix("#000000", accent, 0.27) : mix("#ffffff", accent, 0.16)
+    readonly property color p5Paper3: dark ? mix("#000000", accent, 0.4) : mix("#ffffff", accent, 0.3)
+    readonly property color p5Dim: mix(p5Black, dark ? "#000000" : "#ffffff", 0.38)
+    // the accent as letters on the paper: darkened (lightened on the dark card) until it reads
+    readonly property color p5AccentInk: dark ? mix(accent, "#ffffff", 0.2) : darkTo(accent, 0.18)
+    // a colour darkened until its luminance is at most `l` (text on white)
+    function darkTo(c, l) {
+        let k = 0;
+        let x = Qt.color(c);
+        while (luminance(x) > l && k < 12) {
+            x = mix(x, "#000000", 0.12);
+            k++;
+        }
+        return x;
+    }
+    function p5For(item) {
+        return settingsSkinFor(item) === "p5";
+    }
+    // one of the theme's colours, or its P5 counterpart inside the P5 window
+    function tone(name, p5) {
+        if (!p5)
+            return root[name];
+        switch (name) {
+        case "face":
+            return p5Paper2;
+        case "faceAlt":
+            return p5Paper3;
+        case "sunken":
+            return dark ? mix("#000000", accent, 0.06) : mix("#ffffff", accent, 0.08);
+        case "text":
+        case "edge":
+        case "lo":
+            return p5Black;
+        case "textDim":
+            return p5Dim;
+        case "hi":
+            return "#ffffff";
+        case "ok":
+        case "danger":
+        case "accent2":
+            return dark ? root[name] : darkTo(root[name], 0.2);
+        }
+        return root[name];
+    }
     function settingsSkinFor(item) {
         for (let p = item; p; p = p.parent)
             if (p.settingsSkin !== undefined)
@@ -742,6 +794,26 @@ Singleton {
         id: hellTextFont
         source: Qt.resolvedUrl("../data/fonts/DepartureMono-Regular.otf")
     }
+    // ---- the P5 settings window's letters (OFL, data/fonts; Latin and Cyrillic) ----
+    // its text: Handjet at its bold (a static cut, HandjetP5-Bold), narrow like P5's menus;
+    // a size larger than the body's — a narrow face needs it (p5BodyPx)
+    readonly property string fontP5Body: p5BodyFont.status === FontLoader.Ready ? p5BodyFont.name : fontBody
+    function p5BodyPx(px) {
+        return Math.round(px * 1.5);
+    }
+    // the P5 window's own words (a line's name, its value) a size more again (the owner, 23.10: «шрифт больше»)
+    readonly property int p5LabelPx: Math.round(sizeTitle * 1.75)
+    FontLoader {
+        id: p5BodyFont
+        source: Qt.resolvedUrl("../data/fonts/HandjetP5-Bold.ttf")
+    }
+    FontLoader {
+        id: dotGothicFont
+        source: Qt.resolvedUrl("../data/fonts/DotGothic16-Regular.ttf")
+    }
+    // the cut-out letters of its headings: a font per letter, each with Cyrillic (the last
+    // four come with angelOS's fonts, ~/.local/share/fonts/angelos)
+    readonly property var p5Ransom: [fontTitle, fontHell, fontP5Body, fontMono, dotGothicFont.status === FontLoader.Ready ? dotGothicFont.name : fontBody, fontHellText, "Press Start 2P", "Monocraft", "Tiny5", fontBody]
     // (hell's lyrics used to have a font of their own; now the headings' — kept for plugins)
     readonly property string fontLyricsHell: fontHell
 
@@ -809,7 +881,10 @@ Singleton {
             "Press Start 2P": 8,
             "Monocraft": 9,
             "Departure Mono": 11,
-            "Silkscreen": 8
+            "Silkscreen": 8,
+            "Jacquard 12 Hell": 12,
+            "DotGothic16": 16,
+            "Handjet P5": 16
         })
     function crisp(base, family) {
         const n = fontNative[family] || 0;

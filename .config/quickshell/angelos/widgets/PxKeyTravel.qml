@@ -38,6 +38,8 @@ Item {
     // a key width in whole art pixels, so every edge sits on the grid
     readonly property int cell: Math.max(Theme.u * 6, Math.floor(width / cols / Theme.u) * Theme.u)
     readonly property int gap: Theme.u
+    // inside the P5 settings window: its colours (Theme.tone)
+    readonly property bool p5: Theme.p5For(root.parent)
     implicitHeight: rows * cell
     implicitWidth: cols * cell
 
@@ -168,14 +170,14 @@ Item {
             PxBox {
                 id: box
                 anchors.fill: parent
-                color: cap.held ? Theme.mix(Theme.face, Theme.ok, 0.55) : cap.chosen ? Theme.mix(Theme.face, Theme.accent, 0.22) : Theme.face
-                edgeColor: cap.held ? Theme.ok : cap.chosen ? Theme.accent : Theme.edge
+                color: cap.held ? Theme.mix(Theme.tone("face", root.p5), Theme.tone("ok", root.p5), 0.55) : cap.chosen ? Theme.mix(Theme.tone("face", root.p5), Theme.accent, 0.22) : Theme.tone("face", root.p5)
+                edgeColor: cap.held ? Theme.tone("ok", root.p5) : cap.chosen ? Theme.accent : Theme.tone("edge", root.p5)
                 // how deep the key is: the cap fills from the top down, as the key goes
                 Rectangle {
                     visible: root.showTravel || root.showDepth
                     width: parent.width
                     height: cap.fillH
-                    color: !root.showTravel ? Theme.mix(Theme.face, Theme.accent, 0.3) : cap.down ? Theme.accent : Theme.mix(Theme.face, Theme.accent, 0.42)
+                    color: !root.showTravel ? Theme.mix(Theme.tone("face", root.p5), Theme.accent, 0.3) : cap.down ? Theme.accent : Theme.mix(Theme.tone("face", root.p5), Theme.accent, 0.42)
                 }
                 // the fill's lower edge, a row of art pixels brighter: the surface that moves
                 Rectangle {
@@ -183,7 +185,7 @@ Item {
                     y: cap.fillH - Theme.u
                     width: parent.width
                     height: Theme.u
-                    color: cap.down ? Theme.hi : Theme.accent
+                    color: cap.down ? Theme.tone("hi", root.p5) : Theme.accent
                 }
                 // the actuation point: a notch at each side
                 Rectangle {
@@ -191,7 +193,7 @@ Item {
                     y: cap.pointY
                     width: Theme.u * 3
                     height: Theme.u
-                    color: Theme.text
+                    color: Theme.tone("text", root.p5)
                 }
                 Rectangle {
                     visible: root.showTravel && !!cap.rule
@@ -199,7 +201,7 @@ Item {
                     y: cap.pointY
                     width: Theme.u * 3
                     height: Theme.u
-                    color: Theme.text
+                    color: Theme.tone("text", root.p5)
                 }
                 // a key of a Snap Tap pair: a bar along its top
                 Rectangle {
@@ -215,7 +217,7 @@ Item {
                     y: parent.height - height - Theme.u
                     width: Theme.u * 2
                     height: Theme.u * 2
-                    color: cap.rule && cap.rule.trigger === "continuous" ? Theme.accent3 : Theme.ok
+                    color: cap.rule && cap.rule.trigger === "continuous" ? Theme.accent3 : Theme.tone("ok", root.p5)
                 }
                 // changed from the factory: a dot in the top left corner
                 Rectangle {
@@ -239,7 +241,7 @@ Item {
                         text: cap.legendText
                         opacity: root.dimmed[String(cap.m)] ? 0.45 : 1
                         // under a pressed key's fill the legend takes the cap's colour to stay read
-                        color: root.showTravel && cap.down && cap.fillH > cap.well / 2 ? Theme.face : Theme.text
+                        color: root.showTravel && cap.down && cap.fillH > cap.well / 2 ? Theme.tone("face", root.p5) : Theme.tone("text", root.p5)
                     }
                     PxText {
                         visible: cap.subText !== "" && cap.height > Theme.u * 14

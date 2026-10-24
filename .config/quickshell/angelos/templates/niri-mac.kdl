@@ -8,7 +8,9 @@
 // none over them. This file comes after cfg/misc.kdl: its prefer-no-csd (the pixel skins') and
 // QT_WAYLAND_DISABLE_WINDOWDECORATION are turned back here. The yellow light reaches angelOS
 // through extras/minimize-hook (niri 26.04 drops xdg_toplevel.set_minimized).
-prefer-no-csd false
+// On angel-niri the windows that leave their title bar to niri (Qt, kitty, alacritty…) get its
+// Mac title bar (stacking, --title-style mac), so prefer-no-csd stays on there.
+prefer-no-csd {{macCsd}}
 environment {
     QT_WAYLAND_DISABLE_WINDOWDECORATION null
     QT_WAYLAND_DECORATION "adwaita"

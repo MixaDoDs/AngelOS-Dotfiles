@@ -14,6 +14,8 @@ import "MacIcons.js" as MacIcons
 // advanced group that is only there sometimes says so with `shown`, not `visible`.
 Item {
     id: root
+    // inside the P5 settings window: its colours (Theme.tone)
+    readonly property bool p5: Theme.p5For(root.parent)
 
     property string title: ""
     // the group's key in the settings tree (modules/settings/tree.json: "page/name"): pages are
@@ -21,19 +23,25 @@ Item {
     property string name: ""
     property string icon: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
-    // Settings (SettingsView.fluent): a card of rows (SettingRow); a sub-page (`advanced`) is a
-    // card that unfolds in place
+    // Settings (SettingsView.fluent): a card of rows (SettingRow); in the Golden Gate skin a
+    // sub-page (`advanced`) is a card that unfolds in place
     readonly property bool fluent: Theme.fluentFor(root.parent)
     // the Golden Gate skin's System Settings: the rows in one rounded box, a shade off the page
     readonly property bool mac: settingsSkin === "goldengate"
     // the angelOS look: the caption inside the card
     readonly property bool angel: fluent && !mac
     property bool unfolded: false
-    readonly property bool folded: fluent && advanced && !unfolded && openSub !== title
+    // only the Golden Gate skin folds a sub-page into a "Title ›" row; in the angelOS look the
+    // settings tree alone says what waits under «Ещё…» (tree.json "more"), a card never folds
+    readonly property bool foldable: fluent && mac && advanced
+    readonly property bool folded: foldable && !unfolded && openSub !== title
     property int spacing: Theme.u * 5
     property bool advanced: false
     property bool shown: true
     property bool wide: false
+    // only its rows, no card or caption: what a catalog page had outside its groups
+    // (CatalogPage); the page shows it where it showed those (PxPage.wants)
+    property bool bare: false
     default property alias content: col.data
     // new since you last looked (services/SettingsNews), looked up when the news change
     readonly property bool isNew: {
@@ -70,45 +78,45 @@ Item {
         restoreMode: Binding.RestoreBinding
     }
 
-    readonly property bool classic: settingsSkin === "classic" && !fluent
+    readonly property bool classic: (settingsSkin === "classic" || settingsSkin === "p5") && !fluent
     readonly property int b: Math.max(1, Theme.u / 2)
     implicitWidth: col.implicitWidth + Theme.pad * 2
-    implicitHeight: fluent ? (advanced ? fold.y + fold.height + (folded ? 0 : col.implicitHeight + Theme.u * 4) : col.y + col.implicitHeight + Theme.u * (angel ? 4 : 3)) : classic ? card.y + col.implicitHeight + Theme.pad * 2 : col.y + col.implicitHeight + Theme.pad
+    implicitHeight: bare ? col.implicitHeight : fluent ? (foldable ? fold.y + fold.height + (folded ? 0 : col.implicitHeight + Theme.u * 4) : col.y + col.implicitHeight + Theme.u * (angel ? 4 : 3)) : classic ? card.y + col.implicitHeight + Theme.pad * 2 : col.y + col.implicitHeight + Theme.pad
 
     // ---- the angelOS look: one raised card, the caption inside ----
     PxBox {
-        visible: root.angel && !root.advanced
+        visible: root.angel && !root.bare
         width: root.width
         height: root.height
-        color: Theme.mix(Theme.face, Theme.faceAlt, 0.6)
+        color: Theme.mix(Theme.tone("face", root.p5), Theme.tone("faceAlt", root.p5), 0.6)
     }
     // ---- the Golden Gate skin: the box under the caption; the card that unfolds (both) ----
     Rectangle {
         id: container
-        visible: root.fluent && (root.mac || root.advanced)
-        y: root.advanced ? fold.y : head.height + Theme.u * 2
+        visible: root.fluent && root.mac && !root.bare
+        y: root.foldable ? fold.y : head.height + Theme.u * 2
         width: root.width
         height: root.height - y
         radius: root.mac ? Theme.u * 5 : 0
-        color: root.mac ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)) : Theme.mix(Theme.face, Theme.sunken, Theme.dark ? 0.45 : 0.3)
+        color: root.mac ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)) : Theme.mix(Theme.tone("face", root.p5), Theme.tone("sunken", root.p5), Theme.dark ? 0.45 : 0.3)
         border.width: root.mac ? 0 : Math.max(1, Theme.u / 2)
-        border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.85 : 0.45)
+        border.color: Qt.alpha(Theme.tone("lo", root.p5), Theme.dark ? 0.85 : 0.45)
     }
     Rectangle {
         id: fold
-        visible: root.fluent && root.advanced
+        visible: root.foldable
         width: root.width
         height: Math.max(Theme.fit(22), foldText.implicitHeight + Theme.u * 8)
         radius: root.mac ? Theme.u * 5 : 0
-        color: root.mac ? (foldMouse.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(0, 0, 0, 0.06)) : (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035))) : foldMouse.containsMouse ? Theme.mix(Theme.faceAlt, Theme.accent, 0.12) : Theme.mix(Theme.face, Theme.faceAlt, 0.55)
+        color: root.mac ? (foldMouse.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(0, 0, 0, 0.06)) : (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035))) : foldMouse.containsMouse ? Theme.mix(Theme.tone("faceAlt", root.p5), Theme.accent, 0.12) : Theme.mix(Theme.tone("face", root.p5), Theme.tone("faceAlt", root.p5), 0.55)
         border.width: root.mac ? 0 : Math.max(1, Theme.u / 2)
-        border.color: Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.5)
+        border.color: Qt.alpha(Theme.tone("lo", root.p5), Theme.dark ? 0.9 : 0.5)
         SettingsTile {
             id: foldTile
             x: Theme.u * 5
             anchors.verticalCenter: parent.verticalCenter
             icon: root.icon || "gear"
-            tint: Theme.mix(Theme.accent, Theme.face, 0.25)
+            tint: Theme.mix(Theme.accent, Theme.tone("face", root.p5), 0.25)
             opacity: root.mac ? 0 : 1
         }
         // …a Mac's coloured icon square instead
@@ -173,7 +181,7 @@ Item {
     }
     // the names of the rows inside a folded card
     readonly property string summary: {
-        if (!fluent || !advanced)
+        if (!foldable)
             return "";
         const names = [];
         for (const c of col.children)
@@ -184,7 +192,7 @@ Item {
 
     // ---- Windose / Stream ----
     Rectangle {
-        visible: !root.classic && !root.fluent
+        visible: !root.classic && !root.fluent && !root.bare
         anchors.fill: parent
         radius: root.settingsSkin === "stream" ? Theme.u * 3 : 0
         color: root.settingsSkin === "stream" ? Theme.streamPanel : Theme.windosePaper
@@ -192,7 +200,7 @@ Item {
         border.color: root.settingsSkin === "stream" ? Theme.mix(Theme.streamLive, Theme.streamPanel, 0.38) : Theme.windoseLine
     }
     Rectangle {
-        visible: !root.classic && !root.fluent
+        visible: !root.classic && !root.fluent && !root.bare
         x: Theme.u
         y: Theme.u
         width: root.width - Theme.u * 2
@@ -204,17 +212,17 @@ Item {
     // ---- classic: the card under the caption ----
     PxBox {
         id: card
-        visible: root.classic
+        visible: root.classic && !root.bare
         y: head.height + Theme.u * 2
         width: root.width
         height: root.height - y
-        color: Theme.mix(Theme.face, Theme.faceAlt, 0.35)
+        color: Theme.mix(Theme.tone("face", root.p5), Theme.tone("faceAlt", root.p5), 0.35)
     }
 
     Row {
         id: head
         // open as a sub-page, its title is the page's heading already (the folding card says it)
-        visible: root.openSub !== root.title && !(root.fluent && root.advanced) && root.title !== ""
+        visible: root.openSub !== root.title && !root.foldable && root.title !== "" && !root.bare
         height: visible ? implicitHeight : 0
         x: root.classic ? Theme.u * 2 : root.angel ? Theme.u * 3 : Theme.u * 6
         y: root.classic ? 0 : root.angel ? Theme.u * 4 : Theme.u * 3
@@ -227,14 +235,14 @@ Item {
             name: root.icon || "heart"
             anchors.verticalCenter: parent.verticalCenter
             pixel: root.classic || root.angel ? Math.max(1, Theme.u - 1) : Theme.u
-            ink: root.angel ? Theme.accent2 : root.settingsSkin === "stream" ? Theme.streamLive : root.settingsSkin === "windose" ? Theme.windoseRose : Theme.textDim
+            ink: root.p5 ? Theme.p5AccentInk : root.angel ? Theme.accent2 : root.settingsSkin === "stream" ? Theme.streamLive : root.settingsSkin === "windose" ? Theme.windoseRose : Theme.tone("textDim", root.p5)
         }
         PxText {
             text: root.title
             kind: root.classic || root.fluent ? "body" : "title"
             font.capitalization: root.angel ? Font.AllUppercase : Font.MixedCase
             font.letterSpacing: root.angel ? Theme.u / 2 : 0
-            color: root.angel ? Theme.accent2 : root.settingsSkin === "stream" ? Theme.streamText : root.settingsSkin === "windose" ? Theme.windoseInk : Theme.textDim
+            color: root.p5 ? Theme.p5AccentInk : root.angel ? Theme.accent2 : root.settingsSkin === "stream" ? Theme.streamText : root.settingsSkin === "windose" ? Theme.windoseInk : Theme.tone("textDim", root.p5)
             font.bold: true
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -249,9 +257,9 @@ Item {
         id: col
         readonly property bool fixedWidth: true // PxToggle wraps its label to fit
         visible: !root.folded
-        x: root.angel ? Theme.u * 5 : root.fluent ? Theme.u * 3 : Theme.pad
-        y: root.fluent ? (root.advanced ? fold.y + fold.height + Theme.u * 3 : root.angel ? head.y + head.height + Theme.u * 2 : container.y + Theme.u * 3) : root.classic ? card.y + Theme.pad : head.y + head.height + Theme.u * 4
-        width: root.width - (root.angel ? Theme.u * 10 : root.fluent ? Theme.u * 6 : Theme.pad * 2)
+        x: root.bare ? 0 : root.angel ? Theme.u * 5 : root.fluent ? Theme.u * 3 : Theme.pad
+        y: root.bare ? 0 : root.fluent ? (root.foldable ? fold.y + fold.height + Theme.u * 3 : root.angel ? head.y + head.height + Theme.u * 2 : container.y + Theme.u * 3) : root.classic ? card.y + Theme.pad : head.y + head.height + Theme.u * 4
+        width: root.bare ? root.width : root.width - (root.angel ? Theme.u * 10 : root.fluent ? Theme.u * 6 : Theme.pad * 2)
         spacing: root.angel ? 0 : root.fluent ? Theme.u * 2 : root.spacing
     }
 }

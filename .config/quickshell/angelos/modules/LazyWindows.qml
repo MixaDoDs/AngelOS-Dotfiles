@@ -183,13 +183,21 @@ Scope {
         target: Shell
         function onSettingsOpenChanged() {
             if (Shell.settingsOpen)
-                settingsLoader.active = true;
+                (root.settingsOverDesk ? settingsOverlayLoader : settingsLoader).active = true;
         }
     }
+    // the P5 look opens over the whole desktop (SettingsOverlay); Golden Gate and hell's dresses
+    // keep a window (the same choice as SettingsView.p5)
+    readonly property bool settingsOverDesk: Quickshell.env("ANGELOS_SETTINGS_OLD") !== "1" && Config.settingsUi.skin !== "goldengate" && !(Angel.demon && HellLook.settingsPick !== "")
     LazyLoader {
         id: settingsLoader
-        activeAsync: settingsKeep.alive || Shell.settingsWarm
+        activeAsync: (settingsKeep.alive || Shell.settingsWarm) && !root.settingsOverDesk
         SettingsWindow {}
+    }
+    LazyLoader {
+        id: settingsOverlayLoader
+        activeAsync: (settingsKeep.alive || Shell.settingsWarm) && root.settingsOverDesk
+        SettingsOverlay {}
     }
     // the other Settings windows (Shell.newSettingsWindow): each goes as soon as it is closed
     Instantiator {

@@ -1531,6 +1531,11 @@ PanelWindow {
                 "icon": "sparkleStar",
                 "text": I18n.t("Сундук дня", "The day's chest")
             };
+        case "place":
+            return {
+                "icon": "pin",
+                "text": item.app + " → " + I18n.t("стол ", "desk ") + item.desk
+            };
         case "notif":
             return {
                 "icon": "bell",

@@ -22,7 +22,7 @@ Singleton {
     readonly property var defaults: ({
             "left": ["start", "workspaces", "tasks"],
             "center": ["runner", "lyrics"],
-            "right": ["media", "tray", "layout", "wired", "wifi", "bluetooth", "battery", "peripherals", "eq", "awake", "volume", "bell", "clock"]
+            "right": ["media", "tray", "layout", "wired", "wifi", "bluetooth", "battery", "peripherals", "eq", "winmode", "awake", "volume", "bell", "clock", "showdesk"]
         })
     readonly property var meta: ({
             "start": {
@@ -75,6 +75,17 @@ Singleton {
                 "icon": "coffee",
                 "before": "volume"
             },
+            // Desktop or the Strip (services/WindowConfig): angel-niri's, not in Golden Gate
+            "winmode": {
+                "label": I18n.t("Режим окон", "Window mode"),
+                "icon": "layers",
+                "before": "awake"
+            },
+            // the thin strip at the very end: show the desktop (services/DeskMenu.showDesktop)
+            "showdesk": {
+                "label": I18n.t("Показать рабочий стол", "Show the desktop"),
+                "icon": "monitor"
+            },
             "bell": {
                 "label": I18n.t("Уведомления", "Notifications"),
                 "icon": "bell"
@@ -119,6 +130,8 @@ Singleton {
     function valid(id) {
         // the equalizer: not with a RØDECaster plugged in (services/Eq, `offered`)
         if (id === "eq" && !Eq.offered)
+            return false;
+        if (id === "winmode" && (!Niri.nativeMinimize || GoldenGate.on))
             return false;
         return id.startsWith("plugin:") ? pluginIds.includes(id) : !!meta[id];
     }

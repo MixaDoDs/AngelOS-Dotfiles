@@ -102,6 +102,12 @@ def watch():
 
 
 if __name__ == "__main__":
+    try:  # go away together with the shell, even on its SIGKILL (stand restarts left copies behind)
+        import ctypes
+        import signal
+        ctypes.CDLL(None).prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
+    except (OSError, AttributeError):
+        pass
     if len(sys.argv) == 3 and sys.argv[1] == "--at":
         print(json.dumps(gone_apps(float(sys.argv[2]))))
     else:

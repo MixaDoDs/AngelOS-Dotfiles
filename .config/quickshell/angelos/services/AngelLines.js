@@ -8,12 +8,11 @@
 const tips = [
     // 2026-10-01, evening
     ["Меня можно сделать чуть больше: Ctrl + колёсико мыши прямо надо мной ♡", "You can make me a little bigger: Ctrl + mouse wheel right over me ♡", "helper"],
-    ["В «Пуск» можно поставить свою аватарку — «Пуск» → «Аватарка и тонкая настройка».", "You can put your own avatar in Start — Start → avatar and fine-tuning.", "start"],
+    ["В «Пуск» можно поставить свою аватарку — «Пуск» → «Аватарка и настройка вида».", "You can put your own avatar in Start — Start → Avatar and the look's settings.", "start"],
     ["Если трижды вернуть меня из ада, откроется портал — ходи туда-обратно когда хочешь.", "Bring me back from hell three times and a portal opens — go back and forth whenever you like.", "helper"],
-    ["Настройки можно разложить как в Windows 11, как в macOS, как в Win98 или плитками, и одеть в Windose или стрим: «Тема и цвета» → «Вид настроек».", "Settings can be laid out like Windows 11, like macOS, like Win98 or as tiles, and dressed as Windose or a stream: Theme and colours → Settings look.", "theme"],
     ["Яркость строки лирики может идти за громкостью — или за фейдером RØDECaster. Загляни в «Лирику».", "The lyric line's brightness can follow the volume — or a RØDECaster fader. Have a look in Lyrics.", "lyrics"],
     ["В настройках можно искать своими словами: «сделать крупнее», «звук потише»… Попробуй!", "You can search settings in your own words: “bigger”, “quieter”… Try it!", "home"],
-    ["ПКМ по рабочему столу → Вид — там живут виджеты: часы, музыка, cava ♡", "Right-click the desktop → View: that's where widgets live ♡", "widgets"],
+    ["ПКМ по рабочему столу → «Добавить виджет»: часы, музыка, cava ♡", "Right-click the desktop → Add a widget: a clock, music, cava ♡", "widgets"],
     ["Виджеты можно увеличить: зажми Ctrl и покрути колёсико над ними.", "Widgets grow: hold Ctrl and scroll over one.", "widgets"],
     ["Двойной клик по заголовку виджета — режим правки, там появятся крестики.", "Double-click a widget's title bar for edit mode, with little × buttons.", "widgets"],
     ["Хочешь, чтобы обои менялись красиво? Там есть сердечко, телевизор и даже плавление, как в DOOM!", "Want a fancy wallpaper change? There's a heart, an old TV and even a DOOM melt!", "wallpaper"],

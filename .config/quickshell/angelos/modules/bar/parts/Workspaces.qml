@@ -265,9 +265,9 @@ Item {
     }
 
     MouseArea {
-        // wheel anywhere on the row switches workspaces
+        // wheel anywhere on the row switches workspaces; in Desktop it is the volume, as in other desktops
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
-        onWheel: w => root.screenName === Niri.focusedOutput ? WorkspaceAnim.go(w.angleDelta.y > 0 ? "up" : "down") : Niri.action(w.angleDelta.y > 0 ? "FocusWorkspaceUp" : "FocusWorkspaceDown", {})
+        onWheel: w => WindowConfig.floatAll ? Audio.step(w.angleDelta.y > 0 ? 0.02 : -0.02) : root.screenName === Niri.focusedOutput ? WorkspaceAnim.go(w.angleDelta.y > 0 ? "up" : "down") : Niri.action(w.angleDelta.y > 0 ? "FocusWorkspaceUp" : "FocusWorkspaceDown", {})
     }
 }

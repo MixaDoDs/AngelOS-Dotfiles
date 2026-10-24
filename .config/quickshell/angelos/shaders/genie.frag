@@ -8,6 +8,9 @@ layout(std140, binding = 0) uniform buf {
     float progress;
     vec4 win;
     vec4 tgt;
+    float flip;
+    float screenH;
+    float snap;
 };
 layout(binding = 1) uniform sampler2D source;
 

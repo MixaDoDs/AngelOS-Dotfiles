@@ -254,6 +254,7 @@ def main():
         version_gtk4()
         if (GTK3 / "angelos.css").exists() and (GTK3 / "angelos.css").read_text() == STUB:
             print("gtk3 palette stub stays until the next render")
+        button_layout(pal, mac)
         print(json.dumps({"live": False, "theme": base if current.startswith("angelOS-") else current}))
         return
 
@@ -292,7 +293,13 @@ def main():
     # the palette now comes with the theme: the user CSS would outrank it with stale colours
     if palette_css:
         write(GTK3 / "angelos.css", STUB)
+    button_layout(pal, mac)
 
+
+def button_layout(pal, mac):
+    """The title bar buttons' order for GTK (gsettings, which GTK 4 gets through the portal, and
+    settings.ini for GTK 3 under another session): set with the decorations on or off, so a
+    layout written once ("close" only, say) never stays behind."""
     layout = pal.get("decorButtons") or "maximize,close"
     cur_layout = gsettings("org.gnome.desktop.wm.preferences", "button-layout")
     left = cur_layout.split(":")[0] if ":" in cur_layout else "icon"

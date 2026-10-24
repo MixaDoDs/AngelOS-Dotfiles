@@ -193,8 +193,39 @@ def main():
         print(json.dumps({"error": "no keyboard readable: is this user in the input group?"}), flush=True)
         return 3
     watch_focus(caster)
+    watched = {}                             # path → device
+    looking = []                             # a rescan timer runs (a keyboard was lost)
 
-    def on_device(fd, _cond, dev):
+    def watch(d):
+        watched[d.path] = d
+        GLib.io_add_watch(d.fd, GLib.IO_IN | GLib.IO_HUP | GLib.IO_ERR, on_device, d)
+
+    def rescan():
+        back = False
+        for d in keyboards(evdev):
+            if d.path in watched:
+                d.close()
+            else:
+                watch(d)
+                back = True
+        if back:
+            looking.clear()
+        return not back                      # keep looking until a keyboard is back
+
+    def lost(dev):
+        watched.pop(dev.path, None)
+        try:
+            dev.close()
+        except OSError:
+            pass
+        if not looking:
+            looking.append(GLib.timeout_add_seconds(3, rescan))
+        return False
+
+    def on_device(fd, cond, dev):
+        # unplugged (a wireless keyboard asleep): HUP/ERR forever — an IN-only watch spun a core on it
+        if cond & (GLib.IO_HUP | GLib.IO_ERR):
+            return lost(dev)
         try:
             for e in dev.read():
                 if e.type == evdev.ecodes.EV_KEY:
@@ -206,11 +237,11 @@ def main():
         except BlockingIOError:
             pass
         except OSError:
-            return False                     # unplugged
+            return lost(dev)                 # unplugged
         return True
 
     for d in devices:
-        GLib.io_add_watch(d.fd, GLib.IO_IN, on_device, d)
+        watch(d)
 
     def on_stdin(_fd, _cond):
         line = sys.stdin.readline()

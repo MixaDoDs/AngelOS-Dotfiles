@@ -41,7 +41,7 @@ PxPage {
         required property var modelData
         width: parent.width
         function load() {
-            setSource(modelData.file, {
+            const props = {
                 "embedded": true,
                 "only": modelData.only,
                 "loose": modelData.loose,
@@ -49,7 +49,11 @@ PxPage {
                 "srcName": modelData.src,
                 // every group open: what is rare waits under «Ещё…», not in folded cards
                 "unfold": ["*"]
-            });
+            };
+            // a catalog's page (CatalogPage); the owner's own pages are files of their own
+            if (modelData.catalog)
+                props.catalog = modelData.catalog;
+            setSource(modelData.file, props);
         }
         Component.onCompleted: load()
     }

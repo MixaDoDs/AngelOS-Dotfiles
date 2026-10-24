@@ -5,6 +5,8 @@ import "A11y.js" as A11y
 
 Item {
     id: root
+    // inside the P5 settings window: its colours (Theme.tone)
+    readonly property bool p5: Theme.p5For(root.parent)
 
     property bool checked: false
     // the flip just made, shown until the owner's binding answers (as PxSlider): `checked` is
@@ -58,7 +60,7 @@ Item {
         width: root.mac ? GoldenGate.px(16) : Theme.u * 10
         height: width
         sunken: true
-        color: Theme.sunken
+        color: Theme.tone("sunken", root.p5)
         anchors.verticalCenter: parent.verticalCenter
         PxIcon {
             anchors.centerIn: parent

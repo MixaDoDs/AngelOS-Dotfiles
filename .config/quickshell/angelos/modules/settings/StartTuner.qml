@@ -7,14 +7,14 @@ import qs.services
 import qs.widgets
 import qs.modules.bar
 
-// Settings → Bar → "Start: avatar and fine-tuning". The avatar and the name every Start
-// look shows (StartUser; the buttons along the bottom are on Settings → Menus), then the
-// deep settings of one look at a time (services/StartPrefs) — the current look unless another is picked here: size and grid,
+// Settings → Start → "Avatar and the look's settings". The avatar and the name every Start
+// look shows (StartUser; the buttons along the bottom are further down the same page), then the
+// deep settings of the look picked above (services/StartPrefs): size and grid,
 // sections, look and animation, behaviour. Only what that look uses is offered.
 Column {
     id: root
 
-    property string tune: StartPrefs.current
+    readonly property string tune: StartPrefs.current
     readonly property var prefs: StartPrefs.of(tune)
     spacing: Theme.u * 4
 
@@ -152,33 +152,12 @@ Column {
         }
     }
 
-    // ---- which look ----
+    // ---- the look picked above (Settings → Start → Menu look): its own values ----
     PxText {
         width: parent.width
         wrapMode: Text.Wrap
-        text: I18n.t("Тонкая настройка стиля — у каждого свои значения:", "Fine-tune a look — each keeps its own values:")
+        text: I18n.t("Настройки вида «", "Settings of the “") + root.styleNames[root.tune] + I18n.t("» — у каждого вида свои:", "” look; each look keeps its own:")
         font.bold: true
-    }
-    Flow {
-        width: parent.width
-        spacing: Theme.u * 2
-        Repeater {
-            model: StartPrefs.styles
-            PxButton {
-                required property string modelData
-                compact: true
-                checked: root.tune === modelData
-                text: root.styleNames[modelData] + (modelData === StartPrefs.current ? " ♡" : "") + (StartPrefs.changed(modelData) ? " •" : "")
-                onClicked: root.tune = modelData
-            }
-        }
-    }
-    PxText {
-        width: parent.width
-        wrapMode: Text.Wrap
-        kind: "tiny"
-        dim: true
-        text: (root.tune === StartPrefs.current ? I18n.t("♡ — этот стиль сейчас включён. ", "♡ — this look is on now. ") : I18n.t("Этот стиль сейчас не включён — значения запомнятся до его выбора. ", "This look isn't on now — the values wait until it is. ")) + I18n.t("• — есть свои настройки.", "• — has its own settings.")
     }
 
     // ---- the four groups of the look's keys ----
@@ -295,13 +274,6 @@ Column {
             icon: "pill"
             text: I18n.t("Открыть «Пуск»", "Open Start")
             onClicked: Shell.openStart(Shell.focusedScreen ? Shell.focusedScreen.name : "")
-        }
-        PxButton {
-            compact: true
-            visible: root.tune !== StartPrefs.current
-            icon: "check"
-            text: I18n.t("Включить этот стиль", "Use this look")
-            onClicked: Config.bar.startStyle = root.tune
         }
         PxButton {
             compact: true

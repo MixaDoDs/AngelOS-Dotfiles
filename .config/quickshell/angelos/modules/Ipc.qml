@@ -154,6 +154,16 @@ IpcHandler {
             return "on | off | toggle | status";
         return Privacy.paused ? "paused" : "live";
     }
+    // Desktop or the Strip (angel-niri's stacking mode, Settings → Windows, services/WindowConfig): on | off | toggle | status
+    function stacking(mode: string): string {
+        if (!Niri.nativeMinimize)
+            return "needs angel-niri";
+        if (["on", "off", "toggle"].includes(mode))
+            WindowConfig.setFloatAll(mode === "toggle" ? !WindowConfig.floatAll : mode === "on");
+        else if (mode !== "status" && mode !== "")
+            return "on | off | toggle | status";
+        return WindowConfig.floatAll ? "on" : "off";
+    }
     // stay awake (services/Awake): on | off | toggle | status — by hand; stream mode and
     // full-screen windows switch it by themselves (Settings → Lock → Stay awake)
     function awake(mode: string): string {
@@ -647,6 +657,52 @@ IpcHandler {
         const f = v.Window.window ? v.Window.window.activeFocusItem : null;
         return (v.grabToImage(r => r.saveToFile(path)) ? "ok (saving " + path + ")" : "grab failed") + "; focus: " + (f ? (f.objectName || String(f)) + (f.parent ? " in " + (f.parent.objectName || String(f.parent)) : "") : "none");
     }
+    // what the open settings page shows, row by row (label · control · value), for comparing
+    // two builds of a page; "more" first opens its «Ещё…»
+    function settingsDump(arg: string): string {
+        const v = Shell.settingsView;
+        if (!v)
+            return "Settings are closed";
+        if (arg === "more") {
+            SettingsTree.setMoreOpen(v.settingsNav.settingsPage, true);
+            return "ok";
+        }
+        const out = [];
+        const kind = it => String(it).replace(/_QML.*|\(.*/, "");
+        const showing = it => {
+            for (let p = it; p && p !== v; p = p.parent)
+                if (!p.visible || p.opacity === 0)
+                    return false;
+            return true;
+        };
+        const walk = (it, depth) => {
+            if (!it || depth > 60)
+                return;
+            const k = kind(it);
+            if (showing(it)) {
+                if (k === "PxGroup" && it.title)
+                    out.push("## " + it.title);
+                else if (it.rowHeight !== undefined && it.labelWidth !== undefined)
+                    out.push("- " + it.label + (it.hint ? " (" + it.hint + ")" : ""));
+                else if (k === "PxToggle" || k === "PxCheck")
+                    out.push("    " + k + " " + it.checked + (it.text ? " " + it.text : ""));
+                else if (k === "PxSegmented" || k === "PxCombo")
+                    out.push("    " + k + " " + JSON.stringify(it.currentValue) + " " + JSON.stringify((it.model || []).map(m => typeof m === "object" ? m.value : m)));
+                else if (k === "PxSlider" || k === "PxSpin")
+                    out.push("    " + k + " " + it.value + " [" + it.from + ".." + it.to + "]");
+                else if (k === "PxField")
+                    out.push("    PxField " + JSON.stringify(it.text));
+                else if (k === "PxButton")
+                    out.push("    PxButton " + (it.text || it.icon) + (it.enabled ? "" : " (off)"));
+                else if ((k === "PxText" || k === "Note") && it.text)
+                    out.push("    “" + String(it.text).slice(0, 80) + "”");
+            }
+            for (const c of it.children)
+                walk(c, depth + 1);
+        };
+        walk(v, 0);
+        return out.join("\n");
+    }
     // a desktop widget's two copies (DesktopWidgetHost face/input), for diagnostics
     function widgetState(uid: string): string {
         const h = DesktopWidgets.hosts[uid], f = DesktopWidgets.faces[uid];
@@ -842,6 +898,13 @@ IpcHandler {
         if (Shell.setupLocked || !w)
             return "nothing to minimize";
         Minimize.request(w.id, "keys");
+        return "ok";
+    }
+    // Mod+D: show the desktop of the focused screen, again to bring the windows back
+    function showDesktop(): string {
+        if (Shell.setupLocked)
+            return "locked";
+        DeskMenu.showDesktop(Niri.focusedOutput);
         return "ok";
     }
     function macMinimize(): string {

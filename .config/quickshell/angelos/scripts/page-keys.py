@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Which settings each settings page shows, read from the pages' QML.
+"""Which settings each settings page shows, read from the catalog's QML (modules/settings/catalog).
 
-  page-keys.py [pages dir] -> {"pages": {page: ["section.key", …]},
+  page-keys.py [catalog dir] -> {"pages": {page: ["section.key", …]},
                                "groups": {"page/name": ["section.key", …]},
                                "labels": {"section.key": {"ru", "en", "page"}}}
-"groups": per PxGroup (by its name; outside any group "page/(page)") — the pages of the
+"groups": per group (CatGroup, by its name; outside any group "page/(page)") — the pages of the
 settings tree are put together from groups, so their keys are their groups' keys.
 
 Every `Config.<section>.<key>` a page touches belongs to it; its label is the
-SettingRow (or, outside a row, the PxGroup) it sits in. Used by "Reset this
+entry (or, outside one, the group) it sits in. Used by "Reset this
 page" and to name the step behind "Undo" (services/SettingsKeys).
 """
 import json
@@ -21,6 +21,10 @@ KEY = re.compile(r"\bConfig\.([a-zA-Z0-9]+)\.([a-zA-Z0-9]+)\b")
 OPEN = re.compile(r"^\s*([A-Z][\w.]*)\s*\{")
 LABEL = re.compile(r"^\s*(label|title)\s*:\s*(.*)$")
 NAME = re.compile(r'^\s*name\s*:\s*"([^"]+)"')
+# the catalog's kinds (modules/settings/kit); the pixel widgets' names still count inside a
+# custom part
+GROUPS = ("CatGroup", "PxGroup")
+ROWS = ("CatToggle", "CatChoice", "CatSlider", "CatSpin", "CatField", "CatButton", "CatLink", "CatCustom", "SettingRow")
 # what "Reset this page" never touches: the pictures, the widgets on the desk,
 # the shell's own bookkeeping
 KEEP = {"appearance.language", "wallpaper.fallback", "wallpaper.outputs", "wallpaper.workspaces", "wallpaper.dir",
@@ -50,10 +54,11 @@ def scan(path, pages, labels, groups):
         if m:
             stack.append([m.group(1), depth, None])
         nm = NAME.match(line)
-        if nm and stack and stack[-1][0] == "PxGroup":
+        if nm and stack and stack[-1][0] in GROUPS:
             stack[-1].append(nm.group(1))
         lm = LABEL.match(line)
-        if lm and stack and stack[-1][0] in ("SettingRow", "PxGroup"):
+        # its own label comes first; a choice's options say `label:` too
+        if lm and stack and stack[-1][0] in ROWS + GROUPS and stack[-1][2] is None:
             p = PAIR.search(lm.group(2))
             if p:
                 stack[-1][2] = {"ru": unescape(p.group(1)), "en": unescape(p.group(2))}
@@ -64,13 +69,13 @@ def scan(path, pages, labels, groups):
             path_ = f"{sec}.{key}"
             if path_ not in keys:
                 keys.append(path_)
-            grp = next((e[3] for e in reversed(stack) if e[0] == "PxGroup" and len(e) > 3), "(page)")
+            grp = next((e[3] for e in reversed(stack) if e[0] in GROUPS and len(e) > 3), "(page)")
             gl = groups.setdefault(f"{pid}/{grp}", [])
             if path_ not in gl and path_ not in KEEP:
                 gl.append(path_)
             if path_ not in labels:
-                lab = next((e[2] for e in reversed(stack) if e[0] == "SettingRow" and e[2]), None) \
-                    or next((e[2] for e in reversed(stack) if e[0] == "PxGroup" and e[2]), None)
+                lab = next((e[2] for e in reversed(stack) if e[0] in ROWS and e[2]), None) \
+                    or next((e[2] for e in reversed(stack) if e[0] in GROUPS and e[2]), None)
                 if lab:
                     labels[path_] = dict(lab, page=pid)
         depth += line.count("{") - line.count("}")
@@ -80,9 +85,9 @@ def scan(path, pages, labels, groups):
 
 
 def main():
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent / "modules/settings/pages"
+    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent / "modules/settings/catalog"
     pages, labels, groups = {}, {}, {}
-    for f in sorted(root.glob("*Page.qml")):
+    for f in sorted(root.glob("*.qml")):
         scan(f, pages, labels, groups)
     print(json.dumps({"pages": pages, "groups": groups, "labels": labels}, ensure_ascii=False))
 

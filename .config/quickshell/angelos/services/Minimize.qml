@@ -512,12 +512,15 @@ Singleton {
     // property: the magnification moves them every frame). Motion off: no flight, as before.
     // Genie (the window bends and pours into the Dock) or Scale (it shrinks into it), as macOS's
     // "Minimise windows using"; Genie takes a little longer, as there
-    readonly property string effect: Config.mac.minimizeEffect === "scale" ? "scale" : "genie"
-    // (only Golden Gate draws it: modules/mac/MacDesktop → MacMinimizeFx — elsewhere nothing would
-    // land, and a window flying back would never come)
-    readonly property int flightMs: GoldenGate.on ? Motion.ms(effect === "genie" ? 560 : 380) : 0
-    // only Golden Gate draws the flights (flightMs is 0 elsewhere): nothing would land one, and a
-    // window waiting for its landing never came back (#111)
+    readonly property string effect: !GoldenGate.on ? "pixel" : Config.mac.minimizeEffect === "scale" ? "scale" : "genie"
+    // (drawn by MacMinimizeFx: Golden Gate's from modules/mac/MacDesktop, the pixel skins' from
+    // Background.qml — where none is up nothing would land, and a window flying back would never come;
+    // the pixel skins on angel-niri: a pixel genie into the taskbar (Background.qml mounts the
+    // same MacMinimizeFx, Tasks.qml writes the slots)
+    // (a bar on the left or right: the funnel only goes up or down, so no flight there)
+    readonly property int flightMs: GoldenGate.on ? Motion.ms(effect === "genie" ? 560 : 380) : Niri.nativeMinimize && ["top", "bottom"].includes(Config.bar.edge || "bottom") ? Motion.ms(300) : 0
+    // flightMs is 0 where no MacMinimizeFx is up: nothing would land a flight, and a window
+    // waiting for its landing never came back (#111)
     readonly property bool canFly: flightMs > 0 && !Shell.desktopHeld
     property var flights: []                // [{key, id, output, rect, shot, back}]
     readonly property var flying: flights.map(f => f.id)

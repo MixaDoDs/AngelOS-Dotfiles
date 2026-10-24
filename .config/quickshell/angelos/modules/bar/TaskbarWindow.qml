@@ -122,13 +122,14 @@ PanelWindow {
         outline: false
 
         Rectangle {
-            // the highlight line like the original taskbar, on the side facing the desktop
+            // a thin see-through line on the side facing the desktop, like Windows 11's: it
+            // parts the wallpaper from the bar without standing out (the text colour, faint)
             visible: !win.hell
             width: win.vertical ? Theme.u : parent.width
             height: win.vertical ? parent.height : Theme.u
             x: win.edge === "left" ? box.width - box.inset - Theme.u : -box.inset
             y: win.edge === "top" ? box.height - box.inset - Theme.u : -box.inset
-            color: Theme.hi
+            color: Qt.alpha(Theme.text, Theme.dark ? 0.13 : 0.16)
         }
         // hell: the ground, the plates under the widgets, the rim on top
         HellBarFrame {

@@ -226,6 +226,11 @@ Singleton {
         if (path)
             _out(vol, [path]);
     }
+    // music round and round through the same stream (sfx-player's loop): `vol` 0 fades it out
+    function loop(path, vol) {
+        if (sfx.running)
+            sfx.write("loop\t" + vol + "\t" + (path || "") + "\n");
+    }
 
     // yours first, then the skin's (pw-play, or paplay without it, if the player is down)
     function _playMac(name, vol) {
@@ -407,14 +412,19 @@ Singleton {
     readonly property bool keysWanted: Config.ready && !Shell.dev && enabled("key")
     readonly property var watchArgs: (clicksWanted ? ["--mouse"] : []).concat(keysWanted ? ["--keys"] : [])
     property string clickStatus: ""          // "" | noperm
+    // a window with sounds of its own for every press (the P5 settings) hushes the desk's click
+    // while it is up: the click drowned its sounds out (the owner, 23.10)
+    property bool clickHush: false
     function onPress(button) {
+        if (clickHush)
+            return;
         if (button === "right" && enabled("clickRight"))
             play("clickRight");
         else if ((Config.y2k.clickButtons || ["left", "right"]).includes(button))
             play("click");
     }
     function onRelease(button) {
-        if (!Config.y2k.clickRelease)
+        if (!Config.y2k.clickRelease || clickHush)
             return;
         if (button === "right" && enabled("clickRight"))
             playSoft("clickRight", 0.45);
