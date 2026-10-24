@@ -111,6 +111,8 @@ Item {
     }
     readonly property Item frame: mac ? macFrame : pxFrame
     readonly property var pageItem: atHome ? null : shownPage.item
+    // the page in front is up: its loaded page, or P5's own rows for it (P5 draws the catalog itself)
+    readonly property bool pageUp: atHome ? false : p5 ? !!p5Loader.item && p5Loader.item.pageId === win.settingsNav.settingsPage && p5Loader.item.pageReady : !!shownPage.item
     // while the demon rules (Y2K → Angel or demon → Settings in hell): a grimoire (GrimoireBook)
     // or a circle's own dress (HellLook.settingsPick)
     readonly property string dressId: Angel.demon ? HellLook.settingsPick : ""

@@ -25,9 +25,16 @@ EXT_NAME = "angelos-colors.js"
 EXT = SPICE_DIR / "Extensions" / EXT_NAME
 MARK = "written by angelOS"
 
-_spec = importlib.util.spec_from_file_location("discord_theme", SHELL / "scripts/discord-theme.py")
-discord = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(discord)
+
+
+def discord_theme():
+    """scripts/discord-theme.py as a module, loaded only when there is a Spicetify to theme and
+    without a __pycache__ next to the shell's scripts (an update's restore checks every file)"""
+    sys.dont_write_bytecode = True
+    spec = importlib.util.spec_from_file_location("discord_theme", SHELL / "scripts/discord-theme.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def spicetify():
@@ -36,6 +43,7 @@ def spicetify():
 
 def colors(pal):
     """--spice-<name> → (r, g, b) 0..1: Spicetify's own names and Vantagraph's"""
+    discord = discord_theme()
     s = discord.scheme(pal)
     mix = discord.mix
     out = {

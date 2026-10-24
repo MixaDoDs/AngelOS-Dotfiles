@@ -10,5 +10,6 @@
   "color4": "#7b8cff", "color5": "#ff5cad", "color6": "#4fe3ff", "color7": "#e8cfe0",
   "color8": "#6b4f7d", "color9": "#ff7a93", "color10": "#8af0c0", "color11": "#fff0a0",
   "color12": "#a3b0ff", "color13": "#ff9fd0", "color14": "#9ff0ff", "color15": "#ffffff",
-  "bg": "#1a0f24", "fg": "#ffe1f1", "bgAlt": "#241432"
+  "bg": "#1a0f24", "fg": "#ffe1f1", "bgAlt": "#241432",
+  "macCsd": "false"
 }
