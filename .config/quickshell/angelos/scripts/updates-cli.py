@@ -29,6 +29,10 @@ def qs():
     return shutil.which("qs") or os.path.expanduser("~/.local/bin/qs")
 
 
+# how long the shell may not answer during an update before it counts as gone
+SILENT_LIMIT = 45
+
+
 def ipc(arg, timeout=5):
     """the shell's answer to `updates <arg>`, or None when no shell answers it"""
     try:
@@ -102,6 +106,9 @@ def follow(kind, timeout):
     busy = {"checking", "updating", "cloning", "restoring"}
     deadline = time.time() + timeout
     seen_busy = False
+    # pacman replaces Qt and Quickshell under a running update: `qs ipc` itself can fail to start
+    # or answer for a while (the VM test, 25.10) — only this long without an answer is "stopped"
+    silent_since = None
     while time.time() < deadline:
         time.sleep(0.4)
         if has_log and kind == "update":
@@ -115,8 +122,12 @@ def follow(kind, timeout):
                 pass
         s = status()
         if s is None:
+            silent_since = silent_since or time.time()
+            if time.time() - silent_since < SILENT_LIMIT:
+                continue
             print(t("Оболочка перестала отвечать.", "The shell stopped answering."), file=sys.stderr)
             return {"_exit": 1}
+        silent_since = None
         if s["state"] in busy:
             seen_busy = True
         elif seen_busy or time.time() > deadline - timeout + 2:

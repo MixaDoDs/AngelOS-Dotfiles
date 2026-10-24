@@ -276,14 +276,14 @@ Scope {
                 root.next();
                 return;
             case 29:
-                root.until("page-vault", () => Date.now() - root.since > 1200 && Shell.settingsPage === "vault" && !!view.pageItem, 6000, () => Shell.settingsPage);
+                root.until("page-vault", () => Date.now() - root.since > 1200 && Shell.settingsPage === "vault" && view.pageUp, 6000, () => Shell.settingsPage);
                 return;
             case 30:
                 Shell.settingsPage = "spell";
                 root.next();
                 return;
             case 31:
-                root.until("page-spell", () => Date.now() - root.since > 1200 && Shell.settingsPage === "spell" && !!view.pageItem, 6000, () => Shell.settingsPage);
+                root.until("page-spell", () => Date.now() - root.since > 1200 && Shell.settingsPage === "spell" && view.pageUp, 6000, () => Shell.settingsPage);
                 return;
             case 32:
                 if (!root.shots) {
