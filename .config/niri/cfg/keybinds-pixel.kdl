@@ -57,8 +57,8 @@ binds {
     Mod+Ctrl+R                          { reset-window-height; }
 
     // ─── Workspace Switching ───
-    Mod+WheelScrollDown                 cooldown-ms=150 { focus-workspace-down; }
-    Mod+WheelScrollUp                   cooldown-ms=150 { focus-workspace-up; }
+    Mod+WheelScrollDown                 cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws wheel-down"; }
+    Mod+WheelScrollUp                   cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws wheel-up"; }
 
     Mod+1                               { focus-workspace 1; }
     Mod+2                               { focus-workspace 2; }

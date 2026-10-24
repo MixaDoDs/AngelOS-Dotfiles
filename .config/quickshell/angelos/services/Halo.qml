@@ -314,6 +314,22 @@ Singleton {
                 }, 4000);
         }
     }
+    // a pinned program opened on its place (Settings → Windows → Program places): a moment
+    Connections {
+        target: Niri
+        function onWindowOpened(id) {
+            const w = Niri.windows.find(x => x.id === id);
+            const pin = w && WindowConfig.remember ? WindowConfig.placeFor(w.app_id) : null;
+            const now = pin ? WindowConfig.placeOf(w) : null;
+            if (!now || now.output !== pin.output || now.idx !== pin.idx || Niri.windows.filter(x => x.app_id === w.app_id).length > 1)
+                return;
+            const e = DesktopEntries.heuristicLookup(w.app_id);
+            root.flashOf("place", {
+                "app": e ? e.name : w.app_id,
+                "desk": pin.idx
+            }, 2500);
+        }
+    }
     Connections {
         target: ColorPicker
         function onPicked(hex) {

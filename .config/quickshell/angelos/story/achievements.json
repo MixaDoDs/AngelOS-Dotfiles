@@ -1315,6 +1315,51 @@
         "en": "Run a build longer than 10 minutes to its end without hitting a bug once"
       },
       "on": "runner.marathon"
+    },
+    {
+      "id": "settings-explorer",
+      "tier": 2,
+      "icon": "search",
+      "name": {
+        "ru": "Исследователь настроек",
+        "en": "Settings explorer"
+      },
+      "desc": {
+        "ru": "Заглянуть в десять разделов настроек",
+        "en": "Look into ten sections of the settings"
+      },
+      "on": "settings.section",
+      "kinds": 10
+    },
+    {
+      "id": "settings-poke",
+      "tier": 1,
+      "icon": "heart",
+      "name": {
+        "ru": "Не тыкай!",
+        "en": "Stop poking!"
+      },
+      "desc": {
+        "ru": "Ткнуть ангела в настройках десять раз",
+        "en": "Poke the angel in the settings ten times"
+      },
+      "on": "settings.poke",
+      "count": 10
+    },
+    {
+      "id": "settings-sisters",
+      "tier": 3,
+      "icon": "heartHorns",
+      "name": {
+        "ru": "Все сёстры в сборе",
+        "en": "All the sisters"
+      },
+      "desc": {
+        "ru": "Встретить в тёмных настройках всех четырёх сестёр",
+        "en": "Meet all four sisters in the dark settings"
+      },
+      "on": "settings.sister",
+      "kinds": 4
     }
   ]
 }

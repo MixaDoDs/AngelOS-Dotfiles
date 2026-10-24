@@ -1,5 +1,5 @@
 {
-  "_comment": "Settings → Sponsor (modules/settings/pages/SponsorPage.qml, scripts/telemetry.py). donate: where «Задонатить» leads. endpoint: the author's relay (owner/telemetry-worker, deployed by owner/telemetry-setup.sh) — the sponsor wall comes from it and the telemetry goes to it; empty = nothing is sent anywhere.",
+  "_comment": "Settings → Sponsor (modules/settings/catalog/Sponsor.qml, scripts/telemetry.py). donate: where «Задонатить» leads. endpoint: the author's relay (owner/telemetry-worker, deployed by owner/telemetry-setup.sh) — the sponsor wall comes from it and the telemetry goes to it; empty = nothing is sent anywhere.",
   "donate": "https://www.donationalerts.com/r/mixaded",
   "endpoint": ""
 }

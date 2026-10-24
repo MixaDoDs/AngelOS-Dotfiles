@@ -47,7 +47,9 @@ Scope {
             id: pageLoader
             anchors.fill: parent
             active: false
-            source: Quickshell.shellDir + "/modules/settings/pages/UpdatesPage.qml"
+            Component.onCompleted: setSource(Quickshell.shellDir + "/modules/settings/CatalogPage.qml", {
+                "catalog": "Updates"
+            })
         }
     }
 

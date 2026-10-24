@@ -84,16 +84,27 @@ Singleton {
         for (const w of Niri.windows.filter(w => w.app_id === appId && !w.is_floating))
             Quickshell.execDetached(["niri", "msg", "action", "set-window-width", "--id", String(w.id), arg]);
     }
-    // Settings → Windows → Floating windows: every new window floats (a niri rule, ThemeExport;
-    // Golden Gate's own switch is Config.mac.floating), and the open ones follow right away.
-    // Off: the windows this floated go back to the columns; the ones floating before stay.
-    readonly property bool floatAll: GoldenGate.on ? Config.mac.floating : Config.windows.floatAll
+    // Settings → Windows → Desktop: every new window floats (a niri rule, ThemeExport), and the
+    // open ones follow right away. Off (the Strip): the windows this floated go back to the
+    // columns; the ones floating before stay. On angel-niri the same switch is the stacking mode
+    // (niri floats the windows itself, gives them title bars and puts the columns back after);
+    // Mod+Ctrl+Shift+M and the bar's mode button flip it too. Golden Gate is always Desktop and
+    // leaves the switch alone, so the pixel skins get back what they had.
+    readonly property bool floatAll: GoldenGate.on || Config.windows.floatAll
+    // the OSD and the first-time hint (modules/osd/Osd.qml): a flip by hand, not a skin change
+    signal modeFlipped(bool desktop, bool locked)
     property var _floatedByUs: []
     function setFloatAll(on) {
-        if (GoldenGate.on)
-            Config.mac.floating = on;
-        else
-            Config.windows.floatAll = on;
+        if (GoldenGate.on) {
+            modeFlipped(true, true);
+            return;
+        }
+        if (Config.windows.floatAll === on)
+            return;
+        Config.windows.floatAll = on;
+        modeFlipped(on, false);
+        if (Niri.nativeMinimize)
+            return;
         if (on) {
             const ids = Niri.windows.filter(w => !w.is_floating).map(w => w.id);
             _floatedByUs = ids;
@@ -164,11 +175,17 @@ Singleton {
         if (Niri.nativeMinimize)
             Niri.action("SetInactiveDim", {
                 "pixel": inactiveDim ? 2 : 0,
-                "alpha": 0.5
+                "alpha": 0.5,
+                "outputs": dimOutputs
             });
     }
     onInactiveDimChanged: applyDim()
-    // angel-niri: a program opens where its last window was (niri keeps the places itself)
+    // only on these monitors (the others are for work); empty: every one
+    readonly property var dimOutputs: Config.windows.dimOutputs || []
+    onDimOutputsChanged: applyDim()
+    // angel-niri: a program pinned by hand opens its first window on its monitor and desk, and the
+    // view goes there (Settings → Windows → Program places, a window's right-click menu). niri
+    // keeps the pins itself; off, they are kept but not used
     readonly property bool remember: Niri.nativeMinimize && Config.windows.remember
     function applyRemember() {
         if (Niri.nativeMinimize)
@@ -177,9 +194,66 @@ Singleton {
             });
     }
     onRememberChanged: applyRemember()
+    property var places: ({})            // app-id -> {output, workspace (a name or null), workspace_idx (from 0), floating}
+    // where a window is now: {output, idx (from 1), name, floating}; null when minimized
+    function placeOf(w) {
+        const ws = w ? Niri.workspaceById(w.workspace_id) : null;
+        return ws && !Niri.isHidden(ws) ? {
+            "output": ws.output,
+            "idx": ws.idx,
+            "name": ws.name || "",
+            "floating": !!w.is_floating
+        } : null;
+    }
+    // pin a program's place (as placeOf gives it); null forgets it
+    function setPlace(appId, p) {
+        const args = {
+            "app_id": appId
+        };
+        const all = Object.assign({}, places);
+        if (p) {
+            Object.assign(args, {
+                "output": p.output,
+                "workspace": p.idx,
+                "workspace_name": p.name || null,
+                "floating": !!p.floating
+            });
+            all[appId] = {
+                "output": p.output,
+                "workspace": p.name || null,
+                "workspace_idx": p.idx - 1,
+                "floating": !!p.floating
+            };
+        } else {
+            delete all[appId];
+        }
+        Niri.action("SetAppPlace", args);
+        places = all;
+    }
+    // a pin as placeOf gives it
+    function placeFor(appId) {
+        const s = places[appId];
+        return s ? {
+            "output": s.output,
+            "idx": s.workspace_idx + 1,
+            "name": s.workspace || "",
+            "floating": !!s.floating
+        } : null;
+    }
+    FileView {
+        path: Config.home + "/.local/state/angel-niri/windows.json"
+        printErrors: false
+        onLoaded: {
+            try {
+                root.places = JSON.parse(text()).pins || {};
+            } catch (e) {
+                root.places = {};
+            }
+        }
+    }
     // angel-niri: a minimized window goes with the close animation (Golden Gate flies it into
     // the Dock instead)
-    readonly property bool minimizeFade: Niri.nativeMinimize && !GoldenGate.on
+    readonly property bool minimizeFade: Niri.nativeMinimize && !GoldenGate.on && Minimize.flightMs === 0
     function applyMinimizeFade() {
         if (Niri.nativeMinimize)
             Niri.action("SetMinimizeFade", {
@@ -212,7 +286,48 @@ Singleton {
             Niri.action("SetWindowThrow", windowThrow);
     }
     onWindowThrowChanged: applyThrow()
-    onOverviewFontChanged: applyOverview()
+    onOverviewFontChanged: {
+        applyOverview();
+        applyStacking();
+    }
+    function applyStacking() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetStackingMode", {
+                "on": floatAll,
+                "title_font": overviewFont,
+                // the pixel bars: "light" in a light heaven, the inactive ones pale instead of dark
+                "title_style": GoldenGate.on ? "mac" : !Theme.dark && !Angel.demon ? "light" : "win98"
+            });
+    }
+    onFloatAllChanged: applyStacking()
+    Connections {
+        target: Theme
+        function onDarkChanged() {
+            root.applyStacking();
+        }
+    }
+    Connections {
+        target: Angel
+        function onDemonChanged() {
+            root.applyStacking();
+        }
+    }
+    // the title bars' look follows the skin even when the mode stays; the OSD says what the
+    // windows are now (not while the shell starts and the skin comes up)
+    Connections {
+        target: GoldenGate
+        function onOnChanged() {
+            root.applyStacking();
+            if (root._settled)
+                root.modeFlipped(root.floatAll, GoldenGate.on);
+        }
+    }
+    property bool _settled: false
+    Timer {
+        interval: 5000
+        running: true
+        onTriggered: root._settled = true
+    }
     Connections {
         target: Niri
         function onMinimizeProbedChanged() {
@@ -224,6 +339,7 @@ Singleton {
             root.applyMinimizeFade();
             root.applyThrow();
             root.applyClipboardKeep();
+            root.applyStacking();
         }
     }
 

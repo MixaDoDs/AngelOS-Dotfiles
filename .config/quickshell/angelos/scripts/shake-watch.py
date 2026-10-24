@@ -190,6 +190,12 @@ def main():
 
 
 if __name__ == "__main__":
+    try:  # go away together with the shell, even on its SIGKILL (stand restarts left copies behind)
+        import ctypes
+        import signal
+        ctypes.CDLL(None).prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
+    except (OSError, AttributeError):
+        pass
     try:
         main()
     except KeyboardInterrupt:

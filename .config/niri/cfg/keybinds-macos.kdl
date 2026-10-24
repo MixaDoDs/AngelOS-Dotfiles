@@ -59,8 +59,8 @@ binds {
 
     // ─── Workspace Switching ───
     // the desktops are second here: ⌃← / ⌃→ and ⌃↑ (Mission Control) are the Mac keys
-    Mod+WheelScrollDown                 cooldown-ms=150 hotkey-overlay-title="Стол ниже" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws down"; }
-    Mod+WheelScrollUp                   cooldown-ms=150 hotkey-overlay-title="Стол выше" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws up"; }
+    Mod+WheelScrollDown                 cooldown-ms=150 hotkey-overlay-title="Стол ниже" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws wheel-down"; }
+    Mod+WheelScrollUp                   cooldown-ms=150 hotkey-overlay-title="Стол выше" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws wheel-up"; }
 
     Mod+Alt+1                           hotkey-overlay-title="Стол 1" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 1"; }
     Mod+Alt+2                           hotkey-overlay-title="Стол 2" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws 2"; }

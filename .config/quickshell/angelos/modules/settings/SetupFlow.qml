@@ -52,13 +52,13 @@ Scope {
         {
             "id": "from",
             "icon": "monitor",
-            "title": I18n.t("Откуда ты пришёл?", "Where are you coming from?"),
-            "text": I18n.t("Подстрою вид, кнопки окон и подсказки под то, к чему ты привык.", "The look, the window buttons and the hints will match what you're used to.")
+            "title": I18n.t("Какой вид?", "Which look?"),
+            "text": I18n.t("Пиксельный angelOS или Golden Gate — как на Mac. Поменять можно в Настройках.", "The pixel angelOS or Golden Gate, like a Mac. Settings change it later.")
         },
         {
             "id": "game",
             "icon": "sparkle",
-            "title": I18n.t("Как пользоваться angelOS?", "How do you want angelOS?"),
+            "title": I18n.t("Ангел и сюжет?", "The angel and the story?"),
             "text": I18n.t("angelOS — это ещё и игра поверх рабочего стола. Работать она не мешает.", "angelOS is also a game played over your desktop. It never gets in the way of work.")
         },
         {
@@ -86,8 +86,10 @@ Scope {
         {
             "id": "windows",
             "icon": "window",
-            "title": I18n.t("Как здесь живут окна", "How windows work here"),
-            "text": I18n.t("Окна не лежат друг на друге, а встают в ленту слева направо — её листают, как страницы. Какой ширины открывать новые?", "Windows don't pile up: they line up in a ribbon, left to right, that you scroll like pages. How wide should new ones open?")
+            "title": I18n.t("Как будут жить окна?", "How should windows work?"),
+            "text": I18n.t("Desktop — как в обычной системе: окна поверх друг друга, с заголовком и кнопками. Лента — окна встают слева направо, её листают, как страницы.", "Desktop, as on a usual system: windows over each other, with a title bar and buttons. The Strip: windows line up left to right, scrolled like pages."),
+            // Golden Gate is always Desktop (WindowConfig)
+            "when": Config.settingsUi.skin !== "goldengate"
         },
         {
             "id": "look",

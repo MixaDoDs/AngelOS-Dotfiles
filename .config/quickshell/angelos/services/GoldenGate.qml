@@ -136,7 +136,7 @@ Singleton {
     // what "Reset the theme" puts back: what the skin's own pages show (Dock, Appearance,
     // Wallpaper, Widgets' style, Windows, the Mac keys). The apps kept in the Dock stay (they are
     // yours, not a setting: Dock → "Reset the order"), and so does the skin itself
-    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.appMenus", "mac.keys", "mac.floating", "mac.minimizeEffect", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "mac.reduceTransparency", "mac.sounds", "mac.soundVolume", "mac.volumeSound", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
+    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.appMenus", "mac.keys", "mac.minimizeEffect", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "mac.reduceTransparency", "mac.sounds", "mac.soundVolume", "mac.volumeSound", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
     function resetTheme() {
         return Config.resetKeys(themeKeys);
     }

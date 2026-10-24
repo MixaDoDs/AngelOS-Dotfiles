@@ -265,7 +265,7 @@ Singleton {
             },
             "float": {
                 "label": I18n.t("Плавающее", "Floating"),
-                "icon": "layers",
+                "icon": "window",
                 "on": ["task"]
             },
             "close": {
@@ -313,6 +313,25 @@ Singleton {
             "kill": {
                 "label": I18n.t("Убить процесс", "End task"),
                 "icon": "warn",
+                "on": ["task"]
+            },
+            // angel-niri's Desktop: rolled up into the title bar, above everything, on every desk
+            "shade": {
+                "label": I18n.t("Свернуть в заголовок", "Roll up into the title"),
+                "short": I18n.t("Шторка", "Shade"),
+                "icon": "height",
+                "on": ["task"]
+            },
+            "onTop": {
+                "label": I18n.t("Поверх всего", "Always on top"),
+                "short": I18n.t("Поверх", "On top"),
+                "icon": "arrowUp",
+                "on": ["task"]
+            },
+            "sticky": {
+                "label": I18n.t("Показывать на всех столах", "Show on every desk"),
+                "short": I18n.t("Все столы", "All desks"),
+                "icon": "allDesks",
                 "on": ["task"]
             },
             // a desktop widget
@@ -370,7 +389,7 @@ Singleton {
             },
             "task": {
                 "quick": ["minimize", "maximize", "float", "close"],
-                "items": ["toDesk", "toMonitor", "pinStart", "shotWindow", "kill"]
+                "items": ["shade", "onTop", "sticky", "toDesk", "toMonitor", "pinStart", "shotWindow", "kill"]
             },
             "widget": {
                 "quick": ["size", "depth", "widgetSettings", "removeWidget"],
@@ -518,6 +537,19 @@ Singleton {
                 "run": () => Cobweb.inside && Cobweb.rectOf(w.id) ? Cobweb.startQte(w.id) : Cobweb.sweep(w.id)
             });
         }
+        // the program's place (Settings → Windows → Program places), while that is on
+        if (target === "task" && ctx.win && ctx.win.app_id && WindowConfig.remember && WindowConfig.placeOf(ctx.win)) {
+            const w = ctx.win;
+            const pin = WindowConfig.placeFor(w.app_id);
+            out.push({
+                "label": I18n.t("Всегда открывать здесь", "Always open here"),
+                "icon": "pin",
+                "hint": pin ? I18n.t("стол ", "desk ") + pin.idx + " · " + pin.output : "",
+                "checkable": true,
+                "checked": () => !!WindowConfig.places[w.app_id],
+                "run": () => WindowConfig.setPlace(w.app_id, WindowConfig.places[w.app_id] ? null : WindowConfig.placeOf(w))
+            });
+        }
         if (target === "widget" && ctx.uid)
             return out.concat(widgetOwn(ctx.uid));
         return out;
@@ -646,6 +678,9 @@ Singleton {
                 "run": () => Niri.fullscreenWindow(w.id)
             });
         case "float":
+            // Desktop: every window floats already (WindowConfig)
+            if (Niri.nativeMinimize && WindowConfig.floatAll)
+                return null;
             return with_({
                 "checkable": true,
                 "checked": w.is_floating,
@@ -718,6 +753,35 @@ Singleton {
                     "hint": String(sib.length),
                     "run": () => sib.forEach(x => Niri.closeWindow(x.id))
                 }) : null;
+            }
+        case "shade":
+        case "onTop":
+        case "sticky":
+            {
+                // Desktop on angel-niri only, floating windows; shading needs niri's title bar
+                const field = {
+                    "shade": "is_shaded",
+                    "onTop": "is_on_top",
+                    "sticky": "is_sticky"
+                }[id];
+                const arg = {
+                    "shade": "shaded",
+                    "onTop": "on_top",
+                    "sticky": "sticky"
+                }[id];
+                if (!Niri.nativeMinimize || !WindowConfig.floatAll || !w.is_floating || (id === "shade" && !w.has_title_bar))
+                    return null;
+                return with_({
+                    "checkable": true,
+                    "checked": !!w[field],
+                    "run": () => {
+                        const a = {
+                            "id": w.id
+                        };
+                        a[arg] = !w[field];
+                        Niri.action("SetWindowFlags", a);
+                    }
+                });
             }
         case "kill":
             // not for angelOS's own windows: their pid is the shell itself
@@ -813,15 +877,21 @@ Singleton {
         const ws = Niri.activeWorkspace(screen);
         return ws ? ws.idx : 1;
     }
-    // «Показать стол»: the windows of the screen's desktop minimized, again: back
+    // «Показать стол»: the windows of the screen's desktop minimized, again: back — only the ones
+    // it hid (a window minimized by hand before stays down), as on Windows
+    property var deskHidden: ({})
     function showDesktop(screen) {
         const ws = Niri.activeWorkspace(screen);
         const here = Niri.windows.filter(w => ws && Minimize.wsOf(w) === ws.id && !Minimize.isAppHidden(w));
         const open = here.filter(w => !Minimize.isMinimized(w));
-        if (open.length)
+        if (open.length) {
+            deskHidden[screen] = open.map(w => w.id);
             open.forEach(w => Minimize.request(w.id, "menu"));
-        else
-            here.forEach(w => Minimize.restore(w.id));
+        } else {
+            const hid = here.filter(w => (deskHidden[screen] || []).includes(w.id));
+            (hid.length ? hid : here).forEach(w => Minimize.restore(w.id));
+            delete deskHidden[screen];
+        }
     }
     // run an action entry of the desktop, the bar or the ring
     function run(id, screen) {

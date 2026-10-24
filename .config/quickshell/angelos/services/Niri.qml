@@ -92,6 +92,9 @@ Singleton {
     // is on `output` ([x, y, w, h], that output's logical px) and a PNG of it. niri minimizes it
     // a moment later unless services/Minimize does it first (MinimizeWindow now)
     signal minimizeRequested(int id, string output, var rect, string snapshot)
+    // angel-niri, stacking mode: a right click on a window's title bar, at `pos` on `output`
+    // (logical px) — Shell.desktopMenus opens the window's menu there
+    signal windowMenuRequested(int id, string output, var pos)
     signal layoutSwitched(string name)
     signal configLoaded(bool failed)
     signal windowClosed(int id)
@@ -430,6 +433,10 @@ Singleton {
         case "WindowMinimizeRequested":
             if (ready)
                 minimizeRequested(d.id, d.output || "", d.rect || null, d.snapshot || "");
+            break;
+        case "WindowMenuRequested":
+            if (ready)
+                windowMenuRequested(d.id, d.output || "", d.pos || [0, 0]);
             break;
         case "WindowClosed":
             if (d.id === castWindowId) {

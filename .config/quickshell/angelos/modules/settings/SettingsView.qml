@@ -8,6 +8,7 @@ import qs.services
 import qs.widgets
 import qs.modules.settings.views
 import qs.modules.settings.dresses
+import qs.modules.settings.p5
 
 // Settings content (frame, navigation, pages). Hosted by SettingsWindow.
 // Every page and every section is described once, here (pageList, runs) and in the pages'
@@ -81,6 +82,13 @@ Item {
         };
     }
     property var hostWindow: null
+    // hosted by SettingsOverlay: the whole monitor over the desktop, no window around it
+    property bool overDesk: false
+    // SettingsOverlay closing: the P5 window plays its way out, then `goneOut`
+    property bool leaving: false
+    signal goneOut
+    // SettingsOverlay: the shot of the screen the P5 window freezes behind it ("": none)
+    property string frozen: ""
     // where this window is: Shell for the main window, a SettingsNav for any other
     // (Shell.newSettingsWindow); the pages find it by Shell.settingsNavFor
     property var settingsNav: Shell
@@ -120,6 +128,10 @@ Item {
     readonly property bool mac: skin === "goldengate" && !hellDress
     readonly property string settingsSkin: hellDress ? "classic" : mac ? "goldengate" : fluent ? "classic" : skin
     readonly property var macHost: mac ? win.Window.window : null
+    // the angelOS look is the P5 window (modules/settings/p5): its own frame, sections, card and
+    // search, the settings straight from the catalog; hell's dresses and Golden Gate keep theirs
+    // (ANGELOS_SETTINGS_OLD=1: the Windows 11 view, while P5 is new)
+    readonly property bool p5: !hellDress && !mac && Quickshell.env("ANGELOS_SETTINGS_OLD") !== "1"
     // (there is no simple view or Expert any more: every page is a click away)
     readonly property bool expert: true
 
@@ -622,6 +634,12 @@ Item {
     function focusSearch(asked) {
         if (asked === true)
             historyAsked = true;
+        if (win.p5 && p5Loader.item) {
+            p5Loader.item.forceActiveFocus();
+            if (asked === true)
+                p5Loader.item.searchFocus = true;
+            return;
+        }
         if (win.settingsNav.settingsOpen)
             searchInput.focusField();
     }
@@ -677,6 +695,11 @@ Item {
     function showTarget() {
         const r = pendingTarget;
         pendingTarget = null;
+        if (win.p5) {
+            if (p5Loader.item)
+                p5Loader.item.showTarget(r);
+            return;
+        }
         const pg = shownPage.item;
         if (!r || !pg || !pg.flick)
             return;
@@ -893,7 +916,7 @@ Item {
     }
     PxWindow {
         id: pxFrame
-        visible: !win.hellDress && !win.mac
+        visible: !win.hellDress && !win.mac && !win.p5
         anchors.fill: parent
         anchors.rightMargin: Config.appearance.shadows ? Theme.u * 2 : 0
         anchors.bottomMargin: Config.appearance.shadows ? Theme.u * 2 : 0
@@ -939,6 +962,7 @@ Item {
     }
     Loader {
         id: viewLoader
+        active: !win.p5
         parent: win.mac ? macHost : !win.hellDress ? viewHost : win.spread ? offstage : win.dressed ? (dressLoader.item ? dressLoader.item.viewSlot : offstage) : book.viewSlot
         anchors.fill: parent
         layer.enabled: (win.grimoire && !win.spread) || win.dressed
@@ -957,6 +981,22 @@ Item {
             function onViewIdChanged() {
                 viewLoader.load();
             }
+        }
+    }
+
+    // the P5 window in place of the frame and the view
+    Loader {
+        id: p5Loader
+        anchors.fill: parent
+        active: win.p5
+        focus: win.p5
+        sourceComponent: P5View {
+            view: win
+            overDesk: win.overDesk
+            leaving: win.leaving
+            frozen: win.frozen
+            onGoneOut: win.goneOut()
+            focus: true
         }
     }
 
@@ -994,7 +1034,7 @@ Item {
             layer.enabled: win.spread
             layer.effect: inkFx
             visible: current && !win.atHome
-            active: seen && (win.hostWindow ? win.hostWindow.visible || Shell.settingsWarm : true)
+            active: !win.p5 && seen && (win.hostWindow ? win.hostWindow.visible || Shell.settingsWarm : true)
             onLoaded: if (current && win.pendingTarget)
                 targetTimer.restart()
             Component.onCompleted: setSource(Qt.resolvedUrl("ComposedPage.qml"), {
@@ -1314,7 +1354,7 @@ Item {
         visible: !win.atHome
         // a kept page (above) is shown by its own loader; the main window built ahead
         // (Shell.settingsWarm) keeps its page while hidden
-        active: !win.keptWants.includes(want) && (win.hostWindow ? win.hostWindow.visible || (win.main && Shell.settingsWarm) : true)
+        active: !win.p5 && !win.keptWants.includes(want) && (win.hostWindow ? win.hostWindow.visible || (win.main && Shell.settingsWarm) : true)
         onLoaded: if (win.pendingTarget)
             targetTimer.restart()
         // the page to show: a page of the tree is put together (ComposedPage) — the same file

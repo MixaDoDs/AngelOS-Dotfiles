@@ -17,6 +17,8 @@ Item {
     property string text: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
     readonly property bool mac: settingsSkin === "goldengate"
+    // the P5 settings window: two plates, ВКЛ and ВЫКЛ, the one that holds black
+    readonly property bool p5: settingsSkin === "p5"
     signal toggled(bool checked)
 
     function flip() {
@@ -85,8 +87,8 @@ Item {
     PxBox {
         id: track
         visible: root.settingsSkin === "classic"
-        width: root.mac ? GoldenGate.px(38) : Theme.u * 26
-        height: root.mac ? GoldenGate.px(22) : Theme.u * 13
+        width: root.mac ? GoldenGate.px(38) : root.p5 ? p5Row.implicitWidth : Theme.u * 26
+        height: root.mac ? GoldenGate.px(22) : root.p5 ? p5Row.implicitHeight : Theme.u * 13
         anchors.verticalCenter: parent.verticalCenter
         sunken: true
         color: root.shown ? Theme.mix(Theme.sunken, Theme.accent, 0.55) : Theme.sunken
@@ -114,8 +116,35 @@ Item {
         }
     }
 
+    Row {
+        id: p5Row
+        visible: root.p5
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Theme.u * 2
+        Repeater {
+            model: [true, false]
+            Item {
+                id: sw
+                required property bool modelData
+                readonly property bool on: root.shown === modelData
+                width: swText.implicitWidth + Theme.u * 8
+                height: swText.implicitHeight + Theme.u * 3
+                P5Slant {
+                    anchors.fill: parent
+                    color: sw.on ? Theme.p5Black : Theme.p5Paper2
+                }
+                PxText {
+                    id: swText
+                    anchors.centerIn: parent
+                    text: sw.modelData ? I18n.t("ВКЛ", "ON") : I18n.t("ВЫКЛ", "OFF")
+                    color: sw.on ? Theme.p5Paper : Theme.p5Black
+                    font.bold: true
+                }
+            }
+        }
+    }
     Rectangle {
-        visible: root.settingsSkin !== "classic" && !root.mac
+        visible: root.settingsSkin !== "classic" && !root.mac && !root.p5
         width: track.width
         height: track.height
         anchors.verticalCenter: parent.verticalCenter

@@ -232,6 +232,26 @@ Variants {
                     Shell.desktopMenus = m;
                 }
             }
+            Loader {
+                active: win.modelData === Shell.screens[0]
+                sourceComponent: TitleIcons {}
+            }
+            // the pixel skins' genie into the taskbar (Golden Gate has its own in MacDesktop)
+            Loader {
+                active: !GoldenGate.on && Minimize.flightMs > 0
+                sourceComponent: MacMinimizeFx {
+                    modelData: win.modelData
+                }
+            }
+            // a right click on a window's title bar (angel-niri's stacking mode): its menu here
+            Connections {
+                target: Niri
+                function onWindowMenuRequested(id, output, pos) {
+                    const w = Niri.windows.find(x => x.id === id);
+                    if (w && output === win.modelData.name)
+                        menu.openWindow(w, pos[0], pos[1]);
+                }
+            }
 
             // the ring on the middle button, and the right-click menu's heaven's and hell's looks
             RadialMenu {

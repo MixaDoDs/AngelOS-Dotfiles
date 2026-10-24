@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Search index of the settings pages, read straight from their QML.
+"""Search index of the settings, read straight from the catalog's QML (modules/settings/catalog).
 
-  settings-index.py [pages dir …]  -> JSON list of entries:
+  settings-index.py [catalog dir …]  -> JSON list of entries:
       {"page": "appearance", "kind": "page|group|row", "ru": …, "en": …, "name": "theme",
        "group": {"ru","en"} (rows), "hint": {"ru","en"}, "words": {"ru","en"}}
-"page" is the page file, "name" the group's name (PxGroup.name, a row: its group's): the
+"page" is the catalog file, "name" the group's name (CatGroup.name, a row: its group's): the
 settings tree (modules/settings/tree.json, services/SettingsTree) says which page shows it.
 
-Every I18n.t("…", "…") pair is picked up: page headings and subtitles, PxGroup
-titles, SettingRow labels and hints, and the texts inside a row or group
+Every I18n.t("…", "…") pair is picked up: page headings and subtitles, group
+titles, the entries' labels and hints, and the texts inside a row or group
 (options, buttons) as extra words. New settings become searchable by themselves.
 A group or row shown only in developer mode (`shown:`/`visible: Config.developer.enabled`)
 is marked "developer": true, its rows too — the search leaves them out while the mode is off.
@@ -34,9 +34,16 @@ CHECKED = re.compile(r'^\s*checked:\s*Config\.(\w+\.\w+)\s*$')
 SETS = re.compile(r'onToggled:\s*(\w+)\s*=>\s*Config\.(\w+\.\w+)\s*=\s*\1\s*;?\s*$')
 PROP = re.compile(r'^\s*"?(heading|subtitle|title|label|hint|text|placeholder)"?\s*:\s*(.*)$')
 OPEN = re.compile(r"^\s*([A-Z][\w.]*)\s*\{")
-DEV = re.compile(r"^\s*(shown|visible)\s*:\s*Config\.developer\.enabled\s*$")
-OWNER = re.compile(r"^\s*(shown|visible)\s*:\s*(GameDebug)\.allowed\s*$")
-NEEDS = re.compile(r'^\s*(shown|visible)\s*:\s*Laptop\.has\("(\w+)"\)\s*$')
+DEV = re.compile(r"^\s*(shown|visible|present)\s*:\s*Config\.developer\.enabled\s*$")
+OWNER = re.compile(r"^\s*(shown|visible|present)\s*:\s*(GameDebug)\.allowed\s*$")
+NEEDS = re.compile(r'^\s*(shown|visible|present)\s*:\s*Laptop\.has\("(\w+)"\)\s*$')
+# the catalog's kinds (modules/settings/kit); the pixel widgets' names still count inside a
+# custom part
+GROUPS = ("CatGroup", "PxGroup")
+# (a link, CatLink, only leads to a setting indexed where it lives)
+ROWS = ("CatToggle", "CatChoice", "CatSlider", "CatSpin", "CatField", "CatButton", "CatCustom", "SettingRow")
+# a row's extra buttons are part of it; a custom part's own rows are rows
+INSIDE = ("CatToggle", "CatChoice", "CatSlider", "CatSpin", "CatField", "CatButton")
 NAME = re.compile(r'^\s*name\s*:\s*"([^"]+)"')
 
 
@@ -69,10 +76,11 @@ def index_page(path):
         if m:
             comp = m.group(1)
             entry = None
-            if comp == "PxGroup":
+            in_row = any(c in INSIDE for c, _, _ in stack)
+            if comp in GROUPS:
                 entry = {"page": pid, "kind": "group", "ru": "", "en": "", "name": "", "hint": {"ru": "", "en": ""}, "words": {"ru": [], "en": []}}
-            elif comp == "SettingRow":
-                grp = next((e for c, _, e in reversed(stack) if c == "PxGroup" and e), None)
+            elif comp in ROWS and not in_row:
+                grp = next((e for c, _, e in reversed(stack) if c in GROUPS and e), None)
                 entry = {"page": pid, "kind": "row", "ru": "", "en": "", "name": grp["name"] if grp else "", "hint": {"ru": "", "en": ""}, "words": {"ru": [], "en": []},
                          "group": {"ru": grp["ru"], "en": grp["en"]} if grp else {"ru": "", "en": ""}}
                 for gate in ("developer", "owner", "needs"):
@@ -81,16 +89,16 @@ def index_page(path):
             if entry is not None:
                 out.append(entry)
             stack.append((comp, depth, entry))
-        if DEV.match(code) and stack and stack[-1][2] is not None and stack[-1][0] in ("PxGroup", "SettingRow"):
+        if DEV.match(code) and stack and stack[-1][2] is not None and stack[-1][0] in GROUPS + ROWS:
             stack[-1][2]["developer"] = True
-        if OWNER.match(code) and stack and stack[-1][2] is not None and stack[-1][0] in ("PxGroup", "SettingRow"):
+        if OWNER.match(code) and stack and stack[-1][2] is not None and stack[-1][0] in GROUPS + ROWS:
             stack[-1][2]["owner"] = True
         nd = NEEDS.match(code)
-        if nd and stack and stack[-1][2] is not None and stack[-1][0] in ("PxGroup", "SettingRow"):
+        if nd and stack and stack[-1][2] is not None and stack[-1][0] in GROUPS + ROWS:
             stack[-1][2]["needs"] = nd.group(2)
         # a row that is one plain switch (checked: Config.a.b, set back the same way): the
         # search shows the switch right in its results
-        row = next((e for c, _, e in reversed(stack) if c == "SettingRow" and e), None)
+        row = next((e for c, _, e in reversed(stack) if c in ROWS and e), None)
         if row is not None:
             ck = CHECKED.match(code)
             if ck:
@@ -99,7 +107,7 @@ def index_page(path):
             if st:
                 row["_sets"] = row.get("_sets", []) + [st.group(2)]
         nm = NAME.match(code)
-        if nm and stack and stack[-1][0] == "PxGroup" and stack[-1][2] is not None:
+        if nm and stack and stack[-1][0] in GROUPS and stack[-1][2] is not None:
             stack[-1][2]["name"] = nm.group(1)
         p = PROP.match(code)
         pairs = [(unescape(a), unescape(b)) for a, b in PAIR.findall(code)]
@@ -116,11 +124,11 @@ def index_page(path):
                 page["ru"], page["en"] = pairs[0]
             elif prop == "subtitle" and e is page:
                 page["hint"] = {"ru": pairs[0][0], "en": pairs[0][1]}
-            elif prop == "title" and cur == "PxGroup" and e and e["kind"] == "group" and not e["ru"]:
+            elif prop == "title" and cur in GROUPS and e and e["kind"] == "group" and not e["ru"]:
                 e["ru"], e["en"] = pairs[0]
-            elif prop == "label" and cur == "SettingRow" and e and e["kind"] == "row" and not e["ru"]:
+            elif prop == "label" and cur in ROWS and e and e["kind"] == "row" and not e["ru"]:
                 e["ru"], e["en"] = pairs[0]
-            elif prop == "hint" and cur == "SettingRow" and e and e["kind"] == "row":
+            elif prop == "hint" and cur in ROWS and e and e["kind"] == "row":
                 if len(pairs) == 1 and not e["hint"]["ru"]:
                     e["hint"] = {"ru": pairs[0][0], "en": pairs[0][1]}
                 else:
@@ -160,10 +168,10 @@ def signature(files):
 
 def main():
     here = Path(__file__).resolve().parent.parent
-    dirs = [Path(a) for a in sys.argv[1:]] or [here / "modules/settings/pages"]
+    dirs = [Path(a) for a in sys.argv[1:]] or [here / "modules/settings/catalog"]
     files = []
     for d in dirs:
-        files += [d] if d.is_file() else sorted(f for f in d.glob("*Page.qml") if f.name != "PluginSettingsPage.qml")
+        files += [d] if d.is_file() else sorted(d.glob("*.qml"))
     cache = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "angelos" / "settings-index.json"
     sig = signature(files)
     try:

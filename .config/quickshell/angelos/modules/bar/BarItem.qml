@@ -121,6 +121,10 @@ Loader {
             return bellC;
         case "awake":
             return awakeC;
+        case "winmode":
+            return winModeC;
+        case "showdesk":
+            return showDeskC;
         case "wifi":
             return wifiC;
         case "bluetooth":
@@ -212,6 +216,17 @@ Loader {
     Component {
         id: awakeC
         AwakeButton {}
+    }
+    Component {
+        id: winModeC
+        WinModeButton {}
+    }
+    Component {
+        id: showDeskC
+        ShowDesktop {
+            screenName: root.bar.screenName
+            vertical: root.vertical
+        }
     }
     Component {
         id: bellC

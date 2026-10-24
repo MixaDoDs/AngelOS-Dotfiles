@@ -341,7 +341,8 @@ Scope {
     Process {
         id: logind
         running: root.sleepLock
-        command: ["gdbus", "monitor", "--system", "--dest", "org.freedesktop.login1"]
+        // setpriv: gdbus goes with the shell, even on its SIGKILL (stand restarts left dozens behind)
+        command: ["setpriv", "--pdeathsig", "TERM", "gdbus", "monitor", "--system", "--dest", "org.freedesktop.login1"]
         stdout: SplitParser {
             onRead: line => {
                 const sleep = line.match(/\.Manager\.PrepareForSleep \((true|false)/);

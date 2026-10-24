@@ -489,6 +489,18 @@ const icons = {
         "..#ffwff##.",
         "...######.."
     ],
+    // a window on every desk (angel-niri's Desktop: the window menu, its title bar's badge)
+    allDesks: [
+        "....#######",
+        "....#.....#",
+        "....#.....#",
+        "#######...#",
+        "#ooooo#...#",
+        "#ooooo#####",
+        "#ooooo#....",
+        "#ooooo#....",
+        "#######...."
+    ],
     layers: [
         "....#######",
         "....#xxxxx#",
@@ -499,6 +511,17 @@ const icons = {
         "#fffff#o#..",
         "#fffff###..",
         "#######...."
+    ],
+    // the Strip: windows in columns (Settings → Windows, the OSD, the bar's mode button)
+    strip: [
+        "###.###.###",
+        "#o#.#o#.#o#",
+        "###.###.###",
+        "#f#.#f#.#f#",
+        "#f#.#f#.#f#",
+        "#f#.#f#.#f#",
+        "#f#.#f#.#f#",
+        "###.###.###"
     ],
     package: [
         "...#####...",

@@ -168,19 +168,17 @@ JsonAdapter {
         property string browserBar: ""
     }
 
-    // window menu (modules/bar/parts/WindowMenu.qml): "Make floating / Back to tiling" and
-    // "Maximize to edges" are off by default — they sit behind an experimental toggle that only
-    // shows in expert settings. Right-click on a window button without expert mode only gets you
-    // Fullscreen, Move to desk / monitor, Close, End task.
     property JsonObject windows: JsonObject {
-        property bool floatButtons: false   // experimental: floating + maximize buttons in the window menu
-        // every new window floats (a niri rule in angelos.kdl, ThemeExport); Golden Gate has its own (mac.floating)
+        // Desktop instead of the Strip: windows float with title bars (angel-niri's stacking; on
+        // plain niri a rule in angelos.kdl, ThemeExport); Golden Gate is always Desktop (WindowConfig)
         property bool floatAll: false
+        property bool desktopHintSeen: false // the first-time keys hint (modules/osd/Osd.qml) was shown
         property bool pixelCorners: true    // angel-niri: square windows get pixel staircase corners (services/WindowConfig)
         property bool inactiveDim: true     // angel-niri: a sparse grid of dark dots over the windows not in focus (services/WindowConfig)
+        property var dimOutputs: []         // the monitors with those dots; empty: every monitor
         property bool pixelOverview: true   // angel-niri: the overview in pixels: sharp thumbnails, pixel frames and desk numbers (services/WindowConfig)
         property bool pixelShadow: true     // angel-niri: dithered window shadows, the focused one glows in the accent (services/WindowConfig)
-        property bool remember: true        // angel-niri: a program opens where its last window was, as big (services/WindowConfig)
+        property bool remember: true        // angel-niri: programs pinned by hand open on their monitor and desk (services/WindowConfig)
         property bool clipboardKeep: true   // angel-niri: the clipboard outlives the program it was copied from (services/WindowConfig)
         // angel-niri: a floating window let go mid-drag flies on, bounces off the edges, squashes
         // against them and sways like jelly while dragged (services/WindowConfig); each 0 = off
@@ -201,6 +199,10 @@ JsonAdapter {
         property real cobwebBundles: 0   // long edge-to-edge bands (0–1.4)
         property real cobwebBridges: 1   // ties between neighbouring strands (0–2)
         property real cobwebGravity: 1   // thread sag (0–2.5)
+        // programs nobody sees go to sleep: frozen + squeezed into zram, messengers only nap (services/AppSleep)
+        property bool appSleep: true
+        property int appSleepMin: 15        // minutes out of sight before it sleeps
+        property string appSleepNever: ""   // more programs never put to sleep: "obsidian,strata" (app id or process name)
     }
 
     property JsonObject alttab: JsonObject {
@@ -591,6 +593,7 @@ JsonAdapter {
         property bool sparkles: true        // sparkle trail over the bare desktop
         property var sparkleScreens: []     // empty = every screen
         property bool sounds: true
+        property bool settingsMusic: true   // the P5 settings window's lounge loop (data/sounds/settings)
         property real soundVolume: 0.55
         property real helperVolume: 0.6     // the angel's / demon's voice, pips and effects, on top of soundVolume
         property var soundOff: ["click"]    // events kept quiet: startup notify error click shutdown angel
@@ -871,7 +874,6 @@ JsonAdapter {
         // not put over them (Shell.envFor; desktop ids or app ids)
         property var ownFrameApps: ["org.telegram.desktop", "TelegramDesktop", "com.ayugram.desktop", "io.github.kotatogram", "org.materialgram.desktop"]
         property bool keys: false           // Mac-style shortcuts: Golden Gate's key profile (cfg/keybinds-macos.kdl, services/KeyProfile) — offered, never imposed
-        property bool floating: true        // new windows float and overlap like on a Mac (off: niri's columns)
         property string minimizeEffect: "genie" // genie | scale — how a window goes to the Dock (modules/mac/MacMinimizeFx)
         property int dockSize: 48           // Dock icons, logical px
         property bool dockMagnify: true     // icons grow under the pointer

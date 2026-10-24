@@ -9,17 +9,19 @@ Item {
 
     property bool hell: false
     readonly property string settingsSkin: hell ? "classic" : Theme.settingsSkinFor(root.parent)
-    property color color: hell ? Theme.hellFace : Theme.face
+    // the P5 settings window: a flat paper plate with a black outline
+    readonly property bool p5: settingsSkin === "p5"
+    property color color: hell ? Theme.hellFace : p5 ? Theme.p5Paper2 : Theme.face
     property int bevel: settingsSkin === "windose" ? Math.max(1, Math.floor(Theme.u / 2)) : Theme.u
     property bool sunken: false
     property bool outline: true
-    property bool flat: settingsSkin === "windose" || (Theme.zine && !hell)
+    property bool flat: settingsSkin === "windose" || p5 || (Theme.zine && !hell)
     property bool shadow: false
     property int shadowSize: Theme.u * 2
     property color shadowColor: Qt.alpha(Theme.shadow, Theme.shadowAlpha)
     property color hiColor: hell ? Theme.hellHi : settingsSkin === "windose" ? Theme.windoseLine : Theme.hi
     property color loColor: hell ? Theme.hellLo : settingsSkin === "windose" ? Theme.windoseLine : Theme.lo
-    property color edgeColor: hell ? Theme.hellEdge : settingsSkin === "windose" ? Theme.windoseLine : Theme.edge
+    property color edgeColor: hell ? Theme.hellEdge : settingsSkin === "windose" ? Theme.windoseLine : p5 ? Theme.p5Black : Theme.edge
     readonly property int ob: outline ? bevel : 0
     readonly property int inset: ob + (flat ? 0 : bevel)
     default property alias content: inner.data

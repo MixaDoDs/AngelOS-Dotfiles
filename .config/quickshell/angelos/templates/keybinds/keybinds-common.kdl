@@ -29,8 +29,8 @@ binds {
     Mod+Shift+CTRL+Down                 { move-column-to-monitor-down; }
     Mod+Alt+V                           { switch-focus-between-floating-and-tiling; }
     Mod+Shift+R                         repeat=false hotkey-overlay-title="Запись области экрана (в Видео)" { spawn "@HOME@/.local/bin/niri-record-region"; }
-    Mod+CTRL+WheelScrollDown            cooldown-ms=150 { move-column-to-workspace-down; }
-    Mod+CTRL+WheelScrollUp              cooldown-ms=150 { move-column-to-workspace-up; }
+    Mod+CTRL+WheelScrollDown            cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws carry-down"; }
+    Mod+CTRL+WheelScrollUp              cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws carry-up"; }
     Mod+WheelScrollRight                { focus-column-right; }
     Mod+WheelScrollLeft                 { focus-column-left; }
     Mod+CTRL+WheelScrollRight           { move-column-right; }
@@ -52,11 +52,14 @@ binds {
     // English dialog and the session was gone), Alt+F4 closes, Ctrl+Shift+Esc is the task manager
     CTRL+ALT+Delete                     hotkey-overlay-title="angelOS: выключение" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open session"; }
     ALT+F4                              hotkey-overlay-title="Закрыть окно" { close-window; }
+    ALT+Space                           hotkey-overlay-title="Меню окна (Desktop)" { spawn "niri" "msg" "action" "request-window-menu"; }
     CTRL+Shift+Escape                   hotkey-overlay-title="angelOS: диспетчер задач" { spawn-sh "qs -c angelos ipc call angelos taskManager"; }
     Mod+Shift+P                         { power-off-monitors; } // Turn off screens (useful for OLED or privacy)
     Mod+Shift+X                         repeat=false allow-inhibiting=false hotkey-overlay-title="Приватность: зачернить в эфире программы из списка" { spawn "@HOME@/.local/bin/niri-cast-privacy"; }
     Mod+Ctrl+Shift+X                    repeat=false allow-inhibiting=false hotkey-overlay-title="Приватность: скрывать в эфире эту программу / нет" { spawn "@HOME@/.local/bin/niri-cast-privacy" "app" "toggle"; }
     Mod+Alt+P                           repeat=false allow-inhibiting=false hotkey-overlay-title="Пауза для зрителей: заставка в эфире вместо экрана / снова эфир" { spawn-sh "qs -c angelos ipc call angelos castPause toggle"; }
+    Mod+Ctrl+Shift+M                    repeat=false hotkey-overlay-title="Desktop / Лента" { spawn-sh "qs -c angelos ipc call angelos stacking toggle"; }
+    Mod+D                               repeat=false hotkey-overlay-title="Показать рабочий стол" { spawn-sh "qs -c angelos ipc call angelos showDesktop"; }
     Mod+Ctrl+X                          repeat=false allow-inhibiting=false hotkey-overlay-title="Приватность: показать эту программу в эфире сейчас / снова скрыть" { spawn "@HOME@/.local/bin/niri-cast-privacy" "show" "toggle"; }
     Mod+Alt+Y                           hotkey-overlay-title="angelOS: лирика вкл/выкл" { spawn-sh "qs -c angelos ipc call angelos lyrics"; }
     Mod+Alt+T                           hotkey-overlay-title="angelOS: светлая/тёмная" { spawn-sh "qs -c angelos ipc call angelos theme toggle"; }

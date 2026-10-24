@@ -8,10 +8,14 @@ import qs.services
 // opens under the row; its × folds it away.
 Item {
     id: root
+    // inside the P5 settings window: its colours (Theme.tone)
+    readonly property bool p5: Theme.p5For(root.parent)
 
     property string label: ""
     property string hint: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
+    // the P5 settings window draws like the classic look, in its own colours
+    readonly property bool classicLike: settingsSkin === "classic" || settingsSkin === "p5"
     readonly property bool streamLayout: settingsSkin === "stream"
     // Settings (SettingsView.fluent): a row of its group's card, the control on its right, a
     // hairline between rows
@@ -25,6 +29,8 @@ Item {
     property string previewVariant: ""
     property string previewCaption: ""
     property bool previewOpen: false
+    // where it sits in its card: a catalog's row sits in a slot of its own (CatalogPage)
+    readonly property real placeY: parent && parent.catRow === true ? parent.y : y
     readonly property int rowHeight: streamLayout ? labels.implicitHeight + slot.childrenRect.height + Theme.u * 12 : fluent ? Math.max(Theme.fit(mac ? 20 : 17), Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (mac ? 8 : 6)) : Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (settingsSkin === "windose" ? 8 : 2)
 
     // new since you last looked (services/SettingsNews): a star after the label. The row's group
@@ -60,28 +66,28 @@ Item {
 
     // the hairline above every row but the first of its card
     Rectangle {
-        visible: root.mac && root.y > 0
+        visible: root.mac && root.placeY > 0
         x: Theme.u * 5
         width: parent.width - x * 2
         height: 1
         color: Theme.dark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.07)
     }
     Rectangle {
-        visible: root.fluent && !root.mac && root.y > 0
+        visible: root.fluent && !root.mac && root.placeY > 0
         width: parent.width
         height: Math.max(1, Theme.u / 2)
-        color: Qt.alpha(Theme.lo, Theme.dark ? 0.7 : 0.35)
+        color: Qt.alpha(Theme.tone("lo", root.p5), Theme.dark ? 0.7 : 0.35)
     }
     // classic: a hairline between the rows of a card, in the middle of the gap above
     Rectangle {
-        visible: !root.fluent && root.settingsSkin === "classic" && root.y > 0 && !!root.parent && root.parent.fixedWidth === true
+        visible: !root.fluent && root.classicLike && root.placeY > 0 && !!root.parent && root.parent.fixedWidth === true
         y: -Math.round((root.parent && root.parent.spacing ? root.parent.spacing : Theme.u * 4) / 2) - height / 2
         width: parent.width
         height: Math.max(1, Theme.u / 2)
-        color: Qt.alpha(Theme.lo, Theme.dark ? 0.9 : 0.55)
+        color: Qt.alpha(Theme.tone("lo", root.p5), Theme.dark ? 0.9 : 0.55)
     }
     Rectangle {
-        visible: root.settingsSkin !== "classic" && !root.mac
+        visible: !root.classicLike && !root.mac
         width: parent.width
         height: root.rowHeight
         radius: root.streamLayout ? Theme.u * 3 : 0
@@ -90,7 +96,7 @@ Item {
         border.color: root.streamLayout ? Theme.mix(Theme.streamLive, Theme.streamPanel, 0.55) : Theme.mix(Theme.windoseInk, Theme.windosePaper, 0.55)
     }
     Rectangle {
-        visible: root.settingsSkin !== "classic" && !root.mac
+        visible: !root.classicLike && !root.mac
         width: root.streamLayout ? Theme.u * 2 : Theme.u * 3
         height: root.rowHeight - Theme.u * 2
         x: Theme.u
@@ -101,7 +107,7 @@ Item {
 
     Column {
         id: labels
-        x: root.mac ? Theme.u * 5 : root.fluent || root.settingsSkin === "classic" ? 0 : Theme.u * 6
+        x: root.mac ? Theme.u * 5 : root.fluent || root.classicLike ? 0 : Theme.u * 6
         width: root.labelWidth
         y: root.streamLayout ? Theme.u * 4 : (root.rowHeight - implicitHeight) / 2
         PxText {
@@ -109,7 +115,7 @@ Item {
             width: parent.width - (root.isNew ? newStar.width + Theme.u * 3 : 0)
             text: root.label
             wrapMode: Text.Wrap
-            font.bold: root.settingsSkin !== "classic" && !root.mac
+            font.bold: !root.classicLike && !root.mac
             NewStar {
                 id: newStar
                 visible: root.isNew
@@ -129,8 +135,8 @@ Item {
     Item {
         id: slot
         readonly property bool fixedWidth: true // PxToggle wraps its label to fit
-        x: root.streamLayout ? Theme.u * 6 : labels.x + root.labelWidth + Theme.u * (root.fluent ? 5 : root.settingsSkin === "classic" ? 6 : 12)
-        width: root.width - x - (root.mac ? Theme.u * 5 : root.fluent || root.settingsSkin === "classic" ? 0 : Theme.u * 5)
+        x: root.streamLayout ? Theme.u * 6 : labels.x + root.labelWidth + Theme.u * (root.fluent ? 5 : root.classicLike ? 6 : 12)
+        width: root.width - x - (root.mac ? Theme.u * 5 : root.fluent || root.classicLike ? 0 : Theme.u * 5)
         y: root.streamLayout ? labels.y + labels.implicitHeight + Theme.u * 3 : (root.rowHeight - height) / 2
         height: childrenRect.height
     }

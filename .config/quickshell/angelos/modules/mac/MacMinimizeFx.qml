@@ -14,6 +14,9 @@ import qs.widgets
 // up only while something flies (Minimize.flights). The Dock writes where its items are
 // (Minimize.dockSlots); the place is read each frame, so the item that appears in the Dock a
 // moment after the window has gone is where the snapshot lands.
+// The pixel skins use it too (Background.qml, Minimize.effect "pixel"): the same genie into the
+// taskbar's button (Tasks.qml writes dockSlots), on the art-pixel grid — nearest sampling, a
+// coarse mesh, vertices snapped to the art pixel — and upwards when the bar is at the top.
 PanelWindow {
     id: win
 
@@ -42,7 +45,8 @@ PanelWindow {
         Item {
             id: fx
             required property var modelData
-            readonly property bool genie: Minimize.effect === "genie"
+            readonly property bool pixel: Minimize.effect === "pixel"
+            readonly property bool genie: Minimize.effect === "genie" || pixel
             width: win.width
             height: win.height
             // where the window is, in this screen's coordinates
@@ -50,8 +54,14 @@ PanelWindow {
             property real t: 0                 // 0 at the window .. 1 in the Dock
             property var dock: [win.width / 2, win.height - GoldenGate.px(40), GoldenGate.px(48)]
 
+            // no slot (no task button there): the middle of the bar's edge
+            function fallback() {
+                if (pixel)
+                    return [win.width / 2, Config.bar.edge === "top" ? Theme.u * 10 : win.height - Theme.u * 10, Theme.u * 16];
+                return [win.width / 2, win.height - GoldenGate.px(40), GoldenGate.px(48)];
+            }
             function place() {
-                dock = Minimize.slotOf(win.screenName, modelData.id) || [win.width / 2, win.height - GoldenGate.px(40), GoldenGate.px(48)];
+                dock = Minimize.slotOf(win.screenName, modelData.id) || fallback();
                 if (genie)
                     return;
                 const h = home, d = dock;
@@ -79,8 +89,8 @@ PanelWindow {
                 id: shot
                 source: fx.modelData.shot || ""
                 visible: false
-                smooth: true
-                mipmap: true
+                smooth: !fx.pixel
+                mipmap: !fx.pixel
                 cache: false
             }
 
@@ -105,13 +115,18 @@ PanelWindow {
                 visible: fx.genie && shot.status === Image.Ready
                 anchors.fill: parent
                 mesh: GridMesh {
-                    resolution: Qt.size(4, 64)
+                    resolution: fx.pixel ? Qt.size(4, 20) : Qt.size(4, 64)
                 }
                 property variant source: shot
                 property real progress: fx.t
                 property vector4d win: Qt.vector4d(fx.home[0], fx.home[1], fx.home[2], fx.home[3])
                 // the item's middle, its top, its size (the Dock writes centres)
                 property vector4d tgt: Qt.vector4d(fx.dock[0], fx.dock[1] - fx.dock[2] / 2, fx.dock[2] * 0.82, fx.dock[2] * 0.82)
+                // a target above the window's middle (a bar at the top): the funnel goes up
+                property real flip: fx.pixel && fx.dock[1] < fx.home[1] + fx.home[3] / 2 ? 1 : 0
+                property real screenH: win.height
+                // the shell's art pixel: the funnel's edges step on the skins' own grid
+                property real snap: fx.pixel ? Theme.u : 0
                 vertexShader: Qt.resolvedUrl("../../shaders/genie.vert.qsb")
                 fragmentShader: Qt.resolvedUrl("../../shaders/genie.frag.qsb")
             }

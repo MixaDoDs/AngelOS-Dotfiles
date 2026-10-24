@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Every setting the Settings window offers, read from the pages' QML.
+"""Every setting the Settings window offers, read from the catalog's QML (modules/settings/catalog).
 
-  settings-inventory.py [--json] [--keys] [pages dir]
+  settings-inventory.py [--json] [--keys] [catalog dir]
 
-For every page (modules/settings/pages/*Page.qml) and every PxGroup on it: the group's
+For every page (modules/settings/catalog/*.qml) and every group (CatGroup) on it: the group's
 name (`name:`, the key the settings tree uses), its title (ru/en), whether it is a
 sub-page (`advanced: true`) or only for developers/the owner, its rows (SettingRow labels)
 and the configuration keys it changes — `Config.section.key = …` inside the group, and
@@ -145,18 +145,18 @@ def describe(pid, text, title_hint=None):
     title = re.search(r'^\s*title\s*:\s*(.+)$', props, re.M)
     tr = PAIR.search(title.group(1)) if title else None
     rows = []
-    for s, e in blocks(text, "SettingRow"):
+    for s, e in [b for k in ("CatToggle", "CatChoice", "CatSlider", "CatSpin", "CatField", "CatButton", "CatCustom", "SettingRow") for b in blocks(text, k)]:
         lab = re.search(r'^\s*label\s*:\s*(.+)$', own_props(text[s:e]), re.M)
         p = PAIR.search(lab.group(1)) if lab else None
         rows.append(unescape(p.group(1)) if p else (lab.group(1).strip() if lab else "?"))
     writes = {f"{a}.{b}" for a, b in WRITE.findall(text)}
     for t in set(TYPE.findall(text)):
-        if t not in ("PxGroup", "SettingRow", "PxPage", "Column", "Row", "Item", "Repeater", "Flow"):
+        if t not in ("PxGroup", "SettingRow", "PxPage", "Column", "Row", "Item", "Repeater", "Flow") and not t.startswith("Cat"):
             writes |= component_writes(t)
     for svc, fn in set(SAVERS.findall(text)):
         writes |= service_writes(svc, fn)
     reads = {f"{a}.{b}" for a, b in READ.findall(text)} - writes
-    cond = re.search(r'^\s*(?:shown|visible)\s*:\s*(.+)$', props, re.M)
+    cond = re.search(r'^\s*(?:shown|visible|present)\s*:\s*(.+)$', props, re.M)
     return {
         "page": pid,
         "name": name.group(1) if name else "",
@@ -174,10 +174,10 @@ def describe(pid, text, title_hint=None):
 
 def inventory(pages_dir):
     out = []
-    for f in sorted(Path(pages_dir).glob("*Page.qml")):
+    for f in sorted(Path(pages_dir).glob("*.qml")):
         pid = page_id(f)
         text = strip_comments(f.read_text())
-        groups = blocks(text, "PxGroup")
+        groups = blocks(text, "CatGroup")
         rest, last = [], 0
         for s, e in groups:
             rest.append(text[last:s])
@@ -194,7 +194,7 @@ def inventory(pages_dir):
 
 def main(argv):
     args = [a for a in argv if not a.startswith("--")]
-    inv = inventory(args[0] if args else HERE / "modules/settings/pages")
+    inv = inventory(args[0] if args else HERE / "modules/settings/catalog")
     if "--keys" in argv:
         print("\n".join(sorted({k for g in inv for k in g["keys"]})))
     elif "--json" in argv:

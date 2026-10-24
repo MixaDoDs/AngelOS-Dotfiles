@@ -28,6 +28,8 @@
                "~/.config/{Vencord,Equicord,vesktop,equibop}/themes/angelOS.theme.css",
                "~/.var/app/com.discordapp.Discord/config/{Vencord,Equicord}/themes/angelOS.theme.css",
                "~/.var/app/{dev.vencord.Vesktop/config/vesktop,io.github.equicord.equibop/config/equibop}/themes/angelOS.theme.css"] },
+  { "id": "spotify",   "name": "Spotify: цвета рай/ад (Spicetify, со следующего запуска)", "command": "python3 {{shellDir}}/scripts/spotify-theme.py build {{paletteFile}}",
+    "writes": ["~/.config/spicetify/Extensions/angelos-colors.js", "~/.config/spicetify/config-xpui.ini"] },
   { "id": "qt",        "name": "Qt: qt6ct (рай/ад, пиксельный стиль)", "command": "python3 {{shellDir}}/scripts/qt-theme.py {{paletteFile}}",
     "writes": ["~/.config/qt6ct/colors/angelos.conf", "~/.config/qt6ct/qss/angelos.qss", "~/.config/qt6ct/qt6ct.conf",
                "~/.config/qt6ct/qss/angelos-frame-{raised,sunken,default,focus}.png", "~/.config/qt6ct/.angelos-stamp"] },

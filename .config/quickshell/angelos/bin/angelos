@@ -408,9 +408,12 @@ case "$1" in
     if [ -S "$sock" ] && command -v socat >/dev/null 2>&1 && printf 'ws %s %s\n' "$target" "$(date +%s%3N)" | socat -t1 - "UNIX-CONNECT:$sock" 2>/dev/null | grep -q '^ok'; then
       exit 0
     fi
+    # wheel-*/carry-*: the wheel's (Mod / Mod+Ctrl), nothing in Desktop — the shell knows the mode
     case "$target" in
-      up) exec niri msg action focus-workspace-up ;;
-      down) exec niri msg action focus-workspace-down ;;
+      up|wheel-up) exec niri msg action focus-workspace-up ;;
+      down|wheel-down) exec niri msg action focus-workspace-down ;;
+      carry-up) exec niri msg action move-column-to-workspace-up ;;
+      carry-down) exec niri msg action move-column-to-workspace-down ;;
       prev) exec niri msg action focus-workspace-previous ;;
       *) exec niri msg action focus-workspace "$target" ;;
     esac

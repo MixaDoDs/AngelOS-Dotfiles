@@ -194,11 +194,12 @@ Scope {
                 {
                     // the history and its settings row build (they are not shown offscreen)
                     const panel = Qt.createComponent(Quickshell.shellDir + "/modules/clipboard/ClipboardPanel.qml");
-                    const page = Qt.createComponent(Quickshell.shellDir + "/modules/settings/pages/KeyboardPage.qml");
+                    const page = Qt.createComponent(Quickshell.shellDir + "/modules/settings/CatalogPage.qml");
                     // offscreen has no layer shell: reaching PanelWindow means the file itself parsed
                     root.report("panel-compiles", panel.status === Component.Ready || /^[^\n]*: No PanelWindow backend loaded\.\s*$/.test(panel.errorString()), panel.errorString());
                     const made = page.status === Component.Ready ? page.createObject(holder.contentItem, {
-                        "width": 800
+                        "width": 800,
+                        "catalog": "Keyboard"
                     }) : null;
                     root.report("settings-row", !!made && JSON.stringify(Config.launcher.clipboardPaste) === "true", page.errorString());
                     if (made)

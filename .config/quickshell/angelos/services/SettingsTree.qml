@@ -234,9 +234,13 @@ Singleton {
             "to": ""
         };
     }
-    // the page file a block comes from: "keyboard/…" -> pages/KeyboardPage.qml
+    // the catalog a block comes from: "keyboard/…" -> modules/settings/catalog/Keyboard.qml,
+    // drawn by CatalogPage (its `catalog`)
+    function catalogOf(src) {
+        return src.charAt(0).toUpperCase() + src.slice(1);
+    }
     function fileOf(src) {
-        return Qt.resolvedUrl("../modules/settings/pages/" + src.charAt(0).toUpperCase() + src.slice(1) + "Page.qml");
+        return Qt.resolvedUrl("../modules/settings/CatalogPage.qml");
     }
     // one group of the tree on its own ("keyboard/keyboard-layouts"), for the setup wizard:
     // its file, and the page the tree puts it on (wherever tree.json moves it)
@@ -244,6 +248,7 @@ Singleton {
         const [src, name] = block.split("/");
         return {
             "file": fileOf(src),
+            "catalog": catalogOf(src),
             "only": name ? [name] : [],
             "page": pageOfGroup(src, name)
         };
@@ -276,6 +281,7 @@ Singleton {
                 else
                     out.push({
                         "file": fileOf(src),
+                        "catalog": catalogOf(src),
                         "src": src,
                         "only": ["@"],
                         "loose": true
@@ -288,6 +294,7 @@ Singleton {
             }
             out.push({
                 "file": fileOf(src),
+                "catalog": catalogOf(src),
                 "src": src,
                 "only": name ? [name] : [],
                 "loose": !name

@@ -499,11 +499,21 @@ Item {
     }
     Component {
         id: artWindows
-        RibbonPic {
+        Item {
             readonly property real room: parent ? parent.room : Theme.u * 200
             implicitWidth: Math.round(room * 0.9)
             implicitHeight: Math.round(room * 0.45)
-            share: WindowConfig.defaultWidth === "proportion 1.0" ? 1 : 0.5
+            RibbonPic {
+                visible: !WindowConfig.floatAll
+                anchors.fill: parent
+                share: WindowConfig.defaultWidth === "proportion 1.0" ? 1 : 0.5
+            }
+            PxIcon {
+                visible: WindowConfig.floatAll
+                anchors.centerIn: parent
+                name: "layers"
+                pixel: Theme.u * 7
+            }
         }
     }
     Component {
@@ -766,52 +776,42 @@ Item {
         }
     }
 
-    // where they come from: the look and the habits follow (Golden Gate for a Mac, Windows'
-    // three window buttons for Windows); Settings change any of it later
+    // the look: the pixel angelOS or Golden Gate (a Mac's; its keys only if asked for).
+    // Config.setup.from says "mac" for the hints further on
     Component {
         id: from
         Column {
             spacing: Theme.u * 4
-            readonly property var options: [["windows", "Windows", I18n.t("кнопки окон: свернуть, развернуть, закрыть", "window buttons: minimize, maximize, close")], ["mac", "macOS", I18n.t("вид как на Mac: строка меню, Dock, Spotlight", "a Mac's look: the menu bar, the Dock, Spotlight")], ["linux", "Linux", I18n.t("всё как есть, angelOS по-своему", "angelOS as it is")], ["new", I18n.t("Впервые", "First time"), I18n.t("подсказок будет побольше", "a few more hints")]]
-            Repeater {
-                model: 2
-                Choices {
-                    id: fromRow
-                    required property int index
-                    width: parent.width
-                    n: 2
-                    Repeater {
-                        model: parent.parent.options.slice(fromRow.index * 2, fromRow.index * 2 + 2)
-                        Choice {
-                            required property var modelData
-                            width: fromRow.cardWidth
-                            label: modelData[1]
-                            hint: modelData[2]
-                            checked: Config.setup.from === modelData[0]
-                            onPicked: root.pickFrom(modelData[0])
-                            FromPic {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                kind: modelData[0]
-                                pixel: Theme.u * 3
-                            }
-                        }
+            Choices {
+                width: parent.width
+                n: 2
+                Choice {
+                    width: parent.cardWidth
+                    label: I18n.t("Пиксельный angelOS", "The pixel angelOS")
+                    hint: I18n.t("панель, Нимб и окна в пикселях", "the bar, the Halo and the windows in pixels")
+                    checked: Config.settingsUi.skin !== "goldengate"
+                    onPicked: root.pickSkin(false)
+                    PxIcon {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        name: "window"
+                        pixel: Theme.u * 4
+                    }
+                }
+                Choice {
+                    width: parent.cardWidth
+                    label: "Golden Gate"
+                    hint: I18n.t("вид как на Mac: строка меню, Dock, Spotlight; окна всегда поверх друг друга", "a Mac's look: the menu bar, the Dock, Spotlight; windows always over each other")
+                    checked: Config.settingsUi.skin === "goldengate"
+                    onPicked: root.pickSkin(true)
+                    FromPic {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        kind: "mac"
+                        pixel: Theme.u * 3
                     }
                 }
             }
-            // a Mac: Golden Gate on, offered to turn off right here, its keys only if asked for
             PxToggle {
-                visible: Config.setup.from === "mac"
-                width: parent.width
-                text: I18n.t("Вид как на Mac (Golden Gate). Пиксельный angelOS всегда можно вернуть в Настройках", "A Mac's look (Golden Gate). The pixel angelOS is always one setting away")
-                checked: Config.settingsUi.skin === "goldengate"
-                onToggled: v => {
-                    Config.settingsUi.skin = v ? "goldengate" : "classic";
-                    Config.settingsUi.skinChosen = true;
-                    root.wizard.macByWizard = v;
-                }
-            }
-            PxToggle {
-                visible: Config.setup.from === "mac" && Config.settingsUi.skin === "goldengate"
+                visible: Config.settingsUi.skin === "goldengate"
                 width: parent.width
                 // (spelt out: the pixel font has no ⌘)
                 text: I18n.t("Сочетания клавиш как на Mac: Command — это клавиша Windows (Win+Q завершить, Win+W закрыть окно, Win+Пробел Spotlight…)", "Mac keyboard shortcuts: Command is the Windows key (Win+Q quit, Win+W close window, Win+Space Spotlight…)")
@@ -820,20 +820,11 @@ Item {
             }
         }
     }
-    function pickFrom(id) {
-        Config.setup.from = id;
-        if (id === "mac") {
-            if (Config.settingsUi.skin !== "goldengate") {
-                Config.settingsUi.skin = "goldengate";
-                wizard.macByWizard = true;
-            }
-            Config.settingsUi.skinChosen = true;
-        } else if (wizard.macByWizard) {
-            Config.settingsUi.skin = "classic";
-            wizard.macByWizard = false;
-        }
-        if (id === "windows")
-            Config.decor.gtkLayout = "minimize,maximize,close";
+    function pickSkin(mac) {
+        Config.setup.from = mac ? "mac" : "";
+        Config.settingsUi.skin = mac ? "goldengate" : "classic";
+        Config.settingsUi.skinChosen = true;
+        wizard.macByWizard = mac;
     }
     // a little picture of each system, drawn in pixels (no logos: shapes that recall them)
     component FromPic: Item {
@@ -936,11 +927,44 @@ Item {
     }
 
     // niri's ribbon, the biggest difference for someone new: how wide new windows open
+    // Desktop or the Strip (WindowConfig.setFloatAll); in the Strip, how wide new windows open
     Component {
         id: windows
         Column {
             spacing: Theme.u * 5
             Choices {
+                width: parent.width
+                n: 2
+                Choice {
+                    width: parent.cardWidth
+                    label: "Desktop"
+                    hint: I18n.t("как в Windows: окна поверх друг друга, тащи за заголовок, _ □ X", "as in Windows: windows over each other, dragged by the title, _ □ X")
+                    checked: WindowConfig.floatAll
+                    onPicked: {
+                        WindowConfig.setFloatAll(true);
+                        Config.decor.gtkLayout = "minimize,maximize,close";
+                    }
+                    PxIcon {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        name: "layers"
+                        pixel: Theme.u * 4
+                    }
+                }
+                Choice {
+                    width: parent.cardWidth
+                    label: I18n.t("Лента", "Strip")
+                    hint: I18n.t("окна встают колонками слева направо, ленту листают", "windows stand in columns left to right; the strip scrolls")
+                    checked: !WindowConfig.floatAll
+                    onPicked: WindowConfig.setFloatAll(false)
+                    PxIcon {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        name: "strip"
+                        pixel: Theme.u * 4
+                    }
+                }
+            }
+            Choices {
+                visible: !WindowConfig.floatAll
                 width: parent.width
                 n: 2
                 Repeater {
@@ -963,6 +987,7 @@ Item {
                 }
             }
             PxText {
+                visible: !WindowConfig.floatAll
                 width: parent.width
                 wrapMode: Text.Wrap
                 kind: "tiny"
@@ -1172,7 +1197,7 @@ Item {
             }
             Choice {
                 width: parent.cardWidth
-                label: I18n.t("Просто рабочий стол", "Just the desktop")
+                label: I18n.t("Без игры", "Without the game")
                 hint: I18n.t("Панель, окна и темы — без ангела, демоницы, новеллы и ада, а всё райское открыто сразу. Игру можно включить потом.", "The bar, windows and themes — no angel, demon, novel or hell, and all of heaven's things open at once. The game can be turned on later.")
                 checked: Config.game.enabled === false
                 onPicked: Story.setEnabled(false)
@@ -1350,6 +1375,7 @@ Item {
                     readonly property var info: SettingsTree.blockPart(modelData)
                     width: parent.width
                     Component.onCompleted: setSource(info.file, {
+                        "catalog": info.catalog,
                         "embedded": true,
                         "only": info.only,
                         "loose": false,
