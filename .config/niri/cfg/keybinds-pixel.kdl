@@ -95,7 +95,8 @@ binds {
     Mod+Shift+Space                     hotkey-overlay-title="Окно поверх / в ряд" { toggle-window-floating; }
     Mod+F                               { fullscreen-window; }
     Mod+Shift+F                         { maximize-column; }
-    Mod+W                               { toggle-column-tabbed-display; }
+    Mod+W                               hotkey-overlay-title="angelOS: Mission Control — все окна и столы" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open mission"; }
+    Mod+Shift+W                         { toggle-column-tabbed-display; }
     Mod+M                               { maximize-window-to-edges; }
     Mod+Z                               hotkey-overlay-title="Свернуть окно" { spawn-sh "qs -c angelos ipc call angelos minimize"; }
 

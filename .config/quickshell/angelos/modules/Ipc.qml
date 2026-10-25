@@ -502,6 +502,12 @@ IpcHandler {
         Config.bar.startStyle = style;
         return "ok";
     }
+    // Mission Control (Mod+W, modules/mission): the windows of the desk laid out, the desks on top
+    function mission(): void {
+        if (Shell.setupLocked)
+            return;
+        Mission.toggle();
+    }
     function launcher(): void {
         if (Shell.setupLocked)
             return;
@@ -835,9 +841,18 @@ IpcHandler {
             "underMore": Object.keys(n.more)
         });
     }
-    // how Settings lay the pages out: Windows 11, or System Settings under Golden Gate (no choice)
+    // the Settings window's look: `angelos settingsView win11|p5` (no argument: which one; under
+    // Golden Gate it is System Settings whatever is picked). Comes with the next opening
     function settingsView(view: string): string {
-        return GoldenGate.on ? "mac" : "win11";
+        const looks = ["win11", "p5"];
+        const v = String(view || "").trim().toLowerCase();
+        if (v === "")
+            return (GoldenGate.on ? "mac" : SettingsLook.picked) + "  (" + looks.join(" | ") + ")";
+        if (!looks.includes(v))
+            return "unknown view " + v + ": " + looks.join(" | ");
+        Config.settingsUi.look = v;
+        Config.settingsUi.lookAsked = true;
+        return "ok";
     }
     // what Settings wear: `angelos settingsSkin windose` (no argument: which one)
     function settingsSkin(skin: string): string {

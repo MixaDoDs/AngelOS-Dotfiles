@@ -13,7 +13,8 @@ import qs.widgets
 PanelWindow {
     id: win
 
-    readonly property bool wanted: Config.ready && Config.setup.complete && Telemetry.consent === "" && !Shell.dev && !Quickshell.env("ANGELOS_TEST")
+    // nowhere to send it yet (data/sponsor.json has no endpoint): not asked
+    readonly property bool wanted: Config.ready && Config.setup.complete && Telemetry.consent === "" && Telemetry.hasEndpoint && !Shell.dev && !Quickshell.env("ANGELOS_TEST")
     property bool due: false
     screen: Shell.mainScreenFor("") || Shell.focusedScreen
     visible: due && wanted && !Shell.setupLocked && !Shell.locked && !Updates.askRestart

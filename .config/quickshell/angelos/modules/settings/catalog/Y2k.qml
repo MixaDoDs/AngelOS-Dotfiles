@@ -34,8 +34,9 @@ CatPage {
             hint: StreamMode.active ? I18n.t("эфир: angelOS не лезет в кадр", "Live: angelOS stays out of the picture") : Config.stream.auto ? (StreamMode.obsUp ? I18n.t("OBS на связи, эфира нет", "OBS connected, not streaming") : StreamMode.obsAuth ? I18n.t("OBS просит пароль WebSocket — включи вход без пароля или сохрани пароль в OBS", "OBS wants a WebSocket password") : I18n.t("OBS не запущен или WebSocket-сервер выключен (Инструменты → Настройки WebSocket)", "OBS isn't running or its WebSocket server is off (Tools → WebSocket Server Settings)")) : I18n.t("выключен", "Off")
             icon: StreamMode.active ? "close" : "play"
             accent: !StreamMode.active
-            text: StreamMode.active ? I18n.t("Выключить", "Switch off") : I18n.t("Включить вручную", "Switch on by hand")
-            onClicked: StreamMode.set("toggle")
+            confirm: true
+            text: confirming ? I18n.t("Точно? Ещё раз", "Sure? Again") : StreamMode.active ? I18n.t("Выключить", "Switch off") : I18n.t("Включить вручную", "Switch on by hand")
+            onConfirmed: StreamMode.set("toggle")
         }
         CatToggle {
             label: I18n.t("Включать сам, когда OBS в эфире", "On by itself while OBS is live")

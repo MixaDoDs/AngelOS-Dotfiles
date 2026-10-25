@@ -103,6 +103,7 @@ Singleton {
             return;
         Config.windows.floatAll = on;
         modeFlipped(on, false);
+        Sounds.play(on ? "desktopOn" : "desktopOff");
         if (Niri.nativeMinimize)
             return;
         if (on) {
@@ -296,10 +297,17 @@ Singleton {
                 "on": floatAll,
                 "title_font": overviewFont,
                 // the pixel bars: "light" in a light heaven, the inactive ones pale instead of dark
-                "title_style": GoldenGate.on ? "mac" : !Theme.dark && !Angel.demon ? "light" : "win98"
+                "title_style": GoldenGate.on ? "mac" : !Theme.dark && !Angel.demon ? "light" : "win98",
+                "title_buttons": Config.windows.titleButtons === "right" ? "right" : "left",
+                "green": Config.windows.green === "fullscreen" ? "fullscreen" : "maximize",
+                // Settings → Halo → «Windows and the Halo»: only snapped and maximized ones keep
+                // clear of it (it reserves nothing itself then)
+                "top_inset": Config.halo.enabled && Config.halo.windows === "maximized" ? Halo.strip : 0
             });
     }
     onFloatAllChanged: applyStacking()
+    readonly property var _stackingLook: [Config.windows.titleButtons, Config.windows.green, Config.halo.windows, Config.halo.enabled, Halo.strip]
+    on_StackingLookChanged: applyStacking()
     Connections {
         target: Theme
         function onDarkChanged() {

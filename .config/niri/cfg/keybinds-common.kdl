@@ -31,12 +31,12 @@ binds {
     Mod+Shift+R                         repeat=false hotkey-overlay-title="Запись области экрана (в Видео)" { spawn "@HOME@/.local/bin/niri-record-region"; }
     Mod+CTRL+WheelScrollDown            cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws carry-down"; }
     Mod+CTRL+WheelScrollUp              cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws carry-up"; }
-    Mod+WheelScrollRight                { focus-column-right; }
-    Mod+WheelScrollLeft                 { focus-column-left; }
+    Mod+WheelScrollRight                cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws side-right"; }
+    Mod+WheelScrollLeft                 cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws side-left"; }
     Mod+CTRL+WheelScrollRight           { move-column-right; }
     Mod+CTRL+WheelScrollLeft            { move-column-left; }
-    Mod+Shift+WheelScrollDown           { focus-column-right; }
-    Mod+Shift+WheelScrollUp             { focus-column-left; }
+    Mod+Shift+WheelScrollDown           cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws side-right"; }
+    Mod+Shift+WheelScrollUp             cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws side-left"; }
     Mod+CTRL+Shift+WheelScrollDown      { move-column-right; }
     Mod+CTRL+Shift+WheelScrollUp        { move-column-left; }
     Mod+V                               hotkey-overlay-title="angelOS: буфер обмена" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open clipboard"; }

@@ -246,10 +246,14 @@ Variants {
             // a right click on a window's title bar (angel-niri's stacking mode): its menu here
             Connections {
                 target: Niri
-                function onWindowMenuRequested(id, output, pos) {
+                function onWindowMenuRequested(id, output, pos, green) {
                     const w = Niri.windows.find(x => x.id === id);
-                    if (w && output === win.modelData.name)
-                        menu.openWindow(w, pos[0], pos[1]);
+                    if (w && output === win.modelData.name) {
+                        if (green)
+                            menu.openGreen(w, pos[0], pos[1]);
+                        else
+                            menu.openWindow(w, pos[0], pos[1]);
+                    }
                 }
             }
 

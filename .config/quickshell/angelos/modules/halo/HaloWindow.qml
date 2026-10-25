@@ -48,10 +48,41 @@ PanelWindow {
     // (Settings → Halo → «Music without synced lyrics»): its title peeks 5 s on a new track or
     // a pause, then its cover and bars take the resting pill's right side (`musicEar`); beside
     // another event it stays a bubble
-    readonly property bool musicCapsule: Config.halo.musicSmart === false || Halo.peek || Halo.pauseFresh || (Halo.synced && lyricsHere)
+    // while its lyrics are still being looked for it keeps the pill too: after a start the search
+    // took minutes and the song sat as a cover on the side meanwhile (the owner, 25.10)
+    readonly property bool musicCapsule: Config.halo.musicSmart === false || Halo.peek || Halo.pauseFresh || ((Halo.synced || Lyrics.status === "loading") && lyricsHere)
     readonly property var items: baseItems.filter(i => i.kind !== "music" || musicCapsule || baseItems.some(o => !["music", "paused", "shelf"].includes(o.kind)))
     readonly property bool musicEar: Config.halo.showMusic !== false && Halo.music && Lyrics.playing && !items.some(i => i.kind === "music")
-    readonly property bool shown: (!full || items.length > 0) && (!Halo.hidden || items.some(i => i.kind === "ring"))
+    readonly property bool shown: (!full || items.length > 0) && (!Halo.hidden || items.some(i => i.kind === "ring")) && !(dodging && !peeking) && !mission
+    // Mission Control on this screen: its desks are where the Halo sits, the Halo stepped aside
+    // (it took their clicks)
+    readonly property bool mission: Mission.shown && Mission.screenName === modelData.name
+    // Settings → Halo → «Windows and the Halo» → hide: while a window on this screen's desk
+    // touches the top, the Halo slides away; the pointer at the top edge brings it back
+    readonly property bool dodging: Config.halo.windows === "hide" && !expanded && !Shell.dev && windowAtTop
+    readonly property bool windowAtTop: {
+        const ws = Niri.activeWorkspace(modelData.name);
+        if (!ws)
+            return false;
+        const half = pill.width / 2 + slack;
+        return Niri.windows.some(w => {
+            if (w.workspace_id !== ws.id || Minimize.isAppHidden(w))
+                return false;
+            const l = w.layout;
+            const pos = l && l.tile_pos_in_workspace_view;
+            // a tiled window starts at the very top (no strip in this mode)
+            if (!pos)
+                return true;
+            const mid = width / 2;
+            return pos[1] < strip && pos[0] < mid + half && pos[0] + l.tile_size[0] > mid - half;
+        });
+    }
+    property bool peeking: false
+    Timer {
+        id: peekEnd
+        interval: 900
+        onTriggered: win.peeking = hover.hovered
+    }
     readonly property bool lyricsHere: Lyrics.placeOn(modelData.name) === "halo"
 
     // the main thing: a timer's end, else the one picked from the bubbles, else the most urgent.
@@ -256,6 +287,10 @@ PanelWindow {
         value: true
         restoreMode: Binding.RestoreValue
     }
+    // the notification in the pill is seen once the pointer is on it or its card opens: it may go
+    readonly property bool notifLooked: !!win.main && win.main === Halo.flash && win.main.kind === "notif" && (win.expanded || hover.hovered)
+    onNotifLookedChanged: if (notifLooked)
+        Halo.flashSeen = true
     // the screenshot's capsule stays while the pointer is on it or its card is open
     Binding {
         when: !!win.main && win.main.kind === "shot" && (win.expanded || hover.hovered)
@@ -500,15 +535,19 @@ PanelWindow {
     // Normal said outright: a 0 at start (the strip off) doesn't change the zone, so Quickshell
     // never left Auto and the strip came back after every restart (#89)
     exclusionMode: ExclusionMode.Normal
-    exclusiveZone: Config.halo.reserve && !Shell.dev ? strip : 0
+    exclusiveZone: Config.halo.reserve && (Config.halo.windows || "bar") === "bar" && !Shell.dev ? strip : 0
+    onStripChanged: Halo.strip = strip
+    Component.onCompleted: Halo.strip = strip
     color: "transparent"
     WlrLayershell.namespace: "angelos-halo"
     // the keyboard only for the quick buttons' fields
     WlrLayershell.keyboardFocus: expanded && (pages[page] === "buttons" || pages[page] === "shelf") && !menu && !dropping ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     // a full-screen window covers the Top layer: its timer's end comes over it
-    WlrLayershell.layer: Shell.bootOpen || Shell.bootCover ? WlrLayer.Top : WlrLayer.Overlay
+    // under Mission Control while it is open here: hidden, its input region still took the
+    // clicks on the desks under it
+    WlrLayershell.layer: Shell.bootOpen || Shell.bootCover || mission ? WlrLayer.Top : WlrLayer.Overlay
     mask: Region {
-        item: win.shown ? hit : null
+        item: win.shown ? hit : win.dodging ? peekZone : null
         Region {
             item: win.shown && !win.expanded && win.others.length ? bubbleRow : null
         }
@@ -634,6 +673,21 @@ PanelWindow {
     readonly property color textInk: Theme.text
     readonly property color textInkDim: Theme.textDim
 
+    // the top edge over the hidden pill (dodging): the pointer there brings the Halo back
+    Item {
+        id: peekZone
+        width: hit.width
+        height: win.u * 2
+        x: hit.x
+        HoverHandler {
+            enabled: win.dodging
+            onHoveredChanged: {
+                if (hovered)
+                    win.peeking = true;
+                peekEnd.restart();
+            }
+        }
+    }
     // where the pointer finds it: from the screen's very edge down (thrown up, the pointer stops
     // on the top row of pixels) and a little wider than the pill (or the ring at rest)
     Item {
@@ -658,6 +712,8 @@ PanelWindow {
                 linger.stop();
             }
             onHoveredChanged: {
+                if (!hovered && win.peeking)
+                    peekEnd.restart();
                 if (hovered) {
                     win.hoverStale = false;
                     linger.stop();

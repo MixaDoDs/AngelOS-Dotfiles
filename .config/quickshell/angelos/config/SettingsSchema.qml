@@ -90,6 +90,8 @@ JsonAdapter {
         property string taskRightClick: "menu" // menu (window menu with Close) | close (closes at once) | none
         property bool taskMiddleClose: true // middle click on a window button closes the window
         property bool taskHoverClose: false // × on the hovered window button
+        property var taskPinned: []         // app ids pinned to the taskbar: their buttons lead the row, starting the app while none runs
+        property var taskOrder: []          // Desktop: the taskbar's apps in the order dragged into
     }
 
     property JsonObject wallpaper: JsonObject {
@@ -173,6 +175,8 @@ JsonAdapter {
         // plain niri a rule in angelos.kdl, ThemeExport); Golden Gate is always Desktop (WindowConfig)
         property bool floatAll: false
         property bool desktopHintSeen: false // the first-time keys hint (modules/osd/Osd.qml) was shown
+        property string titleButtons: "left" // angel-niri title bars: the traffic lights on the left (Mac) | right (Windows)
+        property string green: "maximize"   // the green button: maximize | fullscreen (onto a desk of its own, like a Mac)
         property bool pixelCorners: true    // angel-niri: square windows get pixel staircase corners (services/WindowConfig)
         property bool inactiveDim: true     // angel-niri: a sparse grid of dark dots over the windows not in focus (services/WindowConfig)
         property var dimOutputs: []         // the monitors with those dots; empty: every monitor
@@ -768,6 +772,10 @@ JsonAdapter {
         // the quick buttons page, in this order (services/HaloButtons.catalog has them all)
         property var buttons: ["pomodoro", "timer", "record", "picker", "note"]
         property bool reserve: true         // a strip of its own at the top: windows start below it, no tab is covered (the open card still lies over)
+        // with the strip (reserve): bar (like a Mac's menu bar: windows start and stay below it) |
+        // maximized (only maximized and snapped windows keep clear, the rest may go under) |
+        // hide (no strip: the Halo slides away while a window touches the top, back on hover)
+        property string windows: "bar"
         property bool browserBridge: true   // the browsers' download percent: their small extension (scripts/browser-downloads.py)
     }
 
@@ -851,6 +859,10 @@ JsonAdapter {
         property bool win11Once: false      // an install still on the old default (sidebar) moved to win11 once
         property string viewPicked: ""      // the view picked in the setup wizard — the player's first choice, kept when changed later
         property string skin: "classic"     // classic angelOS | Windose desktop | stream studio
+        // the Settings window's look (services/SettingsLook): win11 (the Windows 11 view, the default
+        // while P5 is being redone) | p5 (the P5 window over the desk); asked once (SettingsLookPrompt)
+        property string look: "win11"
+        property bool lookAsked: false
         property bool skinChosen: false     // the look was picked (the wizard, or the banner on the settings home)
         property var usage: ({})            // page id -> visits; "Everyday" on the home page follows it
         property var searchHistory: []      // what was searched and opened, newest first: [{q, title, page, icon}] (SettingsView: a click into the empty search shows it)

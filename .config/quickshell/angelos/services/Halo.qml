@@ -47,6 +47,10 @@ Singleton {
             "l": 1.25
         })[Config.halo.size] || 1
 
+    // the height of the Halo's strip at the top (HaloWindow): the room niri keeps for snapped and
+    // maximized windows in Settings → Halo → «Windows and the Halo» → maximized (WindowConfig)
+    property int strip: 0
+
     // the right-click menu's «hide for an hour»: the pill and the ring go, the strip stays (the
     // windows don't jump)
     property double hiddenUntil: 0
@@ -117,7 +121,9 @@ Singleton {
     }
 
     // ---- notifications, the volume, calls (the owner's 16.10 answers) ----
-    // a notification: 3.5 s in the pill (held while its card is open); not over a hidden or
+    // a notification: in the pill until it is seen — the pointer on the pill or its card open
+    // (#106: 3.5 s and gone, missed by anyone away from the screen); the bell counts the unread
+    // (modules/bar/parts/Bell). Not over a hidden or
     // full-screen-hidden Halo (then the corner popup comes as before)
     readonly property bool takesNotifications: Config.ready && !!Config.halo.enabled && Config.halo.notify !== false && !hidden && !(gameOn && Config.halo.overFullscreen !== "timer")
     // somewhere a full-screen window (the Halo's screens): it hides there
@@ -133,6 +139,7 @@ Singleton {
                 "body": info.body || "",
                 "icon": info.icon || ""
             }, 3500);
+            root.flashSeen = false;
             // the notification itself (for «Open») apart: a QObject inside the flash's object
             // made the property drop it at once
             root.flashNote = info.n || null;
@@ -230,6 +237,7 @@ Singleton {
     property var flash: null
     // its card is open: it stays
     property bool flashHeld: false
+    property bool flashSeen: true            // the notification in the pill was looked at (HaloWindow)
     property var flashNote: null
     function flashOf(kind, data, ms) {
         flash = Object.assign({
@@ -242,7 +250,7 @@ Singleton {
     Timer {
         id: flashOff
         onTriggered: {
-            if (root.flash && ((root.flash.kind === "shot" && root.shotHeld) || root.flashHeld))
+            if (root.flash && ((root.flash.kind === "shot" && root.shotHeld) || root.flashHeld || (root.flash.kind === "notif" && !root.flashSeen)))
                 restart();
             else
                 root.flash = null;

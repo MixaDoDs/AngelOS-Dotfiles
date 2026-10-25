@@ -5,7 +5,12 @@ import qs.config
 Item {
     id: root
 
-    property alias source: img.source
+    property url source
+    // shown when the source fails: a tray app's picture (image://qsimage/<handle>) asked for after
+    // the app replaced it is gone (Quickshell: «unknown handle»), and the cell stood empty
+    property url fallback
+    property bool failed: false
+    onSourceChanged: failed = false
     property string mode: "off"
     property int size: Theme.u * 8
 
@@ -15,6 +20,9 @@ Item {
     Image {
         id: img
         anchors.fill: parent
+        source: root.failed && root.fallback.toString() !== "" ? root.fallback : root.source
+        onStatusChanged: if (status === Image.Error && !root.failed)
+            root.failed = true
         sourceSize: Qt.size(root.size, root.size)
         smooth: false
         asynchronous: true

@@ -11,6 +11,34 @@ CatPage {
     heading: I18n.t("Внешний вид", "Appearance")
     subtitle: I18n.t("Основная тема angelOS и дополнительные светлые и тёмные палитры.", "The original angelOS theme and additional light and dark palettes.")
     Component.onCompleted: BlurConfig.refresh()
+    // how the Settings window looks (services/SettingsLook); Golden Gate has System Settings instead
+    CatGroup {
+        name: "settingslook"
+        title: I18n.t("Вид окна настроек", "Settings window look")
+        icon: "gear"
+        present: Config.settingsUi.skin !== "goldengate"
+        CatChoice {
+            label: I18n.t("Вид окна настроек", "Settings window look")
+            hint: I18n.t("Привычный — окно как в Windows 11. Новый — Persona 5 на весь экран. Сменится, когда закроешь настройки.", "Familiar: a window like Windows 11. New: Persona 5 over the whole screen. Changes once Settings are closed.")
+            model: [
+                {
+                    "label": I18n.t("Привычный", "Familiar"),
+                    "value": "win11",
+                    "icon": "window"
+                },
+                {
+                    "label": I18n.t("Новый (P5)", "New (P5)"),
+                    "value": "p5",
+                    "icon": "sparkle"
+                }
+            ]
+            currentValue: Config.settingsUi.look === "p5" ? "p5" : "win11"
+            onActivated: v => {
+                Config.settingsUi.look = v;
+                Config.settingsUi.lookAsked = true;
+            }
+        }
+    }
     // what the whole desktop wears: angelOS classic, Windose, Stream, or Golden Gate (macOS 27)
     CatGroup {
         name: "skin"
@@ -19,7 +47,7 @@ CatPage {
         icon: "window"
         CatNote {
             dim: true
-            text: I18n.t("Классика — исходный вид. Windose и Стрим — свой вид окон и настроек. Golden Gate — весь стол как macOS: строка меню, Dock, Spotlight.", "Classic: the original look. Windose and Stream: their own look of windows and Settings. Golden Gate: the whole desk as macOS — menu bar, Dock, Spotlight.")
+            text: I18n.t("Классика — исходный вид. Windose и Стрим — свой вид окон. Golden Gate — весь стол как macOS: строка меню, Dock, Spotlight.", "Classic: the original look. Windose and Stream: their own look of windows. Golden Gate: the whole desk as macOS — menu bar, Dock, Spotlight.")
         }
         CatCustom {
             wide: true

@@ -322,9 +322,10 @@ Singleton {
                     // `ws <target> <press ms>`: a press older than socat's 1 s wait was already done by
                     // niri itself (`angelos ws` falls back while the shell hangs) — doing it again on
                     // waking threw the desks back and forth
-                    // wheel-*/carry-* are the wheel's (Mod: switch, Mod+Ctrl: carry the window along):
-                    // in Desktop the wheel leaves the workspaces alone, as in other desktops
-                    const m = line.trim().match(/^ws ([0-9]{1,2}|up|down|prev|wheel-up|wheel-down|carry-up|carry-down)(?: ([0-9]+))?$/);
+                    // wheel-*/carry-* are the wheel's (Mod: switch, Mod+Ctrl: carry the window along);
+                    // side-* its sideways turn (and Mod+Shift's): through the columns, nothing in
+                    // Desktop (niri would snap the window to an edge there, as Mod+arrows do)
+                    const m = line.trim().match(/^ws ([0-9]{1,2}|up|down|prev|wheel-up|wheel-down|carry-up|carry-down|side-left|side-right)(?: ([0-9]+))?$/);
                     if (m && m[2] && Date.now() - Number(m[2]) > 800) {
                         client.reply("err");
                         return;
@@ -334,10 +335,14 @@ Singleton {
                     const a = line.trim().match(/^alttab (next|prev|cancel|apps|appsback|appwin|appwinback)$/);
                     // the launcher, the clipboard and the session menu (`angelos open …`): their keys
                     // answer ~40 ms sooner than through `qs ipc`
-                    const o = line.trim().match(/^open (launcher|clipboard|session)$/);
+                    const o = line.trim().match(/^open (launcher|clipboard|session|mission)$/);
                     if (o) {
                         client.reply("ok");
-                        if (!Shell.setupLocked)
+                        if (Shell.setupLocked)
+                            return;
+                        if (o[1] === "mission")
+                            Mission.toggle();
+                        else
                             Shell[o[1] + "Open"] = !Shell[o[1] + "Open"];
                         return;
                     }
@@ -351,10 +356,11 @@ Singleton {
                     const mac = !!a && /^app/.test(a[1]);
                     const ok = !!m || !!a && (AltTab.ours || mac);
                     client.reply(ok ? "ok" : "err");
-                    if (m && /^(wheel|carry)-/.test(m[1])) {
+                    if (m && /^side-/.test(m[1])) {
+                        if (!WindowConfig.floatAll)
+                            Niri.action(m[1] === "side-left" ? "FocusColumnLeft" : "FocusColumnRight", {});
+                    } else if (m && /^(wheel|carry)-/.test(m[1])) {
                         const [kind, dir] = m[1].split("-");
-                        if (WindowConfig.floatAll)
-                            return;
                         if (kind === "wheel")
                             root.go(dir);
                         else

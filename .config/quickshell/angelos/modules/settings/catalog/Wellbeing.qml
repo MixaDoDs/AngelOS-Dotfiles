@@ -489,11 +489,12 @@ CatPage {
         CatButton {
             label: I18n.t("Стереть историю", "Clear the history")
             hint: I18n.t("всё экранное время и стаканы воды", "All the screen time and the glasses of water")
-            text: I18n.t("Стереть", "Clear")
+            confirm: true
+            text: confirming ? I18n.t("Точно? Ещё раз", "Sure? Again") : I18n.t("Стереть", "Clear")
             icon: "trash"
             danger: true
             compact: true
-            onClicked: Wellbeing.clear()
+            onConfirmed: Wellbeing.clear()
         }
     }
 }

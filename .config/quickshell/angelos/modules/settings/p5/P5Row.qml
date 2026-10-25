@@ -666,9 +666,11 @@ Item {
             if (root.selectable && !root.selected)
                 root.pick();
         }
+        // a click on the name only picks the row: a setting changes on its value or button
+        // (a stray click on a toggle's name flipped it); rows that are a way somewhere still go
         onClicked: {
             root.pick();
-            if (root.kind !== "custom")
+            if (["result", "more", "link", "field"].includes(root.kind))
                 root.activate();
         }
     }

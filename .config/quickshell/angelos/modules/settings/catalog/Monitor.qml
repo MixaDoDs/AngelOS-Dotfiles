@@ -423,8 +423,9 @@ CatPage {
             hint: I18n.t("перенести их все на главный (позиции сохранятся, лишнее прижмётся к краю)", "Move them all to the main screen (positions kept, anything off the edge snaps back)")
             compact: true
             icon: "layers"
-            text: I18n.t("Перенести сюда", "Move here")
-            onClicked: DesktopWidgets.moveAllTo(Shell.primaryName)
+            confirm: true
+            text: confirming ? I18n.t("Точно? Ещё раз", "Sure? Again") : I18n.t("Перенести сюда", "Move here")
+            onConfirmed: DesktopWidgets.moveAllTo(Shell.primaryName)
         }
         // her screen and the sidebar's are set on their own pages: links there
         CatLink {

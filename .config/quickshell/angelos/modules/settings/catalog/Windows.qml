@@ -25,7 +25,9 @@ CatPage {
             })) : []
     property string customPreset: ""
     heading: I18n.t("Окна", "Windows")
-    subtitle: I18n.t("Окна встают в колонки, которые прокручиваются вбок.", "Windows stand in columns that scroll sideways.")
+    // angel-niri's Desktop: the columns' settings, the throw and focus-follows-mouse do nothing there
+    readonly property bool desk: Niri.nativeMinimize && WindowConfig.floatAll
+    subtitle: desk ? I18n.t("Окна поверх друг друга, как в обычной системе.", "Windows over each other, as on a usual system.") : I18n.t("Окна встают в колонки, которые прокручиваются вбок.", "Windows stand in columns that scroll sideways.")
     CatGroup {
         name: "closing-windows"
         title: I18n.t("Кнопки окон на панели", "Window buttons on the bar")
@@ -328,15 +330,49 @@ CatPage {
             checked: WindowConfig.floatAll
             onToggled: c => WindowConfig.setFloatAll(c)
         }
+        CatChoice {
+            present: Niri.nativeMinimize && WindowConfig.floatAll
+            label: I18n.t("Кнопки окна", "Window buttons")
+            hint: I18n.t("красная, жёлтая и зелёная на заголовках окон", "The red, yellow and green buttons on the title bars")
+            model: [
+                {
+                    "label": I18n.t("Слева, как Mac", "Left, like a Mac"),
+                    "value": "left"
+                },
+                {
+                    "label": I18n.t("Справа, как Windows", "Right, like Windows"),
+                    "value": "right"
+                }
+            ]
+            currentValue: Config.windows.titleButtons
+            onActivated: v => Config.windows.titleButtons = v
+        }
+        CatChoice {
+            present: Niri.nativeMinimize && WindowConfig.floatAll
+            label: I18n.t("Зелёная кнопка", "The green button")
+            hint: Config.windows.green === "fullscreen" ? I18n.t("окно уходит в полный экран на свой рабочий стол, как в macOS; выйдешь — вернётся на место. Задержи мышь на зелёной — меню: полный экран, развернуть, половина экрана, другой монитор", "The window goes full screen on a desk of its own, as in macOS, and comes back when it leaves. Rest the pointer on the green button for a menu: full screen, maximize, half the screen, another monitor") : I18n.t("разворачивает окно на весь экран (двойной клик по заголовку — тоже). Задержи мышь на зелёной — меню: полный экран, развернуть, половина экрана, другой монитор", "Maximizes the window (so does a double click on the title). Rest the pointer on the green button for a menu: full screen, maximize, half the screen, another monitor")
+            model: [
+                {
+                    "label": I18n.t("Развернуть", "Maximize"),
+                    "value": "maximize"
+                },
+                {
+                    "label": I18n.t("Полный экран", "Full screen"),
+                    "value": "fullscreen"
+                }
+            ]
+            currentValue: Config.windows.green
+            onActivated: v => Config.windows.green = v
+        }
         CatToggle {
-            present: Niri.nativeMinimize
+            present: Niri.nativeMinimize && !page.desk
             label: I18n.t("Бросок окна", "Throwing windows")
             hint: I18n.t("отпустил плавающее окно на ходу — оно летит дальше, отскакивает от краёв монитора и сплющивается о них; пока тащишь, отстаёт и колышется, как желе", "Let go of a floating window mid-drag and it flies on, bouncing off the monitor's edges and squashing against them; while dragged it lags and sways like jelly")
             checked: Config.windows.throwOn
             onToggled: c => Config.windows.throwOn = c
         }
         CatSlider {
-            present: Niri.nativeMinimize && Config.windows.throwOn
+            present: Niri.nativeMinimize && !page.desk && Config.windows.throwOn
             label: I18n.t("Сила броска", "Throw strength")
             hint: I18n.t("насколько далеко улетает окно: чуть скользит … через весь экран", "How far a window flies: barely slides … across the screen")
             from: 10
@@ -347,7 +383,7 @@ CatPage {
             onReleased: v => Config.windows.throwStrength = v / 100
         }
         CatSlider {
-            present: Niri.nativeMinimize && Config.windows.throwOn
+            present: Niri.nativeMinimize && !page.desk && Config.windows.throwOn
             label: I18n.t("Отскок от краёв", "Bounce off edges")
             hint: I18n.t("0 — окно упирается в край и останавливается", "0: the window stops at the edge")
             from: 0
@@ -358,7 +394,7 @@ CatPage {
             onReleased: v => Config.windows.throwBounce = v / 100
         }
         CatSlider {
-            present: Niri.nativeMinimize && Config.windows.throwOn
+            present: Niri.nativeMinimize && !page.desk && Config.windows.throwOn
             label: I18n.t("Сплющивание при ударе", "Squash on impact")
             hint: I18n.t("0 — без сплющивания", "0: no squash")
             from: 0
@@ -369,7 +405,7 @@ CatPage {
             onReleased: v => Config.windows.throwSquash = v / 100
         }
         CatSlider {
-            present: Niri.nativeMinimize && Config.windows.throwOn
+            present: Niri.nativeMinimize && !page.desk && Config.windows.throwOn
             label: I18n.t("Колыхание при перетаскивании", "Sway while dragging")
             hint: I18n.t("0 — окно идёт ровно за мышью", "0: the window follows the mouse exactly")
             from: 0
@@ -571,6 +607,7 @@ CatPage {
     CatGroup {
         name: "layout"
         title: I18n.t("Колонки и отступы", "Columns and gaps")
+        present: !page.desk
         advanced: true
         icon: "window"
         enabled: !WindowConfig.busy
@@ -618,6 +655,7 @@ CatPage {
     CatGroup {
         name: "window-widths"
         title: I18n.t("Ширина окон", "Window widths")
+        present: !page.desk
         advanced: true
         icon: "layers"
         enabled: !WindowConfig.busy
@@ -745,7 +783,8 @@ CatPage {
             onToggled: c => Config.decor.gtkButtons = c
         }
         CatChoice {
-            present: Config.decor.gtkButtons
+            // Desktop on a pixel skin: always _ □ X (services/ThemeExport)
+            present: Config.decor.gtkButtons && !(WindowConfig.floatAll && !GoldenGate.on)
             label: I18n.t("Кнопки в заголовке", "Title bar buttons")
             model: [
                 {

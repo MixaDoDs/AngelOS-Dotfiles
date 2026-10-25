@@ -47,6 +47,8 @@ CatPage {
         }
         // set where the windows are laid out (Windows → Layout); here a link to it
         CatLink {
+            // angel-niri's Desktop: focus follows clicks only, the setting is hidden there
+            present: !(Niri.nativeMinimize && WindowConfig.floatAll)
             label: I18n.t("Фокус следует за мышью", "Focus follows mouse")
             hint: InputConfig.focusFollowsMouse ? I18n.t("включено", "on") : I18n.t("выключено", "off")
             page: "windows"

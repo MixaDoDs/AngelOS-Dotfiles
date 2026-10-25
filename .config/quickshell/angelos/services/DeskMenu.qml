@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 
 // What the right-click menus hold (Settings → Personalization → Right-click menu): each target
@@ -15,6 +16,18 @@ import qs.config
 // picks one (RadialMenu).
 Singleton {
     id: root
+
+    // the pids X11 windows show in niri (xwayland-satellite's): «End task» is not offered there
+    property var x11Pids: []
+    Process {
+        id: x11Lookup
+        command: ["pidof", "xwayland-satellite", "Xwayland"]
+        stdout: StdioCollector {
+            onStreamFinished: root.x11Pids = text.trim().split(/\s+/).filter(x => x).map(Number)
+        }
+    }
+    readonly property int windowCount: Niri.windows.length
+    onWindowCountChanged: x11Lookup.running = true
 
     // the wallpaper menu's looks: list (the usual) · wings · harp (heaven's own, earned) ·
     // pentagram (hell's own). While the demon rules, Y2K → Hell → "Right-click menu" takes over
@@ -293,6 +306,12 @@ Singleton {
                 "icon": "width",
                 "on": ["task"]
             },
+            "pinTask": {
+                "label": I18n.t("Закрепить на панели", "Pin to taskbar"),
+                "short": I18n.t("На панель", "Pin"),
+                "icon": "pin",
+                "on": ["task"]
+            },
             "pinStart": {
                 "label": I18n.t("Закрепить в «Пуске»", "Pin to Start"),
                 "short": I18n.t("Закрепить", "Pin"),
@@ -389,7 +408,7 @@ Singleton {
             },
             "task": {
                 "quick": ["minimize", "maximize", "float", "close"],
-                "items": ["shade", "onTop", "sticky", "toDesk", "toMonitor", "pinStart", "shotWindow", "kill"]
+                "items": ["shade", "onTop", "sticky", "toDesk", "toMonitor", "pinTask", "shotWindow", "kill"]
             },
             "widget": {
                 "quick": ["size", "depth", "widgetSettings", "removeWidget"],
@@ -733,6 +752,18 @@ Singleton {
                             "run": () => Quickshell.execDetached(["niri", "msg", "action", "set-window-width", "--id", String(w.id), WindowConfig.niriArg(c.value)])
                         }))
             });
+        case "pinTask":
+            {
+                if (!w.app_id)
+                    return null;
+                const pins = Config.bar.taskPinned || [];
+                const on = pins.includes(w.app_id);
+                return with_({
+                    "checkable": true,
+                    "checked": on,
+                    "run": () => Config.bar.taskPinned = on ? pins.filter(k => k !== w.app_id) : pins.concat([w.app_id])
+                });
+            }
         case "pinStart":
             {
                 const app = StartApps.apps.find(a => a.id === w.app_id || a.id === w.app_id + ".desktop" || String(a.id).toLowerCase() === String(w.app_id).toLowerCase());
@@ -784,10 +815,12 @@ Singleton {
                 });
             }
         case "kill":
-            // not for angelOS's own windows: their pid is the shell itself
-            return w.pid && w.pid !== Shell.pid && Shell.pid > 0 ? with_({
+            // not for angelOS's own windows: their pid is the shell itself; not for X11 ones: niri
+            // knows only xwayland-satellite's pid for them, and killing it took every X11 app (#116).
+            // Checked once more when it runs, in case the list is behind
+            return w.pid && w.pid !== Shell.pid && Shell.pid > 0 && !root.x11Pids.includes(w.pid) ? with_({
                 "hint": "pid " + w.pid,
-                "run": () => Shell.exec(["kill", String(w.pid)])
+                "run": () => Shell.exec(["sh", "-c", 'case "$(cat /proc/$1/comm)" in xwayland-sat*|Xwayland) exit 1 ;; esac; kill "$1"', "kill", String(w.pid)])
             }) : null;
         }
         return null;

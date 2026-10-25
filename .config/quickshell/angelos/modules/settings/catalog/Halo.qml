@@ -196,11 +196,32 @@ CatPage {
             checked: Config.halo.enabled
             onToggled: c => Config.halo.enabled = c
         }
-        CatToggle {
-            label: I18n.t("Своя полоса сверху", "A strip of its own")
-            hint: I18n.t("окна начинаются под Нимбом и не закрываются им (вкладки браузера); раскрытая карточка всё равно ложится поверх", "windows start below the Halo, so it covers none (browser tabs); the open card still lies over them")
-            checked: Config.halo.reserve
-            onToggled: c => Config.halo.reserve = c
+        CatChoice {
+            label: I18n.t("Окна и Нимб", "Windows and the Halo")
+            hint: ({
+                    "bar": I18n.t("как меню-бар Mac: у Нимба своя полоса, окна начинаются и остаются под ним; раскрытая карточка всё равно ложится поверх", "Like a Mac's menu bar: the Halo has a strip of its own, windows start and stay below it; the open card still lies over them"),
+                    "maximized": I18n.t("под Нимб не заезжают только развёрнутые и прилипшие к краю окна, остальные могут", "Only maximized and snapped windows keep clear of the Halo, the rest may go under it"),
+                    "hide": I18n.t("полосы нет: окно коснулось верха — Нимб прячется, подведи мышь к верхнему краю — вернётся", "No strip: when a window touches the top the Halo hides; move the pointer to the top edge to bring it back")
+                })[Config.halo.reserve ? Config.halo.windows : ""] || I18n.t("сейчас Нимб лежит поверх окон", "Now the Halo lies over the windows")
+            model: [
+                {
+                    "label": I18n.t("Полоса", "Strip"),
+                    "value": "bar"
+                },
+                {
+                    "label": I18n.t("Развёрнутые", "Maximized"),
+                    "value": "maximized"
+                },
+                {
+                    "label": I18n.t("Прячется", "Hides"),
+                    "value": "hide"
+                }
+            ]
+            currentValue: Config.halo.reserve ? Config.halo.windows : ""
+            onActivated: v => {
+                Config.halo.windows = v;
+                Config.halo.reserve = true;
+            }
         }
         CatCustom {
             label: I18n.t("На каких экранах", "Show on displays")

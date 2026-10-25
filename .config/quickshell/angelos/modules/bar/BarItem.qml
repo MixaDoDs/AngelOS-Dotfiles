@@ -53,6 +53,9 @@ Loader {
     visible: {
         if (wid === "tasks")
             return Config.bar.showWindows;
+        // Desktop has no desk strip on the bar: the desks are in Mission Control (Mod+W)
+        if (wid === "workspaces")
+            return !WindowConfig.floatAll;
         // network indicators show only where there is such hardware
         if (wid === "wifi")
             return Wifi.available && Wifi.hasWifi && Config.network.showWifi;

@@ -169,7 +169,9 @@ Scope {
             "id": "telemetry",
             "icon": "chip",
             "title": I18n.t("Помочь автору телеметрией?", "Help the author with telemetry?"),
-            "text": I18n.t("Раз в неделю автору angelOS уходят версии и железо: процессор, видеокарта, память, экраны, версии Quickshell и системы. Так видно, на чём angelOS живёт и что чинить первым. Имён, файлов и IP — нет. Передумаешь — Настройки → Спонсор.", "Once a week angelOS's author gets the versions and the hardware: CPU, graphics, memory, screens, the Quickshell and system versions. That shows what angelOS runs on and what to fix first. No names, files or IP. Changed your mind? Settings → Sponsor.")
+            "text": I18n.t("Раз в неделю автору angelOS уходят версии и железо: процессор, видеокарта, память, экраны, версии Quickshell и системы. Так видно, на чём angelOS живёт и что чинить первым. Имён, файлов и IP — нет. Передумаешь — Настройки → Спонсор.", "Once a week angelOS's author gets the versions and the hardware: CPU, graphics, memory, screens, the Quickshell and system versions. That shows what angelOS runs on and what to fix first. No names, files or IP. Changed your mind? Settings → Sponsor."),
+            // nowhere to send it yet (data/sponsor.json has no endpoint): not asked, «yes» would do nothing
+            "when": Telemetry.hasEndpoint
         },
         {
             "id": "ready",
@@ -539,7 +541,7 @@ Scope {
             return;
         Config.game.enabled = false;
         Config.setup.complete = true;
-        if (!Config.setup.telemetry)
+        if (!Config.setup.telemetry && Telemetry.hasEndpoint)
             Telemetry.setConsent("no");
         setupInstall.active = false;
         close();
@@ -549,7 +551,7 @@ Scope {
             return;
         Config.setup.complete = true;
         // the telemetry step passed with neither card picked: that is a no
-        if (!Config.setup.telemetry)
+        if (!Config.setup.telemetry && Telemetry.hasEndpoint)
             Telemetry.setConsent("no");
         // the tips start where the questions were answered, once the wizard's screens are gone
         tipsOn = tipsAfter ? (host ? host.name : "") || "-" : "";

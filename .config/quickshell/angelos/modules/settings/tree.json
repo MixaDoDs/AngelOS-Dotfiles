@@ -476,7 +476,8 @@
           "hintRu": "светлая или тёмная, цветовая схема, прозрачность, значки",
           "hintEn": "light or dark, the colour scheme, transparency, icons",
           "blocks": [
-            "appearance/theme"
+            "appearance/theme",
+            "appearance/settingslook"
           ],
           "more": [
             "appearance/skin",

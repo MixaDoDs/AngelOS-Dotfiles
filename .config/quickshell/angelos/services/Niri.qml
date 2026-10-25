@@ -94,7 +94,7 @@ Singleton {
     signal minimizeRequested(int id, string output, var rect, string snapshot)
     // angel-niri, stacking mode: a right click on a window's title bar, at `pos` on `output`
     // (logical px) — Shell.desktopMenus opens the window's menu there
-    signal windowMenuRequested(int id, string output, var pos)
+    signal windowMenuRequested(int id, string output, var pos, bool green)
     signal layoutSwitched(string name)
     signal configLoaded(bool failed)
     signal windowClosed(int id)
@@ -312,9 +312,14 @@ Singleton {
     function _keepWorkspace(w, old) {
         if (w.is_minimized !== undefined && !nativeMinimize)
             nativeMinimize = true;
-        // (a minimized window is on no workspace for real)
-        if (w.is_minimized)
-            return w;
+        // (a minimized window is on no workspace for real; it keeps the screen it left, for the
+        // taskbar of that screen — minimized by niri itself, Minimize has no origin for it)
+        if (w.is_minimized) {
+            const left = old && (old.left_output || (workspaceById(old.workspace_id) || {}).output);
+            return left ? Object.assign({}, w, {
+                "left_output": left
+            }) : w;
+        }
         if (w.workspace_id === null || w.workspace_id === undefined) {
             if (old && old.workspace_id !== null && old.workspace_id !== undefined)
                 return Object.assign({}, w, {
@@ -436,7 +441,7 @@ Singleton {
             break;
         case "WindowMenuRequested":
             if (ready)
-                windowMenuRequested(d.id, d.output || "", d.pos || [0, 0]);
+                windowMenuRequested(d.id, d.output || "", d.pos || [0, 0], !!d.green);
             break;
         case "WindowClosed":
             if (d.id === castWindowId) {
