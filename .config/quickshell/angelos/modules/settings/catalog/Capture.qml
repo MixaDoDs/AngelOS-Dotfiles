@@ -186,7 +186,7 @@ CatPage {
         icon: "search"
         CatButton {
             label: I18n.t("Как вызвать", "How to open")
-            hint: I18n.t("Win+Shift+S или Print: экран замирает, выберите область, окно или текст — сохранить, скопировать, перевести, найти", "Win+Shift+S or Print: the screen freezes, pick a part, a window or text — save, copy, translate, search")
+            hint: I18n.t("Win+Shift+S или Print: экран замирает, выбери область, окно или текст.", "Win+Shift+S or Print: the screen freezes, pick an area, a window or text.")
             text: I18n.t("Попробовать", "Try it")
             icon: "search"
             onClicked: CircleHost.start("")
@@ -250,7 +250,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Ссылки — в мини-остров", "Links into the mini island")
-            hint: I18n.t("ссылка из Circle, буфера или уведомления открывается в маленьком окне в углу: убрать в любой край, клики насквозь (Win+Alt+I), на весь экран. Выключено — в браузере", "a link from Circle, the clipboard or a notification opens in a small window in the corner: tuck it into any edge, clicks through it (Win+Alt+I), full screen. Off: in the browser")
+            hint: I18n.t("Ссылки открываются в маленьком окне в углу, а не в браузере. Win+Alt+I — клики сквозь него.", "Links open in a small corner window instead of the browser. Win+Alt+I clicks through it.")
             checked: Config.island.enabled
             onToggled: v => Config.island.enabled = v
         }
@@ -263,13 +263,13 @@ CatPage {
         CatToggle {
             present: Config.circle.lens
             label: I18n.t("Результаты Lens в окне angelOS", "Lens results in an angelOS window")
-            hint: I18n.t("похожие картинки, точные совпадения и текст — в своём окне; страница Google открывается кнопкой. Выключено — страница Google в мини-острове", "similar pictures, exact matches and text in a window of its own; Google's page is a button away. Off: Google's page in the mini island")
+            hint: I18n.t("Похожие картинки и текст — в своём окне. Выключено — страница Google в маленьком окне.", "Similar pictures and text in a window of its own. Off: Google's page in the small window.")
             checked: Config.circle.lensWindow
             onToggled: v => Config.circle.lensWindow = v
         }
         CatCustom {
             label: I18n.t("Чему научился", "What it has learned")
-            hint: I18n.t("как вы поправляете рамки, сколько текста берёте, какие области отпускаете, какие слова исправляете — по приложениям; если не уверен, спрашивает после снимка", "how you fix frames, how much text you take, which areas you let go of, which words you correct — per app; when unsure it asks after the shot")
+            hint: I18n.t("Запоминает, как ты поправляешь рамки и текст в каждой программе. Не уверен — спросит после снимка.", "Learns how you fix frames and text in each app. When unsure, it asks after the shot.")
             CatBox {
                 PxButton {
                     readonly property int n: CircleHost.learnedCount
@@ -396,6 +396,7 @@ CatPage {
         CatChoice {
             present: Config.capture.replay
             label: I18n.t("Длина повтора", "Replay length")
+            hint: I18n.t("Сколько последних секунд сохраняет Win+Alt+G.", "How many last seconds Win+Alt+G saves.")
             model: [15, 30, 60, 120].map(n => ({
                         "label": I18n.t(n + " с", n + " s"),
                         "value": n

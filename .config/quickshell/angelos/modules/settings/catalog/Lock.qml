@@ -15,7 +15,7 @@ CatPage {
     // the stream's options belong to the NGO look only
     readonly property bool ngo: Config.lock.style !== "heaven" && Config.lock.style !== "2004"
     heading: I18n.t("Блокировка и заставка", "Lock and idle screen")
-    subtitle: I18n.t("Экран блокировки — NGO-стрим или небесные врата — и заставка-«простой» как в Omarchy: ASCII-арт с анимациями, любая клавиша возвращает рабочий стол.", "The lock screen — an NGO stream or heaven's gate — and an Omarchy-style idle screen: animated ASCII art, any key brings the desktop back.")
+    subtitle: I18n.t("Экран блокировки и заставка, когда ты отошёл. Любая клавиша возвращает стол.", "The lock screen and the idle screen. Any key brings the desktop back.")
     CatGroup {
         name: "lock-screen"
         title: I18n.t("Экран блокировки", "Lock screen")
@@ -23,7 +23,7 @@ CatPage {
         CatChoice {
             id: lookRow
             label: I18n.t("Облик", "Look")
-            hint: I18n.t("Стрим — замок как пиксельная трансляция с чатом; Небеса — врата над облаками; 2004 — игра на паузе у точки сохранения", "Stream: the lock as a pixel broadcast with a chat; Heaven: a gate above the clouds; 2004: a game paused at a save point")
+            hint: I18n.t("Стрим — замок как пиксельная трансляция; Небеса — врата над облаками; 2004 — игра на паузе.", "Stream: a pixel broadcast. Heaven: a gate above the clouds. 2004: a game on pause.")
             preview: "LockScreen"
             model: [
                 {
@@ -48,7 +48,7 @@ CatPage {
         CatChoice {
             present: Quickshell.screens.length > 1
             label: I18n.t("Где вводить пароль", "Where the password goes")
-            hint: I18n.t("«На главном» — всегда на главном экране (Экраны → Ещё → Главный экран), а набранное на другом экране всё равно попадает в поле; «Где фокус» — там, где курсор", "Main screen: always on the main screen (Displays → More → Main screen), and what is typed on another screen still reaches the box; Focus: where the pointer is")
+            hint: I18n.t("«На главном» — всегда на главном экране; «Где фокус» — там, где мышь.", "Main screen: always on the main screen. Focus: where the pointer is.")
             model: [
                 {
                     "label": I18n.t("На главном", "Main screen"),
@@ -185,6 +185,7 @@ CatPage {
         CatToggle {
             id: heartsRow
             label: I18n.t("Летающие сердечки", "Floating hearts")
+            hint: I18n.t("Сердечки плывут по экрану блокировки.", "Hearts drift across the lock screen.")
             preview: "LockScreen"
             checked: Config.lock.hearts
             onToggled: c => {
@@ -232,7 +233,7 @@ CatPage {
             id: streamRow
             present: lockPage.ngo
             label: I18n.t("NGO-стрим", "NGO stream")
-            hint: I18n.t("LIVE-чат знает, что ты делал: программа, трек, время. Зрителей больше с каждым днём (сейчас день %1). Всё выдумано на компьютере и никуда не уходит.", "The LIVE chat knows what you did: the app, the track, the time. More viewers every day (day %1 now). All made up on this computer, nothing leaves it.").arg(LockStream.days)
+            hint: I18n.t("Чат замка выдумывает сообщения про твой день. Всё на этом компьютере, никуда не уходит.", "The lock's chat makes up messages about your day. All on this computer, nothing leaves it.").arg(LockStream.days)
             preview: "LockScreen"
             checked: Config.lock.stream
             onToggled: c => {
@@ -244,6 +245,7 @@ CatPage {
         CatField {
             present: Config.lock.stream && lockPage.ngo
             label: I18n.t("Название «стрима»", "Stream title")
+            hint: I18n.t("Подпись над «эфиром» на экране блокировки.", "The caption over the lock screen's «stream».")
             text: Config.lock.streamTitle
             placeholder: I18n.t("ангел ушёл на перерыв ♡ скоро вернусь", "angel is on a break ♡ be right back")
             onEdited: Config.lock.streamTitle = text
@@ -251,13 +253,14 @@ CatPage {
         CatToggle {
             present: Config.lock.stream && lockPage.ngo
             label: I18n.t("Повтор эфира", "Replay")
-            hint: I18n.t("через время на заднем плане идёт случайное видео с компьютера — без звука и так размыто, что ничего не прочесть", "After a while a random video from the computer plays behind — silent and so blurred nothing can be read")
+            hint: I18n.t("Через время сзади идёт случайное видео с компьютера — без звука и сильно размыто.", "After a while a random video plays behind — silent and heavily blurred.")
             checked: Config.lock.replay
             onToggled: c => Config.lock.replay = c
         }
         CatSpin {
             present: Config.lock.stream && Config.lock.replay && lockPage.ngo
             label: I18n.t("Повтор через", "Replay after")
+            hint: I18n.t("Через сколько после блокировки пойдёт размытый повтор видео.", "How long after locking the blurred video replay starts.")
             from: 10
             to: 600
             stepSize: 10
@@ -315,7 +318,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Крутка при входе", "A wish at the unlock")
-            hint: I18n.t("первый вход за день — бесплатная молитва (3★/4★/5★, гарант): на Небесах падает звезда, в NGO-стриме — гачапон-капсула. Дальше — за 160 ✦, если включено. Клик или клавиша пропускают", "the first unlock of a day prays for free (3★/4★/5★, pity): heaven drops a star, the NGO stream a gachapon capsule. After that 160 ✦ if switched on. A click or a key skips")
+            hint: I18n.t("Первый вход за день — бесплатная молитва за звёзды. Клик или клавиша пропускают.", "The first unlock of a day prays for free. A click or a key skips it.")
             checked: Config.lock.wish
             onToggled: c => Config.lock.wish = c
         }
@@ -455,7 +458,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Как выглядит вход в систему, ещё до angelOS. Выберите облик — ниже он живой, с вашими обоями и цветами. Первая установка спросит пароль администратора; потом облик и цвета меняются без пароля.", "What logging in looks like, before angelOS starts. Pick a look — it runs live below, with your wallpaper and colours. The first install asks for the admin password; after that the look and colours change without one.")
+            text: I18n.t("Как выглядит вход в систему. Ниже — живой образец. Пароль администратора спросят только в первый раз.", "How the login screen looks, live below. The admin password is asked only the first time.")
         }
         // the looks: a card each; the one picked plays below
         CatCustom {
@@ -792,13 +795,14 @@ CatPage {
             enabled: Config.idle.aod
         }
         CatToggle {
-            label: I18n.t("Заряд устройств", "Device charge")
+            label: I18n.t("Заряд беспроводных", "Wireless charge")
             checked: Config.idle.aodDevices
             onToggled: c => Config.idle.aodDevices = c
             enabled: Config.idle.aod
         }
         CatToggle {
             label: I18n.t("Спящий ангел", "The angel asleep")
+            hint: I18n.t("На других экранах дремлет ангел.", "The angel dozes on the other screens.")
             checked: Config.idle.aodAngel
             onToggled: c => Config.idle.aodAngel = c
             enabled: Config.idle.aod

@@ -10,7 +10,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Мастер плагинов", "Plugin Studio")
-    subtitle: I18n.t("Опиши идею → ответь на вопросы → проверь результат → установи. ИИ получает правила angelOS: тему, размеры, настройки и жизненный цикл плагинов.", "Describe an idea → answer questions → review → install. AI receives the angelOS rules for themes, sizing, settings and plugin lifecycle.")
+    subtitle: I18n.t("Опиши идею, ответь на вопросы, проверь и установи свой плагин.", "Describe an idea, answer a few questions, check and install your plugin.")
     property bool connectionOpen: !PluginStudio.hasKey
     property bool historyOpen: false
     property bool resetConfirm: false

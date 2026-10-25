@@ -52,7 +52,7 @@ CatPage {
         readonly property int picked: Programs.bloatPicked.length
         CatNote {
             dim: true
-            text: I18n.t("Что angelOS поставил вместе с собой, но сам не использует. Отметь ненужное и удали одной кнопкой — пароль спросят один раз. Обновления это обратно не вернут; свои файлы и настройки в домашней папке остаются.", "What angelOS installed along with itself but never uses. Tick what you don't need and remove it with one button; the password is asked once. Updates won't bring it back; your files and settings in your home folder stay.")
+            text: I18n.t("Что angelOS поставил, но сам не использует. Отметь ненужное и удали одной кнопкой; твои файлы останутся.", "What angelOS installed but doesn't use. Tick what you don't need and remove it; your files stay.")
         }
         CatNote {
             present: !extras.st

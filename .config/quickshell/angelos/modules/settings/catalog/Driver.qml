@@ -20,7 +20,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Драйвер устройств", "Device driver")
-    subtitle: I18n.t("Клавиатура и мышь настраиваются прямо здесь: что делает каждая клавиша, слои Fn, точка срабатывания, Rapid Trigger, Snap Tap, Mod-Tap, подсветка, частота опроса и DPI.", "The keyboard and the mouse are set up right here: what each key does, the Fn layers, the actuation point, Rapid Trigger, Snap Tap, Mod-Tap, the lights, the polling rate and DPI.")
+    subtitle: I18n.t("Клавиши, подсветка, чувствительность и частота опроса мыши и клавиатуры.", "Keys, lights, sensitivity and polling rate of the mouse and keyboard.")
     // the helper runs only while this page is on the screen
     readonly property bool live: showing && !!Window.window && Window.window.visible
     property bool held: false
@@ -546,7 +546,7 @@ CatPage {
         CatNote {
             present: Devices.scanned && Devices.devices.length === 0
             dim: true
-            text: I18n.t("Ни одно устройство из списка поддерживаемых сейчас не подключено. Список — ниже, в «Ещё…»; своё устройство можно описать файлом.", "No device of the supported list is connected right now. The list is below, under More…; a device of your own can be described with a file.")
+            text: I18n.t("Ни одно знакомое устройство не подключено. Список — в «Ещё…»; своё можно описать файлом.", "No known device is plugged in. The list is under More…; describe your own in a file.")
         }
         CatCustom {
             wide: true
@@ -1041,7 +1041,7 @@ CatPage {
                     SettingRow {
                         visible: !!page.shownRule && page.cap("rapidTrigger")
                         label: I18n.t("Срабатывание", "Trigger")
-                        hint: I18n.t("обычное — в одной точке; Rapid Trigger — клавиша отпускается, едва пошла вверх, и нажимается, едва пошла вниз; непрерывный — то же по всему ходу, пока не отпустишь совсем", "Plain: at one point. Rapid Trigger: the key lets go as soon as it comes up and presses as soon as it goes down. Continuous: the same over the whole travel, until you let go altogether")
+                        hint: I18n.t("Когда срабатывает клавиша: в одной точке, или сразу на любом движении вниз и вверх.", "When a key fires: at one point, or on any move down and up.")
                         PxSegmented {
                             enabled: page.canEdit
                             model: [
@@ -1225,7 +1225,7 @@ CatPage {
                     }
                     SettingRow {
                         label: I18n.t("Новая пара", "A new pair")
-                        hint: I18n.t("«последняя побеждает» — классический Snap Tap; «глубже — главнее» — побеждает та, что нажата сильнее. Свою пару: выбери две клавиши (Ctrl+клик)", "\"The last wins\": the classic Snap Tap; \"deeper wins\": the one pressed further wins. A pair of your own: pick two keys (Ctrl+click)")
+                        hint: I18n.t("Две клавиши, нажатые вместе: побеждает последняя или та, что нажата глубже.", "Two keys held at once: the last one wins, or the one pressed deeper.")
                         Flow {
                             width: parent.width
                             spacing: Theme.u * 3
@@ -1313,6 +1313,7 @@ CatPage {
                     SettingRow {
                         visible: page.oneKey >= 0
                         label: I18n.t("Что сделать", "Make it")
+                        hint: I18n.t("Mod-Tap: нажал — буква, держишь — Ctrl/Shift. Toggle: тап включает клавишу до следующего тапа.", "Mod-Tap: tap for a letter, hold for Ctrl/Shift. Toggle: a tap holds the key until the next tap.")
                         PxSegmented {
                             model: [
                                 {
@@ -1669,7 +1670,7 @@ CatPage {
                     SettingRow {
                         visible: !!page.modeData && !!page.kb && !!page.kb.reportRates
                         label: I18n.t("Частота опроса", "Polling rate")
-                        hint: I18n.t("сколько раз в секунду клавиатура сообщает о нажатиях. После смены она на секунду переподключится — страница подхватит её сама", "How many times a second the keyboard reports its keys. After a change it reconnects for a second; the page picks it up by itself")
+                        hint: I18n.t("Сколько раз в секунду клавиатура сообщает о нажатиях. После смены переподключится на секунду.", "How often the keyboard reports keys. After a change it reconnects for a second.")
                         PxSegmented {
                             enabled: Devices.canWrite && !Devices.working
                             model: [4, 3, 2, 1].map(code => ({
@@ -1983,7 +1984,7 @@ CatPage {
         CatSpin {
             present: !!page.mouse && page.cap("debounce")
             label: "Debounce"
-            hint: I18n.t("сколько миллисекунд кнопка ждёт, прежде чем поверить нажатию: меньше — быстрее клик, больше — меньше ложных двойных", "How many milliseconds a button waits before it believes a press: less is a faster click, more is fewer false doubles")
+            hint: I18n.t("Меньше — быстрее клик, больше — меньше случайных двойных кликов.", "Less: a faster click. More: fewer accidental double clicks.")
             enabled: Devices.canWrite && !Devices.working
             from: page.capOf("debounce").min || 0
             to: page.capOf("debounce").max || 15
@@ -1995,7 +1996,7 @@ CatPage {
         CatCustom {
             present: !!page.mouse && (page.cap("motionSync") || page.cap("angleSnap") || page.cap("rippleControl"))
             label: I18n.t("Сенсор", "The sensor")
-            hint: I18n.t("Motion Sync — кадры сенсора в такт опросу; Angle Snap — выпрямление линий; Ripple Control — сглаживание дрожи на высоком DPI", "Motion Sync: the sensor's frames in step with polling. Angle Snap: lines straightened. Ripple Control: jitter smoothed at high DPI")
+            hint: I18n.t("Тонкая подстройка сенсора: плавность, выпрямление линий, меньше дрожи.", "Fine sensor tuning: smoothness, straightened lines, less jitter.")
             CatBox {
                 Column {
                     spacing: Theme.u * 2
@@ -2072,7 +2073,7 @@ CatPage {
         advanced: true
         CatNote {
             dim: true
-            text: I18n.t("Устройство — это файл описания: USB-номера, семейство протокола, раскладка клавиш, возможности и их пределы. «Проверено на железе» — автор описания держал устройство в руках; «по описанию» — собрано по протоколу и ни на чём не проверено.", "A device is a description file: USB ids, the protocol family, the keys' layout, what it can do and within which limits. \"Checked on hardware\": the description's author had the device in hand; \"by the description\": put together from the protocol and checked on nothing.")
+            text: I18n.t("Устройство описано файлом. «Проверено на железе» — автор держал его в руках; «по описанию» — нет.", "Each device is a description file. «Tested on hardware»: the author had it in hand; «by spec»: not.")
         }
         CatRepeat {
             model: Devices.known
@@ -2088,7 +2089,7 @@ CatPage {
         }
         CatButton {
             label: I18n.t("Своё устройство", "A device of your own")
-            hint: I18n.t("файл кладётся в ~/.config/angelos/devices и появляется здесь сам, без перезапуска; `angelos devices check ФАЙЛ` проверит его, `angelos devices sniff` покажет сырые пакеты служебного канала", "The file goes into ~/.config/angelos/devices and turns up here by itself, no restart; `angelos devices check FILE` checks it, `angelos devices sniff` shows the service channel's raw packets")
+            hint: I18n.t("Файл устройства кладётся в ~/.config/angelos/devices и появляется здесь сам.", "A device file goes into ~/.config/angelos/devices and shows up here by itself.")
             compact: true
             icon: "folder"
             text: I18n.t("Папка", "The folder")

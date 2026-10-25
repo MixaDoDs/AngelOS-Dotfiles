@@ -9,7 +9,7 @@ import qs.modules.settings.kit
 
 CatPage {
     heading: I18n.t("Лирика", "Lyrics")
-    subtitle: I18n.t("Текущая строка песни на панели или в Нимбе. Работает с любым плеером: Spotify, YouTube в браузере, mpv. Клик — эта страница, ПКМ — меню песни.", "The current line of the song on the bar or in the Halo. Any player works: Spotify, YouTube in a browser, mpv. Click: this page, right click: the song's menu.")
+    subtitle: I18n.t("Строка песни на панели или в Нимбе. Работает с любым плеером: Spotify, браузер, mpv.", "The song's current line on the bar or in the Halo. Any player: Spotify, a browser, mpv.")
     id: page
     CatGroup {
         name: "display"
@@ -94,19 +94,20 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Печатная машинка", "Typewriter animation")
+            hint: I18n.t("Строка появляется по буквам, как на машинке.", "A line appears letter by letter, like a typewriter.")
             checked: Config.lyrics.typewriter
             onToggled: c => Config.lyrics.typewriter = c
         }
         CatToggle {
             label: I18n.t("Слово за словом", "Word by word")
-            hint: I18n.t("строка появляется по словам, когда их поют: в такт, если у песни есть время каждого слова (NetEase — у многих популярных), у остальных — по слогам строки, почти в такт", "The line appears word by word as it is sung: in time where the song has each word's time (NetEase has it for many popular ones), by the line's syllables, nearly in time, for the rest")
+            hint: I18n.t("Строка появляется по словам, когда их поют.", "The line appears word by word as it is sung.")
             checked: Config.lyrics.byWord !== false
             onToggled: c => Config.lyrics.byWord = c
         }
         CatToggle {
             present: Config.lyrics.byWord !== false
             label: I18n.t("Слова на бит", "Words on the beat")
-            hint: I18n.t("слово появляется на ударе музыки, ближайшем к его времени, и подпрыгивает. Бит слышен только из самого плеера, не из всего компьютера", "Each word comes up on the music's beat nearest its time, with a hop. The beat is heard from the player only, not the whole computer")
+            hint: I18n.t("Слова появляются в такт музыке и подпрыгивают.", "Words come up on the beat with a hop.")
             checked: Config.lyrics.onBeat !== false
             onToggled: c => Config.lyrics.onBeat = c
         }
@@ -180,7 +181,7 @@ CatPage {
         CatChoice {
             present: Config.lyrics.glow !== "off" && LyricsGlow.rodePresent
             label: I18n.t("Где читать фейдер", "Where the fader is read")
-            hint: I18n.t("«Основной микс» и AUX0/1 — микс пульта после фейдеров, дорожку плеера в мультитреке угадывает сам; другая пара AUX — если хочешь сам указать, на какой дорожке играет плеер", "“Main mix” and AUX0/1: the console's mix after the faders, the player's multitrack track found by ear; another AUX pair: tell it yourself which track the player is on")
+            hint: I18n.t("Откуда брать громкость пульта. Обычно подходит «Основной микс».", "Where to read the console's volume from. Main mix usually fits.")
             combo: true
             // every pair the console's multitrack has (LyricsGlow.taps)
             model: LyricsGlow.tapList.map(t => ({
@@ -238,7 +239,7 @@ CatPage {
         icon: "search"
         CatNote {
             dim: true
-            text: I18n.t("Источники проверяются по порядку (стрелки меняют его), пока не найдётся текст с таймкодами. Чужой текст не подставится: сверяются название, артист и длительность.", "Sources are tried in order (the arrows change it) until lyrics with timestamps turn up. Wrong lyrics don't slip in: the title, artist and length are checked.")
+            text: I18n.t("Источники проверяются по порядку, пока не найдётся текст с таймкодами. Чужой текст не подставится.", "Sources are tried in order until timed lyrics turn up. Lyrics of another song never slip in.")
         }
         CatRepeat {
             id: srcList

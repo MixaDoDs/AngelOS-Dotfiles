@@ -169,8 +169,10 @@ Singleton {
                 }, 1500);
         }
     }
+    // the volume as it is, past 100 % too (#120: the keys go to 150 %, the pill said 100 %); the bar
+    // of blocks stops at full by itself
     function osdLevel(what) {
-        return what === "brightness" ? Backlight.level : what === "kbd" ? (Backlight.kbdMax > 0 ? Backlight.kbd / Backlight.kbdMax : 0) : what === "mic" ? (Audio.micMuted ? 0 : Audio.micVolume) : (Audio.muted ? 0 : Math.min(1, Audio.volume));
+        return what === "brightness" ? Backlight.level : what === "kbd" ? (Backlight.kbdMax > 0 ? Backlight.kbd / Backlight.kbdMax : 0) : what === "mic" ? (Audio.micMuted ? 0 : Audio.micVolume) : (Audio.muted ? 0 : Audio.volume);
     }
     // a call: a program from the list taking the microphone (PipeWire, services/Sensors). Its
     // capture may not say who it is: Discord's is «WEBRTC VoiceEngine», the program only in

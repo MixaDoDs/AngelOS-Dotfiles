@@ -92,14 +92,14 @@ CatPage {
         icon: "package"
         CatToggle {
             label: I18n.t("Win+V вставляет", "Win+V pastes")
-            hint: I18n.t("выбранное в истории буфера сразу вставляется в окно, где ты работаешь (Ctrl+V, в терминале Ctrl+Shift+V); выключено — только копируется, вставка — вручную. Shift+Enter всегда только копирует", "the entry picked in the clipboard history goes straight into the window you were in (Ctrl+V, Ctrl+Shift+V in a terminal); off: it is only copied and you paste it yourself. Shift+Enter always only copies")
+            hint: I18n.t("Выбранное в истории буфера сразу вставляется в окно. Выключено — только копируется.", "The picked clipboard entry is pasted right away. Off: it is only copied.")
             checked: Config.launcher.clipboardPaste !== false
             onToggled: c => Config.launcher.clipboardPaste = c
         }
         CatToggle {
             present: Niri.nativeMinimize
             label: I18n.t("Буфер не пропадает", "Clipboard stays")
-            hint: I18n.t("скопировал и закрыл программу — текст, ссылки, файлы и картинка всё равно вставляются. Копия только в памяти; то, что копирует менеджер паролей, не хранится", "Copy, close the program, and the text, links, files and picture still paste. The copy lives in memory only; what a password manager copies is never kept")
+            hint: I18n.t("Скопированное вставляется и после закрытия программы. Пароли из менеджера не хранятся.", "Copied things still paste after the app closes. Password manager copies are not kept.")
             checked: Config.windows.clipboardKeep
             onToggled: c => Config.windows.clipboardKeep = c
         }

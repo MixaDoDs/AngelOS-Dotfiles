@@ -11,7 +11,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Экран", "Display")
-    subtitle: I18n.t("Разрешение, масштаб, поворот и расположение экранов. «Применить» сохраняет, «Только попробовать» — до перезагрузки.", "Resolution, scale, rotation and layout of the screens. Apply keeps it, Just try lasts until a reboot.")
+    subtitle: I18n.t("Разрешение, масштаб, поворот и расположение экранов.", "Resolution, scale, rotation and layout of the screens.")
     property string selected: Object.keys(Outputs.draft)[0] || ""
     readonly property var d: Outputs.draft[selected] || null
     readonly property var o: Outputs.outputs[selected] || null
@@ -194,7 +194,7 @@ CatPage {
         // how it stands: applied at once, back in 15 s unless kept (the banner below)
         CatCustom {
             label: I18n.t("Ориентация", "Orientation")
-            hint: I18n.t("Монитор стоит вертикально или перевёрнут — поверни картинку. Меняется сразу; если не нажать «Оставить», через 15 секунд вернётся как было. Обои с вариантами сами возьмут вертикальный (9:16).", "The monitor stands upright or upside down: turn the picture. It changes at once and comes back in 15 seconds unless you keep it. Wallpapers with variants take their upright (9:16) file.")
+            hint: I18n.t("Повернуть картинку. Если не нажать «Оставить», через 15 секунд вернётся как было.", "Turn the picture. It goes back in 15 seconds unless you keep it.")
             CatBox {
                 Flow {
                     width: parent.width

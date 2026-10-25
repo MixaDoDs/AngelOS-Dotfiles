@@ -16,7 +16,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Меню ПКМ", "Right-click menu")
-    subtitle: I18n.t("У каждой цели своё меню: сверху ряд частых действий значками, ниже короткий список. Средняя кнопка на столе — кольцо из восьми направлений.", "Every target has its own menu: a row of everyday actions as icons on top, a short list under it. The middle button on the desktop: a ring of eight directions.")
+    subtitle: I18n.t("Что в меню по правой кнопке. Средняя кнопка на столе — кольцо из восьми действий.", "What the right-click menus hold. The middle button on the desktop opens a ring of eight.")
     readonly property string target: DeskMenu.targets.includes(DeskMenu.editTarget) ? DeskMenu.editTarget : "desktop"
     readonly property var layout: DeskMenu.layout(target)
     function label(id) {
@@ -56,6 +56,7 @@ CatPage {
         icon: "grid"
         CatChoice {
             label: I18n.t("Меню", "Menu")
+            hint: I18n.t("Какое меню правишь: по столу, по файлу, по окну…", "Which menu you are editing: the desk's, a file's, a window's…")
             model: DeskMenu.targets.map(t => ({
                         "label": DeskMenu.targetLabel(t),
                         "value": t
@@ -273,7 +274,7 @@ CatPage {
         icon: "sparkle"
         CatNote {
             dim: true
-            text: I18n.t("Зажми среднюю кнопку на столе, махни в сторону и отпусти — сработает то, что там. Отпустишь на месте — кольцо останется, можно кликнуть.", "Hold the middle button on the desktop, flick a way and let go: what is there runs. Let go where you are: the ring stays for a click.")
+            text: I18n.t("Зажми среднюю кнопку, махни в сторону и отпусти. Отпустишь на месте — кольцо останется.", "Hold the middle button, flick and let go. Let go in place and the ring stays.")
         }
         CatRepeat {
             model: 8
@@ -396,7 +397,7 @@ CatPage {
             }
         }
         CatChoice {
-            label: I18n.t("Размер", "Size")
+            label: I18n.t("Размер меню", "Menu size")
             model: [
                 {
                     "label": I18n.t("Компактно", "Compact"),
@@ -427,7 +428,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Игрушки в меню ада", "Toys in hell's menus")
-            hint: I18n.t("в каждом круге с меню можно поиграть: крутить колесо, тыкать вилкой, бросать камни, зажигать свечи… Пункты работают как раньше", "every circle's menu can be played with: spin the wheel, poke with the fork, throw stones, light the candles… The entries work as before")
+            hint: I18n.t("С меню ада можно поиграть: крутить колесо, зажигать свечи… Пункты работают как обычно.", "Hell's menus can be played with: spin the wheel, light candles… The entries work as usual.")
             checked: Config.desktop.menuToys !== false
             onToggled: c => Config.desktop.menuToys = c
         }
@@ -466,7 +467,7 @@ CatPage {
         id: customGroup
         CatNote {
             dim: true
-            text: I18n.t("Программа, команда, папка или ссылка — для меню стола и кольца. Появится в конце списка (если там есть место), дальше её можно передвинуть или сделать значком.", "An app, a command, a folder or a link, for the desktop menu and the ring. It lands at the end of the list (if there is room); move it or make it an icon from there.")
+            text: I18n.t("Программа, команда, папка или ссылка. Встанет в конец списка, потом её можно передвинуть.", "An app, a command, a folder or a link. It goes to the end of the list; move it later.")
         }
         CatCustom {
             wide: true

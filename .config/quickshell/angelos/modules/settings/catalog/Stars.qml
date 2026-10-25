@@ -14,7 +14,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Небеса: звёзды", "Heaven: stars")
-    subtitle: I18n.t("Звёзды ✦ капают за время за компьютером (1 ✦ за 10 минут), за награду за вход на небесном экране блокировки, задания дня и небесный пропуск. Молитва стоит %1 ✦ (первый вход за день молится бесплатно) и даёт карточку в альбом или скин ангела.", "Stars ✦ come from the time at the computer (1 ✦ per 10 minutes), the login reward on the heaven lock, the day's tasks and the heavenly pass. A prayer costs %1 ✦ (the first unlock of a day prays for free) and gives a card for the album or one of the angel's skins.").arg(HeavenStars.wishCost)
+    subtitle: I18n.t("Звёзды ✦ даются за время за компьютером и задания. Молитва стоит %1 ✦ и даёт карточку или скин.", "Stars ✦ come from time at the computer and tasks. A prayer costs %1 ✦ for a card or a skin.").arg(HeavenStars.wishCost)
     readonly property var rarityColor: ({
             "3": "#7fb2ff",
             "4": "#c48bff",
@@ -149,7 +149,7 @@ CatPage {
         icon: "heart"
         CatNote {
             dim: true
-            text: I18n.t("Перекраски её картинок: носит и помощница на рабочем столе, и ангел на экране блокировки. Лунная и Мятная выпадают из 4★ молитв, Золотая — из 5★.", "Recolours of her pictures, worn by the helper on the desktop and the angel on the lock screen. Moonlit and Mint come from 4★ prayers, Golden from 5★.")
+            text: I18n.t("Перекраски её картинок — на столе и на экране блокировки. Лунная и Мятная — из 4★, Золотая — из 5★.", "Recolours of her pictures, on the desk and the lock screen. Moon and Mint from 4★, Gold from 5★.")
         }
         CatCustom {
             wide: true

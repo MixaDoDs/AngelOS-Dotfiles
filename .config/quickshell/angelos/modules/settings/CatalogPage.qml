@@ -257,7 +257,8 @@ PxPage {
         wrapMode: Text.Wrap
         text: entry.text
         dim: entry.dim
-        kind: entry.textKind
+        // an explanation as small as a line's hint (decision №22, 25.10)
+        kind: entry.dim && entry.textKind === "body" ? "tiny" : entry.textKind
         visible: entry.present
     }
     component CustomRow: Row {

@@ -12,7 +12,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Обновления", "Updates")
-    subtitle: I18n.t("angelOS обновляется из своего репозитория. Перед обновлением всё сохраняется — если что-то пойдёт не так, вернёшь здесь же. Твои правки конфигов не трогаются.", "angelOS updates from its own repository. Everything is saved first: if something goes wrong, roll back right here. Your own config edits stay.")
+    subtitle: I18n.t("Перед обновлением всё сохраняется — если что-то сломается, вернёшь здесь же.", "Everything is saved before an update; if something breaks, roll back right here.")
     Component.onCompleted: {
         Updates.find();
         if (Updates.repo && Updates.state === "idle")

@@ -14,7 +14,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Пресеты", "Presets")
-    subtitle: I18n.t("Не хочется разбираться в сотне переключателей — выбери готовый набор. Потом любую настройку можно поправить руками.", "Don't feel like walking a hundred switches? Pick a ready set. Any setting can still be changed by hand afterwards.")
+    subtitle: I18n.t("Готовые наборы настроек. Потом любую можно поправить руками.", "Ready sets of settings. Any of them can be changed by hand afterwards.")
     function when(iso) {
         const d = new Date(iso);
         return isNaN(d.getTime()) ? "" : Qt.formatDateTime(d, "dd.MM.yyyy hh:mm");
@@ -133,7 +133,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Готовый набор меняет только свой список настроек — движение, эффекты, прозрачность, ангела, обои, блокировку, лирику на панели. Клавиши, игра и всё остальное остаются твоими.", "A ready set changes only its own list of settings: motion, effects, transparency, the angel, wallpapers, the lock screen, the lyrics on the bar. The keys, the game and everything else stay yours.")
+            text: I18n.t("Набор меняет только вид: движение, эффекты, прозрачность, ангела, обои, блокировку. Остальное — твоё.", "A preset changes only the look: motion, effects, glass, the angel, wallpapers, lock. The rest stays yours.")
         }
         CatButton {
             present: Presets.canUndo

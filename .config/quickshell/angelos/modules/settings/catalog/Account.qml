@@ -12,7 +12,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: StartPrefs.userName
-    subtitle: I18n.t("Аватарка и имя видны во всех стилях «Пуска». Язык, мастер первого запуска и подсказки по интерфейсу — тоже здесь.", "The avatar and the name show in every Start look. The language, the setup wizard and the interface tips live here too.")
+    subtitle: I18n.t("Аватарка, имя, язык, мастер первого запуска и подсказки по интерфейсу.", "The avatar, the name, the language, the setup wizard and the interface tips.")
     readonly property var fallbackFrequent: [
         {
             "id": "sound",
@@ -230,7 +230,7 @@ CatPage {
         icon: "refresh"
         CatNote {
             dim: true
-            text: I18n.t("Прогресс игры (сюжет, ачивки, звёзды ✦) и все настройки, плагины и горячие клавиши — на твоём GitHub в приватном репозитории angelos-save или в файле. На новом компьютере или после переустановки — вернуть одной кнопкой.", "The game's progress (the story, achievements, stars ✦) and every setting, plugin and shortcut, on your GitHub in a private repository, angelos-save, or in a file. On a new computer or after a reinstall, bring it back with one button.")
+            text: I18n.t("Прогресс игры и все настройки — в приватном репозитории GitHub или файле. Вернуть — одной кнопкой.", "Game progress and every setting, in a private GitHub repo or a file. One button brings them back.")
         }
         CatButton {
             label: "GitHub"

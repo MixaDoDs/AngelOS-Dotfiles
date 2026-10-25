@@ -280,7 +280,7 @@ CatPage {
         advanced: true
         icon: "gear"
         CatChoice {
-            label: I18n.t("Размер", "Size")
+            label: I18n.t("Размер курсора", "Cursor size")
             hint: I18n.t("пиксельные темы angelOS чётче всего в 24, 36 и 48", "angelOS pixel themes are crispest at 24, 36 and 48")
             model: [24, 32, 36, 48].map(v => ({
                         "label": String(v),

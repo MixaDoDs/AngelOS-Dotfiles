@@ -114,7 +114,7 @@ Singleton {
             },
             // the mouse's, the keyboard's, the headphones' charge: hidden where none reports it
             "peripherals": {
-                "label": I18n.t("Заряд устройств", "Device charge"),
+                "label": I18n.t("Заряд беспроводных", "Wireless charge"),
                 "icon": "ampoule",
                 "before": "volume"
             },

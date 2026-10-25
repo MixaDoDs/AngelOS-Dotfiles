@@ -17,7 +17,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Плагины · Community", "Plugins · Community")
-    subtitle: I18n.t("Встроенные плагины, плагины сообщества и твои собственные: установка, включение, обновление и удаление — здесь.", "Built-in plugins, community ones and your own: install, switch on, update and remove them here.")
+    subtitle: I18n.t("Встроенные, общие и свои плагины: установка, включение, обновление.", "Built-in, community and your own plugins: install, switch on, update.")
     property string createLog: ""
     property string removeLog: ""
     property string confirmId: ""           // the card whose bin was clicked once ("details:<id>" — its details open)
@@ -111,7 +111,7 @@ CatPage {
         icon: "package"
         CatNote {
             dim: true
-            text: I18n.t("Только одобренные плагины. Плагины работают с твоими правами. Перед обновлением старая версия сохраняется и вернётся сама, если новая не загрузится.", "Approved plugins only. Plugins run with your rights. The old version is kept before an update and comes back by itself if the new one fails to load.")
+            text: I18n.t("Только одобренные плагины, работают с твоими правами. Не загрузится новая версия — вернётся старая.", "Approved plugins only; they run with your rights. If a new version fails, the old one comes back.")
         }
         CatCustom {
             wide: true
@@ -571,7 +571,7 @@ CatPage {
         present: Plugins.removed.length > 0 || page.removeLog !== ""
         CatNote {
             dim: true
-            text: I18n.t("Свои плагины лежат в корзине ~/.local/state/angelos/plugin-trash, встроенные просто спрятаны — «Вернуть» ставит их обратно вместе с настройками.", "Your own plugins wait in the trash (~/.local/state/angelos/plugin-trash), bundled ones are only hidden — Restore puts them back with their settings.")
+            text: I18n.t("Удалённые лежат в корзине. «Вернуть» ставит плагин обратно вместе с настройками.", "Removed plugins wait in a trash. Restore puts one back with its settings.")
         }
         CatNote {
             present: page.removeLog !== ""
@@ -645,7 +645,7 @@ CatPage {
         title: I18n.t("Новый плагин", "New plugin")
         icon: "plus"
         CatNote {
-            text: I18n.t("Создаст заготовку со всеми точками встраивания — открой папку и правь QML, потом нажми ↻ у плагина, чтобы он перезагрузился. Или доработай его в Мастере плагинов (кнопка «Доработать»).", "Creates a template with extension points. Open the folder, edit its QML files, then press ↻ next to the plugin to reload it — or improve it in Plugin Studio.")
+            text: I18n.t("Создаст заготовку плагина. Правь файлы и жми ↻ у плагина — или доработай в Мастере плагинов.", "Makes a plugin skeleton. Edit the files and press ↻ on the plugin, or refine it in the Plugin wizard.")
             dim: true
         }
         CatCustom {

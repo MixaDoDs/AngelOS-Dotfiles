@@ -14,7 +14,7 @@ import qs.modules.settings.kit
 // the charge is read from.
 CatPage {
     id: page
-    heading: I18n.t("Заряд устройств", "Device charge")
+    heading: I18n.t("Заряд беспроводных", "Wireless charge")
     subtitle: I18n.t("Мышь, клавиатура, наушники, геймпад — ампулами на панели. Видно только те, что сообщают свой заряд.", "The mouse, the keyboard, the headphones, a gamepad as ampoules on the bar. Only the ones that report their charge show.")
     // the preview's charge: drag it to see every colour of the liquid
     property real demoPercent: 78
@@ -29,14 +29,14 @@ CatPage {
         CatNote {
             present: Peripherals.all.length === 0
             dim: true
-            text: I18n.t("Пока ни одно устройство не сообщает заряд. Bluetooth, Logitech, LAMZU и геймпады появятся сами; проводные заряд не сообщают.", "No device reports its charge yet. Bluetooth, Logitech, LAMZU and gamepads show up by themselves; wired ones don't report it.")
+            text: I18n.t("Пока никто не сообщает заряд. Беспроводные появятся сами; проводные заряд не сообщают.", "Nothing reports its charge yet. Wireless devices show up by themselves; wired ones never report it.")
         }
         // a dongle is there and the system won't let it be asked: the udev rule of extras/hid-access
         // (the dotfiles' install.sh installs it) with the admin password, once
         CatButton {
             present: Config.peripherals.vendor && (Peripherals.denied > 0 || Peripherals.grantLog !== "")
             label: I18n.t("Нет доступа к донглу", "No access to the dongle")
-            hint: Peripherals.grantLog !== "" ? Peripherals.grantLog : I18n.t("система не даёт спросить донгл. Разрешение откроет только служебный интерфейс мыши — ни клавиш, ни движения через него не прочитать; нужен пароль администратора", "The system won't let the dongle be asked. Allowing opens only the mouse's service interface — no keys or movement can be read through it; it takes the admin password")
+            hint: Peripherals.grantLog !== "" ? Peripherals.grantLog : I18n.t("Нужен пароль администратора, чтобы читать заряд донгла. Клавиши и движения не читаются.", "The admin password is needed to read the dongle's charge. Keys and motion are not read.")
             icon: "lock"
             accent: true
             text: I18n.t("Разрешить", "Allow")
@@ -233,7 +233,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Ампулы на панели", "Ampoules on the bar")
-            hint: I18n.t("виджет «Заряд устройств»; клик — список с цифрами, правый клик — опросить", "The “Device charge” widget; a click lists them with numbers, a right click asks them now")
+            hint: I18n.t("виджет «Заряд беспроводных»; клик — список с цифрами, правый клик — опросить", "The “Wireless charge” widget; a click lists them with numbers, a right click asks them now")
             checked: Config.peripherals.show
             onToggled: v => Config.peripherals.show = v
         }
@@ -416,7 +416,7 @@ CatPage {
         }
         CatChoice {
             label: I18n.t("Как красить", "How it is coloured")
-            hint: I18n.t("по высоте: цвета идут снизу вверх, заряд их обрезает; по уровню: вся жидкость одного цвета — цвета своего уровня", "By height: the colours run up the glass and the charge cuts them; by level: all of it in one colour, its level's")
+            hint: I18n.t("По высоте — цвета снизу вверх; по уровню — вся жидкость одного цвета.", "By height: colours bottom to top. By level: all of it one colour.")
             model: [
                 {
                     "label": I18n.t("По высоте", "By height"),

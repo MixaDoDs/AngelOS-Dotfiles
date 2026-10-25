@@ -346,6 +346,7 @@ CatPage {
         present: SystemInfo.powerProfile !== ""
         CatChoice {
             label: I18n.t("Профиль", "Profile")
+            hint: I18n.t("Экономия — тише и дольше от батареи, Мощность — быстрее, но горячее.", "Power saver: quieter, longer on battery. Performance: faster but hotter.")
             model: [
                 {
                     "label": I18n.t("Экономия", "Power saver"),
@@ -369,7 +370,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Окно в фокусе — первым", "The window in focus first")
-            hint: I18n.t("программа, в которой ты сейчас, получает процессор раньше фоновых: меньше подтормаживаний, когда что-то считается в фоне", "The program you're in gets the CPU before the ones in the background: fewer hitches while something works behind it")
+            hint: I18n.t("Программа, в которой ты сейчас, получает процессор первой: меньше подтормаживаний.", "The app you're in gets the CPU first: fewer hitches.")
             checked: Config.system.focusBoost !== false
             onToggled: c => Config.system.focusBoost = c
         }
@@ -385,7 +386,7 @@ CatPage {
         CatChoice {
             present: Niri.nativeMinimize
             label: I18n.t("Фон во время игры", "The rest while gaming")
-            hint: I18n.t("пока идёт игра, другие экраны и их окна рисуются не чаще этого — видеокарта остаётся игре. Экран с игрой и экран, который снимает OBS, — всегда как есть", "While a game runs, the other screens and their windows draw no more often than this, leaving the GPU to the game. The game's screen and any screen OBS captures always stay as they are")
+            hint: I18n.t("Пока идёт игра, другие экраны рисуются реже — видеокарта остаётся игре.", "While a game runs, other screens draw less often, leaving the GPU to the game.")
             model: [
                 {"label": I18n.t("как есть", "as is"), "value": 0},
                 {"label": "30", "value": 30},
@@ -398,21 +399,21 @@ CatPage {
         CatToggle {
             present: Niri.nativeMinimize
             label: I18n.t("Разрыв кадра", "Tearing")
-            hint: I18n.t("игра на весь экран показывает кадр сразу, не дожидаясь обновления монитора: меньше задержка мыши, но иногда видна горизонтальная полоса разрыва. Включится со следующей игры", "A fullscreen game shows each frame at once instead of waiting for the monitor's refresh: less mouse lag, but a horizontal tear line may show. Takes effect from the next game")
+            hint: I18n.t("Меньше задержка мыши, но иногда видна полоса разрыва. Со следующей игры.", "Less mouse lag, but a tear line may show. From the next game.")
             checked: Config.gaming.tearing !== false
             onToggled: c => Config.gaming.tearing = c
         }
         CatToggle {
             present: Niri.nativeMinimize
             label: I18n.t("Мышь не уходит из игры", "The mouse stays in the game")
-            hint: I18n.t("пока игра на весь экран в фокусе, курсор не перескакивает на другой монитор от резкого движения. Держи Win — выйдет. Включится со следующей игры", "While a fullscreen game has the focus, a quick flick no longer throws the pointer onto the other screen. Hold Win to leave. Takes effect from the next game")
+            hint: I18n.t("Курсор не убегает на другой монитор в игре. Держи Win — выйдет. Со следующей игры.", "The pointer stays in the game's screen. Hold Win to leave. From the next game.")
             checked: Config.gaming.pointerLock !== false
             onToggled: c => Config.gaming.pointerLock = c
         }
         CatToggle {
             present: ScreenTune.nvidia
             label: I18n.t("Видеокарта на полной частоте", "The video card at full speed")
-            hint: I18n.t("пока идёт игра, частота NVIDIA не падает ниже 60 % от максимума: лёгкие игры (CS2) не дёргаются, пока карта сбавляет и снова разгоняет частоту. Нужна игровая версия (Обслуживание → Игры). Включится со следующей игры", "While a game runs, the NVIDIA clock stays above 60 % of its maximum: light games (CS2) don't stutter while the card slows down and speeds up again. Needs the gaming edition (Maintenance → Games). Takes effect from the next game")
+            hint: I18n.t("Видеокарта NVIDIA не сбавляет частоту в игре — лёгкие игры не дёргаются. Со следующей игры.", "The NVIDIA card keeps its clock up in games, so light games don't stutter. Next game on.")
             checked: Config.gaming.gpuClocks !== false
             onToggled: c => Config.gaming.gpuClocks = c
         }
@@ -717,7 +718,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Что печатает fastfetch в новом терминале. Цвета и значок — из темы и «Пуска»; в аду у каждого круга своя печать, свои цвета и слова.", "What fastfetch prints in a new terminal. The colours and emblem come from the theme and Start; in hell each circle has its own sigil, colours and words.")
+            text: I18n.t("Что печатает fastfetch в новом терминале. Цвета и значок — из темы и «Пуска».", "What fastfetch prints in a new terminal. Colours and the logo come from the theme and Start.")
         }
         CatCustom {
             wide: true
@@ -850,7 +851,7 @@ CatPage {
             textKind: "tiny"
             dim: true
             present: ffGroup.pick === "own"
-            text: I18n.t("Выше — «Компакт» для сравнения. Свой config.jsonc angelOS не меняет; значок в logo.txt рисует, если включено «fastfetch рисует этот значок» («Пуск» → «Кнопка «Пуск» и логотип»).", "Above: Compact, to compare. angelOS leaves your config.jsonc alone; it draws the emblem into logo.txt if “fastfetch draws this emblem” is on (Start → The Start button and the logo).")
+            text: I18n.t("Выше — «Компакт» для сравнения. Свой config.jsonc angelOS не трогает.", "Compact is above for comparison. angelOS never touches your own config.jsonc.")
         }
     }
     CatGroup {
@@ -1006,6 +1007,7 @@ CatPage {
         CatToggle {
             present: Config.system.monitor === "custom"
             label: I18n.t("Запускать в терминале", "Run in terminal")
+            hint: I18n.t("Для консольных программ вроде btop: открыть их в терминале.", "For console apps like btop: open them in a terminal.")
             checked: Config.system.monitorInTerminal
             onToggled: c => Config.system.monitorInTerminal = c
         }
@@ -1081,6 +1083,7 @@ CatPage {
         CatChoice {
             present: Config.system.monitorFloat
             label: I18n.t("Где открывать", "Where it opens")
+            hint: I18n.t("Где появится окно диспетчера задач.", "Where the task manager window appears.")
             model: [
                 {
                     "label": I18n.t("По центру", "Centre"),
@@ -1136,7 +1139,7 @@ CatPage {
         CatButton {
             present: !Config.game.enabled
             label: I18n.t("Игра выключена", "The game is off")
-            hint: I18n.t("angelOS работает как обычные дотфайлы: без ангела, демоницы, новеллы и ада. Включить — и в углу снова появится ангел.", "angelOS works as plain dotfiles: no angel, demon, novel or hell. Switch it on and the angel is back in the corner.")
+            hint: I18n.t("angelOS без ангела, демоницы и новеллы. Включишь — ангел снова в углу.", "angelOS without the angel, the demon or the novel. Switch it on and she's back.")
             icon: "heart"
             accent: true
             text: I18n.t("Включить игру", "Turn the game on")

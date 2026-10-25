@@ -115,7 +115,7 @@ CatPage {
         CatToggle {
             present: StrataSetup.installed
             label: I18n.t("Кольцо конвертации", "The conversion ring")
-            hint: I18n.t("Shift + ПКМ по файлам в Strata — круговое меню: в какой формат сконвертировать. Готовое — в папку «Сконвертировано» рядом.", "Shift + right click on files in Strata: a ring menu of formats to convert to. The result goes to a Converted folder beside them.")
+            hint: I18n.t("Shift + ПКМ по файлам в Strata — выбрать формат. Готовое — в папку «Сконвертировано».", "Shift + right click on files in Strata: pick a format. Results go to a Converted folder.")
             checked: Config.system.convertRing !== false
             onToggled: v => Config.system.convertRing = v
         }
@@ -223,7 +223,7 @@ CatPage {
             present: !NautilusSetup.status.prefsApplied && !!NautilusSetup.status.prefs
             textKind: "tiny"
             dim: true
-            text: I18n.t("Масштаб значков и формат архива Nautilus запоминает сам, когда ты их меняешь в нём, — «Применить» вернёт значения angelOS.", "Nautilus remembers the icon zoom and the archive format itself when you change them there — Apply puts angelOS's values back.")
+            text: I18n.t("Файловый менеджер сам запоминает масштаб значков и формат архива; «Применить» вернёт значения angelOS.", "The file manager remembers icon zoom and archive format itself; Apply brings angelOS's values back.")
         }
         CatCustom {
             wide: true

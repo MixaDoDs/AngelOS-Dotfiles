@@ -238,6 +238,7 @@ CatPage {
         icon: "monitor"
         CatChoice {
             label: I18n.t("Применять", "Apply")
+            hint: I18n.t("Одни обои на всё, свои на каждом мониторе или на каждом столе.", "One wallpaper for all, one per monitor or one per workspace.")
             model: [
                 {
                     "label": I18n.t("Везде", "Everywhere"),
@@ -521,7 +522,7 @@ CatPage {
         CatButton {
             present: SceneEditor.allowed
             label: I18n.t("Редактор сцены", "The scene editor")
-            hint: I18n.t("закрасить, что на картинке небо, вода, водопад; отключить эффекты, поставить места событий. Или `angelos scene edit`", "paint what in the picture is sky, water, a waterfall; switch effects off, put the events' places. Or `angelos scene edit`")
+            hint: I18n.t("Отметить на картинке небо, воду, водопад и выключить лишние эффекты.", "Mark sky, water and waterfalls on the picture and switch effects off.")
             icon: "layers"
             text: I18n.t("Открыть", "Open")
             onClicked: SceneEditor.edit(Wallpapers.origin(liveGroup.path))
@@ -616,7 +617,7 @@ CatPage {
         CatToggle {
             present: liveGroup.alive
             label: I18n.t("Редкие события", "Now and then")
-            hint: I18n.t("раз в 12–35 секунд: блик по кольцу, камешек с обрыва, порыв ветра, глаз в облаке ночью, круги по воде; под музыку — в долю. В полноэкранном режиме сцена замирает", "every 12–35 seconds: a glint over a ring, a pebble off the edge, a gust, an eye in a cloud at night, rings over the water; with music, on the beat. Under a fullscreen window the scene holds still")
+            hint: I18n.t("Иногда на обоях что-то происходит: блик, порыв ветра, круги по воде. Под музыку — в такт.", "Now and then something happens: a glint, a gust, rings on water. With music, on the beat.")
             checked: liveGroup.value("liveEvents")
             onToggled: c => liveGroup.pick("liveEvents", c)
         }
@@ -630,7 +631,7 @@ CatPage {
         CatChoice {
             present: Config.wallpaper.live
             label: I18n.t("Кадров в секунду", "Frames per second")
-            hint: I18n.t("меньше — пиксельнее и легче для компьютера; «Монитор» — каждый кадр экрана: на 144 Гц это 144 перерисовки обоев и виджетов в секунду, в 6 раз тяжелее 24. На батарее — не больше 24", "fewer: more pixel-like and lighter on the computer; Monitor: every frame of the screen — on 144 Hz that is 144 redraws of the wallpaper and widgets a second, six times the work of 24. On battery, 24 at most")
+            hint: I18n.t("Меньше — легче для компьютера. «Монитор» на 144 Гц в 6 раз тяжелее, чем 24. На батарее до 24.", "Fewer is lighter. Monitor at 144 Hz is six times the work of 24. On battery, 24 at most.")
             model: [12, 24, 60, 0].map(v => ({
                         "label": v ? String(v) : I18n.t("Монитор", "Monitor"),
                         "value": v
@@ -795,8 +796,8 @@ CatPage {
         }
         CatChoice {
             present: Config.wallpaper.pixel
-            label: I18n.t("Размер пикселя", "Pixel size")
-            hint: I18n.t("сколько точек экрана в одном пикселе картинки (на экране Full HD; на большем — крупнее, вид тот же). 4 — как у обоев релизов", "how many screen dots make one pixel of the picture (on a Full HD screen; bigger on a bigger one, the look is the same). 4 is what the release wallpapers use")
+            label: I18n.t("Пиксели обоев", "Wallpaper pixels")
+            hint: I18n.t("Насколько крупные пиксели у картинки. 4 — как у обоев релизов.", "How big the picture's pixels are. 4 matches the release wallpapers.")
             model: [2, 3, 4, 5, 6, 8, 10, 12].map(v => ({
                         "label": String(v),
                         "value": v
@@ -818,7 +819,7 @@ CatPage {
         CatSlider {
             present: Config.wallpaper.pixel
             label: I18n.t("Дизеринг", "Dither")
-            hint: I18n.t("шахматка между соседними цветами там, где картинка гладкая (небо, стены); на краях и деталях его нет. 0 — ровные пятна цвета", "a checker between neighbouring colours where the picture is smooth (a sky, a wall); none on edges and details. 0: flat patches of colour")
+            hint: I18n.t("Шахматка между цветами на гладких местах. 0 — ровные пятна цвета.", "A checker between colours on smooth areas. 0: flat patches.")
             from: 0
             to: 100
             stepSize: 10
@@ -833,7 +834,7 @@ CatPage {
         icon: "layers"
         CatToggle {
             label: I18n.t("Подбирать под тему и экран", "Fit the theme and the screen")
-            hint: I18n.t("Файлы одной картинки — одна карточка: днём дневной, ночью ночной, на широкий и вертикальный монитор — свой. Пометь в имени: «озеро-ночь.png», «озеро-21x9.png».", "The files of one picture make one card: the day one by day, the night one at night, its own for wide and vertical screens. Mark it in the name: lake-night.png, lake-21x9.png.")
+            hint: I18n.t("Варианты одной картинки — днём дневной, ночью ночной. Пометь в имени: «озеро-ночь.png».", "Variants of a picture: day by day, night at night. Mark it in the name: lake-night.png.")
             checked: Config.wallpaper.variants !== false
             onToggled: c => Config.wallpaper.variants = c
         }
@@ -908,6 +909,7 @@ CatPage {
         }
         CatSlider {
             label: I18n.t("Крупность мозаики", "Mosaic size")
+            hint: I18n.t("Насколько крупные квадраты в переходе мозаикой.", "How big the squares are in the mosaic transition.")
             from: 8
             to: 128
             stepSize: 8
@@ -1018,7 +1020,7 @@ CatPage {
         present: SceneBehind.on
         CatNote {
             dim: true
-            text: I18n.t("Плавающие окна этих программ стоят в сцене, как виджеты: ближние предметы закрывают их. Наведи мышь — окно выйдет вперёд.", "The floating windows of these apps stand in the scene like widgets: nearer things cover them. Point at one and it comes forward.")
+            text: I18n.t("Плавающие окна этих программ стоят в сцене: ближние предметы их закрывают. Наведи мышь — выйдут вперёд.", "These apps' floating windows sit in the scene behind near objects. Hover one to bring it forward.")
         }
         CatRepeat {
             model: SceneBehind.apps

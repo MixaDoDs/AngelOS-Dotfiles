@@ -14,7 +14,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Геймпад", "Gamepad")
-    subtitle: I18n.t("Проверка контроллера: нажимай кнопки и крути стики — всё подсвечивается. Игры при этом продолжают видеть геймпад.", "Controller check: press buttons and move the sticks, everything lights up. Games keep seeing the pad meanwhile.")
+    subtitle: I18n.t("Проверка контроллера: нажимай кнопки и крути стики. Игры его при этом видят.", "Controller check: press buttons and move the sticks. Games still see it.")
     property var pads: []
     property var batteries: []
     property string selected: ""

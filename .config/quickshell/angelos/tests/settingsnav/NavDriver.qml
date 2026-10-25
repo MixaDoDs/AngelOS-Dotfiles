@@ -138,7 +138,7 @@ Scope {
             "until": () => Config.ready && SettingsSearch.loaded && !SettingsSearch.settling && SettingsSearch.entries.length > 0,
             "check": () => report("ready", SettingsSearch.entries.length > 0, SettingsSearch.entries.length + " entries in " + (Date.now() - root.since) + " ms")
         },
-        // F01 cold: nothing open, the old id «novel» (→ game, group y2k/novel under «Ещё…»)
+        // F01 cold: nothing open, the old id «novel» (→ hell, group y2k/novel under «Ещё…»)
         {
             "act": () => {
                 closeAll();
@@ -147,14 +147,14 @@ Scope {
             "until": () => !!shown(Shell.settingsView, "novel"),
             "check": () => {
                 const v = Shell.settingsView;
-                report("f01-cold", Shell.settingsPage === "game" && !!shown(v, "novel") && v.pageItem.moreOpen, where(v));
+                report("f01-cold", Shell.settingsPage === "hell" && !!shown(v, "novel") && v.pageItem.moreOpen, where(v));
             }
         },
         // F01 already open, on another page, «Ещё…» folded again
         {
             "act": () => {
                 Shell.openSettings("about");
-                SettingsTree.setMoreOpen("game", false);
+                SettingsTree.setMoreOpen("hell", false);
             },
             "until": () => Shell.settingsView && Shell.settingsView.pageItem && Shell.settingsPage === "about",
             "check": () => {}
@@ -162,7 +162,7 @@ Scope {
         {
             "act": () => Shell.openSettings("novel"),
             "until": () => !!shown(Shell.settingsView, "novel"),
-            "check": () => report("f01-open", Shell.settingsPage === "game" && !!shown(Shell.settingsView, "novel"), where(Shell.settingsView))
+            "check": () => report("f01-open", Shell.settingsPage === "hell" && !!shown(Shell.settingsView, "novel"), where(Shell.settingsView))
         },
         // F01 a group shown on top of its page (stars → rewards, not under «Ещё…»)
         {
@@ -173,13 +173,13 @@ Scope {
         // F01 one more window
         {
             "act": () => {
-                SettingsTree.setMoreOpen("game", false);
+                SettingsTree.setMoreOpen("hell", false);
                 Shell.newSettingsWindow("novel");
             },
             "until": () => more.count === 1 && !!shown(viewIn(more.objectAt(0)), "novel"),
             "check": () => {
                 const v = viewIn(more.objectAt(0));
-                report("f01-new-window", !!v && v.settingsNav.settingsPage === "game" && !!shown(v, "novel") && Shell.settingsPage === "rewards", where(v) + ", main still " + Shell.settingsPage);
+                report("f01-new-window", !!v && v.settingsNav.settingsPage === "hell" && !!shown(v, "novel") && Shell.settingsPage === "rewards", where(v) + ", main still " + Shell.settingsPage);
             }
         },
         // F02 the bar's «Choose system monitor…» (modules/bar/PanelMenu): the monitor's row

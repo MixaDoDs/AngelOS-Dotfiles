@@ -113,6 +113,7 @@ CatPage {
         CatToggle {
             present: Config.power.eco === "auto" && Power.profilesAvailable
             label: I18n.t("И с профилем «Экономия»", "And with the power-saver profile")
+            hint: I18n.t("Включать экономию и тогда, когда выбран профиль питания «Экономия».", "Also turn eco on when the power profile is set to Power saver.")
             checked: Config.power.ecoWithSaver
             onToggled: v => Config.power.ecoWithSaver = v
         }
@@ -136,6 +137,7 @@ CatPage {
         }
         CatSpin {
             label: I18n.t("Низкий заряд", "Low")
+            hint: I18n.t("При этом заряде придёт первое предупреждение.", "The first warning comes at this charge.")
             from: 10
             to: 50
             stepSize: 5
@@ -145,6 +147,7 @@ CatPage {
         }
         CatSpin {
             label: I18n.t("Очень низкий", "Very low")
+            hint: I18n.t("Второе предупреждение — настойчивее.", "The second, louder warning.")
             from: 3
             to: 30
             value: Config.power.veryLowAt
@@ -153,6 +156,7 @@ CatPage {
         }
         CatSpin {
             label: I18n.t("Критический", "Critical")
+            hint: I18n.t("Последний порог: тут срабатывает действие ниже — сон или выключение.", "The last step: the action below runs here, sleep or power off.")
             from: 1
             to: 15
             value: Config.power.criticalAt

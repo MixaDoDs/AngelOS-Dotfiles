@@ -205,10 +205,12 @@ Item {
             y: px
             width: root.width - px * 8
             text: root.e && root.kind === "note" ? root.e.text : ""
-            color: root.pal.dim
+            // an explanation (dim) reads smaller and paler than the settings around it (decision №22, 25.10); a status stays as loud as a line
+            readonly property bool quiet: root.kind === "note" && !!root.e && root.e.dim
+            color: quiet ? Theme.mix(root.pal.dim, root.pal.paper, 0.2) : root.pal.dim
             kind: "title"
             font.family: Theme.fontP5Body
-            font.pixelSize: Theme.p5LabelPx
+            font.pixelSize: quiet ? Math.round(Theme.p5LabelPx * 0.7) : Theme.p5LabelPx
             wrapMode: Text.Wrap
         }
 

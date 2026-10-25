@@ -14,7 +14,7 @@ PxButton {
     id: root
 
     // screen readers (widgets/A11y.js): what these are
-    Accessible.name: I18n.t("Заряд устройств", "Device charge")
+    Accessible.name: I18n.t("Заряд беспроводных", "Wireless charge")
     Accessible.description: Peripherals.shown.map(d => d.name + " " + d.percent + "%" + (d.charging ? I18n.t(", заряжается", ", charging") : "")).join("; ")
 
     property bool above: true
@@ -53,7 +53,7 @@ PxButton {
             panelId: "peripherals"
             anchorItem: root
             above: root.above
-            title: I18n.t("Заряд устройств", "Device charge")
+            title: I18n.t("Заряд беспроводных", "Wireless charge")
             icon: "ampoule"
             contentWidth: Theme.u * 150
             contentHeight: col.implicitHeight

@@ -16,7 +16,7 @@ import qs.modules.settings.kit
 // Y2K bits: the helper angel, glitter, the sound pack and the CD-ROM loading screen.
 CatPage {
     id: page
-    heading: Angel.demon ? I18n.t("Демоница ⛧", "The demon ⛧") : I18n.t("Ангелочек ✧", "The angel ✧")
+    heading: Angel.demon ? I18n.t("Демоница ⛧", "The demon ⛧") : I18n.t("Ангел ✧", "The angel ✧")
     // in hell the angel's own things step aside: the page is about the demon (Angel.demon)
     subtitle: Angel.demon ? I18n.t("Немного 2000-х: демоница в углу экрана, блёстки, звуки и загрузка как у игры с диска.", "A bit of the 2000s: the demon in the corner, glitter, sounds and a loading screen like a game on a disc.") : I18n.t("Немного 2000-х: ангелочек-помощник, блёстки, звуки и загрузка как у игры с диска.", "A bit of the 2000s: a helper angel, glitter, sounds and a loading screen like a game on a disc.")
     readonly property var screenNames: Quickshell.screens.map(s => s.name)
@@ -98,7 +98,7 @@ CatPage {
         // the stream's chat on screen (services/StreamChat): read from a chat reader's session log
         CatCustom {
             label: I18n.t("Чат на экране", "Chat on screen")
-            hint: I18n.t("папка, куда бот чата пишет журнал эфира (*.jsonl, строка на сообщение); пусто — выключено. Сам angelOS в YouTube не ходит", "The folder a chat bot writes the stream's log to (*.jsonl, a line a message); empty: off. angelOS itself never talks to YouTube")
+            hint: I18n.t("Папка, куда бот чата пишет сообщения эфира. Пусто — выключено.", "The folder a chat bot writes the stream's messages to. Empty: off.")
             CatBox {
                 PxField {
                     width: Math.min(Theme.u * 110, parent.width)
@@ -182,7 +182,7 @@ CatPage {
         CatToggle {
             present: !Privacy.nativeLook
             label: I18n.t("Плашка «Privacy ON» для зрителей", "«Privacy ON» plate for the viewers")
-            hint: I18n.t("зрители видят плашку на месте окна. Один раз в OBS: «Захват окна (PipeWire)» → «angelOS · Privacy для OBS», над захватом экрана, на весь экран.", "The viewers see a plate in the window's place. Once in OBS: Window Capture (PipeWire) → «angelOS · Privacy для OBS», above the screen capture, over the whole screen.")
+            hint: I18n.t("Зрители видят плашку вместо окна. В OBS добавь «Захват окна» → «angelOS · Privacy для OBS».", "Viewers see a plate instead of the window. In OBS add Window Capture → angelOS · Privacy.")
             checked: Config.stream.privacyPlates
             onToggled: c => Config.stream.privacyPlates = c
         }
@@ -337,7 +337,7 @@ CatPage {
             onClicked: StreamAngel.set("test")
         }
         CatSlider {
-            label: I18n.t("Размер", "Size")
+            label: I18n.t("Размер на стриме", "Size on stream")
             hint: I18n.t("какую часть высоты экрана она занимает над панелью; ещё — Ctrl + колесо на ней", "How much of the screen's height she takes above the bar; also Ctrl + wheel over her")
             from: 10
             to: 50
@@ -426,6 +426,7 @@ CatPage {
         CatChoice {
             present: page.screenNames.length > 1
             label: I18n.t("Экран", "Screen")
+            hint: I18n.t("На каком мониторе стоит ангел, если в эфире их несколько.", "Which monitor the angel stands on when several are streamed.")
             combo: true
             model: [{
                     "label": I18n.t("Первый в эфире", "The first streamed one"),
@@ -653,7 +654,7 @@ CatPage {
             onActivated: v => Config.y2k.helperScreen = v
         }
         CatSlider {
-            label: I18n.t("Размер", "Size")
+            label: I18n.t("Размер в углу", "Size in the corner")
             hint: I18n.t("75–200 %; Ctrl + колёсико мыши над ней — по 5 %. Размер ограничен шириной и 55 % высоты экрана", "75–200%; Ctrl + mouse wheel over her: 5% a notch. Size is capped by the screen width and 55% of its height")
             from: 75
             to: 200
@@ -940,7 +941,7 @@ CatPage {
         CatChoice {
             present: Angel.hellShown
             label: I18n.t("Настройки в аду", "Settings in hell")
-            hint: I18n.t("у каждого круга своё обличье: дело в Лимбе, письмо в круге похоти, гроссбух у жадности… Гримуар — старая книга: оглавление слева, страницы перелистываются", "each circle has its own guise: a case file in limbo, a letter in lust's circle, a ledger in greed's… The grimoire is an old book: contents on the left, pages that turn")
+            hint: I18n.t("Вид окна настроек в аду: свой у каждого круга или старая книга.", "How Settings look in hell: one per circle, or an old book.")
             combo: true
             model: [
                 {
@@ -966,7 +967,7 @@ CatPage {
         CatChoice {
             present: Angel.hellShown
             label: I18n.t("«Пуск» в аду", "Start in hell")
-            hint: I18n.t("кнопка «Пуск» и меню перекрашиваются в цвета круга: тёмная основа, костяной текст, один приглушённый акцент. «Своё адское» — отдельное меню: «Призвать» программы, гримуар, мольба об ангеле, портал", "The Start button and menu take the circle's colours: a dark base, bone text, one dulled accent. “Hell's own” is a menu of its own: summon apps, the grimoire, begging for the angel, the portal")
+            hint: I18n.t("«Пуск» в цветах круга. «Своё адское» — отдельное меню ада.", "Start in the circle's colours. Hell's own: a menu of its own.")
             model: [
                 {
                     "label": I18n.t("Адская версия", "Hell version"),
@@ -1014,28 +1015,28 @@ CatPage {
         CatToggle {
             present: Angel.hellShown
             label: I18n.t("Терминал в аду", "Terminal in hell")
-            hint: I18n.t("kitty, foot и Alacritty в цветах круга: почти чёрный фон, костяной текст, приглушённые цвета вывода; в kitty — выжженный фон с едва заметной пентаграммой; в fish команды подсвечиваются цветами круга, а при открытии демоница говорит пару слов", "kitty, foot and Alacritty in the circle's colours: a near-black background, bone text, dulled output colours; kitty gets a scorched background with a pentagram barely there; fish colours your commands in the circle's ink and she has a word for you in every new terminal")
+            hint: I18n.t("Терминалы в цветах круга: тёмный фон и костяной текст.", "Terminals in the circle's colours: a dark background and bone text.")
             checked: Config.y2k.hellTerminal
             onToggled: c => Config.y2k.hellTerminal = c
         }
         CatToggle {
             present: Angel.hellShown
             label: I18n.t("Приложения в аду", "Apps in hell")
-            hint: I18n.t("GTK-программы (Nautilus, настройки GNOME…) целиком в адских цветах, а не только заголовки; Qt — тоже, если включён стиль angelOS для Qt («Тема» → Ещё → «Тема для приложений»)", "GTK apps (Nautilus, GNOME settings…) wholly in hell's colours, not just their title bars; Qt ones too when the angelOS Qt look is on (Theme → More → App theme)")
+            hint: I18n.t("Программы целиком в адских цветах, а не только заголовки.", "Apps wholly in hell's colours, not just their title bars.")
             checked: Config.y2k.hellApps
             onToggled: c => Config.y2k.hellApps = c
         }
         CatToggle {
             present: Angel.hellShown
             label: I18n.t("Панель в аду", "Bar in hell")
-            hint: I18n.t("у каждого вида адская версия: камень круга по краям и в пустых местах, под значками и текстом — спокойная тёмная подложка, тонкая кромка сверху; док остаётся обычным", "Each style has a hell version: the circle's stone along the edges and in the empty spaces, a calm dark plate under icons and text, a thin rim on top; the dock stays as it is")
+            hint: I18n.t("У каждого вида панели адская версия. Док остаётся обычным.", "Every bar style has a hell version. The dock stays as it is.")
             checked: Config.y2k.hellBar
             onToggled: c => Config.y2k.hellBar = c
         }
         CatToggle {
             present: Angel.hellShown
             label: I18n.t("Лирика в аду", "Lyrics in hell")
-            hint: I18n.t("строка на панели — адской готикой (Jacquard 12 Hell) в цвете круга, без печатной машинки и анимаций: следующая строка просто появляется", "The bar's line in hell's blackletter (Jacquard 12 Hell) in the circle's colour, no typewriter and no animation: the next line is simply there")
+            hint: I18n.t("Строка на панели — адской готикой в цвете круга, без анимаций.", "The bar's line in hell's blackletter, in the circle's colour, no animation.")
             checked: Config.y2k.hellLyrics
             onToggled: c => Config.y2k.hellLyrics = c
             CatButton {
@@ -1052,7 +1053,7 @@ CatPage {
         CatButton {
             present: Angel.hellShown
             label: I18n.t("Колесо Ада", "Wheel of Hell")
-            hint: I18n.t("её виджет на стол, только в аду: раз в 20 минут крутишь — две мольбы за ангела, наказание, новый ад, цербер, землетрясение, проклятый курсор на час или пустышка", "Her desktop widget, hell only: a spin every 20 minutes — two pleas for the angel, a punishment, a new hell, Cerberus, an earthquake, a cursed cursor for an hour or a dud")
+            hint: I18n.t("Виджет на стол, только в аду: раз в 20 минут крутишь колесо.", "A desktop widget, hell only: a spin every 20 minutes.")
             compact: true
             icon: "pentagram"
             text: DesktopWidgets.widgets.some(w => w.type === "hellwheel") ? I18n.t("Уже на столе", "On the desk") : I18n.t("Поставить на стол", "Put it on the desk")
@@ -1062,14 +1063,14 @@ CatPage {
         CatToggle {
             present: Angel.hellShown
             label: I18n.t("Виджеты в аду", "Widgets in hell")
-            hint: I18n.t("когда бьётся стекло, виджеты сгорают и встают адскими: обсидиан, пламя, римские часы, огненные столбы; с ангелом пепел сдувает ветром. Свои плагины без адской версии перекрашиваются", "When the glass breaks the widgets burn and rise from hell: obsidian, flames, a Roman clock, columns of fire; with the angel the wind blows the ash away. Plugins without a hell look of their own are re-inked")
+            hint: I18n.t("Виджеты в аду сгорают и встают адскими. Плагины без своей версии перекрашиваются.", "In hell widgets burn and rise anew. Plugins without a hell look are re-inked.")
             checked: Config.y2k.hellWidgets
             onToggled: c => Config.y2k.hellWidgets = c
         }
         CatChoice {
             present: Angel.hellShown
             label: I18n.t("Какой ад на обоях", "Which hell on the wallpaper")
-            hint: I18n.t("пока правит демоница, на всех экранах ад, другие обои ждут ангела. Картины — пиксельный ад по Мартину, Доре и Босху; нарисованный — лава с луной-сердцем", "While the demon rules every screen shows hell; other wallpapers wait for the angel. Paintings: pixel hell after Martin, Doré and Bosch; drawn: lava under a heart moon")
+            hint: I18n.t("Какие обои показывать, пока правит демоница.", "Which wallpaper shows while the demon rules.")
             model: [
                 {
                     "label": I18n.t("Картины", "Paintings"),
@@ -1086,7 +1087,7 @@ CatPage {
         CatChoice {
             present: Angel.hellShown
             label: I18n.t("Трещины на экране", "Screen cracks")
-            hint: I18n.t("она бьёт по стеклу слева снизу; чем ближе курсор, тем прозрачнее стекло, клики проходят насквозь. Вернётся ангел — осколки осыплются", "She punches the glass bottom left; the nearer the pointer, the clearer the glass, and clicks go through. When the angel is back the shards fall out")
+            hint: I18n.t("Чем ближе мышь к трещинам, тем прозрачнее стекло; клики проходят сквозь.", "The nearer the pointer, the clearer the glass; clicks go through.")
             model: [
                 {
                     "label": I18n.t("Сильно", "Full"),
@@ -1110,7 +1111,7 @@ CatPage {
             // D4: the punch and what spreads from it, drawn as on the desktop
             preview: "Breakage"
             label: I18n.t("Что она ломает", "What she breaks")
-            hint: I18n.t("куда приходится её кулак. «По кругу» — у каждого круга своё: в Лимбе запотевшее стекло, в Похоти трещина вихрем, в Чревоугодии сочащаяся жижа, в Жадности вбитая монета, в Гневе круги как на воде, в Ересях прожжённая дыра, в Насилии брызги, в Обмане смола, в Предательстве иней. Или одно и то же всегда, или «Случайно» — каждый раз другое", "Where her fist lands. “By circle”: each circle its own — fogged glass in Limbo, a whirling crack in Lust, ooze in Gluttony, a coin hammered in in Greed, rings like on water in Wrath, a burnt hole in Heresy, spatter in Violence, pitch in Fraud, frost in Treachery. Or always the same, or “Random”: something else every time")
+            hint: I18n.t("Что появляется на месте удара: своё у каждого круга, одно и то же или случайно.", "What shows where the fist lands: one per circle, always the same, or random.")
             combo: true
             model: [
                 {

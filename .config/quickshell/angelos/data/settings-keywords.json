@@ -41,11 +41,8 @@
     "light mode"
   ],
   "appearance/glass-pixels": [
-    "блюр",
-    "размытие",
     "стекло",
     "прозрачность панелей",
-    "blur",
     "glass",
     "transparency"
   ],
@@ -55,7 +52,11 @@
     "мельче",
     "ui scale",
     "bigger",
-    "smaller"
+    "smaller",
+    "размер пикселя",
+    "масштаб",
+    "pixel size",
+    "scale"
   ],
   "appearance/motion": [
     "анимации",
@@ -495,7 +496,9 @@
     "pixelate",
     "pixel art",
     "pixel wallpaper",
-    "dither"
+    "dither",
+    "размер пикселя",
+    "pixel size"
   ],
   "wallpaper/releases": [
     "обои релиза",
@@ -816,5 +819,16 @@
     "простой",
     "screensaver",
     "idle"
+  ],
+  "peripherals/devices": [
+    "заряд устройств",
+    "device charge"
+  ],
+  "accessibility/contrast/Уменьшить прозрачность": [
+    "блюр",
+    "размытие",
+    "стекло",
+    "blur",
+    "glass"
   ]
 }

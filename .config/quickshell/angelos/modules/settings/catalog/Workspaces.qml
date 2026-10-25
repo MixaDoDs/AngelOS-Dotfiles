@@ -399,7 +399,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("«Мягкий», «Рывок», «Пружина» и «Щелчок» — без задержки, оба стола живые. Остальные красивее, но старый стол на миг замирает. В играх на весь экран анимации нет.", "Soft, Dash, Spring and Snap have no delay and both desks stay live. The others look fancier, but the old desk freezes for a moment. No animation in fullscreen games.")
+            text: I18n.t("«Мягкий», «Рывок», «Пружина» и «Щелчок» — без задержки. Остальные красивее, но стол на миг замирает.", "Soft, Dash, Spring and Snap have no delay. The others look nicer, but the desk freezes for a moment.")
         }
     }
     CatGroup {
@@ -429,6 +429,7 @@ CatPage {
         CatCustom {
             present: Config.workspaces.popupMode === "window"
             label: I18n.t("Где окошко", "Popup position")
+            hint: I18n.t("В каком месте экрана всплывает окошко со столом.", "Where on the screen the workspace popup appears.")
             CatBox {
                 PxPositionPicker {
                     value: Config.workspaces.popupPosition
@@ -444,6 +445,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Полоска сердечек справа", "Heart strip on the right")
+            hint: I18n.t("Сердечки-столы у правого края при переключении.", "Heart workspaces at the right edge as you switch.")
             checked: Config.workspaces.indicator
             onToggled: c => Config.workspaces.indicator = c
         }

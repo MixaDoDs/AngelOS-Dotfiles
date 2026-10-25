@@ -167,7 +167,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Первый вход — один раз в терминале: менеджер сам спросит почту, пароль и код 2FA. Для 1Password включи в его приложении «Интеграция с 1Password CLI».", "The first login: once, in a terminal; the manager asks for the e-mail, password and 2FA code. For 1Password, switch on «Integrate with 1Password CLI» in its app.")
+            text: I18n.t("Первый вход — один раз в терминале. Для 1Password включи в нём «Интеграция с 1Password CLI».", "Sign in once in a terminal. For 1Password, turn on «Integrate with 1Password CLI» in its app.")
         }
     }
     CatGroup {
@@ -188,7 +188,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Прятать на стриме", "Hide on stream")
-            hint: I18n.t("пока открыт OBS, идёт стрим или включена приватность — названия записей и логины закрыты точками; пароль на экране не бывает никогда", "while OBS is open, a stream is on or privacy mode is: the entries' names and logins are dotted out; a password is never on screen at all")
+            hint: I18n.t("На стриме названия и логины закрыты точками. Пароль на экране не показывается никогда.", "On stream, names and logins are dotted out. A password is never shown.")
             checked: Config.vault.hideOnStream
             onToggled: c => Config.vault.hideOnStream = c
         }

@@ -12,7 +12,7 @@ import qs.modules.settings.kit
 // cleans what is safe. The scan changes nothing; the list says what would go and how much.
 CatPage {
     heading: I18n.t("Обслуживание", "Maintenance")
-    subtitle: I18n.t("Одна кнопка: проверить компьютер и убрать безопасное — старые кэши, временные папки, кэш пакетов. Модели, музыка, профили браузеров и кэши шейдеров игр не трогаются.", "One button: check the computer and clean what is safe — old caches, temporary folders, the package cache. Models, music, browser profiles and game shader caches are never touched.")
+    subtitle: I18n.t("Одна кнопка: проверить компьютер и убрать безопасное — старые кэши и временные файлы.", "One button: check the computer and clean what is safe — old caches and temporary files.")
     id: page
     property string armed: ""               // the game whose prefix reset waits for a second click
     Component.onCompleted: {
@@ -288,7 +288,7 @@ CatPage {
         icon: "bot"
         CatChoice {
             label: I18n.t("Агент", "Agent")
-            hint: I18n.t("Начинает с выбранного. Кончился лимит — берёт следующий: Claude, потом Codex, потом opencode. Входишь в свой аккаунт; angelOS ключей не хранит.", "Starts with the chosen one. Out of limits: the next — Claude, then Codex, then opencode. You log in to your own account; angelOS keeps no keys.")
+            hint: I18n.t("С кого начать. Кончился лимит — берёт следующего. Входишь в свой аккаунт, ключи не хранятся.", "Who goes first. Out of limits, the next one takes over. Your own account; no keys are kept.")
             model: [
                 {
                     "label": "Claude Code",
@@ -328,7 +328,7 @@ CatPage {
         CatNote {
             textKind: "tiny"
             dim: true
-            text: I18n.t("Откроется терминал. Помощник уже видит журналы системы, оболочки и обновлений; перед правкой делает снимок системы (если они есть) и спрашивает перед каждой командой, sudo — только с твоего согласия.", "A terminal opens. The helper sees the system's, the shell's and the updates' logs already; before a change it takes a snapshot (when there are any) and asks before every command, sudo only with your yes.")
+            text: I18n.t("Откроется терминал. Помощник видит журналы, делает снимок системы и спрашивает перед каждой командой.", "A terminal opens. The helper reads the logs, takes a system snapshot and asks before every command.")
         }
     }
 }

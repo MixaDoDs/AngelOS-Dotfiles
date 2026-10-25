@@ -12,7 +12,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Виджеты", "Widgets")
-    subtitle: DesktopWidgets.macLook ? I18n.t("Карточки на рабочем столе. Двойной клик по карточке — режим правки: в нём карточку таскают за любое место, «−» убирает её. Ещё их можно добавить через ПКМ → Вид.", "Cards on the desktop. Double-click a card for edit mode: there you drag it anywhere, “−” removes it. You can also add them via right-click → View.") : I18n.t("Виджеты на рабочем столе. ПКМ по виджету — размер, рамка, настройки; двойной клик — режим правки.", "Widgets on the desktop. Right click one for its size, frame and settings; double click to edit.")
+    subtitle: DesktopWidgets.macLook ? I18n.t("Карточки на столе. Двойной клик — режим правки: таскать и убирать. Добавить — ПКМ → Вид.", "Desktop cards. Double-click to edit: drag or remove. Add them via right-click → View.") : I18n.t("Виджеты на рабочем столе. ПКМ по виджету — размер, рамка, настройки; двойной клик — режим правки.", "Widgets on the desktop. Right click one for its size, frame and settings; double click to edit.")
     property string newType: DesktopWidgets.types.length ? DesktopWidgets.types[0].type : ""
     property string newScreen: Shell.primaryName || (Quickshell.screens[0] ? Quickshell.screens[0].name : "")
     readonly property var screenModel: Quickshell.screens.map(s => ({
@@ -137,7 +137,7 @@ CatPage {
         icon: "headphones"
         CatCustom {
             label: I18n.t("Человечки из звонка Discord", "Little people from the Discord call")
-            hint: !Config.discord.crew ? I18n.t("Кто в твоём голосовом канале — ходят над панелью, говорящий подпрыгивает; их можно таскать мышью, а кто вышел — лопается", "Whoever is in your voice channel walks over the bar; the one speaking hops. Drag them with the mouse; whoever leaves bursts")
+            hint: !Config.discord.crew ? I18n.t("Кто в твоём голосовом канале — ходят над панелью, говорящий подпрыгивает.", "Whoever is in your voice channel walks over the bar; the speaker hops.")
                 : DiscordVoice.state === "no-discord" ? I18n.t("Discord не запущен", "Discord is not running")
                 : DiscordVoice.state === "auth" ? (DiscordVoice.error || I18n.t("Discord ещё не разрешил — нажми «Подключить»", "Discord has not allowed it yet — press Connect"))
                 : DiscordVoice.state === "authorizing" ? I18n.t("Подтверди в окне Discord…", "Allow it in Discord's window…")
@@ -164,7 +164,7 @@ CatPage {
         }
         CatChoice {
             present: Config.discord.crew
-            label: I18n.t("Размер", "Size")
+            label: I18n.t("Размер человечков", "Figure size")
             hint: I18n.t("Всех сразу. Одного — ПКМ по нему: «Увеличить», «Уменьшить»", "Of all of them. For one — right-click them: Bigger, Smaller")
             combo: true
             model: [
@@ -401,6 +401,7 @@ CatPage {
                             SettingRow {
                                 visible: !!card.w && card.w.type === "music" && DesktopWidgets.sizeOf(card.w) !== "m"
                                 label: I18n.t("Столбиков", "Bars")
+                                hint: I18n.t("Сколько полосок у музыкального виджета.", "How many bars the music widget has.")
                                 PxSpin {
                                     from: 8
                                     to: 64
@@ -493,6 +494,7 @@ CatPage {
                             SettingRow {
                                 visible: !!card.w && card.w.type === "picture"
                                 label: I18n.t("Паспарту", "Mat")
+                                hint: I18n.t("Рамка-подложка вокруг картинки, как в фоторамке.", "A mat around the picture, like in a photo frame.")
                                 PxSegmented {
                                     model: [
                                         {
@@ -523,6 +525,7 @@ CatPage {
                             SettingRow {
                                 visible: !!card.w && card.w.type === "picture" && card.st.mode !== "folder" && (card.st.loops || 0) > 0
                                 label: I18n.t("Замереть на", "Rest on")
+                                hint: I18n.t("На каком кадре гифка остановится, когда отыграет.", "Which frame the GIF stops on when it finishes.")
                                 PxSegmented {
                                     model: [
                                         {
@@ -656,7 +659,7 @@ CatPage {
         }
         CatChoice {
             label: I18n.t("Сетка", "Grid")
-            hint: I18n.t("к чему прилипают виджеты; в режиме правки сетка видна на обоях, сверху — панель с этим же выбором и «Выровнять всё»", "What the widgets snap to; in edit mode the grid shows on the wallpaper, with a bar on top for the same choice and “Align all”")
+            hint: I18n.t("К чему прилипают виджеты. В режиме правки сетка видна на обоях.", "What widgets snap to. In edit mode the grid shows on the wallpaper.")
             model: DesktopWidgets.gridLevels
             currentValue: DesktopWidgets.gridLevel
             onActivated: v => DesktopWidgets.setGrid(v)

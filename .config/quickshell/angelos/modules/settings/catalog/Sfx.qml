@@ -14,8 +14,8 @@ import qs.modules.settings.kit
 // over fullscreen games. The newer events start switched off.
 CatPage {
     id: page
-    heading: I18n.t("Звуки системы", "System sounds")
-    subtitle: I18n.t("Каждый звук по отдельности: включить, сделать тише или громче, поставить другой звук или свой файл. Клики, клавиши, окна, столы, блокировка.", "Every sound on its own: switch it, make it quieter or louder, give it another sound or a file of yours. Clicks, keys, windows, desks, the lock.")
+    heading: I18n.t("Системные звуки", "System sounds")
+    subtitle: I18n.t("Каждый звук отдельно: включить, громкость, другой звук или свой файл.", "Each sound on its own: on or off, volume, another sound or your own file.")
     readonly property var labels: ({
             "startup": [I18n.t("Вход", "Startup"), I18n.t("вместе с загрузочным экраном", "With the loading screen")],
             "notify": [I18n.t("Уведомление", "Notification"), I18n.t("не звучит в «Не беспокоить»", "Silent in Do not disturb")],
@@ -306,6 +306,7 @@ CatPage {
         CatCustom {
             fade: enabled ? 1 : 0.5
             label: I18n.t("Какие кнопки щёлкают", "Which buttons tick")
+            hint: I18n.t("Каким кнопкам мыши звук щелчка.", "Which mouse buttons make the click sound.")
             enabled: Config.y2k.sounds
             CatBox {
                 Flow {
@@ -409,7 +410,7 @@ CatPage {
         icon: "folder"
         CatNote {
             dim: true
-            text: I18n.t("Положи .ogg, .wav, .mp3 или .flac в папку ниже — они появятся в списке у каждого звука. Или «Выбрать файл…» прямо в списке.", "Drop .ogg, .wav, .mp3 or .flac files into the folder below — they show up in every sound's list. Or use “Pick a file…” right in the list.")
+            text: I18n.t("Положи .ogg, .wav, .mp3 или .flac в папку ниже — они появятся у каждого звука.", "Put .ogg, .wav, .mp3 or .flac files in the folder below; every sound will list them.")
         }
         CatNote {
             text: Sounds.customDir.replace(Config.home, "~") + "  ·  " + Sounds.customFiles.length + I18n.t(" файл(ов)", " file(s)")

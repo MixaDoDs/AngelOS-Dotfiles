@@ -22,6 +22,12 @@ Text {
     font.pixelSize: script ? Theme.scriptPx(Math.max(basePx, Theme.sizeTiny + 2)) : p5Body ? Theme.p5BodyPx(basePx) : basePx
     font.weight: (mac && (kind === "title" || kind === "big" || kind === "huge")) || (p5 && kind !== "mono") ? Font.Bold : Font.Normal
     font.hintingPreference: mac ? Font.PreferVerticalHinting : Font.PreferFullHinting
+    // a fractional screen scale (1.25, 1.5; the window's own ratio, the screen's is rounded up): the
+    // pixel faces came out with soft grey edges (#119) — hard edges instead, a column now and then
+    // a pixel wider. NativeRendering only (QtRendering ignores it)
+    readonly property real dpr: Window.window ? Window.window.devicePixelRatio : 1
+    readonly property bool fractional: Math.abs(dpr - Math.round(dpr)) > 0.01
+    antialiasing: !(fractional && !script && !mac)
     readonly property bool zoomed: Theme.zoomedFor(parent)
     renderType: script || mac || zoomed ? Text.QtRendering : Text.NativeRendering
     verticalAlignment: Text.AlignVCenter

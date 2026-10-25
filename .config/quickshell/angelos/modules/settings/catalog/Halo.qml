@@ -11,7 +11,7 @@ import qs.modules.settings.kit
 // Settings → Halo (Нимб): the pixel Dynamic Island at the top centre (services/Halo, modules/halo)
 CatPage {
     heading: I18n.t("Нимб", "Halo")
-    subtitle: I18n.t("Капсулы сверху по центру: музыка, таймеры, запись, загрузки. Брось на Нимб файл, ссылку или текст — он ляжет на Полку и подождёт.", "Pills at the top centre: music, timers, recording, downloads. Drop a file, link or text on the Halo and it waits on the Shelf.")
+    subtitle: I18n.t("Капсулы сверху по центру: музыка, таймеры, загрузки. Брось на Нимб файл — он подождёт на Полке.", "Pills at the top centre: music, timers, downloads. Drop a file on the Halo to keep it on the Shelf.")
     id: page
     // the look, as pictures: each a small Halo at rest in its colours
     CatGroup {
@@ -258,7 +258,7 @@ CatPage {
             onMoved: v => Config.halo.hoverMs = v
         }
         CatChoice {
-            label: I18n.t("Размер", "Size")
+            label: I18n.t("Размер Нимба", "Halo size")
             model: [
                 {
                     label: I18n.t("Маленький", "Small"),
@@ -322,7 +322,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Звонки", "Calls")
-            hint: I18n.t("Discord, Telegram, Zoom… взяли микрофон — зелёная капсула: время звонка, «выключить микрофон» (только у этой программы, пульт и стрим не трогаются), «открыть»", "Discord, Telegram, Zoom… took the microphone — a green capsule: the call's time, mute (that program only, the mixer and the stream untouched), open")
+            hint: I18n.t("Программа взяла микрофон — зелёная капсула со временем звонка и кнопкой «выключить микрофон».", "An app took the microphone: a green pill with the call's time and a mute button.")
             checked: Config.halo.calls !== false
             onToggled: c => Config.halo.calls = c
         }
@@ -334,7 +334,7 @@ CatPage {
         icon: "eye"
         CatToggle {
             label: I18n.t("Точка приватности", "Privacy dot")
-            hint: I18n.t("оранжевая — программа пишет микрофон, зелёная — включена камера, фиолетовая — кто-то снимает экран (OBS, демонстрация в Discord); наведи — скажет какая", "orange: a program records the microphone, green: the camera is on, purple: something takes the screen (OBS, a Discord screen share); point at it to see which")
+            hint: I18n.t("Оранжевая — пишут микрофон, зелёная — камера, фиолетовая — снимают экран. Наведи — скажет кто.", "Orange: the mic. Green: the camera. Purple: the screen is captured. Point at it to see who.")
             checked: Config.halo.privacyDot
             onToggled: c => Config.halo.privacyDot = c
         }
@@ -369,12 +369,13 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Проценты загрузок", "Download percent")
-            hint: I18n.t("загрузки видны из любой программы; полный размер знает только браузер — angelOS ставит в него маленькое расширение (Helium, Chromium, Brave)", "downloads show from any program; only the browser knows the full size — angelOS puts a small extension into it (Helium, Chromium, Brave)")
+            hint: I18n.t("Проценты видны, если в браузер поставлено маленькое расширение angelOS.", "Percentages show once a small angelOS extension is in the browser.")
             checked: Config.halo.browserBridge
             onToggled: c => Config.halo.browserBridge = c
         }
         CatChoice {
             label: I18n.t("Поверх полноэкранной игры", "Over a full-screen game")
+            hint: I18n.t("Что Нимб показывает, пока идёт игра на весь экран.", "What the Halo shows while a game runs full screen.")
             model: [
                 {
                     label: I18n.t("Ничего", "Nothing"),
@@ -407,7 +408,7 @@ CatPage {
         icon: "moon"
         CatNote {
             dim: true
-            text: I18n.t("Когда ничего не происходит, Нимб — капсула: слева и справа что-то полезное, между ними дужка или котик. Везде «Ничего» и дужка — останется одна тонкая дужка, как раньше.", "When nothing goes on, the Halo is a pill: something useful on the left and the right, the arc or the cat between them. Nothing on both sides and the arc — just the thin arc, as before.")
+            text: I18n.t("В покое Нимб — капсула: по бокам полезное, в середине дужка или котик. Везде «Ничего» — только дужка.", "At rest the Halo is a capsule: useful bits on the sides, an arc or a cat between. All «Nothing»: just the arc.")
         }
         CatChoice {
             label: I18n.t("Слева", "Left")
@@ -475,7 +476,7 @@ CatPage {
         CatToggle {
             present: Config.halo.idleMiddle !== "ring"
             label: I18n.t("Бонго-котик", "Bongo cat")
-            hint: KeyCast.error !== "" ? KeyCast.error : I18n.t("стучит лапкой по столу на каждую клавишу: левая половина клавиатуры — левой, правая — правой; пока вводится пароль — сидит", "taps its desk for every key: the left half of the keyboard with the left paw, the right with the right; still while a password is typed")
+            hint: KeyCast.error !== "" ? KeyCast.error : I18n.t("Котик стучит лапкой на каждую клавишу. Пока вводится пароль — сидит тихо.", "The cat taps a paw for every key. While a password is typed it sits still.")
             checked: Config.halo.catBongo !== false
             onToggled: v => Config.halo.catBongo = v
         }
@@ -529,7 +530,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Видео и треки без синхронной лирики — сбоку", "Videos and songs without synced lyrics — on the side")
-            hint: I18n.t("не занимают Нимб: справа обложка и пляшущие полоски, название всплывает на 5 с при смене трека; песня с лирикой по времени показывается как раньше", "they don't take the Halo: the cover and dancing bars on the right, the title peeks 5 s on a new track; a song with timed lyrics shows as before")
+            hint: I18n.t("Такие треки не занимают Нимб: обложка и полоски справа, название на 5 секунд.", "Such tracks don't take the Halo: the cover and bars on the right, the title for 5 seconds.")
             checked: Config.halo.musicSmart
             onToggled: c => Config.halo.musicSmart = c
         }
