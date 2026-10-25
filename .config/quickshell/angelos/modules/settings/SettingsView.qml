@@ -734,6 +734,9 @@ Item {
             }
             return;
         }
+        // a folded card (Golden Gate) a link leads to: open, its rows are what was asked for
+        if (it.folded === true)
+            it.unfolded = true;
         const y = it.mapToItem(pg.flick.contentItem, 0, 0).y;
         pg.scrollBy(Math.max(0, y - Theme.u * 8) - pg.flick.contentY);
         flashComp.createObject(it);
