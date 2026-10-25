@@ -27,8 +27,13 @@ Singleton {
         running: root.wanted
         stdinEnabled: true
         command: ["python3", "-u", Quickshell.shellDir + "/scripts/app-sleep.py", "--after", String(Config.windows.appSleepMin || 15), "--never", Config.windows.appSleepNever || ""]
-        onRunningChanged: if (!running)
-            root.asleep = []
+        property real startedAt: 0
+        onRunningChanged: {
+            if (running)
+                startedAt = Date.now();
+            else
+                root.asleep = [];
+        }
         stdout: SplitParser {
             onRead: line => {
                 try {
@@ -38,12 +43,15 @@ Singleton {
                 } catch (e) {}
             }
         }
-        onExited: if (root.wanted)
-            restart.start()
+        // gone at once (no niri to ask): each try waits twice as long, up to 5 minutes, not 12 a minute
+        onExited: if (root.wanted) {
+            restart.interval = Date.now() - startedAt < 30000 ? Math.min(restart.interval * 2, 300000) : 5000;
+            restart.start();
+        }
     }
     Timer {
         id: restart
-        interval: 5000
+        interval: 2500
         onTriggered: if (root.wanted)
             daemon.running = true
     }
