@@ -590,8 +590,35 @@ check "Arch Linux ARM: UPDATED, the new version installed, the warning in the lo
   bash -c "tail -n 1 '$W/$CASE.out' | grep -q '^UPDATED ' && grep -q '// v2' '$H/$QML_FILE' && grep -q 'installs no packages' '$W/$CASE.out'"
 }
 
+case_removed() {
+
+# ── 11. issue #118: files the new version no longer has don't stay behind ───
+new_case removed
+SH_A=".config/quickshell/angelos/tests/removed-a.qml" SH_B=".config/quickshell/angelos/tests/removed-b.qml"
+CF_C=".config/removed-fixture/c.conf" CF_D=".config/removed-fixture/d.conf" OWN=".config/quickshell/angelos/tests/my-own.qml"
+mkdir -p "$W/work/${SH_A%/*}" "$W/work/${CF_C%/*}"
+for f in "$SH_A" "$SH_B" "$CF_C" "$CF_D"; do echo "v2 $f" >"$W/work/$f"; done
+publish v2
+update
+check "removed: v2 installed the files" bash -c "[[ $RC == 0 && -f '$H/$SH_A' && -f '$H/$SH_B' && -f '$H/$CF_C' && -f '$H/$CF_D' ]]"
+sed -i "\\#  $SH_B\$#d" "$STATE/installed-files.sha256"    # an install whose manifest already forgot it
+echo 'mine' >>"$H/$CF_D"                                       # a config the user changed
+echo 'mine' >"$H/$OWN"                                         # the user's own file, never in the repository
+(cd "$W/work" && "${G[@]}" rm -q -- "$SH_A" "$SH_B" "$CF_C" "$CF_D")
+publish v3
+update
+if ((RC == 0)); then pass "removed: exit 0"; else fail "removed: exit $RC"; show "$W/$CASE.out"; fi
+check "removed: the dropped shell files and the untouched config are gone, copies kept" \
+  bash -c "[[ ! -e '$H/$SH_A' && ! -e '$H/$SH_B' && ! -e '$H/$CF_C' ]] &&
+           ls -d '$STATE'/removed-files/*/'$SH_A' '$STATE'/removed-files/*/'$SH_B' '$STATE'/removed-files/*/'$CF_C' >/dev/null"
+check "removed: the config the user changed and the user's own file stay" \
+  bash -c "grep -q mine '$H/$CF_D' && grep -q mine '$H/$OWN'"
+check "removed: the manifest no longer lists them" \
+  bash -c "! grep -qE 'removed-(a|b)\\.qml|removed-fixture/c' '$STATE/installed-files.sha256'"
+}
+
 # this process's cases: every UPDATE_SHARD=i/n-th one (all, alone)
-CASES=(success install-fails niri-invalid niri-missing snapshot-fails restore-fails local-changes local-commits diverged untrusted offline system-fails password-closed pacman-busy quickshell-too-old qt-moved no-system install-dies integration-fails merge-fails retry-same-commit unsupported-distro)
+CASES=(success install-fails niri-invalid niri-missing snapshot-fails restore-fails local-changes local-commits diverged untrusted offline system-fails password-closed pacman-busy quickshell-too-old qt-moved no-system install-dies integration-fails merge-fails retry-same-commit unsupported-distro removed)
 IFS=/ read -r shard shards <<<"${UPDATE_SHARD:-0/1}"
 for ((k = shard; k < ${#CASES[@]}; k += shards)); do "case_${CASES[k]//-/_}"; done
 

@@ -464,7 +464,47 @@ install_configs() {
     install_file "$ROOT/.local/bin/niri-screenshot-region-simple" ".local/bin/niri-screenshot-region"
     install_file "$ROOT/.local/bin/niri-record-region-simple" ".local/bin/niri-record-region"
   fi
+  remove_dropped
   save_manifest
+}
+
+# Files the repository no longer ships (deleted or renamed upstream) used to stay behind:
+# a stale QML file failed qml-check, and `angelos restart` refused to restart (#118, #112).
+# Gone from the repository = in the last manifest but not installed now, or (the installs
+# whose manifest already forgot them) deleted from the shell's folder in git history. The
+# shell's own code goes whatever it holds, as an update overwrites it anyway; a config only
+# when the user never changed it. Each one is moved to $REMOVED_DIR/<its path>.
+N_REMOVED=0
+REMOVED_DIR="$STATE_DIR/removed-files/$STAMP"
+still_shipped() { # rel: some repository file still lands there, for some choice of options
+  [[ -e "$ROOT/$1" || -e "$ROOT/${1%.kdl}-plain.kdl" || -e "$ROOT/$1-simple" ]]
+}
+remove_dropped() {
+  local rel dst CUR
+  ((OWNER_HOME == 0)) || return 0      # the author's machine: the live shell is the source of truth
+  declare -A gone=()
+  for rel in "${!PREV_SUM[@]}"; do [[ -z "${NEW_SUM[$rel]:-}" ]] && gone["$rel"]=1; done
+  if git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    while IFS= read -r rel; do
+      [[ -n "$rel" ]] && gone["$rel"]=1
+    done < <(git -C "$ROOT" log --diff-filter=D --name-only --format= -- .config/quickshell/angelos 2>/dev/null | sort -u)
+  fi
+  for rel in "${!gone[@]}"; do
+    case "$rel" in */__pycache__/*|*.pyc|*.bak.*|.config/quickshell/angelos/owner/*) continue ;; esac
+    dst="$HOME_DIR/$rel"
+    [[ -n "${NEW_SUM[$rel]:-}" || ! -f "$dst" || -L "$dst" ]] && continue
+    still_shipped "$rel" && continue
+    if ! is_program "$rel"; then
+      dst_sum "$dst"
+      [[ -n "${PREV_SUM[$rel]:-}" && "$CUR" == "${PREV_SUM[$rel]}" ]] || continue
+    fi
+    mkdir -p -- "$(dirname -- "$REMOVED_DIR/$rel")"
+    mv -- "$dst" "$REMOVED_DIR/$rel"
+    N_REMOVED=$((N_REMOVED + 1))
+  done
+  ((N_REMOVED == 0)) ||
+    say "$(_ "Removed $N_REMOVED file(s) the new version no longer has (kept in ${REMOVED_DIR/#$HOME_DIR/\~}/)" \
+             "Убрано $N_REMOVED файл(ов), которых больше нет в новой версии (копии: ${REMOVED_DIR/#$HOME_DIR/\~}/)")"
 }
 
 # The user's own layer (see generated()): made once with a word on what it is, never touched again
