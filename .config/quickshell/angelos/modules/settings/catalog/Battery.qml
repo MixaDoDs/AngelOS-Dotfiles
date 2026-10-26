@@ -124,6 +124,12 @@ CatPage {
             checked: Config.power.ecoSaverProfile
             onToggled: v => Config.power.ecoSaverProfile = v
         }
+        CatToggle {
+            label: I18n.t("На батарее — 60 Гц", "60 Hz on battery")
+            hint: I18n.t("Экран ноутбука без зарядки идёт на 60 Гц, с зарядкой — обратно на свою частоту.", "Off the charger the laptop's screen runs at 60 Hz, back at its own rate on the charger.")
+            checked: Config.laptop.batteryHz
+            onToggled: v => Config.laptop.batteryHz = v
+        }
     }
     CatGroup {
         name: "alerts"

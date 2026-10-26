@@ -287,10 +287,6 @@ PanelWindow {
         value: true
         restoreMode: Binding.RestoreValue
     }
-    // the notification in the pill is seen once the pointer is on it or its card opens: it may go
-    readonly property bool notifLooked: !!win.main && win.main === Halo.flash && win.main.kind === "notif" && (win.expanded || hover.hovered)
-    onNotifLookedChanged: if (notifLooked)
-        Halo.flashSeen = true
     // the screenshot's capsule stays while the pointer is on it or its card is open
     Binding {
         when: !!win.main && win.main.kind === "shot" && (win.expanded || hover.hovered)

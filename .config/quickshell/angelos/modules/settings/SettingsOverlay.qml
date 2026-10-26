@@ -82,7 +82,8 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.namespace: "angelos-settings"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: visible ? (Shell.dev ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive) : WlrKeyboardFocus.None
+    // the polkit dialog (newer overlay) gets the keys while it asks — #122/#123
+    WlrLayershell.keyboardFocus: visible && !Shell.polkitAsking ? (Shell.dev ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive) : WlrKeyboardFocus.None
 
     Connections {
         target: win.nav

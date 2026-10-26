@@ -175,8 +175,6 @@ JsonAdapter {
         // plain niri a rule in angelos.kdl, ThemeExport); Golden Gate is always Desktop (WindowConfig)
         property bool floatAll: false
         property bool desktopHintSeen: false // the first-time keys hint (modules/osd/Osd.qml) was shown
-        property string titleButtons: "left" // angel-niri title bars: the traffic lights on the left (Mac) | right (Windows)
-        property string green: "maximize"   // the green button: maximize | fullscreen (onto a desk of its own, like a Mac)
         property bool pixelCorners: true    // angel-niri: square windows get pixel staircase corners (services/WindowConfig)
         property bool inactiveDim: true     // angel-niri: a sparse grid of dark dots over the windows not in focus (services/WindowConfig)
         property var dimOutputs: []         // the monitors with those dots; empty: every monitor
@@ -184,6 +182,7 @@ JsonAdapter {
         property bool pixelShadow: true     // angel-niri: dithered window shadows, the focused one glows in the accent (services/WindowConfig)
         property bool remember: true        // angel-niri: programs pinned by hand open on their monitor and desk (services/WindowConfig)
         property bool clipboardKeep: true   // angel-niri: the clipboard outlives the program it was copied from (services/WindowConfig)
+        property bool keepOnCopy: true      // angel-niri: a program doesn't minimize itself right after it copies (services/WindowConfig)
         // angel-niri: a floating window let go mid-drag flies on, bounces off the edges, squashes
         // against them and sways like jelly while dragged (services/WindowConfig); each 0 = off
         property bool throwOn: true
@@ -579,6 +578,7 @@ JsonAdapter {
         property bool rotationLock: false   // …held where it is
         property bool tabletKeyboard: true  // tablet mode starts the on-screen keyboard (wvkbd / squeekboard when installed)
         property bool fingerprint: true     // the lock takes a finger too (fprintd with an enrolled finger)
+        property bool batteryHz: false      // the laptop's screen (eDP) at about 60 Hz off the charger (services/Outputs, #120)
     }
 
     // touchpad gestures of angelOS's own (scripts/gesture-watch.py; niri keeps its 3-finger

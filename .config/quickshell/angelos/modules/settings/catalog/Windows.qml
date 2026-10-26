@@ -330,39 +330,12 @@ CatPage {
             checked: WindowConfig.floatAll
             onToggled: c => WindowConfig.setFloatAll(c)
         }
-        CatChoice {
-            present: Niri.nativeMinimize && WindowConfig.floatAll
-            label: I18n.t("Кнопки окна", "Window buttons")
-            hint: I18n.t("красная, жёлтая и зелёная на заголовках окон", "The red, yellow and green buttons on the title bars")
-            model: [
-                {
-                    "label": I18n.t("Слева, как Mac", "Left, like a Mac"),
-                    "value": "left"
-                },
-                {
-                    "label": I18n.t("Справа, как Windows", "Right, like Windows"),
-                    "value": "right"
-                }
-            ]
-            currentValue: Config.windows.titleButtons
-            onActivated: v => Config.windows.titleButtons = v
-        }
-        CatChoice {
-            present: Niri.nativeMinimize && WindowConfig.floatAll
-            label: I18n.t("Зелёная кнопка", "The green button")
-            hint: Config.windows.green === "fullscreen" ? I18n.t("окно уходит в полный экран на свой рабочий стол, как в macOS; выйдешь — вернётся на место. Задержи мышь на зелёной — меню: полный экран, развернуть, половина экрана, другой монитор", "The window goes full screen on a desk of its own, as in macOS, and comes back when it leaves. Rest the pointer on the green button for a menu: full screen, maximize, half the screen, another monitor") : I18n.t("разворачивает окно на весь экран (двойной клик по заголовку — тоже). Задержи мышь на зелёной — меню: полный экран, развернуть, половина экрана, другой монитор", "Maximizes the window (so does a double click on the title). Rest the pointer on the green button for a menu: full screen, maximize, half the screen, another monitor")
-            model: [
-                {
-                    "label": I18n.t("Развернуть", "Maximize"),
-                    "value": "maximize"
-                },
-                {
-                    "label": I18n.t("Полный экран", "Full screen"),
-                    "value": "fullscreen"
-                }
-            ]
-            currentValue: Config.windows.green
-            onActivated: v => Config.windows.green = v
+        CatToggle {
+            present: Niri.nativeMinimize
+            label: I18n.t("Не сворачивать окно при копировании", "Don't minimize a window on copy")
+            hint: I18n.t("Программа, которая сворачивается сразу после копирования (менеджер паролей), остаётся на месте. Своя кнопка «свернуть» у программ работает как всегда.", "An app that minimizes itself right after copying (a password manager) stays put. Apps' own minimize buttons work as always.")
+            checked: Config.windows.keepOnCopy
+            onToggled: c => Config.windows.keepOnCopy = c
         }
         CatToggle {
             present: Niri.nativeMinimize && !page.desk

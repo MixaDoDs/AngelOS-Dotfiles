@@ -271,6 +271,16 @@ Singleton {
             });
     }
     onClipboardKeepChanged: applyClipboardKeep()
+    // angel-niri: a program doesn't minimize itself right after it copies (Bitwarden's
+    // «Minimize on copy»); its own minimize button still works
+    readonly property bool keepOnCopy: Niri.nativeMinimize && Config.windows.keepOnCopy
+    function applyKeepOnCopy() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetMinimizeOnCopy", {
+                "on": !keepOnCopy
+            });
+    }
+    onKeepOnCopyChanged: applyKeepOnCopy()
     // angel-niri: throwing floating windows — they fly on after a drag, bounce, squash, sway
     readonly property var windowThrow: {
         const w = Config.windows;
@@ -298,15 +308,17 @@ Singleton {
                 "title_font": overviewFont,
                 // the pixel bars: "light" in a light heaven, the inactive ones pale instead of dark
                 "title_style": GoldenGate.on ? "mac" : !Theme.dark && !Angel.demon ? "light" : "win98",
-                "title_buttons": Config.windows.titleButtons === "right" ? "right" : "left",
-                "green": Config.windows.green === "fullscreen" ? "fullscreen" : "maximize",
+                // one side for every window, by the skin (GTK's follows it, gtk-live.py): Desktop
+                // as Windows 11, the Golden Gate as macOS — the owner, 26.10
+                "title_buttons": GoldenGate.on ? "left" : "right",
+                "green": GoldenGate.on ? "fullscreen" : "maximize",
                 // Settings → Halo → «Windows and the Halo»: only snapped and maximized ones keep
                 // clear of it (it reserves nothing itself then)
                 "top_inset": Config.halo.enabled && Config.halo.windows === "maximized" ? Halo.strip : 0
             });
     }
     onFloatAllChanged: applyStacking()
-    readonly property var _stackingLook: [Config.windows.titleButtons, Config.windows.green, Config.halo.windows, Config.halo.enabled, Halo.strip]
+    readonly property var _stackingLook: [GoldenGate.on, Config.halo.windows, Config.halo.enabled, Halo.strip]
     on_StackingLookChanged: applyStacking()
     Connections {
         target: Theme
@@ -347,6 +359,7 @@ Singleton {
             root.applyMinimizeFade();
             root.applyThrow();
             root.applyClipboardKeep();
+            root.applyKeepOnCopy();
             root.applyStacking();
         }
     }

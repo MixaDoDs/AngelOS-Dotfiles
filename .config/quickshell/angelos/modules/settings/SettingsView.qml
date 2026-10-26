@@ -1035,7 +1035,8 @@ Item {
             }
             parent: page.parent
             // a hidden one keeps its size: resizing the window doesn't lay out every kept page again, only the one on view
-            anchors.fill: visible ? parent : undefined
+            // (its own condition, not `visible`: that follows the parent's and made a binding loop)
+            anchors.fill: current && !win.atHome ? parent : undefined
             layer.enabled: win.spread
             layer.effect: inkFx
             visible: current && !win.atHome

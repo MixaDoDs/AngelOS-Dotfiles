@@ -364,7 +364,7 @@ Singleton {
                         if (kind === "wheel")
                             root.go(dir);
                         else
-                            Niri.action(dir === "up" ? "MoveColumnToWorkspaceUp" : "MoveColumnToWorkspaceDown", {});
+                            Niri.action(dir === "up" ? "MoveColumnToWorkspaceUp" : "MoveColumnToWorkspaceDown", { focus: true }); // stock niri needs the field (#124)
                     } else if (m)
                         root.go(m[1]);
                     else if (ok && a[1] === "cancel")

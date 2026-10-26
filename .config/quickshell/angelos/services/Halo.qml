@@ -139,7 +139,6 @@ Singleton {
                 "body": info.body || "",
                 "icon": info.icon || ""
             }, 3500);
-            root.flashSeen = false;
             // the notification itself (for «Open») apart: a QObject inside the flash's object
             // made the property drop it at once
             root.flashNote = info.n || null;
@@ -239,7 +238,6 @@ Singleton {
     property var flash: null
     // its card is open: it stays
     property bool flashHeld: false
-    property bool flashSeen: true            // the notification in the pill was looked at (HaloWindow)
     property var flashNote: null
     function flashOf(kind, data, ms) {
         flash = Object.assign({
@@ -252,7 +250,7 @@ Singleton {
     Timer {
         id: flashOff
         onTriggered: {
-            if (root.flash && ((root.flash.kind === "shot" && root.shotHeld) || root.flashHeld || (root.flash.kind === "notif" && !root.flashSeen)))
+            if (root.flash && ((root.flash.kind === "shot" && root.shotHeld) || root.flashHeld))
                 restart();
             else
                 root.flash = null;
