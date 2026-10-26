@@ -124,7 +124,7 @@ Scope {
                 L.open = true;
                 L.status = "sending";
             } else if (s === 3) {
-                root.report("sending", !!lw.window && root.shows("Отправляю картинку"), JSON.stringify(root.texts().slice(0, 8)));
+                root.report("sending", !!lw.window && root.shows("Ищу по картинке"), JSON.stringify(root.texts().slice(0, 8)));
                 root.shot("sending", () => {
                     L.handle({
                         "ev": "consent",

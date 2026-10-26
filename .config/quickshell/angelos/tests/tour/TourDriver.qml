@@ -160,7 +160,7 @@ Scope {
             const ggPixel = tips();
             Config.settingsUi.skin = "pixel";
             report("tour-keys-pixel", pixel.startsWith("Mod+Space Mod+Tab plain") && pixel.endsWith(" Mod+Space."), pixel);
-            report("tour-keys-mac", mac.startsWith("Mod+Alt+Space Ctrl+↑ alt") && mac.endsWith("Mod+Alt+Space."), mac);
+            report("tour-keys-mac", mac.startsWith("Mod+Alt+Space Mod+Alt+Tab alt") && mac.endsWith("Mod+Alt+Space."), mac);
             report("tour-keys-switch-refused", refused === pixel, refused);
             report("tour-keys-reverse-switch-refused", reverseRefused === mac, reverseRefused);
             report("tour-keys-gg-pixel", ggPixel === pixel, ggPixel);
