@@ -99,7 +99,15 @@ FocusScope {
         value: root.shownNow && !root.leaving && root.sndOn
     }
     readonly property bool musicWanted: overDesk && shownNow && !leaving && sndOn && Config.y2k.settingsMusic
-    onMusicWantedChanged: Sounds.loop(musicWanted ? sndDir + "lift.ogg" : "", musicWanted ? 0.32 * Config.y2k.soundVolume : 0)
+    property bool musicPlaying: false
+    onMusicWantedChanged: {
+        musicPlaying = musicWanted;
+        Sounds.loop(musicWanted ? sndDir + "lift.ogg" : "", musicWanted ? 0.32 * Config.y2k.soundVolume : 0);
+    }
+    // unloaded while it plays (the look switched away from P5, the overlay dropped): no change
+    // handler runs then, and the tune would go round with the menu gone
+    Component.onDestruction: if (musicPlaying)
+        Sounds.loop("", 0)
     onLeavingChanged: {
         // opened again while going out: back in from where it got to (not when it is done and gone)
         const midway = leaveRun.running;
