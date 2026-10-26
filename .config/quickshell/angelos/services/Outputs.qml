@@ -81,6 +81,43 @@ Singleton {
         interval: 4000
         onTriggered: root.autoRefresh()
     }
+    // Settings → Battery → «60 Hz on battery» (#120): off the charger the laptop's own screen
+    // goes to the rate nearest 60 at the same size, live only (monitor.kdl untouched); back on
+    // the charger it gets the mode it had, else its fastest again (autoRefresh)
+    readonly property bool batteryHz: Config.ready && !Shell.dev && Config.laptop.batteryHz && Power.discharging && Object.keys(outputs).length > 0
+    property var hzBack: ({})         // name -> its mode before
+    onBatteryHzChanged: {
+        const back = {};
+        for (const name in outputs) {
+            const o = outputs[name];
+            if (!/^eDP/.test(name))
+                continue;
+            if (!batteryHz) {
+                if (hzBack[name])
+                    Quickshell.execDetached(["niri", "msg", "output", name, "mode", hzBack[name]]);
+                continue;
+            }
+            const cur = o.current_mode !== null && o.current_mode !== undefined ? o.modes[o.current_mode] : null;
+            if (!cur)
+                continue;
+            const low = o.modes.filter(m => m.width === cur.width && m.height === cur.height).sort((a, b) => Math.abs(a.refresh_rate - 60000) - Math.abs(b.refresh_rate - 60000))[0];
+            if (!low || low.refresh_rate >= cur.refresh_rate)
+                continue;
+            back[name] = modeString(cur);
+            Quickshell.execDetached(["niri", "msg", "output", name, "mode", modeString(low)]);
+        }
+        // shortcut: after a restart on battery the old mode is not known — autoRefresh brings
+        // back the fastest for a screen nobody picked a mode for
+        if (!batteryHz)
+            autoRefresh();
+        hzBack = back;
+        refreshLater.restart();
+    }
+    Timer {
+        id: refreshLater
+        interval: 1500
+        onTriggered: root.refresh()
+    }
     Process {
         id: bestRate
         command: ["python3", Quickshell.shellDir + "/scripts/niri_outputs.py", "best"]

@@ -8,7 +8,7 @@ import "A11y.js" as A11y
 Item {
     id: root
     // inside the P5 settings window: its colours (Theme.tone)
-    readonly property bool p5: Theme.p5For(root.parent)
+    readonly property bool p5: settingsSkin === "p5"
 
     property var model: []
     property var currentValue
@@ -41,7 +41,7 @@ Item {
         anchors.fill: parent
         visible: root.classicLike
         sunken: true
-        color: Theme.tone("sunken", root.p5)
+        color: Theme.toneOf(root.settingsSkin, "sunken")
     }
     Rectangle {
         visible: root.mac
@@ -130,7 +130,7 @@ Item {
             PxBox {
                 anchors.fill: parent
                 visible: !root.mac
-                color: Theme.tone("face", root.p5)
+                color: Theme.toneOf(root.settingsSkin, "face")
                 shadow: true
             }
             MacGlass {
@@ -150,7 +150,7 @@ Item {
                 active: list.contentHeight > list.height
                 contentItem: Rectangle {
                     implicitWidth: Theme.u * 2
-                    color: Theme.tone("text", root.p5)
+                    color: Theme.toneOf(root.settingsSkin, "text")
                     opacity: 0.5
                     visible: parent.active
                 }
@@ -162,7 +162,7 @@ Item {
                 width: list.width
                 height: Theme.sizeBody + Theme.u * 7
                 radius: root.mac ? GoldenGate.px(6) : 0
-                color: optMouse.containsMouse ? (root.mac ? GoldenGate.accent : Theme.select) : index === root.currentIndex && !root.mac ? Theme.tone("faceAlt", root.p5) : "transparent"
+                color: optMouse.containsMouse ? (root.mac ? GoldenGate.accent : Theme.select) : index === root.currentIndex && !root.mac ? Theme.toneOf(root.settingsSkin, "faceAlt") : "transparent"
                 Row {
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.u * 4
@@ -175,7 +175,7 @@ Item {
                     }
                     PxText {
                         text: opt.modelData.label
-                        color: optMouse.containsMouse ? Theme.selectText : Theme.tone("text", root.p5)
+                        color: optMouse.containsMouse ? Theme.selectText : Theme.toneOf(root.settingsSkin, "text")
                     }
                 }
                 MouseArea {

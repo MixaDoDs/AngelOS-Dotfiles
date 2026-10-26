@@ -12,7 +12,7 @@ import qs.modules.settings.kit
 // cleans what is safe. The scan changes nothing; the list says what would go and how much.
 CatPage {
     heading: I18n.t("Обслуживание", "Maintenance")
-    subtitle: I18n.t("Одна кнопка: проверить компьютер и убрать безопасное — старые кэши, временные папки, кэш пакетов. Модели, музыка, профили браузеров и кэши шейдеров игр не трогаются.", "One button: check the computer and clean what is safe — old caches, temporary folders, the package cache. Models, music, browser profiles and game shader caches are never touched.")
+    subtitle: I18n.t("Одна кнопка: проверить компьютер и убрать безопасное — старые кэши и временные файлы.", "One button: check the computer and clean what is safe — old caches and temporary files.")
     id: page
     property string armed: ""               // the game whose prefix reset waits for a second click
     Component.onCompleted: {
@@ -29,7 +29,7 @@ CatPage {
         PxIcon {
             anchors.verticalCenter: parent.verticalCenter
             name: parent.modelData.level === "ok" ? "check" : parent.modelData.level === "info" ? "info" : "warn"
-            fill: parent.modelData.level === "ok" ? Theme.tone("ok", Theme.p5For(parent)) : parent.modelData.level === "bad" ? Theme.danger : parent.modelData.level === "warn" ? Theme.accent : Theme.accent2
+            fill: parent.modelData.level === "ok" ? Theme.toneFor("ok", parent) : parent.modelData.level === "bad" ? Theme.danger : parent.modelData.level === "warn" ? Theme.accent : Theme.accent2
         }
         PxText {
             anchors.verticalCenter: parent.verticalCenter
@@ -60,7 +60,7 @@ CatPage {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 kind: "huge"
                                 text: Care.report ? String(Care.score) : "…"
-                                color: !Care.report ? Theme.tone("textDim", Theme.p5For(parent)) : Care.score >= 85 ? Theme.tone("ok", Theme.p5For(parent)) : Care.score >= 60 ? Theme.accent : Theme.danger
+                                color: !Care.report ? Theme.toneFor("textDim", parent) : Care.score >= 85 ? Theme.toneFor("ok", parent) : Care.score >= 60 ? Theme.accent : Theme.danger
                             }
                             PxText {
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -151,7 +151,7 @@ CatPage {
                                 anchors.verticalCenter: parent.verticalCenter
                                 dim: !row.prog
                                 text: !row.prog ? (row.modelData.bytes > 0 ? Care.size(row.modelData.bytes) : "") : row.prog.state === "start" ? I18n.t("…", "…") : row.prog.state === "fail" ? I18n.t("не вышло", "failed") : row.prog.freed > 0 ? "−" + Care.size(row.prog.freed) : "✓"
-                                color: row.prog && row.prog.state === "fail" ? Theme.danger : row.prog && row.prog.state === "done" ? Theme.tone("ok", Theme.p5For(parent)) : Theme.tone("text", Theme.p5For(parent))
+                                color: row.prog && row.prog.state === "fail" ? Theme.danger : row.prog && row.prog.state === "done" ? Theme.toneFor("ok", parent) : Theme.toneFor("text", parent)
                             }
                             PxToggle {
                                 enabled: !Care.running
@@ -288,7 +288,7 @@ CatPage {
         icon: "bot"
         CatChoice {
             label: I18n.t("Агент", "Agent")
-            hint: I18n.t("Начинает с выбранного. Кончился лимит — берёт следующий: Claude, потом Codex, потом opencode. Входишь в свой аккаунт; angelOS ключей не хранит.", "Starts with the chosen one. Out of limits: the next — Claude, then Codex, then opencode. You log in to your own account; angelOS keeps no keys.")
+            hint: I18n.t("С кого начать. Кончился лимит — берёт следующего. Входишь в свой аккаунт, ключи не хранятся.", "Who goes first. Out of limits, the next one takes over. Your own account; no keys are kept.")
             model: [
                 {
                     "label": "Claude Code",
@@ -328,7 +328,7 @@ CatPage {
         CatNote {
             textKind: "tiny"
             dim: true
-            text: I18n.t("Откроется терминал. Помощник уже видит журналы системы, оболочки и обновлений; перед правкой делает снимок системы (если они есть) и спрашивает перед каждой командой, sudo — только с твоего согласия.", "A terminal opens. The helper sees the system's, the shell's and the updates' logs already; before a change it takes a snapshot (when there are any) and asks before every command, sudo only with your yes.")
+            text: I18n.t("Откроется терминал. Помощник видит журналы, делает снимок системы и спрашивает перед каждой командой.", "A terminal opens. The helper reads the logs, takes a system snapshot and asks before every command.")
         }
     }
 }

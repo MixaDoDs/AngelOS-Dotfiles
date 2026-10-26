@@ -11,6 +11,34 @@ CatPage {
     heading: I18n.t("Внешний вид", "Appearance")
     subtitle: I18n.t("Основная тема angelOS и дополнительные светлые и тёмные палитры.", "The original angelOS theme and additional light and dark palettes.")
     Component.onCompleted: BlurConfig.refresh()
+    // how the Settings window looks (services/SettingsLook); Golden Gate has System Settings instead
+    CatGroup {
+        name: "settingslook"
+        title: I18n.t("Вид окна настроек", "Settings window look")
+        icon: "gear"
+        present: Config.settingsUi.skin !== "goldengate"
+        CatChoice {
+            label: I18n.t("Вид окна настроек", "Settings window look")
+            hint: I18n.t("Привычный — окно как в Windows 11. Новый — Persona 5 на весь экран. Сменится, когда закроешь настройки.", "Familiar: a window like Windows 11. New: Persona 5 over the whole screen. Changes once Settings are closed.")
+            model: [
+                {
+                    "label": I18n.t("Привычный", "Familiar"),
+                    "value": "win11",
+                    "icon": "window"
+                },
+                {
+                    "label": I18n.t("Новый (P5)", "New (P5)"),
+                    "value": "p5",
+                    "icon": "sparkle"
+                }
+            ]
+            currentValue: Config.settingsUi.look === "p5" ? "p5" : "win11"
+            onActivated: v => {
+                Config.settingsUi.look = v;
+                Config.settingsUi.lookAsked = true;
+            }
+        }
+    }
     // what the whole desktop wears: angelOS classic, Windose, Stream, or Golden Gate (macOS 27)
     CatGroup {
         name: "skin"
@@ -19,7 +47,7 @@ CatPage {
         icon: "window"
         CatNote {
             dim: true
-            text: I18n.t("Классика — исходный вид. Windose и Стрим — свой вид окон и настроек. Golden Gate — весь стол как macOS: строка меню, Dock, Spotlight.", "Classic: the original look. Windose and Stream: their own look of windows and Settings. Golden Gate: the whole desk as macOS — menu bar, Dock, Spotlight.")
+            text: I18n.t("Классика — исходный вид. Windose и Стрим — свои окна. Golden Gate — весь стол как macOS.", "Classic is the original look. Windose and Stream have their own windows. Golden Gate: the desk as macOS.")
         }
         CatCustom {
             wide: true
@@ -223,7 +251,7 @@ CatPage {
                         Rectangle {
                             anchors.fill: parent
                             visible: thumb.status !== Image.Ready
-                            color: Theme.tone("sunken", Theme.p5For(parent))
+                            color: Theme.toneFor("sunken", parent)
                         }
                         // the area in a frame
                         Rectangle {
@@ -242,7 +270,7 @@ CatPage {
                                 anchors.margins: -Math.max(1, Theme.u / 2) * 2
                                 color: "transparent"
                                 border.width: Math.max(1, Theme.u / 2)
-                                border.color: Theme.tone("edge", Theme.p5For(parent))
+                                border.color: Theme.toneFor("edge", parent)
                             }
                         }
                         MouseArea {
@@ -415,7 +443,7 @@ CatPage {
                 Row {
                     spacing: Theme.u * 2
                     Repeater {
-                        model: [Theme.accent, Theme.accent2, Theme.accent3, Theme.accent4, Theme.title1, Theme.title2, Theme.tone("face", Theme.p5For(parent)), Theme.tone("faceAlt", Theme.p5For(parent)), Theme.tone("text", Theme.p5For(parent)), Theme.danger, Theme.tone("ok", Theme.p5For(parent))]
+                        model: [Theme.accent, Theme.accent2, Theme.accent3, Theme.accent4, Theme.title1, Theme.title2, Theme.toneFor("face", parent), Theme.toneFor("faceAlt", parent), Theme.toneFor("text", parent), Theme.danger, Theme.toneFor("ok", parent)]
                         PxBox {
                             required property color modelData
                             width: Theme.u * 14
@@ -472,7 +500,7 @@ CatPage {
         }
         CatCustom {
             label: I18n.t("Цвет папок", "Folder colour")
-            hint: I18n.t("папки в Nautilus и в окнах выбора файлов (тема значков Pixora): в цвет темы — они меняются вместе с ней, в аду тоже; или один из цветов; или как нарисовал автор Pixora", "Folders in Nautilus and in file choosers (the Pixora icon theme): in the theme's colour, changing with it, hell included; one of the colours; or as Pixora's author drew them")
+            hint: I18n.t("Папки в файловом менеджере и окнах выбора файла: в цвет темы, один цвет или как нарисовал автор.", "Folders in the file manager and file pickers: the theme's colour, one colour or as drawn.")
             CatBox {
                 FolderSwatches {
                     width: parent ? parent.width : implicitWidth
@@ -501,12 +529,6 @@ CatPage {
         title: I18n.t("Прозрачность и пиксели", "Transparency and pixels")
         advanced: true
         icon: "sparkle"
-        CatToggle {
-            label: I18n.t("Блюр под панелями", "Blur behind panels")
-            hint: I18n.t("размытие под панелями и меню", "Blur under the bars and menus")
-            checked: Config.appearance.blur
-            onToggled: c => Config.appearance.blur = c
-        }
         CatSlider {
             label: I18n.t("Непрозрачность панелей", "Panel opacity")
             from: 0.4
@@ -539,6 +561,7 @@ CatPage {
         }
         CatSlider {
             label: I18n.t("Зернистость стекла", "Glass grain")
+            hint: I18n.t("Мелкий шум поверх размытия, чтобы стекло не было гладким.", "Fine noise over the blur, so the glass isn't smooth.")
             from: 0
             to: 0.1
             stepSize: 0.002
@@ -556,6 +579,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Жёсткие пиксельные тени", "Pixel shadows")
+            hint: I18n.t("Под окнами и карточками — ровная тень без размытия, как в старых играх.", "A flat, unblurred shadow under windows and cards, like in old games.")
             checked: Config.appearance.shadows
             onToggled: c => Config.appearance.shadows = c
         }
@@ -565,7 +589,7 @@ CatPage {
         title: I18n.t("Размер интерфейса", "Interface size")
         icon: "grid"
         CatSpin {
-            label: I18n.t("Размер пикселя", "Pixel size")
+            label: I18n.t("Масштаб интерфейса", "Interface scale")
             hint: I18n.t("крупнее всё: панели, окна, меню", "Everything bigger: bars, windows, menus")
             from: 1
             to: 4
@@ -612,7 +636,7 @@ CatPage {
         CatToggle {
             present: Config.appearance.themeApps
             label: I18n.t("Qt-приложения в стиле angelOS", "Qt apps in the angelOS look")
-            hint: I18n.t("Qt-программы (kdenlive, qBittorrent, Prism Launcher…) в цветах темы, с пиксельными кнопками. Открытые меняются сразу, остальные — при запуске.", "Qt apps (kdenlive, qBittorrent, Prism Launcher…) in the theme's colours with pixel buttons. Open ones change at once, the rest on their next start.")
+            hint: I18n.t("Программы на Qt (qBittorrent, kdenlive…) в цветах темы. Открытые меняются сразу, остальные — при запуске.", "Qt apps (qBittorrent, kdenlive…) in the theme's colours. Open ones change at once, others on start.")
             checked: Config.appearance.qtStyle
             onToggled: c => Config.appearance.qtStyle = c
         }

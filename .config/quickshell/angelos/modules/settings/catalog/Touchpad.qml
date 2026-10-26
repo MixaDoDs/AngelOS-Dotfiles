@@ -56,6 +56,7 @@ CatPage {
         }
         CatCustom {
             label: I18n.t("Нажатие касанием", "Tap to click")
+            hint: I18n.t("Лёгкое касание — как щелчок, без нажатия.", "A light touch counts as a click, no press needed.")
             CatBox {
                 Flag {
                     flag: "tap"
@@ -121,6 +122,7 @@ CatPage {
         }
         CatChoice {
             label: I18n.t("Касание двумя / тремя пальцами", "Two- / three-finger tap")
+            hint: I18n.t("Какой щелчок дают касания двумя и тремя пальцами.", "Which click a two- and a three-finger tap give.")
             model: [
                 {
                     "label": I18n.t("правый / средний", "right / middle"),
@@ -168,6 +170,7 @@ CatPage {
         }
         CatChoice {
             label: I18n.t("Ускорение", "Acceleration")
+            hint: I18n.t("Плавное — быстрое движение уносит дальше. Ровное — курсор идёт точно за пальцем.", "Adaptive: a quick swipe goes further. Flat: the pointer follows your finger exactly.")
             model: [
                 {
                     "label": I18n.t("плавное", "adaptive"),
@@ -194,7 +197,7 @@ CatPage {
         icon: "sparkle"
         CatNote {
             dim: true
-            text: I18n.t("Уже есть: 3 пальца влево-вправо — колонки окон, вверх-вниз — рабочие столы, 4 пальца вверх — обзор. Щипок — масштаб в программах. Остальное — ниже.", "Built in: 3 fingers left-right for the window columns, up-down for desks, 4 up for the overview. Pinch zooms in apps. The rest is below.")
+            text: I18n.t("Уже есть: 3 пальца вбок — колонки, вверх-вниз — столы, 4 вверх — обзор, щипок — масштаб.", "Built in: 3 fingers sideways for columns, up/down for desks, 4 up for overview, pinch to zoom.")
         }
         CatToggle {
             label: I18n.t("Жесты angelOS", "angelOS gestures")

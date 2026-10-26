@@ -29,7 +29,7 @@ CatPage {
         width: (parent.width - (columns - 1) * gap) / columns
         height: cardCol.implicitHeight + Theme.u * 8
         sunken: current
-        color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), hell ? Theme.hellBlood : Theme.accent, 0.3) : Theme.tone("face", Theme.p5For(parent))
+        color: current ? Theme.mix(Theme.toneFor("face", parent), hell ? Theme.hellBlood : Theme.accent, 0.3) : Theme.toneFor("face", parent)
         Column {
             id: cardCol
             x: Theme.u * 4
@@ -46,7 +46,7 @@ CatPage {
                 height: Theme.u * 22
                 color: card.hell ? Theme.hellBody : Theme.dark ? "#1b1d24" : "#e9e3ec"
                 border.width: Math.max(1, Theme.u / 2)
-                border.color: Theme.tone("lo", Theme.p5For(parent))
+                border.color: Theme.toneFor("lo", parent)
                 Image {
                     anchors.centerIn: parent
                     visible: !!card.modelData.installed && source !== ""
@@ -280,7 +280,7 @@ CatPage {
         advanced: true
         icon: "gear"
         CatChoice {
-            label: I18n.t("Размер", "Size")
+            label: I18n.t("Размер курсора", "Cursor size")
             hint: I18n.t("пиксельные темы angelOS чётче всего в 24, 36 и 48", "angelOS pixel themes are crispest at 24, 36 and 48")
             model: [24, 32, 36, 48].map(v => ({
                         "label": String(v),
@@ -349,7 +349,7 @@ CatPage {
                             readonly property bool same: !!Cursors.theme && modelData.v === Cursors.theme
                             text: (same ? "✓ " : "✕ ") + modelData.k + ": " + (modelData.v || "—")
                             kind: "tiny"
-                            color: same ? Theme.tone("ok", Theme.p5For(parent)) : Theme.tone("textDim", Theme.p5For(parent))
+                            color: same ? Theme.toneFor("ok", parent) : Theme.toneFor("textDim", parent)
                         }
                     }
                 }

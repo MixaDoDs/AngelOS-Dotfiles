@@ -47,6 +47,10 @@ Singleton {
             "l": 1.25
         })[Config.halo.size] || 1
 
+    // the height of the Halo's strip at the top (HaloWindow): the room niri keeps for snapped and
+    // maximized windows in Settings → Halo → «Windows and the Halo» → maximized (WindowConfig)
+    property int strip: 0
+
     // the right-click menu's «hide for an hour»: the pill and the ring go, the strip stays (the
     // windows don't jump)
     property double hiddenUntil: 0
@@ -117,7 +121,9 @@ Singleton {
     }
 
     // ---- notifications, the volume, calls (the owner's 16.10 answers) ----
-    // a notification: 3.5 s in the pill (held while its card is open); not over a hidden or
+    // a notification: in the pill until it is seen — the pointer on the pill or its card open
+    // (#106: 3.5 s and gone, missed by anyone away from the screen); the bell counts the unread
+    // (modules/bar/parts/Bell). Not over a hidden or
     // full-screen-hidden Halo (then the corner popup comes as before)
     readonly property bool takesNotifications: Config.ready && !!Config.halo.enabled && Config.halo.notify !== false && !hidden && !(gameOn && Config.halo.overFullscreen !== "timer")
     // somewhere a full-screen window (the Halo's screens): it hides there
@@ -162,8 +168,10 @@ Singleton {
                 }, 1500);
         }
     }
+    // the volume as it is, past 100 % too (#120: the keys go to 150 %, the pill said 100 %); the bar
+    // of blocks stops at full by itself
     function osdLevel(what) {
-        return what === "brightness" ? Backlight.level : what === "kbd" ? (Backlight.kbdMax > 0 ? Backlight.kbd / Backlight.kbdMax : 0) : what === "mic" ? (Audio.micMuted ? 0 : Audio.micVolume) : (Audio.muted ? 0 : Math.min(1, Audio.volume));
+        return what === "brightness" ? Backlight.level : what === "kbd" ? (Backlight.kbdMax > 0 ? Backlight.kbd / Backlight.kbdMax : 0) : what === "mic" ? (Audio.micMuted ? 0 : Audio.micVolume) : (Audio.muted ? 0 : Audio.volume);
     }
     // a call: a program from the list taking the microphone (PipeWire, services/Sensors). Its
     // capture may not say who it is: Discord's is «WEBRTC VoiceEngine», the program only in

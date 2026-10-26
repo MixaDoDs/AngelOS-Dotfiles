@@ -174,7 +174,7 @@ CatPage {
         present: Laptop.has("backlight")
         CatNote {
             dim: true
-            text: I18n.t("Настоящая подсветка ноутбука (клавиши яркости тоже работают). «Яркость и цвет» выше — это программная гамма для любых мониторов.", "The laptop panel's real backlight (the brightness keys work too). Brightness and colour above is software gamma for any monitor.")
+            text: I18n.t("Настоящая подсветка экрана ноутбука. «Яркость и цвет» выше — программная, для любых мониторов.", "The laptop's real backlight. «Brightness and colour» above is software, for any monitor.")
         }
         CatSlider {
             present: Backlight.available
@@ -189,6 +189,7 @@ CatPage {
         CatSpin {
             present: Backlight.available
             label: I18n.t("Шаг клавиш", "Key step")
+            hint: I18n.t("На сколько меняют яркость клавиши ноутбука за одно нажатие.", "How much the laptop's brightness keys change per press.")
             from: 1
             to: 25
             value: Config.laptop.brightnessStep
@@ -210,6 +211,7 @@ CatPage {
         CatToggle {
             present: Backlight.kbdAvailable
             label: I18n.t("Гаснет вместе с экраном", "Goes out with the screen")
+            hint: I18n.t("Подсветка клавиатуры гаснет и загорается вместе с экраном.", "The keyboard light goes off and on with the screen.")
             checked: Config.laptop.kbdAuto
             onToggled: v => Config.laptop.kbdAuto = v
         }
@@ -252,6 +254,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Закрепить поворот", "Lock rotation")
+            hint: I18n.t("Экран не поворачивается, как ни держи ноутбук.", "The screen stays put however you hold the laptop.")
             checked: Config.laptop.rotationLock
             onToggled: v => Laptop.setRotationLock(v)
         }
@@ -274,6 +277,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Отпечаток на замке", "Fingerprint at the lock")
+            hint: I18n.t("Разблокировать экран пальцем вместо пароля.", "Unlock the screen with a finger instead of the password.")
             checked: Config.laptop.fingerprint
             onToggled: v => Config.laptop.fingerprint = v
         }

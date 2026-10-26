@@ -145,7 +145,7 @@ CatPage {
         advanced: true
         CatNote {
             dim: true
-            text: I18n.t("Это запускает сама система: связка ключей, снимки, папки пользователя. Обычно лучше не трогать; выключенное можно включить обратно — системные файлы не меняются.", "The system starts these itself: the keyring, snapshots, the user's folders. Usually best left alone; what is switched off can be switched back on: the system's files are never changed.")
+            text: I18n.t("Это запускает сама система. Лучше не трогать; выключенное можно включить обратно.", "The system starts these itself. Best left alone; anything turned off can be turned back on.")
         }
         CatRepeat {
             model: Autostart.system

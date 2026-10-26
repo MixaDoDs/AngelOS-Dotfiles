@@ -49,6 +49,46 @@ PxMenu {
         build();
         show(x, y);
     }
+    // the green button's size menu (the pointer rests on it, angel-niri), like a Mac's
+    function openGreen(w, x, y) {
+        win = w;
+        widgetUid = "";
+        const id = w.id;
+        const ws = Niri.workspaceById(w.workspace_id);
+        // Mod+arrows' snaps (angel-niri's stacking), on that window
+        const half = dir => Shell.sh("niri msg action focus-window --id " + id + " && niri msg action focus-column-" + dir);
+        quick = [];
+        items = [
+            {
+                "label": I18n.t("Полный экран", "Full screen"),
+                "icon": "maximize",
+                "run": () => Niri.fullscreenWindow(id)
+            },
+            {
+                "label": I18n.t("Развернуть", "Maximize"),
+                "icon": "window",
+                "run": () => Niri.maximizeWindow(id)
+            },
+            {
+                "separator": true
+            },
+            {
+                "label": I18n.t("Левая половина", "Left half"),
+                "icon": "arrowLeft",
+                "run": () => half("left")
+            },
+            {
+                "label": I18n.t("Правая половина", "Right half"),
+                "icon": "arrowRight",
+                "run": () => half("right")
+            }
+        ].concat(Niri.workspaces.map(x => x.output).filter((o, i, a) => o && a.indexOf(o) === i && (!ws || o !== ws.output)).map(o => ({
+                "label": I18n.t("На монитор ", "To monitor ") + o,
+                "icon": "monitor",
+                "run": () => Niri.moveWindowToMonitor(id, o)
+            })));
+        show(x, y);
+    }
     function openAt(x, y) {
         win = null;
         widgetUid = "";

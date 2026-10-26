@@ -45,7 +45,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Автоскрытие", "Auto-hide")
-            hint: I18n.t("панель уезжает за край экрана и оставляет тонкую линию; подведи мышь к этому краю — вернётся. Окна получают весь экран", "The bar slides off its screen edge leaving a thin line; move the pointer to that edge to bring it back. Windows get the whole screen")
+            hint: I18n.t("Панель прячется за край экрана; подведи мышь к краю — вернётся.", "The bar hides behind the screen edge; move the pointer there to bring it back.")
             checked: Config.bar.autoHide
             onToggled: c => Config.bar.autoHide = c
         }
@@ -152,6 +152,7 @@ CatPage {
         CatSpin {
             present: Config.bar.workspaceStyle !== "hearts"
             label: I18n.t("Значков на стол", "Icons per workspace")
+            hint: I18n.t("Сколько значков программ видно у каждого стола на панели.", "How many app icons each workspace shows on the bar.")
             from: 1
             to: 6
             value: Config.bar.workspaceIcons
@@ -229,6 +230,7 @@ CatPage {
         icon: "window"
         CatToggle {
             label: I18n.t("Кнопки окон", "Window buttons")
+            hint: I18n.t("Кнопки открытых окон на панели.", "Buttons of the open windows on the bar.")
             checked: Config.bar.showWindows
             onToggled: c => Config.bar.showWindows = c
         }
@@ -417,6 +419,7 @@ CatPage {
         CatToggle {
             present: Config.sidebar.enabled && Sidebar.phone
             label: I18n.t("Тоны клавиш", "Key tones")
+            hint: I18n.t("Писк, как у телефона, при нажатии цифр.", "A phone-like beep when you press the digits.")
             checked: Config.phone.keyTones
             onToggled: c => Config.phone.keyTones = c
         }
@@ -437,6 +440,7 @@ CatPage {
         CatCustom {
             present: Config.sidebar.enabled
             label: I18n.t("Разделы", "Sections")
+            hint: I18n.t("Какие блоки есть в боковой панели.", "Which blocks the side panel has.")
             CatBox {
                 Flow {
                     width: parent.width

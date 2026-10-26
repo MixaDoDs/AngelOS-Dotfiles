@@ -86,8 +86,8 @@ CatPage {
             PxBox {
                 anchors.fill: parent
                 sunken: true
-                color: Theme.tone("sunken", Theme.p5For(parent))
-                edgeColor: catcher.activeFocus ? Theme.accent : Theme.tone("edge", Theme.p5For(parent))
+                color: Theme.toneFor("sunken", parent)
+                edgeColor: catcher.activeFocus ? Theme.accent : Theme.toneFor("edge", parent)
             }
             PxText {
                 anchors.centerIn: parent
@@ -234,7 +234,7 @@ CatPage {
                         wrapMode: Text.Wrap
                         text: Keybinds.log
                         kind: "tiny"
-                        color: Keybinds.failed ? Theme.danger : Theme.tone("textDim", Theme.p5For(parent))
+                        color: Keybinds.failed ? Theme.danger : Theme.toneFor("textDim", parent)
                     }
                 }
             }

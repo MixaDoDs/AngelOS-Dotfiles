@@ -93,6 +93,23 @@ Singleton {
             "en": "Open Settings"
         },
         {
+            "id": "settings.section",
+            "ru": "Открыть раздел настроек (P5)",
+            "en": "Open a Settings section (P5)",
+            "key": "the section"
+        },
+        {
+            "id": "settings.poke",
+            "ru": "Ткнуть фигуру в настройках P5",
+            "en": "Poke the figure in P5 Settings"
+        },
+        {
+            "id": "settings.sister",
+            "ru": "Встретить сестру в тёмных настройках P5",
+            "en": "Meet a sister in the dark P5 Settings",
+            "key": "the sister"
+        },
+        {
             "id": "start.open",
             "ru": "Открыть «Пуск»",
             "en": "Open Start",

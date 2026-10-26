@@ -12,15 +12,15 @@ import qs.widgets
 PxScroll {
     id: root
     // inside the P5 settings window: its colours (Theme.tone)
-    readonly property bool p5: Theme.p5For(root.parent)
+    readonly property bool p5: settingsSkin === "p5"
 
     property string heading: ""
     property string subtitle: ""
     readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
     // the Windows 11 look: the view says where you are (big crumbs), sub-pages unfold in place
     readonly property bool fluent: Theme.fluentFor(root.parent)
-    property color headingColor: settingsSkin === "windose" ? Theme.windoseTitle : settingsSkin === "stream" ? Theme.streamLive : Theme.dark ? Theme.accent : Theme.tone("edge", root.p5)
-    property color subtitleColor: Theme.tone("textDim", root.p5)
+    property color headingColor: settingsSkin === "windose" ? Theme.windoseTitle : settingsSkin === "stream" ? Theme.streamLive : Theme.dark ? Theme.accent : Theme.toneOf(root.settingsSkin, "edge")
+    property color subtitleColor: Theme.toneOf(root.settingsSkin, "textDim")
     default property alias items: col.data
     readonly property int innerWidth: col.width
     // Put together from groups (modules/settings/ComposedPage.qml, the tree in tree.json):
@@ -155,7 +155,7 @@ PxScroll {
                 id: upLink
                 visible: !!root.up && !root.tabsOutside && !root.fluent
                 text: "‹ " + (root.up ? root.up.label : "")
-                color: upMouse.containsMouse ? Theme.accent : Theme.tone("textDim", root.p5)
+                color: upMouse.containsMouse ? Theme.accent : Theme.toneOf(root.settingsSkin, "textDim")
                 font.bold: true
                 MouseArea {
                     id: upMouse
@@ -203,7 +203,7 @@ PxScroll {
             visible: root.links.length > 0
             width: parent.width
             height: links.implicitHeight + inset * 2
-            color: root.settingsSkin === "classic" ? Theme.mix(Theme.tone("face", root.p5), Theme.tone("faceAlt", root.p5), 0.35) : root.settingsSkin === "stream" ? Theme.streamPanel : Theme.windosePaper
+            color: root.settingsSkin === "classic" ? Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "faceAlt"), 0.35) : root.settingsSkin === "stream" ? Theme.streamPanel : Theme.windosePaper
             Column {
                 id: links
                 width: parent.width
@@ -217,14 +217,14 @@ PxScroll {
                         height: Theme.u * 17
                         Rectangle {
                             anchors.fill: parent
-                            color: lm.containsMouse ? Theme.mix(Theme.tone("face", root.p5), Theme.accent, 0.16) : "transparent"
+                            color: lm.containsMouse ? Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.accent, 0.16) : "transparent"
                         }
                         Rectangle {
                             visible: link.index > 0
                             x: Theme.u * 18
                             width: parent.width - x - Theme.u * 3
                             height: Math.max(1, Theme.u / 2)
-                            color: Qt.alpha(Theme.tone("lo", root.p5), Theme.dark ? 0.9 : 0.55)
+                            color: Qt.alpha(Theme.toneOf(root.settingsSkin, "lo"), Theme.dark ? 0.9 : 0.55)
                         }
                         Row {
                             x: Theme.u * 4
@@ -233,7 +233,7 @@ PxScroll {
                             SettingsTile {
                                 anchors.verticalCenter: parent.verticalCenter
                                 icon: link.modelData.icon
-                                tint: link.modelData.tint || Theme.mix(Theme.accent, Theme.tone("face", root.p5), 0.25)
+                                tint: link.modelData.tint || Theme.mix(Theme.accent, Theme.toneOf(root.settingsSkin, "face"), 0.25)
                             }
                             PxText {
                                 anchors.verticalCenter: parent.verticalCenter

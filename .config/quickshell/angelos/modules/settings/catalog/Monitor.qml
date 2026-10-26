@@ -11,7 +11,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Экран", "Display")
-    subtitle: I18n.t("Разрешение, масштаб, поворот и расположение экранов. «Применить» сохраняет, «Только попробовать» — до перезагрузки.", "Resolution, scale, rotation and layout of the screens. Apply keeps it, Just try lasts until a reboot.")
+    subtitle: I18n.t("Разрешение, масштаб, поворот и расположение экранов.", "Resolution, scale, rotation and layout of the screens.")
     property string selected: Object.keys(Outputs.draft)[0] || ""
     readonly property var d: Outputs.draft[selected] || null
     readonly property var o: Outputs.outputs[selected] || null
@@ -40,7 +40,7 @@ CatPage {
                     width: parent.width
                     height: Theme.u * 110
                     sunken: true
-                    color: Qt.alpha(Theme.tone("sunken", Theme.p5For(parent)), 0.8)
+                    color: Qt.alpha(Theme.toneFor("sunken", parent), 0.8)
 
                     // through a string: a move replaces the draft, and a new array would rebuild the
                     // monitors (the one under the mouse with them, dropping the drag)
@@ -78,8 +78,8 @@ CatPage {
 
                             PxBox {
                                 anchors.fill: parent
-                                color: page.selected === mon.modelData ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.35) : Theme.tone("face", Theme.p5For(parent))
-                                edgeColor: page.selected === mon.modelData ? Theme.accent : Theme.tone("edge", Theme.p5For(parent))
+                                color: page.selected === mon.modelData ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.35) : Theme.toneFor("face", parent)
+                                edgeColor: page.selected === mon.modelData ? Theme.accent : Theme.toneFor("edge", parent)
                                 Column {
                                     anchors.centerIn: parent
                                     PxIcon {
@@ -194,7 +194,7 @@ CatPage {
         // how it stands: applied at once, back in 15 s unless kept (the banner below)
         CatCustom {
             label: I18n.t("Ориентация", "Orientation")
-            hint: I18n.t("Монитор стоит вертикально или перевёрнут — поверни картинку. Меняется сразу; если не нажать «Оставить», через 15 секунд вернётся как было. Обои с вариантами сами возьмут вертикальный (9:16).", "The monitor stands upright or upside down: turn the picture. It changes at once and comes back in 15 seconds unless you keep it. Wallpapers with variants take their upright (9:16) file.")
+            hint: I18n.t("Повернуть картинку. Если не нажать «Оставить», через 15 секунд вернётся как было.", "Turn the picture. It goes back in 15 seconds unless you keep it.")
             CatBox {
                 Flow {
                     width: parent.width
@@ -423,8 +423,9 @@ CatPage {
             hint: I18n.t("перенести их все на главный (позиции сохранятся, лишнее прижмётся к краю)", "Move them all to the main screen (positions kept, anything off the edge snaps back)")
             compact: true
             icon: "layers"
-            text: I18n.t("Перенести сюда", "Move here")
-            onClicked: DesktopWidgets.moveAllTo(Shell.primaryName)
+            confirm: true
+            text: confirming ? I18n.t("Точно? Ещё раз", "Sure? Again") : I18n.t("Перенести сюда", "Move here")
+            onConfirmed: DesktopWidgets.moveAllTo(Shell.primaryName)
         }
         // her screen and the sidebar's are set on their own pages: links there
         CatLink {
@@ -461,7 +462,7 @@ CatPage {
                 visible: Outputs.undo !== null
                 width: parent.width
                 height: keepRow.implicitHeight + Theme.u * 8
-                color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.25)
+                color: Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.25)
                 Row {
                     id: keepRow
                     x: Theme.u * 4

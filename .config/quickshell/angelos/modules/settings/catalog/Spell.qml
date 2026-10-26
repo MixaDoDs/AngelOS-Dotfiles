@@ -144,7 +144,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Словари Hunspell из собрания wooorm/dictionaries, у каждого своя лицензия (лежит рядом со словарём в ~/.local/share/angelos/spell). Свои слова — в ~/.config/angelos/spell-words.txt.", "Hunspell dictionaries from the wooorm/dictionaries collection, each under its own licence (kept beside it in ~/.local/share/angelos/spell). Your own words are in ~/.config/angelos/spell-words.txt.")
+            text: I18n.t("Словари Hunspell, у каждого своя лицензия. Свои слова — в файле ниже.", "Hunspell dictionaries, each with its own licence. Your own words go in the file below.")
         }
     }
 }

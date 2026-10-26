@@ -11,7 +11,7 @@ import qs.modules.settings.kit
 // LocalSend app see this one — who may send, where it lands, the trusted devices.
 CatPage {
     heading: I18n.t("Отправить рядом", "Quick Share")
-    subtitle: I18n.t("Как AirDrop: файлы и текст на телефон и обратно через LocalSend (Android, iPhone, Windows, Mac). Приложение LocalSend на этом компьютере не нужно — на телефоне нужно.", "Like AirDrop: files and text to a phone and back through LocalSend (Android, iPhone, Windows, Mac). No LocalSend app needed on this computer — on the phone it is.")
+    subtitle: I18n.t("Как AirDrop: файлы и текст на телефон и обратно. На телефоне нужно приложение LocalSend.", "Like AirDrop: files and text to a phone and back. The phone needs the LocalSend app.")
     CatGroup {
         name: "receive"
         title: I18n.t("Видимость и приём", "Visibility and receiving")

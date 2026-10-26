@@ -54,7 +54,7 @@ Singleton {
         const ws = w ? Niri.workspaceById(w.workspace_id) : null;
         if (ws)
             return ws.output;
-        return w ? (origin[w.id] || {}).output || Niri.focusedOutput : "";
+        return w ? (origin[w.id] || {}).output || w.left_output || Niri.focusedOutput : "";
     }
     // the desktop a window is on — a minimized one: the desktop it left
     function wsOf(w) {

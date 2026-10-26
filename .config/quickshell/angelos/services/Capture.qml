@@ -33,13 +33,22 @@ Singleton {
     Process {
         id: sorter
         running: true
-        onRunningChanged: root.sorting = running
+        property real startedAt: 0
+        onRunningChanged: {
+            root.sorting = running;
+            if (running)
+                startedAt = Date.now();
+        }
         command: ["python3", Quickshell.shellDir + "/scripts/screenshot-sort.py", "watch"]
-        onExited: sorterAgain.restart()
+        // gone at once: each try waits twice as long, up to 5 minutes
+        onExited: {
+            sorterAgain.interval = Date.now() - startedAt < 30000 ? Math.min(sorterAgain.interval * 2, 300000) : 5000;
+            sorterAgain.restart();
+        }
     }
     Timer {
         id: sorterAgain
-        interval: 5000
+        interval: 2500
         onTriggered: sorter.running = true
     }
 

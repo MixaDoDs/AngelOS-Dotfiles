@@ -56,6 +56,9 @@ CatPage {
             }
         ] : [])
     // ---- the tiles: what you open most, then the usual places ----
+    // the tile the keys are on, while a look picks the tiles' row by keys (P5)
+    property int tilePick: 0
+    property bool keysOn: false
     readonly property var usual: ["presets", "wallpaper", "theme", "sound", "network", "bluetooth", "display", "keyboard", "taskbar"]
     readonly property var tiles: {
         const v = page.view;
@@ -147,7 +150,7 @@ CatPage {
                             height: chipRow.implicitHeight + Theme.u * 4
                             PxBox {
                                 anchors.fill: parent
-                                color: chipMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.18) : chip.modelData.warn ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                                color: chipMouse.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.18) : chip.modelData.warn ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                                 sunken: chipMouse.pressed
                             }
                             Row {
@@ -184,6 +187,12 @@ CatPage {
         icon: "star"
         CatCustom {
             wide: true
+            keys: page.tiles.length ? {
+                "hint": I18n.t("←→ плитка, Enter — открыть «", "←→ a tile, Enter opens «") + (page.tiles[page.tilePick] || page.tiles[0]).label + "»",
+                "step": d => page.tilePick = (page.tilePick + d + page.tiles.length) % page.tiles.length,
+                "ok": () => page.go((page.tiles[page.tilePick] || page.tiles[0]).id),
+                "focus": on => page.keysOn = on
+            } : null
             CatBox {
                 Grid {
                     id: grid
@@ -196,11 +205,14 @@ CatPage {
                         Item {
                             id: tile
                             required property var modelData
+                            required property int index
+                            // the one the keys are on (P5)
+                            readonly property bool picked: page.keysOn && page.tilePick === index
                             width: grid.cell
                             height: Theme.u * 34
                             PxBox {
                                 anchors.fill: parent
-                                color: tileMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.18) : Theme.tone("face", Theme.p5For(parent))
+                                color: tileMouse.containsMouse || tile.picked ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.18) : Theme.toneFor("face", parent)
                                 sunken: tileMouse.pressed
                             }
                             Column {

@@ -89,6 +89,8 @@ PxPage {
         Flow {
             width: parent.width
             spacing: Theme.u * 3
+            // the buttons wrap onto the next line when they don't fit (PxSegmented), not cut
+            readonly property bool fixedWidth: true
             Actions {
                 entry: r.entry
                 lead: true
@@ -255,7 +257,8 @@ PxPage {
         wrapMode: Text.Wrap
         text: entry.text
         dim: entry.dim
-        kind: entry.textKind
+        // an explanation as small as a line's hint (decision №22, 25.10)
+        kind: entry.dim && entry.textKind === "body" ? "tiny" : entry.textKind
         visible: entry.present
     }
     component CustomRow: Row {
@@ -278,6 +281,8 @@ PxPage {
         // PxGroup's summary of a folded card reads its rows' names
         readonly property string label: modelData.label
         readonly property string hint: modelData.hint
+        // the row's «new» star (SettingsNews): what finds a row by its name finds this slot
+        readonly property bool isNew: !!item && item.isNew === true
         width: parent ? parent.width : 0
         visible: modelData.present
         sourceComponent: {

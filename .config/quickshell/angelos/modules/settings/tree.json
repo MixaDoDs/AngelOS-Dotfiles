@@ -101,7 +101,7 @@
         },
         {
           "id": "sfx",
-          "ru": "Звуки системы",
+          "ru": "Системные звуки",
           "en": "Sounds",
           "icon": "music",
           "hintRu": "щелчки, звуки событий, голос ангела, свои звуки",
@@ -143,16 +143,16 @@
           "blocks": [
             "laptop/power-idle",
             "system/power",
-            "system/games-background",
             "laptop/lid",
-            "lock/awake"
+            "lock/awake",
+            "lock/idle-screen"
           ],
           "links": [
             "battery",
             "lock"
           ],
           "more": [
-            "lock/idle-screen",
+            "system/games-background",
             "lock/idle-aod"
           ]
         },
@@ -346,8 +346,8 @@
         },
         {
           "id": "peripherals",
-          "ru": "Заряд устройств",
-          "en": "Device charge",
+          "ru": "Заряд беспроводных",
+          "en": "Wireless charge",
           "icon": "ampoule",
           "hintRu": "мышь, клавиатура, наушники — ампулами на панели",
           "hintEn": "the mouse, the keyboard, the headphones as ampoules on the bar",
@@ -450,18 +450,14 @@
             "wallpaper/images",
             "wallpaper/destination",
             "wallpaper/releases",
-            "wallpaper/live",
-            "wallpaper/pixel"
+            "wallpaper/live"
           ],
           "more": [
-            "wallpaper/variants",
-            "wallpaper/transition",
-            "wallpaper/release-mark",
-            "wallpaper/scene-depth",
-            "wallpaper/scene-behind"
+            "wallpaper/transition"
           ],
           "links": [
-            "theme"
+            "theme",
+            "wallpaper-scene"
           ],
           "preview": {
             "scene": "WallpaperFx",
@@ -469,26 +465,62 @@
           }
         },
         {
+          "id": "wallpaper-scene",
+          "ru": "Пиксели и сцена",
+          "en": "Pixels and scene",
+          "icon": "grid",
+          "hintRu": "пиксельные обои, варианты, слои сцены, надпись релиза",
+          "hintEn": "pixel wallpaper, variants, the scene's layers, the release mark",
+          "blocks": [
+            "wallpaper/pixel",
+            "wallpaper/variants",
+            "wallpaper/scene-depth",
+            "wallpaper/scene-behind"
+          ],
+          "more": [
+            "wallpaper/release-mark"
+          ],
+          "links": [
+            "wallpaper"
+          ]
+        },
+        {
           "id": "theme",
           "ru": "Тема",
           "en": "Colours and theme",
           "icon": "palette",
-          "hintRu": "светлая или тёмная, цветовая схема, прозрачность, значки",
-          "hintEn": "light or dark, the colour scheme, transparency, icons",
+          "hintRu": "светлая или тёмная, цветовая схема, скины",
+          "hintEn": "light or dark, the colour scheme, skins",
           "blocks": [
-            "appearance/theme"
+            "appearance/theme",
+            "appearance/settingslook",
+            "appearance/skin"
           ],
-          "more": [
-            "appearance/skin",
+          "more": [],
+          "links": [
+            "wallpaper",
+            "fonts",
+            "theme-glass"
+          ]
+        },
+        {
+          "id": "theme-glass",
+          "ru": "Стекло и детали",
+          "en": "Glass and details",
+          "icon": "sparkle",
+          "hintRu": "прозрачность, значки, заголовки окон, цвета программ",
+          "hintEn": "transparency, icons, window titles, the apps' colours",
+          "blocks": [
             "appearance/glass-pixels",
             "appearance/icons",
-            "appearance/window-titles",
+            "appearance/window-titles"
+          ],
+          "more": [
             "appearance/application-theme",
             "windows/app-themes"
           ],
           "links": [
-            "wallpaper",
-            "fonts"
+            "theme"
           ]
         },
         {
@@ -522,7 +554,7 @@
           ],
           "links": [
             "a11y:shake-find-pointer",
-            "game:cursor-hell"
+            "hell:cursor-hell"
           ],
           "more": [
             "y2k/glitter"
@@ -533,30 +565,46 @@
           "ru": "Панель задач",
           "en": "Taskbar",
           "icon": "grid",
-          "hintRu": "вид, автоскрытие, часы, трей, кнопки окон",
-          "hintEn": "the look, auto-hide, the clock, the tray, window buttons",
+          "hintRu": "вид, автоскрытие, часы, трей",
+          "hintEn": "the look, auto-hide, the clock, the tray",
           "blocks": [
             "bar/style",
-            "bar/contents"
+            "bar/contents",
+            "bar/icons"
           ],
           "more": [
-            "bar/taskbar-windows",
-            "bar/taskbar-buttons",
-            "windows/closing-windows",
-            "bar/layout",
-            "bar/icons",
-            "bar/taskbar-screens",
             "bar/sidebar-experimental",
             "bar/taskbar-other"
           ],
           "links": [
             "start",
-            "widgets"
+            "widgets",
+            "taskbar-windows"
           ],
           "preview": {
             "scene": "Taskbar",
             "key": "bar.edge"
           }
+        },
+        {
+          "id": "taskbar-windows",
+          "ru": "Окна на панели",
+          "en": "Windows on the bar",
+          "icon": "window",
+          "hintRu": "кнопки окон, их ширина, закрытие, несколько мониторов",
+          "hintEn": "window buttons, their width, closing, several monitors",
+          "blocks": [
+            "bar/taskbar-buttons",
+            "bar/taskbar-windows",
+            "windows/closing-windows",
+            "bar/layout"
+          ],
+          "more": [
+            "bar/taskbar-screens"
+          ],
+          "links": [
+            "taskbar"
+          ]
         },
         {
           "id": "start",
@@ -601,7 +649,7 @@
           ],
           "links": [
             "start",
-            "game:hell"
+            "hell:hell"
           ]
         },
         {
@@ -667,13 +715,13 @@
           "hintRu": "блокировка, экран входа, заставка, загрузка",
           "hintEn": "the lock screen, the login screen, the screensaver, boot",
           "blocks": [
-            "lock/lock-screen"
+            "lock/lock-screen",
+            "lock/lock-details",
+            "lock/login-screen",
+            "laptop/fingerprint"
           ],
           "more": [
-            "lock/lock-details",
-            "laptop/fingerprint",
             "lock/lock-stream",
-            "lock/login-screen",
             "y2k/loading-screen"
           ],
           "links": [
@@ -901,7 +949,7 @@
           ],
           "links": [
             "defaults",
-            "theme:application-theme"
+            "theme-glass:application-theme"
           ]
         }
       ]
@@ -1003,7 +1051,7 @@
     },
     {
       "id": "game",
-      "ru": "Ангелочек ✧",
+      "ru": "Ангел ✧",
       "en": "Angel ✧",
       "icon": "heart",
       "tint": "#f06aa8",
@@ -1034,22 +1082,38 @@
           "ru": "Игра",
           "en": "The game",
           "icon": "star",
-          "hintRu": "игра, рай и ад, эффекты, новелла",
-          "hintEn": "the game, heaven and hell, effects, the novel",
+          "hintRu": "игра, рай и ад, эффекты",
+          "hintEn": "the game, heaven and hell, effects",
           "blocks": [
             "system/game",
-            "y2k/angel-or-demon"
+            "y2k/angel-or-demon",
+            "y2k/game-effects"
           ],
           "more": [
-            "y2k/game-effects",
-            "y2k/hell",
-            "cursor/cursor-hell",
-            "y2k/novel",
             "y2k/sounds"
           ],
           "links": [
             "rewards",
-            "helper"
+            "helper",
+            "hell"
+          ]
+        },
+        {
+          "id": "hell",
+          "ru": "Ад и новелла",
+          "en": "Hell and the novel",
+          "icon": "ghost",
+          "hintRu": "круги ада, курсор демоницы, новелла",
+          "hintEn": "hell's circles, the demon's cursor, the novel",
+          "blocks": [
+            "y2k/hell",
+            "cursor/cursor-hell"
+          ],
+          "more": [
+            "y2k/novel"
+          ],
+          "links": [
+            "game"
           ]
         },
         {
@@ -1092,8 +1156,8 @@
     },
     {
       "id": "angelos",
-      "ru": "angelOS",
-      "en": "angelOS",
+      "ru": "О системе",
+      "en": "About",
       "icon": "sparkle",
       "tint": "#c77dff",
       "hintRu": "обновления, о системе, поддержать, разработчикам",
@@ -1277,11 +1341,11 @@
       "to": "stars/stars-wish"
     },
     "hell": {
-      "page": "game",
+      "page": "hell",
       "to": "y2k/hell"
     },
     "novel": {
-      "page": "game",
+      "page": "hell",
       "to": "y2k/novel"
     },
     "developer": {
@@ -1988,8 +2052,8 @@
           },
           {
             "id": "peripherals",
-            "ru": "Заряд устройств",
-            "en": "Device charge",
+            "ru": "Заряд беспроводных",
+            "en": "Wireless charge",
             "icon": "ampoule",
             "hintRu": "мышь, клавиатура, наушники — ампулами на панели",
             "hintEn": "the mouse, the keyboard, the headphones as ampoules on the bar",

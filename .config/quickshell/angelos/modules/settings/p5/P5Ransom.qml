@@ -2,7 +2,8 @@ import QtQuick
 import qs.config
 
 // A title cut out of a magazine, P5's way: every letter on a plate of its own — its own colours,
-// font size and lean — and now and then one of them hops.
+// font size and lean — black, paper and grey, never the accent (decision №15, 25.10); hop() makes a
+// few of them hop (the window coming in, a section changing), at rest they stand.
 Row {
     id: root
 
@@ -14,7 +15,7 @@ Row {
     property bool still: false
     spacing: Theme.u / 2
 
-    readonly property var pairs: [["paper", "black"], ["black", "paper"], ["accent", "black"], ["paper", "accent"], ["black", "accent2"]]
+    readonly property var pairs: [["paper", "black"], ["black", "paper"], ["dim", "paper"], ["paper", "dim"], ["black", "paper3"]]
     Repeater {
         id: letters
         model: root.text.split("")
@@ -68,15 +69,21 @@ Row {
             }
         }
     }
+    function hop() {
+        if (!still)
+            hops.left = 3;
+    }
     Timer {
-        running: !root.still && root.visible
+        id: hops
+        property int left: 0
+        running: !root.still && root.visible && left > 0
         repeat: true
-        interval: 500 + Math.random() * 400
+        interval: 180
         onTriggered: {
             const it = letters.itemAt(Math.floor(Math.random() * letters.count));
             if (it && !it.gap)
                 it.jump();
-            interval = 500 + Math.random() * 400;
+            left--;
         }
     }
 }

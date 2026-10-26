@@ -7,7 +7,8 @@
                                system ones clickRight key (+ key2 key3, typing
                                variety) windowOpen workspace lock unlock usbIn
                                usbOut bark harp, the cobwebs' webSnap webSwipe
-                               webClear as .ogg
+                               webClear, the window modes' desktopOn desktopOff
+                               as .ogg
                                (.wav without ffmpeg) and the pips voiceAngel
                                voiceDemon, voiceFallen1…5 and the harp's strings
                                harp1…16 as .wav, prints JSON
@@ -101,10 +102,11 @@ LOUDNESS = {"bark": -24.0, "voiceAngel": -25.0, "voiceDemon": -26.0, "voice": -2
             "key": -27.0, "key2": -27.0, "key3": -27.0, "clickRight": -22.0, "workspace": -24.0,
             "circle": -21.0, "circleSoft": -27.0, "achievement": -23.0, "stars": -31.0,
             "chestOpen": -27.0, "chestTick": -32.0, "chestPrize": -26.0, "chestLegend": -24.0,
-            "webSnap": -27.0, "webSwipe": -28.0, "webClear": -25.0}
+            "webSnap": -27.0, "webSwipe": -28.0, "webClear": -25.0,
+            "desktopOn": -24.0, "desktopOff": -24.0}
 # peaks, dBFS: the harp's strings ring together (a glissando stacks them)
 PEAKS = {"harp%d" % (i + 1): -10.0 for i in range(16)}
-PACK_VERSION = "12"
+PACK_VERSION = "13"
 
 
 def startup():
@@ -269,6 +271,19 @@ def workspace():
         a, b = int(i * len(n) / 8), int((i + 1) * len(n) / 8)
         out[a:b] = lowpass(n, cut)[a:b]
     return out * np.sin(np.pi * t / sec) ** 2
+
+
+def desktop_mode(up):
+    # the windows float up (Desktop) or settle into the Strip's columns: a quick 8-bit arpeggio,
+    # up a C major chord or down it, the last note held a little
+    notes = [72, 76, 79, 84] if up else [84, 79, 76, 72]
+    step, last = 0.055, 0.16
+    buf = np.zeros(int((step * 3 + last) * RATE))
+    for i, n in enumerate(notes):
+        sec = last if i == 3 else step
+        tone = pulse(note(n), note(n), sec, duty=0.25 if up else 0.5)
+        place(buf, tone * env(len(tone), 0.002, sec * 0.6) * 0.5, i * step)
+    return buf
 
 
 def lock():
@@ -726,7 +741,8 @@ SOUNDS = {"startup": startup, "notify": notify, "error": error, "click": click, 
           "circleSoft": lambda: circle(True), "harp": harp,
           "achievement": achievement, "stars": stars, "chestOpen": chest_open, "chestTick": chest_tick,
           "chestPrize": chest_prize, "chestLegend": chest_legend,
-          "webSnap": web_snap, "webSwipe": web_swipe, "webClear": web_clear}
+          "webSnap": web_snap, "webSwipe": web_swipe, "webClear": web_clear,
+          "desktopOn": lambda: desktop_mode(True), "desktopOff": lambda: desktop_mode(False)}
 SOUNDS.update({"harp%d" % (i + 1): (lambda i=i: harp_string(i)) for i in range(16)})
 # played by QtMultimedia's SoundEffect, which only takes .wav
 WAV_ONLY = {"voiceAngel", "voiceDemon", "voiceFallen1", "voiceFallen2", "voiceFallen3", "voiceFallen4", "voiceFallen5"} | {"harp%d" % (i + 1) for i in range(16)}

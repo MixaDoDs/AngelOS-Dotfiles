@@ -97,7 +97,7 @@ CatPage {
                     CatBox {
                         PxText {
                             text: modelData[1] ? I18n.t("готово ♡", "ready ♡") : I18n.t("нет", "no")
-                            color: modelData[1] ? Theme.tone("ok", Theme.p5For(parent)) : Theme.tone("textDim", Theme.p5For(parent))
+                            color: modelData[1] ? Theme.toneFor("ok", parent) : Theme.toneFor("textDim", parent)
                         }
                     }
                 }
@@ -115,7 +115,7 @@ CatPage {
         CatToggle {
             present: StrataSetup.installed
             label: I18n.t("Кольцо конвертации", "The conversion ring")
-            hint: I18n.t("Shift + ПКМ по файлам в Strata — круговое меню: в какой формат сконвертировать. Готовое — в папку «Сконвертировано» рядом.", "Shift + right click on files in Strata: a ring menu of formats to convert to. The result goes to a Converted folder beside them.")
+            hint: I18n.t("Shift + ПКМ по файлам в Strata — выбрать формат. Готовое — в папку «Сконвертировано».", "Shift + right click on files in Strata: pick a format. Results go to a Converted folder.")
             checked: Config.system.convertRing !== false
             onToggled: v => Config.system.convertRing = v
         }
@@ -207,7 +207,7 @@ CatPage {
                     CatBox {
                         PxText {
                             text: modelData[1] ? I18n.t("готово ♡", "ready ♡") : I18n.t("нет", "no")
-                            color: modelData[1] ? Theme.tone("ok", Theme.p5For(parent)) : Theme.tone("textDim", Theme.p5For(parent))
+                            color: modelData[1] ? Theme.toneFor("ok", parent) : Theme.toneFor("textDim", parent)
                         }
                     }
                 }
@@ -223,7 +223,7 @@ CatPage {
             present: !NautilusSetup.status.prefsApplied && !!NautilusSetup.status.prefs
             textKind: "tiny"
             dim: true
-            text: I18n.t("Масштаб значков и формат архива Nautilus запоминает сам, когда ты их меняешь в нём, — «Применить» вернёт значения angelOS.", "Nautilus remembers the icon zoom and the archive format itself when you change them there — Apply puts angelOS's values back.")
+            text: I18n.t("Файловый менеджер сам запоминает масштаб значков и формат архива; «Применить» вернёт значения angelOS.", "The file manager remembers icon zoom and archive format itself; Apply brings angelOS's values back.")
         }
         CatCustom {
             wide: true
@@ -232,7 +232,7 @@ CatPage {
                     visible: NautilusSetup.needsRestart && NautilusSetup.running
                     width: parent.width
                     height: restartRow.implicitHeight + Theme.u * 6
-                    color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.12)
+                    color: Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.12)
                     Row {
                         id: restartRow
                         x: Theme.u * 3

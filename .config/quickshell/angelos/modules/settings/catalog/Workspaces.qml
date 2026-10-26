@@ -112,7 +112,7 @@ CatPage {
                             width: Theme.u * 34
                             height: Theme.u * 28
                             sunken: current
-                            color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : spriteMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                            color: current ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : spriteMouse.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                             WsSprite {
                                 id: cardSprite
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -173,7 +173,7 @@ CatPage {
                     width: parent.width
                     height: Theme.u * 30
                     sunken: true
-                    color: Theme.tone("sunken", Theme.p5For(parent))
+                    color: Theme.toneFor("sunken", parent)
                     Row {
                         id: previewRow
                         anchors.centerIn: parent
@@ -256,7 +256,7 @@ CatPage {
                             width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
                             height: hsCol.implicitHeight + Theme.u * 8
                             sunken: current
-                            color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : hsMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                            color: current ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : hsMouse.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                             Column {
                                 id: hsCol
                                 x: Theme.u * 4
@@ -315,7 +315,7 @@ CatPage {
                             width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
                             height: styleCol.implicitHeight + Theme.u * 8
                             sunken: current
-                            color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : styleMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                            color: current ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : styleMouse.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                             Column {
                                 id: styleCol
                                 x: Theme.u * 4
@@ -399,7 +399,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("«Мягкий», «Рывок», «Пружина» и «Щелчок» — без задержки, оба стола живые. Остальные красивее, но старый стол на миг замирает. В играх на весь экран анимации нет.", "Soft, Dash, Spring and Snap have no delay and both desks stay live. The others look fancier, but the old desk freezes for a moment. No animation in fullscreen games.")
+            text: I18n.t("«Мягкий», «Рывок», «Пружина» и «Щелчок» — без задержки. Остальные красивее, но стол на миг замирает.", "Soft, Dash, Spring and Snap have no delay. The others look nicer, but the desk freezes for a moment.")
         }
     }
     CatGroup {
@@ -429,6 +429,7 @@ CatPage {
         CatCustom {
             present: Config.workspaces.popupMode === "window"
             label: I18n.t("Где окошко", "Popup position")
+            hint: I18n.t("В каком месте экрана всплывает окошко со столом.", "Where on the screen the workspace popup appears.")
             CatBox {
                 PxPositionPicker {
                     value: Config.workspaces.popupPosition
@@ -444,6 +445,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Полоска сердечек справа", "Heart strip on the right")
+            hint: I18n.t("Сердечки-столы у правого края при переключении.", "Heart workspaces at the right edge as you switch.")
             checked: Config.workspaces.indicator
             onToggled: c => Config.workspaces.indicator = c
         }

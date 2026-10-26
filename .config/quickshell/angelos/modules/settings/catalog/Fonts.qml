@@ -10,7 +10,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     heading: I18n.t("Шрифты", "Fonts")
-    subtitle: I18n.t("Пиксельные шрифты для заголовков, текста и кода. Размеры подгоняются под сетку шрифта, чтобы буквы оставались чёткими.", "Pixel fonts for titles, text and code. Sizes snap to each font's pixel grid so glyphs stay crisp.")
+    subtitle: I18n.t("Пиксельные шрифты для заголовков, текста и кода. Размеры подогнаны, чтобы буквы были чёткими.", "Pixel fonts for titles, text and code. Sizes are snapped so letters stay crisp.")
     Component.onCompleted: Fonts.refresh()
     readonly property string sample: I18n.t("Привет, ангел ♡ 0123", "Hello, angel ♡ 0123")
     CatGroup {
@@ -39,7 +39,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Недостающие шрифты скачиваются с GitHub / Google Fonts, проверяются по SHA-256 и ставятся в ~/.local/share/fonts/angelos.", "Missing fonts are downloaded from GitHub / Google Fonts, verified by SHA-256 and installed to ~/.local/share/fonts/angelos.")
+            text: I18n.t("Недостающие шрифты скачиваются и проверяются сами.", "Missing fonts are downloaded and checked by themselves.")
         }
     }
     CatGroup {
@@ -128,7 +128,7 @@ CatPage {
                         required property var modelData
                         width: parent.width
                         height: cardCol.implicitHeight + Theme.u * 8
-                        color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, card.modelData.installed ? 0.06 : 0)
+                        color: Theme.mix(Theme.toneFor("face", parent), Theme.accent, card.modelData.installed ? 0.06 : 0)
                         Column {
                             id: cardCol
                             x: Theme.u * 4
@@ -154,7 +154,7 @@ CatPage {
                                 width: parent.width
                                 elide: Text.ElideRight
                                 text: page.sample
-                                color: Theme.tone("text", Theme.p5For(parent))
+                                color: Theme.toneFor("text", parent)
                                 font.family: card.modelData.families[0]
                                 font.pixelSize: Theme.fontPx(16, card.modelData.families[0])
                                 font.hintingPreference: Font.PreferFullHinting

@@ -55,8 +55,8 @@ Singleton {
             "appearance.fontTitle": ["Шрифты", "Fonts"],
             "appearance.fontBody": ["Шрифты", "Fonts"],
             "appearance.fontMono": ["Шрифты", "Fonts"],
-            "settingsUi.skin": ["Вид настроек", "Settings look"],
-            "settingsUi.view": ["Вид настроек", "Settings look"]
+            "settingsUi.skin": ["Скин рабочего стола", "Desktop skin"],
+            "settingsUi.look": ["Вид окна настроек", "Settings window look"]
         })
     function labelOf(path) {
         const e = extraLabels[path];

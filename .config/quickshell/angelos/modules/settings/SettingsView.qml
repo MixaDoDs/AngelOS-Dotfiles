@@ -130,10 +130,10 @@ Item {
     readonly property bool mac: skin === "goldengate" && !hellDress
     readonly property string settingsSkin: hellDress ? "classic" : mac ? "goldengate" : fluent ? "classic" : skin
     readonly property var macHost: mac ? win.Window.window : null
-    // the angelOS look is the P5 window (modules/settings/p5): its own frame, sections, card and
-    // search, the settings straight from the catalog; hell's dresses and Golden Gate keep theirs
-    // (ANGELOS_SETTINGS_OLD=1: the Windows 11 view, while P5 is new)
-    readonly property bool p5: !hellDress && !mac && Quickshell.env("ANGELOS_SETTINGS_OLD") !== "1"
+    // the P5 window (modules/settings/p5) when it is the look picked (services/SettingsLook): its own
+    // frame, sections, card and search, the settings straight from the catalog; hell's dresses
+    // and Golden Gate keep theirs
+    readonly property bool p5: !hellDress && !mac && SettingsLook.p5
     // (there is no simple view or Expert any more: every page is a click away)
     readonly property bool expert: true
 
@@ -734,6 +734,9 @@ Item {
             }
             return;
         }
+        // a folded card (Golden Gate) a link leads to: open, its rows are what was asked for
+        if (it.folded === true)
+            it.unfolded = true;
         const y = it.mapToItem(pg.flick.contentItem, 0, 0).y;
         pg.scrollBy(Math.max(0, y - Theme.u * 8) - pg.flick.contentY);
         flashComp.createObject(it);
@@ -1032,7 +1035,8 @@ Item {
             }
             parent: page.parent
             // a hidden one keeps its size: resizing the window doesn't lay out every kept page again, only the one on view
-            anchors.fill: visible ? parent : undefined
+            // (its own condition, not `visible`: that follows the parent's and made a binding loop)
+            anchors.fill: current && !win.atHome ? parent : undefined
             layer.enabled: win.spread
             layer.effect: inkFx
             visible: current && !win.atHome
@@ -1363,14 +1367,9 @@ Item {
         // for every one of them, so it is loaded anew with its key whenever the page changes
         readonly property string want: {
             const id = win.settingsNav.settingsPage;
-            if (id === "home" || id === "more") {
-                // the folder and the tiles show their own home, no page
-                if (win.hasHome)
-                    return "";
-                // Home (MainPage, the flat list's first section); Windose and Stream in the sidebar
-                // view keep their own home
-                return win.skin === "classic" || win.hellDress || win.viewId !== "sidebar" ? "tree:main" : id === "home" ? "pages/HomePage.qml" : "pages/MorePage.qml";
-            }
+            // Home: MainPage, the flat list's first section
+            if (id === "home" || id === "more")
+                return "tree:main";
             if (id.startsWith("plugin:"))
                 return "pages/PluginSettingsPage.qml";
             if (id.startsWith("cat:"))

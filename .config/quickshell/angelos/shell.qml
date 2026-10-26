@@ -23,6 +23,7 @@ import qs.modules.idle
 import qs.modules.sidebar
 import qs.modules.y2k
 import qs.modules.alttab
+import qs.modules.mission
 import qs.modules.cursor
 import qs.modules.cobweb
 import qs.modules.lens
@@ -63,6 +64,7 @@ ShellRoot {
     UpdatePrompt {}
     MainScreenPrompt {}
     TelemetryPrompt {}
+    SettingsLookPrompt {}
     AppsSyncPrompt {}
     SetupWizard {}
     PluginHost {}
@@ -77,6 +79,7 @@ ShellRoot {
     CircleTransition {}
     BootScreen {}
     AltTabHost {}
+    MissionControl {}
     ShakeCursor {}
     CobwebOverlay {}
     LensOverlay {}

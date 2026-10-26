@@ -76,7 +76,7 @@ Scope {
                 // the PNG inline, byte for byte: base64 of the stand-in picture
                 const b64 = "iVBORw0KGgphbmdlbE9TLWxlbnMtdGVzdAD/";
                 drv.check("lens-off-browser", x.length === 2 && x[1] === "file://" + Island.lensFile, JSON.stringify(x));
-                drv.check("lens-page", page.indexOf('action="https://lens.google.com/v3/upload?ep=ccm&amp;st=') > 0 && page.indexOf('atob("' + b64 + '")') > 0 && page.indexOf('name="encoded_image"') > 0, page.slice(0, 120));
+                drv.check("lens-page", /action="https:\/\/lens\.google\.com\/v3\/upload\?ep=ccm(&amp;hl=\w*)?&amp;st=/.test(page) && page.indexOf('atob("' + b64 + '")') > 0 && page.indexOf('name="encoded_image"') > 0, page.slice(0, 120));
                 // on: the island
                 Config.island.enabled = true;
                 Island.search("привет мир");

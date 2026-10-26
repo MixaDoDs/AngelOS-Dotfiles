@@ -434,10 +434,18 @@ def main():
     signal.signal(signal.SIGTERM, bye)
     signal.signal(signal.SIGHUP, bye)
     # raw pipes, read with os.read: a buffered readline hides lines from select (a wake 2.6 s late)
+    # both go with this script: wl-paste --watch never notices its reader is gone, and every
+    # restart of the shell left one behind
+    def die_with_us():
+        try:
+            import ctypes
+            ctypes.CDLL(None).prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
+        except (OSError, AttributeError):
+            pass
     events = subprocess.Popen(["niri", "msg", "-j", "event-stream"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                              bufsize=0)
+                              bufsize=0, preexec_fn=die_with_us)
     clip = subprocess.Popen(["wl-paste", "--watch", "echo", "."], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                            bufsize=0)
+                            bufsize=0, preexec_fn=die_with_us)
     ev, cl, inp = events.stdout.fileno(), clip.stdout.fileno(), sys.stdin.fileno()
     pending = b""
     full = 0.0

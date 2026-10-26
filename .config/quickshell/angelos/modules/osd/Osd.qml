@@ -93,6 +93,22 @@ PanelWindow {
             win.show("flag");
         }
     }
+    // Desktop hides the desks' strip: a switch of desk on a screen says which one is in front (not
+    // a click onto another screen, not into a full-screen window, not while Mission Control is up)
+    property string deskOut: ""
+    property int deskId: -1
+    readonly property var desk: WindowConfig.floatAll ? Niri.activeWorkspace(Niri.focusedOutput) : null
+    onDeskChanged: {
+        const out = Niri.focusedOutput, id = desk ? desk.id : -1;
+        const moved = out === deskOut && deskId !== -1 && id !== -1 && id !== deskId;
+        deskOut = out;
+        deskId = id;
+        if (!moved || Mission.shown || Shell.fullscreenOn(out))
+            return;
+        flagIcon = "grid";
+        flagText = I18n.t("Стол ", "Desk ") + desk.idx;
+        show("flag");
+    }
     // Desktop or the Strip (services/WindowConfig): the first time Desktop comes, its keys too
     Connections {
         target: WindowConfig
@@ -153,7 +169,7 @@ PanelWindow {
                 }
             }
             Repeater {
-                model: [I18n.t("Mod+Ctrl+Shift+M — назад в Ленту", "Mod+Ctrl+Shift+M — back to the Strip"), I18n.t("Mod+← → — половина экрана, ↑ — во весь, ↓ — свернуть", "Mod+← → — half the screen, ↑ — all of it, ↓ — minimize"), I18n.t("Mod+D — показать рабочий стол", "Mod+D — show the desktop"), I18n.t("потряси окно за заголовок — остальные свернутся", "shake a window by its title — the rest minimize"), I18n.t("колесо по заголовку — шторка, Alt+Пробел — меню окна", "the wheel over a title — roll it up, Alt+Space — the window's menu")]
+                model: [I18n.t("Mod+Ctrl+Shift+M — назад в Ленту", "Mod+Ctrl+Shift+M — back to the Strip"), I18n.t("Mod+← → — половина экрана, ↑ — во весь, ↓ — свернуть", "Mod+← → — half the screen, ↑ — all of it, ↓ — minimize"), I18n.t("Mod+D — показать рабочий стол, Mod+W — все окна и столы", "Mod+D — show the desktop, Mod+W — all windows and desks"), I18n.t("потряси окно за заголовок — остальные свернутся", "shake a window by its title — the rest minimize"), I18n.t("колесо по заголовку — шторка, Alt+Пробел — меню окна", "the wheel over a title — roll it up, Alt+Space — the window's menu")]
                 PxText {
                     required property string modelData
                     text: modelData

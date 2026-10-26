@@ -24,7 +24,8 @@ import qs.config
 // put on a stage with reverb and a path across the stereo field by scripts/hell-sounds.py,
 // shipped in data/sounds/hell, not synthesised); harp: the harp menu's strings, HarpLook;
 // webSnap/webSwipe/webClear:
-// the cobwebs' thread snapping, a swipe of their quick-time event, the web gone). Quiet in stream
+// the cobwebs' thread snapping, a swipe of their quick-time event, the web gone; desktopOn/Off:
+// the windows switching to Desktop or the Strip, an 8-bit arpeggio up or down). Quiet in stream
 // mode (StreamMode.quiet).
 // The Golden Gate skin has a pack of its own (macEvents, below): original Mac-like sounds in
 // data/sounds/macos (scripts/mac-sounds.py), yours of the same name in
@@ -40,7 +41,7 @@ import qs.config
 Singleton {
     id: root
 
-    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "circleSin", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear"]
+    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "circleSin", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear", "desktopOn", "desktopOff"]
     // off until switched on in System sounds (typing and such would surprise)
     readonly property var optIn: ["clickRight", "key", "windowOpen", "workspace", "lock", "unlock"]
     // over a fullscreen window (a game, a film), when asked (y2k.quietFullscreen): all quiet but
@@ -156,7 +157,7 @@ Singleton {
         }
     }
     // scripts/y2k-sounds.py PACK_VERSION: an older pack is synthesised again
-    readonly property string packVersion: "12"
+    readonly property string packVersion: "13"
     readonly property string base: Config.home + "/.local/share/angelos/sounds"
     readonly property string dir: base + "/y2k"
     readonly property string pack: ["overdose", "pc2k"].includes(Config.y2k.soundPack) ? Config.y2k.soundPack : "y2k"

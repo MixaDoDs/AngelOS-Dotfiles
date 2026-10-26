@@ -152,6 +152,9 @@ review() {
   [[ "$DESKTOP_SHELL" == angelos ]] &&
     lines+=("$(_ '• you join the input group (the Meta key, the mouse in games) and a udev rule reads the charge of wireless mice' \
                  '• ты войдёшь в группу input (клавиша Meta, мышь в играх), правило udev читает заряд беспроводных мышей')")
+  [[ "$DESKTOP_SHELL" == angelos && "$DISCORD_SHIELD" == 1 ]] &&
+    lines+=("$(_ '• WirePlumber: with a mixer (RØDECaster and the like) Discord streams its mixes, not each program' \
+                 '• WirePlumber: с пультом (RØDECaster и похожие) Discord стримит его миксы, а не каждую программу')")
   if [[ "$INSTALL_GAMING" == 1 && "$SKIP_PACKAGES" != 1 ]]; then
     local g
     while IFS= read -r g; do

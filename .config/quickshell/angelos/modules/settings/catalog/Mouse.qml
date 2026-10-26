@@ -19,6 +19,7 @@ CatPage {
         icon: "mouse"
         CatChoice {
             label: I18n.t("Ускорение", "Acceleration")
+            hint: I18n.t("Плоское — курсор идёт ровно за рукой. Адаптивное — быстрый взмах уносит дальше.", "Flat: the pointer follows your hand evenly. Adaptive: a quick flick goes further.")
             model: [
                 {
                     "label": I18n.t("Плоское", "Flat"),
@@ -47,6 +48,8 @@ CatPage {
         }
         // set where the windows are laid out (Windows → Layout); here a link to it
         CatLink {
+            // angel-niri's Desktop: focus follows clicks only, the setting is hidden there
+            present: !(Niri.nativeMinimize && WindowConfig.floatAll)
             label: I18n.t("Фокус следует за мышью", "Focus follows mouse")
             hint: InputConfig.focusFollowsMouse ? I18n.t("включено", "on") : I18n.t("выключено", "off")
             page: "windows"
@@ -60,7 +63,7 @@ CatPage {
         icon: "gamepad"
         CatChoice {
             label: I18n.t("Частота в играх", "Rate in games")
-            hint: I18n.t("мышь на 4–8 кГц душит тяжёлую игру (Wine/Proton): камера дёргается и догоняет. В игре движение прореживается до этой частоты, клики идут сразу; на рабочем столе мышь как есть", "A 4–8 kHz mouse chokes a heavy game (Wine/Proton): the camera drags, then catches up. In a game the motion is thinned to this rate, clicks go through at once; on the desktop the mouse is as it is")
+            hint: I18n.t("Мышь на 4–8 кГц тормозит тяжёлые игры. В игре движение прореживается до этой частоты.", "A 4–8 kHz mouse slows heavy games. In a game, motion is thinned to this rate.")
             model: [
                 {"label": I18n.t("как есть", "as is"), "value": 0},
                 {"label": "1000", "value": 1000},
@@ -93,6 +96,7 @@ CatPage {
         }
         CatChoice {
             label: I18n.t("Как увеличивает", "How it magnifies")
+            hint: I18n.t("Живая — окошко рядом с курсором. Снимок — замирает картинка, её можно рассмотреть.", "Live: a window beside the pointer. A picture: the screen freezes for a close look.")
             model: [
                 {
                     "label": I18n.t("Живая, сбоку", "Live, beside"),
@@ -129,7 +133,7 @@ CatPage {
             onActivated: v => Config.lens.zoom = v
         }
         CatSlider {
-            label: I18n.t("Размер", "Size")
+            label: I18n.t("Размер лупы", "Magnifier size")
             from: 160
             to: 700
             stepSize: 20

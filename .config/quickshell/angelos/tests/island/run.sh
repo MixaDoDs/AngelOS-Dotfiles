@@ -116,7 +116,7 @@ echo $prog >>"$T/pids"
 until_log() { for _ in $(seq 150); do grep -q "$1" "$P/web.log" 2>/dev/null && return 0; sleep 0.1; done; return 1; }
 check() { if [[ "$2" == 1 ]]; then [[ -n "${ANGELOS_TEST_VERBOSE:-}" ]] && printf '  ✓ %s\n' "$1"; else printf '  ✕ %s %s\n' "$1" "$3"; fail=1; fi; }
 until_log '^POST '
-check "program-lens-posts" "$(grep -q '^POST /upload?ep=ccm&st=[0-9]* picture' "$P/web.log" && echo 1)" "$(head -3 "$P/web.log" 2>/dev/null | tr '\n' ' ') $(grep -v GBM "$P/prog.log" | tail -2 | tr '\n' ' ')"
+check "program-lens-posts" "$(grep -qE '^POST /upload\?ep=ccm(&hl=[a-zA-Z]*)?&st=[0-9]+ picture' "$P/web.log" && echo 1)" "$(head -3 "$P/web.log" 2>/dev/null | tr '\n' ' ') $(grep -v GBM "$P/prog.log" | tail -2 | tr '\n' ' ')"
 printf '{"cmd":"open","url":"http://127.0.0.1:%s/p1","seq":2}' "$port" >"$P/cmd.json"
 until_log '^GET /p2'
 check "program-opens" "$(grep -q '^GET /p1' "$P/web.log" && grep -q '^GET /p2' "$P/web.log" && echo 1)" "$(tr '\n' ' ' <"$P/web.log")"

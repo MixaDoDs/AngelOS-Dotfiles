@@ -4,7 +4,7 @@ import qs.config
 
 // The P5 window's background, all on the art-pixel grid: rays turning round a point in steps
 // (a full turn in 90 s), the accent slab that wipes across when the section changes (wipe()),
-// stars that flash here and there. `water` (the light theme, the angel): Persona 3 Reload's deep
+// stars that flash here and there as it wipes (at rest only the rays turn: decision №16, 25.10). `water` (the light theme, the angel): Persona 3 Reload's deep
 // water instead of the rays and the stars (shaders/p3_water.frag). Motion off: it all stands.
 Item {
     id: root
@@ -29,6 +29,7 @@ Item {
         if (still)
             return;
         slabRun.restart();
+        twinkle.left = 6;
     }
 
     Item {
@@ -175,13 +176,15 @@ Item {
         }
         Timer {
             id: twinkle
-            running: !root.still && root.visible
+            property int left: 0
+            running: !root.still && root.visible && left > 0
             repeat: true
             interval: 260 + Math.random() * 260
             onTriggered: {
                 const st = stars.itemAt(Math.floor(Math.random() * 7));
                 if (st && st.flash)
                     st.flash();
+                left--;
                 interval = 260 + Math.random() * 260;
             }
         }

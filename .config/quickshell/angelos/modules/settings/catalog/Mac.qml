@@ -25,7 +25,7 @@ CatPage {
         title: "Dock"
         icon: "grid"
         CatSlider {
-            label: I18n.t("Размер", "Size")
+            label: I18n.t("Размер значков", "Icon size")
             from: page.lim["mac.dockSize"][0]
             to: page.lim["mac.dockSize"][1]
             stepSize: 4
@@ -46,6 +46,7 @@ CatPage {
         CatSlider {
             present: Config.mac.dockMagnify
             label: I18n.t("Размер при увеличении", "Magnified size")
+            hint: I18n.t("До какого размера растёт значок под курсором.", "How big an icon grows under the pointer.")
             from: Math.max(page.lim["mac.dockMagnifySize"][0], Config.mac.dockSize)
             to: page.lim["mac.dockMagnifySize"][1]
             stepSize: 4
@@ -131,7 +132,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Значки можно перетаскивать прямо в Dock; вытащите значок вверх из Dock — он уберётся. Запущенную программу оставит в Dock её меню («Оставить в Dock»).", "Drag the icons right in the Dock; pull one up out of the Dock to remove it. A running app stays in the Dock from its menu (Keep in Dock).")
+            text: I18n.t("Значки перетаскиваются в Dock; вытащи вверх — уберётся. Запущенную оставит её меню: «Оставить в Dock».", "Drag icons into the Dock; drag one up to remove it. Keep a running app: its menu → «Keep in Dock».")
         }
         CatRepeat {
             model: keptGroup.kept
@@ -267,14 +268,14 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Меню программ в строке меню", "App menus in the menu bar")
-            hint: I18n.t("Файл, Правка, Вид программы в фокусе (Qt, GTK, стандартные наборы); программы, запущенные раньше, — после перезапуска", "the focused app's File, Edit, View (Qt, GTK, standard sets); apps started before — after a restart")
+            hint: I18n.t("Меню Файл, Правка, Вид программы в фокусе. Уже открытые — после перезапуска.", "The focused app's File, Edit, View. Apps already open: after a restart.")
             checked: Config.mac.appMenus
             onToggled: v => Config.mac.appMenus = v
         }
         CatToggle {
             present: Config.mac.appMenus
             label: I18n.t("Меню Qt-программ тоже в строке меню", "Qt apps' menus in the menu bar too")
-            hint: I18n.t("Telegram, qBittorrent, OBS… отдают своё меню наверх и прячут его в окне — Qt решает это при запуске сразу для всех своих программ. Выключено: у Qt-программ их собственные меню", "Telegram, qBittorrent, OBS… hand their menu up and hide it in the window — Qt decides at start, for all its apps at once. Off: Qt apps keep their own menus")
+            hint: I18n.t("Telegram, qBittorrent, OBS отдают меню наверх. Выключено — меню остаётся в окне.", "Telegram, qBittorrent, OBS hand their menu up. Off: the menu stays in the window.")
             checked: Config.mac.qtGlobalMenu
             onToggled: v => Config.mac.qtGlobalMenu = v
         }
@@ -319,7 +320,7 @@ CatPage {
         }
         CatToggle {
             label: I18n.t("Системные звуки", "Play sound effects")
-            hint: I18n.t("уведомления, ошибки, снимки экрана, Корзина, USB, зарядка, блокировка и вход. Свои, похожие на Mac, без звуков Apple", "notifications, errors, screenshots, the Trash, USB, the charger, locking and logging in. Our own, Mac-like, no Apple sounds")
+            hint: I18n.t("Уведомления, ошибки, снимки, USB, зарядка, вход. Свои звуки в духе Mac.", "Notifications, errors, shots, USB, charging, login. Our own Mac-like sounds.")
             checked: Config.mac.sounds
             onToggled: v => Config.mac.sounds = v
         }
@@ -347,7 +348,7 @@ CatPage {
         }
         CatButton {
             label: I18n.t("Свои звуки", "Your own sounds")
-            hint: I18n.t("файл с именем события (notify, error, volume, screenshot, trash, usbIn, usbOut, power, lock, login; .aiff .caf .wav .ogg .flac .mp3) в этой папке играет вместо встроенного — например, звуки со своего Mac из /System/Library/Sounds", "a file named after the event (notify, error, volume, screenshot, trash, usbIn, usbOut, power, lock, login; .aiff .caf .wav .ogg .flac .mp3) in this folder plays instead of the built-in one — e.g. sounds from your own Mac's /System/Library/Sounds")
+            hint: I18n.t("Файл с именем события (notify, lock, login…) в этой папке играет вместо встроенного.", "A file named after the event (notify, lock, login…) in this folder plays instead.")
             text: I18n.t("Открыть папку", "Open folder")
             icon: "folder"
             onClicked: Quickshell.execDetached(["sh", "-c", 'mkdir -p "$1" && exec gio open "$1"', "sh", Sounds.macUserDir])
@@ -459,7 +460,7 @@ CatPage {
         icon: "search"
         CatToggle {
             label: I18n.t("Файлы", "Files")
-            hint: I18n.t("Spotlight ищет файлы в домашней папке: по имени («отпуск») или типу («.jpeg», «.картинки», «.видео», «.музыка», «.документы»); новые выше. Скрытые папки не смотрит", "Spotlight finds files in the home folder by name (\"holiday\") or type (\".jpeg\", \".images\", \".video\", \".music\", \".docs\"); newest first. Hidden folders are skipped")
+            hint: I18n.t("Ищет файлы в домашней папке по имени или типу («.картинки», «.видео»). Новые выше.", "Finds home folder files by name or type (\".images\", \".video\"). Newest first.")
             checked: Config.launcher.files !== false
             onToggled: v => Config.launcher.files = v
         }
@@ -495,7 +496,7 @@ CatPage {
         icon: "keyboard"
         CatToggle {
             label: I18n.t("Сочетания клавиш как на Mac", "Mac keyboard shortcuts")
-            hint: I18n.t("⌘ — клавиша Windows: ⌘Q завершить, ⌘W закрыть окно, ⌘M свернуть в Dock, ⌘H скрыть программу, ⌘Tab программы, ⌘` окна программы, ⌘Пробел Spotlight, ⌘, настройки, ⌃←/⌃→ рабочие столы, ⌃↑ и F3 Mission Control, ⇧⌘3/4/5 снимки экрана, ⌃⌘Q блокировка, ⌃⌘F полный экран, ⌥⌘⎋ завершить принудительно, ⌃F2 строка меню. Тайлинг niri — на ⌘⌥. Пишется в ~/.config/niri/angelos.kdl с бэкапом и проверкой", "⌘ is the Windows key: ⌘Q quit, ⌘W close window, ⌘M minimize to the Dock, ⌘H hide the app, ⌘Tab apps, ⌘` the app's windows, ⌘Space Spotlight, ⌘, settings, ⌃←/⌃→ desktops, ⌃↑ and F3 Mission Control, ⇧⌘3/4/5 screenshots, ⌃⌘Q lock, ⌃⌘F full screen, ⌥⌘⎋ force quit, ⌃F2 the menu bar. niri's tiling is on ⌘⌥. Written to ~/.config/niri/angelos.kdl with a backup and a check")
+            hint: I18n.t("⌘ — клавиша Windows: ⌘Q, ⌘W, ⌘Tab, ⌘Пробел и другие привычные сочетания Mac.", "⌘ is the Windows key: ⌘Q, ⌘W, ⌘Tab, ⌘Space and the other familiar Mac keys.")
             checked: Config.mac.keys
             onToggled: v => Config.mac.keys = v
         }

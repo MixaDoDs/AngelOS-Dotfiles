@@ -38,7 +38,7 @@ HellDress {
         x: Theme.u * 4
         y: 0
         Repeater {
-            model: Math.ceil((dress.width - Theme.u * 8) / (Theme.u * 6))
+            model: Math.max(0, Math.ceil((dress.width - Theme.u * 8) / (Theme.u * 6)))
             PxIcon {
                 required property int index
                 bitmap: index % 3 === 0 ? ["..r...", ".rrr..", ".ryr..", "rryyr.", "ryyyr.", "ryyyr."] : index % 3 === 1 ? ["......", "...r..", "..rr..", ".ryr..", "rryyr.", "ryyyr."] : ["......", "......", ".r....", ".rr...", "ryyr..", "ryyyr."]
