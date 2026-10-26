@@ -480,8 +480,8 @@ CatPage {
                             PxBox {
                                 anchors.fill: parent
                                 sunken: card.picked
-                                color: card.picked ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.22) : cm.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
-                                edgeColor: card.picked ? Theme.accent : Theme.tone("edge", Theme.p5For(parent))
+                                color: card.picked ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.22) : cm.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
+                                edgeColor: card.picked ? Theme.accent : Theme.toneFor("edge", parent)
                             }
                             Column {
                                 id: cardCol
@@ -543,7 +543,7 @@ CatPage {
                     width: parent.width
                     height: preview.height + Theme.u * 6
                     sunken: true
-                    color: Theme.tone("sunken", Theme.p5For(parent))
+                    color: Theme.toneFor("sunken", parent)
                     SddmPreview {
                         id: preview
                         x: Theme.u * 3

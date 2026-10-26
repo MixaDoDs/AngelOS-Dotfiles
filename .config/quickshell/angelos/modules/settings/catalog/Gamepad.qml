@@ -165,9 +165,9 @@ CatPage {
         Rectangle {
             anchors.fill: parent
             radius: width / 2
-            color: st.p5 ? (st.click ? Theme.accent : Theme.p5Paper) : st.click ? Qt.alpha(Theme.accent, 0.35) : Theme.tone("sunken", false)
+            color: st.p5 ? (st.click ? Theme.accent : Theme.p5Paper) : st.click ? Qt.alpha(Theme.accent, 0.35) : Theme.toneFor("sunken", parent)
             border.width: Theme.u
-            border.color: st.p5 ? Theme.p5Black : st.click ? Theme.accent : Theme.tone("lo", false)
+            border.color: st.p5 ? Theme.p5Black : st.click ? Theme.accent : Theme.toneFor("lo", parent)
         }
         // deadzone ring
         Rectangle {
@@ -177,7 +177,7 @@ CatPage {
             radius: width / 2
             color: "transparent"
             border.width: Math.max(1, Theme.u / 2)
-            border.color: Qt.alpha(Theme.tone("text", Theme.p5For(parent)), 0.2)
+            border.color: Qt.alpha(Theme.toneFor("text", parent), 0.2)
         }
         Rectangle {
             width: Theme.u * 7
@@ -187,7 +187,7 @@ CatPage {
             y: (st.height - height) / 2 + st.ay * (st.height - height) / 2
             color: st.drift ? Theme.accent3 : st.p5 && st.click ? Theme.p5Black : Theme.accent
             border.width: Theme.u
-            border.color: Theme.tone("edge", st.p5)
+            border.color: Theme.toneFor("edge", st)
         }
     }
     // P5: a slanted plate — black on the paper, white on the black pad (onInk), the accent pressed
@@ -272,7 +272,7 @@ CatPage {
                         width: Math.min(parent.width - Theme.u * 4, Theme.u * 210)
                         height: Theme.u * 78
                         // the dark card: a muted body, not a light slab (P5's "black" is the light ink there)
-                        color: padArea.p5 ? (Theme.dark ? Theme.p5Paper3 : Theme.p5Black) : Theme.tone("faceAlt", false)
+                        color: padArea.p5 ? (Theme.dark ? Theme.p5Paper3 : Theme.p5Black) : Theme.toneFor("faceAlt", parent)
 
                         // shoulders
                         Pill {
@@ -298,7 +298,7 @@ CatPage {
                                 width: Theme.u * 12
                                 height: Theme.u * 11
                                 sunken: true
-                                color: padArea.p5 ? Theme.p5Black : Theme.tone("sunken", false)
+                                color: padArea.p5 ? Theme.p5Black : Theme.toneFor("sunken", parent)
                                 Rectangle {
                                     anchors.bottom: parent.bottom
                                     anchors.bottomMargin: Theme.u
@@ -487,13 +487,13 @@ CatPage {
                             width: lbl.implicitWidth + Theme.u * 6
                             height: Theme.u * 10
                             sunken: on
-                            color: on ? Theme.accent : Theme.tone("face", Theme.p5For(parent))
+                            color: on ? Theme.accent : Theme.toneFor("face", parent)
                             PxText {
                                 id: lbl
                                 anchors.centerIn: parent
                                 text: bb.modelData.replace("BTN_", "")
                                 kind: "tiny"
-                                color: bb.on ? Theme.selectText : Theme.tone("text", Theme.p5For(parent))
+                                color: bb.on ? Theme.selectText : Theme.toneFor("text", parent)
                             }
                         }
                     }
@@ -522,7 +522,7 @@ CatPage {
                             width: parent.width - Theme.u * 60
                             height: Theme.u * 6
                             sunken: true
-                            color: Theme.tone("sunken", Theme.p5For(parent))
+                            color: Theme.toneFor("sunken", parent)
                             anchors.verticalCenter: parent.verticalCenter
                             Rectangle {
                                 readonly property real w: (parent.width - Theme.u * 2) * (ar.centred ? Math.abs(ar.v) / 2 : Math.abs(ar.v))
@@ -537,7 +537,7 @@ CatPage {
                                 x: parent.width / 2
                                 width: Math.max(1, Theme.u / 2)
                                 height: parent.height
-                                color: Theme.tone("lo", Theme.p5For(parent))
+                                color: Theme.toneFor("lo", parent)
                             }
                         }
                         PxText {

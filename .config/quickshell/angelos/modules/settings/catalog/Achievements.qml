@@ -93,9 +93,9 @@ CatPage {
                             Rectangle {
                                 width: Theme.u * 20
                                 height: width
-                                color: Theme.tone("sunken", Theme.p5For(parent))
+                                color: Theme.toneFor("sunken", parent)
                                 border.width: Math.max(1, Theme.u / 2)
-                                border.color: Theme.tone("edge", Theme.p5For(parent))
+                                border.color: Theme.toneFor("edge", parent)
                                 PxIcon {
                                     anchors.centerIn: parent
                                     // from Heaven itself: through the Repeater's modelData the rows are no JS array

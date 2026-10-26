@@ -28,7 +28,7 @@ CatPage {
                 anchors.bottom: parent.bottom
                 width: Theme.u * 2
                 height: Theme.u * (2 + index * 2)
-                color: index < bars.level ? (bars.on ? Theme.accent : Theme.tone("text", Theme.p5For(parent))) : Qt.alpha(Theme.tone("text", Theme.p5For(parent)), 0.15)
+                color: index < bars.level ? (bars.on ? Theme.accent : Theme.toneFor("text", parent)) : Qt.alpha(Theme.toneFor("text", parent), 0.15)
             }
         }
     }
@@ -58,7 +58,7 @@ CatPage {
             CatBox {
                 PxText {
                     text: Wifi.connectivityText
-                    color: Wifi.online ? Theme.tone("ok", Theme.p5For(parent)) : Theme.tone("textDim", Theme.p5For(parent))
+                    color: Wifi.online ? Theme.toneFor("ok", parent) : Theme.toneFor("textDim", parent)
                 }
             }
         }
@@ -120,7 +120,7 @@ CatPage {
                             width: parent.width
                             height: body.implicitHeight + Theme.u * 6
                             sunken: n.connected
-                            color: n.connected ? Theme.mix(Theme.tone("sunken", Theme.p5For(parent)), Theme.accent, 0.18) : Qt.alpha(Theme.tone("face", Theme.p5For(parent)), 0.6)
+                            color: n.connected ? Theme.mix(Theme.toneFor("sunken", parent), Theme.accent, 0.18) : Qt.alpha(Theme.toneFor("face", parent), 0.6)
 
                             Column {
                                 id: body

@@ -78,7 +78,7 @@ CatPage {
                 PxText {
                     width: parent.width
                     wrapMode: Text.Wrap
-                    color: Updates.error || Updates.failedUpdate ? Theme.danger : Updates.available ? Theme.accent : Theme.tone("textDim", Theme.p5For(parent))
+                    color: Updates.error || Updates.failedUpdate ? Theme.danger : Updates.available ? Theme.accent : Theme.toneFor("textDim", parent)
                     // a failed attempt that wasn't undone moved the repository, not the system:
                     // "up to date" would be a lie then
                     text: Updates.state === "checking" ? I18n.t("проверяю…", "checking…") : Updates.error ? "✕ " + Updates.error : Updates.available ? I18n.t("доступно изменений: ", "changes available: ") + Updates.behind : Updates.failedUpdate ? I18n.t("последнее обновление не установилось — см. ниже", "the last update did not install — see below") : I18n.t("у тебя последняя версия ♡", "you are up to date ♡")
@@ -271,7 +271,7 @@ CatPage {
                     width: parent.width
                     height: Theme.u * 110
                     sunken: true
-                    color: Theme.tone("sunken", Theme.p5For(parent))
+                    color: Theme.toneFor("sunken", parent)
                     PxScroll {
                         id: logScroll
                         anchors.fill: parent

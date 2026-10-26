@@ -196,7 +196,7 @@ CatPage {
                 focus: false
                 closePolicy: T.Popup.CloseOnEscape | T.Popup.CloseOnPressOutsideParent
                 background: PxBox {
-                    color: Theme.tone("face", Theme.p5For(parent))
+                    color: Theme.toneFor("face", parent)
                     shadow: true
                 }
                 contentItem: ListView {
@@ -220,7 +220,7 @@ CatPage {
                             anchors.verticalCenter: parent.verticalCenter
                             elide: Text.ElideRight
                             text: sug.modelData.label
-                            color: sug.lit ? Theme.selectText : Theme.tone("text", Theme.p5For(parent))
+                            color: sug.lit ? Theme.selectText : Theme.toneFor("text", parent)
                         }
                         PxText {
                             id: cost
@@ -228,7 +228,7 @@ CatPage {
                             anchors.rightMargin: Theme.u * 4
                             anchors.verticalCenter: parent.verticalCenter
                             text: sug.modelData.price
-                            color: sug.lit ? Theme.selectText : Theme.tone("text", Theme.p5For(parent))
+                            color: sug.lit ? Theme.selectText : Theme.toneFor("text", parent)
                             dim: !sug.lit
                         }
                         MouseArea {
@@ -737,8 +737,8 @@ CatPage {
                             PxBox {
                                 anchors.fill: parent
                                 sunken: ffCard.picked
-                                color: ffCard.picked ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.22) : ffm.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
-                                edgeColor: ffCard.picked ? Theme.accent : Theme.tone("edge", Theme.p5For(parent))
+                                color: ffCard.picked ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.22) : ffm.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
+                                edgeColor: ffCard.picked ? Theme.accent : Theme.toneFor("edge", parent)
                             }
                             Column {
                                 id: ffCol

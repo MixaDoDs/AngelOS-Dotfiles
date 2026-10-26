@@ -269,7 +269,7 @@ CatPage {
                         readonly property bool canUpdate: page.updateIds.includes(modelData.id)
                         width: parent.width
                         height: cardCol.implicitHeight + Theme.u * 10
-                        pixelColor: on ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.08) : Theme.tone("face", Theme.p5For(parent))
+                        pixelColor: on ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.08) : Theme.toneFor("face", parent)
 
                         Row {
                             x: Theme.u * 4
@@ -485,7 +485,7 @@ CatPage {
                         group: true
                         width: parent.width
                         height: offerCol.implicitHeight + Theme.u * 8
-                        pixelColor: Theme.tone("face", Theme.p5For(parent))
+                        pixelColor: Theme.toneFor("face", parent)
 
                         Column {
                             id: offerCol

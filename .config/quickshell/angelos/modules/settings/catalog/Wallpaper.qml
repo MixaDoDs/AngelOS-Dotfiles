@@ -54,7 +54,7 @@ CatPage {
                 visible: Angel.demon
                 width: parent.width
                 height: hellNote.implicitHeight + Theme.u * 8
-                color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.danger, 0.18)
+                color: Theme.mix(Theme.toneFor("face", parent), Theme.danger, 0.18)
                 Row {
                     x: Theme.u * 4
                     anchors.verticalCenter: parent.verticalCenter
@@ -170,8 +170,8 @@ CatPage {
                             PxBox {
                                 anchors.fill: parent
                                 sunken: true
-                                color: Theme.tone("sunken", Theme.p5For(parent))
-                                edgeColor: thumb.active ? Theme.accent : Theme.tone("edge", Theme.p5For(parent))
+                                color: Theme.toneFor("sunken", parent)
+                                edgeColor: thumb.active ? Theme.accent : Theme.toneFor("edge", parent)
                                 Image {
                                     anchors.fill: parent
                                     source: "file://" + Wallpapers.display(thumb.shownFile)
@@ -196,7 +196,7 @@ CatPage {
                                 anchors.margins: Theme.u * 2
                                 width: tagText.implicitWidth + Theme.u * 4
                                 height: tagText.implicitHeight + Theme.u * 2
-                                color: Qt.alpha(Theme.tone("face", Theme.p5For(parent)), 0.85)
+                                color: Qt.alpha(Theme.toneFor("face", parent), 0.85)
                                 PxText {
                                     id: tagText
                                     anchors.centerIn: parent
@@ -315,7 +315,7 @@ CatPage {
                     // (as tall as the button: P5's is taller and broke the box's edges)
                     height: Math.max(Theme.u * 14, pickFilesButton.height + Theme.u * 4)
                     sunken: true
-                    color: addDrop.containsDrag ? Qt.alpha(Theme.accent, 0.25) : Theme.tone("sunken", Theme.p5For(parent))
+                    color: addDrop.containsDrag ? Qt.alpha(Theme.accent, 0.25) : Theme.toneFor("sunken", parent)
                     Row {
                         anchors.centerIn: parent
                         spacing: Theme.u * 3
@@ -373,7 +373,7 @@ CatPage {
                         spacing: Theme.u * 2
                         PxText {
                             text: Wallpapers.releaseLabel(relCol.modelData) + (relCol.index === 0 ? I18n.t("  · новые", "  · newest") : "") + "   " + relCol.modelData.date
-                            color: relCol.index === 0 ? Theme.accent : Theme.tone("text", Theme.p5For(parent))
+                            color: relCol.index === 0 ? Theme.accent : Theme.toneFor("text", parent)
                         }
                         Flow {
                             width: parent.width
@@ -414,8 +414,8 @@ CatPage {
                                                 PxBox {
                                                     anchors.fill: parent
                                                     sunken: true
-                                                    color: Theme.tone("sunken", Theme.p5For(parent))
-                                                    edgeColor: rt.active ? Theme.accent : Theme.tone("edge", Theme.p5For(parent))
+                                                    color: Theme.toneFor("sunken", parent)
+                                                    edgeColor: rt.active ? Theme.accent : Theme.toneFor("edge", parent)
                                                     Image {
                                                         anchors.fill: parent
                                                         source: "file://" + Wallpapers.pick(rt.modelData, page.output)
@@ -540,7 +540,7 @@ CatPage {
                     PxBox {
                         anchors.fill: parent
                         sunken: true
-                        color: Theme.tone("sunken", Theme.p5For(parent))
+                        color: Theme.toneFor("sunken", parent)
                     }
                     Image {
                         id: liveThumb
@@ -752,7 +752,7 @@ CatPage {
                             PxBox {
                                 anchors.fill: parent
                                 sunken: true
-                                color: Theme.tone("sunken", Theme.p5For(parent))
+                                color: Theme.toneFor("sunken", parent)
                             }
                             Item {
                                 anchors.fill: parent

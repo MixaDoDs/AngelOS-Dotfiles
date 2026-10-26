@@ -479,7 +479,7 @@ CatPage {
                             width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
                             height: cardCol.implicitHeight + Theme.u * 8
                             sunken: current
-                            color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : cardMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                            color: current ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : cardMouse.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                             Column {
                                 id: cardCol
                                 x: Theme.u * 4

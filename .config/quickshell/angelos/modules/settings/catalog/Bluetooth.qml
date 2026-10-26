@@ -23,7 +23,7 @@ CatPage {
         width: parent ? parent.width : 0
         height: Theme.u * 18
         sunken: d.connected
-        color: d.connected ? Theme.mix(Theme.tone("sunken", Theme.p5For(parent)), Theme.accent, 0.18) : Qt.alpha(Theme.tone("face", Theme.p5For(parent)), 0.6)
+        color: d.connected ? Theme.mix(Theme.toneFor("sunken", parent), Theme.accent, 0.18) : Qt.alpha(Theme.toneFor("face", parent), 0.6)
         PxIcon {
             id: ico
             x: Theme.u * 4

@@ -143,7 +143,7 @@ CatPage {
                         width: parent.width
                         height: bloatLog.implicitHeight + Theme.u * 6
                         sunken: true
-                        color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), "#000000", 0.25)
+                        color: Theme.mix(Theme.toneFor("face", parent), "#000000", 0.25)
                         PxText {
                             id: bloatLog
                             x: Theme.u * 3
@@ -196,7 +196,7 @@ CatPage {
                     visible: Programs.kind === "remove" && (Programs.asked.length > 0)
                     width: parent.width
                     height: jobCol.implicitHeight + Theme.u * 8
-                    color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.14)
+                    color: Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.14)
                     readonly property var p: Programs.plan
                     Column {
                         id: jobCol
@@ -219,7 +219,7 @@ CatPage {
                             visible: !!job.p && !Programs.running && !Programs.done
                             width: parent.width
                             wrapMode: Text.Wrap
-                            color: job.p && job.p.refused ? Theme.danger : Theme.tone("text", Theme.p5For(parent))
+                            color: job.p && job.p.refused ? Theme.danger : Theme.toneFor("text", parent)
                             text: !job.p ? "" : job.p.refused ? "✕ " + job.p.refused : I18n.t("Уйдёт: ", "Goes: ") + job.p.remove.map(x => x.name + (x.size ? " (" + Programs.fmt(x.size) + ")" : "")).join(", ") + (job.p.size ? I18n.t(" — освободится ", " — frees ") + Programs.fmt(job.p.size) : "") + I18n.t(". Свои файлы и настройки программы в домашней папке остаются.", ". Your files and the app's settings in your home folder stay.")
                         }
                         PxText {
@@ -234,7 +234,7 @@ CatPage {
                             width: parent.width
                             height: jobLog.implicitHeight + Theme.u * 6
                             sunken: true
-                            color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), "#000000", 0.25)
+                            color: Theme.mix(Theme.toneFor("face", parent), "#000000", 0.25)
                             PxText {
                                 id: jobLog
                                 x: Theme.u * 3

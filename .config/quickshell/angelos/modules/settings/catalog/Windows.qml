@@ -114,7 +114,7 @@ CatPage {
                             width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
                             height: atCol.implicitHeight + Theme.u * 8
                             sunken: current
-                            color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : atMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                            color: current ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : atMouse.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                             Column {
                                 id: atCol
                                 x: Theme.u * 4
@@ -203,7 +203,7 @@ CatPage {
                         width: Theme.u * 200
                         wrapMode: Text.Wrap
                         kind: "tiny"
-                        color: AltTab.watcherStatus === "noperm" ? Theme.danger : Theme.tone("textDim", Theme.p5For(parent))
+                        color: AltTab.watcherStatus === "noperm" ? Theme.danger : Theme.toneFor("textDim", parent)
                         text: AltTab.watcherStatus === "noperm" ? I18n.t("нет доступа к клавиатуре (группа input): отпускание Alt ловится только самим окошком — если оно не успело открыться, выбери окно Enter или кликом", "No keyboard access (the input group): only the switcher itself sees Alt being let go — if it was not open yet, pick with Enter or a click") : AltTab.log
                     }
                 }
@@ -837,7 +837,7 @@ CatPage {
                             height: Theme.u * 8
                             color: barRow.shown
                             border.width: Math.max(1, Theme.u / 2)
-                            border.color: Theme.tone("edge", Theme.p5For(parent))
+                            border.color: Theme.toneFor("edge", parent)
                         }
                     }
                     PxButton {
@@ -1432,7 +1432,7 @@ CatPage {
                         width: Theme.u * 200
                         wrapMode: Text.Wrap
                         kind: "tiny"
-                        color: Cobweb.shakeStatus === "noperm" ? Theme.danger : Theme.tone("textDim", Theme.p5For(parent))
+                        color: Cobweb.shakeStatus === "noperm" ? Theme.danger : Theme.toneFor("textDim", parent)
                         text: Cobweb.shakeStatus === "noperm" ? I18n.t("нет доступа к мыши (группа input): тряску окна не видно — смахнуть паутину можно из меню кнопки окна (ПКМ)", "No access to the mouse (the input group): shaking a window can't be seen — sweep the web from the window button's menu (right click)") : Cobweb.webCount > 0 ? I18n.t("паутина на окнах: ", "webs on windows: ") + Cobweb.webCount : ""
                     }
                 }

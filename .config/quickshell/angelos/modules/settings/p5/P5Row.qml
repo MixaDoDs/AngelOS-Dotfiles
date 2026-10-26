@@ -28,7 +28,7 @@ Item {
     readonly property var e: line.e || null
     readonly property string kind: line.t === "entry" && e ? e.kind : line.t
     // what can take the selection
-    readonly property bool selectable: shown && kind !== "group" && kind !== "note" && kind !== "embed" && !(kind === "custom" && !e.label)
+    readonly property bool selectable: shown && kind !== "group" && kind !== "note" && kind !== "embed" && !(kind === "custom" && !e.label && !e.keys)
     // (a custom part with nothing in it right now takes no line)
     // (an entry of a group that isn't there now isn't either)
     readonly property bool inPlace: line.t !== "entry" || !!e && e.present && (!line.g || line.g.present)
@@ -78,6 +78,11 @@ Item {
     function step(dir) {
         if (!e || !live)
             return false;
+        if (kind === "custom" && e.keys) {
+            e.keys.step(dir);
+            moved(dir);
+            return true;
+        }
         if (kind === "toggle") {
             const next = !checkedNow;
             hold(next);
@@ -124,7 +129,10 @@ Item {
         }
         if (!e || !live)
             return false;
-        if (kind === "toggle") {
+        if (kind === "custom" && e.keys) {
+            e.keys.ok();
+            Sounds.playSoft("click", 0.6);
+        } else if (kind === "toggle") {
             hold(!checkedNow);
             e.toggled(held);
             pop.restart();
@@ -150,6 +158,30 @@ Item {
         return true;
     }
     readonly property bool editing: input.activeFocus
+    onSelectedChanged: {
+        if (kind === "custom" && e && e.keys && e.keys.focus)
+            e.keys.focus(selected);
+        previewShut = false;
+    }
+
+    // ---- under the selected line: its hint, then its preview (decisions №30, 32: 25.10) ----
+    readonly property string hintText: kind === "more" ? I18n.t("Редкие настройки этой страницы", "This page's rarer settings") : kind === "custom" && e && e.keys ? e.keys.hint || "" : kind !== "result" && e ? e.hint : ""
+    readonly property string previewScene: e && e.preview ? e.preview : ""
+    property string previewVariant: ""
+    property string previewCaption: ""
+    property bool previewShut: false
+    readonly property bool opened: selected && (hintText !== "" || previewScene !== "" && !previewShut)
+    Connections {
+        target: root.e
+        ignoreUnknownSignals: true
+        function onShowPreview(value, caption) {
+            root.previewVariant = String(value);
+            root.previewCaption = caption;
+            root.previewShut = false;
+            if (preview.item)
+                preview.item.restart();
+        }
+    }
 
     // the value's little jump when it changes
     property real popT: 1
@@ -177,7 +209,8 @@ Item {
     Item {
         id: body
         width: root.width
-        height: root.kind === "group" ? groupText.height + px * 6 : root.kind === "note" ? noteText.height + px * 3 : root.kind === "custom" ? customCol.y + customCol.height + px * 3 : root.kind === "embed" ? embedBox.height + px * 6 : Math.max(label.height, valueBox.height) + px * 6
+        readonly property real lineH: root.kind === "group" ? groupText.height + px * 6 : root.kind === "note" ? noteText.height + px * 3 : root.kind === "custom" ? customCol.y + customCol.height + px * 3 : root.kind === "embed" ? embedBox.height + px * 6 : Math.max(label.height, valueBox.height) + px * 6
+        height: lineH + (root.opened ? under.height + px * 3 : 0)
         x: (1 - root.inQ) * -px * 18
         opacity: root.inQ
         transform: Shear {
@@ -192,7 +225,8 @@ Item {
             y: px * 4
             x: px * 2
             text: root.line.title ? "▸ " + root.line.title : ""
-            color: Theme.p5AccentInk
+            // (not the accent: that is only for what is picked, decision №15)
+            color: Theme.mix(root.pal.black, root.pal.paper, 0.3)
             kind: "title"
             font.capitalization: Font.AllUppercase
             font.letterSpacing: px / 2
@@ -246,7 +280,7 @@ Item {
             font.bold: true
             visible: root.kind !== "group" && root.kind !== "note" && root.kind !== "embed"
             x: px * 7
-            y: root.kind === "custom" ? px * 3 : (body.height - height) / 2
+            y: root.kind === "custom" ? px * 3 : (body.lineH - height) / 2
             width: root.kind === "custom" ? root.width - px * 14 : Math.max(px * 20, root.width - valueBox.width - px * 16)
             text: root.kind === "result" ? root.line.r.title : root.kind === "more" ? I18n.t("Ещё…", "More…") + (root.line.count ? "  ·  " + root.line.count : "") : root.e ? root.e.label : ""
             color: root.live ? root.ink : Theme.mix(root.ink, root.inverted ? root.pal.black : root.pal.white, 0.5)
@@ -261,7 +295,7 @@ Item {
             visible: root.kind !== "group" && root.kind !== "note" && root.kind !== "custom" && root.kind !== "embed"
             anchors.right: parent.right
             anchors.rightMargin: px * 6
-            y: (body.height - height) / 2
+            y: (body.lineH - height) / 2
             spacing: px * 3
             scale: root.popScale
             opacity: root.live ? 1 : 0.5
@@ -594,6 +628,39 @@ Item {
             repeat: true
             interval: 250
             onTriggered: on = !on
+        }
+
+        Column {
+            id: under
+            visible: root.opened
+            x: px * 7
+            y: body.lineH - px * 2
+            width: root.width - px * 14
+            spacing: px * 2
+            PxText {
+                width: parent.width
+                visible: root.hintText !== ""
+                text: root.hintText
+                wrapMode: Text.Wrap
+                kind: "title"
+                font.family: Theme.fontP5Body
+                font.pixelSize: Math.round(Theme.p5LabelPx * 0.7)
+                color: Theme.mix(root.ink, root.inverted ? root.pal.black : root.pal.white, 0.25)
+            }
+            Loader {
+                id: preview
+                active: root.opened && root.previewScene !== "" && !root.previewShut
+                width: Math.min(parent.width, px * 230)
+                height: item ? item.implicitHeight : 0
+                sourceComponent: PxPreview {
+                    width: preview.width
+                    height: implicitHeight
+                    scene: root.previewScene
+                    variant: root.previewVariant
+                    caption: root.previewCaption
+                    onCloseClicked: root.previewShut = true
+                }
+            }
         }
 
         // ---- a custom part: the page's own controls, on a dark inset ----

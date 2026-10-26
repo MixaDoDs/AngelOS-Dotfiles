@@ -102,7 +102,7 @@ CatPage {
                             required property var modelData
                             width: Theme.u * 56
                             height: Theme.u * 44
-                            color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), page.rarityColor[String(res.modelData.stars)], 0.25)
+                            color: Theme.mix(Theme.toneFor("face", parent), page.rarityColor[String(res.modelData.stars)], 0.25)
                             edgeColor: page.rarityColor[String(res.modelData.stars)]
                             Column {
                                 anchors.centerIn: parent
@@ -132,7 +132,7 @@ CatPage {
                                     horizontalAlignment: Text.AlignHCenter
                                     text: res.modelData.kind === "skin" ? I18n.t("СКИН!", "SKIN!") : res.modelData.fresh ? I18n.t("новое", "new") : "+" + res.modelData.refund + "✦"
                                     kind: "tiny"
-                                    color: res.modelData.fresh ? Theme.accent : Theme.tone("textDim", Theme.p5For(parent))
+                                    color: res.modelData.fresh ? Theme.accent : Theme.toneFor("textDim", parent)
                                     font.bold: res.modelData.fresh
                                 }
                             }
@@ -167,8 +167,8 @@ CatPage {
                             readonly property bool on: (HeavenStars.worn ? HeavenStars.worn.id : "") === sid
                             width: Theme.u * 70
                             height: Theme.u * 92
-                            color: on ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.2) : Theme.tone("face", Theme.p5For(parent))
-                            edgeColor: on ? Theme.accent : sk.modelData ? page.rarityColor[String(sk.modelData.rarity)] : Theme.tone("edge", Theme.p5For(parent))
+                            color: on ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.2) : Theme.toneFor("face", parent)
+                            edgeColor: on ? Theme.accent : sk.modelData ? page.rarityColor[String(sk.modelData.rarity)] : Theme.toneFor("edge", parent)
                             Item {
                                 id: fit
                                 x: Theme.u * 3
@@ -264,8 +264,8 @@ CatPage {
                                     width: Theme.u * 52
                                     height: Theme.u * 40
                                     sunken: n === 0
-                                    color: n ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), page.rarityColor[String(rowCol.modelData)], 0.18) : Theme.tone("sunken", Theme.p5For(parent))
-                                    edgeColor: n ? page.rarityColor[String(rowCol.modelData)] : Theme.tone("edge", Theme.p5For(parent))
+                                    color: n ? Theme.mix(Theme.toneFor("face", parent), page.rarityColor[String(rowCol.modelData)], 0.18) : Theme.toneFor("sunken", parent)
+                                    edgeColor: n ? page.rarityColor[String(rowCol.modelData)] : Theme.toneFor("edge", parent)
                                     Column {
                                         anchors.centerIn: parent
                                         width: parent.width - Theme.u * 6
@@ -327,11 +327,11 @@ CatPage {
                             width: Theme.u * 60
                             height: Theme.u * 5
                             anchors.verticalCenter: parent.verticalCenter
-                            color: Theme.tone("sunken", Theme.p5For(parent))
+                            color: Theme.toneFor("sunken", parent)
                             Rectangle {
                                 width: Math.round(parent.width * taskRow.modelData.have / taskRow.modelData.goal)
                                 height: parent.height
-                                color: taskRow.modelData.done ? Theme.tone("ok", Theme.p5For(parent)) : Theme.accent
+                                color: taskRow.modelData.done ? Theme.toneFor("ok", parent) : Theme.accent
                             }
                         }
                         PxText {
@@ -369,7 +369,7 @@ CatPage {
                         width: Math.max(0, Math.min(Theme.u * 140, parent.width - levelText.width - parent.spacing))
                         height: Theme.u * 6
                         anchors.verticalCenter: parent.verticalCenter
-                        color: Theme.tone("sunken", Theme.p5For(parent))
+                        color: Theme.toneFor("sunken", parent)
                         Rectangle {
                             width: Math.round(parent.width * (HeavenStars.level >= 30 ? 1 : (HeavenStars.xp % HeavenStars.levelXp) / HeavenStars.levelXp))
                             height: parent.height
@@ -395,8 +395,8 @@ CatPage {
                             readonly property bool got: n <= HeavenStars.level
                             width: Theme.u * 26
                             height: Theme.u * 24
-                            color: got ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.25) : Theme.tone("face", Theme.p5For(parent))
-                            edgeColor: r.kind === "frame" || n % 5 === 0 ? Theme.accent3 : Theme.tone("edge", Theme.p5For(parent))
+                            color: got ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.25) : Theme.toneFor("face", parent)
+                            edgeColor: r.kind === "frame" || n % 5 === 0 ? Theme.accent3 : Theme.toneFor("edge", parent)
                             Column {
                                 anchors.centerIn: parent
                                 PxText {
@@ -410,7 +410,7 @@ CatPage {
                                     text: lv.r.kind === "frame" ? "▣" : lv.r.stars + "✦"
                                     kind: "tiny"
                                     font.bold: lv.r.kind === "frame" || lv.n % 5 === 0
-                                    color: lv.got ? Theme.accent : Theme.tone("text", Theme.p5For(parent))
+                                    color: lv.got ? Theme.accent : Theme.toneFor("text", parent)
                                 }
                             }
                         }

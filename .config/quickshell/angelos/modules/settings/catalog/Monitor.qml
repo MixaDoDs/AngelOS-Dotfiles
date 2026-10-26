@@ -40,7 +40,7 @@ CatPage {
                     width: parent.width
                     height: Theme.u * 110
                     sunken: true
-                    color: Qt.alpha(Theme.tone("sunken", Theme.p5For(parent)), 0.8)
+                    color: Qt.alpha(Theme.toneFor("sunken", parent), 0.8)
 
                     // through a string: a move replaces the draft, and a new array would rebuild the
                     // monitors (the one under the mouse with them, dropping the drag)
@@ -78,8 +78,8 @@ CatPage {
 
                             PxBox {
                                 anchors.fill: parent
-                                color: page.selected === mon.modelData ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.35) : Theme.tone("face", Theme.p5For(parent))
-                                edgeColor: page.selected === mon.modelData ? Theme.accent : Theme.tone("edge", Theme.p5For(parent))
+                                color: page.selected === mon.modelData ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.35) : Theme.toneFor("face", parent)
+                                edgeColor: page.selected === mon.modelData ? Theme.accent : Theme.toneFor("edge", parent)
                                 Column {
                                     anchors.centerIn: parent
                                     PxIcon {
@@ -462,7 +462,7 @@ CatPage {
                 visible: Outputs.undo !== null
                 width: parent.width
                 height: keepRow.implicitHeight + Theme.u * 8
-                color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.25)
+                color: Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.25)
                 Row {
                     id: keepRow
                     x: Theme.u * 4

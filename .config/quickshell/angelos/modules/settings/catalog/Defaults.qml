@@ -97,7 +97,7 @@ CatPage {
                     CatBox {
                         PxText {
                             text: modelData[1] ? I18n.t("готово ♡", "ready ♡") : I18n.t("нет", "no")
-                            color: modelData[1] ? Theme.tone("ok", Theme.p5For(parent)) : Theme.tone("textDim", Theme.p5For(parent))
+                            color: modelData[1] ? Theme.toneFor("ok", parent) : Theme.toneFor("textDim", parent)
                         }
                     }
                 }
@@ -207,7 +207,7 @@ CatPage {
                     CatBox {
                         PxText {
                             text: modelData[1] ? I18n.t("готово ♡", "ready ♡") : I18n.t("нет", "no")
-                            color: modelData[1] ? Theme.tone("ok", Theme.p5For(parent)) : Theme.tone("textDim", Theme.p5For(parent))
+                            color: modelData[1] ? Theme.toneFor("ok", parent) : Theme.toneFor("textDim", parent)
                         }
                     }
                 }
@@ -232,7 +232,7 @@ CatPage {
                     visible: NautilusSetup.needsRestart && NautilusSetup.running
                     width: parent.width
                     height: restartRow.implicitHeight + Theme.u * 6
-                    color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.12)
+                    color: Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.12)
                     Row {
                         id: restartRow
                         x: Theme.u * 3

@@ -7,7 +7,8 @@ import "IconSets.js" as IconSets
 Image {
     id: root
     // inside the P5 settings window: its colours (Theme.tone)
-    readonly property bool p5: Theme.p5For(root.parent)
+    readonly property bool p5: settingsSkin === "p5"
+    readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
 
     property string name: "heart"
     property var bitmap: null   // optional custom rows, overrides `name`
@@ -17,12 +18,12 @@ Image {
     property real exactPixel: 0
     readonly property real _px: exactPixel > 0 ? exactPixel : pixel
     property bool hollow: false
-    property color ink: Theme.dark ? Theme.tone("text", root.p5) : Theme.tone("edge", root.p5)
+    property color ink: Theme.dark ? Theme.toneOf(root.settingsSkin, "text") : Theme.toneOf(root.settingsSkin, "edge")
     property color fill: Theme.accent
     property color fill2: Theme.accent2
     property color fill3: Theme.accent3
     property color light: "#ffffff"
-    property color body: Theme.dark ? Theme.tone("faceAlt", root.p5) : Theme.tone("sunken", root.p5)
+    property color body: Theme.dark ? Theme.toneOf(root.settingsSkin, "faceAlt") : Theme.toneOf(root.settingsSkin, "sunken")
     property color bad: Theme.danger
     // more colours for detailed art: {"char": "#rrggbb"}, also overriding the ones above
     property var palette: ({})

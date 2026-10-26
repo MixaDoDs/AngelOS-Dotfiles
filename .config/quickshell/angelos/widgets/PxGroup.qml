@@ -15,7 +15,7 @@ import "MacIcons.js" as MacIcons
 Item {
     id: root
     // inside the P5 settings window: its colours (Theme.tone)
-    readonly property bool p5: Theme.p5For(root.parent)
+    readonly property bool p5: settingsSkin === "p5"
 
     property string title: ""
     // the group's key in the settings tree (modules/settings/tree.json: "page/name"): pages are
@@ -88,7 +88,7 @@ Item {
         visible: root.angel && !root.bare
         width: root.width
         height: root.height
-        color: Theme.mix(Theme.tone("face", root.p5), Theme.tone("faceAlt", root.p5), 0.6)
+        color: Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "faceAlt"), 0.6)
     }
     // ---- the Golden Gate skin: the box under the caption; the card that unfolds (both) ----
     Rectangle {
@@ -98,9 +98,9 @@ Item {
         width: root.width
         height: root.height - y
         radius: root.mac ? Theme.u * 5 : 0
-        color: root.mac ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)) : Theme.mix(Theme.tone("face", root.p5), Theme.tone("sunken", root.p5), Theme.dark ? 0.45 : 0.3)
+        color: root.mac ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)) : Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "sunken"), Theme.dark ? 0.45 : 0.3)
         border.width: root.mac ? 0 : Math.max(1, Theme.u / 2)
-        border.color: Qt.alpha(Theme.tone("lo", root.p5), Theme.dark ? 0.85 : 0.45)
+        border.color: Qt.alpha(Theme.toneOf(root.settingsSkin, "lo"), Theme.dark ? 0.85 : 0.45)
     }
     Rectangle {
         id: fold
@@ -108,15 +108,15 @@ Item {
         width: root.width
         height: Math.max(Theme.fit(22), foldText.implicitHeight + Theme.u * 8)
         radius: root.mac ? Theme.u * 5 : 0
-        color: root.mac ? (foldMouse.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(0, 0, 0, 0.06)) : (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035))) : foldMouse.containsMouse ? Theme.mix(Theme.tone("faceAlt", root.p5), Theme.accent, 0.12) : Theme.mix(Theme.tone("face", root.p5), Theme.tone("faceAlt", root.p5), 0.55)
+        color: root.mac ? (foldMouse.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(0, 0, 0, 0.06)) : (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035))) : foldMouse.containsMouse ? Theme.mix(Theme.toneOf(root.settingsSkin, "faceAlt"), Theme.accent, 0.12) : Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "faceAlt"), 0.55)
         border.width: root.mac ? 0 : Math.max(1, Theme.u / 2)
-        border.color: Qt.alpha(Theme.tone("lo", root.p5), Theme.dark ? 0.9 : 0.5)
+        border.color: Qt.alpha(Theme.toneOf(root.settingsSkin, "lo"), Theme.dark ? 0.9 : 0.5)
         SettingsTile {
             id: foldTile
             x: Theme.u * 5
             anchors.verticalCenter: parent.verticalCenter
             icon: root.icon || "gear"
-            tint: Theme.mix(Theme.accent, Theme.tone("face", root.p5), 0.25)
+            tint: Theme.mix(Theme.accent, Theme.toneOf(root.settingsSkin, "face"), 0.25)
             opacity: root.mac ? 0 : 1
         }
         // …a Mac's coloured icon square instead
@@ -216,7 +216,7 @@ Item {
         y: head.height + Theme.u * 2
         width: root.width
         height: root.height - y
-        color: Theme.mix(Theme.tone("face", root.p5), Theme.tone("faceAlt", root.p5), 0.35)
+        color: Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "faceAlt"), 0.35)
     }
 
     Row {
@@ -235,14 +235,14 @@ Item {
             name: root.icon || "heart"
             anchors.verticalCenter: parent.verticalCenter
             pixel: root.classic || root.angel ? Math.max(1, Theme.u - 1) : Theme.u
-            ink: root.p5 ? Theme.p5AccentInk : root.angel ? Theme.accent2 : root.settingsSkin === "stream" ? Theme.streamLive : root.settingsSkin === "windose" ? Theme.windoseRose : Theme.tone("textDim", root.p5)
+            ink: root.p5 ? Theme.p5AccentInk : root.angel ? Theme.accent2 : root.settingsSkin === "stream" ? Theme.streamLive : root.settingsSkin === "windose" ? Theme.windoseRose : Theme.toneOf(root.settingsSkin, "textDim")
         }
         PxText {
             text: root.title
             kind: root.classic || root.fluent ? "body" : "title"
             font.capitalization: root.angel ? Font.AllUppercase : Font.MixedCase
             font.letterSpacing: root.angel ? Theme.u / 2 : 0
-            color: root.p5 ? Theme.p5AccentInk : root.angel ? Theme.accent2 : root.settingsSkin === "stream" ? Theme.streamText : root.settingsSkin === "windose" ? Theme.windoseInk : Theme.tone("textDim", root.p5)
+            color: root.p5 ? Theme.p5AccentInk : root.angel ? Theme.accent2 : root.settingsSkin === "stream" ? Theme.streamText : root.settingsSkin === "windose" ? Theme.windoseInk : Theme.toneOf(root.settingsSkin, "textDim")
             font.bold: true
             anchors.verticalCenter: parent.verticalCenter
         }

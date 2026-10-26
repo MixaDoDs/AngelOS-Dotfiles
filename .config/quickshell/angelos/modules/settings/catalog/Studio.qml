@@ -305,7 +305,7 @@ CatPage {
                                 width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
                                 height: mcol.implicitHeight + Theme.u * 6
                                 sunken: current
-                                color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : mm.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                                color: current ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : mm.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                                 Column {
                                     id: mcol
                                     x: Theme.u * 3
@@ -392,7 +392,7 @@ CatPage {
                         PxText {
                             width: parent.width
                             wrapMode: Text.Wrap
-                            color: PluginStudio.hasKey ? Theme.tone("ok", Theme.p5For(parent)) : Theme.tone("textDim", Theme.p5For(parent))
+                            color: PluginStudio.hasKey ? Theme.toneFor("ok", parent) : Theme.toneFor("textDim", parent)
                             text: !PluginStudio.cliState.installed ? (Config.developer.provider === "codex-cli" ? I18n.t("Codex CLI не найден. Установи: sudo pacman -S openai-codex (или npm i -g @openai/codex).", "Codex CLI not found. Install it: sudo pacman -S openai-codex (or npm i -g @openai/codex).") : I18n.t("Claude Code не найден. Установи его: https://claude.com/claude-code", "Claude Code not found. Install it from https://claude.com/claude-code")) : PluginStudio.cliState.loggedIn ? I18n.t("Вход выполнен", "Signed in") + (PluginStudio.cliState.method ? " (" + PluginStudio.cliState.method + ")" : "") + " ♡" : I18n.t("Не выполнен вход.", "Not signed in.")
                         }
                         Flow {
@@ -603,7 +603,7 @@ CatPage {
                                     enabled: !PluginStudio.busy
                                     opacity: enabled ? 1 : 0.45
                                     sunken: choiceMouse.pressed
-                                    color: choiceMouse.containsMouse ? Theme.tone("faceAlt", Theme.p5For(parent)) : Theme.tone("face", Theme.p5For(parent))
+                                    color: choiceMouse.containsMouse ? Theme.toneFor("faceAlt", parent) : Theme.toneFor("face", parent)
                                     PxText {
                                         id: choiceLabel
                                         anchors.centerIn: parent
@@ -788,7 +788,7 @@ CatPage {
                     width: parent.width
                     height: Theme.u * 125
                     sunken: true
-                    color: Theme.tone("sunken", Theme.p5For(parent))
+                    color: Theme.toneFor("sunken", parent)
                     PxText {
                         visible: !page.changeOf
                         anchors.centerIn: parent
@@ -808,7 +808,7 @@ CatPage {
                             elide: Text.ElideRight
                             textFormat: Text.PlainText
                             text: modelData
-                            color: modelData.startsWith("+") ? Theme.tone("ok", Theme.p5For(parent)) : modelData.startsWith("-") ? Theme.danger : modelData.startsWith("@@") ? Theme.accent : Theme.tone("textDim", Theme.p5For(parent))
+                            color: modelData.startsWith("+") ? Theme.toneFor("ok", parent) : modelData.startsWith("-") ? Theme.danger : modelData.startsWith("@@") ? Theme.accent : Theme.toneFor("textDim", parent)
                         }
                     }
                 }

@@ -290,7 +290,7 @@ CatPage {
                         readonly property var st: w && w.settings ? w.settings : ({})
                         width: parent.width
                         height: cardCol.implicitHeight + Theme.u * 8
-                        color: Theme.tone("faceAlt", Theme.p5For(parent))
+                        color: Theme.toneFor("faceAlt", parent)
 
                         Column {
                             id: cardCol

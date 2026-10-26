@@ -56,7 +56,7 @@ CatPage {
                             height: grid.tallest + Theme.u * 10
                             PxBox {
                                 anchors.fill: parent
-                                color: card.on ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.2) : Theme.tone("face", Theme.p5For(parent))
+                                color: card.on ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.2) : Theme.toneFor("face", parent)
                             }
                             Column {
                                 id: words
@@ -114,7 +114,7 @@ CatPage {
                                     width: parent.width - go.width - Theme.u * 3
                                     elide: Text.ElideRight
                                     kind: "tiny"
-                                    color: card.on ? Theme.accent : Theme.tone("textDim", Theme.p5For(parent))
+                                    color: card.on ? Theme.accent : Theme.toneFor("textDim", parent)
                                     text: card.on ? I18n.t("✓ сейчас так", "✓ on now") : I18n.t("изменит настроек: ", "settings it changes: ") + card.changes
                                 }
                                 PxButton {

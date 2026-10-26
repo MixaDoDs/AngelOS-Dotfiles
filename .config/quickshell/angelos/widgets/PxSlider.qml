@@ -7,7 +7,7 @@ import "A11y.js" as A11y
 Item {
     id: root
     // inside the P5 settings window: its colours (Theme.tone)
-    readonly property bool p5: Theme.p5For(root.parent)
+    readonly property bool p5: settingsSkin === "p5"
     // the filled part (a caller in another colour scheme passes its own, e.g. the Halo)
     property color fill: Theme.accent
 
@@ -78,7 +78,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         height: Theme.u * 6
         sunken: true
-        color: Theme.tone("sunken", root.p5)
+        color: Theme.toneOf(root.settingsSkin, "sunken")
 
         Rectangle {
             x: 0
@@ -131,7 +131,7 @@ Item {
         height: Theme.u * 12
         anchors.verticalCenter: track.verticalCenter
         x: track.x + root.frac * (track.width - width)
-        color: mouse.containsMouse || mouse.pressed ? Theme.tone("faceAlt", root.p5) : Theme.tone("face", root.p5)
+        color: mouse.containsMouse || mouse.pressed ? Theme.toneOf(root.settingsSkin, "faceAlt") : Theme.toneOf(root.settingsSkin, "face")
         PxIcon {
             anchors.centerIn: parent
             name: "heartSmall"

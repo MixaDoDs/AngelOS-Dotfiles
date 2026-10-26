@@ -25,7 +25,7 @@ CatPage {
     readonly property var hourly: Wellbeing.hours()
     readonly property real hourMax: Math.max(600, ...hourly)
     readonly property var apps: Wellbeing.topApps("", 5)
-    readonly property color barColor: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.45)
+    readonly property color barColor: Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.45)
     readonly property color water: Theme.mix(Theme.accent2, "#4aa8ff", 0.7)
     CatGroup {
         name: "screen-time"

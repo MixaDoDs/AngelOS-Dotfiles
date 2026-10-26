@@ -29,7 +29,7 @@ CatPage {
         PxIcon {
             anchors.verticalCenter: parent.verticalCenter
             name: parent.modelData.level === "ok" ? "check" : parent.modelData.level === "info" ? "info" : "warn"
-            fill: parent.modelData.level === "ok" ? Theme.tone("ok", Theme.p5For(parent)) : parent.modelData.level === "bad" ? Theme.danger : parent.modelData.level === "warn" ? Theme.accent : Theme.accent2
+            fill: parent.modelData.level === "ok" ? Theme.toneFor("ok", parent) : parent.modelData.level === "bad" ? Theme.danger : parent.modelData.level === "warn" ? Theme.accent : Theme.accent2
         }
         PxText {
             anchors.verticalCenter: parent.verticalCenter
@@ -60,7 +60,7 @@ CatPage {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 kind: "huge"
                                 text: Care.report ? String(Care.score) : "…"
-                                color: !Care.report ? Theme.tone("textDim", Theme.p5For(parent)) : Care.score >= 85 ? Theme.tone("ok", Theme.p5For(parent)) : Care.score >= 60 ? Theme.accent : Theme.danger
+                                color: !Care.report ? Theme.toneFor("textDim", parent) : Care.score >= 85 ? Theme.toneFor("ok", parent) : Care.score >= 60 ? Theme.accent : Theme.danger
                             }
                             PxText {
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -151,7 +151,7 @@ CatPage {
                                 anchors.verticalCenter: parent.verticalCenter
                                 dim: !row.prog
                                 text: !row.prog ? (row.modelData.bytes > 0 ? Care.size(row.modelData.bytes) : "") : row.prog.state === "start" ? I18n.t("…", "…") : row.prog.state === "fail" ? I18n.t("не вышло", "failed") : row.prog.freed > 0 ? "−" + Care.size(row.prog.freed) : "✓"
-                                color: row.prog && row.prog.state === "fail" ? Theme.danger : row.prog && row.prog.state === "done" ? Theme.tone("ok", Theme.p5For(parent)) : Theme.tone("text", Theme.p5For(parent))
+                                color: row.prog && row.prog.state === "fail" ? Theme.danger : row.prog && row.prog.state === "done" ? Theme.toneFor("ok", parent) : Theme.toneFor("text", parent)
                             }
                             PxToggle {
                                 enabled: !Care.running

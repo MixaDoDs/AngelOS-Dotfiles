@@ -35,6 +35,19 @@ Item {
     // 0 … 1 as she comes in: a black silhouette, then the accent, then her colours
     property real reveal: 1
     property bool still: false
+    // at rest (decisions №16–17, 25.10) she keeps still, and with `restSolid` set she stands as a
+    // flat silhouette, her eyes still lit; a move, a gesture, a word or the pointer on her wakes
+    // her into her colours for a while
+    property color restSolid: "transparent"
+    readonly property bool awake: wakeT.running || run.running || gRun.running || talk.running || carried || hand.hovering
+    readonly property bool resting: !awake && restSolid.a > 0 && reveal >= 0.85
+    function wake() {
+        wakeT.restart();
+    }
+    Timer {
+        id: wakeT
+        interval: 2500
+    }
     // the selected row's pull, in fractions of the window
     property real lookY: 0
     // the pointer over the window, in this item's coordinates (x < 0: none)
@@ -287,6 +300,7 @@ Item {
                 }));
         steps = n;
         run.duration = ms;
+        wake();
         t = 0;
         run.start();
     }
@@ -367,7 +381,7 @@ Item {
     // a beat drives the idle (8 a second); limbs swing in steps on their own periods
     property int beat: 0
     Timer {
-        running: root.visible && !root.still
+        running: root.visible && !root.still && root.awake
         repeat: true
         interval: 125
         onTriggered: {
@@ -420,6 +434,7 @@ Item {
         if (still || !gestures[kind])
             return;
         gRun.stop();
+        wake();
         gKeys = gestures[kind];
         gRun.duration = 120 * gKeys.length;
         gt = 0;
@@ -627,7 +642,7 @@ Item {
     property real trailA: 0
     property point lastAt: Qt.point(0, 0)
     FrameAnimation {
-        running: root.visible && !root.still
+        running: root.visible && !root.still && (root.awake || root.trailA > 0)
         onTriggered: {
             const p = root.mapToItem(root.parent, camD.x, camD.y);
             const dx = p.x - root.lastAt.x, dy = p.y - root.lastAt.y;
@@ -657,7 +672,7 @@ Item {
                 y: -root.trailY * (ghost.index + 1) * 0.5
             }
             Flat {
-                solid: [root.accent, Theme.accent2, root.black][ghost.index]
+                solid: [root.accent, Theme.mix(root.accent, root.paper, 0.5), root.black][ghost.index]
             }
         }
     }
@@ -671,7 +686,7 @@ Item {
         Flat {
             x: 3
             y: 3
-            solid: root.who === "angel" ? root.black : root.paper
+            solid: root.resting ? "transparent" : root.who === "angel" ? root.black : root.paper
         }
         ShaderEffectSource {
             id: tex
@@ -694,7 +709,7 @@ Item {
     // a strip of her drawn again over the card's edge (the owner: «чутка на настройки находили»,
     // as P5's figures break the menu's frame): `front` is an item over the card, `frontBand` the
     // strip in this item's coordinates; the rest of her stays behind the card
-    readonly property color cutIn: reveal < 0.5 ? black : reveal < 0.85 ? accent : "transparent"
+    readonly property color cutIn: reveal < 0.5 ? black : reveal < 0.85 ? accent : resting ? restSolid : "transparent"
     property Item front: null
     property rect frontBand: Qt.rect(0, 0, 0, 0)
     Item {

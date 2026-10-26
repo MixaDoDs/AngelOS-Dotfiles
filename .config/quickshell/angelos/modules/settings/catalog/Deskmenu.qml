@@ -113,7 +113,7 @@ CatPage {
                             required property int index
                             width: chipRow.implicitWidth + Theme.u * 6
                             height: chipRow.implicitHeight + Theme.u * 4
-                            color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.12)
+                            color: Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.12)
                             Row {
                                 id: chipRow
                                 anchors.centerIn: parent
@@ -181,7 +181,7 @@ CatPage {
                             width: parent.width
                             height: Theme.u * 16
                             sunken: true
-                            color: Qt.alpha(Theme.tone("sunken", Theme.p5For(parent)), 0.5)
+                            color: Qt.alpha(Theme.toneFor("sunken", parent), 0.5)
                             function moveTo(j) {
                                 const l = page.layout.items.slice();
                                 l.splice(row.index, 1);

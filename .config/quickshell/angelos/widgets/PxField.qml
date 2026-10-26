@@ -6,7 +6,7 @@ import "A11y.js" as A11y
 Item {
     id: root
     // inside the P5 settings window: its colours (Theme.tone)
-    readonly property bool p5: Theme.p5For(root.parent)
+    readonly property bool p5: settingsSkin === "p5"
 
     property alias text: input.text
     property alias input: input
@@ -61,8 +61,8 @@ Item {
     PxBox {
         anchors.fill: parent
         visible: root.classicLike
-        color: Theme.tone("sunken", root.p5)
-        edgeColor: input.activeFocus ? Theme.accent : Theme.tone("edge", root.p5)
+        color: Theme.toneOf(root.settingsSkin, "sunken")
+        edgeColor: input.activeFocus ? Theme.accent : Theme.toneOf(root.settingsSkin, "edge")
     }
     Rectangle {
         visible: !root.classicLike && !root.mac
@@ -88,7 +88,7 @@ Item {
         name: root.icon || "search"
         x: Theme.u * 5
         anchors.verticalCenter: parent.verticalCenter
-        ink: root.settingsSkin === "stream" ? Theme.streamLive : root.settingsSkin === "windose" ? Theme.windoseRose : Theme.dark ? Theme.tone("text", root.p5) : Theme.tone("edge", root.p5)
+        ink: root.settingsSkin === "stream" ? Theme.streamLive : root.settingsSkin === "windose" ? Theme.windoseRose : Theme.dark ? Theme.toneOf(root.settingsSkin, "text") : Theme.toneOf(root.settingsSkin, "edge")
     }
 
     TextInput {
@@ -100,7 +100,7 @@ Item {
         anchors.rightMargin: Theme.u * 5
         anchors.verticalCenter: parent.verticalCenter
         clip: true
-        color: Theme.tone("text", root.p5)
+        color: Theme.toneOf(root.settingsSkin, "text")
         selectionColor: Theme.select
         selectedTextColor: Theme.selectText
         // handwritten in the grimoire (Theme.scriptWindows), like PxText

@@ -402,17 +402,17 @@ CatPage {
                         visible: StreamAngel.enabled || StreamAngel.preview
                         width: Math.min(parent.width, Theme.u * 120)
                         height: Theme.u * 3
-                        color: Theme.tone("sunken", Theme.p5For(parent))
+                        color: Theme.toneFor("sunken", parent)
                         Rectangle {
                             width: parent.width * Math.min(1, StreamAngel.level)
                             height: parent.height
-                            color: StreamAngel.talking ? Theme.accent : Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.4)
+                            color: StreamAngel.talking ? Theme.accent : Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.4)
                         }
                         Rectangle {
                             x: parent.width * StreamAngel.threshold
                             width: Math.max(1, Theme.u / 2)
                             height: parent.height
-                            color: Theme.tone("edge", Theme.p5For(parent))
+                            color: Theme.toneFor("edge", parent)
                         }
                     }
                 }
@@ -499,7 +499,7 @@ CatPage {
                 readonly property bool mini: card.modelData.value === "mini"
                 bitmap: mini ? (card.who === "demon" ? DemonMini.up : AngelMini.up) : (card.who === "demon" ? DemonArt.up : AngelArt.up)
                 pixel: mini ? Math.max(1, Theme.u) : Math.max(1, Math.round(Theme.u * 0.75))
-                ink: card.who === "demon" ? "#1a0a14" : (Theme.dark ? Theme.tone("text", Theme.p5For(parent)) : Theme.tone("edge", Theme.p5For(parent)))
+                ink: card.who === "demon" ? "#1a0a14" : (Theme.dark ? Theme.toneFor("text", parent) : Theme.toneFor("edge", parent))
                 body: card.who === "demon" ? "#f7d9e3" : "#ffd9c7"
                 fill: card.who === "demon" ? "#ff3b6b" : Theme.accent
                 fill2: "#3a1a46"

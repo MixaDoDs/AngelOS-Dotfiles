@@ -58,7 +58,7 @@ CatPage {
                             visible: dev.index > 0
                             width: parent.width
                             height: Math.max(1, Theme.u / 2)
-                            color: Qt.alpha(Theme.tone("text", Theme.p5For(parent)), 0.18)
+                            color: Qt.alpha(Theme.toneFor("text", parent), 0.18)
                         }
                         Item {
                             width: parent.width
@@ -191,7 +191,7 @@ CatPage {
                     width: parent.width - (p5 ? Theme.u * 3 : 0)
                     height: stage.implicitHeight + Theme.u * 12
                     sunken: true
-                    color: p5 ? Theme.face : Theme.tone("sunken", false)
+                    color: p5 ? Theme.face : Theme.toneFor("sunken", parent)
                     Rectangle {
                         visible: rackBox.p5
                         z: -2
@@ -368,7 +368,7 @@ CatPage {
                                 anchors.bottomMargin: Theme.u * 3
                                 kind: "tiny"
                                 text: swatch.modelData.label
-                                color: swatch.checked && Theme.settingsSkinFor(swatch) !== "classic" ? Theme.selectText : Theme.tone("text", Theme.p5For(parent))
+                                color: swatch.checked && Theme.settingsSkinFor(swatch) !== "classic" ? Theme.selectText : Theme.toneFor("text", parent)
                             }
                         }
                     }
@@ -395,7 +395,7 @@ CatPage {
                                 height: Theme.u * 8
                                 color: own.now
                                 border.width: Math.max(1, Theme.u / 2)
-                                border.color: Theme.tone("edge", Theme.p5For(parent))
+                                border.color: Theme.toneFor("edge", parent)
                             }
                             PxField {
                                 width: Theme.u * 46

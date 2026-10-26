@@ -9,7 +9,7 @@ import qs.services
 Item {
     id: root
     // inside the P5 settings window: its colours (Theme.tone)
-    readonly property bool p5: Theme.p5For(root.parent)
+    readonly property bool p5: settingsSkin === "p5"
 
     property string label: ""
     property string hint: ""
@@ -76,7 +76,7 @@ Item {
         visible: root.fluent && !root.mac && root.placeY > 0
         width: parent.width
         height: Math.max(1, Theme.u / 2)
-        color: Qt.alpha(Theme.tone("lo", root.p5), Theme.dark ? 0.7 : 0.35)
+        color: Qt.alpha(Theme.toneOf(root.settingsSkin, "lo"), Theme.dark ? 0.7 : 0.35)
     }
     // classic: a hairline between the rows of a card, in the middle of the gap above
     Rectangle {
@@ -84,7 +84,7 @@ Item {
         y: -Math.round((root.parent && root.parent.spacing ? root.parent.spacing : Theme.u * 4) / 2) - height / 2
         width: parent.width
         height: Math.max(1, Theme.u / 2)
-        color: Qt.alpha(Theme.tone("lo", root.p5), Theme.dark ? 0.9 : 0.55)
+        color: Qt.alpha(Theme.toneOf(root.settingsSkin, "lo"), Theme.dark ? 0.9 : 0.55)
     }
     Rectangle {
         visible: !root.classicLike && !root.mac

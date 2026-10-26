@@ -392,7 +392,7 @@ CatPage {
                         width: parent.width
                         height: resCol.implicitHeight + Theme.u * 6
                         opacity: failed ? 0.55 : 1
-                        color: busy ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : resMouse.containsMouse && !failed ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.15) : Theme.tone("face", Theme.p5For(parent))
+                        color: busy ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : resMouse.containsMouse && !failed ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.15) : Theme.toneFor("face", parent)
                         Column {
                             id: resCol
                             x: Theme.u * 4

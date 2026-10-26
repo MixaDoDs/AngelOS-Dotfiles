@@ -21,7 +21,7 @@ CatPage {
             CatBox {
                 PxText {
                     text: StreamMode.obsUp ? (StreamMode.obsLive ? I18n.t("● В эфире", "● Live") : StreamMode.obsRec ? I18n.t("● Идёт запись", "● Recording") : I18n.t("На связи", "Connected")) : StreamMode.obsAuth ? I18n.t("Нужен пароль", "Needs a password") : I18n.t("Не подключено", "Not connected")
-                    color: StreamMode.obsUp ? (StreamMode.obsLive ? Theme.danger : Theme.tone("ok", Theme.p5For(parent))) : Theme.tone("textDim", Theme.p5For(parent))
+                    color: StreamMode.obsUp ? (StreamMode.obsLive ? Theme.danger : Theme.toneFor("ok", parent)) : Theme.toneFor("textDim", parent)
                 }
             }
         }

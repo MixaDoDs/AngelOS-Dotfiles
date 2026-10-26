@@ -112,7 +112,7 @@ CatPage {
                             width: Theme.u * 34
                             height: Theme.u * 28
                             sunken: current
-                            color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : spriteMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                            color: current ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : spriteMouse.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                             WsSprite {
                                 id: cardSprite
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -173,7 +173,7 @@ CatPage {
                     width: parent.width
                     height: Theme.u * 30
                     sunken: true
-                    color: Theme.tone("sunken", Theme.p5For(parent))
+                    color: Theme.toneFor("sunken", parent)
                     Row {
                         id: previewRow
                         anchors.centerIn: parent
@@ -256,7 +256,7 @@ CatPage {
                             width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
                             height: hsCol.implicitHeight + Theme.u * 8
                             sunken: current
-                            color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : hsMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                            color: current ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : hsMouse.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                             Column {
                                 id: hsCol
                                 x: Theme.u * 4
@@ -315,7 +315,7 @@ CatPage {
                             width: (parent.width - (parent.columns - 1) * parent.spacing) / parent.columns
                             height: styleCol.implicitHeight + Theme.u * 8
                             sunken: current
-                            color: current ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.3) : styleMouse.containsMouse ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, 0.1) : Theme.tone("face", Theme.p5For(parent))
+                            color: current ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.3) : styleMouse.containsMouse ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.1) : Theme.toneFor("face", parent)
                             Column {
                                 id: styleCol
                                 x: Theme.u * 4

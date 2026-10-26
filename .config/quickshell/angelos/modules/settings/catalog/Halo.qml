@@ -30,8 +30,8 @@ CatPage {
                                 id: "ears",
                                 label: I18n.t("Ушки iPhone", "iPhone ears"),
                                 face: Theme.panel,
-                                edge: Theme.tone("edge", Theme.p5For(parent)),
-                                ink: Theme.tone("text", Theme.p5For(parent)),
+                                edge: Theme.toneFor("edge", parent),
+                                ink: Theme.toneFor("text", parent),
                                 shadow: true,
                                 ears: true
                             },
@@ -47,16 +47,16 @@ CatPage {
                                 id: "float",
                                 label: I18n.t("Парящая", "Floating"),
                                 face: Theme.panel,
-                                edge: Theme.tone("edge", Theme.p5For(parent)),
-                                ink: Theme.tone("text", Theme.p5For(parent)),
+                                edge: Theme.toneFor("edge", parent),
+                                ink: Theme.toneFor("text", parent),
                                 shadow: true
                             },
                             {
                                 id: "tamagotchi",
                                 label: I18n.t("Тамагочи", "Tamagotchi"),
                                 face: Qt.tint(Theme.panel, "#402f6f9f"),
-                                edge: Theme.tone("edge", Theme.p5For(parent)),
-                                ink: Theme.tone("text", Theme.p5For(parent)),
+                                edge: Theme.toneFor("edge", parent),
+                                ink: Theme.toneFor("text", parent),
                                 shadow: true,
                                 grass: true
                             }
@@ -70,7 +70,7 @@ CatPage {
                             PxPill {
                                 anchors.fill: parent
                                 radius: Theme.u * 3
-                                color: lookArea.containsMouse ? Theme.menuSurface : Theme.tone("sunken", Theme.p5For(parent))
+                                color: lookArea.containsMouse ? Theme.menuSurface : Theme.toneFor("sunken", parent)
                                 edge: lookTile.picked ? Theme.accent : Theme.menuBorder
                             }
                             // the little Halo

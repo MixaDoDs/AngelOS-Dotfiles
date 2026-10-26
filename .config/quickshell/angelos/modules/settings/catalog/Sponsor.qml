@@ -92,8 +92,8 @@ CatPage {
                             height: label.implicitHeight + Theme.u * 3
                             PxPill {
                                 anchors.fill: parent
-                                color: chip.index < 3 ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.ngoPink, 0.35) : Theme.tone("face", Theme.p5For(parent))
-                                edge: chip.index < 3 ? Theme.ngoPink : Theme.tone("edge", Theme.p5For(parent))
+                                color: chip.index < 3 ? Theme.mix(Theme.toneFor("face", parent), Theme.ngoPink, 0.35) : Theme.toneFor("face", parent)
+                                edge: chip.index < 3 ? Theme.ngoPink : Theme.toneFor("edge", parent)
                             }
                             PxText {
                                 id: label

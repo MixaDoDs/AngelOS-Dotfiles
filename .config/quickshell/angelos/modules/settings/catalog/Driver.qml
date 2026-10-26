@@ -511,7 +511,7 @@ CatPage {
         height: Theme.fit(14)
         color: modelData
         border.width: on ? Theme.u : Math.max(1, Theme.u / 2)
-        border.color: on ? Theme.accent : Theme.tone("edge", Theme.p5For(parent))
+        border.color: on ? Theme.accent : Theme.toneFor("edge", parent)
         MouseArea {
             anchors.fill: parent
             enabled: Devices.canWrite && !Devices.working
@@ -640,7 +640,7 @@ CatPage {
                     width: parent.width
                     height: trouble.implicitHeight + Theme.u * 10
                     sunken: true
-                    color: Theme.tone("sunken", Theme.p5For(parent))
+                    color: Theme.toneFor("sunken", parent)
                     Column {
                         id: trouble
                         x: Theme.u * 4
@@ -836,7 +836,7 @@ CatPage {
                         width: parent.width
                         height: listenRow.implicitHeight + Theme.u * 4
                         sunken: !page.listening
-                        color: page.listening ? Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.tone("ok", Theme.p5For(parent)), 0.35) : Theme.tone("sunken", Theme.p5For(parent))
+                        color: page.listening ? Theme.mix(Theme.toneFor("face", parent), Theme.toneFor("ok", parent), 0.35) : Theme.toneFor("sunken", parent)
                         Row {
                             id: listenRow
                             x: Theme.u * 3
@@ -1612,7 +1612,7 @@ CatPage {
                                             GradientStop { position: 1.0; color: "#ffffff" }
                                         }
                                         border.width: Math.max(1, Theme.u / 2)
-                                        border.color: Theme.tone("edge", Theme.p5For(parent))
+                                        border.color: Theme.toneFor("edge", parent)
                                     }
                                     Rectangle {
                                         visible: map.hx >= 0
@@ -1622,7 +1622,7 @@ CatPage {
                                         height: Theme.u * 4
                                         color: "transparent"
                                         border.width: Theme.u
-                                        border.color: Theme.tone("text", Theme.p5For(parent))
+                                        border.color: Theme.toneFor("text", parent)
                                     }
                                     MouseArea {
                                         anchors.fill: parent

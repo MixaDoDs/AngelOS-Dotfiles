@@ -128,7 +128,7 @@ CatPage {
                         required property var modelData
                         width: parent.width
                         height: cardCol.implicitHeight + Theme.u * 8
-                        color: Theme.mix(Theme.tone("face", Theme.p5For(parent)), Theme.accent, card.modelData.installed ? 0.06 : 0)
+                        color: Theme.mix(Theme.toneFor("face", parent), Theme.accent, card.modelData.installed ? 0.06 : 0)
                         Column {
                             id: cardCol
                             x: Theme.u * 4
@@ -154,7 +154,7 @@ CatPage {
                                 width: parent.width
                                 elide: Text.ElideRight
                                 text: page.sample
-                                color: Theme.tone("text", Theme.p5For(parent))
+                                color: Theme.toneFor("text", parent)
                                 font.family: card.modelData.families[0]
                                 font.pixelSize: Theme.fontPx(16, card.modelData.families[0])
                                 font.hintingPreference: Font.PreferFullHinting

@@ -21,6 +21,7 @@ Scope {
     property int at: 0
     property double since: 0
     property bool acted: false
+    property var f03: null               // F03: the page and its «Ещё…» between its two steps
     property bool busy: false               // a check sending keys spins the event loop: no step meanwhile
     function report(name, ok, detail) {
         if (!ok)
@@ -197,7 +198,8 @@ Scope {
                 SettingsTree.setMoreOpen("taskbar", false);
                 Shell.openSettings("taskbar");
             },
-            "until": () => Shell.settingsView && Shell.settingsView.pageItem && Shell.settingsView.pageItem.hasMore === true && Shell.settingsPage === "taskbar",
+            // (and a second for the page to settle: its live preview loads late and pushes «Ещё…» down)
+            "until": () => Shell.settingsView && Shell.settingsView.pageItem && Shell.settingsView.pageItem.hasMore === true && Shell.settingsPage === "taskbar" && Date.now() - root.since > 1000,
             "check": () => {
                 const pg = Shell.settingsView.pageItem;
                 const fold = find(pg, it => it.activeFocusOnTab === true && typeof it.toggle === "function");
@@ -208,7 +210,31 @@ Scope {
                 pg.flick.contentY = 0;
                 Shell.settingsView.focusSearch();
                 ev.keyClick(Qt.Key_Tab, Qt.NoModifier, -1);
-                const tabbed = fold.activeFocus;
+                ev.destroy();
+                root.f03 = {
+                    "pg": pg,
+                    "fold": fold,
+                    "tabbed": fold.activeFocus
+                };
+            }
+        },
+        // … and the page glides to it
+        {
+            "act": () => {},
+            "until": () => {
+                const f = root.f03;
+                if (!f)
+                    return true;
+                const fy = f.fold.mapToItem(f.pg.flick.contentItem, 0, 0).y;
+                return fy >= f.pg.flick.contentY && fy + f.fold.height <= f.pg.flick.contentY + f.pg.flick.height;
+            },
+            "check": () => {
+                const f = root.f03;
+                root.f03 = null;
+                if (!f)
+                    return;
+                const pg = f.pg, fold = f.fold;
+                const ev = Qt.createQmlObject("import QtTest; TestEvent {}", fold);
                 const fy = fold.mapToItem(pg.flick.contentItem, 0, 0).y;
                 const inView = fy >= pg.flick.contentY && fy + fold.height <= pg.flick.contentY + pg.flick.height;
                 const focusShows = fold.activeFocus && Qt.colorEqual(fold.border.color, Theme.accent) && fold.border.width >= 2;
@@ -220,7 +246,7 @@ Scope {
                 const byPadEnter = pg.moreOpen;
                 ev.destroy();
                 SettingsTree.setMoreOpen("taskbar", false);
-                report("f03-keys", tabbed && inView && focusShows && bySpace && byEnter && byPadEnter, "tab " + tabbed + ", in view " + inView + " (y " + Math.round(fy) + ", view " + Math.round(pg.flick.height) + "), focus shows " + focusShows + ", space opens " + bySpace + ", enter closes " + byEnter + ", keypad enter opens " + byPadEnter);
+                report("f03-keys", f.tabbed && inView && focusShows && bySpace && byEnter && byPadEnter, "tab " + f.tabbed + ", in view " + inView + " (y " + Math.round(fy) + ", view " + Math.round(pg.flick.height) + "), focus shows " + focusShows + ", space opens " + bySpace + ", enter closes " + byEnter + ", keypad enter opens " + byPadEnter);
             }
         },
         // F04 the history group by its name: no history, then three (the title «История (3)»)

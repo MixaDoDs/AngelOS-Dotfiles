@@ -6,4 +6,6 @@ import QtQuick
 CatEntry {
     kind: "custom"
     property bool wide: false
+    // the keyboard's way into it, for a look that picks rows by keys (P5): {step(dir), ok(), hint, focus(on)}
+    property var keys: null
 }

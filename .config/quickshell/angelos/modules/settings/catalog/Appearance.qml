@@ -251,7 +251,7 @@ CatPage {
                         Rectangle {
                             anchors.fill: parent
                             visible: thumb.status !== Image.Ready
-                            color: Theme.tone("sunken", Theme.p5For(parent))
+                            color: Theme.toneFor("sunken", parent)
                         }
                         // the area in a frame
                         Rectangle {
@@ -270,7 +270,7 @@ CatPage {
                                 anchors.margins: -Math.max(1, Theme.u / 2) * 2
                                 color: "transparent"
                                 border.width: Math.max(1, Theme.u / 2)
-                                border.color: Theme.tone("edge", Theme.p5For(parent))
+                                border.color: Theme.toneFor("edge", parent)
                             }
                         }
                         MouseArea {
@@ -443,7 +443,7 @@ CatPage {
                 Row {
                     spacing: Theme.u * 2
                     Repeater {
-                        model: [Theme.accent, Theme.accent2, Theme.accent3, Theme.accent4, Theme.title1, Theme.title2, Theme.tone("face", Theme.p5For(parent)), Theme.tone("faceAlt", Theme.p5For(parent)), Theme.tone("text", Theme.p5For(parent)), Theme.danger, Theme.tone("ok", Theme.p5For(parent))]
+                        model: [Theme.accent, Theme.accent2, Theme.accent3, Theme.accent4, Theme.title1, Theme.title2, Theme.toneFor("face", parent), Theme.toneFor("faceAlt", parent), Theme.toneFor("text", parent), Theme.danger, Theme.toneFor("ok", parent)]
                         PxBox {
                             required property color modelData
                             width: Theme.u * 14

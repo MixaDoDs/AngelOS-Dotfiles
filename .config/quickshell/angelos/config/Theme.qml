@@ -658,10 +658,15 @@ Singleton {
     // The dark theme turns the card over: "black" is the ink, "paper" what it is written on, so
     // there the paper is near-black and the ink light (a white card glared at night — the owner).
     readonly property color p5Black: dark ? mix("#ffffff", accent, 0.08) : mix("#000000", accent, 0.07)
-    readonly property color p5Paper: dark ? mix("#000000", accent, 0.12) : mix("#ffffff", accent, 0.05)
-    readonly property color p5White: dark ? mix("#000000", accent, 0.19) : mix("#ffffff", accent, 0.02)
-    readonly property color p5Paper2: dark ? mix("#000000", accent, 0.27) : mix("#ffffff", accent, 0.16)
-    readonly property color p5Paper3: dark ? mix("#000000", accent, 0.4) : mix("#ffffff", accent, 0.3)
+    // the papers are greys with a breath of the accent: the accent itself only on what is picked
+    // («P5, quieter», decision №15, 25.10)
+    function p5Grey(l) {
+        return mix(mix("#000000", "#ffffff", l), accent, 0.05);
+    }
+    readonly property color p5Paper: dark ? p5Grey(0.1) : p5Grey(0.97)
+    readonly property color p5White: dark ? p5Grey(0.15) : p5Grey(0.995)
+    readonly property color p5Paper2: dark ? p5Grey(0.21) : p5Grey(0.88)
+    readonly property color p5Paper3: dark ? p5Grey(0.3) : p5Grey(0.78)
     readonly property color p5Dim: mix(p5Black, dark ? "#000000" : "#ffffff", 0.38)
     // the accent as letters on the paper: darkened (lightened on the dark card) until it reads
     readonly property color p5AccentInk: dark ? mix(accent, "#ffffff", 0.2) : darkTo(accent, 0.18)
@@ -678,31 +683,35 @@ Singleton {
     function p5For(item) {
         return settingsSkinFor(item) === "p5";
     }
-    // one of the theme's colours, or its P5 counterpart inside the P5 window
+    // a settings look's own colours by the theme's names (face, faceAlt, sunken, text, textDim, edge,
+    // lo, hi, ok, danger, accent2…): a new look adds its entry here, and the catalog and the Px
+    // widgets inside it take them through toneFor/toneOf; a name a look leaves out is the theme's own
+    readonly property var skinTones: ({
+            "p5": {
+                "face": p5Paper2,
+                "faceAlt": p5Paper3,
+                "sunken": dark ? mix("#000000", accent, 0.06) : mix("#ffffff", accent, 0.08),
+                "text": p5Black,
+                "edge": p5Black,
+                "lo": p5Black,
+                "textDim": p5Dim,
+                "hi": "#ffffff",
+                "ok": dark ? ok : darkTo(ok, 0.2),
+                "danger": dark ? danger : darkTo(danger, 0.2),
+                "accent2": dark ? accent2 : darkTo(accent2, 0.2)
+            }
+        })
+    function toneOf(skin, name) {
+        const t = skinTones[skin];
+        return t && t[name] !== undefined ? t[name] : root[name];
+    }
+    // the colour `name` in the settings look `item` sits in
+    function toneFor(name, item) {
+        return toneOf(settingsSkinFor(item), name);
+    }
+    // the older call: the theme's colour, or the P5 look's
     function tone(name, p5) {
-        if (!p5)
-            return root[name];
-        switch (name) {
-        case "face":
-            return p5Paper2;
-        case "faceAlt":
-            return p5Paper3;
-        case "sunken":
-            return dark ? mix("#000000", accent, 0.06) : mix("#ffffff", accent, 0.08);
-        case "text":
-        case "edge":
-        case "lo":
-            return p5Black;
-        case "textDim":
-            return p5Dim;
-        case "hi":
-            return "#ffffff";
-        case "ok":
-        case "danger":
-        case "accent2":
-            return dark ? root[name] : darkTo(root[name], 0.2);
-        }
-        return root[name];
+        return p5 ? toneOf("p5", name) : root[name];
     }
     function settingsSkinFor(item) {
         for (let p = item; p; p = p.parent)

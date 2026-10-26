@@ -9,7 +9,8 @@ import "A11y.js" as A11y
 Item {
     id: root
     // inside the P5 settings window: its colours (Theme.tone)
-    readonly property bool p5: Theme.p5For(root.parent)
+    readonly property bool p5: settingsSkin === "p5"
+    readonly property string settingsSkin: Theme.settingsSkinFor(root.parent)
     property alias text: editor.text
     property alias readOnly: editor.readOnly
     property alias input: editor
@@ -27,8 +28,8 @@ Item {
     PxBox {
         anchors.fill: parent
         sunken: true
-        color: Theme.tone("sunken", root.p5)
-        edgeColor: editor.activeFocus ? Theme.accent : Theme.tone("edge", root.p5)
+        color: Theme.toneOf(root.settingsSkin, "sunken")
+        edgeColor: editor.activeFocus ? Theme.accent : Theme.toneOf(root.settingsSkin, "edge")
     }
     Flickable {
         id: flick
@@ -47,7 +48,7 @@ Item {
             wrapMode: TextEdit.Wrap
             textFormat: TextEdit.PlainText
             selectByMouse: true
-            color: Theme.tone("text", root.p5)
+            color: Theme.toneOf(root.settingsSkin, "text")
             selectionColor: Theme.select
             selectedTextColor: Theme.selectText
             font.family: root.monospace ? Theme.fontMono : Theme.fontBody

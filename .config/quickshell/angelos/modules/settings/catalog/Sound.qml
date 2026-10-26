@@ -91,7 +91,7 @@ CatPage {
                         anchors.verticalCenter: parent.verticalCenter
                         horizontalAlignment: Text.AlignRight
                         kind: "tiny"
-                        color: pageMeter.clipping ? Theme.danger : Theme.tone("textDim", Theme.p5For(parent))
+                        color: pageMeter.clipping ? Theme.danger : Theme.toneFor("textDim", parent)
                         text: Audio.micMuted ? I18n.t("выкл", "muted") : pageMeter.db > -90 ? Math.round(pageMeter.db) + " dB" : "—"
                     }
                 }

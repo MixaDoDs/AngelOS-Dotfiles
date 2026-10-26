@@ -11,8 +11,13 @@ import "P5Lines.js" as Lines
 
 // The Settings window in the angelOS look, the Persona 5 way: the sections slanted down the
 // left, the section's card on the right with its pages as tabs (Q/E) and its settings as a
-// game's option lines (↑↓ to pick, ←→ to change, Enter), one hint for the picked line in the
-// strip at the bottom, typing anywhere searches. Behind it all the rays turn and the angel
+// game's option lines (↑↓ to pick, ←→ to change, Enter), the picked line's hint and preview
+// under it, typing anywhere searches, Tab held shows the desk under the window.
+// «P5, quieter» (decisions №15–18, 30–33, 25.10): the accent only on what is picked (the
+// section, the tab, the line, the value), the rest black, paper and grey; at rest only the
+// picked line and the slow backdrop move, everything else plays on an action; she stands as a
+// dark silhouette behind the menu until something wakes her; a tab changes at once, only a
+// section plays the cut. Behind it all the rays turn and the angel
 // (a sister of the circles in the dark theme) plays every move and talks (P5Doll). The settings come straight
 // from the catalog (modules/settings/catalog) through the settings tree (SettingsTree): the
 // same entries the other looks draw with the pixel widgets.
@@ -45,6 +50,8 @@ FocusScope {
         return 1 + (c + 1) * x * x * x + c * x * x;
     }
     onShownNowChanged: {
+        if (!shownNow)
+            peeking = false;
         // opened again: a hello
         if (shownNow && shownCat && !leaving)
             remark(shownCat, true);
@@ -63,6 +70,7 @@ FocusScope {
         function onFrameSwapped() {
             root.firstFrame = false;
             enterRun.restart();
+            title.hop();
             root.snd("ding", 0.55);
         }
     }
@@ -139,14 +147,17 @@ FocusScope {
             "black": Theme.mix("#000000", Theme.accent, 0.07),
             "paper": Theme.mix("#ffffff", Theme.accent, 0.05),
             "white": Theme.mix("#ffffff", Theme.accent, 0.02),
-            "paper2": Theme.mix("#ffffff", Theme.accent, 0.16),
-            "paper3": Theme.mix("#ffffff", Theme.accent, 0.3),
+            "paper2": Theme.mix("#e0e0e0", Theme.accent, 0.05),
+            "paper3": Theme.mix("#c7c7c7", Theme.accent, 0.05),
             "accent": Theme.accent,
             "accent2": Theme.accent2,
             "dim": Theme.mix(Theme.mix("#000000", Theme.accent, 0.07), "#ffffff", 0.3),
             "danger": Theme.danger,
-            "bg": Theme.dark ? Theme.mix(Theme.face, "#000000", 0.5) : Theme.mix(Theme.accent, "#ffffff", 0.8),
-            "bg2": Theme.dark ? Theme.mix(Theme.mix(Theme.face, "#000000", 0.5), Theme.accent, 0.13) : Theme.mix(Theme.accent, "#ffffff", 0.68)
+            "bg": Theme.dark ? Theme.mix(Theme.mix(Theme.face, "#000000", 0.5), "#808080", 0.08) : Theme.mix("#d4d4d4", Theme.accent, 0.04),
+            "bg2": Theme.dark ? Theme.mix(Theme.mix(Theme.face, "#000000", 0.5), "#808080", 0.16) : Theme.mix("#c2c2c2", Theme.accent, 0.04),
+            // the figures' grey (she, the backdrop's slab) and her silhouette at rest
+            "grey": Theme.mix(Theme.mix("#000000", Theme.accent, 0.07), "#ffffff", 0.45),
+            "shade": Theme.dark ? Theme.mix(Theme.mix(Theme.face, "#000000", 0.5), "#808080", 0.22) : Theme.mix("#d4d4d4", "#000000", 0.16)
         })
 
     // the card and what is on it (rows, tabs): in the dark theme near-black paper, light ink
@@ -232,19 +243,24 @@ FocusScope {
             return;
         const dir = shownCat === newCat ? (c.pages.indexOf(pageId) >= c.pages.indexOf(shownPage) ? 1 : -1) : sections.findIndex(s => s.id === newCat) < sections.findIndex(s => s.id === shownCat) ? -1 : 1;
         const tabOnly = shownCat === newCat;
-        if (!tabOnly) {
-            backdrop.wipe();
-            catSlam.restart();
+        // (a click never waits for the cut: the page is there at once, the cut plays over it)
+        show(pageId);
+        bump(tabOnly);
+        if (tabOnly) {
+            snd("tab", 0.45);
+            return;
         }
+        backdrop.wipe();
+        catSlam.restart();
+        title.hop();
         shownCat = newCat;
         pending = {
-            "page": pageId,
             "cat": newCat,
             "dir": dir,
             "v": v
         };
         slash.cut(dir);
-        snd(tabOnly ? "tab" : "whoosh", 0.45);
+        snd("whoosh", 0.45);
     }
     // what she says on a section: its first visit (the game remembers which), all of them seen,
     // the angel remembering a sister she saw in the dark, a hello when opened again
@@ -282,11 +298,9 @@ FocusScope {
             if (!p)
                 return;
             root.pending = null;
-            root.show(p.page);
             angel.go(p.cat, p.dir, false, p.v);
             if (p.cat !== root.remarked)
                 root.remark(p.cat, false);
-            root.bump();
         }
     }
 
@@ -561,6 +575,7 @@ FocusScope {
             return;
         firstPick = false;
         sel = i;
+        selByPointer = !!byPointer;
         const r = rowsRep.itemAt(i);
         if (!r)
             return;
@@ -568,8 +583,9 @@ FocusScope {
             ensureVisible(r);
         const n = Math.max(1, rowsRep.count);
         angel.lookY = (i - (n - 1) / 2) / n * 0.03;
-        hint.say(r.kind === "more" ? I18n.t("Редкие настройки этой страницы", "This page's rarer settings") : r.kind === "result" ? r.line.r.crumb || "" : r.e ? r.e.hint : "");
     }
+    // (picked by keys: the line opening its hint and preview is kept in sight as it grows)
+    property bool selByPointer: false
     // the pointer really moved (not the list under it): only then does hovering pick
     property point lastPointer: Qt.point(-1, -1)
     function pointerMoved(g) {
@@ -732,7 +748,18 @@ FocusScope {
             goTab(a === "tabRight" ? 1 : -1);
         }
     }
+    Keys.onReleased: e => {
+        if (e.key === Qt.Key_Tab && !e.isAutoRepeat) {
+            peeking = false;
+            e.accepted = true;
+        }
+    }
     Keys.onPressed: e => {
+        if (e.key === Qt.Key_Tab) {
+            peeking = true;
+            e.accepted = true;
+            return;
+        }
         const r = selRow;
         if (r && r.editing)
             return;
@@ -756,8 +783,8 @@ FocusScope {
                 query = query.slice(0, -1);
         } else if (ctrl && e.key === Qt.Key_F) {
             searchFocus = true;
-        } else if (!query && !ctrl && (e.text === "q" || e.text === "e" || e.text === "Q" || e.text === "E")) {
-            goTab(e.text.toLowerCase() === "q" ? -1 : 1);
+        } else if (ctrl && (e.key === Qt.Key_Q || e.key === Qt.Key_E)) {
+            goTab(e.key === Qt.Key_Q ? -1 : 1);
         } else if (e.text && e.text.length === 1 && e.text >= " " && !ctrl && !(e.modifiers & Qt.AltModifier)) {
             query += e.text;
         } else {
@@ -766,6 +793,9 @@ FocusScope {
         e.accepted = true;
     }
     property bool searchFocus: false
+    // «look at the desk» (decision №18): Tab (the pad's Select) held hides the window, let go — back
+    property bool peeking: false
+    opacity: peeking ? 0 : 1
 
     // the gamepad while the window has the focus (scripts/gamepad.py reads the pads, never grabs
     // them): the d-pad and the left stick move, A picks, B goes back, LB/RB the tabs, LT/RT
@@ -783,7 +813,9 @@ FocusScope {
                 } catch (e) {
                     return;
                 }
-                if (ev.event === "key" && ev.value > 0)
+                if (ev.event === "key" && ev.code === "BTN_SELECT")
+                    root.peeking = ev.value > 0;
+                else if (ev.event === "key" && ev.value > 0)
                     root.padKey(ev.code);
                 else if (ev.event === "abs")
                     root.padAxes(ev.values || {});
@@ -878,16 +910,15 @@ FocusScope {
         anchors.fill: parent
         base: root.pal.bg
         base2: root.pal.bg2
-        slab: root.pal.accent
+        slab: root.pal.grey
         star: root.pal.paper
         still: root.still
         slabWidth: root.mode === "wide" ? 0.55 : root.mode === "half" ? 0.4 : 0.6
-        // the light theme (the angel): P3 Reload's water in the accent, pushed a little to the
-        // deep blue that water is; the dark one (the fallen): P5's rays
+        // the light theme (the angel): P3 Reload's water, in greys; the dark one (the fallen): P5's rays
         water: !Theme.dark
-        deep: Theme.mix(Theme.mix(Theme.accent, "#0b1a5a", 0.55), "#000000", 0.4)
-        shallow: Theme.mix(Theme.mix(Theme.accent, "#2a8cff", 0.5), "#ffffff", 0.25)
-        glint: Theme.mix(Theme.accent, "#ffffff", 0.85)
+        deep: Theme.mix(root.pal.bg, "#000000", 0.3)
+        shallow: Theme.mix(root.pal.bg, "#ffffff", 0.35)
+        glint: root.pal.white
     }
     P5Doll {
         id: angel
@@ -907,9 +938,10 @@ FocusScope {
         z: carried ? 30 : 0
         // (wide: close enough to lean over the card's edge)
         zone: root.mode === "wide" ? 0.3 : root.mode === "half" ? 0.88 : 0.62
-        accent: root.pal.accent
+        accent: root.pal.grey
         black: root.pal.black
         paper: root.pal.paper
+        restSolid: root.pal.shade
         still: root.still
         gaze: pointer.hovered ? pointer.point.position : Qt.point(-1, -1)
         onSay: text => speech.show(text)
@@ -1047,6 +1079,44 @@ FocusScope {
         enabled: root.mode !== "wide"
         onClicked: root.catsOpen = !root.catsOpen
     }
+    // narrow: the sections behind a button that looks like one (the title alone didn't read as one)
+    Item {
+        id: catsButton
+        visible: root.mode !== "wide"
+        transform: Translate {
+            y: -(1 - root.swing(0.3, 0.52)) * root.height * 0.3
+        }
+        x: title.x + title.width + px * 4
+        y: title.y + (title.height - height) / 2
+        width: catsText.implicitWidth + px * 10
+        height: catsText.implicitHeight + px * 4
+        P5Plate {
+            anchors.fill: parent
+            poly: [[px * 2, 0], [width, px], [width - px * 2, height], [0, height - px]]
+            color: root.catsOpen || catsMouse.containsMouse ? root.pal.accent : root.pal.paper
+            shadow: root.pal.black
+            shadowX: px * 2
+            shadowY: px * 2
+        }
+        PxText {
+            id: catsText
+            kind: "title"
+            font.bold: true
+            anchors.centerIn: parent
+            text: root.mode === "tall" ? "☰" : I18n.t("☰ РАЗДЕЛЫ", "☰ SECTIONS")
+            color: root.pal.black
+        }
+        MouseArea {
+            id: catsMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                root.catsOpen = !root.catsOpen;
+                root.forceActiveFocus();
+            }
+        }
+    }
 
     // ---- the search plate (and the window's ✕) ----
     Item {
@@ -1084,10 +1154,11 @@ FocusScope {
         Timer {
             id: caret
             property bool on: true
-            running: root.visible
+            running: root.visible && search.typing
             repeat: true
             interval: 500
             onTriggered: on = !on
+            onRunningChanged: on = true
         }
         MouseArea {
             anchors.fill: parent
@@ -1172,7 +1243,7 @@ FocusScope {
                     // (the picked one: room above for its bolt, off the name before it)
                     height: on ? onBox.height + px * 18 : glyph.implicitHeight + px * 4
                     Timer {
-                        running: !root.still && !c.on && catList.visible
+                        running: !root.still && !c.on && catList.visible && catMouse.containsMouse
                         repeat: true
                         interval: [2600, 3300, 2900][c.way] / 2
                         onTriggered: c.swayStep = (c.swayStep + 1) % 2
@@ -1302,7 +1373,7 @@ FocusScope {
     }
 
     // ---- the card ----
-    // its way in on twos, with a smear: where it just was, a plate in the accent for a frame or two
+    // its way in on twos, with a smear: where it just was, a grey plate for a frame or two
     readonly property real cardShift: (1 - swing(0.42, 0.74)) * width * 0.7
     property real cardWas: 0
     property real cardSmear: 0
@@ -1329,7 +1400,7 @@ FocusScope {
         y: card.y
         width: card.width
         height: card.height
-        color: root.pal.accent
+        color: root.pal.grey
         shadowX: 0
         shadowY: 0
     }
@@ -1365,14 +1436,14 @@ FocusScope {
             poly: [[0, height * 0.015], [width, 0], [width - width * 0.012, height], [width * 0.012, height - height * 0.02]]
             tilt: -1.0 + (1 - root.bumpQ) * 6
             color: root.cardPal.paper
-            shadow: Theme.dark ? root.pal.accent : root.pal.black
+            shadow: "#000000"
             shadowX: px * 4
             shadowY: px * 4
-            rim: root.pal.accent
+            rim: root.cardPal.black
             rimWidth: px * 1.5
         }
 
-        // her field: hatched, the accent at its end
+        // her field: hatched, a line at its end
         Item {
             visible: root.cardField > 0
             x: px * 3
@@ -1396,11 +1467,11 @@ FocusScope {
                 anchors.right: parent.right
                 width: px * 1.5
                 height: parent.height
-                color: root.pal.accent
+                color: root.cardPal.paper3
             }
         }
 
-        // the tabs: Q … E
+        // the tabs: ‹ … › (Ctrl+Q / Ctrl+E), each end with how many are out of sight
         Row {
             id: tabRow
             x: px * 10 + root.cardField
@@ -1414,15 +1485,25 @@ FocusScope {
                 anchors.verticalCenter: parent.verticalCenter
                 Rectangle {
                     anchors.fill: parent
-                    color: root.pal.black
+                    color: qMouse.containsMouse ? root.pal.accent : root.pal.black
                 }
                 PxText {
                     id: qText
                     font.bold: true
                     anchors.centerIn: parent
-                    text: "Q"
+                    text: tabFlick.hiddenL ? "‹ " + tabFlick.hiddenL : "‹"
                     kind: "tiny"
-                    color: root.pal.accent2
+                    color: root.pal.paper
+                }
+                MouseArea {
+                    id: qMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root.goTab(-1);
+                        root.forceActiveFocus();
+                    }
                 }
             }
             Flickable {
@@ -1430,12 +1511,27 @@ FocusScope {
                 readonly property real room: parent.width - px * 30
                 // (ends on a whole tab: never a tab cut by the card's edge)
                 property real whole: room
+                // tabs out of sight on the left and on the right
+                property int hiddenL: 0
+                property int hiddenR: 0
                 function fit() {
-                    let w = 0;
+                    let w = 0, l = 0, r = 0;
                     for (const t of tabInner.children)
                         if (t.modelData !== undefined && t.x + t.width - contentX <= room + 0.5)
                             w = Math.max(w, t.x + t.width - contentX);
                     whole = w > 0 ? w : room;
+                    // (the strip's own tabs: the children can still hold a section's old ones)
+                    for (let i = 0; i < tabRep.count; i++) {
+                        const t = tabRep.itemAt(i);
+                        if (!t)
+                            continue;
+                        if (t.x < contentX - 0.5)
+                            l++;
+                        else if (t.x + t.width - contentX > whole + 0.5)
+                            r++;
+                    }
+                    hiddenL = l;
+                    hiddenR = r;
                 }
                 onContentXChanged: fit()
                 onRoomChanged: fit()
@@ -1470,6 +1566,7 @@ FocusScope {
                         Qt.callLater(tabFlick.fit);
                     }
                     Repeater {
+                        id: tabRep
                         model: root.tabs
                         Item {
                             id: tb
@@ -1522,13 +1619,27 @@ FocusScope {
                     anchors.fill: parent
                     color: root.pal.black
                 }
+                Rectangle {
+                    anchors.fill: parent
+                    color: eMouse.containsMouse ? root.pal.accent : "transparent"
+                }
                 PxText {
                     id: eText
                     font.bold: true
                     anchors.centerIn: parent
-                    text: "E"
+                    text: tabFlick.hiddenR ? tabFlick.hiddenR + " ›" : "›"
                     kind: "tiny"
-                    color: root.pal.accent2
+                    color: root.pal.paper
+                }
+                MouseArea {
+                    id: eMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root.goTab(1);
+                        root.forceActiveFocus();
+                    }
                 }
             }
         }
@@ -1539,7 +1650,7 @@ FocusScope {
             x: px * 10 + root.cardField
             y: px * 8
             text: root.results.length ? I18n.t("Найдено: ", "Found: ") + root.results.length : I18n.t("Ничего не нашлось", "Nothing found")
-            color: root.pal.accent
+            color: root.cardPal.black
             kind: "title"
         }
 
@@ -1575,6 +1686,8 @@ FocusScope {
                         order: index
                         enter: root.rowsIn
                         onPick: root.select(index, true)
+                        onHeightChanged: if (selected && !root.selByPointer)
+                            root.ensureVisible(this)
                         gate: g => root.pointerMoved(g)
                         onMoved: dir => root.angel_flap(dir)
                         onFollow: l => {
@@ -1609,12 +1722,13 @@ FocusScope {
     property real bumpT: 1
     readonly property real bumpQ: Math.floor(bumpT * 5) / 5
     property real rowsIn: 1
-    function bump() {
+    function bump(tab) {
         if (still) {
             bumpT = 1;
             rowsIn = 1;
             return;
         }
+        bumpRun.duration = tab ? 120 : 200;
         bumpRun.restart();
         rowsRun.restart();
     }
@@ -1624,7 +1738,7 @@ FocusScope {
         property: "bumpT"
         from: 0
         to: 1
-        duration: 340
+        duration: 200
     }
     NumberAnimation {
         id: rowsRun
@@ -1632,7 +1746,7 @@ FocusScope {
         property: "rowsIn"
         from: 0
         to: 1
-        duration: 260 + Math.min(rowsRep.count, 14) * 45
+        duration: 200
     }
 
     // her strip over the card's left edge (P5Doll.front): she breaks the card's frame a little
@@ -1657,60 +1771,26 @@ FocusScope {
         anchors.bottom: parent.bottom
         anchors.leftMargin: -px * 4
         anchors.rightMargin: -px * 4
-        height: hintText.implicitHeight + px * 8
+        height: keysText.implicitHeight + px * 8
         P5Plate {
             anchors.fill: parent
             poly: [[0, px * 2], [width, 0], [width, height + px * 4], [0, height + px * 4]]
             color: root.pal.black
-            rim: root.pal.accent
-            rimWidth: px * 1.5
             shadowX: 0
             shadowY: 0
         }
         PxText {
-            id: hintText
-            kind: "title"
-            font.bold: true
-            x: px * 12
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - x - keysText.width - px * 16
-            elide: Text.ElideRight
-            text: hint.shown ? "✧ " + hint.shown : ""
-            color: root.pal.paper
-        }
-        PxText {
             id: keysText
             font.bold: true
-            visible: root.mode !== "tall"
-            anchors.right: parent.right
-            anchors.rightMargin: px * 12
+            x: px * 12
+            width: parent.width - px * 24
             anchors.verticalCenter: parent.verticalCenter
+            elide: Text.ElideRight
             kind: "body"
-            color: Theme.mix(root.pal.paper, root.pal.black, 0.35)
-            text: I18n.t("↑↓ выбор   ←→ значение   Q E вкладки   ⇧↑↓ разделы   ESC назад", "↑↓ pick   ←→ value   Q E tabs   ⇧↑↓ sections   ESC back")
-        }
-    }
-    // the hint types itself in
-    QtObject {
-        id: hint
-        property string full: ""
-        property int n: 0
-        readonly property string shown: full.slice(0, n)
-        function say(t) {
-            full = t || "";
-            n = root.still ? full.length : 0;
-            if (!root.still)
-                typer.restart();
-        }
-    }
-    Timer {
-        id: typer
-        interval: 12
-        repeat: true
-        onTriggered: {
-            hint.n += 2;
-            if (hint.n >= hint.full.length)
-                stop();
+            color: Theme.mix(root.pal.paper, root.pal.black, 0.2)
+            // what Esc does now (act("back")), not what it might
+            readonly property string esc: root.query ? I18n.t("ESC сбросить поиск", "ESC clear search") : root.mode !== "wide" && !root.catsOpen ? I18n.t("ESC разделы", "ESC sections") : I18n.t("ESC закрыть", "ESC close")
+            text: (root.mode === "tall" ? "" : I18n.t("↑↓ выбор   ←→ значение   Ctrl+Q/E вкладки   ⇧↑↓ разделы   ", "↑↓ pick   ←→ value   Ctrl+Q/E tabs   ⇧↑↓ sections   ")) + I18n.t("TAB — стол   ", "TAB desk   ") + esc
         }
     }
 
@@ -1735,7 +1815,7 @@ FocusScope {
             speechAway.interval = 2600 + full.length * 45;
             speechAway.restart();
         }
-        visible: shownQ > 0 && full !== ""
+        visible: shownQ > 0 && full !== "" && root.mode === "wide"
         z: 40
         x: root.mode === "half" ? root.width - width - px * 6 : px * 6
         y: hintBar.y - height - px * 6 + (1 - shownQ) * px * 12
@@ -1746,9 +1826,9 @@ FocusScope {
             anchors.fill: parent
             poly: [[px * 3, 0], [width, px * 2], [width - px * 3, height], [0, height - px * 2]]
             color: root.pal.black
-            rim: root.pal.accent
-            rimWidth: px * 1.5
-            shadow: root.pal.accent
+            rim: root.pal.paper
+            rimWidth: px
+            shadow: "#000000"
             shadowX: px * 3
             shadowY: px * 3
         }
@@ -1758,7 +1838,7 @@ FocusScope {
             y: px * 4
             kind: "body"
             font.bold: true
-            color: root.pal.accent
+            color: root.pal.grey
             text: angel.who === "angel" ? I18n.t("Ангел", "Angel") : Lines.name(angel.who, I18n.english)
         }
         PxText {
