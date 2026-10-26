@@ -68,6 +68,11 @@
 #   SMOOTH_MEMORY=1|0              kernel memory settings that keep the picture from freezing when
 #                                  RAM fills up (extras/smooth-memory, a sysctl file; default 1)
 #   SKIP_PACKAGES=0|1              skip `pacman -Syu`
+#   ANGEL_NIRI=1|0                 angel-niri, angelOS's fork of niri (minimize, pixel looks, the
+#                                  stream's privacy looks and pause, tearing in games): downloaded
+#                                  (SHA256-checked) or built, started from the next login instead
+#                                  of the niri package (default 1; undo:
+#                                  ~/.config/quickshell/angelos/scripts/angel-niri-install.sh off)
 #   INSTALL_VOXTYPE=0|1            voice input binary (checksum-verified download)
 #   DOWNLOAD_VOXTYPE_MODEL=0|1     Whisper large-v3-turbo model (~1.6 GB)
 #   WALLPAPER_PACKS=all|none|Lain,Pixel,…
