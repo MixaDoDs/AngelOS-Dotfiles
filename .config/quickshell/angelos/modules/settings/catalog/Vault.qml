@@ -7,13 +7,13 @@ import qs.services
 import qs.widgets
 import qs.modules.settings.kit
 
-// Passwords (services/Vault, scripts/vault.py): Bitwarden — through its own CLI or rbw — and
-// 1Password in the launcher. Here: which manager is connected and whether it is open, the
+// Passwords (services/Vault, scripts/vault.py): external password managers in AngelOS.
+// Here: which manager is connected and whether it is open, the
 // first sign-in (a terminal's business), and how careful the shell is with what it copies.
 CatPage {
     id: page
     heading: I18n.t("Пароли", "Passwords")
-    subtitle: I18n.t("Bitwarden и 1Password в лаунчере: Win+Space → pw и название. Enter копирует пароль.", "Bitwarden and 1Password in the launcher: Win+Space → pw and a name. Enter copies the password.")
+    subtitle: I18n.t("Выбранные менеджеры в лаунчере: Win+Space → pw и название. Enter копирует пароль.", "Selected managers in the launcher: Win+Space → pw and a name. Enter copies the password.")
     Component.onCompleted: Vault.refresh()
     function stateText(b) {
         if (!b.installed)
@@ -167,7 +167,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Первый вход — один раз в терминале. Для 1Password включи в нём «Интеграция с 1Password CLI».", "Sign in once in a terminal. For 1Password, turn on «Integrate with 1Password CLI» in its app.")
+            text: I18n.t("Первый вход — один раз в терминале: выбранный менеджер сам спросит почту, пароль и код 2FA. Для 1Password включи «Интеграцию с 1Password CLI» в его приложении.", "Sign in once in a terminal; the selected manager asks for the e-mail, password and 2FA code. For 1Password, turn on «Integrate with 1Password CLI» in its app.")
         }
     }
     CatGroup {

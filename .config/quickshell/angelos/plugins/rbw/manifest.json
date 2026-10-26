@@ -1,0 +1,11 @@
+{
+  "id": "rbw",
+  "name": {"ru": "Bitwarden (rbw)", "en": "Bitwarden (rbw)"},
+  "version": "1.0.0",
+  "author": "angelOS",
+  "description": {"ru": "Неофициальная интеграция rbw в password manager AngelOS.", "en": "Unofficial rbw integration for the AngelOS password manager."},
+  "icon": "lock",
+  "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
+  "vault": {"entry": "vault.py", "id": "rbw", "packageManager": "pacman", "package": "rbw", "docs": "https://github.com/doy/rbw"}
+}

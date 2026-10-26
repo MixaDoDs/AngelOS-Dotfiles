@@ -1,0 +1,11 @@
+{
+  "id": "onepassword",
+  "name": {"ru": "1Password", "en": "1Password"},
+  "version": "1.0.0",
+  "author": "angelOS",
+  "description": {"ru": "Неофициальная интеграция 1Password CLI в password manager AngelOS.", "en": "Unofficial 1Password CLI integration for the AngelOS password manager."},
+  "icon": "lock",
+  "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
+  "vault": {"entry": "vault.py", "id": "op", "packageManager": "aur", "package": "1password-cli", "docs": "https://developer.1password.com/docs/cli/get-started/"}
+}

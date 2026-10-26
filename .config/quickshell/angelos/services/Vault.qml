@@ -7,32 +7,41 @@ import Quickshell.Io
 import qs.config
 
 // Password managers (Settings → Apps → Passwords, the launcher's `pw …`, `angelos vault`):
-// Bitwarden (its own CLI bw, or rbw) and 1Password (op) behind scripts/vault.py. The shell
-// knows the entries' names and logins, never a password: Enter in the launcher makes vault.py
+// External password managers behind scripts/vault.py. The shell knows the entries' names and
+// logins, never a password: Enter in the launcher makes the selected manager
 // hand the secret from the manager's CLI to the clipboard — marked sensitive, so the clipboard
-// history skips it, and wiped after Config.vault.clearAfter seconds. The session keys of bw
-// and op are kept here, in memory, until the vault is locked (by hand, after
+// history skips it, and wiped after Config.vault.clearAfter seconds. Manager session keys are
+// kept here, in memory, until the vault is locked (by hand, after
 // Config.vault.lockAfter idle minutes, with the screen) or the shell ends.
 Singleton {
     id: root
 
     readonly property string script: Quickshell.shellDir + "/scripts/vault.py"
+    // The vault UI and protocol are core AngelOS. Each bundled plugin contributes one
+    // manifest-declared manager and can be toggled independently.
+    readonly property var managerPlugins: Plugins.plugins.filter(p => p.vault && p.vault.entry && p.vault.id && Plugins.isEnabled(p))
+    readonly property var managerBackends: managerPlugins.map(p => p.vault.id)
+    readonly property var managerPluginDirs: managerPlugins.map(p => ({
+        "id": p.vault.id,
+        "dir": p.dir,
+        "entry": p.vault.entry
+    }))
     property var backends: []          // [{id, name, cli, installed, state, account, ask}]
     property var items: []             // [{backend, id, name, user, url, totp}], logins only
     property var errors: ({})          // backend id -> why its entries could not be read
-    property var sessions: ({})        // bw / op session keys, memory only
+    property var sessions: ({})        // manager session keys, memory only
     property var mine: []              // what the shell opened itself: only that it closes by itself
     property bool loaded: false
     property bool listed: false
     property bool listing: false
-    property string busy: ""           // "unlock:bw", "sync", "copy" while it runs
+    property string busy: ""           // "unlock:ID", "sync", "copy" while it runs
     property string error: ""          // why the last action didn't happen
     property string told: ""           // what the last action did ("Пароль скопирован…")
     property int tick: 0               // bumped when the entries or the states change
     property real usedAt: 0
     property real probedAt: 0
 
-    readonly property bool enabled: Config.ready && Config.vault.enabled !== false
+    readonly property bool enabled: Config.ready && managerBackends.length > 0 && Config.vault.enabled !== false
     readonly property var installed: backends.filter(b => b.installed)
     readonly property var open: backends.filter(b => b.state === "unlocked")
     readonly property var closed: backends.filter(b => b.state === "locked")
@@ -135,7 +144,7 @@ Singleton {
         if (!installed.length)
             list.push({
                 "kind": "setup",
-                "title": I18n.t("Подключить Bitwarden или 1Password", "Connect Bitwarden or 1Password"),
+                "title": I18n.t("Подключить менеджер паролей", "Connect a password manager"),
                 "subtitle": I18n.t("Настройки → Приложения → Пароли", "Settings → Apps → Passwords"),
                 "icon": "lock",
                 "s": 900
@@ -226,8 +235,8 @@ Singleton {
     }
     readonly property var env: ({
             "ANGELOS_LANG": I18n.english ? "en" : "ru",
-            "ANGELOS_BW_SESSION": sessions.bw || "",
-            "ANGELOS_OP_SESSION": sessions.op || ""
+            "ANGELOS_VAULT_SESSIONS": JSON.stringify(sessions),
+            "ANGELOS_VAULT_PLUGINS": JSON.stringify(managerPluginDirs)
         })
 
     // ---- actions: one at a time (scripts/vault.py), each answers with one JSON line ----
@@ -314,7 +323,7 @@ Singleton {
                     mine = mine.concat([id]);
                 refresh();
             } else {
-                // a manager that asks by itself said no: the shell asks instead (1Password without its app)
+                // a manager that asks by itself said no: the shell asks instead
                 if (res && res.ask === "password" && !typed)
                     wanted = id;
                 else
@@ -360,8 +369,8 @@ Singleton {
         _saved(id, "");
         act(["forget", id], () => refresh());
     }
-    // everything, or (by the timer, with the screen) only what the shell opened itself: an rbw
-    // the user unlocked in a terminal keeps its own timeout
+    // everything, or (by the timer, with the screen) only what the shell opened itself: an
+    // manager the user unlocked in a terminal keeps its own timeout
     function lock(onlyMine) {
         const ids = installed.filter(b => b.state === "unlocked" && (!onlyMine || mine.includes(b.id))).map(b => b.id);
         const s = {};
@@ -544,6 +553,12 @@ Singleton {
                 root.lock(true);
         }
     }
+    Connections {
+        target: Plugins
+        function onEnabledIdsChanged() {
+            root.refresh();
+        }
+    }
 
     // `angelos vault …`
     function ipc(line) {
@@ -577,7 +592,7 @@ Singleton {
         case "unlock":
             // only a manager that asks by itself: a master password is never a command's argument
             if (!backend(words[1]))
-                return "vault unlock bw|rbw|op";
+                return "vault unlock ID";
             if (wantsPassword(words[1]))
                 return I18n.t("мастер-пароль спрашивает лаунчер: Mod+Space → pw", "the launcher asks the master password: Mod+Space → pw");
             unlock(words[1]);
@@ -592,6 +607,6 @@ Singleton {
             openSettings();
             return "ok";
         }
-        return "angelos vault [status] | refresh | unlock ID | lock | sync | find TEXT | open — password managers (Settings → Apps → Passwords; in the launcher: pw NAME)";
+        return "angelos vault [status] | refresh | unlock ID | lock | sync | find TEXT | open — password manager (Settings → Apps → Passwords; in the launcher: pw NAME)";
     }
 }
