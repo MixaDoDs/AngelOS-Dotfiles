@@ -73,7 +73,9 @@ end
 MARK = "// angelOS fastfetch style:"
 # the config the dotfiles shipped before the styles: ours to replace
 SHIPPED = "NEEDY GIRL OVERDOSE: KAngel's winged heart"
-STYLES = ("compact", "angel", "helper", "receipt", "stream", "window", "mini")
+STYLES = ("compact", "angel", "helper", "receipt", "passport", "scroll", "bios", "stream", "window", "mini")
+# the styles printed on a sheet the logo draws (paper_picture): fastfetch writes onto it
+PAPERS = ("receipt", "scroll", "bios")
 GEAR = "python3 " + str(HERE / "gear.py")
 
 # ---- the circles' sigils: 19 × 12, in the emblem alphabet ('#' ink, 'o' the circle's
@@ -265,11 +267,16 @@ def gear(fmt, nth=None, total=False, width=0, lang="ru", voice=None, zero=False,
     return " ".join(shlex.quote(c) for c in cmd)
 
 
-def sprite(who, frame="up"):
-    """the Y2K corner's girl (modules/y2k/AngelSprite.js or DemonSprite.js): (rows, palette)"""
-    src = (ROOT / "modules" / "y2k" / ("DemonSprite.js" if who == "demon" else "AngelSprite.js")).read_text()
+def sprite(who, frame="up", ink=None):
+    """the Y2K corner's mini girl (modules/y2k/AngelSpriteMini.js or DemonSpriteMini.js, 20×21)
+    in the colours AngelHelper gives her: (rows, palette); `ink` her outline (light on a dark
+    terminal, dark on the passport's photo)"""
+    src = (ROOT / "modules" / "y2k" / ("DemonSpriteMini.js" if who == "demon" else "AngelSpriteMini.js")).read_text()
     rows = re.findall(r'"([^"]*)"', re.search(r"const %s = \[(.*?)\];" % frame, src, re.S).group(1))
-    pal = dict(re.findall(r'"(.)":\s*"(#[0-9a-fA-F]{6})"', re.search(r"const palette = \{(.*?)\};", src, re.S).group(1)))
+    if who == "demon":
+        pal = {"#": ink or "#1a0a14", "x": "#3a1a46", "f": "#f7d9e3", "o": "#ff3b6b", "r": "#d8203a", "w": "#7a1e46", "y": "#ffe07a"}
+    else:
+        pal = {"#": ink or "#e8dcf0", "y": "#ffe07a", "f": "#ffd9c7", "o": "#ff6fb0", "w": "#ffffff", "x": "#3a1a46", "r": "#d8203a"}
     return rows, pal
 
 
@@ -284,42 +291,65 @@ PAPER = 38                       # columns, a margin of one on each side
 SLOTS = 6                        # gear lines it has room for (the interface, what is plugged into it)
 
 
-def paper_colours(hell):
+def paper_colours(hell, style="receipt"):
+    """(paper, ink, accent or None for the theme's) of a sheet"""
+    if style == "bios":
+        return "#000000", "#aaaaaa", hell.get("keys", "#ff5555") if hell else "#ffffff"
+    if style == "scroll":
+        return ("#3a1612", "#e8c9a0", hell.get("keys", "#c0392b")) if hell else ("#f1e2b8", "#4a3520", "#8a5a1a")
     if hell:
         return "#e8d5ae", "#4a0e0e", hell.get("keys", "#a01818")
     return "#fbf6ee", "#3b2a35", None
 
 
-def receipt_picture(emblem_rows, emblem_pal, colors, hell, lang, text_rows, emblem=""):
-    """the logo of the receipt: the torn top, the shop's emblem and name, then blank paper the
+def paper_picture(style, emblem_rows, emblem_pal, colors, hell, lang, text_rows, emblem=""):
+    """the logo of a sheet (PAPERS): its top edge, a picture and a heading, then blank paper the
     readings are printed on (each of those lines ends with the cursor back at its left margin,
-    so fastfetch writes onto the paper), the torn bottom. (text, width, height, the first
-    paper line for the text, what moves)"""
-    paper, ink, accent = paper_colours(hell)
+    so fastfetch writes onto the paper), its bottom edge. The receipt: torn, the shop's emblem;
+    the scroll: rolled ends, the emblem; the BIOS: a black
+    screen, no picture. (text, width, height, the first paper line for the text, what moves)"""
+    paper, ink, accent = paper_colours(hell, style)
     accent = accent or colors.get("accent", "#ff6fb0")
     bg = "\x1b[48;2;%d;%d;%dm" % rgb(paper)
+    blank = bg + " " * PAPER + "\x1b[0m"
+    edges = {"receipt": (fg(paper) + ("▄ " * PAPER)[:PAPER], fg(paper) + ("▀ " * PAPER)[:PAPER]),
+             "scroll": (fg(accent) + "▄" * PAPER, fg(accent) + "▀" * PAPER)}.get(style)
+    lines = [edges[0] + "\x1b[0m", blank] if edges else [blank]
+    moving = []
     sigil = SIGILS.get(hell.get("circle", "")) if hell else None
-    rows = sigil or emblem_rows
-    art, w = half_blocks(rows, emblem_pal, paper)
-    lines = [fg(paper) + ("▄ " * PAPER)[:PAPER] + "\x1b[0m", bg + " " * PAPER + "\x1b[0m"]
-    left = (PAPER - w) // 2
-    moving = [layer(rows, emblem_pal, len(lines), left, 1, paper, motion("sigil" if sigil else "emblem", rows, colors, hell, emblem))]
-    for a in art:
-        lines.append(bg + " " * left + a + bg + " " * (PAPER - w - left) + "\x1b[0m")
-    head = ("⛧ " + tr(lang, "ДОГОВОР", "CONTRACT") + " ⛧") if hell else ("♡ " + tr(lang, "МАГАЗИН ANGELOS", "ANGELOS STORE") + " ♡")
-    lines.append(bg + " " * PAPER + "\x1b[0m")
-    lines.append(bg + fg(accent, True) + bg + centred(head, PAPER) + "\x1b[0m")
+    if style != "bios":
+        rows = sigil or emblem_rows
+        art, w = half_blocks(rows, emblem_pal, paper)
+        left = (PAPER - w) // 2
+        moving.append(layer(rows, emblem_pal, len(lines), left, 1, paper, motion("sigil" if sigil else "emblem", rows, colors, hell, emblem)))
+        for a in art:
+            lines.append(bg + " " * left + a + bg + " " * (PAPER - w - left) + "\x1b[0m")
+    heads = {
+        "receipt": ("♡ " + tr(lang, "МАГАЗИН ANGELOS", "ANGELOS STORE") + " ♡", "⛧ " + tr(lang, "ДОГОВОР", "CONTRACT") + " ⛧"),
+        "scroll": ("✦ " + tr(lang, "СВИТОК ГЕРОЯ", "THE HERO'S SCROLL") + " ✦", "⛧ " + tr(lang, "СВИТОК ГРЕШНИКА", "THE SINNER'S SCROLL") + " ⛧"),
+        "bios": ("AngelOS BIOS v2004", "⛧ AngelOS BIOS v2004 ⛧"),
+    }
+    head = heads[style][1 if hell else 0]
+    if style != "bios":
+        lines.append(blank)
+    lines.append(bg + fg(accent, True) + bg + (" " + head + " " * PAPER)[:PAPER] if style == "bios" else bg + fg(accent, True) + bg + centred(head, PAPER))
+    lines[-1] += "\x1b[0m"
+    if style == "bios":
+        lines.append(bg + fg(ink) + bg + (" (C) 2004 AngelOS" + " " * PAPER)[:PAPER] + "\x1b[0m")
+        lines.append(blank)
     top = len(lines)
     for _ in range(text_rows):
         lines.append(bg + " " * PAPER + "\x1b[0m\x1b[%dD" % (PAPER - 1))
-    lines.append(fg(paper) + ("▀ " * PAPER)[:PAPER] + "\x1b[0m")
+    lines.append(edges[1] + "\x1b[0m" if edges else blank)
     return "\n".join(lines) + "\n", PAPER, len(lines), top, {"layers": moving, "texts": []}
+
+
 
 
 def picture(style, emblem_rows, emblem_pal, colors, hell, emblem=""):
     """the logo file's text, width and height for this style, and what moves in it ({"layers",
     "texts"}, positions in the logo) — None: no picture"""
-    if style in ("mini", "receipt"):
+    if style == "mini" or style in PAPERS:
         return None
     accent, title = colors.get("accent", "#ff6fb0"), colors.get("accent2", "#c9b6ff")
     lang = colors.get("lang") or (hell or {}).get("lang") or "ru"
@@ -329,6 +359,19 @@ def picture(style, emblem_rows, emblem_pal, colors, hell, emblem=""):
         art, w = half_blocks(rows, pal)
         frames = {f: sprite(who, f)[0] for f in ("down", "blink", "talk")}
         return logo_text(art, w, [])[:3] + ({"layers": [layer(rows, pal, 0, 0, fx=motion("girl", rows, colors, hell), frames=frames)], "texts": []},)
+    if style == "passport":
+        # the photo: the girl on a pale square with a column of it on each side, the stamp under
+        who = "demon" if hell else "angel"
+        photo = "#3a2230" if hell else "#dfe8dc"
+        rows, pal = sprite(who, ink="#1a0a14" if not hell else None)
+        art, w = half_blocks(rows, pal, photo)
+        pb = "\x1b[48;2;%d;%d;%dm" % rgb(photo)
+        out = [pb + " " * (w + 2) + "\x1b[0m"] + [pb + " " + a + pb + " \x1b[0m" for a in art] + [pb + " " * (w + 2) + "\x1b[0m"]
+        word = ("⛧ " + tr(lang, "ГРЕШНИК", "SINNER") + " ⛧") if hell else tr(lang, "ПАСПОРТ", "PASSPORT")
+        stamp = fg((hell or {}).get("keys", "#c0304a"), True) + centred(word, w + 2) + "\x1b[0m"
+        out += ["", stamp]
+        frames = {f: sprite(who, f, ink="#1a0a14" if not hell else None)[0] for f in ("down", "blink", "talk")}
+        return "\n".join(out) + "\n", w + 2, len(out), {"layers": [layer(rows, pal, 1, 1, 1, photo, motion("girl", rows, colors, hell), frames)], "texts": []}
     if style == "stream":
         sigil = SIGILS.get(hell.get("circle", "")) if hell else None
         rows = sigil or emblem_rows
@@ -603,6 +646,72 @@ def modules(style, colors, hell):
             mods.append({"type": "custom", "format": on + centred(tr(lang, "СПАСИБО ЗА ПОКУПКУ ♡", "THANK YOU FOR SHOPPING ♡"), W)})
         return mods
 
+    if style == "passport":
+        # the data page: the fields beside the photo, the belongings, the machine-readable lines
+        head = tr(lang, "ПАСПОРТ · ANGELOS", "PASSPORT · ANGELOS") if not hell else "⛧ " + tr(lang, "ПАСПОРТ ГРЕШНИКА", "A SINNER'S PASSPORT") + " ⛧"
+        mods = [{"type": "custom", "format": "{#%s}%s{#}" % (sgr(accent, True), head)}] + circle + [
+            {"type": "title", "key": tr(lang, "имя", "name"), "format": "{user-name}"},
+            {"type": "title", "key": tr(lang, "выдан", "issued"), "format": "{host-name}"},
+            {"type": "datetime", "key": tr(lang, "дата", "date"), "format": "{day-pretty}.{month-pretty}.{year}"},
+            {"type": "uptime", "key": tr(lang, "срок", "valid"), "format": tr(lang, "до перезагрузки · ", "till a reboot · ") + UPTIME},
+            {"type": "os", "key": tr(lang, "родом", "from"), "format": "{pretty-name}"},
+            {"type": "cpu", "key": key("cpu"), "format": CPU},
+            {"type": "gpu", "key": key("gpu"), "format": GPU},
+            {"type": "memory", "key": key("ram"), "format": "{used} / {total}"}]
+        keyw = max([len(m["key"]) for m in mods if m.get("key")] + [len(tr(lang, "оценено", "valued"))]) + 2
+        mods += gear_rows(keyw)
+        mods += [{"type": "command", "key": tr(lang, "оценено", "valued"), "text": gear("{#%s}{total}{#}" % sgr(gold, True), total=True, zero=True, lang=lang)},
+                 {"type": "title", "format": "{#%s}P<ANG<<{user-name}<<<<<<<<<<<<{#}" % sgr(dim)},
+                 {"type": "custom", "format": "{#%s}2004<<<<<<<ANGELOS<<<<<<<<<<<<{#}" % sgr(dim)}]
+        return mods
+
+    if style in ("scroll", "bios"):
+        paper, ink, acc = paper_colours(hell, style)
+        on = "{#48;2;%d;%d;%d;38;2;%d;%d;%d}" % (*rgb(paper), *rgb(ink))
+        bold = "{#1;48;2;%d;%d;%d;38;2;%d;%d;%d}" % (*rgb(paper), *rgb(acc or ink))
+        W = PAPER - 2
+        line = lambda ch: {"type": "custom", "format": on + ch * W}
+
+        def field(kind, word, fmt, **extra):
+            # "Слово  значение", the word padded to the same width on every line
+            return {"type": kind, "key": " ", "format": on + (word + " " * 10)[:10] + fmt, **extra}
+
+        # the circle's lines on the sheet
+        circle = [dict(c, format=on + c["format"]) for c in circle]
+        cpu_fmt = fit_name(CPU, W - 10)
+        gpu_fmt = "{name:%d}" % (W - 10)
+        gear_lines = [{"type": "command", "key": " ", "text": gear(on + "{name} {fill} " + bold + "{price}", nth=i, width=W, lang=lang)} for i in range(SLOTS)]
+        if style == "scroll":
+            mods = [{"type": "title", "key": " ", "format": on + (tr(lang, "Герой", "Hero") + " " * 10)[:10] + "{user-name}"},
+                    {"type": "title", "key": " ", "format": on + (tr(lang, "Мир", "World") + " " * 10)[:10] + "{host-name}"},
+                    field("wm", tr(lang, "Класс", "Class"), "{pretty-name}"),
+                    field("uptime", tr(lang, "В пути", "Journey"), UPTIME)] + circle + [
+                    line("~"),
+                    field("cpu", tr(lang, "Сила", "Might"), cpu_fmt), field("gpu", tr(lang, "Магия", "Magic"), gpu_fmt),
+                    field("memory", tr(lang, "Мана", "Mana"), "{used} / {total}"),
+                    field("disk", tr(lang, "Сумка", "Bag"), "{size-used} / {size-total}", folders="/"),
+                    field("packages", tr(lang, "Свитки", "Scrolls"), PKGS),
+                    line("~"),
+                    {"type": "custom", "format": on + tr(lang, "Снаряжение:", "Gear:")}] + gear_lines + [
+                    line("~"),
+                    {"type": "command", "key": " ", "text": gear(bold + tr(lang, "Золота вложено", "Gold spent") + " {fill} {total}", total=True, zero=True, width=W, lang=lang)}]
+            return mods
+        # the BIOS: the power-on self-test of a 2004 board, in Russian
+        mods = [field("cpu", tr(lang, "Процессор", "CPU"), cpu_fmt),
+                field("memory", tr(lang, "Память", "Memory"), "{used} / {total} OK"),
+                field("gpu", tr(lang, "Видео", "Video"), gpu_fmt),
+                field("disk", tr(lang, "Диск", "Disk"), "{size-used} / {size-total}", folders="/"),
+                field("os", tr(lang, "Загрузка", "Boot"), "{pretty-name:%d}" % (W - 10)),
+                field("kernel", tr(lang, "Ядро", "Kernel"), "{release}"),
+                field("uptime", tr(lang, "Работает", "Up"), UPTIME),
+                field("packages", tr(lang, "Пакеты", "Packages"), PKGS)] + circle + [
+                {"type": "custom", "format": on},
+                {"type": "custom", "format": on + tr(lang, "Обнаружены устройства:", "Devices found:")}] + gear_lines + [
+                {"type": "command", "key": " ", "text": gear(bold + tr(lang, "Итого", "Total") + " {fill} {total}", total=True, zero=True, width=W, lang=lang)},
+                {"type": "custom", "format": on},
+                {"type": "custom", "format": bold + tr(lang, "DEL — SETUP, F1 — продолжить", "DEL: SETUP, F1: continue")}]
+        return mods
+
     # compact
     mods = [{"type": "title", "format": "{#%s}{user-name}{#}@{#%s}{host-name}{#}" % (sgr(title, True), sgr(title, True))}] + circle + [
         {"type": "os", "key": "os", "format": "{pretty-name}"},
@@ -633,8 +742,8 @@ def config(style, colors, logo, hell=None):
     if logo:
         path, w, h = logo
         # (the window's frame is a gap of its own: two columns, so a circle's long keys still fit 80)
-        pad = {"top": 1 if style not in ("window", "receipt", "stream") else 0, "left": 1, "right": 2 if style == "window" else 3}
-        if style == "receipt":
+        pad = {"top": 1 if style not in ("window", "stream") + PAPERS else 0, "left": 1, "right": 2 if style == "window" else 3}
+        if style in PAPERS:
             pad["right"] = 0        # the text goes onto the paper (the logo puts the cursor there)
         cfg["logo"] = {"type": "file-raw", "source": str(path), "width": w, "height": h, "padding": pad}
     else:
@@ -664,10 +773,10 @@ def render_all(style, colors, emblem_rows, emblem_pal, logo_path, hell=None, emb
     """(config text, logo text or None, the animation's spec or None) for this style. The spec
     (scripts/fastfetch_anim.py) places what moves in fastfetch's output: the logo's padding
     added to its place in the logo."""
-    if style == "receipt":
+    if style in PAPERS:
         lang = colors.get("lang") or (hell or {}).get("lang") or "ru"
         text_rows = len(modules(style, colors, hell))
-        text, w, h, top, moving = receipt_picture(emblem_rows, (hell or {}).get("palette") or emblem_pal, colors, hell, lang, text_rows, emblem)
+        text, w, h, top, moving = paper_picture(style, emblem_rows, (hell or {}).get("palette") or emblem_pal, colors, hell, lang, text_rows, emblem)
         cfg = config(style, colors, (logo_path, w, h), hell)
         cfg["modules"] = ["break"] * top + cfg["modules"]
         pic = (text, w, h, moving)
@@ -683,8 +792,8 @@ def render_all(style, colors, emblem_rows, emblem_pal, logo_path, hell=None, emb
         for item in moving["layers"] + moving["texts"]:
             item["line"] += top
             item["col"] += left
-        # the receipt comes out of the till line by line
-        spec = {"v": 1, "style": style, "seconds": seconds, "print": style == "receipt", **moving}
+        # the receipt comes out of the till line by line, the scroll unrolls, the BIOS counts up
+        spec = {"v": 1, "style": style, "seconds": seconds, "print": style in ("receipt", "scroll", "bios"), **moving}
     return head + json.dumps(cfg, ensure_ascii=False, indent=2) + "\n", pic[0] if pic else None, spec
 
 

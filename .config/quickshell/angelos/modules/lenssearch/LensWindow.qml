@@ -21,7 +21,7 @@ Scope {
         FloatingWindow {
             id: win
             RightClickGuard {}
-            title: Shell.appTitle + " · Lens"
+            title: Shell.appTitle + " · " + I18n.t("Поиск по картинке", "Picture search")
             visible: true
             color: "transparent"
             implicitWidth: 900
@@ -269,7 +269,7 @@ Scope {
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                     dim: true
-                                    text: I18n.t("Отправляю картинку в Google Lens…", "Sending the picture to Google Lens…")
+                                    text: I18n.t("Ищу по картинке в Google…", "Searching Google by the picture…")
                                 }
 
                                 // consent, captcha, nothing found, errors: one note and what to do
@@ -305,7 +305,7 @@ Scope {
                                         color: Theme.textDim
                                         font.family: view.sans
                                         font.pixelSize: Theme.sizeBody
-                                        text: note.kind === "consent" ? I18n.t("Один раз выберите на странице Google — дальше он запомнит. Картинка отправится сама.", "Choose once on Google's page — it will remember. The picture goes again by itself.") : note.kind === "captcha" ? I18n.t("Поиск открыт в браузере. Полчаса Lens будет открываться там, чтобы Google успокоился.", "The search is open in the browser. For half an hour Lens opens there, so Google calms down.") : note.kind === "empty" ? I18n.t("Google не нашёл похожих картинок. Попробуйте обвести кусок поменьше или покрупнее.", "Google found no similar pictures. Try circling a smaller or a bigger piece.") : LensSearch.error === "broken" ? I18n.t("Google, похоже, поменял страницу. Её можно открыть как есть.", "Google seems to have changed its page. It can be opened as it is.") : LensSearch.error === "timeout" ? I18n.t("Google долго не отвечает — проверьте сеть.", "Google takes too long — check the network.") : LensSearch.error === "worker" ? I18n.t("Помощник не запустился: нужен qml6 с QtWebEngine.", "The helper didn't start: it needs qml6 with QtWebEngine.") : LensSearch.error === "lost" ? I18n.t("Картинка потерялась по дороге.", "The picture got lost on the way.") : I18n.t("Что-то пошло не так: ", "Something went wrong: ") + LensSearch.error
+                                        text: note.kind === "consent" ? I18n.t("Один раз выберите на странице Google — дальше он запомнит. Картинка отправится сама.", "Choose once on Google's page — it will remember. The picture goes again by itself.") : note.kind === "captcha" ? I18n.t("Поиск открыт в браузере. Полчаса поиск по картинке будет открываться там, чтобы Google успокоился.", "The search is open in the browser. For half an hour picture search opens there, so Google calms down.") : note.kind === "empty" ? I18n.t("Google не нашёл похожих картинок. Попробуйте обвести кусок поменьше или покрупнее.", "Google found no similar pictures. Try circling a smaller or a bigger piece.") : LensSearch.error === "broken" ? I18n.t("Google, похоже, поменял страницу. Её можно открыть как есть.", "Google seems to have changed its page. It can be opened as it is.") : LensSearch.error === "timeout" ? I18n.t("Google долго не отвечает — проверьте сеть.", "Google takes too long — check the network.") : LensSearch.error === "worker" ? I18n.t("Помощник не запустился: нужен qml6 с QtWebEngine.", "The helper didn't start: it needs qml6 with QtWebEngine.") : LensSearch.error === "lost" ? I18n.t("Картинка потерялась по дороге.", "The picture got lost on the way.") : I18n.t("Что-то пошло не так: ", "Something went wrong: ") + LensSearch.error
                                     }
                                     PxButton {
                                         anchors.horizontalCenter: parent.horizontalCenter

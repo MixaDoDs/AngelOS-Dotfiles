@@ -1,6 +1,6 @@
 /* angelOS window decorations ({{realm}}) — GTK 4 / libadwaita, generated (templates/gtk4-decor.css).
-   Window buttons like angelOS's own windows: bevelled pixel boxes, close red under
-   the pointer; the header bar in the menu colour. In hell: obsidian and blood. */
+   Window buttons as angel-niri draws its own (Р34): flat, the pixel glyphs × _ □ over a
+   shadow, a plate under the pointer, red under close; the header bar in the menu colour. In hell: obsidian and blood. */
 headerbar,
 .titlebar {
     background-color: {{decorHeader}};
@@ -15,17 +15,17 @@ headerbar:backdrop,
 
 windowcontrols > button,
 headerbar windowcontrols > button {
-    min-width: 18px;
-    min-height: 18px;
+    min-width: 24px;
+    min-height: 24px;
     padding: 0;
-    margin: 0 1px;
+    margin: 0;
     border-radius: 0;
-    border: 1px solid {{decorEdge}};
-    background-color: {{decorFace}};
+    border: none;
+    background-color: transparent;
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 14px 14px;
-    box-shadow: inset 1px 1px {{decorHi}}, inset -1px -1px {{decorLo}};
+    background-size: 16px 16px;
+    box-shadow: none;
     color: {{decorText}};
     outline: none;
 }
@@ -63,7 +63,3 @@ headerbar windowcontrols > button.close:hover {
     background-image: url("assets/close-hover.svg");
 }
 
-windowcontrols > button:active,
-headerbar windowcontrols > button:active {
-    box-shadow: inset 1px 1px {{decorLo}}, inset -1px -1px {{decorHi}};
-}

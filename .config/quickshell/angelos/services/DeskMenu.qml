@@ -775,7 +775,7 @@ Singleton {
             }
         case "shotWindow":
             return with_({
-                "run": () => Quickshell.execDetached(["niri", "msg", "action", "screenshot-window", "--id", String(w.id)])
+                "run": () => Capture.shotWhole(w.id)
             });
         case "closeAll":
             {

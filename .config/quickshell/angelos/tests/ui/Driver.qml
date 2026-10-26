@@ -2301,18 +2301,18 @@ Scope {
             Story.setEnabled(true);
             Story.reset();
             Config.desktop.menuStyle = "harp";
-            Config.y2k.angelLook = "adult";
-            const locked = !Heaven.has("menu.harp") && !Heaven.has("look.adult") && DeskMenu.chosen === "list" && Angel.angelLook === "glitch" && Config.desktop.menuStyle === "harp";
+            Config.y2k.angelLook = "chibi";
+            const locked = !Heaven.has("menu.harp") && !Heaven.has("look.chibi") && DeskMenu.chosen === "list" && Angel.angelLook === "glitch" && Config.desktop.menuStyle === "harp";
             // the game off: all of heaven, nothing counted
             Story.setEnabled(false);
             const before = Achievements.count("settings.open");
             Achievements.note("settings.open");
             Achievements.check();
-            const allOpen = Heaven.ids.every(i => Heaven.has(i)) && DeskMenu.chosen === "harp" && Angel.angelLook === "adult" && Achievements.count("settings.open") === before && Achievements.earned === 0 && !Achievements.current;
+            const allOpen = Heaven.ids.every(i => Heaven.has(i)) && DeskMenu.chosen === "harp" && Angel.angelLook === "chibi" && Achievements.count("settings.open") === before && Achievements.earned === 0 && !Achievements.current;
             // on again: locked again
             Story.setEnabled(true);
             const relocked = !Heaven.has("menu.harp") && DeskMenu.chosen === "list" && Angel.angelLook === "glitch";
-            report("ach-no-game", locked && allOpen && relocked, "game on, fresh save: harp and adult locked, the usual shows " + locked + "; game off: all open, nothing counted " + allOpen + "; on again: locked again " + relocked);
+            report("ach-no-game", locked && allOpen && relocked, "game on, fresh save: harp and chibi locked, the usual shows " + locked + "; game off: all open, nothing counted " + allOpen + "; on again: locked again " + relocked);
             // earning: Settings opened → its achievement and the mini look
             Achievements.note("settings.open");
             Achievements.check();

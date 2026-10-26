@@ -531,9 +531,19 @@ PanelWindow {
     // Normal said outright: a 0 at start (the strip off) doesn't change the zone, so Quickshell
     // never left Auto and the strip came back after every restart (#89)
     exclusionMode: ExclusionMode.Normal
-    exclusiveZone: Config.halo.reserve && (Config.halo.windows || "bar") === "bar" && !Shell.dev ? strip : 0
+    // «Around it» is niri's title bars stepping round it, Desktop's only: in the Strip it keeps the
+    // strip (the browser's tabs were under it, 26.10)
+    readonly property string zoneMode: Config.halo.windows === "maximized" && !WindowConfig.floatAll ? "bar" : Config.halo.windows || "bar"
+    exclusiveZone: Config.halo.reserve && zoneMode === "bar" && !Shell.dev ? strip : 0
     onStripChanged: Halo.strip = strip
-    Component.onCompleted: Halo.strip = strip
+    readonly property int notch: Math.ceil(closedW + u * 8)
+    onNotchChanged: Halo.notch = notch
+    Component.onCompleted: {
+        Halo.strip = strip;
+        Halo.notch = notch;
+        Tour.register("halo", hit, win);
+    }
+    Component.onDestruction: Tour.unregister("halo", hit)
     color: "transparent"
     WlrLayershell.namespace: "angelos-halo"
     // the keyboard only for the quick buttons' fields
@@ -958,7 +968,8 @@ PanelWindow {
                 id: beat
                 // the song plays in any capsule (a recording takes the pill first) or beside the rest
                 // (a song without synced lyrics: its cover at the side): the bass stays
-                readonly property bool here: (win.items.some(i => i.kind === "music") || win.musicEar) && !win.vol && !win.seeking && Halo.music && Lyrics.playing
+                // (the angel may keep the bass running with the glow off: Bass.angelListens)
+                readonly property bool here: Config.halo.bassGlow !== false && (win.items.some(i => i.kind === "music") || win.musicEar) && !win.vol && !win.seeking && Halo.music && Lyrics.playing
                 readonly property real m: win.bassHalo ? 8 : 0
                 x: -m * win.u
                 y: -m * win.u
@@ -1334,6 +1345,11 @@ PanelWindow {
                 "label": I18n.t("Спрятать на час", "Hide for an hour"),
                 "icon": "moon",
                 "run": () => Halo.hideFor(60 * 60 * 1000)
+            },
+            {
+                "label": I18n.t("Как тут всё устроено", "How it all works"),
+                "icon": "info",
+                "run": () => Tour.start(win.screen ? win.screen.name : "")
             },
             {
                 "label": I18n.t("Настройки Нимба…", "Halo settings…"),

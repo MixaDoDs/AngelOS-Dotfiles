@@ -103,8 +103,8 @@ binds {
     Mod+Alt+M                           hotkey-overlay-title="Развернуть окно до краёв" { maximize-window-to-edges; }
 
     // ─── Screenshots (Win+Shift+S style) ───
-    Mod+Alt+I                           repeat=false hotkey-overlay-title="angelOS: остров — клики насквозь вкл/выкл" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos islandThrough"; }
-    Mod+Z                               hotkey-overlay-title="Лупа (плагин)" { spawn "qs" "-c" "angelos" "ipc" "call" "magnifier" "toggle"; }
+    Mod+Alt+I                           repeat=false hotkey-overlay-title="angelOS: мини-браузер — клики насквозь вкл/выкл" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos islandThrough"; }
+    Mod+Z                               hotkey-overlay-title="Лупа у курсора" { spawn "qs" "-c" "angelos" "ipc" "call" "angelos" "lens" "toggle"; }
 
     // Use this when a fullscreen app blocks your keybinds.
     // It disables any active keyboard shortcut inhibitor, restoring control.
@@ -126,8 +126,8 @@ binds {
     Mod+Shift+5                         repeat=false hotkey-overlay-title="Mac: меню снимков экрана" { spawn-sh "qs -c angelos ipc call angelos macShotMenu"; }
     Ctrl+Left                           hotkey-overlay-title="Mac: рабочий стол слева" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws up"; }
     Ctrl+Right                          hotkey-overlay-title="Mac: рабочий стол справа" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws down"; }
-    Ctrl+Up                             repeat=false hotkey-overlay-title="Mac: Mission Control" { toggle-overview; }
-    F3                                  repeat=false hotkey-overlay-title="Mac: Mission Control" { toggle-overview; }
+    Ctrl+Up                             repeat=false hotkey-overlay-title="Mac: Mission Control" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open mission"; }
+    F3                                  repeat=false hotkey-overlay-title="Mac: Mission Control" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open mission"; }
     Mod+Ctrl+Q                          hotkey-overlay-title="Mac: заблокировать экран" { spawn-sh "qs -c angelos ipc call angelos lock"; }
     Mod+Alt+Escape                      hotkey-overlay-title="Mac: завершить принудительно" { spawn-sh "qs -c angelos ipc call angelos macMenu 0"; }
     Ctrl+F2                             hotkey-overlay-title="Mac: строка меню с клавиатуры" { spawn-sh "qs -c angelos ipc call angelos macMenu -1"; }

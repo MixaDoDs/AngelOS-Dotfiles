@@ -158,7 +158,7 @@ Scope {
 
                 readonly property bool demonArt: Angel.demon
                 readonly property string angelLook: Angel.angelLook
-                readonly property string demonLook: ["glitch", "chibi", "adult", "mini"].includes(Config.y2k.demonLook) ? Config.y2k.demonLook : "glitch"
+                readonly property string demonLook: ["glitch", "mini"].includes(Config.y2k.demonLook) ? Config.y2k.demonLook : "glitch"
                 readonly property string look: demonArt ? demonLook : angelLook
                 readonly property bool mini: look === "mini"
                 readonly property var art: mini ? (demonArt ? DemonMini : AngelMini) : (demonArt ? DemonArt : AngelArt)

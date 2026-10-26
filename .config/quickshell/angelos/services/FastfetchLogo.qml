@@ -40,6 +40,21 @@ Singleton {
             "hint": I18n.t("чек магазина angelOS: железо, сетап по ценам и ИТОГО (в аду — договор на душу)", "an angelOS store receipt: the hardware, the gear priced and the TOTAL (in hell, a contract for your soul)")
         },
         {
+            "id": "passport",
+            "name": I18n.t("Паспорт", "Passport"),
+            "hint": I18n.t("страница паспорта: её фото, имя, «действует до перезагрузки», железо и имущество с оценкой", "a passport page: her photo, your name, “valid till a reboot”, the hardware and your belongings valued")
+        },
+        {
+            "id": "scroll",
+            "name": I18n.t("Свиток", "Scroll"),
+            "hint": I18n.t("свиток героя: сила — процессор, магия — видеокарта, мана — память, снаряжение и вложенное золото", "the hero's scroll: might is the CPU, magic the video card, mana the memory, the gear and the gold spent")
+        },
+        {
+            "id": "bios",
+            "name": "BIOS 2004",
+            "hint": I18n.t("экран BIOS при включении: проверка памяти, найденные устройства с ценами, «DEL — SETUP»", "the BIOS screen at power-on: the memory test, the devices found with their prices, “DEL: SETUP”")
+        },
+        {
             "id": "stream",
             "name": I18n.t("Стрим", "Stream"),
             "hint": I18n.t("показания пишет чат, сетап приходит суперчатами", "the chat posts the readings, the gear comes in as superchats")

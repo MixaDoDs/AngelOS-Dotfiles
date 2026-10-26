@@ -129,15 +129,16 @@ PxBox {
             run(row);
         else if (row.kind === "app")
             run(row.app);
-        else if (row.kind === "setting")
-            act(() => StartApps.openSetting(row.doc));
         else if (row.kind === "file")
             act(() => FileSearch.open(row.file));
         else if (row.kind === "calc") {
             Calc.copy(row.calc);
             if (row.calc.copy)
                 closeRequested();
-        }
+        } else if (row.keep)
+            row.run();
+        else
+            act(row.run);   // a setting, an action, a timer, a login (services/Search)
     }
     function act(fn) {
         closeRequested();
@@ -348,7 +349,7 @@ PxBox {
                     RowIcon {
                         app: hit.modelData.kind === "app" ? hit.modelData.app : null
                         file: hit.isFile ? hit.modelData.file : null
-                        icon: hit.isCalc ? "calc" : hit.modelData.kind === "setting" ? hit.modelData.doc.icon || "gear" : hit.isFile ? FileSearch.pixelIcon(hit.modelData.file) : "sparkle"
+                        icon: hit.isCalc ? "calc" : hit.isFile ? FileSearch.pixelIcon(hit.modelData.file) : hit.modelData.icon || "sparkle"
                     }
                     Column {
                         x: root.textX
@@ -359,7 +360,7 @@ PxBox {
                             elide: Text.ElideRight
                             kind: hit.isCalc ? "title" : "body"
                             font.bold: hit.sel || hit.isCalc
-                            text: hit.isCalc ? hit.modelData.calc.title : hit.modelData.kind === "app" ? hit.modelData.app.name : hit.isFile ? hit.modelData.file.name : hit.modelData.doc.title
+                            text: hit.isCalc ? hit.modelData.calc.title : hit.modelData.kind === "app" ? hit.modelData.app.name : hit.isFile ? hit.modelData.file.name : hit.modelData.title
                         }
                         PxText {
                             width: parent.width
@@ -367,7 +368,7 @@ PxBox {
                             elide: Text.ElideRight
                             kind: "tiny"
                             dim: true
-                            text: hit.isCalc ? hit.modelData.calc.subtitle : hit.modelData.kind === "app" ? (hit.modelData.app.genericName || hit.modelData.app.comment || "") : hit.isFile ? FileSearch.where(hit.modelData.file) : (hit.modelData.doc.crumb || hit.modelData.doc.hint || "")
+                            text: hit.isCalc ? hit.modelData.calc.subtitle : hit.modelData.kind === "app" ? (hit.modelData.app.genericName || hit.modelData.app.comment || "") : hit.isFile ? FileSearch.where(hit.modelData.file) : hit.modelData.kind === "setting" ? (hit.modelData.doc.crumb || hit.modelData.doc.hint || "") : hit.modelData.sub
                         }
                     }
                     PxText {
@@ -376,7 +377,7 @@ PxBox {
                         anchors.verticalCenter: parent.verticalCenter
                         kind: "tiny"
                         dim: true
-                        text: hit.isCalc ? (hit.modelData.calc.copy ? "⧉" : "") : hit.modelData.kind === "app" ? I18n.t("приложение", "app") : hit.isFile ? (hit.modelData.file.isDir ? I18n.t("папка", "folder") : I18n.t("файл", "file")) : I18n.t("настройка", "setting")
+                        text: hit.isCalc ? (hit.modelData.calc.copy ? "⧉" : "") : hit.modelData.kind === "app" ? I18n.t("приложение", "app") : hit.isFile ? (hit.modelData.file.isDir ? I18n.t("папка", "folder") : I18n.t("файл", "file")) : hit.modelData.kind === "setting" ? I18n.t("настройка", "setting") : hit.modelData.kind === "action" ? I18n.t("действие", "action") : hit.modelData.kind === "vault" ? I18n.t("пароль", "password") : I18n.t("таймер", "timer")
                     }
                     MouseArea {
                         id: hm

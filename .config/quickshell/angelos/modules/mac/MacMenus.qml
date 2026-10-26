@@ -349,7 +349,7 @@ Singleton {
         if (DesktopWidgets.editMode || DesktopWidgets.uidsFor(scr).length > 0)
             out.push(fn("desk:edit", DesktopWidgets.editMode ? I18n.t("Закончить редактирование", "Done Editing Widgets") : I18n.t("Редактировать виджеты", "Edit Widgets"), () => DesktopWidgets.toggleEdit(scr)));
         out.push(AppMenu.sep("desk2"), fn("desk:folder", I18n.t("Открыть папку «Рабочий стол»", "Open the Desktop Folder"), () => Quickshell.execDetached(["sh", "-c", 'exec xdg-open "$(xdg-user-dir DESKTOP)"'])));
-        // the plugins' entries (manifest "menu": quick-actions…), as plain Mac menu items: words,
+        // the plugins' entries (manifest "menu"), as plain Mac menu items: words,
         // no pixel icons; their separators stay, none at either end
         const plug = [];
         Plugins.menuEntries.forEach((e, i) => {

@@ -1098,7 +1098,7 @@ angelos switch angelos      # бэкап, правка niri/тем прилож�
 |---|---|
 | Mod+Space | программы |
 | Mod+V | буфер обмена |
-| Mod+S / Mod+Alt+S | настройки |
+| Mod+S | настройки |
 | Mod+Shift+Return | обои |
 | Mod+Alt+L | блокировка |
 | Mod+Shift+Q | выключение |

@@ -105,9 +105,37 @@ Scope {
                 console.log("TEST q:" + row.q.replace(/ /g, "_") + " " + (ok ? "PASS" : "FAIL") + (ok ? "" : (missing.length ? " not in the first " + top + ": " + missing.join(", ") : "") + (extra.length ? " must not be there: " + extra.join(", ") : "") + " — got " + res.slice(0, Math.max(top, 4)).map(r => root.label(r)).join(" | ")));
             }
             console.log("TEST search-time " + (worst <= 60 ? "PASS" : "FAIL") + " " + rows.length + " queries, avg " + (total / Math.max(1, rows.length)).toFixed(1) + " ms, worst " + worst + " ms");
-            root.fails = fails;
+            root.fails = fails + root.engine();
             switches.start();
         }
+    }
+    // the one search of the launcher, Start and Spotlight (services/Search): the words it
+    // understands, actions among the results, learning from what was chosen
+    function engine() {
+        const now = Date.now();
+        Search._last.q = "zzq";
+        Search._last.at = now;
+        Search._last.ids = ["act:lock", "act:sleep"];
+        Search.chosen("act:sleep");
+        const checks = [
+            ["translit-ru", Search.translit("телеграм") === "telegram"],
+            ["translit-lat", Search.translit("nastrojki") === "настройки"],
+            ["layout", Search.variants("ыеуфь").includes("steam")],
+            ["typo", Search.textScore("steam", "steem") === 0.6],
+            ["word", Search.textScore("obs studio", "studio") === 0.9],
+            ["calc", (Search.query("2+2")[0] || {}).kind === "calc"],
+            ["timer", (Search.query("5м чай")[0] || {}).kind === "timer"],
+            ["action", Search.query("заблок").some(r => r.id === "act:lock" && r.kind === "action")],
+            ["learn", (Search.bonuses("zzq")["act:sleep"] || 0) > (Search.bonuses("zz")["act:sleep"] || 0) && (Search.bonuses("zz")["act:sleep"] || 0) > 0 && !Search.bonuses("zzqq")["act:sleep"]],
+            ["learn-stale", (Search._last.ids = [], Search.chosen("act:lock"), !(Search.bonuses("zzq")["act:lock"]))]
+        ];
+        let bad = 0;
+        for (const [name, ok] of checks) {
+            if (!ok)
+                bad++;
+            console.log("TEST engine:" + name + " " + (ok ? "PASS" : "FAIL"));
+        }
+        return bad;
     }
     // A language and a skin switch rebuild the index once each, a beat later — not once per
     // step of the switch, right inside it: 4–9 rebuilds in a row froze the shell for seconds,

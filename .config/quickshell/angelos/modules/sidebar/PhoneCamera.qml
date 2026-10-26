@@ -169,7 +169,8 @@ Item {
             height: ready ? implicitHeight : 0
             who: root.who
             angelVariant: Angel.angelLook === "glitch" || Angel.angelLook === "ophanim" ? Angel.angelLook : ""
-            demonVariant: Config.y2k.demonLook === "glitch" ? "glitch" : ""
+            // the chibi demon is gone (the owner, 26.10): the neon one for every look
+            demonVariant: "glitch"
             skin: root.who === "demon" && Story.inHell ? HellLook.circle : ""
             use: true
             tick: root.tick

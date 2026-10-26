@@ -131,6 +131,8 @@ Singleton {
             "browserBarText": barText,
             "realm": hell ? "hell" : "heaven",
             "decorGtk": Config.decor.gtkButtons ? "1" : "",
+            // Settings → Windows → «Window buttons»: keys instead of bare glyphs, as niri's
+            "decorKeys": Config.windows.buttonLook === "keys" ? "1" : "",
             // Desktop: all three, as niri's lights and any usual desktop; the Strip: as set
             "decorButtons": WindowConfig.floatAll && !GoldenGate.on ? "minimize,maximize,close" : /^[a-z,]*$/.test(Config.decor.gtkLayout || "") ? Config.decor.gtkLayout : "maximize,close",
             "decorHeader": h(hell ? Theme.mix(Theme.hellFaceAlt, Theme.hellBlood, 0.35) : Theme.menuHeader),

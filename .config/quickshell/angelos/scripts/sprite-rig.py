@@ -336,6 +336,10 @@ def build(recipe, out):
     rig["tears"] = tear_points(ovs[0], bw)
     if not rig.get("blinkCoversTalk"):
         rig["cheeks"] = cheek_points(ovs[0], bh)
+    # the eyes the gaze shifts (SpriteRig lookX) are set by hand: kept over a recut, re-check them
+    old = out / "rig.json"
+    if old.exists() and "look" in json.load(open(old)):
+        rig["look"] = json.load(open(old))["look"]
     json.dump(rig, open(out / "rig.json", "w"), indent=1)
     check(rig, parts, body, out, ovs)
     return rig

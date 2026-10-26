@@ -183,6 +183,7 @@ JsonAdapter {
         property bool remember: true        // angel-niri: programs pinned by hand open on their monitor and desk (services/WindowConfig)
         property bool clipboardKeep: true   // angel-niri: the clipboard outlives the program it was copied from (services/WindowConfig)
         property bool keepOnCopy: true      // angel-niri: a program doesn't minimize itself right after it copies (services/WindowConfig)
+        property string buttonLook: "glyphs" // the pixel skins' window buttons, niri's and GTK's: glyphs (× _ □) | keys (square keys); Golden Gate keeps its lights
         // angel-niri: a floating window let go mid-drag flies on, bounces off the edges, squashes
         // against them and sways like jelly while dragged (services/WindowConfig); each 0 = off
         property bool throwOn: true
@@ -593,6 +594,8 @@ JsonAdapter {
         property bool helper: true          // the pixel angel in a screen corner
         property string helperScreen: ""   // "" = the main screen (Shell.primaryScreen), "focus" = where the focus is
         property string helperTips: "rare" // off | rare | often
+        property bool nod: true             // the angel nods to the music's beat (services/Bass)
+        property bool lookAt: true          // her eyes follow the pointer (angel-niri: Niri.pointer)
         property bool helperGreeted: false
         property bool sparkles: true        // sparkle trail over the bare desktop
         property var sparkleScreens: []     // empty = every screen
@@ -648,7 +651,7 @@ JsonAdapter {
         property bool hellBar: true         // the bar while the demon rules: each style's hell version (HellBarFrame: the circle's stone at the edges, calm plates under the content; the dock stays as it is)
         property bool hellLyrics: true      // the bar's lyrics while the demon rules: hell's blackletter in the circle's colour, no typewriter, no animation
         property string angelSkin: ""       // the angel's colours from heaven's prayers: "" | moon | mint | gold (services/HeavenStars)
-        property string angelLook: "glitch" // glitch (cracked halo, pictures) | chibi (the first pictures) | adult (30×40 pixels) | mini (the first 20×21); kept as picked while the story shows her otherwise (Angel.angelLook)
+        property string angelLook: "glitch" // glitch (cracked halo, pictures) | chibi (the first pictures) | mini (the first 20×21); kept as picked while the story shows her otherwise (Angel.angelLook)
         property string demonLook: "glitch" // the same for the demon (glitch: the sleepless neon one)
         property real helperScale: 1.0      // 0.75–2.00: Ctrl + mouse wheel, 5 % a notch; rendered size capped to screen (Y2K → Helper → Size)
     }

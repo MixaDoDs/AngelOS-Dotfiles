@@ -492,7 +492,7 @@ PanelWindow {
                 y: Theme.pad
                 width: parent.width - Theme.pad * 2
                 height: {
-                    for (const s of [launcherScene, clipScene, settingsScene, overviewScene, themeScene, voiceScene, keysScene])
+                    for (const s of [launcherScene, clipScene, settingsScene, overviewScene, missionScene, themeScene, voiceScene, keysScene])
                         if (s.visible)
                             return s.height;
                     return 0;
@@ -711,6 +711,50 @@ PanelWindow {
                                 kind: "tiny"
                                 text: ws.index + 1
                                 dim: true
+                            }
+                        }
+                    }
+                }
+
+                // Mission Control: the desks a strip on top, this desk's windows big below, side
+                // by side, the one under the pointer lit
+                Column {
+                    id: missionScene
+                    visible: win.demo === "mission"
+                    width: parent.width
+                    spacing: Theme.u * 4
+                    Row {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: Theme.u * 3
+                        Repeater {
+                            model: 3
+                            PxBox {
+                                required property int index
+                                width: Math.round(missionScene.width / 6)
+                                height: Math.round(width * 0.56)
+                                sunken: true
+                                color: index === 0 ? Theme.mix(Theme.face, Theme.accent, 0.25) : Theme.mix(Theme.face, Theme.edge, 0.1)
+                            }
+                        }
+                    }
+                    Row {
+                        id: missionWins
+                        width: parent.width
+                        spacing: Theme.u * 4
+                        Repeater {
+                            model: 3
+                            Rectangle {
+                                required property int index
+                                width: Math.round((missionWins.width - Theme.u * 8) / 3)
+                                height: Math.round(width * 0.62)
+                                color: Theme.mix(Theme.face, Theme.text, index === 1 ? 0.3 : 0.18)
+                                border.width: index === 1 ? Theme.u : 0
+                                border.color: Theme.accent
+                                Rectangle {
+                                    width: parent.width
+                                    height: Theme.u * 2
+                                    color: index === 1 ? Theme.accent : Theme.mix(Theme.accent, Theme.face, 0.5)
+                                }
                             }
                         }
                     }

@@ -118,25 +118,6 @@ PanelWindow {
     }
     readonly property string providerQuery: activeProvider ? query.replace(/^\s+/, "").slice(activeProvider.prefix.length).trim() : query.trim()
 
-    function score(app, q) {
-        const name = (app.name || "").toLowerCase();
-        if (!q)
-            return 1;
-        if (name.startsWith(q))
-            return 100 - name.length / 10;
-        if (name.includes(q))
-            return 70 - name.indexOf(q);
-        const extra = ((app.genericName || "") + " " + String(app.keywords || "") + " " + (app.id || "")).toLowerCase();
-        if (extra.includes(q))
-            return 40;
-        // subsequence match
-        let i = 0;
-        for (const ch of name)
-            if (ch === q[i])
-                i++;
-        return i === q.length ? 20 - name.length / 20 : -1;
-    }
-
     // unified rows: {app} for desktop entries, {provider, r} for plugin results
     readonly property var results: {
         providerTick;
@@ -170,104 +151,23 @@ PanelWindow {
         };
         if (activeProvider)
             return fromProvider(activeProvider, providerQuery, true).sort((x, y) => y.s - x.s).slice(0, 60);
-        const q = query.trim().toLowerCase();
-        const usage = Config.launcher.usage || {};
-        let rows = apps.map(a => ({
-                    "app": a,
-                    "base": score(a, q),
-                    "s": score(a, q) + Math.min(30, (usage[a.id] || 0) * 2)
-                })).filter(r => r.base > 0);   // frequent apps rank higher, but only when they match
-        if (q)
+        // nothing typed: every app, the often opened first
+        if (!query.trim()) {
+            const usage = Config.launcher.usage || {};
+            return apps.map(a => ({
+                        "app": a,
+                        "s": usage[a.id] || 0
+                    })).sort((x, y) => y.s - x.s || String(x.app.name).localeCompare(String(y.app.name))).slice(0, 60);
+        }
+        // apps, actions, settings, files, timers, the calculator, an open vault: services/Search
+        // (0…1, here ×100 next to the plugins' scores)
+        let rows = Search.query(query, 60).map(r => Object.assign({}, r, {
+                        "s": r.s * 100
+                    }));
+        if (query.trim())
             for (const p of providers)
                 if (p.global !== false)
                     rows = rows.concat(fromProvider(p, query.trim(), false));
-        // an open vault's logins among the rest, no "pw" needed (not on air: a masked name says nothing)
-        if (q.length >= 2 && Vault.enabled && Config.vault.everywhere !== false && Vault.items.length && !Vault.discreet)
-            for (const f of Vault.find(q, 3))
-                rows.push({
-                    "builtin": "vault",
-                    "vault": {
-                        "kind": "item",
-                        "item": f.it
-                    },
-                    "r": {
-                        "title": f.it.name,
-                        "subtitle": f.it.user,
-                        "icon": "lock"
-                    },
-                    "s": Math.min(65, f.s * 0.65)
-                });
-        // timers: "5m чай", "секундомер", "помодоро" start one; "таймер" lists the running ones
-        if (q) {
-            const tm = Timers.parse(query);
-            if (tm)
-                rows.push({
-                    "builtin": "timer",
-                    "spec": tm,
-                    "r": {
-                        "title": tm.kind === "stopwatch" ? I18n.t("Запустить секундомер", "Start a stopwatch") : tm.kind === "pomodoro" ? I18n.t("Помодоро ", "Pomodoro ") + tm.work + "/" + tm.rest + I18n.t(" мин", " min") : I18n.t("Таймер на ", "Timer for ") + Timers.human(tm.ms),
-                        "subtitle": (tm.label ? tm.label + " · " : "") + I18n.t("Enter — запустить", "Enter to start"),
-                        "icon": "clock"
-                    },
-                    // a bare "5m" below the apps (an app called «1С»), the words above all
-                    "s": tm.kind !== "timer" || tm.said ? 1000 : 99
-                });
-            if (/^(таймер|timer|секундомер|stopwatch|помодоро|pomodoro)/.test(q))
-                for (const it of Timers.items)
-                    rows.push({
-                        "builtin": "timerItem",
-                        "item": it,
-                        "r": {
-                            "title": Timers.title(it),
-                            "subtitle": Timers.state(it) + " · " + ((it.kind === "stopwatch" ? it.start : it.end) ? I18n.t("Enter — пауза", "Enter: pause") : I18n.t("Enter — дальше", "Enter: resume")) + (it.kind === "stopwatch" ? I18n.t(", Shift+Enter — круг", ", Shift+Enter: lap") : "") + I18n.t(", Ctrl+Enter — убрать", ", Ctrl+Enter: remove"),
-                            "icon": it.kind === "pomodoro" && it.phase === "rest" ? "coffee" : (it.kind === "stopwatch" ? it.start : it.end) ? "play" : "pause"
-                        },
-                        "s": 990
-                    });
-        }
-        // the calculator on top (2+2, 10 km in mi, 100 usd in rub) and settings among the apps
-        if (q) {
-            const calc = Calc.evaluate(query);
-            if (calc)
-                rows.push({
-                    "builtin": "calc",
-                    "calc": calc,
-                    "r": {
-                        "title": calc.title,
-                        "subtitle": calc.subtitle,
-                        "icon": "calc"
-                    },
-                    "s": 1000
-                });
-            if (Config.launcher.settings !== false && !calc) {
-                // later: load() reads and sets the indexer's state — inside this binding that was
-                // a binding loop on `results` at the first query
-                Qt.callLater(SettingsSearch.load);
-                for (const d of SettingsSearch.search(query, 5))
-                    rows.push({
-                        "builtin": "setting",
-                        "doc": d,
-                        "r": {
-                            "title": d.title,
-                            "subtitle": I18n.t("Настройки", "Settings") + (d.crumb ? " › " + d.crumb : ""),
-                            "icon": d.icon || "gear"
-                        },
-                        "s": Math.min(95, d.score / 6.3 * 100)
-                    });
-            }
-            if (!calc)
-                for (const f of FileSearch.rows(query, /^(\.\S+\s*)+$/.test(q) ? 40 : 10))
-                    rows.push({
-                        "builtin": "file",
-                        "file": f,
-                        "r": {
-                            "title": f.name,
-                            "subtitle": FileSearch.where(f),
-                            "icon": FileSearch.pixelIcon(f)
-                        },
-                        "s": f.s * 100
-                    });
-        }
         return rows.sort((x, y) => y.s - x.s || (x.app && y.app ? x.app.name.localeCompare(y.app.name) : 0)).slice(0, 60);
     }
 
@@ -305,6 +205,11 @@ PanelWindow {
             vaultAct(row.vault, "password");
             return;
         }
+        if (row.builtin === "action") {
+            Shell.launcherOpen = false;
+            row.run();
+            return;
+        }
         const keep = row.provider.activate(row.r.id, row.r);
         if (keep !== true)
             Shell.launcherOpen = false;
@@ -328,15 +233,7 @@ PanelWindow {
     }
 
     function launch(app) {
-        const usage = Object.assign({}, Config.launcher.usage || {});
-        usage[app.id] = (usage[app.id] || 0) + 1;
-        Config.launcher.usage = usage;
-        if (app.runInTerminal)
-            Shell.exec(Shell.terminalArgv(app.command), app.workingDirectory, app.id);
-        else if (app.command && app.command.length)
-            Shell.exec(app.command, app.workingDirectory, app.id);
-        else
-            app.execute();      // no command line to run with the apps' environment
+        StartApps.launch(app);
         Shell.launcherOpen = false;
     }
     readonly property var picked: results.length > 0 ? results[Math.min(current, results.length - 1)] : null
@@ -400,6 +297,8 @@ PanelWindow {
             return I18n.t("файл", "file");
         if (row.builtin === "vault")
             return row.vault.kind === "item" ? I18n.t("пароль", "password") : I18n.t("хранилище", "vault");
+        if (row.builtin === "action")
+            return I18n.t("действие", "action");
         return row.provider && row.provider.prefix ? row.provider.prefix : I18n.t("плагин", "plugin");
     }
     function titleOf(row) {
@@ -872,7 +771,7 @@ PanelWindow {
                     spacing: Theme.u * 2
                     PxText {
                         kind: "tiny"
-                        text: "Enter — " + (!details.row ? "" : details.row.builtin === "calc" ? I18n.t("скопировать", "copy") : details.row.builtin === "setting" ? I18n.t("открыть в настройках", "open in Settings") : details.row.builtin === "timer" ? I18n.t("запустить", "start") : details.row.builtin === "timerItem" ? I18n.t("пауза / дальше", "pause / resume") : win.pickedLogin ? I18n.t("пароль в буфер", "the password to the clipboard") : details.row.builtin === "vault" ? I18n.t("дальше", "go on") : I18n.t("открыть", "open"))
+                        text: "Enter — " + (!details.row ? "" : details.row.builtin === "calc" ? I18n.t("скопировать", "copy") : details.row.builtin === "setting" ? I18n.t("открыть в настройках", "open in Settings") : details.row.builtin === "timer" ? I18n.t("запустить", "start") : details.row.builtin === "timerItem" ? I18n.t("пауза / дальше", "pause / resume") : win.pickedLogin ? I18n.t("пароль в буфер", "the password to the clipboard") : details.row.builtin === "vault" ? I18n.t("дальше", "go on") : details.row.builtin === "action" ? I18n.t("сделать", "do it") : I18n.t("открыть", "open"))
                     }
                     PxText {
                         visible: !!win.pickedLogin

@@ -101,7 +101,7 @@ binds {
     Mod+Z                               hotkey-overlay-title="Свернуть окно" { spawn-sh "qs -c angelos ipc call angelos minimize"; }
 
     // ─── Screenshots (Win+Shift+S style) ───
-    Mod+Alt+I                           repeat=false hotkey-overlay-title="angelOS: остров — клики насквозь вкл/выкл" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos islandThrough"; }
+    Mod+Alt+I                           repeat=false hotkey-overlay-title="angelOS: мини-браузер — клики насквозь вкл/выкл" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos islandThrough"; }
 
     // Use this when a fullscreen app blocks your keybinds.
     // It disables any active keyboard shortcut inhibitor, restoring control.

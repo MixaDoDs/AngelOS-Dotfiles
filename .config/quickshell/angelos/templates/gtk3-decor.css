@@ -1,7 +1,7 @@
 /* angelOS window decorations ({{realm}}) — GTK 3, generated (templates/gtk3-decor.css).
-   Title bars and their buttons like angelOS's own windows (the Settings title bar):
-   a header in the menu colour, bevelled pixel boxes for maximize and close, close
-   turning red under the pointer. In hell: obsidian and blood. The selectors are long on
+   Title bars and their buttons as angel-niri draws its own (Р34): a header in the menu
+   colour, the buttons flat — the pixel glyphs × _ □ over a shadow, a plate under the
+   pointer, red under close. In hell: obsidian and blood. The selectors are long on
    purpose: adw-gtk3 styles title buttons with :not(.appmenu) and resets the background
    in :backdrop, so ours must weigh more in every state. */
 headerbar,
@@ -29,17 +29,17 @@ headerbar button.titlebutton:not(.appmenu),
 .titlebar button.titlebutton:not(.appmenu),
 headerbar button.titlebutton:backdrop:not(.appmenu),
 .titlebar button.titlebutton:backdrop:not(.appmenu) {
-    min-width: 18px;
-    min-height: 18px;
+    min-width: 24px;
+    min-height: 24px;
     padding: 0;
-    margin: 0 1px;
+    margin: 0;
     border-radius: 0;
-    border: 1px solid {{decorEdge}};
-    background-color: {{decorFace}};
+    border: none;
+    background-color: transparent;
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 14px 14px;
-    box-shadow: inset 1px 1px {{decorHi}}, inset -1px -1px {{decorLo}};
+    background-size: 16px 16px;
+    box-shadow: none;
     color: {{decorText}};
     -gtk-icon-shadow: none;
     outline: none;
@@ -86,12 +86,6 @@ headerbar button.titlebutton.close:backdrop:hover:not(.appmenu),
 .titlebar button.titlebutton.close:backdrop:hover:not(.appmenu) {
     background-color: {{decorDanger}};
     background-image: url("assets/close-hover.svg");
-}
-
-headerbar button.titlebutton:active:not(.appmenu),
-.titlebar button.titlebutton:active:not(.appmenu) {
-    box-shadow: inset 1px 1px {{decorLo}}, inset -1px -1px {{decorHi}};
-    background-position: 1px 1px;
 }
 
 headerbar button.titlebutton:backdrop:not(.appmenu),

@@ -88,6 +88,14 @@ Item {
                     "file": r.file,
                     "run": () => FileSearch.open(r.file)
                 });
+            else if (r.kind !== "setting")
+                out.push({
+                    "section": r.kind === "action" ? I18n.t("Действия", "Actions") : r.kind === "vault" ? I18n.t("Пароли", "Passwords") : I18n.t("Таймеры", "Timers"),
+                    "label": r.title,
+                    "sub": r.sub,
+                    "icon": r.icon,
+                    "run": r.run
+                });
             else
                 out.push({
                     "section": I18n.t("Настройки", "Settings"),
@@ -101,7 +109,7 @@ Item {
             if (matches(p.label, q))
                 out.push(p);
         for (const a of plain(buttonRows, I18n.t("Действия", "Actions")))
-            if (matches(a.label, q))
+            if (matches(a.label, q) && !out.some(o => o.label === a.label))
                 out.push(a);
         // grouped by section, in the order they first show up (the best one leads)
         const order = [];

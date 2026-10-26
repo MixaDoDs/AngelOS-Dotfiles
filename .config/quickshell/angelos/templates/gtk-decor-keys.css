@@ -1,0 +1,42 @@
+/* angelOS window buttons as keys (Settings → Windows → «Window buttons» → Keys), after the
+   decorations (templates/gtk3-decor.css, gtk4-decor.css) — GTK 3 and GTK 4 selectors both, each
+   GTK skips the other's. The key is the picture itself (scripts/gtk-live.py key()): a dark
+   outline, its face, close on red; under the pointer a lighter face, no plate. */
+headerbar button.titlebutton:not(.appmenu),
+.titlebar button.titlebutton:not(.appmenu),
+headerbar button.titlebutton:backdrop:not(.appmenu),
+.titlebar button.titlebutton:backdrop:not(.appmenu),
+windowcontrols > button,
+headerbar windowcontrols > button {
+    min-width: 22px;
+    background-size: 20px 20px;
+}
+
+headerbar button.titlebutton:hover:not(.appmenu),
+.titlebar button.titlebutton:hover:not(.appmenu),
+headerbar button.titlebutton:backdrop:hover:not(.appmenu),
+.titlebar button.titlebutton:backdrop:hover:not(.appmenu),
+headerbar button.titlebutton.close:hover:not(.appmenu),
+.titlebar button.titlebutton.close:hover:not(.appmenu),
+headerbar button.titlebutton.close:backdrop:hover:not(.appmenu),
+.titlebar button.titlebutton.close:backdrop:hover:not(.appmenu),
+windowcontrols > button:hover,
+headerbar windowcontrols > button:hover,
+windowcontrols > button.close:hover,
+headerbar windowcontrols > button.close:hover {
+    background-color: transparent;
+}
+
+headerbar button.titlebutton.maximize:hover:not(.appmenu),
+.titlebar button.titlebutton.maximize:hover:not(.appmenu),
+windowcontrols > button.maximize:hover,
+headerbar windowcontrols > button.maximize:hover {
+    background-image: url("assets/maximize-hover.svg");
+}
+
+headerbar button.titlebutton.minimize:hover:not(.appmenu),
+.titlebar button.titlebutton.minimize:hover:not(.appmenu),
+windowcontrols > button.minimize:hover,
+headerbar windowcontrols > button.minimize:hover {
+    background-image: url("assets/minimize-hover.svg");
+}

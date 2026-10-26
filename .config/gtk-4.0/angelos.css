@@ -105,19 +105,19 @@ tooltip.background,
 switch > slider,
 scale > trough > slider {
     border: 2px solid transparent;
-    border-image: url("assets/v-81478424da/frame-raised.svg") 4 / 4px stretch;
+    border-image: url("assets/v-65a556b4bd/frame-raised.svg") 4 / 4px stretch;
     border-radius: 0;
     background-clip: padding-box;
     box-shadow: none;
 }
 headerbar button:not(.flat):not(.titlebutton):not(.link) {
-    border-image: url("assets/v-81478424da/frame-raised.svg") 4 / 4px stretch;
+    border-image: url("assets/v-65a556b4bd/frame-raised.svg") 4 / 4px stretch;
 }
 button:not(.flat):not(.titlebutton):not(.link):active,
 button:not(.flat):not(.titlebutton):not(.link):checked,
 splitbutton > button:active,
 menubutton > button:checked {
-    border-image: url("assets/v-81478424da/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("assets/v-65a556b4bd/frame-sunken.svg") 4 / 4px stretch;
 }
 entry,
 spinbutton,
@@ -127,7 +127,7 @@ list.boxed-list,
 switch,
 searchbar > revealer > box > entry {
     border: 2px solid transparent;
-    border-image: url("assets/v-81478424da/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("assets/v-65a556b4bd/frame-sunken.svg") 4 / 4px stretch;
     border-radius: 0;
     background-clip: padding-box;
     box-shadow: none;
@@ -171,13 +171,13 @@ switch > slider {
     box-shadow: none;
 }
 .nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize):hover {
-    border-image: url("assets/v-81478424da/frame-raised.svg") 4 / 4px stretch;
+    border-image: url("assets/v-65a556b4bd/frame-raised.svg") 4 / 4px stretch;
     background-color: #1b2329;
     background-clip: padding-box;
 }
 .nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize):active,
 .nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize):checked {
-    border-image: url("assets/v-81478424da/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("assets/v-65a556b4bd/frame-sunken.svg") 4 / 4px stretch;
     background-color: alpha(#87b0b3, 0.18);
     background-clip: padding-box;
 }
@@ -188,7 +188,7 @@ switch > slider {
 
 .nautilus-pathbar {
     border: 2px solid transparent;
-    border-image: url("assets/v-81478424da/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("assets/v-65a556b4bd/frame-sunken.svg") 4 / 4px stretch;
     border-radius: 0;
     background-color: #171c22;
     color: #fafafa;
@@ -269,7 +269,7 @@ rubberband {
 /* the status bar in the corner (what is selected, what loads) */
 .floating-bar {
     border: 2px solid transparent;
-    border-image: url("assets/v-81478424da/frame-raised.svg") 4 / 4px stretch;
+    border-image: url("assets/v-65a556b4bd/frame-raised.svg") 4 / 4px stretch;
     border-radius: 0;
     background-color: #1b2329;
     background-clip: padding-box;

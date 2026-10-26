@@ -49,7 +49,20 @@ Singleton {
     // Follow the selector actually applied: niri may reject a requested profile switch.
     readonly property bool macKeys: KeyProfile.profile === "macos"
     readonly property string launcherKeys: macKeys ? "Mod+Alt+Space" : "Mod+Space"
+    // the key bound to what `does` names, as the profile in front has it (services/Keybinds), or
+    // `fallback`: ["Mod", "W"]
+    function keysFor(does, fallback) {
+        const b = Keybinds.binds.find(x => String(x.action).includes(does));
+        if (!b)
+            return fallback;
+        return String(b.key).split("+").map(k => k.length > 1 ? (k === "ESCAPE" || k === "Escape" ? "Esc" : k[0] + k.slice(1).toLowerCase()) : k);
+    }
     readonly property var steps: [
+        {
+            "key": "halo",
+            "title": I18n.t("Нимб — пульт", "The Halo"),
+            "text": I18n.t("Что идёт сейчас: музыка, запись, таймер, уведомление. Наведи — откроется карточка, колесо листает её страницы. На закрытом колесо — громкость, средний клик — пауза, ПКМ — меню. Перетащи на него файл — полежит на Полке.", "What is going on: music, a recording, a timer, a notification. Point at it for the card, the wheel turns its pages. Closed: the wheel is the volume, a middle click pauses, a right click opens its menu. Drop a file on it: it waits on the Shelf.")
+        },
         {
             "key": "bar:start",
             "title": I18n.t("Меню «Пуск»", "Start menu"),
@@ -89,30 +102,37 @@ Singleton {
             "key": "desktop",
             "demo": "desktop",
             "title": I18n.t("Рабочий стол", "Desktop"),
-            "text": I18n.t("ПКМ по обоям — меню как в Windows 11: виджеты (Вид ▸), заметки, папки, персонализация. Виджеты таскаются за заголовок.", "Right-click the wallpaper for a Windows 11-style menu: widgets (View ▸), notes, folders, personalization. Drag widgets by their title.")
+            "text": I18n.t("ПКМ по обоям — меню стола: виджеты, заметки, папки, персонализация; ПКМ по окну или его кнопке на панели — меню окна. Средняя кнопка по столу — кольцо частых действий.", "Right-click the wallpaper for the desktop menu: widgets, notes, folders, personalization; right-click a window or its taskbar button for the window's. A middle click on the desktop: the ring of frequent actions.")
         },
         // the keys: no element to circle; the card shows them and the thing itself opens
         // (modules/tour/TourOverlay: demo = what to show — a real window or a played scene)
         {
             "key": "keys:launcher",
             "demo": "launcher",
-            "keys": launcherKeys.split("+"),
-            "title": I18n.t("Программы", "Apps"),
-            "text": I18n.t("Начни печатать название — Enter запускает. Там же калькулятор и поиск по настройкам.", "Start typing a name; Enter launches it. A calculator and the settings search are there too.")
+            "keys": keysFor("open launcher", launcherKeys.split("+")),
+            "title": I18n.t("Найти что угодно", "Find anything"),
+            "text": I18n.t("Программы, настройки, действия с их клавишей, файлы, «5м чай», «2+2». Понимает другую раскладку и опечатки, а выбранное запоминает — в следующий раз оно первое.", "Apps, settings, actions with their key, files, “5m tea”, “2+2”. It understands the other layout and typos and remembers what you pick: next time it comes first.")
         },
         {
             "key": "keys:overview",
             "demo": "overview",
-            "keys": macKeys ? ["Ctrl", "↑"] : ["Mod", "Tab"],
-            "title": I18n.t("Все окна сразу", "Every window at once"),
-            "text": I18n.t("Обзор niri: столы и окна мелко, перетаскивай их мышью. ", "niri's overview: the workspaces and windows small, drag them around. ") + (macKeys ? "Mod+Alt+← →" : "Mod+← →") + I18n.t(" листают ленту окон.", " scroll the window ribbon.")
+            "keys": keysFor("toggle-overview", macKeys ? ["Mod", "Alt", "Tab"] : ["Mod", "Tab"]),
+            "title": I18n.t("Все столы лентой", "Every desk in a ribbon"),
+            "text": I18n.t("Обзор niri: все рабочие столы друг под другом, окна мелко — перетаскивай их между столами. ", "niri's overview: every workspace one under another, the windows small; drag them between desks. ") + (macKeys ? "Mod+Alt+← →" : "Mod+← →") + I18n.t(" листают ленту окон.", " scroll the window ribbon.")
+        },
+        {
+            "key": "keys:mission",
+            "demo": "mission",
+            "keys": keysFor("open mission", macKeys ? ["Ctrl", "↑"] : ["Mod", "W"]),
+            "title": "Mission Control",
+            "text": I18n.t("Окна этого стола крупно и без наложений, столы — полоской сверху. Клик — к окну, окно на стол — переедет. Ищешь окно — сюда; переставляешь столы — в обзор niri.", "This desk's windows big and side by side, the desks in a strip on top. A click goes to a window, a window dropped on a desk moves there. Looking for a window: here; rearranging desks: niri's overview.")
         },
         {
             "key": "keys:settings",
             "demo": "settings",
-            "keys": ["Mod", "S"],
-            "title": I18n.t("Настройки", "Settings"),
-            "text": I18n.t("Всё, что спрашивал мастер, и намного больше. Поиск сверху находит любую настройку.", "Everything the wizard asked and much more. The search on top finds any setting.")
+            "keys": keysFor("settings appearance", ["Mod", "S"]),
+            "title": I18n.t("Где всё настраивается", "Where everything is set"),
+            "text": I18n.t("Всё, что спрашивал мастер, и намного больше. Поиск сверху находит любую настройку, даже с опечаткой; лаунчер тоже их находит.", "Everything the wizard asked and much more. The search on top finds any setting, typos and all; the launcher finds them too.")
         },
         {
             "key": "keys:clipboard",
@@ -131,9 +151,9 @@ Singleton {
         {
             "key": "keys:shot",
             "demo": "shot",
-            "keys": ["Mod", "Shift", "S"],
-            "title": I18n.t("Скриншот области", "Region screenshot"),
-            "text": I18n.t("Выдели — картинка в буфере и в Изображения/Screenshots. Mod+Shift+R — то же видео.", "Pick a region: the picture is in the clipboard and in Pictures/Screenshots. Mod+Shift+R records it.")
+            "keys": keysFor("angelos capture", ["Mod", "Shift", "S"]),
+            "title": I18n.t("Скриншот и «найти»", "Screenshot and find"),
+            "text": I18n.t("Выдели кусок экрана: картинка в буфере и в Изображения/Screenshots, а ещё можно найти похожее, вытащить текст, перевести. Mod+Shift+R — то же видео.", "Pick a piece of the screen: the picture is in the clipboard and in Pictures/Screenshots, and you can search it, take its text, translate it. Mod+Shift+R records it.")
         },
         {
             "key": "keys:voice",
@@ -153,7 +173,7 @@ Singleton {
         {
             "key": "end",
             "title": I18n.t("Готово ♡", "That's it ♡"),
-            "text": I18n.t("Mod+S — настройки. Подсказки можно пройти снова: Настройки → Учётная запись.", "Mod+S opens settings. Replay these tips from Settings → Account.")
+            "text": I18n.t("Пройти снова: ПКМ по Нимбу → «Как тут всё устроено», «тур» в поиске или Настройки → Учётная запись.", "Again: right-click the Halo → “How it all works”, “tour” in the search, or Settings → Account.")
         }
     ]
     // only steps whose element exists (bar layout is configurable): on the tour's screen when

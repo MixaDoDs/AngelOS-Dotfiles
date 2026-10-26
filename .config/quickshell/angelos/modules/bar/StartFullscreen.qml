@@ -50,16 +50,19 @@ Item {
             return;
         if (row.kind === "app")
             run(row.app);
-        else if (row.kind === "setting") {
-            closeRequested();
-            Qt.callLater(() => StartApps.openSetting(row.doc));
-        } else if (row.kind === "file") {
+        else if (row.kind === "file") {
             closeRequested();
             Qt.callLater(() => FileSearch.open(row.file));
         } else if (row.kind === "calc") {
             Calc.copy(row.calc);
             if (row.calc.copy)
                 closeRequested();
+        } else if (row.keep)
+            row.run();
+        else {
+            // a setting, an action, a timer, a login (services/Search)
+            closeRequested();
+            Qt.callLater(row.run);
         }
     }
     readonly property int pageCount: Math.max(1, Math.ceil(list.length / perPage))
@@ -322,7 +325,7 @@ Item {
                         height: root.iu * 13
                         iu: root.iu
                         file: extra.isFile ? extra.modelData.file : null
-                        icon: extra.isCalc ? "calc" : extra.isFile ? FileSearch.pixelIcon(extra.modelData.file) : extra.modelData.doc.icon || "gear"
+                        icon: extra.isCalc ? "calc" : extra.isFile ? FileSearch.pixelIcon(extra.modelData.file) : extra.modelData.icon || "gear"
                     }
                     Column {
                         x: extraIcon.x + extraIcon.width + root.px(5)
@@ -333,7 +336,7 @@ Item {
                             elide: Text.ElideRight
                             kind: extra.isCalc ? "title" : "body"
                             font.bold: true
-                            text: extra.isCalc ? extra.modelData.calc.title : extra.isFile ? extra.modelData.file.name : extra.modelData.doc.title
+                            text: extra.isCalc ? extra.modelData.calc.title : extra.isFile ? extra.modelData.file.name : extra.modelData.title
                         }
                         PxText {
                             width: parent.width
@@ -341,7 +344,7 @@ Item {
                             elide: Text.ElideRight
                             kind: "tiny"
                             dim: true
-                            text: extra.isCalc ? extra.modelData.calc.subtitle : extra.isFile ? FileSearch.where(extra.modelData.file) : I18n.t("Настройки", "Settings") + (extra.modelData.doc.crumb ? " › " + extra.modelData.doc.crumb : "")
+                            text: extra.isCalc ? extra.modelData.calc.subtitle : extra.isFile ? FileSearch.where(extra.modelData.file) : extra.modelData.sub
                         }
                     }
                     MouseArea {

@@ -75,9 +75,10 @@ Scope {
             readonly property bool streamer: Angel.streamer
             readonly property bool atLeft: streamer && Config.stream.streamerSide === "left"
             anchors {
-                bottom: true
-                right: !win.atLeft
-                left: win.atLeft
+                bottom: !win.perched
+                top: win.perched
+                right: !win.atLeft && !win.perched
+                left: win.atLeft || win.perched
             }
             // an auto-hiding taskbar keeps no zone of its own: she would sit where it slides
             // up and cover its buttons (#51), so its height stays free under her
@@ -85,9 +86,41 @@ Scope {
             margins {
                 bottom: (win.streamer ? 0 : Theme.u * 4) + (win.overHiddenBar ? Theme.barHeight : 0)
                 right: win.atLeft ? 0 : Theme.u * 6
-                left: win.atLeft ? Theme.u * 6 : 0
+                left: win.perched ? win.perchLeft : win.atLeft ? Theme.u * 6 : 0
+                top: win.perched ? win.perchTop : 0
             }
-            exclusionMode: ExclusionMode.Normal
+            // she sits on a window (her menu → «Sit on the window», Angel.perchedOn): on its top
+            // edge a third in from its left, her lower part over it — on its bottom edge, legs
+            // hanging, when there is no room above it (a tiled window under the bar); in her corner while its
+            // workspace isn't shown, the overview is open or she swaps. Negative margins put the
+            // window's empty part off screen (smithay doesn't clamp them); her body stays on it
+            readonly property var perch: {
+                const w = Angel.perchedOn < 0 || streamer || Niri.overviewOpen ? null : Niri.windows.find(x => x.id === Angel.perchedOn);
+                const ws = w ? Niri.workspaceById(w.workspace_id) : null;
+                const p = w && !w.is_minimized && w.layout && w.layout.tile_pos_in_workspace_view;
+                return p && ws && ws.is_active && ws.output === Angel.screenName ? {
+                    "x": p[0],
+                    "y": p[1],
+                    "w": w.layout.tile_size[0],
+                    "h": w.layout.tile_size[1]
+                } : null;
+            }
+            readonly property bool perched: perch !== null && !Angel.transition
+            readonly property int perchLeft: !perched ? 0 : Math.round(Math.max(sprite.width - width, Math.min(screen.width - width, perch.x + perch.w / 3 + sprite.width / 2 - width)))
+            // where her feet are: the edge she sits on, a fifth of her below it
+            readonly property real perchFeet: !perched ? 0 : (perch.y >= sprite.height * 0.8 ? perch.y : perch.y + perch.h) + sprite.height * 0.2
+            readonly property int perchTop: !perched ? 0 : Math.round(Math.max(sprite.height + Theme.u * 2 - height, Math.min(screen.height + Theme.u * 2 - height, perchFeet - height + Theme.u * 2)))
+            // the window she sat on is gone: back to her corner for good
+            Connections {
+                target: Niri
+                function onWindowsChanged() {
+                    if (Angel.perchedOn >= 0 && !Niri.windows.some(x => x.id === Angel.perchedOn))
+                        Angel.perchedOn = -1;
+                }
+            }
+            // the window's left edge on its screen (her gaze measures from it)
+            readonly property real screenLeft: perched ? perchLeft : atLeft ? Theme.u * 6 : screen.width - Theme.u * 6 - width
+            exclusionMode: win.perched ? ExclusionMode.Ignore : ExclusionMode.Normal
             exclusiveZone: 0
             color: "transparent"
             readonly property real availableWidth: Math.max(1, screen.width - Theme.u * 12)
@@ -191,11 +224,11 @@ Scope {
             // tired (a low battery): a long yawn now and then, more often when the wings are down
             readonly property bool yawning: !Angel.transition && !grab.held && !Angel.talking && (Angel.tired === 1 && tick % 320 < 12 || Angel.tired === 2 && tick % 200 < 12)
             // Settings → Y2K → Looks, each of them apart: glitch (the cracked-halo angel /
-            // the sleepless neon demon, SpriteRig), chibi (the first pictures), adult (the 30×40
-            // pixel sprite, also when the pictures are missing) or mini (20×21); the angel's own
+            // the sleepless neon demon, SpriteRig), chibi (the angel's first pictures) or mini
+            // (20×21); the 30×40 pixel sprite only when the pictures are missing; the angel's own
             // past cold is the story's (Angel.angelLook: story/game.json → angel.fallen.look)
             readonly property string angelLook: Angel.angelLook
-            readonly property string demonLook: ["glitch", "chibi", "adult", "mini"].includes(Config.y2k.demonLook) ? Config.y2k.demonLook : "glitch"
+            readonly property string demonLook: ["glitch", "mini"].includes(Config.y2k.demonLook) ? Config.y2k.demonLook : "glitch"
             readonly property string look: demonArt ? demonLook : angelLook
             readonly property bool mini: look === "mini"
             // her requested size: 75…200 % in 5 % steps; screen bounds cap the rendered size
@@ -228,7 +261,56 @@ Scope {
                     return art.blink;
                 return Math.floor(tick / 3) % 2 ? art.down : art.up;
             }
-            readonly property int bob: Angel.transition || Motion.calm || Angel.tired >= 2 || (still && !stirring && !assistantBusy && !assistantMood) ? 0 : [0, 1, 2, 2, 1, 0, -1, -1][Angel.tired ? Math.floor(tick / 2) % 8 : tick % 8]
+            readonly property int bob: Angel.transition || Motion.calm || Angel.tired >= 2 || grooving || (still && !stirring && !assistantBusy && !assistantMood) ? 0 : [0, 1, 2, 2, 1, 0, -1, -1][Angel.tired ? Math.floor(tick / 2) % 8 : tick % 8]
+            // she nods to the music (Settings → Y2K → Helper, services/Bass): each kick of the bass
+            // drops her two art pixels and back in two steps; her float stands still meanwhile, the beat moves her
+            readonly property bool grooving: !demonArt && Config.y2k.nod !== false && clockOn && Lyrics.playing && !Motion.calm && !Angel.transition
+            onGroovingChanged: Bass.angelListens = grooving
+            Component.onCompleted: Bass.angelListens = grooving
+            Component.onDestruction: Bass.angelListens = false
+            property int nod: 0
+            Connections {
+                target: win.grooving ? Bass : null
+                function onKicked() {
+                    win.nod = 2;
+                    nodBack.restart();
+                }
+            }
+            Timer {
+                id: nodBack
+                interval: 90
+                repeat: true
+                running: win.nod > 0
+                onTriggered: win.nod--
+            }
+            // she looks at the pointer, the demon too (Settings → Y2K → Helper): angel-niri says
+            // where it is, four times a second while she is shown; stock niri can't, she looks ahead
+            property int lookX: 0
+            property double askedAt: 0
+            Timer {
+                interval: 250
+                repeat: true
+                running: win.visible && !win.underCutscene && !Shell.hiddenScreen(Angel.screenName) && sprite.ready && !!sprite.rig.look && Niri.pointerKnown && !Motion.still && Config.y2k.lookAt !== false
+                onRunningChanged: if (!running)
+                    win.lookX = 0
+                onTriggered: {
+                    // (a reply lost with the socket: asked again after a while)
+                    if (Date.now() - win.askedAt < 2000)
+                        return;
+                    win.askedAt = Date.now();
+                    Niri.pointer(p => {
+                        win.askedAt = 0;
+                        if (!p || p.output !== Angel.screenName || stage.moving) {
+                            win.lookX = 0;
+                            return;
+                        }
+                        const c = sprite.mapToItem(null, sprite.body.x + sprite.body.width / 2, 0);
+                        const dx = p.x - (win.screenLeft + c.x);
+                        const near = sprite.body.width * 0.6;
+                        win.lookX = dx < -near ? -1 : dx > near ? 1 : 0;
+                    });
+                }
+            }
             // swap motion: the leaving one hops and drops through the floor, the new one
             // climbs out of the flames (demon) or comes down from the sky (angel)
             readonly property real swapY: {
@@ -459,6 +541,30 @@ Scope {
                                 onClicked: {
                                     Angel.hush();
                                     StreamAngel.set("on");
+                                }
+                            }
+                            // she sits on the window in front (Niri.focusedWindow), on her screen
+                            PxButton {
+                                readonly property var w: Niri.focusedWindow
+                                hell: Angel.demon
+                                visible: !win.perched && !Angel.streamer && !!w && !!w.layout && !!w.layout.tile_pos_in_workspace_view && (Niri.workspaceById(w.workspace_id) || {}).output === Angel.screenName
+                                compact: true
+                                icon: "window"
+                                text: I18n.t("Сесть на окно", "Sit on the window")
+                                onClicked: {
+                                    Angel.hush();
+                                    Angel.perchedOn = w.id;
+                                }
+                            }
+                            PxButton {
+                                hell: Angel.demon
+                                visible: win.perched
+                                compact: true
+                                icon: "arrowDown"
+                                text: I18n.t("Вернуться в угол", "Back to the corner")
+                                onClicked: {
+                                    Angel.hush();
+                                    Angel.perchedOn = -1;
                                 }
                             }
                             PxButton {
@@ -766,7 +872,7 @@ Scope {
                             x: (win.atLeft ? 0 : stage.width - width) + win.offX
                             // + 0.02: at a fractional size a screen pixel centred right on an art-pixel edge picked
                             // its row by float error, so one row (above the bow) flickered while bobbing (#85)
-                            y: stage.height - angel.height + Theme.u * 2 + (stage.moving ? 0 : win.streamer ? -win.voiceLift : win.bob * Math.max(1, Theme.u / 2)) + win.offY + 0.02
+                            y: stage.height - angel.height + Theme.u * 2 + (stage.moving ? 0 : (win.streamer ? -win.voiceLift : win.bob * Math.max(1, Theme.u / 2)) + win.nod * Math.max(1, Math.round(win.artPx))) + win.offY + 0.02
                             width: ready ? implicitWidth : pixelArt.width
                             height: ready ? implicitHeight : pixelArt.height
                             who: win.demonArt ? "demon" : "angel"
@@ -787,6 +893,7 @@ Scope {
                             // past cold she cries (story/game.json → angel.fallen); motion off: no drops
                             tears: !win.demonArt && Story.angelFallen && !Motion.still
                             blush: win.petGlow
+                            lookX: win.lookX
                             // her skin from heaven's prayers (services/HeavenStars)
                             layer.enabled: !win.demonArt && ready && HeavenStars.worn !== null
                             layer.smooth: false
@@ -980,7 +1087,9 @@ Scope {
                         property double lastT: 0
                         readonly property real deep: sprite.height * 0.55
 
+                        property bool unperched: false
                         onPressed: m => {
+                            unperched = false;
                             spring.stop();
                             start = Qt.point(m.x, m.y);
                             dragging = false;
@@ -993,9 +1102,16 @@ Scope {
                         onPositionChanged: m => {
                             if (!pressed)
                                 return petMove(m.x, m.y);
+                            if (unperched)
+                                return;
                             if (!dragging) {
                                 if (Math.abs(m.x - start.x) + Math.abs(m.y - start.y) < Theme.u * 3)
                                     return;
+                                if (win.perched) {
+                                    unperched = true;
+                                    Angel.perchedOn = -1;
+                                    return;
+                                }
                                 dragging = true;
                                 Angel.grabbed();
                             }
@@ -1009,6 +1125,8 @@ Scope {
                             dy = Math.max(-Theme.u * 26, m.y - start.y);
                         }
                         onReleased: {
+                            if (unperched)
+                                return;
                             if (!dragging) {
                                 // the novel waits for this click ("?" over her): its question comes
                                 if (!Angel.menuOpen && Novel.click())

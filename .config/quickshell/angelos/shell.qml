@@ -27,6 +27,7 @@ import qs.modules.mission
 import qs.modules.cursor
 import qs.modules.cobweb
 import qs.modules.lens
+import qs.modules.chalk
 import qs.modules.circle
 import qs.modules.capture
 import qs.modules.quickshare
@@ -83,6 +84,7 @@ ShellRoot {
     ShakeCursor {}
     CobwebOverlay {}
     LensOverlay {}
+    ChalkOverlay {}
     ShotPreview {}
     ShareSheet {}
     LensWindow {}

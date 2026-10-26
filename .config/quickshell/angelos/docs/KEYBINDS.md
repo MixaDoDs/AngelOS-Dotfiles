@@ -13,7 +13,7 @@
 новые клавиши angelOS добавляются, если пользователь не занял эту клавишу и не удалял её, свои —
 остаются. Публикация владельца (`owner/dotfiles-publish.sh`) отправляет живые профили владельца в
 репозиторий и в `templates/keybinds`.
-Вне тем: `angelos-windows.kdl` (Alt+Tab, лупа Super+Alt+= / − / 0, выход из игры).
+Вне тем: `angelos-windows.kdl` (Alt+Tab, лупа Super+Alt+= / − / 0, выход из игры, мелок Super+Alt+ЛКМ — держать: мышь рисует, отпустил — тает; только angel-niri).
 
 ## Общие (обе темы)
 
@@ -22,7 +22,6 @@
 | `Mod+Shift+ESCAPE` | `show-hotkey-overlay` |  |
 | `Mod+Shift+Return` | `angelos settings wallpaper` | angelOS: обои |
 | `Mod+S` | `angelos settings appearance` | angelOS: настройки |
-| `Mod+Alt+S` | `angelos settings appearance` | angelOS: настройки |
 | `Mod+Shift+Q` | `angelos session` | angelOS: выключение |
 | `Mod+E` | `angelos files` | File Manager (the default one: Strata; Settings → Default apps) |
 | `XF86AudioRaiseVolume` | `angelos volumeUp` |  |
@@ -58,8 +57,8 @@
 | `Mod+Shift+S` | `angelos capture` (нет оболочки → `niri-screenshot-region`) | Скриншот: экран замирает — окно/картинка/текст, сохранить, найти, перевести |
 | `Print` | `angelos capture` (как Mod+Shift+S) | Скриншот |
 | `Mod+Shift+V` | `~/.local/bin/voxtype record toggle` | Voice: toggle dictation |
-| `CTRL+Shift+2` | `screenshot-screen` |  |
-| `CTRL+Shift+3` | `screenshot-window` |  |
+| `CTRL+Shift+2` | `angelos ipc shotScreen` | angelOS: скриншот экрана |
+| `CTRL+Shift+3` | `angelos ipc shotWindow` | angelOS: скриншот окна |
 | `Mod+ESCAPE` | `toggle-keyboard-shortcuts-inhibit` |  |
 | `CTRL+ALT+Delete` | `angelos session` | angelOS: выключение (как в Windows; раньше был `quit` niri) |
 | `ALT+F4` | `close-window` | Закрыть окно |
@@ -228,8 +227,8 @@
 | `Mod+Shift+5` | `angelos macShotMenu` | Mac: меню снимков экрана |
 | `Ctrl+Left` | `angelos ws up` | Mac: рабочий стол слева |
 | `Ctrl+Right` | `angelos ws down` | Mac: рабочий стол справа |
-| `Ctrl+Up` | `toggle-overview` | Mac: Mission Control |
-| `F3` | `toggle-overview` | Mac: Mission Control |
+| `Ctrl+Up` | `angelos open mission` | Mac: Mission Control |
+| `F3` | `angelos open mission` | Mac: Mission Control |
 | `Mod+Ctrl+Q` | `angelos lock` | Mac: заблокировать экран |
 | `Mod+Alt+Escape` | `angelos macMenu 0` | Mac: завершить принудительно |
 | `Ctrl+F2` | `angelos macMenu -1` | Mac: строка меню с клавиатуры |

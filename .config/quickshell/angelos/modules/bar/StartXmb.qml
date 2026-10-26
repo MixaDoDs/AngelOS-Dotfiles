@@ -57,16 +57,16 @@ Item {
             "icon": FileSearch.pixelIcon(r.file),
             "file": r.file,
             "run": () => FileSearch.open(r.file)
-        } : r.kind === "setting" ? {
-            "label": r.doc.title,
-            "sub": I18n.t("Настройки", "Settings") + (r.doc.crumb ? " › " + r.doc.crumb : ""),
-            "icon": r.doc.icon || "gear",
-            "run": () => StartApps.openSetting(r.doc)
-        } : {
+        } : r.kind === "calc" ? {
             "label": r.calc.title,
             "sub": r.calc.subtitle || "",
             "icon": "calc",
             "run": () => Calc.copy(r.calc)
+        } : {
+            "label": r.title,
+            "sub": r.sub,
+            "icon": r.icon,
+            "run": r.run
         }) : []
     readonly property var categories: {
         const all = [

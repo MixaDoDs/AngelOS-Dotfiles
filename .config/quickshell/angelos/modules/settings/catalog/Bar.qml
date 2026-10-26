@@ -503,11 +503,13 @@ CatPage {
                 {
                     "label": I18n.t("Как iPhone", "iPhone-like"),
                     "value": "fullscreen",
+                    "rare": true,
                     "hint": I18n.t("на весь экран, как на iPhone: страницы иконок, док, колесо листает", "Full screen like an iPhone: pages of icons, a dock, the wheel flips pages")
                 },
                 {
                     "label": "PSP XMB",
                     "value": "xmb",
+                    "rare": true,
                     "hint": I18n.t("на весь экран, как PSP: разделы в строку, пункты столбиком, волна на фоне; ←→ ↑↓, печатай — поиск", "Full screen like a PSP: sections in a row, items in a column, the wave behind; ←→ ↑↓, type to search")
                 },
                 {
@@ -516,6 +518,9 @@ CatPage {
                     "hint": I18n.t("только строка поиска посередине: приложения, настройки, папки, действия, калькулятор", "Just a search pill in the middle: apps, settings, folders, actions, the calculator")
                 }
             ]
+            // the rare looks behind «More…» unless one of them is on
+            property bool showRare: false
+            readonly property var shown: styles.filter(s => !s.rare || showRare || s.value === Config.bar.startStyle)
             preview: "StartMenu"
             label: I18n.t("Вид меню", "Menu style")
             hint: (styles.find(s => s.value === (Config.bar.startStyle || "classic")) || styles[0]).hint
@@ -524,7 +529,7 @@ CatPage {
                     width: parent.width
                     spacing: Theme.u * 2
                     Repeater {
-                        model: startStyleRow.styles
+                        model: startStyleRow.shown
                         PxButton {
                             required property var modelData
                             text: modelData.label
@@ -534,6 +539,12 @@ CatPage {
                                 startStyleRow.show(modelData.value, modelData.label);
                             }
                         }
+                    }
+                    PxButton {
+                        visible: startStyleRow.shown.length < startStyleRow.styles.length
+                        flat: true
+                        text: I18n.t("Ещё…", "More…")
+                        onClicked: startStyleRow.showRare = true
                     }
                 }
             }

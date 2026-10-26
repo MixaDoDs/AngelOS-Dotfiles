@@ -49,7 +49,7 @@ THEMES = {"pixel": "пиксельная тема", "macos": "тема macOS (Go
 EXTRA = ([(CONFIG.parent / "cfg/keybinds-common.kdl", "Общие для обеих тем (cfg/keybinds-common.kdl)", False),
           # a binds block written by hand into the selector: both themes, read after the profile
           (keyprofile.SELECTOR, "Свои, для обеих тем (cfg/keybinds.kdl, правятся в файле)", True)] if PROFILE else []) + [
-    (CONFIG.parent / "cfg/angelos-windows.kdl", "angelOS: Alt+Tab, лупа (Настройки → Окна, Клавиатура и мышь)", True),
+    (CONFIG.parent / "cfg/angelos-windows.kdl", "angelOS: Alt+Tab, лупа, мелок (Настройки → Окна, Клавиатура и мышь)", True),
     (CONFIG.parent / "angelos.kdl", "angelOS: сгенерировано темой", True),
     (CONFIG.parent / "cfg/angelos-laptop.kdl", "angelOS: клавиши ноутбука и Mod+P (Настройки → Клавиатура → Клавиши ноутбука)", True),
 ]

@@ -99,14 +99,19 @@ CatPage {
             text: I18n.t("Держи Alt и жми Tab, отпусти — переключится. Shift+Tab — назад, Esc — отмена, Delete — закрыть окно.", "Hold Alt and press Tab, let go to switch. Shift+Tab: back, Esc: cancel, Delete: close the window.")
         }
         CatCustom {
+            id: atRow
             wide: true
+            // the rare looks behind «More…» unless one of them is on
+            readonly property var rare: ["ngo", "y2k"]
+            property bool showRare: false
+            readonly property var shown: AltTab.styles.filter(s => !rare.includes(s.id) || showRare || s.id === AltTab.style)
             CatBox {
                 Grid {
                     width: parent.width
                     columns: Math.max(1, Math.floor(width / (Theme.u * 110)))
                     spacing: Theme.u * 3
                     Repeater {
-                        model: AltTab.styles
+                        model: atRow.shown
                         PxBox {
                             id: atCard
                             required property var modelData
@@ -145,6 +150,12 @@ CatPage {
                                 }
                             }
                         }
+                    }
+                    PxButton {
+                        visible: atRow.shown.length < AltTab.styles.length
+                        flat: true
+                        text: I18n.t("Ещё…", "More…")
+                        onClicked: atRow.showRare = true
                     }
                 }
             }
@@ -329,6 +340,23 @@ CatPage {
             enabled: !GoldenGate.on
             checked: WindowConfig.floatAll
             onToggled: c => WindowConfig.setFloatAll(c)
+        }
+        CatChoice {
+            present: !GoldenGate.on
+            label: I18n.t("Кнопки окна", "Window buttons")
+            hint: Config.windows.buttonLook === "keys" ? I18n.t("квадратные клавиши с тёмной обводкой, «закрыть» на красном — у заголовков angelOS и у GTK-программ", "Square keys with a dark outline, close on red: angelOS's title bars and GTK apps") : I18n.t("только значки × _ □, под мышью — плашка, у «закрыть» красная — у заголовков angelOS и у GTK-программ", "Just the glyphs × _ □, a plate under the pointer, red for close: angelOS's title bars and GTK apps")
+            model: [
+                {
+                    "label": I18n.t("Значки", "Glyphs"),
+                    "value": "glyphs"
+                },
+                {
+                    "label": I18n.t("Клавиши", "Keys"),
+                    "value": "keys"
+                }
+            ]
+            currentValue: Config.windows.buttonLook === "keys" ? "keys" : "glyphs"
+            onActivated: v => Config.windows.buttonLook = v
         }
         CatToggle {
             present: Niri.nativeMinimize

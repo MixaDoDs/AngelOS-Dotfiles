@@ -50,6 +50,8 @@ Singleton {
     // the height of the Halo's strip at the top (HaloWindow): the room niri keeps for snapped and
     // maximized windows in Settings → Halo → «Windows and the Halo» → maximized (WindowConfig)
     property int strip: 0
+    // and its closed width with some air: niri splits the title bars around it there (WindowConfig)
+    property int notch: 0
 
     // the right-click menu's «hide for an hour»: the pill and the ring go, the strip stays (the
     // windows don't jump)

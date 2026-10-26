@@ -174,6 +174,14 @@ Item {
                 out.push(appRow(r.app, I18n.t("Приложения", "Applications")));
             else if (r.kind === "file")
                 out.push(fileRow(r.file, I18n.t("Файлы", "Files")));
+            else if (r.kind !== "setting")
+                out.push({
+                    "section": r.kind === "action" ? I18n.t("Действия", "Actions") : r.kind === "vault" ? I18n.t("Пароли", "Passwords") : I18n.t("Таймеры", "Timers"),
+                    "label": r.title,
+                    "sub": r.sub,
+                    "mac": r.kind === "action" ? "zap" : r.kind === "vault" ? "lock" : "clock",
+                    "run": r.run
+                });
             else
                 out.push({
                     "section": I18n.t("Системные настройки", "System Settings"),
@@ -187,7 +195,7 @@ Item {
             if (matches(p.label, q))
                 out.push(p);
         for (const a of plain(StartItems.power, I18n.t("Действия", "Actions"), "zap"))
-            if (matches(a.label, q))
+            if (matches(a.label, q) && !out.some(o => o.label === a.label))
                 out.push(a);
         for (const p of providers)
             if (p.global !== false)

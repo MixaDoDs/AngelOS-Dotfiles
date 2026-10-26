@@ -53,7 +53,8 @@ Item {
         id: rig
         who: Angel.demon ? "demon" : "angel"
         angelVariant: Angel.angelLook === "glitch" || Angel.angelLook === "ophanim" ? Angel.angelLook : ""
-        demonVariant: (Config.y2k.demonLook || "glitch") === "glitch" ? "glitch" : ""
+        // the chibi demon is gone (the owner, 26.10): the neon one for every look
+        demonVariant: "glitch"
         tick: root.tick
         px: root.px
         width: implicitWidth

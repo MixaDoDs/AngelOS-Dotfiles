@@ -11,8 +11,8 @@ import qs.modules.settings.kit
 // The mouse (niri's input.kdl, like the keyboard) and the lens at the pointer.
 CatPage {
     id: page
-    heading: I18n.t("Мышь и лупа", "Mouse and lens")
-    subtitle: I18n.t("Скорость и ускорение мыши. Ниже — лупа у курсора.", "Mouse speed and acceleration. Below: the lens at the pointer.")
+    heading: I18n.t("Мышь и лупа", "Mouse and magnifier")
+    subtitle: I18n.t("Скорость и ускорение мыши. Ниже — лупа у курсора.", "Mouse speed and acceleration. Below: the magnifier at the pointer.")
     CatGroup {
         name: "mouse"
         title: I18n.t("Мышь", "Mouse")
@@ -88,11 +88,11 @@ CatPage {
     // the lens at the pointer (services/Lens)
     CatGroup {
         name: "lens-at-pointer"
-        title: I18n.t("Лупа у курсора", "Lens at the pointer")
+        title: I18n.t("Лупа у курсора", "Magnifier at the pointer")
         icon: "search"
         CatNote {
             dim: true
-            text: Config.lens.mode === "snapshot" ? I18n.t("Лупа едет за мышью и увеличивает снимок экрана: клик или R — новый снимок. Колесо — ближе/дальше, Shift+колесо — размер, ПКМ или Esc — убрать.", "The lens follows the mouse over a snapshot of the screen: click or R for a new one. Wheel: closer/further, Shift+wheel: size, right click or Esc: away.") : I18n.t("Стекло рядом с курсором показывает, что вокруг него, вживую. Колесо — ближе/дальше, Shift+колесо — размер, ПКМ или Esc — убрать.", "A glass beside the pointer shows what is around it, live. Wheel: closer/further, Shift+wheel: size, right click or Esc: away.")
+            text: Config.lens.mode === "snapshot" ? I18n.t("Лупа едет за мышью и увеличивает снимок экрана: клик или R — новый снимок. Колесо — ближе/дальше, Shift+колесо — размер, ПКМ или Esc — убрать.", "The magnifier follows the mouse over a snapshot of the screen: click or R for a new one. Wheel: closer/further, Shift+wheel: size, right click or Esc: away.") : I18n.t("Стекло рядом с курсором показывает, что вокруг него, вживую. Колесо — ближе/дальше, Shift+колесо — размер, ПКМ или Esc — убрать.", "A glass beside the pointer shows what is around it, live. Wheel: closer/further, Shift+wheel: size, right click or Esc: away.")
         }
         CatChoice {
             label: I18n.t("Как увеличивает", "How it magnifies")
@@ -166,7 +166,7 @@ CatPage {
         CatChoice {
             present: Config.lens.mode === "snapshot"
             label: I18n.t("Обновлять снимок", "Retake the picture")
-            hint: I18n.t("лупа на миг прячется и снимает экран заново", "The lens hides for a moment and takes the screen again")
+            hint: I18n.t("лупа на миг прячется и снимает экран заново", "The magnifier hides for a moment and takes the screen again")
             model: [
                 {
                     "label": I18n.t("по клику", "on a click"),

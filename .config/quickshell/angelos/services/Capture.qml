@@ -90,6 +90,34 @@ Singleton {
             "noThumb": !!o.noThumb
         });
     }
+    // the whole screen or a window (Ctrl+Shift+2/3, the window's menu), kept as the overlay keeps
+    // its pick: niri takes it into a file of ours (written once it has some bytes and a moment
+    // more), saveShot the rest.
+    // window: niri's id, -1 the focused one
+    function shotWhole(window) {
+        Achievements.note("screenshot");
+        const path = Config.cacheDir + "/shot-" + Date.now() + ".png";
+        const what = window === undefined ? ["screenshot-screen"] : ["screenshot-window"].concat(window >= 0 ? ["--id", String(window)] : []);
+        wholeRun.createObject(root, {
+            "path": path,
+            "command": ["sh", "-c", 'niri msg action "$@" --write-to-disk true --path "$0" >/dev/null && for i in $(seq 40); do [ -s "$0" ] && sleep 0.1 && exit 0; sleep 0.05; done; exit 1', path].concat(what)
+        });
+    }
+    Component {
+        id: wholeRun
+        Process {
+            id: wr
+            property string path
+            running: true
+            onExited: code => {
+                // the process is gone before the save answers: the path kept here
+                const path = wr.path;
+                if (code === 0)
+                    root.saveShot(path, null, {}, () => Quickshell.execDetached(["rm", "-f", path]));
+                Qt.callLater(wr.destroy);
+            }
+        }
+    }
     // a screenshot kept in its month folder (the overlay's save): the Halo's thumbnail
     signal shotSaved(string path)
     Component {

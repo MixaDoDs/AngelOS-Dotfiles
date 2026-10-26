@@ -312,13 +312,20 @@ Singleton {
                 // as Windows 11, the Golden Gate as macOS — the owner, 26.10
                 "title_buttons": GoldenGate.on ? "left" : "right",
                 "green": GoldenGate.on ? "fullscreen" : "maximize",
-                // Settings → Halo → «Windows and the Halo»: only snapped and maximized ones keep
-                // clear of it (it reserves nothing itself then)
-                "top_inset": Config.halo.enabled && Config.halo.windows === "maximized" ? Halo.strip : 0
+                // Settings → Halo → «Windows and the Halo» → around it (it reserves nothing itself
+                // then): windows with niri's title bar go up to the top, the bar split around the
+                // Halo; the others, and snapped ones whose buttons would be under it, keep clear
+                // of it — on its screens only
+                "top_inset": aroundHalo ? Halo.strip : 0,
+                "notch": aroundHalo ? Halo.notch : 0,
+                "notch_outputs": (Config.halo.screens || []).join(","),
+                // Settings → Windows → «Window buttons» (GTK's follow, gtk-live.py)
+                "button_look": Config.windows.buttonLook === "keys" ? "keys" : "glyphs"
             });
     }
+    readonly property bool aroundHalo: Config.halo.enabled && Config.halo.windows === "maximized"
     onFloatAllChanged: applyStacking()
-    readonly property var _stackingLook: [GoldenGate.on, Config.halo.windows, Config.halo.enabled, Halo.strip]
+    readonly property var _stackingLook: [GoldenGate.on, Config.halo.windows, Config.halo.enabled, Halo.strip, Halo.notch, String(Config.halo.screens), Config.windows.buttonLook]
     on_StackingLookChanged: applyStacking()
     Connections {
         target: Theme

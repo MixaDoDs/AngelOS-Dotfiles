@@ -6,7 +6,7 @@ import Quickshell.Io
 import qs.config
 
 // The bass of what plays, for the Halo's glow (modules/halo: the closed pill with the music
-// glows along its inner edge with the bass, a kick flashes it). Its own small cava through
+// glows along its inner edge with the bass, a kick flashes it), and for the angel's nod. Its own small cava through
 // scripts/audio-tap.py (what everything plays): three bands from 40 Hz to 6 kHz with cava's
 // autosens, so the low one says how much of the sound is bass, whatever the volume —
 // measured on real music: 0.3…0.6 at rest, 0.8…0.95 on a kick. Runs only while the pill shows
@@ -19,7 +19,10 @@ Singleton {
 
     // the song in any capsule: a recording (or a timer) goes first, the bass goes on
     readonly property bool shownMusic: Halo.items.some(i => i.kind === "music")
-    readonly property bool wanted: Config.ready && !!Config.halo.enabled && Config.halo.bassGlow !== false && !Shell.dev && !Power.eco && Lyrics.playing && !Lyrics.unseen && shownMusic && Shell.screens.some(s => Halo.on(s.name) && !Shell.stillScreen(s.name))
+    // the angel in her corner nods to it (modules/y2k/AngelHelper: she says she listens)
+    property bool angelListens: false
+    readonly property bool haloWants: !!Config.halo.enabled && Config.halo.bassGlow !== false && shownMusic && Shell.screens.some(s => Halo.on(s.name) && !Shell.stillScreen(s.name))
+    readonly property bool wanted: Config.ready && !Shell.dev && !Power.eco && Lyrics.playing && !Lyrics.unseen && (haloWants || angelListens)
 
     property int level: 0
     property real flash: 0

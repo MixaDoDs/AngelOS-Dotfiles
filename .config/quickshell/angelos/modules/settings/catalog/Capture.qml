@@ -249,20 +249,20 @@ CatPage {
             onToggled: v => Config.circle.liveText = v
         }
         CatToggle {
-            label: I18n.t("Ссылки — в мини-остров", "Links into the mini island")
+            label: I18n.t("Ссылки — в мини-браузер", "Links into the mini browser")
             hint: I18n.t("Ссылки открываются в маленьком окне в углу, а не в браузере. Win+Alt+I — клики сквозь него.", "Links open in a small corner window instead of the browser. Win+Alt+I clicks through it.")
             checked: Config.island.enabled
             onToggled: v => Config.island.enabled = v
         }
         CatToggle {
             label: I18n.t("Кнопка «Найти картинкой»", "“Search the picture” button")
-            hint: I18n.t("отправляет обведённый кусок в Google Lens", "sends the circled piece to Google Lens")
+            hint: I18n.t("ищет обведённый кусок по картинке в Google", "searches Google by the circled piece")
             checked: Config.circle.lens
             onToggled: v => Config.circle.lens = v
         }
         CatToggle {
             present: Config.circle.lens
-            label: I18n.t("Результаты Lens в окне angelOS", "Lens results in an angelOS window")
+            label: I18n.t("Поиск по картинке — в окне angelOS", "Picture search in an angelOS window")
             hint: I18n.t("Похожие картинки и текст — в своём окне. Выключено — страница Google в маленьком окне.", "Similar pictures and text in a window of its own. Off: Google's page in the small window.")
             checked: Config.circle.lensWindow
             onToggled: v => Config.circle.lensWindow = v

@@ -65,13 +65,6 @@ Singleton {
             "page": "y2k"
         },
         {
-            "id": "look.adult",
-            "ru": "Ангел: взрослая 30×40",
-            "en": "Angel: the adult 30×40",
-            "icon": "heart",
-            "page": "y2k"
-        },
-        {
             "id": "menu.harp",
             "ru": "Меню «Арфа»",
             "en": "The Harp menu",
@@ -190,7 +183,7 @@ Singleton {
         return !i || has(i);
     }
     function lookItem(look) {
-        return look === "mini" || look === "chibi" || look === "adult" ? "look." + look : "";
+        return look === "mini" || look === "chibi" ? "look." + look : "";
     }
     function lookOk(look) {
         const i = lookItem(look);

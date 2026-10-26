@@ -346,6 +346,13 @@ Singleton {
                             Shell[o[1] + "Open"] = !Shell[o[1] + "Open"];
                         return;
                     }
+                    // the chalk's key, held and let go (services/Chalk)
+                    const ch = line.trim().match(/^chalk (on|off)$/);
+                    if (ch) {
+                        client.reply("ok");
+                        Chalk.hold(ch[1] === "on");
+                        return;
+                    }
                     // the lens at the pointer, too (services/Lens)
                     const l = line.trim().match(/^lens (in|out|close|toggle|refresh)$/);
                     if (l) {

@@ -80,6 +80,10 @@ IpcHandler {
     function lensOn(cmd: string, screen: string): void {
         Lens.cmd(cmd, screen);
     }
+    // the chalk: on while its key is held, off when let go (services/Chalk)
+    function chalk(cmd: string): void {
+        Chalk.hold(cmd === "on");
+    }
     // show where the pointer is, as if the mouse were shaken (a niri bind can call it)
     function findCursor(): void {
         CursorShake.demo();
@@ -540,6 +544,13 @@ IpcHandler {
     // the day's timelapse: on | off | build (today so far)
     function timelapse(mode: string): void {
         Timelapse.set(mode);
+    }
+    // the whole focused screen / the focused window (Ctrl+Shift+2/3), kept as the overlay's shots
+    function shotScreen(): void {
+        Capture.shotWhole();
+    }
+    function shotWindow(): void {
+        Capture.shotWhole(-1);
     }
     // the screenshot (Mod+Shift+S, Print): the frozen screen to pick, read, search, save —
     // the focused screen, or a named one; circle/circleOn are its old names

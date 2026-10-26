@@ -643,8 +643,7 @@
         "ru": "Тридцать дней с angelOS",
         "en": "Thirty days with angelOS"
       },
-      "cond": "days >= 30",
-      "reward": "look.adult"
+      "cond": "days >= 30"
     },
     {
       "id": "faithful",

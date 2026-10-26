@@ -7,7 +7,9 @@ GTK reads the user's gtk.css once per app, but reloads its *theme* whenever the 
 name changes. So, with Config.decor.gtkButtons on (palette key decorGtk), the palette
 and the window buttons live in a theme of their own: adw-gtk3(-dark) underneath, the
 angelOS colours (~/.config/gtk-3.0/angelos.css, rendered just before) and the
-decorations (templates/gtk3-decor.css: bevelled pixel buttons, the header in the menu
+decorations (templates/gtk3-decor.css: the buttons as angel-niri draws its title bars — the
+glyphs × _ □ over a shadow, a plate under the pointer, red under ×, or keys
+(templates/gtk-decor-keys.css after it, palette key decorKeys); the header in the menu
 colour; obsidian and blood in hell) on top. Two copies, angelOS-a and angelOS-b, take
 turns: the new look goes into the one not in use and gtk-theme switches to it, so open
 GTK 3 apps — and Helium/Chromium set to the "GTK" theme, its title bar buttons
@@ -41,10 +43,11 @@ GTK3 = HOME / ".config/gtk-3.0"
 GTK4 = HOME / ".config/gtk-4.0"
 STUB = "/* angelOS: the colours live in the angelOS-a/b GTK theme now (gtk-live.py) */\n"
 
+# angel-niri's CELL_GLYPHS (src/stacking_title.rs): one look for both
 ICONS = {
-    "close": ["##...##", "###.###", ".#####.", "..###..", ".#####.", "###.###", "##...##"],
-    "maximize": ["#######", "#######", "#.....#", "#.....#", "#.....#", "#.....#", "#######"],
-    "minimize": [".......", ".......", ".......", ".......", ".......", "######.", "######."],
+    "close": ["#.....#", ".#...#.", "..#.#..", "...#...", "..#.#..", ".#...#.", "#.....#"],
+    "maximize": ["#######", "#.....#", "#.....#", "#.....#", "#.....#", "#.....#", "#######"],
+    "minimize": [".......", ".......", ".......", ".......", ".......", ".......", "#######"],
 }
 
 
@@ -52,7 +55,7 @@ def render(text, pal):
     return re.sub(r"\{\{\s*([\w.]+)\s*\}\}", lambda m: str(pal.get(m.group(1), m.group(0))), text)
 
 
-def svg(rows, color):
+def _rects(rows, color, dx, dy):
     body = ""
     for y, row in enumerate(rows):
         x = 0
@@ -61,11 +64,9 @@ def svg(rows, color):
             while x + run < len(row) and row[x + run] == row[x]:
                 run += 1
             if row[x] == "#":
-                body += '<rect x="%d" y="%d" width="%d" height="1" fill="%s"/>' % (x, y, run, color)
+                body += '<rect x="%d" y="%d" width="%d" height="1" fill="%s"/>' % (x + dx, y + dy, run, color)
             x += run
-    w, h = max(len(r) for r in rows), len(rows)
-    return ('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" '
-            'shape-rendering="crispEdges">%s</svg>\n') % (w * 2, h * 2, w, h, body)
+    return body
 
 
 def frame(edge, sunken):
@@ -104,6 +105,37 @@ def _lum(c):
     v = [x / 255 for x in _rgb(c)]
     v = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in v]
     return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]
+
+
+def _mix(a, b, t):
+    return "#%02x%02x%02x" % tuple(round(x + (y - x) * t) for x, y in zip(_rgb(a), _rgb(b)))
+
+
+def glyph(rows, ink, bg):
+    """A button glyph over its shadow one art pixel down-right, as angel-niri draws it: dark under
+    a light glyph, light under a dark one."""
+    shadow = _mix(bg, "#000000", 0.55) if _lum(ink) > _lum(bg) else _mix(bg, "#ffffff", 0.6)
+    w, h = len(rows[0]) + 1, len(rows) + 1
+    body = _rects(rows, shadow, 1, 1) + _rects(rows, ink, 0, 0)
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" '
+            'shape-rendering="crispEdges">%s</svg>\n') % (w * 2, h * 2, w, h, body)
+
+
+# the keys' glyphs (angel-niri's KEY_GLYPHS), six by six on the key's face
+KEY_ICONS = {
+    "close": ["#....#", ".#..#.", "..##..", "..##..", ".#..#.", "#....#"],
+    "maximize": ["######", "#....#", "#....#", "#....#", "#....#", "######"],
+    "minimize": ["......", "......", "......", "......", "......", "######"],
+}
+
+
+def key(rows, face, ink, edge):
+    """A key as angel-niri draws it (--button-look keys): ten art pixels square, a dark outline,
+    its face, the glyph on it."""
+    body = '<rect width="10" height="10" fill="%s"/><rect x="1" y="1" width="8" height="8" fill="%s"/>' % (edge, face)
+    body += _rects(rows, ink, 2, 2)
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 10 10" '
+            'shape-rendering="crispEdges">%s</svg>\n') % body
 
 
 def frame_line(pal):
@@ -149,10 +181,21 @@ def mac_glyph(path):
 
 
 def assets(folder, pal):
-    ink = pal.get("decorText", "#000000")
-    for name, rows in ICONS.items():
-        write(folder / "assets" / (name + ".svg"), svg(rows, ink))
-    write(folder / "assets" / "close-hover.svg", svg(ICONS["close"], "#ffffff"))
+    ink, bg = pal.get("decorText", "#000000"), pal.get("decorHeader", "#ffffff")
+    danger = pal.get("decorDanger", "#e0403a")
+    if pal.get("decorKeys"):
+        edge = _mix(bg, "#000000", 0.6)
+        for lit in (False, True):
+            tail = "-hover" if lit else ""
+            for name, rows in KEY_ICONS.items():
+                face = danger if name == "close" else _mix(bg, ink, 0.22)
+                face = _mix(face, "#ffffff", 0.25) if lit else face
+                on = "#ffffff" if name == "close" else ("#000000" if _lum(face) > 0.18 else "#ffffff")
+                write(folder / "assets" / (name + tail + ".svg"), key(rows, face, on, edge))
+    else:
+        for name, rows in ICONS.items():
+            write(folder / "assets" / (name + ".svg"), glyph(rows, ink, bg))
+        write(folder / "assets" / "close-hover.svg", glyph(ICONS["close"], "#ffffff", danger))
     for name, path in MAC_GLYPHS.items():
         write(folder / "assets" / ("mac-" + name + ".svg"), mac_glyph(path))
 
@@ -241,6 +284,8 @@ def main():
     on = bool(pal.get("decorGtk")) or mac
     decor3_tpl = SHELL / ("templates/gtk3-decor-mac.css" if mac else "templates/gtk3-decor.css")
     decor4_tpl = SHELL / ("templates/gtk4-decor-mac.css" if mac else "templates/gtk4-decor.css")
+    # Settings → Windows → «Window buttons» → Keys: their CSS after the decorations
+    keys_css = "" if mac or not pal.get("decorKeys") else "\n" + (SHELL / "templates/gtk-decor-keys.css").read_text()
     # the palette CSS's frames, next to it, in the apps' colours (hell's while the demon rules)
     apps = dict(pal, **(pal.get("apps") or {}))
     frames(GTK3, apps)
@@ -259,7 +304,7 @@ def main():
         return
 
     # GTK 4 / libadwaita: the decorations next to its user CSS
-    write(GTK4 / "angelos-decor.css", render(decor4_tpl.read_text(), pal))
+    write(GTK4 / "angelos-decor.css", render(decor4_tpl.read_text(), pal) + keys_css)
     assets(GTK4, pal)
     version_gtk4()
 
@@ -267,13 +312,13 @@ def main():
     palette_css = (GTK3 / "angelos.css").read_text() if (GTK3 / "angelos.css").exists() else ""
     if palette_css == STUB:
         palette_css = ""
-    decor3 = render(decor3_tpl.read_text(), pal)
+    decor3 = render(decor3_tpl.read_text(), pal) + keys_css
     css3 = '@import url("file://%s/gtk-3.0/gtk.css");\n\n%s\n%s' % (base_dir, palette_css, decor3)
     # inlined below the theme's own @import: an @import further down would be dropped
     palette4 = (GTK4 / "angelos.css").read_text() if (GTK4 / "angelos.css").exists() else ""
     palette4 = "\n".join(l for l in palette4.splitlines() if not l.lstrip().startswith("@import"))
     palette4 = re.sub(r"assets/v-[0-9a-f]+/", "assets/", palette4)   # the theme's own assets/ are plain
-    css4 = '@import url("file://%s/gtk-4.0/gtk.css");\n\n%s\n%s' % (base_dir, palette4, render(decor4_tpl.read_text(), pal))
+    css4 = '@import url("file://%s/gtk-4.0/gtk.css");\n\n%s\n%s' % (base_dir, palette4, render(decor4_tpl.read_text(), pal) + keys_css)
     in_use = THEMES / current if current in ("angelOS-a", "angelOS-b") else None
     if palette_css and in_use and (in_use / "gtk-3.0/gtk.css").exists() and (in_use / "gtk-3.0/gtk.css").read_text() == css3:
         print(json.dumps({"live": True, "theme": current, "changed": False}))

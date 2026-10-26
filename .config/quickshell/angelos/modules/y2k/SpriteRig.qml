@@ -37,6 +37,9 @@ Item {
     // petted (services/Angel → petting): pink ovals under her closed eyes, 0…1 (rig.json →
     // cheeks, found by sprite-rig.py on the blink overlay; a figure whose eye is its face has none)
     property real blush: 0
+    // where she looks: -1 left, 0 ahead, 1 right — each eye of rig.json → look.eyes (body
+    // pixels, set by hand) is drawn again one art pixel over, on top of itself
+    property int lookX: 0
     property real px: 1
     // false: Settings → Y2K → Looks picked a pixel version, the helper draws that instead
     property bool use: true
@@ -149,6 +152,33 @@ Item {
             source: root.use && root.file.loaded.rig ? "file://" + root.file.loaded.dir + "body.png" : ""
             smooth: false
             mipmap: false
+        }
+        Repeater {
+            model: root.lookX && !root.blink && root.ready && root.rig.look ? root.rig.look.eyes : []
+            Item {
+                id: eye
+                required property var modelData
+                x: root.at(modelData[0])
+                y: root.at(modelData[1])
+                width: root.at(modelData[0] + modelData[2]) - x
+                height: root.at(modelData[1] + modelData[3]) - y
+                clip: true
+                Item {
+                    x: root.at(root.lookX)
+                    width: eye.width
+                    height: eye.height
+                    clip: true
+                    Image {
+                        x: -eye.x
+                        y: -eye.y
+                        width: root.body.width
+                        height: root.body.height
+                        source: "file://" + root.file.loaded.dir + "body.png"
+                        smooth: false
+                        mipmap: false
+                    }
+                }
+            }
         }
         Image {
             anchors.fill: parent

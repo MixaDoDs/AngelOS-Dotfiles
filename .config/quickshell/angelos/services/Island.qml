@@ -280,7 +280,7 @@ Singleton {
             "cmd": "through",
             "on": on
         });
-        Quickshell.execDetached(["notify-send", "-a", "angelOS", "-t", "2500", "-i", "web-browser", on ? I18n.t("Остров пропускает клики", "The island lets clicks through") : I18n.t("Остров снова кликается", "The island takes clicks again"), on ? I18n.t("Вернуть: Mod+Alt+I", "Back: Mod+Alt+I") : ""]);
+        Quickshell.execDetached(["notify-send", "-a", "angelOS", "-t", "2500", "-i", "web-browser", on ? I18n.t("Мини-браузер пропускает клики", "The mini browser lets clicks through") : I18n.t("Мини-браузер снова кликается", "The mini browser takes clicks again"), on ? I18n.t("Вернуть: Mod+Alt+I", "Back: Mod+Alt+I") : ""]);
     }
 
     FileView {

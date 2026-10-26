@@ -538,6 +538,14 @@ case "$1" in
       shift; exec python3 "$SHELL_DIR/owner/debug/theme-cycles.py" "$@"
     fi
     exec qs -c angelos ipc call angelos debug "$*" ;;
+  chalk)
+    # the chalk (niri's Mod+Alt+left button: on when pressed, off when let go): the shell's socket, else qs ipc
+    what="$(printf '%s' "${2:-off}" | tr -cd 'a-z')"
+    sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/angelos/ctl.sock"
+    if [ -S "$sock" ] && command -v socat >/dev/null 2>&1 && printf 'chalk %s\n' "$what" | socat -t1 - "UNIX-CONNECT:$sock" 2>/dev/null | grep -q '^ok'; then
+      exit 0
+    fi
+    exec qs -c angelos ipc call angelos chalk "$what" ;;
   lens)
     # the lens at the pointer (niri keys Mod+Alt+= / - / 0): the shell's socket, else qs ipc
     what="$(printf '%s' "${2:-toggle}" | tr -cd 'a-z')"

@@ -683,6 +683,19 @@ CatPage {
             onActivated: v => Config.y2k.helperTips = v
         }
         CatToggle {
+            present: !Angel.demon
+            label: I18n.t("Кивает в такт музыке", "Nods to the music")
+            hint: I18n.t("пока играет музыка, кивает на каждый удар баса", "While music plays she nods on every kick of the bass")
+            checked: Config.y2k.nod !== false
+            onToggled: c => Config.y2k.nod = c
+        }
+        CatToggle {
+            present: Niri.pointerKnown
+            label: I18n.t("Следит глазами за курсором", "Her eyes follow the pointer")
+            checked: Config.y2k.lookAt !== false
+            onToggled: c => Config.y2k.lookAt = c
+        }
+        CatToggle {
             label: I18n.t("Шутит", "Jokes")
             hint: I18n.t("иногда вместо совета — шутка (на языке интерфейса)", "Now and then a joke instead of a tip (in the interface language)")
             checked: Config.y2k.jokes
@@ -746,13 +759,13 @@ CatPage {
         icon: "palette"
         CatNote {
             dim: true
-            text: Angel.demon ? I18n.t("Нынешняя неоновая демоница без сна, прошлая чиби, суккуб 30×40 или чертёнок 20×21.", "Today's sleepless neon demon, the earlier chibi, a 30×40 succubus or a 20×21 imp.") : Angel.hellShown ? I18n.t("Нынешние глитч-девочки (ангел с треснувшим нимбом и неоновая демоница), прошлые чиби, взрослые пиксельные 30×40 или самые первые малышки 20×21. Ангел и демоница выбираются отдельно.", "Today's glitch girls (the cracked-halo angel and the neon demon), the earlier chibi, the adult 30×40 pixel ones or the very first 20×21 minis. The angel and the demon are picked apart.") : I18n.t("Нынешняя глитч-девочка (ангел с треснувшим нимбом), прошлая чиби, взрослая пиксельная 30×40 или самая первая малышка 20×21.", "Today's glitch girl (the cracked-halo angel), the earlier chibi, the adult 30×40 pixel one or the very first 20×21 mini.")
+            text: Angel.demon ? I18n.t("Нынешняя неоновая демоница без сна или чертёнок 20×21.", "Today's sleepless neon demon or a 20×21 imp.") : Angel.hellShown ? I18n.t("Нынешние глитч-девочки (ангел с треснувшим нимбом и неоновая демоница), ангел-чиби или самые первые малышки 20×21. Ангел и демоница выбираются отдельно.", "Today's glitch girls (the cracked-halo angel and the neon demon), the chibi angel or the very first 20×21 minis. The angel and the demon are picked apart.") : I18n.t("Нынешняя глитч-девочка (ангел с треснувшим нимбом), прошлая чиби или самая первая малышка 20×21.", "Today's glitch girl (the cracked-halo angel), the earlier chibi or the very first 20×21 mini.")
         }
         CatCustom {
             present: !Angel.demon
             label: I18n.t("Ангел", "Angel")
             // the looks still locked (services/Heaven) and what opens each
-            hint: ["mini", "chibi", "adult"].filter(l => !Heaven.lookOk(l)).map(l => Heaven.label(Heaven.lookItem(l)) + " — " + Heaven.lockHint(Heaven.lookItem(l))).join("; ")
+            hint: ["mini", "chibi"].filter(l => !Heaven.lookOk(l)).map(l => Heaven.label(Heaven.lookItem(l)) + " — " + Heaven.lockHint(Heaven.lookItem(l))).join("; ")
             CatBox {
                 Flow {
                     width: parent.width
@@ -766,10 +779,6 @@ CatPage {
                             {
                                 "value": "chibi",
                                 "label": I18n.t("Чиби", "Chibi")
-                            },
-                            {
-                                "value": "adult",
-                                "label": I18n.t("Взрослая 30×40", "Adult 30×40")
                             },
                             {
                                 "value": "mini",
@@ -796,14 +805,6 @@ CatPage {
                             {
                                 "value": "glitch",
                                 "label": I18n.t("Неон без сна (сейчас)", "Sleepless neon (now)")
-                            },
-                            {
-                                "value": "chibi",
-                                "label": I18n.t("Чиби", "Chibi")
-                            },
-                            {
-                                "value": "adult",
-                                "label": I18n.t("Суккуб 30×40", "Succubus 30×40")
                             },
                             {
                                 "value": "mini",

@@ -59,7 +59,7 @@ while read -r _ name res detail; do
   if [[ "$res" == PASS ]]; then [[ -n "${ANGELOS_SEARCH_VERBOSE:-}" ]] && printf '  ✓ %s\n' "${name#q:}"; else printf '  ✕ %s %s\n' "${name#q:}" "$detail"; fail=1; fi
 done < <(sed -n 's/.*\(TEST [^ ]* \(PASS\|FAIL\).*\)/\1/p' "$log")
 grep -q 'TEST DONE' "$log" || { echo "  ✕ the test did not finish (exit $code): $(tail -3 "$log" | tr '\n' ' ' | cut -c1-300)"; fail=1; }
-errs=$(grep -E 'SettingsSearch|SearchDriver' "$log" | grep -E 'TypeError|ReferenceError|Unable to assign|is not defined|Cannot read property|Binding loop' | sed 's/\x1b\[[0-9;]*m//g' | sort -u | head -10)
+errs=$(grep -E 'SettingsSearch|SearchDriver|services/Search' "$log" | grep -E 'TypeError|ReferenceError|Unable to assign|is not defined|Cannot read property|Binding loop' | sed 's/\x1b\[[0-9;]*m//g' | sort -u | head -10)
 [[ -z "$errs" ]] || { echo "  ✕ QML errors:"; printf '%s\n' "$errs" | sed 's/^/      /'; fail=1; }
 ((fail)) || echo "  ✓ settings search: $n queries find what they must ($(sed -n 's/.*TEST search-time PASS [0-9]* queries, //p' "$log"))"
 exit $fail

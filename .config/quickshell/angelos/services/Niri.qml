@@ -221,6 +221,21 @@ Singleton {
         action("ToggleOverview", {});
     }
 
+    // angel-niri: where the pointer is ({output, x, y} in the output, or null); stock niri
+    // answers Err, pointerKnown turns false and nobody asks again
+    // (pointerSeen: it answered — the same angel-niri has press/release binds, services/Chalk)
+    property bool pointerKnown: true
+    property bool pointerSeen: false
+    function pointer(cb) {
+        request("PointerPosition", (r, err) => {
+            if (err)
+                pointerKnown = false;
+            else
+                pointerSeen = true;
+            cb(r ? r.PointerPosition : null);
+        }, true);
+    }
+
     // one request per connection (niri closes the socket after replying)
     property var _queue: []
     property var _current: null

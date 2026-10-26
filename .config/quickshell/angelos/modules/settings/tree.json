@@ -1293,7 +1293,6 @@
     "category": "apps",
     "after": {
       "nightlight": "display",
-      "screen-magnifier": "a11y",
       "speedtest": "network",
       "stream-stats": "stream-angel",
       "realm-toggle": "game",
@@ -1385,7 +1384,6 @@
       "category": "mac-general",
       "after": {
         "nightlight": "display",
-        "screen-magnifier": "lens",
         "speedtest": "network",
         "stream-stats": "stream-angel",
         "realm-toggle": "game",
