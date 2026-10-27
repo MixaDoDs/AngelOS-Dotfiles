@@ -2,7 +2,8 @@ import QtQuick
 import qs.config
 import qs.services
 
-// A Win98 progress bar: a sunken trough filled with the accent's blocks, the percent over it.
+// A Win98 progress bar: a sunken trough filled with the accent's blocks (the Win10 skin: RetroUI's
+// stripes), the percent over it.
 // `busy` while a step runs: a light sweeps along the filled part (it moves even when the number
 // waits for a long download), and with nothing filled yet it walks the empty trough.
 //   value 0…1 · busy · text (shown instead of the percent; "" = the percent)
@@ -93,7 +94,18 @@ Item {
             readonly property int blocks: Math.max(1, Math.floor((width + gap) / (block + gap)))
             readonly property int lit: Math.round(blocks * root.shown)
 
+            // the Win10 skin: RetroUI's stripes, crawling while it works (nothing filled yet: across
+            // the whole trough, faint)
+            PxStripes {
+                visible: Theme.win10
+                width: root.shown > 0 ? Math.max(Theme.u, Math.round(well.width * root.shown)) : well.width
+                height: well.height
+                color: root.fill
+                running: root.busy
+                opacity: root.shown > 0 ? 1 : root.busy ? 0.35 : 0
+            }
             Row {
+                visible: !Theme.win10
                 spacing: well.gap
                 height: parent.height
                 Repeater {
@@ -119,7 +131,7 @@ Item {
             }
             // nothing filled yet but working: three blocks walk the trough
             Row {
-                visible: root.busy && well.lit === 0
+                visible: !Theme.win10 && root.busy && well.lit === 0
                 spacing: well.gap
                 height: parent.height
                 x: (sweep.at - 3) * (well.block + well.gap)
@@ -137,7 +149,7 @@ Item {
             Timer {
                 id: sweep
                 property int at: 0
-                running: root.busy && root.visible && !root.mac
+                running: !Theme.win10 && root.busy && root.visible && !root.mac
                 repeat: true
                 interval: 90
                 onTriggered: at = (at + 1) % ((well.lit > 0 ? well.lit : well.blocks + 3) + 4)

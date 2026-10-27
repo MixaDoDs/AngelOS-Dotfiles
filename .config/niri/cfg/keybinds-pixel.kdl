@@ -9,7 +9,7 @@ binds {
     Mod+B                               hotkey-overlay-title="Браузер" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos browser"; }
 
     // ─── angelOS ───
-    Mod+Space                    hotkey-overlay-title="angelOS: программы" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open launcher"; }
+    Mod+Space                    allow-inhibiting=false hotkey-overlay-title="angelOS: программы" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open launcher"; }
     Mod+ALT+L                           hotkey-overlay-title="angelOS: блокировка" { spawn-sh "qs -c angelos ipc call angelos lock"; }
 
     // Please set the text editor of your choice.

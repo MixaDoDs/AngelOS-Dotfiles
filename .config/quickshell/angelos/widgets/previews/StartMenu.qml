@@ -1,15 +1,16 @@
 import QtQuick
 import qs.config
+import qs.services
 import qs.widgets
 
-// Start menu: style (classic | win11 | fullscreen | xmb | spotlight) or position
+// Start menu: style (classic | win11 | tiles | fullscreen | xmb | spotlight) or position
 // (auto | left | center | right, for the current style). The button is clicked,
 // the menu opens where it will on the real screen.
 Scene {
     id: root
 
     readonly property bool isPos: ["auto", "left", "center", "right"].includes(variant)
-    readonly property string style: isPos ? (Config.bar.startStyle || "classic") : variant
+    readonly property string style: isPos ? StartPrefs.current : variant
     readonly property string align: {
         const a = isPos ? variant : (Config.bar.startAlign || "auto");
         return a === "auto" ? (style === "win11" || style === "spotlight" ? "center" : "left") : a;
@@ -146,8 +147,8 @@ Scene {
     // classic / win11 menu
     Rectangle {
         id: menu
-        visible: (root.style === "classic" || root.style === "win11") && root.shown
-        readonly property real w: root.style === "win11" ? root.width * 0.42 : root.width * 0.3
+        visible: (root.style === "classic" || root.style === "win11" || root.style === "tiles") && root.shown
+        readonly property real w: root.style === "win11" ? root.width * 0.42 : root.style === "tiles" ? root.width * 0.5 : root.width * 0.3
         width: w
         height: root.height * 0.66 * root.open
         y: bar.y - height - Theme.u
@@ -194,6 +195,36 @@ Scene {
                         color: Theme.mix(Theme.face, Theme.text, 0.4)
                     }
                 }
+            }
+        }
+        // tiles: the apps in a column, flat tiles beside them, live ones wide in the accent
+        Column {
+            visible: root.style === "tiles"
+            x: Theme.u * 3
+            y: Theme.u * 4
+            spacing: Theme.u * 3
+            Repeater {
+                model: 6
+                Rectangle {
+                    required property int index
+                    width: menu.width * (0.22 + 0.06 * (index % 3))
+                    height: Math.max(1, Theme.u)
+                    color: Theme.mix(Theme.face, Theme.text, 0.4)
+                }
+            }
+        }
+        Repeater {
+            // [column, row, width] in cells of a 4-wide grid
+            model: [[0, 0, 2], [2, 0, 1], [3, 0, 1], [0, 1, 1], [1, 1, 2], [3, 1, 1], [0, 2, 1], [1, 2, 1], [2, 2, 1]]
+            Rectangle {
+                required property var modelData
+                readonly property real c: (menu.width * 0.52 - Theme.u * 3) / 4
+                visible: root.style === "tiles"
+                x: menu.width * 0.45 + modelData[0] * c
+                y: Theme.u * 4 + modelData[1] * c
+                width: modelData[2] * c - Theme.u
+                height: c - Theme.u
+                color: modelData[2] === 2 ? Theme.accent : Theme.menuHeader
             }
         }
         // win11: search box and a grid of pinned apps

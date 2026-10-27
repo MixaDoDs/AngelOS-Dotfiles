@@ -21,6 +21,7 @@ Column {
     readonly property var styleNames: ({
             "classic": I18n.t("Классика", "Classic"),
             "win11": "Windows 11",
+            "tiles": I18n.t("Плитки", "Tiles"),
             "fullscreen": I18n.t("Как iPhone", "iPhone-like"),
             "xmb": "PSP XMB",
             "spotlight": "Spotlight"

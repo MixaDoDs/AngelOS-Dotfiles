@@ -46,7 +46,8 @@ Variants {
         }
 
         screen: modelData
-        visible: !passing && (CursorShake.shaking || grow > 1.02 || catcher.pressed)
+        // (angel-niri draws the big arrow itself: CursorShake.ownZoom)
+        visible: !CursorShake.ownZoom && !passing && (CursorShake.shaking || grow > 1.02 || catcher.pressed)
         anchors {
             top: true
             bottom: true

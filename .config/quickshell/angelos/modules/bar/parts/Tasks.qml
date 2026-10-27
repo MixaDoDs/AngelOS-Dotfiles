@@ -2,13 +2,14 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
 
 // Win98 task buttons for windows on this screen's active workspace (or all; in Desktop every
-// window of this screen), one per app: an app's windows share a button, a click on it shows them
-// (TaskPreview). Apps pinned to the taskbar (Config.bar.taskPinned) lead the row, with a button
+// window of this screen), one per app in Desktop: an app's windows share a button, a click on it
+// shows them (TaskPreview), the wheel brings them forward in turn; one per window in the Strip. Apps pinned to the taskbar (Config.bar.taskPinned) lead the row, with a button
 // that starts them while none runs. In Desktop the buttons keep their places and are dragged
 // into another order (Config.bar.taskOrder), as on Windows' taskbar.
 // Resting the pointer on a button shows its windows' pictures; a click on the window in front
@@ -36,21 +37,43 @@ Item {
     readonly property var liveList: Niri.sortedWindows(Niri.windows.filter(w => !Minimize.isAppHidden(w) && (Config.bar.allWindows || (WindowConfig.floatAll ? Minimize.outputOf(w) === screenName : (ws && w.workspace_id === ws.id) || minimizedHere(w)))))
     // niri sends a window update on every step of a resize or a move: the buttons are built
     // again only when what they show changes (the order, the title, the focus, the alert)
-    readonly property string listKey: JSON.stringify(liveList.map(w => [w.id, w.app_id, w.title, w.is_focused, w.is_urgent, w.workspace_id]))
+    readonly property string listKey: JSON.stringify(liveList.map(w => [w.id, w.app_id, w.title, w.is_focused, w.is_urgent, w.workspace_id, w.is_shaded]))
     property var list: []
-    onListKeyChanged: list = liveList
+    onListKeyChanged: {
+        list = liveList;
+        // the genie's landing places of windows that are gone (they'd pile up for the session)
+        const pre = screenName + "|@w";
+        for (const k of Object.keys(Minimize.dockSlots))
+            if (k.startsWith(pre) && !Niri.windows.some(w => pre + w.id === k))
+                delete Minimize.dockSlots[k];
+    }
     function minimizedHere(w) {
         return Minimize.isMinimized(w) && Minimize.outputOf(w) === screenName;
     }
-    function keyOf(w) {
+    function appOf(w) {
         return w.app_id || "#" + w.id;
     }
-    // the windows by app
+    // Desktop: a button per app, its windows in a group (as Windows' taskbar); the Strip: a button
+    // per window, as the columns stand
+    function keyOf(w) {
+        return stable ? appOf(w) : "@" + w.id;
+    }
+    // the windows by button
     readonly property var byKey: {
         const m = {};
         for (const w of list)
             (m[keyOf(w)] = m[keyOf(w)] || []).push(w);
         return m;
+    }
+    // the pictures follow the button's windows: one closed or opened meanwhile, or the button
+    // gone (its last window closed by the × or the middle button — no "left" ever came)
+    onByKeyChanged: if (preview.visible) {
+        const a = preview.anchorItem;
+        const ws = a ? byKey[a.appKey] || [] : [];
+        if (ws.length)
+            preview.wins = ws;
+        else
+            preview.visible = false;
     }
     readonly property var pinned: (Config.bar.taskPinned || []).filter(k => typeof k === "string" && k !== "")
     // Desktop: the buttons stay where they are — by when the app came, or as dragged; the Strip:
@@ -61,10 +84,16 @@ Item {
         const run = [];
         for (const w of stable ? list.slice().sort((a, b) => a.id - b.id) : list) {
             const k = keyOf(w);
-            if (!run.includes(k) && !pinned.includes(k))
+            if (!run.includes(k) && !pinned.includes(appOf(w)))
                 run.push(k);
         }
-        const out = pinned.concat(run);
+        // the Strip: a pinned app's windows stand in its place, the pin itself only while none runs
+        let out = [];
+        for (const p of pinned) {
+            const ks = stable ? [] : list.filter(w => appOf(w) === p).map(keyOf);
+            out = out.concat(ks.length ? ks : [p]);
+        }
+        out = out.concat(run);
         if (!stable)
             return out;
         const ord = Config.bar.taskOrder || [];
@@ -105,6 +134,17 @@ Item {
     function launch(appId) {
         StartApps.launch(DesktopEntries.byId(appId) || DesktopEntries.heuristicLookup(appId));
     }
+    // a pinned app's button with no window here: its window on another desk or screen comes up
+    // (as Windows' taskbar does), a new one starts only while none runs anywhere
+    function launchOrShow(appId) {
+        const w = Niri.windows.find(x => appOf(x) === appId && !Minimize.isAppHidden(x));
+        if (!w)
+            launch(appId);
+        else if (Minimize.isMinimized(w))
+            Minimize.restore(w.id, false, Minimize.outputOf(w));
+        else
+            Niri.focusWindow(w.id);
+    }
     function unpin(appId) {
         Config.bar.taskPinned = pinned.filter(k => k !== appId);
     }
@@ -120,6 +160,14 @@ Item {
         dragKey = k;
         dragFrom = rowIndex(k);
         dragShift = 0;
+        dragOrder = orderNow();
+    }
+    property var dragOrder: []
+    function orderNow() {
+        const ks = [];
+        for (let i = 0; i < rows.count; i++)
+            ks.push(rows.get(i).appKey);
+        return ks;
     }
     function dragTo(k, d) {
         const now = rowIndex(k);
@@ -133,11 +181,11 @@ Item {
     function letGo() {
         if (dragKey === "")
             return;
-        const ks = [];
-        for (let i = 0; i < rows.count; i++)
-            ks.push(rows.get(i).appKey);
+        const ks = orderNow();
+        // a nudge that moved nothing writes nothing: the buttons keep coming in by arrival
         // apps closed meanwhile keep their places after the ones here
-        Config.bar.taskOrder = ks.concat((Config.bar.taskOrder || []).filter(k => !ks.includes(k))).slice(0, 64);
+        if (ks.join("\n") !== dragOrder.join("\n"))
+            Config.bar.taskOrder = ks.concat((Config.bar.taskOrder || []).filter(k => !ks.includes(k))).slice(0, 64);
         dragKey = "";
         dragShift = 0;
         sync();
@@ -157,8 +205,9 @@ Item {
                 return;
             }
         }
+        // back on this bar's screen, not wherever the focus is (DP-1 may be on air)
         if (Minimize.isMinimized(w))
-            Minimize.restore(w.id);
+            Minimize.restore(w.id, false, root.screenName);
         else if (w.is_focused)
             Minimize.request(w.id, "bar");
         else
@@ -322,6 +371,32 @@ Item {
                     height: root.vertical ? root.cellH : flick.height
                     barInk: root.barInk
                     checked: !!win && win.is_focused
+                    // the Win10 skin: Windows 10's buttons in pixels — flat, the one in front a shade
+                    // lighter on a wide accent strip, a running one a short dim strip, a minimized
+                    // one dimmed (below), a pinned one not running none
+                    bare: !root.barInk && Theme.win10
+                    Rectangle {
+                        visible: btn.bare && (btn.checked || btn.hovered)
+                        anchors.fill: parent
+                        color: Qt.alpha(Theme.text, btn.checked ? (btn.hovered ? 0.16 : 0.11) : 0.07)
+                    }
+                    Rectangle {
+                        visible: btn.bare && !btn.ghost
+                        readonly property int t: Math.max(2, Theme.u)
+                        readonly property real len: btn.checked ? 1 : 0.4
+                        x: root.vertical ? 0 : Math.round((btn.width - width) / 2)
+                        y: root.vertical ? Math.round((btn.height - height) / 2) : btn.height - height
+                        width: root.vertical ? t : Math.round((btn.width - Theme.u * 4) * len)
+                        height: root.vertical ? Math.round((btn.height - Theme.u * 4) * len) : t
+                        color: btn.checked ? Theme.accent : Qt.alpha(Theme.text, 0.45)
+                        Behavior on width {
+                            enabled: !root.vertical
+                            NumberAnimation {
+                                duration: Motion.ms(120)
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                    }
                     DragHandler {
                         enabled: root.stable
                         target: null
@@ -342,7 +417,7 @@ Item {
                         id: raise
                         interval: 500
                         onTriggered: if (btn.win)
-                            Minimize.isMinimized(btn.win) ? Minimize.restore(btn.win.id) : Niri.focusWindow(btn.win.id)
+                            Minimize.isMinimized(btn.win) ? Minimize.restore(btn.win.id, false, root.screenName) : Niri.focusWindow(btn.win.id)
                     }
                     // the pointer anywhere on the button, × included: the ×'s own MouseArea takes the
                     // hover from btn.hovered (a sibling), and hiding the × on that made it flicker
@@ -374,6 +449,15 @@ Item {
                     onWidthChanged: report()
                     onWinsChanged: report()
                     Component.onCompleted: report()
+                    // the bar may have slid under it (the section moved, Start or the hearts grew):
+                    // the place is asked again right before a window flies
+                    Connections {
+                        target: Minimize
+                        function onSlotsWanted(output) {
+                            if (output === root.screenName)
+                                btn.report();
+                        }
+                    }
                     Connections {
                         target: flick
                         function onContentXChanged() {
@@ -386,16 +470,21 @@ Item {
                     opacity: minimized ? 0.5 : 1
                     onClicked: {
                         if (ghost)
-                            root.launch(appKey);
+                            root.launchOrShow(appKey);
                         else if (group)
                             root.showPreview(btn, true);
                         else
                             root.activate(win);
                     }
+                    // closing from a button closes what it stands for: a group of an app's windows all
+                    function closeAll() {
+                        for (const w of wins)
+                            Niri.closeWindow(w.id);
+                    }
                     onMiddleClicked: if (ghost)
                         root.launch(appKey)
                     else if (Config.bar.taskMiddleClose)
-                        Niri.closeWindow(win.id)
+                        closeAll()
                     onRightClicked: {
                         preview.visible = false;
                         // a pinned app not running: no window to act on, the click unpins it
@@ -405,16 +494,16 @@ Item {
                         }
                         const mode = Config.bar.taskRightClick || "menu";
                         if (mode === "close")
-                            Niri.closeWindow(win.id);
+                            btn.closeAll();
                         else if (mode === "menu")
                             menu.openFor(btn, win);
                     }
 
                     AppIcon {
                         id: ico
-                        x: (root.labels ? Theme.u * 4 : (btn.width - width) / 2) + (btn.down && !root.barInk ? Theme.u : 0)
+                        x: (root.labels ? Theme.u * 4 : (btn.width - width) / 2) + ((btn.bare ? btn.pressed : btn.down) && !root.barInk ? Theme.u : 0)
                         anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                        anchors.verticalCenterOffset: btn.down && !root.barInk ? Theme.u : 0
+                        anchors.verticalCenterOffset: (btn.bare ? btn.pressed : btn.down) && !root.barInk ? Theme.u : 0
                         appId: btn.win ? btn.win.app_id || "" : btn.appKey
                         size: root.labels ? Theme.u * 8 : Math.max(Theme.u * 8, btn.height - Theme.u * 6)
                         tint: Config.bar.tintTasks && !btn.checked ? Config.bar.trayTint : "off"
@@ -427,7 +516,7 @@ Item {
                         anchors.right: parent.right
                         anchors.rightMargin: closeX.visible ? closeX.width + Theme.u * 4 : Theme.u * 4
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.verticalCenterOffset: btn.down && !root.barInk ? Theme.u : 0
+                        anchors.verticalCenterOffset: (btn.bare ? btn.pressed : btn.down) && !root.barInk ? Theme.u : 0
                         readonly property var entry: btn.ghost ? DesktopEntries.byId(btn.appKey) || DesktopEntries.heuristicLookup(btn.appKey) : null
                         text: btn.win ? Niri.titleOf(btn.win) || btn.win.app_id || "?" : entry ? entry.name : btn.appKey
                         elide: Text.ElideRight
@@ -470,18 +559,140 @@ Item {
                             onClicked: Niri.closeWindow(btn.win.id)
                         }
                     }
-                    // how many windows the app has, in the corner
-                    PxText {
+                    // how many windows the app has: the bottom edge cut in as many pieces (up to 4),
+                    // the one in front lit; the wheel walks the light along them
+                    Item {
+                        id: segs
                         visible: btn.group
-                        x: btn.width - width - Theme.u * 2
-                        y: btn.height - height - Theme.u
-                        text: btn.wins.length
-                        kind: "tiny"
-                        font.bold: true
-                        color: root.barInk ? Theme.hellText : Theme.text
+                        readonly property int n: Math.min(4, btn.wins.length)
+                        readonly property int front: btn.win && btn.win.is_focused ? Math.min(n - 1, btn.wins.indexOf(btn.win)) : -1
+                        readonly property int w: Math.floor((btn.width - Theme.u * 4 - (n - 1) * Theme.u) / Math.max(1, n))
+                        x: Theme.u * 2
+                        y: btn.height - Theme.u * 2
+                        Repeater {
+                            model: segs.n
+                            Rectangle {
+                                required property int index
+                                x: index * (segs.w + Theme.u)
+                                width: segs.w
+                                height: Theme.u
+                                color: Qt.alpha(root.barInk ? Theme.hellText : Theme.text, 0.45)
+                            }
+                        }
+                        Rectangle {
+                            visible: segs.front >= 0
+                            x: Math.max(0, segs.front) * (segs.w + Theme.u)
+                            width: segs.w
+                            height: Theme.u
+                            color: root.barInk ? Theme.hellAccent : Theme.accent
+                            Behavior on x {
+                                NumberAnimation {
+                                    duration: 140
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+                        }
+                    }
+                    // the wheel on a group: its windows in turn, each to the front
+                    WheelHandler {
+                        enabled: btn.group
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                        property real acc: 0
+                        onWheel: e => {
+                            acc += e.angleDelta.y || e.angleDelta.x;
+                            if (Math.abs(acc) < 120)
+                                return;
+                            const dir = acc < 0 ? 1 : -1;
+                            acc = 0;
+                            const ws = btn.wins, i = btn.win && btn.win.is_focused ? ws.indexOf(btn.win) : -1;
+                            const w = ws[(i + dir + ws.length) % ws.length];
+                            root.activate(w);
+                            root.flash(w);
+                            Sounds.play("windowCycle");
+                        }
                     }
                 }
             }
+        }
+    }
+
+    // the window the wheel brought forward: its frame blinks twice, dim, in pixels (not while it
+    // comes back from minimized — that flies in on its own — nor when motion is calm)
+    property rect flashRect
+    function flash(w) {
+        const s = Shell.screenByName(screenName);
+        const r = !Motion.calm && s && !Minimize.isMinimized(w) ? Minimize.rectOf(w, screenName) : null;
+        if (!r)
+            return;
+        flashRect = Qt.rect(r[0] - s.x, r[1] - s.y, r[2], r[3]);
+        blink.restart();
+    }
+    LazyLoader {
+        active: blink.running
+        PanelWindow {
+            screen: Shell.screenByName(root.screenName)
+            anchors {
+                top: true
+                bottom: true
+                left: true
+                right: true
+            }
+            exclusionMode: ExclusionMode.Ignore
+            color: "transparent"
+            mask: Region {}
+            WlrLayershell.namespace: "angelos-window-flash"
+            RightClickGuard {}
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            // a step outside the window, clear of niri's focus ring, which lights up at the same moment
+            Rectangle {
+                readonly property real gap: Theme.u * 5
+                x: root.flashRect.x - gap
+                y: root.flashRect.y - gap
+                width: root.flashRect.width + gap * 2
+                height: root.flashRect.height + gap * 2
+                color: "transparent"
+                border.width: Theme.u * 3
+                border.color: Qt.alpha(Theme.accent, 0.25)
+                visible: root.flashOn
+            }
+        }
+    }
+    property bool flashOn: false
+    SequentialAnimation {
+        id: blink
+        // the overlay comes up first, so the first blink isn't lost to it
+        PauseAnimation {
+            duration: 40
+        }
+        PropertyAction {
+            target: root
+            property: "flashOn"
+            value: true
+        }
+        PauseAnimation {
+            duration: 70
+        }
+        PropertyAction {
+            target: root
+            property: "flashOn"
+            value: false
+        }
+        PauseAnimation {
+            duration: 70
+        }
+        PropertyAction {
+            target: root
+            property: "flashOn"
+            value: true
+        }
+        PauseAnimation {
+            duration: 70
+        }
+        PropertyAction {
+            target: root
+            property: "flashOn"
+            value: false
         }
     }
 

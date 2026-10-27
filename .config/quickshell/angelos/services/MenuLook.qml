@@ -105,7 +105,7 @@ Singleton {
             "outline": true,
             "hellBox": false,
             "shadow": true,
-            "shadowColor": Qt.alpha(Theme.shadow, Theme.shadowAlpha),
+            "shadowColor": Theme.popShadow,
             "shadowU": 2,
             "headText": Theme.textDim,
             "pad": 5,

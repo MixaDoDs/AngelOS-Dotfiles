@@ -15,6 +15,9 @@ Item {
     property var barWindow: null
     // the hell bar (BarItem binds it): the classic face goes flat, the capsule takes hell's colours
     property bool barInk: false
+    // the bar's grid (BarItem): the emblem stands bare like the icons beside it, the face only
+    // under the pointer or while Start is open
+    property bool barGrid: false
 
     // in hell (Y2K → Angel or demon → Start in hell) the button is hers: the circle's dark
     // colours and the Hell wordmark, still
@@ -35,6 +38,7 @@ Item {
         icon: ""
         hell: root.hellish
         barInk: root.barInk
+        flat: root.barGrid
         // pushed in (or Start open): a darker face, not the accent tint the logo's own colours vanish into
         downColor: Theme.mix(Theme.face, Theme.lo, Theme.dark ? 0.6 : 0.45)
         implicitWidth: logo.implicitWidth + Theme.u * 8

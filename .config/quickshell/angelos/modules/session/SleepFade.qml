@@ -102,6 +102,9 @@ Scope {
 
             MouseArea {
                 anchors.fill: parent
+                // no arrow over the black
+                hoverEnabled: true
+                cursorShape: Qt.BlankCursor
                 onClicked: Shell.sleepFx = false
             }
 

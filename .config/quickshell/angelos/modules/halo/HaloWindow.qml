@@ -547,7 +547,15 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.namespace: "angelos-halo"
     // the keyboard only for the quick buttons' fields
-    WlrLayershell.keyboardFocus: expanded && (pages[page] === "buttons" || pages[page] === "shelf") && !menu && !dropping ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // a reply typed into the notification's card (Notifs.replyTo): the keys go to its field
+    readonly property bool replying: !!Halo.flashNote && Notifs.same(Notifs.replyTo, Halo.flashNote)
+    function sendReply(text) {
+        if (String(text || "").trim() === "")
+            return;
+        Notifs.reply(Halo.flashNote, text);
+        Halo.flashDone();
+    }
+    WlrLayershell.keyboardFocus: replying ? WlrKeyboardFocus.Exclusive : expanded && (pages[page] === "buttons" || pages[page] === "shelf") && !menu && !dropping ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     // a full-screen window covers the Top layer: its timer's end comes over it
     // under Mission Control while it is open here: hidden, its input region still took the
     // clicks on the desks under it
@@ -2355,6 +2363,9 @@ PanelWindow {
         property real value: 0
         property bool paused: false
         property bool seekable: false
+        // a download's bar: RetroUI's crawling stripes over the trough of cells (the Win10 skin)
+        property bool striped: false
+        readonly property bool stripes: striped && !win.hell && Theme.win10
         signal seek(real frac)
         readonly property int cell: win.u * 3
         readonly property int gap: win.u
@@ -2365,10 +2376,25 @@ PanelWindow {
         Timer {
             interval: 120
             repeat: true
-            running: bb.value < 0 && !bb.paused && bb.visible && win.shown
+            running: !bb.stripes && bb.value < 0 && !bb.paused && bb.visible && win.shown
             onTriggered: bb.runAt = (bb.runAt + 1) % bb.n
         }
+        Rectangle {
+            visible: bb.stripes
+            width: parent.width
+            height: bb.cell
+            color: Qt.alpha(Theme.text, 0.16)
+            PxStripes {
+                width: bb.value < 0 ? parent.width : Math.round(parent.width * Math.max(0, Math.min(1, bb.value)))
+                height: parent.height
+                pixel: win.u
+                color: bb.paused ? Theme.textDim : win.accent
+                running: !bb.paused && win.shown
+                opacity: bb.value < 0 ? 0.5 : 1
+            }
+        }
         Row {
+            visible: !bb.stripes
             spacing: bb.gap
             Repeater {
                 model: bb.n
@@ -2855,6 +2881,8 @@ PanelWindow {
         readonly property string kind: item ? item.kind : ""
         readonly property var t: win.timerOf(item)
         readonly property var s: win.simple(item)
+        // a notification's buttons besides «Open» (the default) and the reply
+        readonly property var noteButtons: kind === "notif" && Halo.flashNote ? Halo.flashNote.actions.filter(a => a.identifier !== "default" && a.identifier !== "inline-reply") : []
         spacing: win.u * 3
 
         // ---- a timer's end ----
@@ -3103,6 +3131,7 @@ PanelWindow {
                     width: parent.width
                     value: dlRow.f
                     paused: dlRow.modelData.paused
+                    striped: true
                 }
                 PxText {
                     width: parent.width
@@ -3121,8 +3150,69 @@ PanelWindow {
             dim: true
             text: I18n.t("Проценты появятся после перезапуска: ", "The percent comes after a restart of ") + Downloads.needRestart.join(", ")
         }
+        // a notification's own answers, as its corner card has them (NotificationCard): «Reply»
+        // with the field right here, the app's buttons («Remember», «Just this once»…), «Open»
+        Flow {
+            visible: card.kind === "notif" && !!Halo.flashNote && !win.replying && (Halo.flashNote.hasInlineReply || card.noteButtons.length > 0)
+            width: parent.width
+            spacing: win.u * 2
+            PxButton {
+                visible: !!Halo.flashNote && Halo.flashNote.hasInlineReply
+                compact: true
+                hell: win.hell
+                text: I18n.t("Ответить", "Reply")
+                onClicked: {
+                    Notifs.replyTo = Halo.flashNote;
+                    Qt.callLater(() => replyField.focusField());
+                }
+            }
+            Repeater {
+                model: card.noteButtons
+                PxButton {
+                    required property var modelData
+                    compact: true
+                    hell: win.hell
+                    text: modelData.text || modelData.identifier
+                    onClicked: {
+                        modelData.invoke();
+                        Notifs.dismissPopup(Halo.flashNote);
+                        Halo.flashDone();
+                    }
+                }
+            }
+        }
+        // the reply: Enter sends it, Esc puts the field away
         Row {
-            visible: !!card.s
+            visible: card.kind === "notif" && win.replying
+            width: parent.width
+            spacing: win.u * 2
+            PxField {
+                id: replyField
+                spell: true
+                width: parent.width - send.width - win.u * 2
+                anchors.verticalCenter: parent.verticalCenter
+                placeholder: Notifs.replyHint(Halo.flashNote) || I18n.t("Ответ… (Enter — отправить)", "Reply… (Enter sends)")
+                keepFocus: true
+                onAccepted: win.sendReply(text)
+                onKeyPressed: e => {
+                    if (e.key === Qt.Key_Escape) {
+                        Notifs.replyTo = null;
+                        e.accepted = true;
+                    }
+                }
+            }
+            PxButton {
+                id: send
+                compact: true
+                hell: win.hell
+                anchors.verticalCenter: parent.verticalCenter
+                text: I18n.t("Отправить", "Send")
+                enabled: replyField.text.trim() !== ""
+                onClicked: win.sendReply(replyField.text)
+            }
+        }
+        Row {
+            visible: !!card.s && !win.replying
             anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
             spacing: win.u * 2
             PxButton {

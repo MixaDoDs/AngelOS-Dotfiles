@@ -155,17 +155,6 @@ Item {
         id: column
         anchors.fill: parent
         visible: root.vertical
-        // sunken Win98 notification area behind the bottom run, as across
-        PxBox {
-            visible: vBottom.implicitHeight > 0 && !root.hellInk
-            x: Theme.u
-            y: vBottom.y - Theme.u * 3
-            width: parent.width - Theme.u * 2
-            height: vBottom.height + Theme.u * 5
-            sunken: true
-            outline: false
-            color: Qt.alpha(Theme.sunken, 0.35)
-        }
         BarSection {
             id: vTop
             anchors.top: parent.top
@@ -186,6 +175,7 @@ Item {
             anchors.right: parent.right
             ids: root.vertical ? root.layout.center.filter(id => id !== "lyrics").concat(root.layout.right) : []
             bar: root
+            grouped: true
             density: Config.bar.rightDensity || "normal"
         }
     }
@@ -202,18 +192,6 @@ Item {
         // the middle (they slide there and back); the lyrics then take the room on the left
         readonly property bool centered: Config.bar.taskbarAlign === "center"
 
-        // sunken Win98 notification area behind the right side of the taskbar
-        PxBox {
-            visible: right.implicitWidth > 0 && !root.hellInk
-            x: right.x - Theme.u * 4
-            width: right.width + Theme.u * 6
-            height: root.itemHeight
-            anchors.verticalCenter: parent.verticalCenter
-            sunken: true
-            outline: false
-            color: Qt.alpha(Theme.sunken, 0.35)
-        }
-
         BarSection {
             id: right
             anchors.right: parent.right
@@ -221,6 +199,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             ids: root.vertical ? [] : root.layout.right
             bar: root
+            grouped: true
             lyricsMax: Theme.u * 150
             density: Config.bar.rightDensity || "normal"
         }

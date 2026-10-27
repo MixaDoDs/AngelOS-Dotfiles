@@ -13,6 +13,7 @@ Item {
 
     readonly property var names: ({
             "classic": [I18n.t("Классика angelOS", "angelOS classic"), I18n.t("пиксельные окна Win98", "Win98 pixel windows")],
+            "win10": ["Win10", I18n.t("классика с плитками Windows 10", "classic with Windows 10's tiles")],
             "windose": ["Windose ♡", I18n.t("ОС из NEEDY GIRL OVERDOSE", "NEEDY GIRL OVERDOSE's OS")],
             "stream": [I18n.t("Стрим", "Stream"), I18n.t("как эфир Ame: LIVE и чат", "like Ame's stream: LIVE and chat")],
             "goldengate": ["Golden Gate", I18n.t("весь стол как macOS 27", "the whole desktop like macOS 27")]
@@ -63,6 +64,40 @@ Item {
                         border.width: 1
                         border.color: Theme.hi
                     }
+                }
+            }
+        }
+        // win10: flat tiles (a wide one in the accent) over a taskbar with the accent strip
+        Rectangle {
+            visible: root.skin === "win10"
+            anchors.fill: parent
+            color: Theme.face
+            border.width: Math.max(1, Theme.u / 2)
+            border.color: Theme.edge
+            Repeater {
+                // [column, row, width] in cells of a 4-wide grid
+                model: [[0, 0, 2], [2, 0, 1], [3, 0, 1], [0, 1, 1], [1, 1, 1], [2, 1, 2]]
+                Rectangle {
+                    required property var modelData
+                    readonly property real c: pic.width * 0.21
+                    x: pic.width * 0.08 + modelData[0] * c
+                    y: pic.height * 0.1 + modelData[1] * c
+                    width: modelData[2] * c - Theme.u
+                    height: c - Theme.u
+                    color: modelData[2] === 2 ? Theme.accent : Theme.menuHeader
+                }
+            }
+            Rectangle {
+                anchors.bottom: parent.bottom
+                width: parent.width
+                height: parent.height * 0.16
+                color: Theme.faceAlt
+                Rectangle {
+                    x: parent.width * 0.2
+                    anchors.bottom: parent.bottom
+                    width: parent.width * 0.12
+                    height: Math.max(2, Theme.u)
+                    color: Theme.accent
                 }
             }
         }

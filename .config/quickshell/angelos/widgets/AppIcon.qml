@@ -20,6 +20,8 @@ Item {
     readonly property string resolved: {
         let name = iconName;
         if (!name && appId) {
+            // the entries may come after the icon (a restart): look again once they're in
+            void DesktopEntries.applications.values;
             const e = DesktopEntries.heuristicLookup(appId);
             name = e && e.icon ? e.icon : appId;
         }

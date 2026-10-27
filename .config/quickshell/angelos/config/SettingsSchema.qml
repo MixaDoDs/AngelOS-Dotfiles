@@ -54,8 +54,9 @@ JsonAdapter {
         property string clockFormat: "auto" // auto (12 h in English, 24 h in Russian) | 24 | 12
         property string startLabel: "angelOS"
         property string startButtonStyle: "classic" // the bar's Start button: classic (bevelled, the logo) | capsule (an XP-like "start" pill in the accent)
-        property string startStyle: "classic" // classic (Win98 list) | win11 (centred, pinned grid) | fullscreen (iPhone-like app grid) | xmb (PSP) | spotlight (a search pill)
+        property string startStyle: "classic" // classic (Win98 list) | win11 (centred, pinned grid) | tiles (Windows 10: all apps + live tiles) | fullscreen (iPhone-like app grid) | xmb (PSP) | spotlight (a search pill)
         property var startPinned: []        // desktop entry ids pinned in Start
+        property var startTiles: ({})       // Win10's tiles Start: by a tile's key (app id, ~music, ~weather) "small" | "wide" | "off" (taken off); "~own": the pins are yours (no top-up)
         // the buttons along Start's bottom, in order (services/StartItems.buttons; unknown ids are skipped):
         // downloads | lock | sleep | power | reboot | logout | settings | home | terminal | updates | idle
         property var startButtons: ["updates", "lock", "sleep", "power"]
@@ -183,6 +184,7 @@ JsonAdapter {
         property bool remember: true        // angel-niri: programs pinned by hand open on their monitor and desk (services/WindowConfig)
         property bool clipboardKeep: true   // angel-niri: the clipboard outlives the program it was copied from (services/WindowConfig)
         property bool keepOnCopy: true      // angel-niri: a program doesn't minimize itself right after it copies (services/WindowConfig)
+        property bool deskThrow: true       // angel-niri: entering Desktop the windows of other desks fly in, the far ones break the screen (a cyberpunk glitch); leaving, they fly off (services/WindowConfig)
         property string buttonLook: "glyphs" // the pixel skins' window buttons, niri's and GTK's: glyphs (× _ □) | keys (square keys); Golden Gate keeps its lights
         // angel-niri: a floating window let go mid-drag flies on, bounces off the edges, squashes
         // against them and sways like jelly while dragged (services/WindowConfig); each 0 = off
@@ -469,6 +471,7 @@ JsonAdapter {
         property bool nautilusDefaults: false // angelOS Nautilus extensions + prefs applied once
         property bool strataDefaults: false // angelOS items in Strata's menu + its theme applied once (services/StrataSetup)
         property string qsWarned: ""        // the outdated Quickshell version already warned about (services/QsVersion)
+        property bool rebarWarned: false    // Resizable BAR off, already told; back to false once it is on (services/Care)
         property string primaryScreen: ""   // the main screen (widgets, the angel, the lock…); "" = the widest
         property bool primaryAsked: false   // asked once (MainScreenPrompt) where the main screen is, or it was picked already
         property var screenTune: ({})       // Monitor → Brightness and colour: {output: {brightness 0.3–1 (gamma), saturation −1…1 (NVIDIA vibrance)}} (services/ScreenTune)
@@ -861,7 +864,7 @@ JsonAdapter {
         property string view: "win11"
         property bool win11Once: false      // an install still on the old default (sidebar) moved to win11 once
         property string viewPicked: ""      // the view picked in the setup wizard — the player's first choice, kept when changed later
-        property string skin: "classic"     // classic angelOS | Windose desktop | stream studio
+        property string skin: "classic"     // classic angelOS | win10 (classic + Windows 10 tiles, Theme.win10) | Windose desktop | stream studio | goldengate
         // the Settings window's look (services/SettingsLook): win11 (the Windows 11 view, the default
         // while P5 is being redone) | p5 (the P5 window over the desk); asked once (SettingsLookPrompt)
         property string look: "win11"

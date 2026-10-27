@@ -48,6 +48,7 @@ Singleton {
             "bar.layout": ["Раскладка панели", "Bar layout"],
             "bar.hidden": ["Раскладка панели", "Bar layout"],
             "bar.startPinned": ["Закреплённое в «Пуске»", "Pinned in Start"],
+            "bar.startTiles": ["Размеры плиток «Пуска»", "Start tile sizes"],
             "bar.startButtons": ["Кнопки «Пуска»", "Start buttons"],
             "workspaces.names": ["Имена столов", "Workspace names"],
             "workspaces.switchFx": ["Анимация переключения", "Switch animation"],

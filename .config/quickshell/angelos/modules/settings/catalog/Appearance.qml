@@ -39,7 +39,7 @@ CatPage {
             }
         }
     }
-    // what the whole desktop wears: angelOS classic, Windose, Stream, or Golden Gate (macOS 27)
+    // what the whole desktop wears: angelOS classic, Win10, Windose, Stream, or Golden Gate (macOS 27)
     CatGroup {
         name: "skin"
         id: skinGroup
@@ -47,7 +47,7 @@ CatPage {
         icon: "window"
         CatNote {
             dim: true
-            text: I18n.t("Классика — исходный вид. Windose и Стрим — свои окна. Golden Gate — весь стол как macOS.", "Classic is the original look. Windose and Stream have their own windows. Golden Gate: the desk as macOS.")
+            text: I18n.t("Классика — исходный вид. Win10 — классика с плитками в «Пуске», полосками на кнопках окон и пузырями-подсказками. Windose и Стрим — свои окна. Golden Gate — весь стол как macOS.", "Classic is the original look. Win10: classic with tiles in Start, strips on the window buttons and bubble tips. Windose and Stream have their own windows. Golden Gate: the desk as macOS.")
         }
         CatCustom {
             wide: true
@@ -56,10 +56,10 @@ CatPage {
                     id: skinFlow
                     width: parent.width
                     spacing: Theme.u * 4
-                    // four in a row while each has room for its name, else two
-                    readonly property int cols: width >= Theme.u * 4 * 96 ? 4 : 2
+                    // all five in a row while each has room for its name, else three or two
+                    readonly property int cols: width >= Theme.u * 5 * 96 ? 5 : width >= Theme.u * 3 * 96 ? 3 : 2
                     Repeater {
-                        model: ["classic", "windose", "stream", "goldengate"]
+                        model: ["classic", "win10", "windose", "stream", "goldengate"]
                         SettingsSkinCard {
                             required property string modelData
                             skin: modelData

@@ -265,9 +265,19 @@ Item {
     }
 
     MouseArea {
-        // wheel anywhere on the row switches workspaces; in Desktop it is the volume, as in other desktops
+        // wheel anywhere on the row switches this screen's workspaces (the row isn't on the bar
+        // in Desktop); another screen in focus: the neighbouring desk here by its id — the plain
+        // up/down action would switch the focused screen's (DP-1, on air)
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
-        onWheel: w => WindowConfig.floatAll ? Audio.step(w.angleDelta.y > 0 ? 0.02 : -0.02) : root.screenName === Niri.focusedOutput ? WorkspaceAnim.go(w.angleDelta.y > 0 ? "up" : "down") : Niri.action(w.angleDelta.y > 0 ? "FocusWorkspaceUp" : "FocusWorkspaceDown", {})
+        onWheel: w => {
+            if (root.screenName === Niri.focusedOutput) {
+                WorkspaceAnim.go(w.angleDelta.y > 0 ? "up" : "down");
+                return;
+            }
+            const to = root.list[root.activeIndex + (w.angleDelta.y > 0 ? -1 : 1)];
+            if (to)
+                Niri.focusWorkspace(to.id);
+        }
     }
 }

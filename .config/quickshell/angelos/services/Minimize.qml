@@ -525,7 +525,11 @@ Singleton {
     property var flights: []                // [{key, id, output, rect, shot, back}]
     readonly property var flying: flights.map(f => f.id)
     property var dockSlots: ({})            // output + "|" + key -> [centre x, centre y, size], screen px
+    // asked right before a flight: the taskbar's buttons tell their places again (Tasks.qml) —
+    // the bar may have shifted under them without their own x changing
+    signal slotsWanted(string output)
     function slotOf(output, id) {
+        slotsWanted(output);
         // a hidden app's window (⌘H) flies into the app's icon (MacDock reports "@app:<app id>")
         if (hidden[id]) {
             const w = Niri.windows.find(x => x.id === id);

@@ -11,6 +11,7 @@ PxButton {
     // Caps Lock on: the key's arrow next to the layout, the button lit (with one layout it shows up for that alone)
     visible: Niri.keyboardLayouts.length > 1 || CapsLock.on
     compact: true
+    flat: true
     icon: CapsLock.on ? "caps" : ""
     checked: CapsLock.on
     text: Niri.layoutShort

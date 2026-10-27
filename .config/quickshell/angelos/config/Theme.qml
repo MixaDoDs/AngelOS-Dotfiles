@@ -613,6 +613,13 @@ Singleton {
     // by day the interface is a zine: flat boxes (widgets/PxBox), an outline, a solid shadow
     readonly property bool zine: !night && !macLook
     readonly property real shadowAlpha: zine ? (dayLook && dayLook.shadowAlpha || 1) : dark ? 0.55 : 0.35
+    // the Win10 skin (Config.settingsUi.skin "win10", the 2026-10-27 references): angelOS classic
+    // with Windows 10's taskbar buttons, RetroUI's bubbles, hard shadows and striped progress, and
+    // Start as tiles (StartTiles); the paradise only — hell and Golden Gate keep their own
+    readonly property bool win10: Config.ready && Config.settingsUi.skin === "win10" && !hell && !macLook
+    // the shell's own windows and menus (PxWindow, MenuLook): Win10's is a hard shadow stepped off
+    // down-right, solid like RetroUI's; else the soft one
+    readonly property color popShadow: win10 ? shadow : Qt.alpha(shadow, shadowAlpha)
     readonly property var ansi: base.ansi
 
     // translucent panel background (blur shows through)

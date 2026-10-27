@@ -56,6 +56,7 @@ Item {
         hiColor: root.windose ? Theme.mix(Theme.windosePaper, Theme.text, 0.15) : root.hell ? Theme.hellHi : Theme.hi
         loColor: root.windose ? Theme.windoseLine : root.hell ? Theme.hellLo : Theme.lo
         shadow: root.shadow
+        shadowColor: root.hell ? Qt.alpha(Theme.shadow, Theme.shadowAlpha) : Theme.popShadow
     }
 
     Rectangle {

@@ -341,6 +341,13 @@ CatPage {
             checked: WindowConfig.floatAll
             onToggled: c => WindowConfig.setFloatAll(c)
         }
+        CatToggle {
+            present: Niri.nativeMinimize && !GoldenGate.on
+            label: I18n.t("Бросок окон между столами", "Throwing windows between desks")
+            hint: I18n.t("Входишь в Desktop — окна с других столов прилетают по одному, с дальних врезаются в верх экрана, и он на несколько секунд «ломается» — рвётся полосами и мигает битыми блоками, потом втягивается обратно; выходишь — улетают вниз и пробивают низ. Окна прилетают меньше чем за секунду, работать можно сразу.", "Entering Desktop, the windows of other desks fly in one by one; the far ones slam into the top and the screen breaks for a few seconds — torn bands, flickering broken blocks — then pulls itself back together; leaving, they fall through the bottom. The windows land in under a second, you can work right away.")
+            checked: Config.windows.deskThrow
+            onToggled: c => Config.windows.deskThrow = c
+        }
         CatChoice {
             present: !GoldenGate.on
             label: I18n.t("Кнопки окна", "Window buttons")

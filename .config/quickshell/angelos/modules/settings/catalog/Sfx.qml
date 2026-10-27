@@ -30,6 +30,7 @@ CatPage {
             "workspace": [I18n.t("Смена стола", "Desk switch"), I18n.t("лёгкий взмах при переходе на другой стол", "A soft swish when you go to another desk")],
             "desktopOn": [I18n.t("Вход в Desktop", "Into Desktop"), I18n.t("8-битный перелив вверх, когда окна становятся как в обычной системе", "An 8-bit run up as the windows go Desktop")],
             "desktopOff": [I18n.t("Выход в Ленту", "Into the Strip"), I18n.t("8-битный перелив вниз, когда окна встают в колонки", "An 8-bit run down as the windows stand in columns")],
+            "windowCycle": [I18n.t("Перебор окон колесом", "Windows by the wheel"), I18n.t("тихий тик, когда колесо над кнопкой программы на панели выводит вперёд следующее её окно (Desktop)", "A soft tick as the wheel on an app's taskbar button brings its next window forward (Desktop)")],
             "lock": [I18n.t("Блокировка", "Lock"), ""],
             "unlock": [I18n.t("Разблокировка", "Unlock"), ""],
             "usbIn": [I18n.t("USB подключено", "USB plugged in"), I18n.t("флешка, мышь, геймпад; хаб со всем содержимым — один звук", "A stick, a mouse, a gamepad; a hub with everything on it is one sound")],
@@ -361,7 +362,7 @@ CatPage {
             wide: true
             CatBox {
                 Repeater {
-                    model: ["startup", "notify", "error", "windowOpen", "windowClose", "workspace", "desktopOn", "desktopOff", "usbIn", "usbOut", "open", "toggle", "harp", "screenshot", "volume", "wallpaper", "lock", "unlock", "shutdown"].concat(Config.windows.cobweb ? ["webSnap", "webSwipe", "webClear"] : [])
+                    model: ["startup", "notify", "error", "windowOpen", "windowClose", "workspace", "desktopOn", "desktopOff", "windowCycle", "usbIn", "usbOut", "open", "toggle", "harp", "screenshot", "volume", "wallpaper", "lock", "unlock", "shutdown"].concat(Config.windows.cobweb ? ["webSnap", "webSwipe", "webClear"] : [])
                     delegate: eventRow
                 }
             }

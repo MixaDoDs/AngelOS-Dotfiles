@@ -41,9 +41,9 @@ import qs.config
 Singleton {
     id: root
 
-    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "circleSin", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear", "desktopOn", "desktopOff"]
+    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "circleSin", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear", "desktopOn", "desktopOff", "windowCycle"]
     // off until switched on in System sounds (typing and such would surprise)
-    readonly property var optIn: ["clickRight", "key", "windowOpen", "workspace", "lock", "unlock"]
+    readonly property var optIn: ["clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "windowCycle"]
     // over a fullscreen window (a game, a film), when asked (y2k.quietFullscreen): all quiet but
     // these, the ones the player asks for. It used to be the clicks and keys only: notifications,
     // the chest and errors sounded over CS2 (16.10)
@@ -157,7 +157,7 @@ Singleton {
         }
     }
     // scripts/y2k-sounds.py PACK_VERSION: an older pack is synthesised again
-    readonly property string packVersion: "13"
+    readonly property string packVersion: "14"
     readonly property string base: Config.home + "/.local/share/angelos/sounds"
     readonly property string dir: base + "/y2k"
     readonly property string pack: ["overdose", "pc2k"].includes(Config.y2k.soundPack) ? Config.y2k.soundPack : "y2k"

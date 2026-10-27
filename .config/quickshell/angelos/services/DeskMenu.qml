@@ -922,7 +922,7 @@ Singleton {
             open.forEach(w => Minimize.request(w.id, "menu"));
         } else {
             const hid = here.filter(w => (deskHidden[screen] || []).includes(w.id));
-            (hid.length ? hid : here).forEach(w => Minimize.restore(w.id));
+            (hid.length ? hid : here).forEach(w => Minimize.restore(w.id, false, screen));
             delete deskHidden[screen];
         }
     }

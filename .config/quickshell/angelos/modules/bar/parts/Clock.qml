@@ -19,11 +19,15 @@ Item {
         const t = I18n.time(clock.date, false).split(" ");
         return [t[0], ((Config.bar.showSeconds ? Qt.formatTime(clock.date, ":ss") : "") + (t[1] ? " " + t[1] : "")).trim()];
     }
+    readonly property var timeParts: {
+        const t = I18n.time(clock.date, Config.bar.showSeconds).split(" ");
+        return [t[0], t.slice(1).join(" ")];
+    }
     // the hell bar (BarItem): the circle's text colours; the calendar open is its state
     property bool barInk: false
     readonly property bool barOpen: pop.visible
 
-    implicitWidth: col.implicitWidth + Theme.u * 8
+    implicitWidth: col.implicitWidth + Theme.u * (barInk ? 8 : 10)
     implicitHeight: col.implicitHeight
 
     // stands still under a fullscreen game or the lock screen
@@ -36,11 +40,26 @@ Item {
     Column {
         id: col
         anchors.centerIn: parent
-        PxText {
+        // the time; AM/PM (the 12-hour clock) small beside it, at the top like an index, so the
+        // digits keep the line to themselves (the font's digits are all one width: the seconds
+        // don't shake the bar)
+        Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: root.narrow ? root.narrowParts[0] : I18n.time(clock.date, Config.bar.showSeconds)
-            kind: root.showDate ? "body" : "title"
-            color: root.barInk ? (root.barOpen ? Theme.hellAccent : Theme.hellText) : Theme.text
+            spacing: Theme.u
+            PxText {
+                id: hours
+                // the hell bar keeps its one line
+                text: root.narrow ? root.narrowParts[0] : root.barInk ? I18n.time(clock.date, Config.bar.showSeconds) : root.timeParts[0]
+                kind: root.showDate ? "body" : "title"
+                color: root.barInk ? (root.barOpen ? Theme.hellAccent : Theme.hellText) : Theme.text
+            }
+            PxText {
+                visible: !root.narrow && !root.barInk && text !== ""
+                y: Theme.u
+                text: root.narrow ? "" : root.timeParts[1]
+                kind: "tiny"
+                color: root.barInk ? Theme.hellTextDim : Theme.textDim
+            }
         }
         PxText {
             visible: root.narrow && text !== ""

@@ -262,8 +262,10 @@ Scope {
                 return Math.floor(tick / 3) % 2 ? art.down : art.up;
             }
             readonly property int bob: Angel.transition || Motion.calm || Angel.tired >= 2 || grooving || (still && !stirring && !assistantBusy && !assistantMood) ? 0 : [0, 1, 2, 2, 1, 0, -1, -1][Angel.tired ? Math.floor(tick / 2) % 8 : tick % 8]
-            // she nods to the music (Settings → Y2K → Helper, services/Bass): each kick of the bass
-            // drops her two art pixels and back in two steps; her float stands still meanwhile, the beat moves her
+            // she nods to the music (Settings → Y2K → Helper, services/Bass): each beat drops her two
+            // art pixels and back in two steps; her float stands still meanwhile, the beat moves her.
+            // The beat is the kicks' tempo (Bass.beat), so a bass line doesn't shake her and a
+            // missed kick doesn't skip a nod; until the tempo is known, the kicks themselves
             readonly property bool grooving: !demonArt && Config.y2k.nod !== false && clockOn && Lyrics.playing && !Motion.calm && !Angel.transition
             onGroovingChanged: Bass.angelListens = grooving
             Component.onCompleted: Bass.angelListens = grooving
@@ -271,7 +273,13 @@ Scope {
             property int nod: 0
             Connections {
                 target: win.grooving ? Bass : null
+                function onBeat() {
+                    win.nod = 2;
+                    nodBack.restart();
+                }
                 function onKicked() {
+                    if (Bass.period > 0)
+                        return;
                     win.nod = 2;
                     nodBack.restart();
                 }

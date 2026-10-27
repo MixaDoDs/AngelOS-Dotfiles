@@ -21,6 +21,8 @@ Item {
     // cell; the icon is its outline in the icon colour, the accent only for a state (open, on,
     // the strike of "off")
     property bool barInk: false
+    // no face of its own at all (its host draws one: the taskbar's Win10-like buttons)
+    property bool bare: false
     // the face while pressed or on (classic skin): unset = the accent-tinted one; the Start
     // button sets a darker face so its accent-coloured logo still reads when it is pushed in
     property color downColor: "transparent"
@@ -74,7 +76,7 @@ Item {
     }
     PxBox {
         anchors.fill: parent
-        visible: !root.barInk && root.settingsSkin === "classic" && (!root.flat || mouse.containsMouse || root.checked)
+        visible: !root.barInk && !root.bare && root.settingsSkin === "classic" && (!root.flat || mouse.containsMouse || root.checked)
         sunken: root.down
         hell: root.hell
         // the light theme: a raised button stands on a one-pixel ink shadow, a pressed one sits on the paper

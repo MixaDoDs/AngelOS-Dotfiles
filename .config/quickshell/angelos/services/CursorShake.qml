@@ -20,6 +20,30 @@ Singleton {
     property var image: null
     readonly property bool wanted: Config.ready && Config.cursor.shake && (!Shell.dev || Quickshell.env("ANGELOS_DEV_SHAKE") === "1")
     readonly property real zoom: Math.max(1.5, Math.min(8, Config.cursor.shakeScale || 4))
+    // angel-niri draws the arrow bigger itself (set-cursor-zoom): the pointer keeps working over
+    // every window while it is big, as on macOS — no overlay, nothing handed on. Stock niri
+    // answers Err to the action: the overlay (modules/cursor/ShakeCursor) as before
+    property bool ownZoom: false
+    function _probe() {
+        Niri.request({
+            "Action": {
+                "SetCursorZoom": {
+                    "zoom": 1,
+                    "ms": 0
+                }
+            }
+        }, (ok, err) => root.ownZoom = !err, true);
+    }
+    function _zoomTo(z, ms) {
+        Niri.request({
+            "Action": {
+                "SetCursorZoom": {
+                    "zoom": z,
+                    "ms": Motion.calm ? 0 : ms
+                }
+            }
+        }, null, true);
+    }
 
     function pulse() {
         // games and fullscreen video: fast flicks are not a lost pointer
@@ -54,12 +78,16 @@ Singleton {
     }
     // the virtual pointer that hands clicks on: up while shaking is on, or since a demo
     property bool _shown: false
-    onShakingChanged: if (shaking)
-        _shown = true
+    onShakingChanged: {
+        if (ownZoom)
+            _zoomTo(shaking ? zoom : 1, shaking ? 170 : 240);
+        else if (shaking)
+            _shown = true;
+    }
     Process {
         id: hand
         property bool ok: false
-        running: root.wanted || root._shown
+        running: !root.ownZoom && (root.wanted || root._shown)
         stdinEnabled: true
         command: ["python3", "-u", Quickshell.shellDir + "/scripts/vpointer.py"]
         onRunningChanged: if (!running)
@@ -108,14 +136,20 @@ Singleton {
             status = "off";
         else if (!image)
             imager.load();
+        if (wanted)
+            _probe();
     }
 
     // the arrow of the current theme, again when the theme changes
     readonly property string theme: Cursors.active || "default"
     onThemeChanged: if (wanted)
         imager.load()
-    Component.onCompleted: if (wanted)
-        imager.load()
+    Component.onCompleted: {
+        // (asked whether the shake is on or not: Settings → Cursor → "Show me" uses it too)
+        _probe();
+        if (wanted)
+            imager.load();
+    }
     Process {
         id: imager
         function load() {

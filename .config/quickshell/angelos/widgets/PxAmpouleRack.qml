@@ -17,6 +17,9 @@ Item {
     property int rows: 13
     property bool vertical: false
     property bool barInk: false             // the hell bar: outlines in the bar's icon colour
+    // the bar's keys: the liquid in the accent like the icons' fills beside it, red only low
+    // (the palette picked in Settings stays for the panel and the preview)
+    property bool plain: false
     property var stops: Peripherals.stops
 
     readonly property var c: Config.peripherals
@@ -78,7 +81,7 @@ Item {
                     charging: cell.modelData.charging
                     asleep: cell.modelData.asleep
                     low: cell.low
-                    stops: root.stops
+                    stops: root.plain ? [Theme.hex(cell.low ? Theme.danger : Theme.accent)] : root.stops
                     paint: root.c.paint
                     steps: root.c.steps
                     glint: root.c.glint

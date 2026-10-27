@@ -20,8 +20,8 @@ import qs.config
 Singleton {
     id: root
 
-    readonly property var styles: ["classic", "win11", "fullscreen", "xmb", "spotlight"]
-    readonly property var popups: ["classic", "win11", "spotlight"]   // by the button; the rest fill the screen
+    readonly property var styles: ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"]
+    readonly property var popups: ["classic", "win11", "tiles", "spotlight"]   // by the button; the rest fill the screen
     readonly property var all: styles
 
     // every key: default, range or choices, the looks that use it, and where it is shown
@@ -32,7 +32,7 @@ Singleton {
                 "max": 180,
                 "step": 5,
                 "suffix": "%",
-                "styles": ["classic", "win11", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "spotlight"],
                 "group": "size"
             },
             "columns": {
@@ -41,7 +41,7 @@ Singleton {
                 "max": 10,
                 "step": 1,
                 "auto": true,
-                "styles": ["win11", "fullscreen"],
+                "styles": ["win11", "tiles", "fullscreen"],
                 "group": "size"
             },
             "rows": {
@@ -50,7 +50,7 @@ Singleton {
                 "max": 6,
                 "step": 1,
                 "auto": true,
-                "styles": ["win11", "fullscreen"],
+                "styles": ["win11", "tiles", "fullscreen"],
                 "group": "size"
             },
             "iconScale": {
@@ -59,12 +59,12 @@ Singleton {
                 "max": 160,
                 "step": 10,
                 "suffix": "%",
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "size"
             },
             "labels": {
                 "def": true,
-                "styles": ["win11", "fullscreen", "xmb"],
+                "styles": ["win11", "tiles", "fullscreen", "xmb"],
                 "group": "size"
             },
             // the whole menu bigger or smaller, laid out at that size on whole pixels (unit/iu below),
@@ -75,12 +75,12 @@ Singleton {
                 "max": 140,
                 "step": 5,
                 "suffix": "%",
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "size"
             },
             "user": {
                 "def": true,
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "sections"
             },
             "pinned": {
@@ -95,12 +95,12 @@ Singleton {
             },
             "power": {
                 "def": true,
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "sections"
             },
             "search": {
                 "def": true,
-                "styles": ["win11", "fullscreen", "xmb"],
+                "styles": ["win11", "tiles", "fullscreen", "xmb"],
                 "group": "sections"
             },
             "clock": {
@@ -120,22 +120,22 @@ Singleton {
                 "step": 5,
                 "auto": true,
                 "suffix": "%",
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "accent": {
                 "def": "",
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "shadow": {
                 "def": true,
-                "styles": ["classic", "win11"],
+                "styles": ["classic", "win11", "tiles"],
                 "group": "look"
             },
             "anim": {
                 "def": true,
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "animSpeed": {
@@ -144,51 +144,52 @@ Singleton {
                 "max": 200,
                 "step": 10,
                 "suffix": "%",
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "animKind": {
                 "def": "auto",
                 "choices": ["auto", "fade", "slide", "zoom"],
-                "styles": ["classic", "win11", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "spotlight"],
                 "group": "look"
             },
             "sound": {
                 "def": false,
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "look"
             },
             "sort": {
                 "def": "az",
                 "choices": ["az", "frequent"],
-                "styles": ["win11", "fullscreen", "xmb"],
+                "styles": ["win11", "tiles", "fullscreen", "xmb"],
                 "group": "behavior"
             },
             "openOn": {
                 "def": "focused",
                 "choices": ["focused", "pointer", "primary"],
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "behavior"
             },
             "withBar": {
                 "def": false,
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "behavior"
             },
             "clickOutside": {
                 "def": true,
-                "styles": ["classic", "win11", "fullscreen", "xmb", "spotlight"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb", "spotlight"],
                 "group": "behavior"
             },
             "typeSearch": {
                 "def": true,
-                "styles": ["classic", "win11", "fullscreen", "xmb"],
+                "styles": ["classic", "win11", "tiles", "fullscreen", "xmb"],
                 "group": "behavior"
             }
         })
 
     readonly property var stored: Config.bar.startPrefs || ({})
-    readonly property string current: styles.includes(Config.bar.startStyle) ? Config.bar.startStyle : "classic"
+    // the Win10 skin's Start is the tiles (Theme.win10); the other skins pick a look, never the tiles
+    readonly property string current: Theme.win10 ? "tiles" : styles.includes(Config.bar.startStyle) && Config.bar.startStyle !== "tiles" ? Config.bar.startStyle : "classic"
 
     function applies(style, key) {
         const k = keys[key];

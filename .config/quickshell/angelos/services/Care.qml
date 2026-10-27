@@ -91,6 +91,25 @@ Singleton {
         Quickshell.execDetached(["env", "ANGELOS_LANG=" + lang, "bash", Quickshell.shellPath("scripts/help-agent.sh")].concat(text ? [text] : []));
     }
     readonly property string lang: Config.appearance.language === "en" ? "en" : "ru"
+    // Resizable BAR (game-doctor.py rebar), asked once at the start: a notification each time it
+    // goes off — a BIOS reset drops it silently; the games doctor shows it always
+    property var rebar: null                // {id, level, ru, en} | {} (no card to check)
+    function rebarWarn() {
+        if (!rebar || !rebar.level || !Config.ready || Quickshell.env("ANGELOS_TEST") === "1")
+            return;
+        const off = rebar.level === "warn";
+        if (off && !Config.system.rebarWarned)
+            Quickshell.execDetached(["notify-send", "-a", "angelOS", "-i", "dialog-warning", I18n.t("Resizable BAR выключен", "Resizable BAR is off"), lang === "en" ? rebar.en : rebar.ru]);
+        if (Config.system.rebarWarned !== off)
+            Config.system.rebarWarned = off;
+    }
+    Connections {
+        target: Config
+        function onReadyChanged() {
+            root.rebarWarn();
+        }
+    }
+    Component.onCompleted: rebarProbe.running = true
 
     function size(n) {
         if (!n || n < 0)
@@ -187,6 +206,18 @@ Singleton {
             }
         }
         onExited: root.gameScan()
+    }
+    Process {
+        id: rebarProbe
+        command: ["python3", Quickshell.shellPath("scripts/game-doctor.py"), "rebar"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.rebar = JSON.parse(text);
+                } catch (e) {}
+                root.rebarWarn();
+            }
+        }
     }
     Timer {
         id: rescan

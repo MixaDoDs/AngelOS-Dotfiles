@@ -349,9 +349,11 @@ Scope {
                 if (sleep) {
                     if (sleep[1] === "true") {
                         root.sleeping = true;
+                        Shell.asleep = true;
                         Shell.lock();
                     } else {
                         root.sleeping = false;
+                        Shell.asleep = false;
                         Shell.resumed();
                         // in case the lock could not come up before sleeping
                         if (!Shell.locked)
@@ -386,9 +388,35 @@ Scope {
 
         WlSessionLockSurface {
             id: surface
-            color: Theme.desk
+            // going to sleep (Start → Sleep's black, or logind's PrepareForSleep): the lock comes
+            // up black over the black, so the last thing on screen is the CRT's dot, not a flash
+            // of the lock screen; it shows on waking
+            // (a waking logind never told about: the mouse moved over it shows the lock anyway)
+            readonly property bool dark: (Shell.sleepFx || root.sleeping) && !stirred
+            property bool stirred: false
+            Connections {
+                target: root
+                function onSleepingChanged() {
+                    surface.stirred = false;
+                }
+            }
+            color: dark ? "#000000" : Theme.desk
+            MouseArea {
+                anchors.fill: parent
+                enabled: surface.dark
+                hoverEnabled: true
+                cursorShape: Qt.BlankCursor
+                property point at: Qt.point(-1, -1)
+                onPositionChanged: m => {
+                    if (at.x >= 0 && Math.abs(m.x - at.x) + Math.abs(m.y - at.y) > 24)
+                        surface.stirred = true;
+                    else if (at.x < 0)
+                        at = Qt.point(m.x, m.y);
+                }
+            }
 
             LockScreen {
+                visible: !surface.dark
                 anchors.fill: parent
                 screenName: surface.screen ? surface.screen.name : ""
                 primary: !!surface.screen && surface.screen.name === root.lockMain

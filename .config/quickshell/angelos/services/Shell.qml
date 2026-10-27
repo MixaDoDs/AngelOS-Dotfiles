@@ -644,6 +644,9 @@ Singleton {
     // leaves a black screen; a click on it takes it away too. The dev stand never sleeps the
     // machine: it plays the fade and only logs.
     property bool sleepFx: false
+    // logind said the machine goes down (modules/lock: PrepareForSleep true), until it wakes:
+    // the black stays up however long the freezing and the GPU take
+    property bool asleep: false
     function suspend() {
         if (sleepFx)
             return;
@@ -661,9 +664,13 @@ Singleton {
             root.sleepOff.restart();
         }
     }
+    // the suspend never happened (refused, an inhibitor): the picture comes back after a while
     property Timer sleepOff: Timer {
         interval: 4000
-        onTriggered: root.sleepFx = false
+        onTriggered: if (root.asleep)
+            restart();
+        else
+            root.sleepFx = false
     }
     onResumed: {
         sleepOff.stop();

@@ -11,6 +11,7 @@ looked over in one go, and the three fixes that help most when a game stops star
                                         stay in the moved copy
   game-doctor.py clear-shaders ID|all Steam's shader cache of that game (all: of every game, and
                                         the NVIDIA / Mesa caches): compiled again on the next start
+  game-doctor.py rebar                the Resizable BAR check alone, as one JSON line ({} = no card to check)
   game-doctor.py ge-proton            the newest GE-Proton from its GitHub release, checked with the
                                         release's own sha512, into compatibilitytools.d
 
@@ -54,6 +55,42 @@ def installed(*names):
 
 def check(cid, level, ru, en):
     return {"id": cid, "level": level, "ru": ru, "en": en}
+
+
+def rebar():
+    """the Resizable BAR check, or None without a discrete NVIDIA/AMD card: off, the CPU sees the
+    card's memory through a 256 MB window (BIOS: Above 4G Decoding + Re-Size BAR), and a BIOS reset
+    (a flat CMOS battery) turns it off without a word"""
+    cards = {}
+    for dev in Path("/sys/bus/pci/devices").iterdir():
+        try:
+            if not (dev / "class").read_text().startswith("0x03"):
+                continue
+            vendor = (dev / "vendor").read_text().strip()
+            if vendor == "0x10de":
+                bars = []
+                for line in (dev / "resource").read_text().splitlines()[:6]:
+                    a, b = (int(x, 16) for x in line.split()[:2])
+                    bars.append(b - a + 1 if b else 0)
+                on = max(bars) > 256 << 20
+            elif vendor == "0x1002":
+                # amdgpu says the window itself; an APU sees all of its memory, so it never warns
+                on = int((dev / "mem_info_vis_vram_total").read_text()) >= int((dev / "mem_info_vram_total").read_text())
+            else:
+                # shortcut: Intel not checked (its iGPU has the same 256 MB window), add when an Arc owner asks
+                continue
+        except (OSError, ValueError):
+            continue
+        cards[GPU[vendor][0]] = cards.get(GPU[vendor][0], True) and on
+    if not cards:
+        return None
+    off = [n for n, on in cards.items() if not on]
+    if not off:
+        return check("rebar", "ok", "Resizable BAR включён", "Resizable BAR is on")
+    who = ", ".join(off)
+    return check("rebar", "warn",
+                 f"Resizable BAR выключен ({who}): в BIOS включи Above 4G Decoding и Re-Size BAR — без него в играх меньше кадров и больше фризов",
+                 f"Resizable BAR is off ({who}): turn on Above 4G Decoding and Re-Size BAR in the BIOS — without it games run slower and stutter more")
 
 
 def du(p):
@@ -187,6 +224,9 @@ def scan():
             checks.append(check("vulkan", "bad", "Vulkan не отвечает (vulkaninfo с ошибкой)", "Vulkan does not answer (vulkaninfo fails)"))
     else:
         checks.append(check("vulkan", "info", "Vulkan не проверен: нет vulkaninfo (пакет vulkan-tools)", "Vulkan not checked: no vulkaninfo (vulkan-tools)"))
+    bar = rebar()
+    if bar:
+        checks.append(bar)
     if pacman:
         for pkg, ru, en in (("gamemode", "gamemode (ускорение на время игры)", "gamemode (a boost while a game runs)"),
                             ("mangohud", "MangoHud (счётчик кадров)", "MangoHud (the frame counter)")):
@@ -341,6 +381,9 @@ def main(argv):
         return clear_shaders(argv[2])
     if cmd == "ge-proton":
         return ge_proton()
+    if cmd == "rebar":
+        print(json.dumps(rebar() or {}, ensure_ascii=False))
+        return 0
     print(__doc__, file=sys.stderr)
     return 2
 

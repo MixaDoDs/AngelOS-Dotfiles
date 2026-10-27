@@ -11,7 +11,7 @@ import qs.modules.settings.kit
 CatPage {
     id: page
     // the Start looks that fill the screen (no position, no size)
-    readonly property bool startFull: ["fullscreen", "xmb"].includes(Config.bar.startStyle)
+    readonly property bool startFull: ["fullscreen", "xmb"].includes(StartPrefs.current)
     heading: I18n.t("Панель и «Пуск»", "Bar and Start")
     subtitle: I18n.t("Таскбар как в Win98 — снизу, сверху или сбоку. Всё остальное — по ссылкам ниже.", "A Win98 taskbar — at the bottom, on top or on a side. Everything else is behind the links below.")
     CatGroup {
@@ -487,8 +487,14 @@ CatPage {
         name: "start-button"
         title: I18n.t("Вид меню", "Menu look")
         icon: "pill"
+        CatNote {
+            present: Theme.win10
+            dim: true
+            text: I18n.t("В скине Win10 «Пуск» — плитки (Оформление → Скин рабочего стола).", "In the Win10 skin Start is the tiles (Appearance → Desktop skin).")
+        }
         CatCustom {
             id: startStyleRow
+            present: !Theme.win10
             readonly property var styles: [
                 {
                     "label": I18n.t("Классика", "Classic"),
@@ -552,7 +558,7 @@ CatPage {
         CatChoice {
             id: startPosRow
             preview: "StartMenu"
-            present: !page.startFull && Config.bar.startStyle !== "spotlight"
+            present: !page.startFull && StartPrefs.current !== "spotlight"
             label: I18n.t("Где открывать", "Position")
             hint: I18n.t("«Авто»: классика — у кнопки, Windows 11 — посередине", "Auto: classic at the button, Windows 11 in the middle")
             model: [

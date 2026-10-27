@@ -12,7 +12,7 @@ binds {
     Mod+B                               hotkey-overlay-title="Open Browser" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos browser"; }
 
     // ─── angelOS ───
-    Mod+Alt+Space                       hotkey-overlay-title="angelOS: программы (лаунчер; ⌘Пробел — Spotlight)" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open launcher"; }
+    Mod+Alt+Space                       allow-inhibiting=false hotkey-overlay-title="angelOS: программы (лаунчер; ⌘Пробел — Spotlight)" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos open launcher"; }
 
     // Please set the text editor of your choice.
     // Mod+Shift+E                               hotkey-overlay-title="Open Text Editor: Zed" { spawn "zed"; }
@@ -118,8 +118,8 @@ binds {
     Mod+Shift+Tab                       repeat=false hotkey-overlay-title="Mac: переключатель программ, назад" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos alttab appsback"; }
     Mod+Grave                           hotkey-overlay-title="Mac: следующее окно этой программы" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos alttab appwin"; }
     Mod+Shift+Grave                     hotkey-overlay-title="Mac: предыдущее окно этой программы" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos alttab appwinback"; }
-    Mod+Space                           hotkey-overlay-title="Mac: Spotlight" { spawn-sh "qs -c angelos ipc call angelos startMenu ''"; }
-    Mod+Comma                           hotkey-overlay-title="Mac: Системные настройки angelOS" { spawn-sh "qs -c angelos ipc call angelos settings ''"; }
+    Mod+Space                           allow-inhibiting=false hotkey-overlay-title="Mac: Spotlight" { spawn-sh "qs -c angelos ipc call angelos startMenu ''"; }
+    Mod+Comma                           allow-inhibiting=false hotkey-overlay-title="Mac: Системные настройки angelOS" { spawn-sh "qs -c angelos ipc call angelos settings ''"; }
     Mod+Ctrl+F                          hotkey-overlay-title="Mac: полноэкранный режим" { fullscreen-window; }
     Mod+Shift+3                         repeat=false hotkey-overlay-title="Mac: снимок экрана" { spawn "@HOME@/.config/quickshell/angelos/scripts/mac-screenshot.sh" "screen"; }
     Mod+Shift+4                         repeat=false hotkey-overlay-title="Mac: снимок области" { spawn "@HOME@/.config/quickshell/angelos/scripts/mac-screenshot.sh" "region"; }

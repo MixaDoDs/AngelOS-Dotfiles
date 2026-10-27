@@ -506,7 +506,7 @@ Singleton {
     Binding {
         target: Weather
         property: "wanted"
-        value: root.weatherWanted || Halo.weatherWanted
+        value: root.weatherWanted || Halo.weatherWanted || StartPrefs.current === "tiles"
     }
     // ---- choosing a file or a folder for a widget (the picture; the desktop's file chooser,
     // scripts/pick-file.py), from Settings → Widgets or the widget's right-click menu ----

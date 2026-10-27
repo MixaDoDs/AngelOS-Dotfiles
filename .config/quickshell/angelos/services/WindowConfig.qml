@@ -281,6 +281,16 @@ Singleton {
             });
     }
     onKeepOnCopyChanged: applyKeepOnCopy()
+    // angel-niri: entering Desktop the other desks' windows are thrown in, leaving thrown back;
+    // where a far one hits, angel-niri breaks the picture itself for a few seconds
+    readonly property bool deskThrow: Niri.nativeMinimize && Config.windows.deskThrow
+    function applyDeskThrow() {
+        if (Niri.nativeMinimize)
+            Niri.action("SetDeskThrow", {
+                "on": deskThrow
+            });
+    }
+    onDeskThrowChanged: applyDeskThrow()
     // angel-niri: throwing floating windows — they fly on after a drag, bounce, squash, sway
     readonly property var windowThrow: {
         const w = Config.windows;
@@ -367,6 +377,7 @@ Singleton {
             root.applyThrow();
             root.applyClipboardKeep();
             root.applyKeepOnCopy();
+            root.applyDeskThrow();
             root.applyStacking();
         }
     }

@@ -21,7 +21,9 @@ PxButton {
     // a taskbar on a side edge (BarItem): one under another
     property bool vertical: false
     // the bar's cell is `height`; the ampoules take what is left of it above the shelf
-    readonly property int fit: vertical ? 13 : Math.max(9, Math.min(15, Math.floor(height / Theme.u) - 2))
+    // in the bar's grid (BarItem): as tall as the icons beside it
+    property bool barGrid: false
+    readonly property int fit: barGrid && !barInk ? 9 : vertical ? 13 : Math.max(9, Math.min(15, Math.floor(height / Theme.u) - 2))
 
     compact: true
     flat: true
@@ -40,6 +42,7 @@ PxButton {
         rows: root.fit
         vertical: root.vertical
         barInk: root.barInk
+        plain: root.barGrid && !root.barInk
     }
 
     // built when the pointer comes to the button, gone a while after it closed (LazyPopup)

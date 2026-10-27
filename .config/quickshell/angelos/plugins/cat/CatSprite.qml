@@ -67,7 +67,8 @@ Item {
         visible: !root.hell && !root.mac
         pixel: root.pixel
         bitmap: !visible ? Frames.sleep : root.pace === "idle" ? Frames.sleep.map((r, i) => root.frame === 1 && i < 2 ? r.replace(/y/g, ".") : r) : Frames.run(root.frame)
-        body: root.fur
+        // "from the theme": the fur of the bar's icons (their 'f'), so the cat reads as one of them
+        body: root.plugin && root.plugin.get("colorMode", "theme") === "custom" ? root.fur : Theme.dark ? Theme.toneOf("classic", "faceAlt") : Theme.toneOf("classic", "sunken")
         fill: Theme.accent
         fill3: Theme.accent2
         light: "#ffffff"

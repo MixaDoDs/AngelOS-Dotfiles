@@ -23,6 +23,38 @@ Loader {
     readonly property bool hellBar: !!bar && bar.hellInk
     // a taskbar on the left or the right edge (BarContent.vertical): the widgets in a column
     readonly property bool vertical: !!bar && bar.vertical === true
+    // the bar's grid (not on the hell bar, which keeps its own): every button in a cell as tall
+    // as the bar's, square for an icon alone, its icon in the middle — one step for all of them.
+    // The hearts, the lyrics, the runner and the player aren't buttons, and "show desktop" is the
+    // bar's end strip: they keep their own sizes.
+    readonly property bool gridded: !hellBar && !["workspaces", "lyrics", "runner", "media", "showdesk"].includes(wid)
+    // the run this widget is in (BarSection): its place there, for the gap before a new group
+    property var section: null
+    property int place: -1
+    // the groups of the right side, so it reads as a few runs instead of one row of icons:
+    // the plugins, the notices (tray, bell), the state (layout, network, charge, sound…), the time
+    function groupOf(id) {
+        if (id.startsWith("plugin:"))
+            return "plugins";
+        if (id === "tray" || id === "bell")
+            return "notices";
+        if (id === "clock" || id === "showdesk")
+            return "time";
+        if (["start", "workspaces", "tasks", "lyrics", "runner", "media"].includes(id))
+            return id;
+        return "state";
+    }
+    // a group begins here: the nearest widget shown before it is of another group
+    readonly property bool groupStart: {
+        if (!section || !section.grouped || hellBar || place < 1)
+            return false;
+        for (let i = place - 1; i >= 0; i--) {
+            const it = section.items[i];
+            if (it && it.visible)
+                return groupOf(it.wid) !== groupOf(wid);
+        }
+        return false;
+    }
     onLoaded: {
         if (item && item.vertical !== undefined)
             item.vertical = Qt.binding(() => root.vertical);
@@ -30,6 +62,8 @@ Loader {
             item.hpad = Qt.binding(() => root.dense ? Theme.u * 2 : -1);
         if (item && item.barInk !== undefined)
             item.barInk = Qt.binding(() => root.hellBar);
+        if (item && item.barGrid !== undefined)
+            item.barGrid = Qt.binding(() => root.gridded);
     }
     // an icon without words takes a square cell on the hell bar: one grid, equal steps
     readonly property bool iconOnly: !!item && item.barInk !== undefined && item.icon !== undefined && item.icon !== "" && item.text === ""
@@ -42,11 +76,14 @@ Loader {
     Layout.fillHeight: vertical && fillTasks && wid === "tasks" && Config.bar.tasksWidth !== "compact"
     // compact "Windows": grows only as far as its buttons need, the next widgets follow right after (issue #16)
     Layout.maximumWidth: !vertical && wid === "tasks" && (centered || (fillTasks && Config.bar.tasksWidth === "compact")) && item ? Math.max(Theme.u * 16, item.naturalWidth) : Number.POSITIVE_INFINITY
-    Layout.minimumWidth: !vertical && wid === "tasks" ? Theme.u * 16 : -1
-    Layout.preferredWidth: vertical ? -1 : wid === "tasks" ? (centered && item ? Math.max(Theme.u * 16, item.naturalWidth) : fillTasks ? Theme.u * 16 : Theme.u * 120) : hellBar && iconOnly ? bar.itemHeight : -1
-    Layout.minimumHeight: vertical && wid === "tasks" ? Theme.u * 16 : -1
+    Layout.minimumWidth: !vertical && wid === "tasks" ? Theme.u * 16 : !vertical && gridded && !!section ? section.cell : vertical && gridded && !!bar ? bar.itemHeight : -1
+    // upright: the keys as wide as the bar's cell, one under another
+    Layout.preferredWidth: vertical ? (gridded && wid !== "tasks" && !!bar ? bar.itemHeight : -1) : wid === "tasks" ? (centered && item ? Math.max(Theme.u * 16, item.naturalWidth) : fillTasks ? Theme.u * 16 : Theme.u * 120) : hellBar && iconOnly ? bar.itemHeight : gridded && iconOnly && !!section ? section.cell : -1
+    Layout.minimumHeight: vertical && wid === "tasks" ? Theme.u * 16 : vertical && gridded && !!section ? section.cell : -1
     // the hell bar: every widget as tall as the bar's cell, so the state plates are one height
-    Layout.preferredHeight: vertical ? (wid === "tasks" ? ((fillTasks && Config.bar.tasksWidth !== "compact") || !item ? Theme.u * 16 : Math.max(Theme.u * 16, item.naturalHeight)) : -1) : tall || hellBar ? bar.itemHeight : -1
+    Layout.preferredHeight: vertical ? (wid === "tasks" ? ((fillTasks && Config.bar.tasksWidth !== "compact") || !item ? Theme.u * 16 : Math.max(Theme.u * 16, item.naturalHeight)) : -1) : tall || hellBar || gridded ? bar.itemHeight : -1
+    Layout.leftMargin: !vertical && groupStart ? section.groupGap : 0
+    Layout.topMargin: vertical && groupStart ? section.groupGap : 0
     Layout.alignment: vertical ? Qt.AlignHCenter : Qt.AlignVCenter
     // Never bind a parent's visibility to its child's effective visibility:
     // once hidden during a track change, both can otherwise stay hidden.
@@ -91,6 +128,48 @@ Loader {
     HoverHandler {
         id: cellHover
         enabled: root.hellBar
+    }
+
+    // RetroUI's bubble over an icon the pointer rests on (the Win10 skin, Theme.win10):
+    // the widget's own `barTip`, else what it tells screen readers (its name, its state — the
+    // unread count, the volume…). A plugin only when it gives a barTip (some draw their own).
+    // Gone when its panel opens or a button goes down.
+    readonly property string tipText: {
+        if (!item || !Theme.win10 || hellBar || vertical)
+            return "";
+        if (item.barTip !== undefined)
+            return String(item.barTip || "");
+        if (wid.startsWith("plugin:") || ["tasks", "workspaces", "lyrics", "runner", "media", "start", "clock"].includes(wid))
+            return "";
+        const n = item.Accessible.name || "", d = item.Accessible.description || "";
+        return d ? n + ": " + d : n;
+    }
+    HoverHandler {
+        id: tipHover
+        enabled: root.tipText !== ""
+        onHoveredChanged: hovered ? tipWait.restart() : (tipWait.stop(), tip.visible = false)
+    }
+    TapHandler {
+        enabled: tip.visible
+        acceptedButtons: Qt.AllButtons
+        grabPermissions: PointerHandler.TakeOverForbidden
+        gesturePolicy: TapHandler.DragThreshold
+        onPressedChanged: if (pressed)
+            tip.visible = false
+    }
+    Timer {
+        id: tipWait
+        interval: 600
+        onTriggered: tip.visible = tipHover.hovered && !root.itemOpen && !(root.item && root.item.checked === true && root.item.barInk !== undefined && root.wid !== "awake" && root.wid !== "layout")
+    }
+    onItemOpenChanged: if (itemOpen)
+        tip.visible = false
+    PxTip {
+        id: tip
+        anchorItem: root
+        above: !!root.bar && root.bar.above
+        text: root.tipText
+        visible: false
     }
 
     // guided tips find bar elements by "bar:<id>"
@@ -278,33 +357,44 @@ Loader {
     }
     Component {
         id: pluginC
-        Loader {
-            id: plug
-            readonly property var p: Plugins.byId(root.wid.slice(7))
-            // the hell bar: a plugin with `hellBar` draws it itself; any other goes through the
-            // tint, so its sprite keeps its shape and its darks don't sink into the plate
-            readonly property bool own: !!item && item.hellBar !== undefined
-            readonly property bool barOpen: !!item && item.barOpen === true
-            layer.enabled: root.hellBar && !!item && !own
-            layer.effect: HellBarTint {}
-            onLoaded: if (own)
-                item.hellBar = Qt.binding(() => root.hellBar)
-            // a new path after the plugin was changed (Plugin Studio): load the new files
-            readonly property string src: p ? Plugins.url(p, p.barWidget) : ""
-            function load() {
-                if (p && !item)
-                    setSource(src, {
-                        "plugin": Plugins.context(p),
-                        "screenName": root.bar.screenName,
-                        "barWindow": root.bar.barWindow
-                    });
+        // the plugin in the middle of its cell, as the bar's own widgets stand in theirs; one
+        // drawn square and bigger than the cell (an icon with room around it) is fitted into it
+        Item {
+            readonly property bool barOpen: plug.barOpen
+            readonly property bool square: plug.item && plug.item.implicitWidth === plug.item.implicitHeight && root.gridded && !!root.bar && plug.item.implicitHeight > root.bar.itemHeight
+            implicitWidth: square ? root.bar.itemHeight : plug.implicitWidth
+            implicitHeight: square ? root.bar.itemHeight : plug.implicitHeight
+            Loader {
+                id: plug
+                anchors.centerIn: parent
+                width: parent.square ? parent.implicitWidth : implicitWidth
+                height: parent.square ? parent.implicitHeight : implicitHeight
+                readonly property var p: Plugins.byId(root.wid.slice(7))
+                // the hell bar: a plugin with `hellBar` draws it itself; any other goes through the
+                // tint, so its sprite keeps its shape and its darks don't sink into the plate
+                readonly property bool own: !!item && item.hellBar !== undefined
+                readonly property bool barOpen: !!item && item.barOpen === true
+                layer.enabled: root.hellBar && !!item && !own
+                layer.effect: HellBarTint {}
+                onLoaded: if (own)
+                    item.hellBar = Qt.binding(() => root.hellBar)
+                // a new path after the plugin was changed (Plugin Studio): load the new files
+                readonly property string src: p ? Plugins.url(p, p.barWidget) : ""
+                function load() {
+                    if (p && !item)
+                        setSource(src, {
+                            "plugin": Plugins.context(p),
+                            "screenName": root.bar.screenName,
+                            "barWindow": root.bar.barWindow
+                        });
+                }
+                onPChanged: load()
+                onSrcChanged: if (item) {
+                    source = "";
+                    load();
+                }
+                Component.onCompleted: load()
             }
-            onPChanged: load()
-            onSrcChanged: if (item) {
-                source = "";
-                load();
-            }
-            Component.onCompleted: load()
         }
     }
 }

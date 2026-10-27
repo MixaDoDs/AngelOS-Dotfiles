@@ -10,7 +10,7 @@ import qs.modules.mac
 
 // Start menu as a layer-shell overlay: opens from the Start button, from a
 // Meta tap or over IPC, takes the keyboard and closes on a click outside.
-// Looks (Settings → Bar → Start): classic Win98 list, Windows 11 panel — by the button;
+// Looks (Settings → Bar → Start): classic Win98 list, Windows 11 panel (the Win10 skin: tiles) — by the button;
 // iPhone-like grid, PSP XMB — the whole screen; Spotlight — a search pill centred in the
 // upper third. All of them animate
 // through `reveal` (0 → 1) and share the body interface: closeRequested, current,
@@ -31,7 +31,7 @@ Variants {
         readonly property bool hellish: Angel.demon && Config.y2k.hellStart === "hell"
         readonly property bool hellSkin: Angel.demon && Config.y2k.hellStart === "skin"
         // the Golden Gate skin: its own Spotlight (modules/mac/MacSpotlight)
-        readonly property string style: hellish ? "hell" : GoldenGate.on ? "mac" : StartPrefs.styles.includes(Config.bar.startStyle) ? Config.bar.startStyle : "classic"
+        readonly property string style: hellish ? "hell" : GoldenGate.on ? "mac" : StartPrefs.current
         readonly property bool full: style === "fullscreen" || style === "xmb"
         readonly property bool spot: style === "spotlight" || style === "mac"
         property bool shown: false
@@ -210,7 +210,7 @@ Variants {
             // win11 (and anything over a centred taskbar) slides up like Windows 11;
             // Fine-tune → Animation can make any of them fade, slide or zoom instead
             readonly property string kind: win.prefs.animKind || "auto"
-            readonly property bool slides: kind === "slide" || (kind === "auto" && (win.style === "win11" || Config.bar.taskbarAlign === "center"))
+            readonly property bool slides: kind === "slide" || (kind === "auto" && (win.style === "win11" || win.style === "tiles" || Config.bar.taskbarAlign === "center"))
             readonly property bool zooms: kind === "zoom" || (kind === "auto" && (win.style === "classic" || win.style === "hell") && !slides)
             // Spotlight: a fifth down the screen, dropping in a little
             y: win.full ? 0 : win.spot ? Math.round(win.height * 0.2) - (kind === "auto" || kind === "slide" ? (1 - win.reveal) * Theme.u * 10 : 0) : restY + (slides && !win.side ? (win.above ? 1 : -1) * (1 - win.reveal) * Theme.u * 24 : 0)
@@ -224,6 +224,7 @@ Variants {
                     "fullscreen": fullComp,
                     "xmb": xmbComp,
                     "win11": win11Comp,
+                    "tiles": tilesComp,
                     "spotlight": spotComp,
                     "mac": macComp,
                     "hell": hellComp
@@ -278,6 +279,10 @@ Variants {
         Component {
             id: win11Comp
             StartWin11 {}
+        }
+        Component {
+            id: tilesComp
+            StartTiles {}
         }
         Component {
             id: fullComp
