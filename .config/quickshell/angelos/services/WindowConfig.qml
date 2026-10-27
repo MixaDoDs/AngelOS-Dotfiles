@@ -287,10 +287,13 @@ Singleton {
     function applyDeskThrow() {
         if (Niri.nativeMinimize)
             Niri.action("SetDeskThrow", {
-                "on": deskThrow
+                "on": deskThrow,
+                "strength": ["calm", "normal", "wild"].indexOf(Config.windows.deskThrowFeel) < 0 ? 1 : ["calm", "normal", "wild"].indexOf(Config.windows.deskThrowFeel)
             });
     }
     onDeskThrowChanged: applyDeskThrow()
+    readonly property string deskThrowFeel: Config.windows.deskThrowFeel
+    onDeskThrowFeelChanged: applyDeskThrow()
     // angel-niri: throwing floating windows — they fly on after a drag, bounce, squash, sway
     readonly property var windowThrow: {
         const w = Config.windows;

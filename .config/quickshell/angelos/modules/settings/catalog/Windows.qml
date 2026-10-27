@@ -344,9 +344,30 @@ CatPage {
         CatToggle {
             present: Niri.nativeMinimize && !GoldenGate.on
             label: I18n.t("Бросок окон между столами", "Throwing windows between desks")
-            hint: I18n.t("Входишь в Desktop — окна с других столов прилетают по одному, с дальних врезаются в верх экрана, и он на несколько секунд «ломается» — рвётся полосами и мигает битыми блоками, потом втягивается обратно; выходишь — улетают вниз и пробивают низ. Окна прилетают меньше чем за секунду, работать можно сразу.", "Entering Desktop, the windows of other desks fly in one by one; the far ones slam into the top and the screen breaks for a few seconds — torn bands, flickering broken blocks — then pulls itself back together; leaving, they fall through the bottom. The windows land in under a second, you can work right away.")
+            hint: I18n.t("Входишь в Desktop — окна с других столов прилетают по одному, каждое своей дорогой; с дальних врезаются в верх экрана, и монитор «ломается»: чёрное пятно растёкшейся матрицы, линии, битые пиксели. Сначала заживают пиксели, потом втягивается пятно. Выходишь — окна улетают вниз. Звуки — в «Системных звуках».", "Entering Desktop, the windows of other desks fly in one by one, each its own way; the far ones slam into the top and the monitor breaks: a black blot of leaked crystal, lines, dead pixels. The pixels heal first, then the blot pulls back. Leaving, they fall off the bottom. Sounds are in System sounds.")
             checked: Config.windows.deskThrow
             onToggled: c => Config.windows.deskThrow = c
+        }
+        CatChoice {
+            present: Niri.nativeMinimize && !GoldenGate.on && Config.windows.deskThrow
+            label: I18n.t("Сила броска", "How hard they're thrown")
+            hint: Config.windows.deskThrowFeel === "calm" ? I18n.t("окна прилетают быстро и садятся со стуком, экран не ломается", "The windows come quickly and land with a knock; the screen doesn't break") : Config.windows.deskThrowFeel === "wild" ? I18n.t("паузы между окнами дольше, за ними пиксельный шлейф, экран трясёт сильнее, пятно больше и держится ~11 с", "Longer pauses between windows, pixel trails behind them, a harder shake, a bigger blot that lasts ~11 s") : I18n.t("дальние окна по одному, с замиранием на ударе и шлейфом; экран ломается на ~8 с", "The far windows one by one, freezing at the hit, with a trail; the screen breaks for ~8 s")
+            model: [
+                {
+                    "label": I18n.t("Тихо", "Calm"),
+                    "value": "calm"
+                },
+                {
+                    "label": I18n.t("Обычно", "Usual"),
+                    "value": "normal"
+                },
+                {
+                    "label": I18n.t("Хаос", "Chaos"),
+                    "value": "wild"
+                }
+            ]
+            currentValue: Config.windows.deskThrowFeel
+            onActivated: v => Config.windows.deskThrowFeel = v
         }
         CatChoice {
             present: !GoldenGate.on

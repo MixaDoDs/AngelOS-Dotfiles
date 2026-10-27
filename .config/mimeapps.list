@@ -173,5 +173,5 @@ application/x-7z-compressed=org.kde.ark.desktop
 application/x-tar=org.kde.ark.desktop
 application/vnd.rar=org.kde.ark.desktop
 application/x-compressed-tar=org.kde.ark.desktop
-x-scheme-handler/tg=userapp-freshGram-2931W3.desktop
-x-scheme-handler/tonsite=userapp-freshGram-Q793W3.desktop
+x-scheme-handler/tg=org.telegram.desktop.desktop
+x-scheme-handler/tonsite=org.telegram.desktop.desktop

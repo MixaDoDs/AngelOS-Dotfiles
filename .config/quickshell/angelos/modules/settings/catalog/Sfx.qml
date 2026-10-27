@@ -31,6 +31,11 @@ CatPage {
             "desktopOn": [I18n.t("Вход в Desktop", "Into Desktop"), I18n.t("8-битный перелив вверх, когда окна становятся как в обычной системе", "An 8-bit run up as the windows go Desktop")],
             "desktopOff": [I18n.t("Выход в Ленту", "Into the Strip"), I18n.t("8-битный перелив вниз, когда окна встают в колонки", "An 8-bit run down as the windows stand in columns")],
             "windowCycle": [I18n.t("Перебор окон колесом", "Windows by the wheel"), I18n.t("тихий тик, когда колесо над кнопкой программы на панели выводит вперёд следующее её окно (Desktop)", "A soft tick as the wheel on an app's taskbar button brings its next window forward (Desktop)")],
+            "deskCrash": [I18n.t("Окно разбило экран", "A window broke the screen"), I18n.t("бросок в Desktop: окно с дальнего стола врезается в верх — глухой удар, треск и гул битой матрицы; слышно и на стриме", "The Desktop throw: a window from a far desk slams into the top — a thump, crackle and the broken panel's buzz; heard on stream too")],
+            "deskKnock": [I18n.t("Окно встало на место", "A window knocked into place"), I18n.t("бросок в Desktop: окно стукается о край экрана — громче, чем сильнее удар", "The Desktop throw: a window knocks into an edge of the screen — the harder, the louder")],
+            "deskSlide": [I18n.t("Окно скользит", "A window sliding"), I18n.t("бросок в Desktop: шорох, пока окно едет после удара", "The Desktop throw: a scrape as a window slides on after its hit")],
+            "deskFly": [I18n.t("Окно летит", "A window flying"), I18n.t("бросок в Desktop: свист, нарастающий к удару", "The Desktop throw: a whoosh swelling into the hit")],
+            "deskDrop": [I18n.t("Окно упало вниз", "A window dropped"), I18n.t("выход из Desktop: окна улетают за низ экрана к своим столам", "Leaving Desktop: the windows fall off the bottom to their desks")],
             "lock": [I18n.t("Блокировка", "Lock"), ""],
             "unlock": [I18n.t("Разблокировка", "Unlock"), ""],
             "usbIn": [I18n.t("USB подключено", "USB plugged in"), I18n.t("флешка, мышь, геймпад; хаб со всем содержимым — один звук", "A stick, a mouse, a gamepad; a hub with everything on it is one sound")],
@@ -362,7 +367,7 @@ CatPage {
             wide: true
             CatBox {
                 Repeater {
-                    model: ["startup", "notify", "error", "windowOpen", "windowClose", "workspace", "desktopOn", "desktopOff", "windowCycle", "usbIn", "usbOut", "open", "toggle", "harp", "screenshot", "volume", "wallpaper", "lock", "unlock", "shutdown"].concat(Config.windows.cobweb ? ["webSnap", "webSwipe", "webClear"] : [])
+                    model: ["startup", "notify", "error", "windowOpen", "windowClose", "workspace", "desktopOn", "desktopOff", "windowCycle", "deskCrash", "deskKnock", "deskSlide", "deskFly", "deskDrop", "usbIn", "usbOut", "open", "toggle", "harp", "screenshot", "volume", "wallpaper", "lock", "unlock", "shutdown"].concat(Config.windows.cobweb ? ["webSnap", "webSwipe", "webClear"] : [])
                     delegate: eventRow
                 }
             }

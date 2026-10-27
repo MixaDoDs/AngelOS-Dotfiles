@@ -184,7 +184,8 @@ JsonAdapter {
         property bool remember: true        // angel-niri: programs pinned by hand open on their monitor and desk (services/WindowConfig)
         property bool clipboardKeep: true   // angel-niri: the clipboard outlives the program it was copied from (services/WindowConfig)
         property bool keepOnCopy: true      // angel-niri: a program doesn't minimize itself right after it copies (services/WindowConfig)
-        property bool deskThrow: true       // angel-niri: entering Desktop the windows of other desks fly in, the far ones break the screen (a cyberpunk glitch); leaving, they fly off (services/WindowConfig)
+        property bool deskThrow: true       // angel-niri: entering Desktop the windows of other desks fly in, the far ones break the screen (a broken LCD); leaving, they fly off (services/WindowConfig)
+        property string deskThrowFeel: "normal" // how hard: calm (they knock, nothing breaks) | normal | wild (further apart, trails, a bigger, longer break)
         property string buttonLook: "glyphs" // the pixel skins' window buttons, niri's and GTK's: glyphs (× _ □) | keys (square keys); Golden Gate keeps its lights
         // angel-niri: a floating window let go mid-drag flies on, bounces off the edges, squashes
         // against them and sways like jelly while dragged (services/WindowConfig); each 0 = off

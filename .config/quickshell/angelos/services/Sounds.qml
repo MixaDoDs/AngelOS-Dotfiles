@@ -25,8 +25,12 @@ import qs.config
 // shipped in data/sounds/hell, not synthesised); harp: the harp menu's strings, HarpLook;
 // webSnap/webSwipe/webClear:
 // the cobwebs' thread snapping, a swipe of their quick-time event, the web gone; desktopOn/Off:
-// the windows switching to Desktop or the Strip, an 8-bit arpeggio up or down). Quiet in stream
-// mode (StreamMode.quiet).
+// the windows switching to Desktop or the Strip, an 8-bit arpeggio up or down; deskCrash/Knock/Drop:
+// angel-niri's desk throw, a far window slamming into the top and the monitor breaking (three
+// takes), a near one knocking into place (two), one dropping off the bottom, the whoosh of one
+// setting off — each when it
+// happens, told by Niri.desksThrown). Quiet in stream mode (StreamMode.quiet), but for the throw:
+// it is part of the show on stream (owner's call 27.10).
 // The Golden Gate skin has a pack of its own (macEvents, below): original Mac-like sounds in
 // data/sounds/macos (scripts/mac-sounds.py), yours of the same name in
 // ~/.local/share/angelos/sounds/macos first; its own switch, volume and volume "pop" switch
@@ -41,7 +45,7 @@ import qs.config
 Singleton {
     id: root
 
-    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "circleSin", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear", "desktopOn", "desktopOff", "windowCycle"]
+    readonly property var events: ["startup", "notify", "error", "click", "shutdown", "angel", "wallpaper", "open", "toggle", "screenshot", "volume", "windowClose", "demon", "crack", "choir", "rocks", "shatter", "voice", "clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "usbIn", "usbOut", "bark", "circle", "circleSoft", "circleSin", "harp", "achievement", "stars", "chestOpen", "chestTick", "chestPrize", "chestLegend", "webSnap", "webSwipe", "webClear", "desktopOn", "desktopOff", "windowCycle", "deskCrash", "deskKnock", "deskDrop", "deskFly", "deskSlide"]
     // off until switched on in System sounds (typing and such would surprise)
     readonly property var optIn: ["clickRight", "key", "windowOpen", "workspace", "lock", "unlock", "windowCycle"]
     // over a fullscreen window (a game, a film), when asked (y2k.quietFullscreen): all quiet but
@@ -57,7 +61,9 @@ Singleton {
     readonly property var harpStrings: Array.from({
             "length": 16
         }, (_, i) => "harp" + (i + 1))
-    readonly property var extra: ["voiceAngel", "voiceDemon", "key2", "key3"].concat(fallenVoice).concat(harpStrings)
+    // heard on stream too, and never swallowed as a burst (they come timed, close together)
+    readonly property var show: ["deskCrash", "deskKnock", "deskDrop", "deskFly", "deskSlide"]
+    readonly property var extra: ["voiceAngel", "voiceDemon", "key2", "key3", "deskCrash2", "deskCrash3", "deskKnock2"].concat(fallenVoice).concat(harpStrings)
     readonly property string customDir: base + "/custom"
     readonly property var cute: ["open", "toggle", "screenshot", "volume", "windowClose"]
     readonly property var effects: ["crack", "choir", "rocks", "shatter", "voice", "bark", "circle", "circleSoft", "circleSin", "harp", "webSnap", "webSwipe", "webClear"]
@@ -157,7 +163,7 @@ Singleton {
         }
     }
     // scripts/y2k-sounds.py PACK_VERSION: an older pack is synthesised again
-    readonly property string packVersion: "14"
+    readonly property string packVersion: "18"
     readonly property string base: Config.home + "/.local/share/angelos/sounds"
     readonly property string dir: base + "/y2k"
     readonly property string pack: ["overdose", "pc2k"].includes(Config.y2k.soundPack) ? Config.y2k.soundPack : "y2k"
@@ -259,7 +265,7 @@ Singleton {
     }
     // `soft`: a share of the volume (the click's release tick)
     function playSoft(name, soft) {
-        if (!enabled(name) || StreamMode.quiet || quietNow())
+        if (!enabled(name) || (StreamMode.quiet && !show.includes(name)) || quietNow())
             return;
         if (!inGame.includes(name) && Config.y2k.quietFullscreen && fullscreenNow())
             return;
@@ -345,7 +351,7 @@ Singleton {
         if (!events.includes(name))
             return;
         // a burst of the same event (volume wheel, many toggles) plays once
-        if (!force && now - (lastAt[key] || 0) < (name === "volume" ? 140 : name === "click" || name === "clickRight" ? 45 : name === "key" ? 25 : transitions.includes(name) ? Story.soundGapMs : 90))
+        if (!force && !show.includes(name) && now - (lastAt[key] || 0) < (name === "volume" ? 140 : name === "click" || name === "clickRight" ? 45 : name === "key" ? 25 : transitions.includes(name) ? Story.soundGapMs : 90))
             return;
         lastAt[key] = now;
         const vol = String(Math.max(0, Math.min(1, volumeOf(name) * (soft || 1))));
@@ -361,6 +367,10 @@ Singleton {
         let id = chosen && events.concat(extra).includes(chosen) ? chosen : name;
         if (id === "key" && tweak("key").vary !== false)
             id = ["key", "key2", "key3"][Math.floor(Math.random() * 3)];
+        if (id === "deskCrash" && tweak("deskCrash").vary !== false)
+            id = ["deskCrash", "deskCrash2", "deskCrash3"][Math.floor(Math.random() * 3)];
+        if (id === "deskKnock" && tweak("deskKnock").vary !== false)
+            id = ["deskKnock", "deskKnock2"][Math.floor(Math.random() * 2)];
         if (id === "circleSin") {
             sounded(name);
             const f = _sinPaths();
@@ -679,4 +689,43 @@ Singleton {
                 root.play("angel");
         }
     }
+
+    // ---- angel-niri's desk throw: a sound right when each window hits a wall, as loud as it hit
+    // (a hard one breaks the screen), its scrape sliding on after, its whoosh as it sets off; the
+    // drop leaving ----
+    property var _deskDue: []
+    Connections {
+        target: Niri
+        function onDesksThrown(hits) {
+            const now = Date.now(), wild = Config.windows.deskThrowFeel !== "calm";
+            const power = t => t.power === undefined ? 1 : t.power;
+            const due = hits.filter(t => t.bottom || power(t) > 0.04).map(t => ({
+                        "at": now + (t.in_ms || 0),
+                        "name": t.bottom ? "deskDrop" : t.slide ? "deskSlide" : power(t) >= 0.55 && wild ? "deskCrash" : "deskKnock",
+                        "soft": t.bottom ? 1 : Math.min(1, 0.3 + 0.8 * power(t))
+                    })).concat(hits.filter(t => t.launch === undefined ? !t.bottom : t.launch).map(t => ({
+                        "at": now + (t.off_ms || 0),
+                        "name": "deskFly",
+                        "soft": 1
+                    })));
+            root._deskDue = root._deskDue.concat(due).sort((a, b) => a.at - b.at);
+            root._deskNext();
+        }
+    }
+    function _deskNext() {
+        const now = Date.now();
+        while (_deskDue.length && _deskDue[0].at <= now + 8) {
+            const d = _deskDue.shift();
+            playSoft(d.name, d.soft);
+        }
+        if (_deskDue.length) {
+            deskTimer.interval = Math.max(1, _deskDue[0].at - now);
+            deskTimer.restart();
+        }
+    }
+    Timer {
+        id: deskTimer
+        onTriggered: root._deskNext()
+    }
+
 }

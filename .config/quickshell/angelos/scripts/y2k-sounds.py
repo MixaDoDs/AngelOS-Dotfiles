@@ -8,7 +8,9 @@
                                variety) windowOpen workspace lock unlock usbIn
                                usbOut bark harp, the cobwebs' webSnap webSwipe
                                webClear, the window modes' desktopOn desktopOff,
-                               the taskbar wheel's windowCycle
+                               the taskbar wheel's windowCycle, the windows thrown
+                               between desks' deskCrash (+ deskCrash2 deskCrash3)
+                               deskKnock (+ deskKnock2) deskDrop deskFly deskSlide
                                as .ogg
                                (.wav without ffmpeg) and the pips voiceAngel
                                voiceDemon, voiceFallen1…5 and the harp's strings
@@ -104,10 +106,13 @@ LOUDNESS = {"bark": -24.0, "voiceAngel": -25.0, "voiceDemon": -26.0, "voice": -2
             "circle": -21.0, "circleSoft": -27.0, "achievement": -23.0, "stars": -31.0,
             "chestOpen": -27.0, "chestTick": -32.0, "chestPrize": -26.0, "chestLegend": -24.0,
             "webSnap": -27.0, "webSwipe": -28.0, "webClear": -25.0,
-            "desktopOn": -24.0, "desktopOff": -24.0, "windowCycle": -30.0}
+            "desktopOn": -24.0, "desktopOff": -24.0, "windowCycle": -30.0,
+            "deskCrash": -11.0, "deskCrash2": -11.0, "deskCrash3": -11.0,
+            "deskKnock": -13.0, "deskKnock2": -13.0, "deskDrop": -24.0, "deskFly": -22.0, "deskSlide": -20.0}
 # peaks, dBFS: the harp's strings ring together (a glissando stacks them)
 PEAKS = {"harp%d" % (i + 1): -10.0 for i in range(16)}
-PACK_VERSION = "14"
+PEAKS.update({"deskCrash": -1.0, "deskCrash2": -1.0, "deskCrash3": -1.0, "deskKnock": -1.5, "deskKnock2": -1.5})
+PACK_VERSION = "18"
 
 
 def startup():
@@ -736,6 +741,115 @@ def web_clear():
     return echo(buf, 0.1, 0.22, 2)
 
 
+def desk_crash(v=0):
+    """a far window slams into the top of the screen and the monitor breaks (angel-niri's
+    desk throw): a hard click, a heavy body falling from 120 to 42 Hz driven into saturation (so
+    the bass is heard on small speakers too) over a long sub tail, the glass cracking in a
+    burst of sharp ticks, then the panel dying — a thin crackle and a mains buzz stuttering in
+    the broken screen's 70 ms steps; `v` picks one of three takes"""
+    sec = 1.9
+    buf = np.zeros(int(sec * RATE))
+    rng = np.random.default_rng(40 + v)
+    pitch = (1.0, 0.9, 1.1)[v % 3]
+    # the click
+    z = noise(0.012, 90 + v)
+    place(buf, (z - lowpass(z, 2500)) * np.exp(-t_axis(0.012) * 400) * 1.4, 0.0)
+    # the body, saturated, and the sub under it
+    t = t_axis(1.1)
+    f = (42 + 80 * np.exp(-t * 18)) * pitch
+    body = np.sin(2 * np.pi * np.cumsum(f) / RATE) * np.exp(-t * 3.2)
+    place(buf, np.tanh(body * 3.0) * 0.9, 0.0)
+    ts = t_axis(1.4)
+    place(buf, np.sin(2 * np.pi * 38 * pitch * ts) * np.exp(-ts * 2.4) * np.clip(ts / 0.01, 0, 1) * 0.55, 0.0)
+    place(buf, lowpass(noise(0.18, 70 + v), 700) * np.exp(-t_axis(0.18) * 22) * 1.5, 0.0)
+    # the glass: sharp ticks running out in the first 80 ms, a few late ones
+    for k in range(26):
+        at = rng.uniform(0.0, 0.08) if k < 20 else rng.uniform(0.1, 0.5)
+        n = rng.uniform(0.002, 0.006)
+        z = noise(n, 200 + 13 * v + k)
+        place(buf, (z - lowpass(z, 5000)) * np.exp(-t_axis(n) * 900) * rng.uniform(0.3, 0.8), at)
+    # the panel: crackle and buzz, under it all
+    for k in range(40):
+        at = 0.06 + rng.exponential(0.25)
+        if at > 1.4:
+            continue
+        f0 = rng.uniform(2500, 7000)
+        n = rng.uniform(0.004, 0.014)
+        place(buf, pulse(f0, f0 * 0.8, n, 0.5) * np.exp(-t_axis(n) * 220) * rng.uniform(0.05, 0.16), at)
+    bt = t_axis(1.3)
+    buzz = lowpass(np.sign(np.sin(2 * np.pi * 100 * bt)), 600)
+    gate = np.repeat(rng.uniform(0, 1, int(1.3 / 0.07) + 2) > 0.35, int(0.07 * RATE))[:len(bt)]
+    place(buf, buzz * gate * np.exp(-bt * 2.4) * 0.16, 0.08)
+    return np.tanh(buf * 1.3)
+
+
+def desk_knock(v=0):
+    """a window from the next desk slams into its place: a hit with weight but nothing breaking —
+    a click, a body falling from 140 to 50 Hz driven into saturation over a short sub, a plastic
+    slap and its small rattle"""
+    sec = 0.8
+    buf = np.zeros(int(sec * RATE))
+    pitch = 1.0 + 0.08 * v
+    z = noise(0.01, 120 + v)
+    place(buf, (z - lowpass(z, 2500)) * np.exp(-t_axis(0.01) * 450) * 1.1, 0.0)
+    t = t_axis(0.6)
+    f = (50 + 90 * np.exp(-t * 22)) * pitch
+    place(buf, np.tanh(np.sin(2 * np.pi * np.cumsum(f) / RATE) * np.exp(-t * 5.5) * 3.0) * 0.9, 0.0)
+    ts = t_axis(0.7)
+    place(buf, np.sin(2 * np.pi * 45 * pitch * ts) * np.exp(-ts * 4.5) * np.clip(ts / 0.01, 0, 1) * 0.45, 0.0)
+    place(buf, lowpass(noise(0.08, 30 + 3 * v), 1600) * np.exp(-t_axis(0.08) * 45) * 1.4, 0.0)
+    place(buf, lowpass(noise(0.04, 31 + 3 * v), 2400) * np.exp(-t_axis(0.04) * 80) * 0.35, 0.07 + 0.01 * v)
+    return np.tanh(buf * 1.2)
+
+
+def desk_fly():
+    """a window flying up from below: a whoosh rising and swelling into its hit"""
+    sec = 0.34
+    n = int(sec * RATE)
+    t = t_axis(sec)
+    x = noise(sec, 57)
+    cut = 300 + 3200 * (t / sec) ** 2
+    y = np.empty(n)
+    acc = 0.0
+    for i in range(n):
+        a = np.exp(-2 * np.pi * cut[i] / RATE)
+        acc = (1 - a) * x[i] + a * acc
+        y[i] = acc
+    return y * (t / sec) ** 1.6 * np.clip((sec - t) / 0.015, 0, 1)
+
+
+def desk_slide():
+    """a window sliding on over the screen after its hit, braking: a dry scrape catching and
+    letting go (stick-slip) in a band of noise, fading as it stops"""
+    sec = 0.75
+    n = int(sec * RATE)
+    t = t_axis(sec)
+    rng = np.random.default_rng(61)
+    hi = lowpass(noise(sec, 61), 2600)
+    band = hi - lowpass(hi, 700)
+    grit = np.repeat(rng.uniform(0.25, 1.0, int(sec / 0.012) + 2), int(0.012 * RATE))[:n]
+    speed = np.clip(1 - t / sec, 0, 1) ** 1.4
+    rumble = lowpass(noise(sec, 62), 240) * 0.6
+    y = (band * grit * (0.4 + 0.6 * speed) + rumble) * speed
+    return y * np.clip(t / 0.01, 0, 1)
+
+
+def desk_drop():
+    """a window drops off the bottom to its desk: a short falling whoosh"""
+    sec = 0.5
+    n = int(sec * RATE)
+    t = t_axis(sec)
+    x = noise(sec, 55)
+    cut = 2600 * np.exp(-t * 5) + 250
+    y = np.empty(n)
+    acc = 0.0
+    for i in range(n):
+        a = np.exp(-2 * np.pi * cut[i] / RATE)
+        acc = (1 - a) * x[i] + a * acc
+        y[i] = acc
+    return y * np.sin(np.pi * np.minimum(1, t / sec)) ** 1.5
+
+
 SOUNDS = {"startup": startup, "notify": notify, "error": error, "click": click, "shutdown": shutdown, "angel": angel,
           "wallpaper": wallpaper, "open": open_, "toggle": toggle, "screenshot": screenshot, "volume": volume,
           "windowClose": window_close, "demon": demon, "crack": crack, "choir": choir, "rocks": rocks,
@@ -751,7 +865,10 @@ SOUNDS = {"startup": startup, "notify": notify, "error": error, "click": click, 
           "chestPrize": chest_prize, "chestLegend": chest_legend,
           "webSnap": web_snap, "webSwipe": web_swipe, "webClear": web_clear,
           "desktopOn": lambda: desktop_mode(True), "desktopOff": lambda: desktop_mode(False),
-          "windowCycle": window_cycle}
+          "windowCycle": window_cycle,
+          "deskCrash": desk_crash, "deskCrash2": lambda: desk_crash(1), "deskCrash3": lambda: desk_crash(2),
+          "deskKnock": desk_knock, "deskKnock2": lambda: desk_knock(1), "deskDrop": desk_drop,
+          "deskFly": desk_fly, "deskSlide": desk_slide}
 SOUNDS.update({"harp%d" % (i + 1): (lambda i=i: harp_string(i)) for i in range(16)})
 # played by QtMultimedia's SoundEffect, which only takes .wav
 WAV_ONLY = {"voiceAngel", "voiceDemon", "voiceFallen1", "voiceFallen2", "voiceFallen3", "voiceFallen4", "voiceFallen5"} | {"harp%d" % (i + 1) for i in range(16)}

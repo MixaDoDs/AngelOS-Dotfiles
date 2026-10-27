@@ -95,6 +95,8 @@ Singleton {
     // angel-niri, stacking mode: a right click on a window's title bar, at `pos` on `output`
     // (logical px) — Shell.desktopMenus opens the window's menu there
     signal windowMenuRequested(int id, string output, var pos, bool green)
+    // angel-niri's desk throw: when each thrown window lands, hits or drops ({output, pos, in_ms, far, bottom})
+    signal desksThrown(var hits)
     signal layoutSwitched(string name)
     signal configLoaded(bool failed)
     signal windowClosed(int id)
@@ -457,6 +459,10 @@ Singleton {
         case "WindowMenuRequested":
             if (ready)
                 windowMenuRequested(d.id, d.output || "", d.pos || [0, 0], !!d.green);
+            break;
+        case "DesksThrown":
+            if (ready)
+                desksThrown(d.throws || []);
             break;
         case "WindowClosed":
             if (d.id === castWindowId) {
