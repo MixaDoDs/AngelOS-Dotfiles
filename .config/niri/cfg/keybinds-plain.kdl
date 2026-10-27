@@ -8,14 +8,14 @@ binds {
     Mod+Shift+ESCAPE                     { show-hotkey-overlay; }
 
     // ─── Applications ───
-    Mod+T                          hotkey-overlay-title="Open Terminal: kitty" { spawn "kitty"; }
-    Mod+B                               hotkey-overlay-title="Open Browser: default" { spawn-sh "xdg-open about:blank"; }
+    Mod+T                          repeat=false hotkey-overlay-title="Open Terminal: kitty" { spawn "kitty"; }
+    Mod+B                               repeat=false hotkey-overlay-title="Open Browser: default" { spawn-sh "xdg-open about:blank"; }
 
     // --- Launcher / media / brightness (без оболочки) ---
-    Mod+Space                    hotkey-overlay-title="Open App Launcher: fuzzel" { spawn "fuzzel"; }
-    Mod+ALT+L                           hotkey-overlay-title="Lock Screen" { spawn-sh "loginctl lock-session"; }
+    Mod+Space                    repeat=false hotkey-overlay-title="Open App Launcher: fuzzel" { spawn "fuzzel"; }
+    Mod+ALT+L                           repeat=false hotkey-overlay-title="Lock Screen" { spawn-sh "loginctl lock-session"; }
     Mod+Shift+Q                         hotkey-overlay-title="Quit niri" { quit; }
-    Mod+V                               hotkey-overlay-title="Clipboard history (cliphist+fuzzel)" { spawn-sh "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }
+    Mod+V                               repeat=false hotkey-overlay-title="Clipboard history (cliphist+fuzzel)" { spawn-sh "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }
     XF86AudioRaiseVolume                allow-when-locked=true { spawn-sh "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"; }
     XF86AudioLowerVolume                allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
     XF86AudioMute                       allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
@@ -34,7 +34,7 @@ binds {
     // Mod+Shift+E                               hotkey-overlay-title="Open Text Editor: Zed" { spawn "zed"; }
 
     // Please choose your own file manager.
-    Mod+E                               hotkey-overlay-title="File Manager: Nautilus" { spawn "nautilus"; }
+    Mod+E                               repeat=false hotkey-overlay-title="File Manager: Nautilus" { spawn "nautilus"; }
 
     // ─── Media Controls ───
 
@@ -147,8 +147,8 @@ binds {
     Mod+M                               { maximize-window-to-edges; }
 
     // ─── Screenshots (Win+Shift+S style) ───
-    Mod+Shift+S                         hotkey-overlay-title="Screenshot: region → Screenshots (ropes)" { spawn "@HOME@/.local/bin/niri-screenshot-region"; }
-    Mod+Shift+T                         hotkey-overlay-title="OCR: region to clipboard" { spawn "@HOME@/.local/bin/niri-ocr"; }
+    Mod+Shift+S                         repeat=false hotkey-overlay-title="Screenshot: region → Screenshots (ropes)" { spawn "@HOME@/.local/bin/niri-screenshot-region"; }
+    Mod+Shift+T                         repeat=false hotkey-overlay-title="OCR: region to clipboard" { spawn "@HOME@/.local/bin/niri-ocr"; }
     Mod+Shift+V                         repeat=false hotkey-overlay-title="Voice: toggle dictation" { spawn "@HOME@/.local/bin/voxtype" "record" "toggle"; }
     CTRL+Shift+2                        { screenshot-screen; }
     CTRL+Shift+3                        { screenshot-window; }

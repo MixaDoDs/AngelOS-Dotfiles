@@ -224,6 +224,20 @@ case "$1" in
   # hang) or not woken once in it (stuck) — after a miss, and once a minute anyway
   # (ANGELOS_GUARD_EVERY). The look is two reads of /proc by the shell's builtins: a tick
   # starts nothing but its `sleep`.
+  # after a crash Quickshell starts again inside the same process (exec, no new pid): the helpers of
+  # the shell that crashed stay its children, their pipes read by nobody, and the new shell starts
+  # its own — two of each, a third after the next crash (#128). Those whose output pipe the shell
+  # no longer holds go; run by the shell at start (shell.qml), so the parent is the shell
+  stale)
+    sp="${2:-$PPID}"
+    fds="$(ls -l "/proc/$sp/fd" 2>/dev/null)" || exit 0
+    for p in $(pgrep -P "$sp"); do
+      [ "$p" = "$$" ] && continue
+      out="$(readlink "/proc/$p/fd/1" 2>/dev/null)" || continue
+      case "$out" in pipe:*) ;; *) continue ;; esac
+      printf '%s\n' "$fds" | grep -qF -- "$out" && continue
+      kill "$p" 2>/dev/null
+    done ;;
   guard)
     pid="${2:?pid}" misses=0 first="${ANGELOS_GUARD_FIRST:-25}" tick="${ANGELOS_GUARD_TICK:-3}" probe_timeout="${ANGELOS_GUARD_TIMEOUT:-2}"
     every="${ANGELOS_GUARD_EVERY:-60}" hz="$(getconf CLK_TCK 2>/dev/null || echo 100)" last_cpu="" last_sw="" since=0

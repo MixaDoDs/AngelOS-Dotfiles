@@ -3,6 +3,7 @@
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 import qs.services
 import qs.modules
@@ -141,6 +142,12 @@ ShellRoot {
     Component {
         id: setupFxTypeAnchor
         SetupFx {}
+    }
+
+    // helpers left by a shell that crashed: Quickshell restarted in the same process (bin/angelos stale)
+    Process {
+        running: true
+        command: [Quickshell.shellDir + "/bin/angelos", "stale"]
     }
 
     Component.onCompleted: {

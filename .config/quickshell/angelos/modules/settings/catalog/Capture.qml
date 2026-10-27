@@ -415,6 +415,18 @@ CatPage {
             currentValue: Config.capture.discordMb
             onActivated: v => Config.capture.discordMb = v
         }
+        // extras/mediafix: Strata's and Nautilus's «Prepare for DaVinci Resolve», Quick Look's «for editing» (#126)
+        CatCustom {
+            wide: true
+            CatBox {
+                DirRow {
+                    label: I18n.t("Папка для видео под DaVinci", "Folder for DaVinci videos")
+                    key: "mediafixDir"
+                    fallback: "~/Videos/MediaFix"
+                    pickTitle: I18n.t("Куда класть видео для DaVinci Resolve", "Where videos for DaVinci Resolve go")
+                }
+            }
+        }
         // the keys pressed, on screen (services/KeyCast): for guides and streams
         CatToggle {
             label: I18n.t("Показывать нажатые клавиши", "Show the keys pressed")

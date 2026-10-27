@@ -173,6 +173,14 @@ def terminal():
     return None
 
 
+def mediafix_dir():
+    """Settings → Screenshots and recording → the DaVinci folder; "" = mediafix's own ~/Videos/MediaFix"""
+    try:
+        return (json.loads((CONFIG / "angelos/settings.json").read_text()).get("capture") or {}).get("mediafixDir") or ""
+    except (OSError, ValueError, AttributeError):
+        return ""
+
+
 def mediafix(files):
     term = terminal()
     if not term:
@@ -185,7 +193,8 @@ def mediafix(files):
     base = os.path.basename(term)
     argv = [term, *inner] if base in ("kitty", "foot") else [term, "start", "--", *inner] if base == "wezterm" \
         else [term, "--", *inner] if base == "gnome-terminal" else [term, "-e", *inner]
-    subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    env = dict(os.environ, MEDIAFIX_DIR=mediafix_dir()) if mediafix_dir() else None
+    subprocess.Popen(argv, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
     return {"ok": True}
 
 

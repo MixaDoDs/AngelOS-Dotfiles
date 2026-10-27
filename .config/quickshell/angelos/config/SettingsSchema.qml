@@ -432,6 +432,7 @@ JsonAdapter {
         property string recordCodec: "auto" // auto (NVENC on NVIDIA, else VA-API, else x264) | nvenc | vaapi | x264
         property bool replay: false         // instant replay: the last seconds of the main screen kept in memory, Mod+Alt+G saves them (services/Capture)
         property int replaySec: 30
+        property string mediafixDir: ""     // "" = ~/Videos/MediaFix — «Prepare for DaVinci Resolve» (extras/mediafix: Strata, Nautilus, Quick Look's «for editing»)
         property int discordMb: 20          // «≤20 MB for Discord» (services/VideoGrab): the size a video is squeezed under
         property bool timelapse: false      // the day's timelapse: gpu-screen-recorder writes the main screen at a frame a second, glued at midnight (services/Timelapse)
         property int timelapseStep: 30      // a frame of the video every this many seconds of the day
