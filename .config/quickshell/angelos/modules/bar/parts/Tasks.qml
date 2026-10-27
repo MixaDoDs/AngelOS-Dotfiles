@@ -629,34 +629,9 @@ Item {
     }
     LazyLoader {
         active: blink.running
-        PanelWindow {
-            screen: Shell.screenByName(root.screenName)
-            anchors {
-                top: true
-                bottom: true
-                left: true
-                right: true
-            }
-            exclusionMode: ExclusionMode.Ignore
-            color: "transparent"
-            mask: Region {}
-            WlrLayershell.namespace: "angelos-window-flash"
-            RightClickGuard {}
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-            // a step outside the window, clear of niri's focus ring, which lights up at the same moment
-            Rectangle {
-                readonly property real gap: Theme.u * 5
-                x: root.flashRect.x - gap
-                y: root.flashRect.y - gap
-                width: root.flashRect.width + gap * 2
-                height: root.flashRect.height + gap * 2
-                color: "transparent"
-                border.width: Theme.u * 3
-                border.color: Qt.alpha(Theme.accent, 0.25)
-                visible: root.flashOn
-            }
-        }
+        source: Qt.resolvedUrl("WindowFlash.qml")
+        onItemChanged: if (item)
+            item.host = root
     }
     property bool flashOn: false
     SequentialAnimation {

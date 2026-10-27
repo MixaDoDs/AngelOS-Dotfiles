@@ -1,15 +1,15 @@
 {
   "_comment": "angel-niri, angelOS's fork of niri (scripts/angel-niri-install.sh): the build users get. A new one: ~/Work/AngelOS/tools/angel-niri-release on the author's machine rewrites this file",
-  "commit": "5285376a85240322405887d4e87a94e1b2b46386",
+  "commit": "ce52b4a8f80b6599292ee35604d189b35da4874e",
   "smithay": "ec59eb578b44be84a5ba0e6bf6a03b3108bf069e",
-  "tag": "angelos-5285376a",
-  "asset": "angel-niri-5285376a-x86_64.tar.zst",
-  "sha256": "cf8e5d6e9d15ad01dca50ed1824b340e926cf936dd9ac6e6f0e157f20486da18",
+  "tag": "angelos-ce52b4a8",
+  "asset": "angel-niri-ce52b4a8-x86_64.tar.zst",
+  "sha256": "161305ce3d3e14c27d7920bd6d01a00ceb408fa11f8f748cc5ea8e36a1d595a2",
   "repo": "MixaDoDs/angel-niri",
   "smithay_repo": "MixaDoDs/angel-smithay",
-  "satellite_commit": "5a248938fb54b70c72a0277786a992078ae74c90",
-  "satellite_tag": "angelos-5a248938",
-  "satellite_asset": "angel-satellite-5a248938-x86_64.tar.zst",
-  "satellite_sha256": "31d37c1b13bf76b429bf79e7976a0ff0bff3189979affaf21155bde5efd5c552",
+  "satellite_commit": "42184a858f87d48eeef52bc2d230172634cd7f51",
+  "satellite_tag": "angelos-42184a85",
+  "satellite_asset": "angel-satellite-42184a85-x86_64.tar.zst",
+  "satellite_sha256": "fe0d61893957c9dab9206295ff64404752d1b5d29f80835873d3f6b15908acd3",
   "satellite_repo": "MixaDoDs/angel-satellite"
 }

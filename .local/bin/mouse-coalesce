@@ -8,6 +8,10 @@ flag ($XDG_RUNTIME_DIR/niri-game-mode/game) exists, grab the real mouse and repl
 a uinput copy, motion summed into at most RATE reports a second. Buttons and the wheel go
 through at once, and motion waits at most 1/RATE s. Flag gone → ungrab, the mouse is raw again.
 
+A mouse angelOS's device driver can set (scripts/devices.py: LAMZU's 8K dongle) is not thinned
+at all: its own polling rate goes down to RATE for the game and back after it. Nothing then
+sits between the mouse and the game — no grab, no uinput copy, no wait for the next slot.
+
     mouse-coalesce [--rate 2000] [--device /dev/input/by-id/...-event-mouse]
 
 Without --rate it is angelOS's setting (settings.json gaming.mouseRate, the setup wizard's
@@ -36,6 +40,9 @@ from evdev import ecodes as e
 GAME_FLAG = Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}") / "niri-game-mode/game"
 DEVICE_GLOB = "/dev/input/by-id/*-event-mouse"
 SETTINGS = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "angelos/settings.json"
+ANGELOS_SCRIPTS = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "quickshell/angelos/scripts"
+# the rate the mouse had before the game: put back after it, even across a crash or a restart
+HW_SAVED = GAME_FLAG.parent / "mouse-rate.json"
 
 
 def gaming() -> dict:
@@ -65,6 +72,88 @@ def find_device(path: str | None) -> str | None:
     if want:
         hits = [h for h in hits if want in os.path.basename(h)] or hits
     return hits[0] if hits else None
+
+
+def hw_set(hz: int, down: bool = False) -> int | None:
+    """Set the mouse's own polling rate through angelOS's driver (down: only when it is faster);
+    the rate it had before. None: no mouse the driver can set to hz — thinned here instead.
+    Raises when one is there but did not take it (asleep)."""
+    if str(ANGELOS_SCRIPTS) not in sys.path:
+        sys.path.insert(0, str(ANGELOS_SCRIPTS))
+    try:
+        import devices
+    except Exception:
+        return None
+    try:
+        connected, _, _ = devices.scan()
+    except Exception:
+        return None
+    dev = next((d for d in connected if d.get("kind") == "mouse" and d.get("access") == "ok" and not d.get("fake")), None)
+    if dev is None:
+        return None
+    try:
+        s = devices.open_session(dev, devices.registry.load_all()[0], writes=True)
+    except devices.DeviceError as err:
+        if err.code in ("range", "readonly", "unknown"):
+            return None
+        raise
+    try:
+        before = int(s.load()["pollingRate"])
+        if before > hz or (before < hz and not down):
+            s.set_setting("pollingRate", hz)
+        return before
+    except devices.DeviceError as err:
+        # a rate this mouse doesn't have, or a mouse without one: not the driver's to do
+        if err.code in ("range", "readonly", "unknown"):
+            return None
+        raise
+    except (KeyError, TypeError, ValueError):
+        return None
+    finally:
+        s.close()
+
+
+def hw_restore() -> bool:
+    """Put back the rate saved at the game's start; True when there is nothing left to put back."""
+    try:
+        rate = int(json.loads(HW_SAVED.read_text())["rate"])
+    except (OSError, ValueError, KeyError, TypeError):
+        HW_SAVED.unlink(missing_ok=True)
+        return True
+    try:
+        hw_set(rate)
+    except Exception as err:
+        print(f"mouse-coalesce: the mouse's {rate} Hz not put back yet: {err}", file=sys.stderr, flush=True)
+        return False
+    HW_SAVED.unlink(missing_ok=True)
+    print(f"mouse-coalesce: the mouse is at {rate} Hz again", file=sys.stderr, flush=True)
+    return True
+
+
+def hw_game(rate: int, flag: Path) -> bool:
+    """The game, with the mouse's own rate at `rate`; False: no such mouse, thin it here."""
+    while flag.exists():
+        try:
+            before = hw_set(rate, down=True)
+        except Exception as err:
+            # asleep (it sleeps after seconds unmoved): it is not flooding anyone then — try again
+            print(f"mouse-coalesce: the mouse did not take {rate} Hz yet: {err}", file=sys.stderr, flush=True)
+            time.sleep(1)
+            continue
+        if before is None:
+            return False
+        if before > rate and not HW_SAVED.exists():
+            HW_SAVED.parent.mkdir(parents=True, exist_ok=True)
+            HW_SAVED.write_text(json.dumps({"rate": before}))
+        print(f"mouse-coalesce: the mouse itself {before} → {min(before, rate)} Hz", file=sys.stderr, flush=True)
+        while flag.exists():
+            time.sleep(0.5)
+        break
+    while not hw_restore():
+        time.sleep(1)
+        if flag.exists():
+            break
+    return True
 
 
 def coalesce(dev: evdev.InputDevice, ui: evdev.UInput, period: float, flag: Path) -> None:
@@ -137,14 +226,26 @@ def main() -> None:
     ap.add_argument("--flag", type=Path, default=GAME_FLAG, help="coalesce while this file exists")
     args = ap.parse_args()
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    try:
+        run(args)
+    finally:
+        if HW_SAVED.exists():
+            hw_restore()
 
+
+def run(args) -> None:
+    hw = not args.device
     while True:
         if not args.flag.exists():
+            if HW_SAVED.exists():
+                hw_restore()
             time.sleep(0.5)
             continue
         rate = args.rate or setting_rate()
         if rate <= 0:
             time.sleep(2)
+            continue
+        if hw and hw_game(rate, args.flag):
             continue
         period = 1.0 / rate
         path = find_device(args.device)

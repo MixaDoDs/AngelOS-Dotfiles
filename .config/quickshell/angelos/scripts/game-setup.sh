@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # The gaming edition of angelOS: what games need to run (Steam, Proton, the 32-bit drivers),
 # what makes them faster (gamemode, MangoHud, gamescope, sched-ext, a big shader cache; the
-# boost itself is .local/bin/niri-game-mode, there for everyone) and what keeps the system
-# whole (a snapshot before every pacman transaction, bootable from the boot menu on btrfs).
+# boost itself is .local/bin/niri-game-mode, there for everyone; OBS's game capture when OBS
+# comes from the repositories) and what keeps the system whole (a snapshot before every pacman transaction, bootable from the boot menu on btrfs).
 # The installer's step (installer/steps/12-gaming.sh) and Settings → Maintenance → Games run it.
 #
 #   game-setup.sh            install and set up (asks sudo itself)
@@ -40,6 +40,10 @@ gpu_packages() {
   done | sort -u
 }
 btrfs_root() { [[ "$(findmnt -no FSTYPE / 2>/dev/null)" == btrfs ]]; }
+# obs-vkcapture needs OBS from the repositories (obs-studio is its dependency: never pulled in
+# for it); the Flatpak OBS can't see a game on the host through its sandbox
+obs_native() { pacman -Q obs-studio >/dev/null 2>&1; }
+obs_flatpak() { command -v flatpak >/dev/null 2>&1 && flatpak info com.obsproject.Studio >/dev/null 2>&1; }
 # the bootloader that can start a snapshot: limine (CachyOS's default) or GRUB; systemd-boot can't
 boot_snapshots() {
   if pacman -Q limine >/dev/null 2>&1; then echo limine-snapper-sync
@@ -51,6 +55,7 @@ packages() {
     grep -Ev '^[[:space:]]*(#|$)' "$LIST"
     gpu_packages
     if btrfs_root; then echo snapper; echo snap-pac; boot_snapshots; fi
+    if obs_native; then echo obs-vkcapture; fi
   } | while IFS= read -r p; do
     if pacman -Si -- "$p" >/dev/null 2>&1 || pacman -Q -- "$p" >/dev/null 2>&1; then
       echo "$p"
@@ -65,6 +70,13 @@ if [[ "${1:-}" == --plan ]]; then
   _ 'gamemode, MangoHud, gamescope, sched-ext schedulers; shader cache 10 GB' 'gamemode, MangoHud, gamescope, планировщики sched-ext; кэш шейдеров 10 ГБ'; echo
   if command -v nvidia-smi >/dev/null 2>&1; then
     _ 'the NVIDIA card at full speed while a game runs' 'видеокарта NVIDIA на полной частоте, пока идёт игра'; echo
+  fi
+  if obs_native; then
+    _ 'OBS: game capture straight from the game (obs-vkcapture): the source «Game Capture (Vulkan)», launch options obs-gamecapture %command%' \
+      'OBS: захват прямо из игры (obs-vkcapture): источник «Game Capture (Vulkan)», в параметрах запуска obs-gamecapture %command%'; echo
+  elif obs_flatpak; then
+    _ 'OBS from Flatpak: no game capture (obs-vkcapture needs OBS from the repositories)' \
+      'OBS из Flatpak: без захвата игр (obs-vkcapture нужен OBS из репозиториев)'; echo
   fi
   if ! btrfs_root; then
     _ 'no snapshots: the system disk is not btrfs' 'без снимков: системный диск не btrfs'; echo
