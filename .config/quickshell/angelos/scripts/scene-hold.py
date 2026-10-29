@@ -16,6 +16,7 @@ plants).
 """
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -91,5 +92,9 @@ if not out.exists():
     rgb = np.stack([bend, depth, np.zeros_like(bend)], -1)
     cache.mkdir(parents=True, exist_ok=True)
     # opaque: Qt premultiplies alpha, and a see-through picture would lose its values
-    Image.fromarray(np.round(np.clip(rgb, 0, 1) * 255).astype(np.uint8)).save(out)
+    # written aside and renamed: every screen's wall runs this at once, and one reading the
+    # picture half-written got "Unsupported image format" and kept its plants still
+    tmp = out.with_name(f".{out.stem}.{os.getpid()}.png")
+    Image.fromarray(np.round(np.clip(rgb, 0, 1) * 255).astype(np.uint8)).save(tmp)
+    os.replace(tmp, out)
 print(out)

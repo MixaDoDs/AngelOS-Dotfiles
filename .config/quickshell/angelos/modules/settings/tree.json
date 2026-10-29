@@ -1245,6 +1245,21 @@
       "hintEn": "publishing and editors (the author only)",
       "pages": [
         {
+          "id": "debug",
+          "ru": "Отладка",
+          "en": "Debug",
+          "icon": "chip",
+          "hintRu": "метеорит вручную, ночь, звуки обоев, проверки",
+          "hintEn": "the meteor by hand, the night, wallpaper sounds, checks",
+          "blocks": [
+            "debug/meteor",
+            "debug/night",
+            "debug/sound",
+            "debug/tools"
+          ],
+          "owner": true
+        },
+        {
           "id": "dotfiles",
           "ru": "Публикация",
           "en": "Publishing",

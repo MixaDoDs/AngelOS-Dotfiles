@@ -78,6 +78,7 @@ Singleton {
         if (!payload.length && !payloadText)
             return;
         const job = "j" + (++jobSerial);
+        Achievements.note("explore", "share");
         const j = Object.assign({}, jobs);
         j[job] = {
             "to": fp,

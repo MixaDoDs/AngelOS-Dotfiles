@@ -49,6 +49,7 @@ Singleton {
             return;
         reset();
         picture = png;
+        Achievements.note("explore", "lens");
         open = true;
         if (captchaPause()) {
             status = "captcha";

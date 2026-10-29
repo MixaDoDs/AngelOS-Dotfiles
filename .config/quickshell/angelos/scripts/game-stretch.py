@@ -2,29 +2,36 @@
 """A borderless 4:3 game stretched to the whole screen on XWayland: niri-game-mode runs this
 while a window of such a game is open (`game-stretch.py cs2`), nothing to set in Steam.
 
-CS2 in "Fullscreen windowed" draws its own resolution into the top-left corner of a
-monitor-sized window and does not say so. Each second this reads that resolution from the
-game's own settings and puts it into _ANGEL_SATELLITE_STRETCH on the game's window —
-angel-satellite stretches that corner over the whole window (the game moves its cursor
-itself). In the game's other modes the property goes. Games that change the screen's mode
-need none of this: angel-satellite stretches those by itself.
-
-After Apply in its video settings CS2 may start drawing over the whole window instead of the
-corner and says nothing either — the stretched corner then cuts the picture. So settings
-changed mid-game, stretched after, bring a "restart CS2" notification."""
+CS2 in "Fullscreen windowed" at 4:3 either stretches its picture over its monitor-sized window
+itself or draws it into the top-left corner and leaves the rest black — the same settings, the
+same build, it said nothing either way (corner on 27.10, whole window on 28.10, whole window
+after Apply in its video settings). So the resolution comes from the game's own settings and
+the way it draws from the window's pixels: only while the part right of the corner is black
+and the corner is not, _ANGEL_SATELLITE_STRETCH on the window says that corner — angel-satellite
+stretches it over the whole window (the game moves its cursor itself). Otherwise the property
+says the window's own size, which stretches nothing. Games that change the screen's mode need
+none of this: angel-satellite stretches those by itself."""
 import ctypes
 import ctypes.util
 import glob
 import os
 import re
-import subprocess
 import sys
 import time
 
 XA_CARDINAL = 6
 PROP_MODE_REPLACE = 0
+Z_PIXMAP = 2
+ALL_PLANES = 0xFFFFFFFF
 # the game's windows gone this many seconds in a row: it has quit
 GONE = 5
+# a channel no brighter than this is black; the way the game draws must hold this many seconds
+# in a row before the stretch follows it (a dark corner of a map is no reason to jump)
+DARK = 8
+SURE = 3
+# reading pixels stalls Xwayland's GPU for a few ms: only this many seconds after the window shows
+# or the settings change (Apply), and until the way it draws is known
+PROBE = 10
 
 
 def cs2_settings():
@@ -45,18 +52,27 @@ def cs2_corner(s):
         return None
 
 
-# WM_CLASS of the game's window → (its name, its settings, the corner it draws with them);
+# WM_CLASS of the game's window → (its settings, the corner it may draw into with them);
 # niri-game-mode's STRETCH_GAMES names the same
-GAMES = {"cs2": ("CS2", cs2_settings, cs2_corner)}
+GAMES = {"cs2": (cs2_settings, cs2_corner)}
 
 
 class XClassHint(ctypes.Structure):
     _fields_ = [("res_name", ctypes.c_void_p), ("res_class", ctypes.c_void_p)]
 
 
+class XImage(ctypes.Structure):
+    # the head of Xlib's XImage, as far as the pixels
+    _fields_ = [(n, ctypes.c_int) for n in ("width", "height", "xoffset", "format")] + [
+        ("data", ctypes.c_void_p)] + [(n, ctypes.c_int) for n in (
+            "byte_order", "bitmap_unit", "bitmap_bit_order", "bitmap_pad", "depth",
+            "bytes_per_line", "bits_per_pixel")]
+
+
 def libx11():
     x11 = ctypes.CDLL(ctypes.util.find_library("X11") or "libX11.so.6")
     dpy, win, atom = ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong
+    uint, int_ = ctypes.POINTER(ctypes.c_uint), ctypes.POINTER(ctypes.c_int)
     x11.XOpenDisplay.restype = dpy
     x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
     x11.XDefaultRootWindow.restype = win
@@ -66,13 +82,17 @@ def libx11():
     x11.XQueryTree.argtypes = [dpy, win, ctypes.POINTER(win), ctypes.POINTER(win),
                                ctypes.POINTER(ctypes.POINTER(win)), ctypes.POINTER(ctypes.c_uint)]
     x11.XGetClassHint.argtypes = [dpy, win, ctypes.POINTER(XClassHint)]
+    x11.XGetGeometry.argtypes = [dpy, win, ctypes.POINTER(win), int_, int_, uint, uint, uint, uint]
+    x11.XGetImage.restype = ctypes.POINTER(XImage)
+    x11.XGetImage.argtypes = [dpy, win, ctypes.c_int, ctypes.c_int, ctypes.c_uint, ctypes.c_uint,
+                              ctypes.c_ulong, ctypes.c_int]
+    x11.XDestroyImage.argtypes = [ctypes.POINTER(XImage)]
     x11.XGetWindowProperty.argtypes = [dpy, win, atom, ctypes.c_long, ctypes.c_long, ctypes.c_int, atom,
                                        ctypes.POINTER(atom), ctypes.POINTER(ctypes.c_int),
                                        ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_ulong),
                                        ctypes.POINTER(ctypes.POINTER(ctypes.c_ulong))]
     x11.XChangeProperty.argtypes = [dpy, win, atom, atom, ctypes.c_int, ctypes.c_int,
                                     ctypes.POINTER(ctypes.c_ulong), ctypes.c_int]
-    x11.XDeleteProperty.argtypes = [dpy, win, atom]
     x11.XFree.argtypes = [ctypes.c_void_p]
     x11.XSync.argtypes = [dpy, ctypes.c_int]
     return x11
@@ -102,6 +122,45 @@ def windows(x11, dpy, wm_class):
     return found
 
 
+def size_of(x11, dpy, w):
+    root, x, y = ctypes.c_ulong(), ctypes.c_int(), ctypes.c_int()
+    width, height, border, depth = (ctypes.c_uint() for _ in range(4))
+    if not x11.XGetGeometry(dpy, w, root, x, y, width, height, border, depth):
+        return None
+    return [width.value, height.value]
+
+
+def brightest(row, lsb_first):
+    """the brightest colour channel in a row of 32-bit pixels, the padding byte left out"""
+    return max(max(row[i::4], default=0) for i in ((0, 1, 2) if lsb_first else (1, 2, 3)))
+
+
+def in_corner(left, right):
+    """True: the game draws only its corner (the rest of the window is black), False: the whole
+    window, None: can't tell (all black: loading, a fade)"""
+    if right > DARK:
+        return False
+    return True if left > DARK else None
+
+
+def draws_in_corner(x11, dpy, w, size, corner_w):
+    """in_corner on a few full-width rows of the window's pixels (a few KB a second)"""
+    left = right = 0
+    for k in range(1, 6):
+        img = x11.XGetImage(dpy, w, 0, size[1] * k // 6, size[0], 1, ALL_PLANES, Z_PIXMAP)
+        if not img:
+            return None
+        im = img.contents
+        row = ctypes.string_at(im.data, size[0] * 4) if im.bits_per_pixel == 32 else None
+        lsb_first = im.byte_order == 0
+        x11.XDestroyImage(img)
+        if row is None:
+            return None
+        left = max(left, brightest(row[:corner_w * 4], lsb_first))
+        right = max(right, brightest(row[corner_w * 4:], lsb_first))
+    return in_corner(left, right)
+
+
 def stretch_of(x11, dpy, w, atom):
     kind, fmt = ctypes.c_ulong(), ctypes.c_int()
     n, after = ctypes.c_ulong(), ctypes.c_ulong()
@@ -114,45 +173,50 @@ def stretch_of(x11, dpy, w, atom):
     return have
 
 
-def ask_restart(name):
-    # critical: an ordinary one over a fullscreen game only goes to the bell
-    subprocess.Popen(["notify-send", "-u", "critical", "-a", name, f"Перезапусти {name}",
-                      "Видео-настройки поменялись — до перезапуска картинку может растянуть и обрезать справа"])
-
-
 def main():
     if len(sys.argv) != 2 or sys.argv[1] not in GAMES:
         sys.exit(f"usage: game-stretch.py {'|'.join(GAMES)}")
     wm_class = sys.argv[1]
-    name, settings, corner = GAMES[wm_class]
+    settings, corner = GAMES[wm_class]
     x11 = libx11()
     dpy = x11.XOpenDisplay(None)
     if not dpy:
         sys.exit("game-stretch: no X display")
     x11.XSetErrorHandler(ON_ERROR)
     atom = x11.XInternAtom(dpy, b"_ANGEL_SATELLITE_STRETCH", 0)
-    seen = None  # the settings the game drew with when its window showed
+    stretched = {}  # window → stretched now
+    seen = {}  # window → (the way it draws, seconds in a row)
+    probe = {}  # window → probe till
+    last = None
     gone = 0
     while gone < GONE:
         wins = windows(x11, dpy, wm_class)
         gone = 0 if wins else gone + 1
         if wins:
             s = settings()
-            size = corner(s)
-            if seen is None:
-                seen = s
-            elif s != seen:
-                # not stretched now: nothing to cut
-                if size:
-                    ask_restart(name)
-                seen = s
+            crop = corner(s)
+            if s != last:
+                last, seen, probe = s, {}, {}
             for w in wins:
-                if stretch_of(x11, dpy, w, atom) != size:
-                    if size:
-                        x11.XChangeProperty(dpy, w, atom, XA_CARDINAL, 32, PROP_MODE_REPLACE,
-                                            (ctypes.c_ulong * 2)(*size), 2)
-                    else:
-                        x11.XDeleteProperty(dpy, w, atom)
+                size = size_of(x11, dpy, w)
+                if not size:
+                    continue
+                now = None
+                if crop and crop[0] < size[0]:
+                    if time.monotonic() < probe.setdefault(w, time.monotonic() + PROBE) or w not in stretched:
+                        now = draws_in_corner(x11, dpy, w, size, crop[0])
+                else:
+                    stretched[w] = False
+                if now is not None:
+                    was, n = seen.get(w, (None, 0))
+                    seen[w] = (now, n + 1 if now == was else 1)
+                    if seen[w][1] >= SURE:
+                        stretched[w] = now
+                # the window's own size, not a deleted property: satellite keeps the last crop then
+                want = crop if stretched.get(w) else size
+                if stretch_of(x11, dpy, w, atom) != want:
+                    x11.XChangeProperty(dpy, w, atom, XA_CARDINAL, 32, PROP_MODE_REPLACE,
+                                        (ctypes.c_ulong * 2)(*want), 2)
             x11.XSync(dpy, 0)
         time.sleep(1)
 

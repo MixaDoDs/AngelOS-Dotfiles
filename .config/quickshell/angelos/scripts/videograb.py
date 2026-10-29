@@ -157,6 +157,13 @@ def edit(src, start, end):
     if start or end:
         start, length = span({"duration": info.duration or 0}, start, end)
         cut = (start, length)
+    # the folder from Settings → Screenshots and recording (capture.mediafixDir), as Strata's item gets it
+    try:
+        folder = (json.loads((Path.home() / ".config/angelos/settings.json").read_text()).get("capture") or {}).get("mediafixDir")
+    except (OSError, ValueError, AttributeError):
+        folder = ""
+    if folder:
+        os.environ["MEDIAFIX_DIR"] = folder
     final = mf.unique_output(src)
     last = [0]
 

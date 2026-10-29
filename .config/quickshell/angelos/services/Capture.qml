@@ -249,9 +249,10 @@ Singleton {
         onTriggered: replay.running = root.replayOn
     }
     function clip() {
-        if (replay.running)
+        if (replay.running) {
             replay.signal(10);
-        else
+            Achievements.note("explore", "replay");
+        } else
             Quickshell.execDetached(["notify-send", "-a", "angelOS", I18n.t("Мгновенный повтор выключен", "Instant replay is off"), canReplay ? I18n.t("Настройки → Скриншоты и запись → «Мгновенный повтор»", "Settings → Screenshots and recording → “Instant replay”") : I18n.t("Нужен gpu-screen-recorder", "It needs gpu-screen-recorder")]);
     }
     function record() {

@@ -206,6 +206,7 @@ Singleton {
         screen = s ? s.name : "";
         step = 0;
         needsProbe.running = true;
+        Achievements.note("explore", "tour");
         running = true;
     }
     function next() {

@@ -41,6 +41,7 @@ Singleton {
         if (!paid)
             return false;
         results = [HeavenStars.pull(false)];
+        Achievements.note("explore", "chest");
         source = paid;
         open = true;
         return true;

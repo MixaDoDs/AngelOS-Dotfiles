@@ -40,7 +40,9 @@ Item {
         return r ? r.codename || "angelOS " + r.number : "";
     }
     function url(p) {
-        const d = Wallpapers.display(p);
+        // a scene with a night of its own, at night: the night's still, so the scene takes over
+        // without a flash of day
+        const d = Wallpapers.still(p, new Date());
         return d ? (d.startsWith("/") ? "file://" + d : d) : "";
     }
     function load(img, p) {
@@ -297,6 +299,13 @@ Item {
             windDir: SceneWind.dir
             pulse: SceneWind.pulse
             seed: SceneWind.seed
+            // its night by the clock or its own pick (Settings → Wallpaper → Time of day), and
+            // the night's event at four in the morning
+            nightMix: Wallpapers.nightMix(root.shown, nightClock.date)
+            twilightMix: Wallpapers.twilightMix(root.shown, nightClock.date)
+            twilightKind: Wallpapers.twilightKind(nightClock.date)
+            eventAge: Wallpapers.nightEvent(nightClock.date)
+            variant: Wallpapers.nightVariant(nightClock.date)
             // the desk and the taskbar say where the pointer is; elsewhere the camera eases home
             pointer: Pointer.screen === root.screenName && Pointer.over
                 ? Qt.point(Math.max(-1, Math.min(1, Pointer.x / Math.max(1, width) * 2 - 1)), Math.max(-1, Math.min(1, Pointer.y / Math.max(1, height) * 2 - 1)))
@@ -318,7 +327,46 @@ Item {
                 time = (time + Math.min(dt, 0.1)) % 3600;
             }
             onTimedChanged: count(timed)
-            Component.onDestruction: count(false)
+            Component.onDestruction: {
+                count(false);
+                listen(false);
+            }
+
+            // each kick of the music sends a wave through it (Settings → Wallpaper → Wallpaper sounds),
+            // as strong as the player really plays (LyricsGlow.loud: its sound after its slider and
+            // the master volume). Never through the night's event
+            readonly property bool hearsBass: running && !eventOn && Wallpapers.own(folder, "sceneBass") === true
+            property real kickGain: 0
+            kick: hearsBass ? kickGain : 0
+            Connections {
+                target: Bass
+                enabled: sceneWall.hearsBass
+                function onKicked() {
+                    sceneWall.kickAt = sceneWall.time;
+                    sceneWall.kickGain = LyricsGlow.loud;
+                }
+            }
+            property bool listening: false
+            function listen(on) {
+                if (on === listening)
+                    return;
+                listening = on;
+                Bass.walls += on ? 1 : -1;
+            }
+            onHearsBassChanged: listen(hearsBass)
+            Component.onCompleted: listen(hearsBass)
+            // the wave bends all the wall draws at once: shards, the text, leaves (shaders/scene_kick)
+            layer.enabled: hearsBass
+            layer.smooth: false
+            layer.effect: ShaderEffect {
+                property size size: Qt.size(sceneWall.width, sceneWall.height)
+                property point from: Qt.point(sceneWall.ox + sceneWall.kickFrom.x * sceneWall.k, sceneWall.oy + sceneWall.kickFrom.y * sceneWall.k)
+                property real k: sceneWall.k
+                property real kick: sceneWall.kick
+                property real kickAt: sceneWall.kickAt
+                property real time: sceneWall.time
+                fragmentShader: Qt.resolvedUrl("../../shaders/scene_kick.frag.qsb")
+            }
             Connections {
                 target: DeskClock
                 enabled: sceneWall.timed
@@ -336,7 +384,9 @@ Item {
                 visible: text !== ""
                 k: sceneWall.k
                 palette: sceneWall.palette
-                backdrop: sceneWall.depthLuma < 0 ? 0.5 : sceneWall.depthLuma
+                backdrop: sceneWall.depthBackdrop
+                // the night has its own place for it: it fades out and in there, not jumps
+                opacity: sceneWall.depthFade
                 fixed: sceneWall.depthText || ({})
                 look: Wallpapers.own(sceneWall.folder, "sceneDepthStyle")
                 textured: Wallpapers.own(sceneWall.folder, "sceneDepthTexture")
@@ -346,6 +396,11 @@ Item {
                 canvasSize: Qt.size(sceneWall.cw, sceneWall.ch)
                 time: sceneWall.time
                 text: Wallpapers.own(sceneWall.folder, "sceneDepth") === "clock" ? Qt.formatTime(clock.date, "hh:mm") : Wallpapers.own(sceneWall.folder, "sceneDepth") === "release" ? root.releaseName(sceneWall.folder) : ""
+            }
+            SystemClock {
+                id: nightClock
+                enabled: sceneWall.visible && Wallpapers.nightOf(root.shown) !== ""
+                precision: SystemClock.Seconds
             }
             SystemClock {
                 id: clock

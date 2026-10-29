@@ -515,8 +515,8 @@ Singleton {
     readonly property string effect: !GoldenGate.on ? "pixel" : Config.mac.minimizeEffect === "scale" ? "scale" : "genie"
     // (drawn by MacMinimizeFx: Golden Gate's from modules/mac/MacDesktop, the pixel skins' from
     // Background.qml — where none is up nothing would land, and a window flying back would never come;
-    // the pixel skins on angel-niri: a pixel genie into the taskbar (Background.qml mounts the
-    // same MacMinimizeFx, Tasks.qml writes the slots)
+    // the pixel skins on angel-niri: a pixel Scale into the taskbar, the snapshot a mosaic of art
+    // pixels (Background.qml mounts the same MacMinimizeFx, Tasks.qml writes the slots)
     // (a bar on the left or right: the funnel only goes up or down, so no flight there)
     readonly property int flightMs: GoldenGate.on ? Motion.ms(effect === "genie" ? 560 : 380) : Niri.nativeMinimize && ["top", "bottom"].includes(Config.bar.edge || "bottom") ? Motion.ms(300) : 0
     // flightMs is 0 where no MacMinimizeFx is up: nothing would land a flight, and a window

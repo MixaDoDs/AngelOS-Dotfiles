@@ -103,6 +103,7 @@ Singleton {
         if (same.includes(fmt))
             return;
         const list = filesFor(level);
+        Achievements.note("explore", "convert");
         if (fmt === "discord")
             for (const f of list)
                 VideoGrab.shrink(f, 0, 0);

@@ -39,24 +39,27 @@ PxMenu {
     }
     function openWidget(uid, x, y) {
         win = null;
+        green = false;
         widgetUid = uid;
         build();
         show(x, y);
     }
     function openWindow(w, x, y) {
         win = w;
+        green = false;
         widgetUid = "";
         build();
         show(x, y);
     }
+    // the green button's menu: the Snap Layouts on top (SnapLayouts)
+    property bool green: false
     // the green button's size menu (the pointer rests on it, angel-niri), like a Mac's
     function openGreen(w, x, y) {
         win = w;
+        green = true;
         widgetUid = "";
         const id = w.id;
         const ws = Niri.workspaceById(w.workspace_id);
-        // Mod+arrows' snaps (angel-niri's stacking), on that window
-        const half = dir => Shell.sh("niri msg action focus-window --id " + id + " && niri msg action focus-column-" + dir);
         quick = [];
         items = [
             {
@@ -69,19 +72,6 @@ PxMenu {
                 "icon": "window",
                 "run": () => Niri.maximizeWindow(id)
             },
-            {
-                "separator": true
-            },
-            {
-                "label": I18n.t("Левая половина", "Left half"),
-                "icon": "arrowLeft",
-                "run": () => half("left")
-            },
-            {
-                "label": I18n.t("Правая половина", "Right half"),
-                "icon": "arrowRight",
-                "run": () => half("right")
-            }
         ].concat(Niri.workspaces.map(x => x.output).filter((o, i, a) => o && a.indexOf(o) === i && (!ws || o !== ws.output)).map(o => ({
                 "label": I18n.t("На монитор ", "To monitor ") + o,
                 "icon": "monitor",
@@ -91,6 +81,7 @@ PxMenu {
     }
     function openAt(x, y) {
         win = null;
+        green = false;
         widgetUid = "";
         Achievements.note("deskmenu.open", DeskMenu.style);
         if (overlayStyle) {
@@ -129,6 +120,19 @@ PxMenu {
     pop: Config.desktop.menuAnim !== false
     minWidth: Math.round(MenuLook.minWidth * k)
 
+    header: [
+        SnapLayouts {
+            visible: root.green
+            win: root.win
+            screen: root.parentWindow ? root.parentWindow.screen : null
+            t: MenuLook.tokens(root.look)
+            onPicked: root.close()
+        },
+        PxMenuItem {
+            visible: root.green
+            separator: true
+        }
+    ]
     footer: [
         Repeater {
             // QML menu components from plugins: on the desktop's menu, once switched on

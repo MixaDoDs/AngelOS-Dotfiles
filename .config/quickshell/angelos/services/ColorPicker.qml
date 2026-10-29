@@ -21,6 +21,7 @@ Singleton {
         if (picker.running || Shell.setupLocked)
             return;
         picker.running = true;
+        Achievements.note("explore", "eyedropper");
     }
     function copy(hex) {
         Quickshell.execDetached(["wl-copy", "--", hex]);

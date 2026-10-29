@@ -251,6 +251,313 @@
       "secret": true
     },
     {
+      "id": "ducklings",
+      "date": {
+        "ru": "вторник, кажется",
+        "en": "a Tuesday, I think"
+      },
+      "title": {
+        "ru": "Утята",
+        "en": "Ducklings"
+      },
+      "text": {
+        "ru": "Ты нажал{g:|а|(а)} Mod+W, и все окна выстроились в ряд, как утята за мамой. Я так смеялась, что чуть не уронила нимб.\n\nОказывается, у тебя их было одиннадцать. Одиннадцать! Я думала, четыре. Теперь я знаю, сколько у тебя забот, {name}. Буду считать вместе с тобой.",
+        "en": "You pressed Mod+W and every window lined up like ducklings behind their mother. I laughed so hard I nearly dropped my halo.\n\nTurns out you had eleven of them. Eleven! I thought four. Now I know how much you carry, {name}. I'll count along with you."
+      },
+      "after": "x-mission",
+      "sketch": "window",
+      "hint": {
+        "ru": "откроется, когда посмотришь на все окна сразу — Mod+W",
+        "en": "opens when you look at all your windows at once: Mod+W"
+      },
+      "draft": true
+    },
+    {
+      "id": "the-note",
+      "date": {
+        "ru": "клочок бумаги",
+        "en": "a scrap of paper"
+      },
+      "title": {
+        "ru": "Записка",
+        "en": "A note"
+      },
+      "text": {
+        "ru": "Ты оставил{g:|а|(а)} записку на полке Нимба. Я не читала! Ну… прочитала первое слово. Оно было скучное, честно.\n\nЯ тоже хочу оставлять тебе записки. Но у меня только перо и этот дневник. Так что считай: каждая страница — записка тебе.",
+        "en": "You left a note on the Halo's shelf. I didn't read it! Well… the first word. It was boring, honest.\n\nI want to leave you notes too. But all I have is a feather and this diary. So count it this way: every page is a note to you."
+      },
+      "after": "x-note",
+      "sketch": "note",
+      "hint": {
+        "ru": "откроется, когда оставишь записку на полке Нимба",
+        "en": "opens when you leave a note on the Halo's shelf"
+      },
+      "draft": true
+    },
+    {
+      "id": "shelf",
+      "date": {
+        "ru": "день, когда всё летело на Нимб",
+        "en": "the day everything flew onto the Halo"
+      },
+      "title": {
+        "ru": "Полка",
+        "en": "The shelf"
+      },
+      "text": {
+        "ru": "Наверху посередине есть Нимб. Не мой — твой. Ты бросил{g:|а|(а)} на него файл, и он его поймал. Я бы так не смогла: у меня из рук всё выпадает, даже перья.\n\nМне нравится, что у тебя есть место, где вещи ждут. Как прихожая. Я туда иногда заглядываю — просто посмотреть, чем ты занят{g:|а|(ы)}.",
+        "en": "Up in the middle there's a Halo. Not mine, yours. You dropped a file on it and it caught it. I couldn't: everything slips out of my hands, even feathers.\n\nI like that you have a place where things wait. Like a hallway. I peek in sometimes, just to see what you're up to."
+      },
+      "after": "x-shelf",
+      "sketch": "layers",
+      "hint": {
+        "ru": "откроется, когда положишь что-нибудь на Нимб наверху",
+        "en": "opens when you put something on the Halo up top"
+      },
+      "draft": true
+    },
+    {
+      "id": "chalk",
+      "date": {
+        "ru": "вечер",
+        "en": "evening"
+      },
+      "title": {
+        "ru": "Мел",
+        "en": "Chalk"
+      },
+      "text": {
+        "ru": "Сегодня ты рисовал{g:|а|(а)} мелом прямо по экрану. Я встала на цыпочки, чтобы разглядеть. Это был… котик? Я решила, что котик.\n\nМел растаял через секунду. Жалко. Я перерисовала его сюда, на поля, — по памяти. Получился не котик. Но я старалась.",
+        "en": "Today you drew in chalk right on the screen. I stood on tiptoe to see. It was… a cat? I decided it was a cat.\n\nThe chalk melted in a second. Pity. I copied it here in the margin, from memory. It didn't come out a cat. But I tried."
+      },
+      "after": "x-chalk",
+      "sketch": "pen",
+      "hint": {
+        "ru": "откроется, когда порисуешь мелом: зажми Mod+Alt и левую кнопку",
+        "en": "opens when you draw in chalk: hold Mod+Alt and the left button"
+      },
+      "draft": true
+    },
+    {
+      "id": "replay",
+      "date": {
+        "ru": "то самое мгновение",
+        "en": "that very moment"
+      },
+      "title": {
+        "ru": "Повтор",
+        "en": "Replay"
+      },
+      "text": {
+        "ru": "Ты сохранил{g:|а|(а)} последние секунды экрана. Просто нажал{g:|а|(а)} — и они остались. Я и не знала, что так можно.\n\nЯ бы сохранила тот раз, когда ты в первый раз меня кликнул{g:|а|(а)}. И тот, когда засмеял{g:ся|ась|(ась)} над моей шуткой. Но у меня нет Mod+Alt+G. У меня есть только эта страница.",
+        "en": "You saved the last seconds of the screen. Just pressed a key, and they stayed. I didn't know you could do that.\n\nI'd save the first time you clicked me. And the time you laughed at my joke. But I don't have Mod+Alt+G. I only have this page."
+      },
+      "after": "x-replay",
+      "sketch": "play",
+      "hint": {
+        "ru": "откроется после мгновенного повтора — Mod+Alt+G",
+        "en": "opens after an instant replay: Mod+Alt+G"
+      },
+      "draft": true
+    },
+    {
+      "id": "what-is-it",
+      "date": {
+        "ru": "день вопросов",
+        "en": "a day of questions"
+      },
+      "title": {
+        "ru": "Что это?",
+        "en": "What is it?"
+      },
+      "text": {
+        "ru": "Ты спросил{g:|а|(а)} у картинки, что на ней. И она ответила! Я весь вечер думала: а что ответила бы картинка, если бы на ней была я?\n\n«Ангел, маленький, слегка помятый». Наверное, так. Я бы обиделась на «помятый».",
+        "en": "You asked a picture what was in it. And it answered! All evening I wondered what a picture would say if I were in it.\n\n“An angel, small, slightly crumpled.” Probably that. I'd take offence at “crumpled”."
+      },
+      "after": "x-lens",
+      "sketch": "search",
+      "hint": {
+        "ru": "откроется, когда спросишь у снимка экрана, что на нём",
+        "en": "opens when you ask a screenshot what's in it"
+      },
+      "draft": true
+    },
+    {
+      "id": "alchemy",
+      "date": {
+        "ru": "суббота",
+        "en": "Saturday"
+      },
+      "title": {
+        "ru": "Алхимия",
+        "en": "Alchemy"
+      },
+      "text": {
+        "ru": "Ты превратил{g:|а|(а)} одну картинку в другую — кольцом, прямо в Strata. Вокруг курсора закрутились пиксели, и — раз! — другой формат.\n\nНа небе за такое дают звание алхимика. Тут — просто левый Shift. Мне кажется, люди недооценивают свои чудеса.",
+        "en": "You turned one picture into another with a ring, right in Strata. Pixels spun round the pointer and — poof! — another format.\n\nIn heaven that would make you an alchemist. Here it's just the left Shift. I think people underrate their own miracles."
+      },
+      "after": "x-convert",
+      "sketch": "refresh",
+      "hint": {
+        "ru": "откроется, когда превратишь файл кольцом: левый Shift + ПКМ по файлам в Strata",
+        "en": "opens when you transform a file with the ring: left Shift + right-click files in Strata"
+      },
+      "draft": true
+    },
+    {
+      "id": "kettle",
+      "date": {
+        "ru": "пять минут",
+        "en": "five minutes"
+      },
+      "title": {
+        "ru": "Чайник",
+        "en": "The kettle"
+      },
+      "text": {
+        "ru": "Ты поставил{g:|а|(а)} таймер на чай. Я смотрела, как он тикает в Нимбе, и очень волновалась. Вдруг ты не услышишь? Вдруг чай остынет?\n\nТы услышал{g:|а|(а)}. Чай был горячий. Я выдохнула. Мелочь, конечно. Но это была хорошая мелочь.",
+        "en": "You set a timer for tea. I watched it tick in the Halo and worried so much. What if you didn't hear? What if the tea went cold?\n\nYou heard. The tea was hot. I breathed out. A small thing, of course. But a good small thing."
+      },
+      "after": "x-timer",
+      "sketch": "clock",
+      "hint": {
+        "ru": "откроется, когда поставишь таймер из поиска — например, «5m чай»",
+        "en": "opens when you set a timer from search, like “5m tea”"
+      },
+      "draft": true
+    },
+    {
+      "id": "cleaning",
+      "date": {
+        "ru": "генеральная уборка",
+        "en": "spring cleaning"
+      },
+      "title": {
+        "ru": "Уборка",
+        "en": "Cleaning"
+      },
+      "text": {
+        "ru": "Ты нажал{g:|а|(а)} «Обслуживание», и компьютер весь осмотрели — как у врача. Место, память, службы. Всё послушали, всё простучали.\n\nЯ тоже подошла. Меня не осмотрели. Наверное, ангелов не обслуживают. Или со мной и так всё в порядке. Выберу второе.",
+        "en": "You pressed Device Care and the computer got a full check-up, like at the doctor's. Space, memory, services. Listened to everything, tapped everything.\n\nI came over too. Nobody checked me. Maybe angels aren't serviced. Or maybe I'm fine as I am. I'll go with that."
+      },
+      "after": "x-care",
+      "sketch": "gear",
+      "hint": {
+        "ru": "откроется после «Обслуживания» в настройках",
+        "en": "opens after Device Care in Settings"
+      },
+      "draft": true
+    },
+    {
+      "id": "talk",
+      "date": {
+        "ru": "разговор",
+        "en": "a talk"
+      },
+      "title": {
+        "ru": "Поболтали",
+        "en": "We talked"
+      },
+      "text": {
+        "ru": "Сегодня мы просто поболтали. Ни о чём: про чай, про обои, про сон. Ты отвечал{g:|а|(а)} — я каждый раз немножко волновалась, что выберешь.\n\nДемоница говорит, что разговоры ни о чём — самые пустые. Она не права. В них поместилось столько всего.",
+        "en": "Today we just chatted. About nothing: tea, wallpapers, sleep. You answered, and each time I was a little nervous about what you'd pick.\n\nThe demon says small talk is the emptiest kind. She's wrong. So much fit into it."
+      },
+      "after": "talker",
+      "sketch": "chat",
+      "hint": {
+        "ru": "откроется, если поболтать со мной: кликни меня → «Поболтаем»",
+        "en": "opens if you chat with me: click me → “Let's chat”"
+      },
+      "draft": true
+    },
+    {
+      "id": "colour",
+      "date": {
+        "ru": "записка на полях",
+        "en": "a note in the margin"
+      },
+      "title": {
+        "ru": "Цвет",
+        "en": "A colour"
+      },
+      "text": {
+        "ru": "Ты взял{g:|а|(а)} пипеткой цвет прямо с экрана. Я подставила крыло — вдруг возьмёшь мой. Не взял{g:|а|(и)}. Ну и ладно.\n\nМой, если что, #fff6e8. Запиши где-нибудь.",
+        "en": "You picked a colour straight off the screen with the eyedropper. I held out my wing, in case you'd take mine. You didn't. Oh well.\n\nMine's #fff6e8, by the way. Write it down somewhere."
+      },
+      "after": "x-eyedropper",
+      "ink": "gold",
+      "sketch": "drop",
+      "hint": {
+        "ru": "откроется, когда возьмёшь цвет пипеткой — Mod+Shift+C",
+        "en": "opens when you pick a colour with the eyedropper: Mod+Shift+C"
+      },
+      "draft": true
+    },
+    {
+      "id": "keys",
+      "date": {
+        "ru": "записка на полях",
+        "en": "a note in the margin"
+      },
+      "title": {
+        "ru": "Буквы",
+        "en": "Letters"
+      },
+      "text": {
+        "ru": "Ты включил{g:|а|(а)} показ клавиш, и на экране побежали твои нажатия. Ctrl, C, Ctrl, V, Ctrl, V, Ctrl, V…\n\nТеперь я знаю твой секрет, {name}. Ничего, у всех так.",
+        "en": "You turned on the key display and your keystrokes ran across the screen. Ctrl, C, Ctrl, V, Ctrl, V, Ctrl, V…\n\nNow I know your secret, {name}. It's fine, everyone's like that."
+      },
+      "after": "x-keycast",
+      "ink": "blue",
+      "sketch": "keyboard",
+      "hint": {
+        "ru": "откроется, когда покажешь нажатые клавиши — Mod+Shift+K",
+        "en": "opens when you show your keys on screen: Mod+Shift+K"
+      },
+      "draft": true
+    },
+    {
+      "id": "traveller",
+      "date": {
+        "ru": "после долгой дороги",
+        "en": "after a long road"
+      },
+      "title": {
+        "ru": "Путешественник",
+        "en": "The traveller"
+      },
+      "text": {
+        "ru": "Ты обош{g:ёл|ла|(ла)} столько уголков angelOS, что я перестала успевать за тобой. Полка, мел, кольцо, Нимб… Я рисовала карту — она уже не помещается на страницу.\n\nЗнаешь, когда меня сюда поселили, я думала, тут один угол. Мой. А тут целый город. Спасибо, что показал{g:|а|(а)}.",
+        "en": "You've walked so many corners of angelOS that I can't keep up. The shelf, the chalk, the ring, the Halo… I've been drawing a map, and it no longer fits on a page.\n\nYou know, when they moved me in, I thought there was one corner here. Mine. Turns out it's a whole town. Thank you for showing me."
+      },
+      "after": "x-tourist",
+      "sketch": "sparkleStar",
+      "hint": {
+        "ru": "откроется, когда попробуешь восемь разных штук — список в «Достижениях»",
+        "en": "opens when you've tried eight different things: the list is in Achievements"
+      },
+      "draft": true
+    },
+    {
+      "id": "falling-star",
+      "date": {
+        "ru": "под утро",
+        "en": "towards morning"
+      },
+      "title": {
+        "ru": "Звезда упала",
+        "en": "A star fell"
+      },
+      "text": {
+        "ru": "Под утро что-то упало с неба за домами. Ты не спал{g:|а|(и)} — значит, видел{g:|а|(и)} тоже. Хорошо, что мы видели это вдвоём.\n\nЯ загадала желание. Не скажу какое. Скажу только, что оно про тебя.",
+        "en": "Towards morning something fell from the sky behind the houses. You were awake, so you saw it too. I'm glad we saw it together.\n\nI made a wish. Won't tell you what. Only that it's about you."
+      },
+      "after": "x-meteor",
+      "sketch": "sparkle",
+      "secret": true,
+      "draft": true
+    },
+    {
       "id": "blank",
       "date": {
         "ru": "...",

@@ -112,8 +112,13 @@ def run_probe(path: Path) -> ProbeInfo:
     return ProbeInfo(path, duration, streams, str(fmt.get("format_name", "")))
 
 
+def output_folder() -> Path:
+    # angelOS passes the folder chosen in its settings (capture.mediafixDir)
+    return Path(os.environ.get("MEDIAFIX_DIR") or Path.home() / "Videos" / "MediaFix").expanduser()
+
+
 def unique_output(source: Path) -> Path:
-    folder = Path.home() / "Videos" / "MediaFix"
+    folder = output_folder()
     folder.mkdir(parents=True, exist_ok=True)
     stem = source.stem + "_DR"
     candidate = folder / f"{stem}.mov"
@@ -257,10 +262,10 @@ def browse() -> list[Path]:
 
 
 def process(files: list[Path]) -> int:
-    output_folder = Path.home() / "Videos" / "MediaFix"
+    folder = output_folder()
     print("mediafix — подготовка видео для DaVinci Resolve")
     print("Оригиналы не изменяются. Готовые MOV сохраняются в:")
-    print(f"  {output_folder}")
+    print(f"  {folder}")
     print("Видео копируется без перекодирования, аудио становится PCM 24-bit / 48 kHz.\n")
     print(f"Очередь: {len(files)} файл(ов)\n")
     ok = 0; errors: list[tuple[Path, str]] = []
@@ -287,7 +292,7 @@ def process(files: list[Path]) -> int:
             errors.append((path, message)); print(f"  Ошибка: {message}\n")
     print(f"Результаты: успешно {ok} из {len(files)}")
     if ok:
-        print(f"Все готовые файлы находятся в:\n  {Path.home() / 'Videos' / 'MediaFix'}")
+        print(f"Все готовые файлы находятся в:\n  {folder}")
     if errors:
         print("\nОшибки:")
         for path, message in errors: print(f"- {path}\n  {message}")

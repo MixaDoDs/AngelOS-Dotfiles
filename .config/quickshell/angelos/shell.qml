@@ -3,6 +3,7 @@
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.config
 import qs.services
 import qs.modules
@@ -24,6 +25,7 @@ import qs.modules.sidebar
 import qs.modules.y2k
 import qs.modules.alttab
 import qs.modules.mission
+import qs.modules.snap
 import qs.modules.cursor
 import qs.modules.cobweb
 import qs.modules.lens
@@ -81,6 +83,8 @@ ShellRoot {
     BootScreen {}
     AltTabHost {}
     MissionControl {}
+    SnapAssistView {}
+    SnapBarView {}
     ShakeCursor {}
     CobwebOverlay {}
     LensOverlay {}
@@ -143,6 +147,12 @@ ShellRoot {
         SetupFx {}
     }
 
+    // helpers left by a shell that crashed: Quickshell restarted in the same process (bin/angelos stale)
+    Process {
+        running: true
+        command: [Quickshell.shellDir + "/bin/angelos", "stale"]
+    }
+
     Component.onCompleted: {
         ThemeExport.signature; // wake the template exporter
         PaletteGenerator.auto; // follow wallpaper colours from startup
@@ -183,6 +193,7 @@ ShellRoot {
         CircleHost.open; // the screenshot overlay's own process (scripts/circle-proc.sh), ready before the key
         Timelapse.on; // the day's timelapse: recording all day when on, glued at midnight (Settings → Screenshots)
         StreamChat.on; // the stream's chat on screen, from a chat bot's log (Settings → Stream)
+        SceneSound.on; // a layered wallpaper's sounds: its air and its night's event (Settings → Wallpaper)
     }
     // the shell going away (`angelos restart`/stop and the unit's ExecStop use `qs kill`, a reload):
     // what still waits in a save's debounce is written, else the next start reads the file from

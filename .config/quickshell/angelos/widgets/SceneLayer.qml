@@ -11,6 +11,9 @@ Item {
 
     required property var modelData
     required property Item wall
+    // bend by the kick's wave itself: the wall bends as a whole (WallpaperView), a SceneFront's
+    // layers over a widget must bend alike on their own
+    property bool wave: false
     readonly property var anim: modelData.animation || ({})
     readonly property real t: wall.time
     readonly property int frame: {
@@ -19,9 +22,10 @@ Item {
         // a strong gust makes the CRT stutter
         if (anim.type === "frame_sequence")
             return Math.floor(t * (wall.pulse > 0.5 ? anim.fps * 3 : anim.fps)) % modelData.frames.length;
-        // a glint held 0.7 s every 17 s, a different window each time; frame 0 is empty
+        // a glint held 0.7 s every 17 s, a different window each time; frame 0 is empty — the
+        // sun's, so none at night
         if (anim.type === "glint")
-            return t % 17 >= 12 && t % 17 < 12.7 ? 1 + (Math.floor(t / 17) * 3) % 7 : 0;
+            return wall.nightMix < 0.5 && t % 17 >= 12 && t % 17 < 12.7 ? 1 + (Math.floor(t / 17) * 3) % 7 : 0;
         return 0;
     }
     readonly property var par: modelData.parallax_max_logical || [0, 0]
@@ -53,9 +57,54 @@ Item {
         }
     }
 
+    // the layer at night (scripts/scene-night.py), frame for frame; a layer that keeps its own
+    // (the CRT's screen glows the same) or a scene without a night has none
+    readonly property bool ownNight: wall.nightInfo !== null && !(wall.nightInfo.keep || []).includes(modelData.id) && modelData.id !== "windows"
+    Repeater {
+        id: nightFrames
+        model: layer.ownNight ? layer.modelData.frames : []
+        Image {
+            required property string modelData
+            source: "file://" + wall.dir + "/logical/" + wall.nightInfo.layers + modelData
+            smooth: false
+            mipmap: false
+            visible: false
+        }
+    }
+
+    // the layer at dusk or at dawn (scripts/scene-twilight.py), only while it shows
+    readonly property bool ownTwilight: ownNight && wall.twilightInfo !== null && wall.twilightMix > 0 && wall.nightMix < 1
+    Repeater {
+        id: twilightFrames
+        model: layer.ownTwilight ? layer.modelData.frames : []
+        Image {
+            required property string modelData
+            source: "file://" + wall.dir + "/logical/" + wall.twilightInfo.layers + modelData
+            smooth: false
+            mipmap: false
+            visible: false
+        }
+    }
+
     ShaderEffect {
         anchors.fill: parent
         property var source: frames.count > layer.frame ? frames.itemAt(layer.frame) : null
+        property var nightSource: nightFrames.count > layer.frame && nightFrames.itemAt(layer.frame).status === Image.Ready ? nightFrames.itemAt(layer.frame) : source
+        property real night: layer.ownNight || layer.modelData.role === "screen" ? wall.nightMix : 0
+        readonly property bool twilightReady: twilightFrames.count > layer.frame && twilightFrames.itemAt(layer.frame).status === Image.Ready
+        property var twilightSource: twilightReady ? twilightFrames.itemAt(layer.frame) : source
+        property real twilight: twilightReady ? wall.twilightMix : 0
+        property real glowNear: wall.glowNear
+        property real glowBlast: wall.glowBlast
+        property color nearColor: wall.nearColor
+        property color blastColor: wall.blastColor
+        property real screenHit: layer.modelData.role === "screen" ? wall.screenHit : 0
+        property real kick: wall.kick
+        property real kickAt: wall.kickAt
+        property point kickFrom: wall.kickFrom
+        property real wave: layer.wave ? 1 : 0
+        property real flare: layer.modelData.role === "screen" ? 1 : 0
+        property var light: wall.lightReady ? wall.lightImage : source
         property size canvas: Qt.size(wall.cw, wall.ch)
         property point origin: Qt.point(layer.x0, layer.y0)
         property size area: Qt.size(layer.x1 - layer.x0, layer.y1 - layer.y0)

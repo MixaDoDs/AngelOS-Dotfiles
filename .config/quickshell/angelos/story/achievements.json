@@ -1359,6 +1359,375 @@
       },
       "on": "settings.sister",
       "kinds": 4
+    },
+    {
+      "id": "x-mission",
+      "tier": 1,
+      "icon": "allDesks",
+      "name": {
+        "ru": "Вид сверху",
+        "en": "Bird's-eye view"
+      },
+      "desc": {
+        "ru": "Открыть Mission Control: Mod+W",
+        "en": "Open Mission Control: Mod+W"
+      },
+      "on": "explore:mission"
+    },
+    {
+      "id": "x-note",
+      "tier": 1,
+      "icon": "note",
+      "name": {
+        "ru": "Записка",
+        "en": "A note"
+      },
+      "desc": {
+        "ru": "Оставить записку на полке Нимба",
+        "en": "Leave a note on the Halo's shelf"
+      },
+      "on": "explore:note"
+    },
+    {
+      "id": "x-shelf",
+      "tier": 1,
+      "icon": "layers",
+      "name": {
+        "ru": "На полочку",
+        "en": "On the shelf"
+      },
+      "desc": {
+        "ru": "Бросить файл, картинку или текст на Нимб — он подержит",
+        "en": "Drop a file, a picture or some text on the Halo: it holds it for you"
+      },
+      "on": "explore:shelf"
+    },
+    {
+      "id": "x-tour",
+      "tier": 1,
+      "icon": "info",
+      "name": {
+        "ru": "Экскурсия",
+        "en": "The grand tour"
+      },
+      "desc": {
+        "ru": "Пройти тур по angelOS: ПКМ по Нимбу или «тур» в поиске",
+        "en": "Take the angelOS tour: right-click the Halo or type “tour” in search"
+      },
+      "on": "explore:tour"
+    },
+    {
+      "id": "x-chest",
+      "tier": 1,
+      "icon": "star",
+      "name": {
+        "ru": "Сундук",
+        "en": "A chest"
+      },
+      "desc": {
+        "ru": "Открыть сундук молитвы",
+        "en": "Open a prayer chest"
+      },
+      "on": "explore:chest"
+    },
+    {
+      "id": "x-quicklook",
+      "tier": 2,
+      "icon": "eye",
+      "name": {
+        "ru": "Одним глазком",
+        "en": "Just a peek"
+      },
+      "desc": {
+        "ru": "Посмотреть файл пробелом в Strata, не открывая его",
+        "en": "Peek at a file with Space in Strata without opening it"
+      },
+      "on": "explore:quicklook"
+    },
+    {
+      "id": "x-lens",
+      "tier": 2,
+      "icon": "search",
+      "name": {
+        "ru": "Что это?",
+        "en": "What is this?"
+      },
+      "desc": {
+        "ru": "Найти что-то по картинке через Google Lens",
+        "en": "Look something up by picture with Google Lens"
+      },
+      "on": "explore:lens"
+    },
+    {
+      "id": "x-convert",
+      "tier": 2,
+      "icon": "refresh",
+      "name": {
+        "ru": "Алхимия",
+        "en": "Alchemy"
+      },
+      "desc": {
+        "ru": "Превратить файл в другой формат: левый Shift + ПКМ по файлам в Strata",
+        "en": "Turn a file into another format: left Shift + right-click files in Strata"
+      },
+      "on": "explore:convert"
+    },
+    {
+      "id": "x-discord",
+      "tier": 2,
+      "icon": "document",
+      "name": {
+        "ru": "Влезло!",
+        "en": "It fits!"
+      },
+      "desc": {
+        "ru": "Ужать видео под лимит Discord",
+        "en": "Squeeze a video under Discord's limit"
+      },
+      "on": "explore:discord"
+    },
+    {
+      "id": "x-grab",
+      "tier": 2,
+      "icon": "download",
+      "name": {
+        "ru": "Себе на память",
+        "en": "A keepsake"
+      },
+      "desc": {
+        "ru": "Скачать видео по ссылке из буфера",
+        "en": "Download a video from a link on the clipboard"
+      },
+      "on": "explore:grab"
+    },
+    {
+      "id": "x-share",
+      "tier": 2,
+      "icon": "phone",
+      "name": {
+        "ru": "По воздуху",
+        "en": "Through the air"
+      },
+      "desc": {
+        "ru": "Отправить файл на телефон или компьютер рядом",
+        "en": "Send a file to a phone or a computer nearby"
+      },
+      "on": "explore:share"
+    },
+    {
+      "id": "x-eyedropper",
+      "tier": 2,
+      "icon": "drop",
+      "name": {
+        "ru": "Пипетка",
+        "en": "The eyedropper"
+      },
+      "desc": {
+        "ru": "Взять цвет прямо с экрана: Mod+Shift+C",
+        "en": "Pick a colour right off the screen: Mod+Shift+C"
+      },
+      "on": "explore:eyedropper"
+    },
+    {
+      "id": "x-timer",
+      "tier": 2,
+      "icon": "clock",
+      "name": {
+        "ru": "Чайник",
+        "en": "The kettle"
+      },
+      "desc": {
+        "ru": "Поставить таймер из поиска — например, «5m чай»",
+        "en": "Set a timer from search, like “5m tea”"
+      },
+      "on": "explore:timer"
+    },
+    {
+      "id": "x-shotedit",
+      "tier": 2,
+      "icon": "pen",
+      "name": {
+        "ru": "Подрисовать",
+        "en": "A little touch-up"
+      },
+      "desc": {
+        "ru": "Открыть скриншот в редакторе: клик по превью в углу",
+        "en": "Open a screenshot in the editor: click its preview in the corner"
+      },
+      "on": "explore:shotedit"
+    },
+    {
+      "id": "x-replay",
+      "tier": 3,
+      "icon": "play",
+      "name": {
+        "ru": "Повтор!",
+        "en": "Replay!"
+      },
+      "desc": {
+        "ru": "Сохранить мгновенный повтор: Mod+Alt+G",
+        "en": "Save an instant replay: Mod+Alt+G"
+      },
+      "on": "explore:replay"
+    },
+    {
+      "id": "x-chalk",
+      "tier": 3,
+      "icon": "pen",
+      "name": {
+        "ru": "Мелом по стеклу",
+        "en": "Chalk on glass"
+      },
+      "desc": {
+        "ru": "Порисовать мелом поверх экрана: зажми Mod+Alt и левую кнопку",
+        "en": "Draw chalk over the screen: hold Mod+Alt and the left button"
+      },
+      "on": "explore:chalk"
+    },
+    {
+      "id": "x-keycast",
+      "tier": 3,
+      "icon": "keyboard",
+      "name": {
+        "ru": "Смотрите все",
+        "en": "Everybody look"
+      },
+      "desc": {
+        "ru": "Показать нажатые клавиши на экране: Mod+Shift+K",
+        "en": "Show the keys you press on screen: Mod+Shift+K"
+      },
+      "on": "explore:keycast"
+    },
+    {
+      "id": "x-care",
+      "tier": 3,
+      "icon": "gear",
+      "name": {
+        "ru": "Генеральная уборка",
+        "en": "Spring cleaning"
+      },
+      "desc": {
+        "ru": "Осмотреть компьютер в «Обслуживании»",
+        "en": "Look the computer over in Device Care"
+      },
+      "on": "explore:care"
+    },
+    {
+      "id": "x-gametune",
+      "tier": 3,
+      "icon": "gamepad",
+      "name": {
+        "ru": "Подкрутить",
+        "en": "Fine-tuned"
+      },
+      "desc": {
+        "ru": "Открыть бумажку с настройками игры",
+        "en": "Open a game's tuning note"
+      },
+      "on": "explore:gametune"
+    },
+    {
+      "id": "x-reaper",
+      "tier": 3,
+      "icon": "skull",
+      "name": {
+        "ru": "Смерть на смене",
+        "en": "Death on shift"
+      },
+      "desc": {
+        "ru": "Сыграть в «Смерть на смене» из Нимба",
+        "en": "Play “Death on shift” from the Halo"
+      },
+      "on": "explore:reaper"
+    },
+    {
+      "id": "x-meteor",
+      "tier": 5,
+      "icon": "fire",
+      "name": {
+        "ru": "Звездопад",
+        "en": "A falling star"
+      },
+      "desc": {
+        "ru": "Не спать, когда это упало с неба",
+        "en": "Be awake when it fell from the sky"
+      },
+      "on": "explore:meteor",
+      "secret": true
+    },
+    {
+      "id": "x-tourist",
+      "tier": 3,
+      "icon": "sparkleStar",
+      "name": {
+        "ru": "Турист",
+        "en": "The tourist"
+      },
+      "desc": {
+        "ru": "Попробовать восемь разных штук angelOS из списка выше",
+        "en": "Try eight different angelOS things from this list"
+      },
+      "on": "explore",
+      "kinds": 8
+    },
+    {
+      "id": "x-native",
+      "tier": 4,
+      "icon": "sparkleStar",
+      "name": {
+        "ru": "Старожил",
+        "en": "An old-timer"
+      },
+      "desc": {
+        "ru": "Попробовать шестнадцать разных штук angelOS",
+        "en": "Try sixteen different angelOS things"
+      },
+      "on": "explore",
+      "kinds": 16
+    },
+    {
+      "id": "talker",
+      "tier": 1,
+      "icon": "chat",
+      "name": {
+        "ru": "Поболтаем",
+        "en": "Let's chat"
+      },
+      "desc": {
+        "ru": "Поболтать с ангелом: кликни её → «Поболтаем»",
+        "en": "Chat with the angel: click her → “Let's chat”"
+      },
+      "on": "angel.talk:angel"
+    },
+    {
+      "id": "heart-to-heart",
+      "tier": 3,
+      "icon": "chat",
+      "name": {
+        "ru": "По душам",
+        "en": "Heart to heart"
+      },
+      "desc": {
+        "ru": "Поболтать с ангелом двадцать раз",
+        "en": "Chat with the angel twenty times"
+      },
+      "on": "angel.talk:angel",
+      "count": 20
+    },
+    {
+      "id": "good-advice",
+      "tier": 2,
+      "icon": "star",
+      "name": {
+        "ru": "Всё по полочкам",
+        "en": "Sorted"
+      },
+      "desc": {
+        "ru": "Выслушать тридцать советов ангела",
+        "en": "Hear thirty of the angel's tips"
+      },
+      "on": "angel.tip",
+      "count": 30
     }
   ]
 }

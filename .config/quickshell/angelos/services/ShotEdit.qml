@@ -104,6 +104,7 @@ Singleton {
     // the editor on a shot (none: the last one, else the newest in the folder); its window comes
     // up, or the open one takes it
     function edit(p) {
+        Achievements.note("explore", "shotedit");
         if (p) {
             path = p;
             temp = p.indexOf(shotsDir + "/") === 0;

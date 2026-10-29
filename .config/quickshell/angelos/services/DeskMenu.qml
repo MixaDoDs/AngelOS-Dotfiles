@@ -910,10 +910,27 @@ Singleton {
         const ws = Niri.activeWorkspace(screen);
         return ws ? ws.idx : 1;
     }
-    // «Показать стол»: the windows of the screen's desktop minimized, again: back — only the ones
-    // it hid (a window minimized by hand before stays down), as on Windows
-    property var deskHidden: ({})
+    // «Показать стол»: on angel-niri the windows part to the side edges in one motion and come
+    // back, as on a Mac (show-desktop: a click on a window, the taskbar, a new window bring them
+    // back too); an older one answers Err, and stock niri has none — there they are minimized
+    // and, again, back — only the ones it hid (a window minimized by hand before stays down), as
+    // on Windows
     function showDesktop(screen) {
+        if (!Niri.nativeMinimize)
+            return minimizeDesk(screen);
+        Niri.request({
+            "Action": {
+                "ShowDesktop": {
+                    "output": screen || null
+                }
+            }
+        }, (ok, err) => {
+            if (err)
+                minimizeDesk(screen);
+        }, true);
+    }
+    property var deskHidden: ({})
+    function minimizeDesk(screen) {
         const ws = Niri.activeWorkspace(screen);
         const here = Niri.windows.filter(w => ws && Minimize.wsOf(w) === ws.id && !Minimize.isAppHidden(w));
         const open = here.filter(w => !Minimize.isMinimized(w));

@@ -238,6 +238,12 @@ Singleton {
         if (sfx.running)
             sfx.write("loop\t" + vol + "\t" + (path || "") + "\n");
     }
+    // a loop of its own name, beside the others (sfx-player's channels): a wallpaper's crickets,
+    // wind and meteor together; the same path again only glides to `vol`, 0 fades it out
+    function channel(name, path, vol) {
+        if (sfx.running)
+            sfx.write("chan\t" + name + "\t" + vol + "\t" + (path || "") + "\n");
+    }
 
     // yours first, then the skin's (pw-play, or paplay without it, if the player is down)
     function _playMac(name, vol) {

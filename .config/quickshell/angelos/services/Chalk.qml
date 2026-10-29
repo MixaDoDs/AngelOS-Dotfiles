@@ -26,6 +26,7 @@ Singleton {
         held = on;
         if (!on || shown)
             return;
+        Achievements.note("explore", "chalk");
         // the screen under the pointer when the key goes down
         Niri.pointer(p => {
             const s = p && Shell.screenByName(p.output) || Shell.focusedScreen;

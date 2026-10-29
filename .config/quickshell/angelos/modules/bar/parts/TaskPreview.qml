@@ -21,6 +21,10 @@ PopupWindow {
     readonly property string dir: Quickshell.env("XDG_RUNTIME_DIR") + "/angel-niri/preview"
     property int tick: 0
     signal picked(var win)
+    // the window whose picture the pointer is on (Tasks: Aero Peek)
+    property var peekWin: null
+    onVisibleChanged: if (!visible)
+        peekWin = null
 
     readonly property int tileW: Theme.u * 84
     readonly property int tileH: Theme.u * 52
@@ -134,6 +138,10 @@ PopupWindow {
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: root.picked(tile.modelData)
+                            onContainsMouseChanged: if (containsMouse)
+                                root.peekWin = tile.modelData
+                            else if (root.peekWin === tile.modelData)
+                                root.peekWin = null
                         }
                     }
                 }

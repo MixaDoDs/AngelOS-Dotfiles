@@ -175,7 +175,6 @@ Item {
             anchors.right: parent.right
             ids: root.vertical ? root.layout.center.filter(id => id !== "lyrics").concat(root.layout.right) : []
             bar: root
-            grouped: true
             density: Config.bar.rightDensity || "normal"
         }
     }
@@ -199,7 +198,6 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             ids: root.vertical ? [] : root.layout.right
             bar: root
-            grouped: true
             lyricsMax: Theme.u * 150
             density: Config.bar.rightDensity || "normal"
         }

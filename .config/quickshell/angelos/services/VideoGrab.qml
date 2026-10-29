@@ -43,6 +43,7 @@ Singleton {
     function shrink(path, start, end) {
         if (!path)
             return;
+        Achievements.note("explore", "discord");
         const j = {
             "kind": "shrink",
             "src": path,
@@ -118,6 +119,7 @@ Singleton {
         url = String(url || "").trim();
         if (!/^https?:\/\//i.test(url))
             return;
+        Achievements.note("explore", "grab");
         add({
             "kind": "grab",
             "src": url,

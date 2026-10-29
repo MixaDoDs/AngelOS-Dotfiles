@@ -141,6 +141,15 @@ JsonAdapter {
         property string sceneDepth: "clock"         // clock | release | "": behind a layered scene's nearer layers (WallpaperView)
         property string sceneDepthStyle: "neon"     // outline | neon | chrome | cutout (widgets/SceneDepthText)
         property bool sceneDepthTexture: true       // the text takes the picture's grain
+        property string sceneTime: "auto"           // auto (the clock) | day | night: a scene with a night of its own (scripts/scene-night.py)
+        // a scene's sounds (services/SceneSound, scene.json "sounds"): on, the air's and the event's
+        // levels (%, per wallpaper), and how far the air gives way to music (%, every scene)
+        property bool sceneSounds: true
+        property int sceneSoundAir: 40
+        property int sceneSoundEvent: 50
+        property bool sceneBass: true       // the scene flinches on the music's kicks (services/Bass)
+        property int sceneDuckDesk: 65
+        property int sceneDuckWindow: 25
         // a wallpaper's own picks (services/Wallpapers: own): a release's folder (its wallpapers share them)
         // or a picture -> {liveStrength, liveStars, …, sceneDepth, …}; what is not there is the value above
         property var perWall: ({})
@@ -432,6 +441,7 @@ JsonAdapter {
         property string recordCodec: "auto" // auto (NVENC on NVIDIA, else VA-API, else x264) | nvenc | vaapi | x264
         property bool replay: false         // instant replay: the last seconds of the main screen kept in memory, Mod+Alt+G saves them (services/Capture)
         property int replaySec: 30
+        property string mediafixDir: ""     // "" = ~/Videos/MediaFix — «Prepare for DaVinci Resolve» (extras/mediafix: Strata, Nautilus, Quick Look's «for editing»)
         property int discordMb: 20          // «≤20 MB for Discord» (services/VideoGrab): the size a video is squeezed under
         property bool timelapse: false      // the day's timelapse: gpu-screen-recorder writes the main screen at a frame a second, glued at midnight (services/Timelapse)
         property int timelapseStep: 30      // a frame of the video every this many seconds of the day

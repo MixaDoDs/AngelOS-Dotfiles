@@ -23,11 +23,74 @@ Singleton {
     function sceneOf(path) {
         return scenes[path] || "";
     }
+    // a scene with a night of its own (scripts/scene-night.py): its folder -> the night's still
+    property var nights: ({})
+    function nightOf(path) {
+        return nights[sceneOf(path)] || "";
+    }
+    // how far into the night the scene is at `d`, 0..1 (its own pick: Settings → Wallpaper → Time
+    // of day). By the clock the evening goes day → dusk 20:00–21:00, dusk → night 21:00–22:00, the
+    // morning night → dawn 06:00–07:00, dawn → day 07:00–08:00 (day from 8, the owner)
+    function _hour(d) {
+        return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+    }
+    function _byClock(path) {
+        if (!nightOf(path))
+            return false;
+        if (SceneDebug.hour >= 0)
+            return true;
+        const mode = own(path, "sceneTime");
+        return mode !== "day" && mode !== "night";
+    }
+    function nightMix(path, d) {
+        if (!nightOf(path))
+            return 0;
+        if (!_byClock(path))
+            return own(path, "sceneTime") === "night" ? 1 : 0;
+        const h = _hour(SceneDebug.at(d));
+        return h >= 12 ? Math.max(0, Math.min(1, h - 21)) : Math.max(0, Math.min(1, 7 - h));
+    }
+    // the dusk or the dawn under the night at `d`, 0..1 (scripts/scene-twilight.py); none when the
+    // time of day is picked by hand or the night is all there is
+    function twilightMix(path, d) {
+        if (!_byClock(path))
+            return 0;
+        const h = _hour(SceneDebug.at(d));
+        return h >= 12 ? (h >= 22 ? 0 : Math.max(0, Math.min(1, h - 20))) : (h < 6 ? 0 : Math.max(0, Math.min(1, 8 - h)));
+    }
+    function twilightKind(d) {
+        return SceneDebug.at(d).getHours() >= 12 ? "dusk" : "dawn";
+    }
+    // the night's event (scene.json "night" → "event"): seconds from its moment, 04:00 — it comes
+    // near for 40 minutes before, burns for 20 after, and what it left (smoke, shards, ash) fades
+    // till 20:00; NaN the rest of the day. The owner may run it by hand (SceneDebug)
+    function nightEvent(d) {
+        if (SceneDebug.eventOn)
+            return SceneDebug.eventAge;
+        d = SceneDebug.at(d);
+        const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 4, 0, 0);
+        const s = (d - at) / 1000;
+        return s >= SceneDebug.eventStart && s <= SceneDebug.afterEnd ? s : NaN;
+    }
+    // the meteor's colour tonight (SceneEvent's variants): mostly its own fire, now and then
+    // another, seeded by the date so both screens and the sounds agree
+    function nightVariant(d) {
+        if (SceneDebug.variant >= 0)
+            return SceneDebug.variant;
+        const n = d.getFullYear() * 400 + d.getMonth() * 32 + d.getDate();
+        const h = Math.abs(Math.sin(n * 12.9898) * 43758.5453) % 1;
+        return h < 0.5 ? 0 : 1 + Math.floor((h - 0.5) / 0.1);
+    }
+    // the still a wallpaper shows at `d`: a scene's night's at night, its own picture otherwise
+    function still(path, d) {
+        const n = nightOf(path);
+        return n && nightMix(path, d) >= 0.5 ? n : display(path);
+    }
     // some settings belong to the wallpaper, not to the shell (Settings → Wallpaper, while it is shown):
     // its live effects and its scene's text — water that suits one picture may not suit another.
     // A release's wallpapers (Pictures/AngelOS/NN-name/) share theirs, any other picture keeps its
     // own; what a wallpaper has not set is the common Config.wallpaper value
-    readonly property var ownKeys: ["liveStrength", "liveStars", "liveMeteors", "liveWater", "liveLights", "liveEvents", "sceneDepth", "sceneDepthStyle", "sceneDepthTexture"]
+    readonly property var ownKeys: ["liveStrength", "liveStars", "liveMeteors", "liveWater", "liveLights", "liveEvents", "sceneDepth", "sceneDepthStyle", "sceneDepthTexture", "sceneTime", "sceneSounds", "sceneSoundAir", "sceneSoundEvent", "sceneBass"]
     function wallKey(path) {
         const p = sceneOf(path) || origin(path);
         const r = p ? releases.find(r => p === r.dir || p.startsWith(r.dir + "/")) : null;
@@ -698,13 +761,16 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 const [files, sc] = text.split("@scenes\n");
-                const scenes = {};
+                const scenes = {}, nights = {};
                 for (const l of (sc || "").split("\n").filter(l => l.includes("\t"))) {
-                    const [dir, ref] = l.split("\t");
+                    const [dir, ref, night] = l.split("\t");
                     scenes[ref] = dir;
+                    if (night)
+                        nights[dir] = night;
                 }
                 const dirs = Object.values(scenes);
                 root.scenes = scenes;
+                root.nights = nights;
                 root.images = files.split("\n").filter(l => l !== "" && !dirs.some(d => l.startsWith(d + "/"))).concat(Object.keys(scenes)).sort();
             }
         }

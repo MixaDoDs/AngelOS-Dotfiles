@@ -52,6 +52,7 @@ Singleton {
 
     // a new entry on top; one already there (the same path, url or text) moves up instead
     function put(entry) {
+        Achievements.note("explore", "shelf");
         const same = i => root.same(i, entry);
         const old = items.find(same);
         const it = old ? Object.assign({}, old, {
@@ -185,6 +186,7 @@ Singleton {
     }
     // an empty note to be written at once (the shelf's ＋); left empty, it goes (setText)
     function newNote() {
+        Achievements.note("explore", "note");
         const it = {
             "id": Date.now() + "-" + Math.floor(Math.random() * 1e6),
             "kind": "text",

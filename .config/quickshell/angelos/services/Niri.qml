@@ -95,6 +95,12 @@ Singleton {
     // angel-niri, stacking mode: a right click on a window's title bar, at `pos` on `output`
     // (logical px) — Shell.desktopMenus opens the window's menu there
     signal windowMenuRequested(int id, string output, var pos, bool green)
+    // angel-niri: a floating window snapped to a part of its screen, or left it (zone "") — Snap
+    // Assist (services/SnapAssist); area: [x, y, w, h], the room the parts divide
+    signal windowSnapped(int id, string output, string zone, var area)
+    // angel-niri: a floating window dragged near the top of a screen (pos [x, y]), away again
+    // (pos null) or let go there (dropped) — the snap bar (services/SnapAssist)
+    signal windowDraggedNearTop(int id, string output, var pos, bool dropped)
     // angel-niri's desk throw: when each thrown window lands, hits or drops ({output, pos, in_ms, far, bottom})
     signal desksThrown(var hits)
     signal layoutSwitched(string name)
@@ -459,6 +465,14 @@ Singleton {
         case "WindowMenuRequested":
             if (ready)
                 windowMenuRequested(d.id, d.output || "", d.pos || [0, 0], !!d.green);
+            break;
+        case "WindowDraggedNearTop":
+            if (ready)
+                windowDraggedNearTop(d.id, d.output || "", d.pos || null, !!d.dropped);
+            break;
+        case "WindowSnapped":
+            if (ready)
+                windowSnapped(d.id, d.output || "", d.zone || "", d.area || [0, 0, 0, 0]);
             break;
         case "DesksThrown":
             if (ready)

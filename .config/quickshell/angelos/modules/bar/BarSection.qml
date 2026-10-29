@@ -16,10 +16,6 @@ GridLayout {
     // Settings → Bar → Icons → "Right side": compact packs the widgets close together
     property string density: "normal"      // compact | normal | airy
     property bool centered: false          // the Windows 11-like centred group (BarContent)
-    // the right side: a wider gap where a new group of widgets begins (BarItem.groupOf)
-    property bool grouped: false
-    // the widgets by their place, for BarItem.groupStart
-    property var items: []
 
     readonly property bool vertical: !!bar && bar.vertical === true
     flow: vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
@@ -31,28 +27,14 @@ GridLayout {
     readonly property real gap: hell ? (density === "compact" ? Math.max(1, Theme.u / 2) : density === "airy" ? Theme.u * 6 : Theme.u * 3) : density === "compact" ? Theme.u * 2 : density === "airy" ? Theme.u * 5 : Theme.u * 3
     // the grid's cell along the run: the density narrows or widens it, the icon stays in its middle
     readonly property real cell: !bar ? 0 : density === "compact" ? bar.itemHeight - Theme.u * 3 : density === "airy" ? bar.itemHeight + Theme.u * 2 : bar.itemHeight
-    readonly property real groupGap: density === "compact" ? Theme.u * 4 : density === "airy" ? Theme.u * 7 : Theme.u * 5
     rowSpacing: gap
     columnSpacing: gap
 
     Repeater {
         model: root.ids
-        onItemAdded: (i, it) => {
-            const a = root.items.slice();
-            a[i] = it;
-            root.items = a;
-        }
-        onItemRemoved: (i, it) => {
-            const a = root.items.slice();
-            if (a[i] === it)
-                a[i] = null;
-            root.items = a;
-        }
         BarItem {
             required property string modelData
-            required property int index
             section: root
-            place: index
             wid: modelData
             bar: root.bar
             fillTasks: root.fillTasks

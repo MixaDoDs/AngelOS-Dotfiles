@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """The layered scenes in wallpaper folders (widgets/SceneWall): every <scene>/scene.json of
 schema angelos.layered-scene.* / angelos.editable-scene.* one to three folders down, printed as "<scene dir>\t<its neutral
-reference picture>". The picture stands for the scene wherever a still is shown (thumbnails,
-the lock and login screens); the desktop draws the scene itself.
+reference picture>\t<its night's neutral picture, or nothing>". The picture stands for the scene wherever a
+still is shown (thumbnails, the lock and login screens); the desktop draws the scene itself, and at
+night (scripts/scene-night.py) its night's still before the scene takes over.
 
     scene-list.py <dir>...      (the wallpaper folder, the releases' Pictures/AngelOS)
 """
@@ -19,4 +20,5 @@ for p in sorted(found.values()):
         continue
     schema = str(s.get("schema", ""))
     if schema.startswith(("angelos.layered-scene.", "angelos.editable-scene.")) and ref.is_file():
-        print(f"{p.parent}\t{ref}")
+        night = p.parent / s["night"]["neutral"] if isinstance(s.get("night"), dict) and s["night"].get("neutral") else None
+        print(f"{p.parent}\t{ref}\t{night if night and night.is_file() else ''}")

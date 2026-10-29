@@ -13,6 +13,8 @@ Singleton {
     id: root
 
     property bool open: false
+    onOpenChanged: if (open)
+        Achievements.note("explore", "reaper")
     readonly property alias day: save.day
     readonly property alias best: save.best
 

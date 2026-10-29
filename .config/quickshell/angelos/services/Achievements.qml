@@ -313,6 +313,23 @@ Singleton {
             "key": "angel | demon"
         },
         {
+            "id": "angel.talk",
+            "ru": "Поболтать: вопрос ангела или демоницы и ответ",
+            "en": "Let's chat: the angel's or the demon's question, answered",
+            "key": "angel | demon"
+        },
+        {
+            "id": "angel.tip",
+            "ru": "Ангел дала совет",
+            "en": "The angel gave a tip"
+        },
+        {
+            "id": "explore",
+            "ru": "Попробовать штуку angelOS (Mission Control, полка Нимба, кольцо, повтор…)",
+            "en": "Try an angelOS thing (Mission Control, the Halo's shelf, the ring, replay…)",
+            "key": "mission | note | shelf | tour | chest | quicklook | lens | convert | discord | grab | share | eyedropper | timer | shotedit | replay | chalk | keycast | care | gametune | reaper | meteor"
+        },
+        {
             "id": "phone.call",
             "ru": "Поговорить с ней по раскладушке",
             "en": "Talk to her on the flip phone",

@@ -22,9 +22,86 @@ Item {
     property real wind: 0.35
     property real windDir: 1
     property real pulse: 0
+    property real kick: 0                     // 0..1: the music's last kick, a wave rings out (WallpaperView)
+    property real kickAt: -1                  // `time` of that kick
+    // it rings out of the CRT's screen (the music plays there); a scene without one: its middle
+    readonly property point kickFrom: {
+        const s = (scene && scene.layers || []).find(l => l.role === "screen" && l.bounds_logical);
+        return s ? Qt.point((s.bounds_logical[0] + s.bounds_logical[2]) / 2, (s.bounds_logical[1] + s.bounds_logical[3]) / 2) : Qt.point(cw / 2, ch / 2);
+    }
     property real seed: 0.5
 
     property var scene: null
+
+    // the night (scene.json "night", scripts/scene-night.py: every layer recoloured, the event's
+    // light and sprites): how far into it, 0..1 — the host's clock or the wallpaper's own pick —
+    // and the night's event, seconds from its moment (the impact; NaN = none now). Both plain
+    // properties, so a check can step through the night frame by frame
+    property real nightMix: 0
+    // the dusk or the dawn under the night (scripts/scene-twilight.py, scene.json "twilight"):
+    // day → twilight by twilightMix, then → night by nightMix; which one, by twilightKind
+    property real twilightMix: 0
+    property string twilightKind: "dusk"
+    readonly property var twilightInfo: scene && scene.twilight && scene.twilight[twilightKind] ? scene.twilight[twilightKind] : null
+    property real eventAge: NaN
+    // the meteor's colour tonight (Wallpapers.nightVariant): 0 its own fire, else one of `fires`
+    // [deep, mid, hot] — the sprites, its light on the walls and the shards it leaves take it
+    property int variant: 0
+    readonly property var fires: [null, ["#3a0612", "#d8203c", "#ffd6c8"], ["#04281c", "#20d880", "#e2ffe8"], ["#081440", "#3c8cff", "#eaf4ff"], ["#220838", "#a446ff", "#f6e2ff"], ["#3c2204", "#ffb424", "#fffbe6"]]
+    readonly property var fire: fires[variant] || null
+    readonly property var nightInfo: scene && scene.night ? scene.night : null
+    readonly property var nightEventInfo: nightInfo && nightInfo.event ? nightInfo.event : null
+    // the event moves, so not on a still wallpaper; and only as dark as the night is
+    readonly property bool eventOn: nightEventInfo !== null && moving && nightMix > 0 && isFinite(eventAge)
+    function smooth(x) {
+        x = Math.max(0, Math.min(1, x));
+        return x * x * (3 - 2 * x);
+    }
+    // 40 minutes coming near — a cold spark for half an hour, its warm light on the walls only in
+    // the last ten minutes (sooner, four in the morning looked like a sunset) — the impact behind
+    // the left house, the light dies down over the next 15
+    readonly property real approach: eventOn && eventAge < 0 ? smooth((eventAge + 2400) / 2400) : 0
+    readonly property real fireRise: eventOn && eventAge >= 0 ? smooth(eventAge / (nightEventInfo.fire.rise || 120)) : 0
+    readonly property real fireFade: eventOn && eventAge >= 0 ? 1 - smooth((eventAge - 100) / 360) : 0
+    readonly property real glowNear: !eventOn ? 0 : nightMix * (eventAge < 0 ? smooth((eventAge + 600) / 600) : 1 - smooth((eventAge - 250) / 720))
+    readonly property real glowBlast: !eventOn ? 0 : nightMix * Math.min(0.75, fireRise * fireFade * (nightEventInfo.fire.scale || 0.65))
+    // the CRT feels it a few seconds after the flash
+    // and keeps twitching now and then for hours after, less and less often
+    readonly property real screenHit: Math.max(!eventOn || eventAge < 5 ? 0 : smooth((eventAge - 5) / 2) * (1 - smooth((eventAge - 19) / 3)), aftershock)
+    readonly property real aftershock: !afterOn || afterAge < 40 ? 0 : hash(Math.floor(time / 9) * 1.7 + 0.3) < 0.3 * Math.exp(-afterAge / 7200) && time % 9 < 0.4 ? 0.4 : 0
+    readonly property color nearColor: fire ? fire[1] : nightInfo && nightInfo.approach_color ? Qt.rgba(...nightInfo.approach_color, 1) : "black"
+    readonly property color blastColor: fire ? fire[1] : nightInfo && nightInfo.blast_color ? Qt.rgba(...nightInfo.blast_color, 1) : "black"
+    // after the impact, day or night (widgets/SceneAftermath): smoke, shards, ash
+    readonly property bool afterOn: nightEventInfo !== null && moving && isFinite(eventAge) && eventAge >= 0
+    readonly property real afterAge: afterOn ? eventAge : -1
+    SceneAftermath {
+        wall: root
+    }
+    // the palette colour (night's at night) of about this lightness (0..1) and no more colourful
+    function paletteNear(lum, sat) {
+        let best = Qt.rgba(0.5, 0.5, 0.5, 1), bd = 9;
+        for (const c of palette) {
+            const q = Qt.rgba(c[0] / 255, c[1] / 255, c[2] / 255, 1);
+            const d = Math.abs(0.3 * q.r + 0.59 * q.g + 0.11 * q.b - lum) + (q.hslSaturation > sat ? 1 : 0);
+            if (d < bd) {
+                bd = d;
+                best = q;
+            }
+        }
+        return best;
+    }
+    // where the light lands (r: the meteor's, g: the blast's), broad: read between its texels
+    readonly property Image lightImage: lightImg
+    readonly property bool lightReady: lightImg.status === Image.Ready
+    Image {
+        id: lightImg
+        source: root.nightInfo && root.nightInfo.light ? "file://" + root.dir + "/logical/" + root.nightInfo.light : ""
+        smooth: true
+        visible: false
+    }
+    SceneEvent {
+        wall: root
+    }
     readonly property int cw: scene ? scene.logical_canvas.width : 1
     readonly property int ch: scene ? scene.logical_canvas.height : 1
     // art drawn past the edges for the movement to reveal: the view is the canvas inset by it
@@ -118,7 +195,7 @@ Item {
     // scene says where (scene.json "depth_text": {"z", "rect": [x, y, w, h] art px, and only to
     // fix them "color", "shadow"}),
     // nearer layers cover it. A scene without depth_text has no place for it
-    readonly property var depthText: scene && scene.depth_text ? scene.depth_text : null
+    readonly property var depthText: !scene || !scene.depth_text ? null : nightMix >= 0.5 && nightInfo && nightInfo.depth_text ? Object.assign({}, scene.depth_text, nightInfo.depth_text) : scene.depth_text
     property alias depth: depthSlot.data
     // the layer the depth text takes its grain from, and where (depth_text "texture_layer",
     // "texture_from" [x, y]; else the bottom layer under the text itself)
@@ -143,14 +220,42 @@ Item {
     }
 
     // the scene's palette (palette.json "rgb") and how light what stands behind the depth text is
-    // (mean relative luminance 0..1, -1 = not yet): the depth text picks its colours from them
-    property var palette: []
+    // (mean relative luminance 0..1, -1 = not yet): the depth text picks its colours from them.
+    // At night the night's own (scene.json "night" → "palette"): the day's bright colours glared
+    // as neon on the night, and leaves the wind tore off came down in the sun's green
+    // With a dusk and a dawn (scene.json "twilight" → "aligned": each day colour's own at dusk, at
+    // dawn and at night, in the day's order) the palette flows with the hour, colour for colour:
+    // the depth text, the leaves and the shards no longer jump at the middle of the change
+    property var dayPalette: []
+    property var nightPalette: []
+    readonly property var aligned: scene && scene.twilight && scene.twilight.aligned ? scene.twilight.aligned : null
+    readonly property var palette: {
+        const al = aligned;
+        if (!al || !al.day || !al.night || !(nightMix > 0 || twilightMix > 0))
+            return nightMix >= 0.5 && nightPalette.length ? nightPalette : dayPalette.length ? dayPalette : al ? al.day : [];
+        const tw = al[twilightKind] || al.day;
+        const n = nightMix, t = twilightMix;
+        return al.day.map((c, i) => [0, 1, 2].map(j => Math.round((c[j] + (tw[i][j] - c[j]) * t) * (1 - n) + al.night[i][j] * n)));
+    }
+    // how light what stands behind the depth text is, flowing with the night as the palette does
+    readonly property real depthBackdrop: {
+        const d = depthLuma < 0 ? 0.5 : depthLuma;
+        return depthLumaNight >= 0 ? d + (depthLumaNight - d) * nightMix : d;
+    }
+    // the night has its own place for the depth text: around the middle of the change it fades
+    // out at one and in at the other instead of jumping
+    readonly property real depthFade: nightInfo && nightInfo.depth_text && nightMix > 0 && nightMix < 1 ? smooth(Math.abs(nightMix - 0.5) / 0.1) : 1
     property real depthLuma: -1
+    // the same behind the night's layers (a scene with a night): dark digits on the day's sky
+    // would be lost in the night's
+    property real depthLumaNight: -1
     // how far each spot of the plants bends, one field for the scene (scripts/scene-hold.py, cached)
     property string flexPath: ""
     onDirChanged: {
-        palette = [];
+        dayPalette = [];
+        nightPalette = [];
         depthLuma = -1;
+        depthLumaNight = -1;
         flexPath = "";
         nearPath = "";
         near = null;
@@ -259,36 +364,55 @@ Item {
     readonly property bool flexReady: flexImg.status === Image.Ready
     FileView {
         path: root.scene && root.scene.palette ? root.dir + "/" + root.scene.palette.file : ""
-        onLoaded: root.palette = JSON.parse(text()).rgb || []
+        onLoaded: root.dayPalette = JSON.parse(text()).rgb || []
+    }
+    FileView {
+        path: root.nightInfo && root.nightInfo.palette ? root.dir + "/logical/" + root.nightInfo.palette : ""
+        onLoaded: root.nightPalette = JSON.parse(text()).rgb || []
     }
     // the layers behind the depth text, drawn once off to the side and read back in its rect
     Loader {
         active: root.depthText !== null && root.depthLuma < 0
-        sourceComponent: Canvas {
-            id: behind
-            readonly property var urls: root.scene.layers.filter(l => l.visible !== false && l.z < root.depthText.z).sort((a, b) => a.z - b.z).map(l => "file://" + root.dir + "/logical/" + l.file)
-            x: -width
-            width: root.cw
-            height: root.ch
-            opacity: 0
-            Component.onCompleted: urls.forEach(u => loadImage(u))
-            onImageLoaded: if (urls.every(u => isImageLoaded(u)))
-                requestPaint()
-            onPaint: {
-                const ctx = getContext("2d");
-                ctx.clearRect(0, 0, width, height);
-                urls.forEach(u => ctx.drawImage(u, 0, 0));
-                const r = root.depthText.rect;
-                const d = ctx.getImageData(r[0], r[1], r[2], r[3]).data;
-                const lin = c => (c /= 255) <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-                let sum = 0, n = 0;
-                for (let i = 0; i < d.length; i += 4)
-                    if (d[i + 3] > 0) {
-                        sum += 0.2126 * lin(d[i]) + 0.7152 * lin(d[i + 1]) + 0.0722 * lin(d[i + 2]);
-                        n++;
-                    }
-                root.depthLuma = n ? sum / n : 0.5;
-            }
+        sourceComponent: LumaBehind {
+            rect: root.scene.depth_text.rect
+            urls: root.scene.layers.filter(l => l.visible !== false && l.z < root.depthText.z).sort((a, b) => a.z - b.z).map(l => "file://" + root.dir + "/logical/" + l.file)
+            onMeasured: l => root.depthLuma = l
+        }
+    }
+    Loader {
+        active: root.depthText !== null && root.nightInfo !== null && root.depthLumaNight < 0
+        sourceComponent: LumaBehind {
+            rect: (root.nightInfo.depth_text || root.scene.depth_text).rect
+            urls: root.scene.layers.filter(l => l.visible !== false && l.z < root.depthText.z).sort((a, b) => a.z - b.z).map(l => "file://" + root.dir + "/logical/" + ((root.nightInfo.keep || []).includes(l.id) ? "" : root.nightInfo.layers) + l.file)
+            onMeasured: l => root.depthLumaNight = l
+        }
+    }
+    component LumaBehind: Canvas {
+        id: behind
+        required property var urls
+        required property var rect
+        signal measured(real luma)
+        x: -width
+        width: root.cw
+        height: root.ch
+        opacity: 0
+        Component.onCompleted: urls.forEach(u => loadImage(u))
+        onImageLoaded: if (urls.every(u => isImageLoaded(u)))
+            requestPaint()
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.clearRect(0, 0, width, height);
+            urls.forEach(u => ctx.drawImage(u, 0, 0));
+            const r = behind.rect;
+            const d = ctx.getImageData(r[0], r[1], r[2], r[3]).data;
+            const lin = c => (c /= 255) <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+            let sum = 0, n = 0;
+            for (let i = 0; i < d.length; i += 4)
+                if (d[i + 3] > 0) {
+                    sum += 0.2126 * lin(d[i]) + 0.7152 * lin(d[i + 1]) + 0.0722 * lin(d[i + 2]);
+                    n++;
+                }
+            behind.measured(n ? sum / n : 0.5);
         }
     }
 
@@ -367,6 +491,30 @@ Item {
             width: root.k * (e.kind === "leaf" ? (e.near ? (flip ? 3 : 2) : 2) : e.kind === "petal" ? (flip ? 2 : 1) : 1)
             height: root.k * (e.kind === "leaf" ? (e.near ? (flip ? 2 : 3) : 1) : e.kind === "petal" ? (flip ? 1 : 2) : 1)
             color: tint[(flip ? 0 : 1) % tint.length]
+        }
+    }
+
+    // the night's stars (scene.json "night" → "stars", scripts/scene-night.py): single art pixels
+    // in the open sky, behind the clouds and everything standing; each comes out at its own depth
+    // of the dusk, so they light one by one, and now and then one dims for a moment
+    readonly property var stars: nightInfo && nightInfo.stars ? nightInfo.stars : null
+    Repeater {
+        model: root.stars && root.nightMix > 0 ? root.stars.at : []
+
+        Rectangle {
+            required property var modelData
+            required property int index
+            readonly property bool bright: modelData[2] === 1
+            readonly property int beat: Math.floor(root.time / 2.5)
+            readonly property bool dim: root.moving && root.hash(index * 17.3 + beat * 5.1) < (bright ? 0.12 : 0.06)
+            visible: root.nightMix >= modelData[3]
+            z: root.stars.z
+            x: Math.round(root.ox + (modelData[0] + root.panShift.x) * root.k)
+            y: Math.round(root.oy + (modelData[1] + root.panShift.y) * root.k)
+            width: Math.round(root.k)
+            height: Math.round(root.k)
+            color: Qt.rgba(...(bright && !dim ? root.stars.bright : root.stars.faint).map(v => v / 255), 1)
+            opacity: !bright && dim ? 0 : 1
         }
     }
 

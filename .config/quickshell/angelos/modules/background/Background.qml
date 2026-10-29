@@ -236,7 +236,7 @@ Variants {
                 active: win.modelData === Shell.screens[0]
                 sourceComponent: TitleIcons {}
             }
-            // the pixel skins' genie into the taskbar (Golden Gate has its own in MacDesktop)
+            // the pixel skins' flight into the taskbar (Golden Gate has its own in MacDesktop)
             Loader {
                 active: !GoldenGate.on && Minimize.flightMs > 0
                 sourceComponent: MacMinimizeFx {

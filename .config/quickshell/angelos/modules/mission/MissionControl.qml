@@ -36,7 +36,9 @@ Scope {
 
             readonly property int u: Theme.u
             readonly property string dir: Quickshell.env("XDG_RUNTIME_DIR") + "/angel-niri/preview"
-            property int tick: 0
+            // from 1: the pictures of the last time at once, so the cards look like their windows
+            // from the first frame (on angel-niri the windows themselves are gone by then)
+            property int tick: 1
 
             readonly property var desks: Niri.workspacesOn(output).slice().sort((a, b) => a.idx - b.idx)
             readonly property var desk: desks.find(d => d.is_active) || null
@@ -246,9 +248,11 @@ Scope {
                 }
             }
 
+            // the desktop under the cards (Mission.desktopUnder) only darkened a little, for the
+            // titles; the windows under them — well
             Rectangle {
                 anchors.fill: parent
-                color: Qt.alpha("#000000", 0.78 * win.progress)
+                color: Qt.alpha("#000000", (Mission.desktopUnder ? 0.3 : 0.78) * win.progress)
             }
             MouseArea {
                 anchors.fill: parent

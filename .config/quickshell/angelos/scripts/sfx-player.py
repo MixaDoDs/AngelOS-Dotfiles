@@ -5,6 +5,9 @@
                               VOLUME 0 only decodes it ahead and opens the stream)
          or a loop (music):   loop<TAB>VOLUME<TAB>PATH          (plays round and round, gliding to
                               VOLUME over FADE seconds; VOLUME 0 fades it out and stops it)
+         or a named loop:     chan<TAB>NAME<TAB>VOLUME<TAB>PATH (the same, one per NAME, all at
+                              once: a wallpaper's crickets, wind and the meteor's rumble together;
+                              "loop" is the channel "music")
 
 Why not one pw-play per sound: every click then makes a new stream and drops it a moment
 later. Discord, sharing the screen with sound, opens a capture of its own for each new stream
@@ -46,7 +49,7 @@ WARM = np.zeros((BLOCK * 20, CHANNELS), dtype=np.float32)   # 200 ms of silence
 lock = threading.Condition()
 voices = []                # [samples (n, 2) float32, position, volume, wait-until (monotonic)]
 cache = {}                 # (path, mtime) -> samples
-loop = None                # {"stream", "path", "vol", "target"}: the one loop playing
+loops = {}                 # name -> {"stream", "path", "vol", "target"}: the loops playing
 done = False
 
 
@@ -132,14 +135,14 @@ class LoopStream:
             self.cv.notify()
 
 
-def set_loop(parts):
-    global loop
+def set_loop(name, parts):
     try:
-        vol = max(0.0, min(2.0, float(parts[1])))
+        vol = max(0.0, min(2.0, float(parts[0])))
     except (IndexError, ValueError):
         return
-    path = parts[2] if len(parts) > 2 else ""
+    path = parts[1] if len(parts) > 1 else ""
     with lock:
+        loop = loops.get(name)
         if loop is not None and (vol == 0 or path == loop["path"]):
             loop["target"] = vol
             lock.notify()
@@ -147,25 +150,24 @@ def set_loop(parts):
     if vol == 0 or not os.path.isfile(path):
         return
     with lock:
-        if loop is not None:
-            loop["stream"].close()
+        if name in loops:
+            loops[name]["stream"].close()
         # another tune: up from silence
-        loop = {"stream": LoopStream(path), "path": path, "vol": 0.0, "target": vol}
+        loops[name] = {"stream": LoopStream(path), "path": path, "vol": 0.0, "target": vol}
         lock.notify()
 
 
-def mix_loop(block):
-    """The loop's next block into `block`, its volume gliding; False with no loop."""
-    if loop is None:
-        return False
-    blk = loop["stream"].next()
+def mix_loops(block):
+    """Every loop's next block into `block`, each volume gliding; False with no loop."""
     step = BLOCK / RATE / FADE
-    v0, t = loop["vol"], loop["target"]
-    v1 = min(t, v0 + step) if t > v0 else max(t, v0 - step)
-    if blk is not None:
-        block += blk * np.linspace(v0, v1, BLOCK, dtype=np.float32)[:, None]
-    loop["vol"] = v1
-    return True
+    for loop in loops.values():
+        blk = loop["stream"].next()
+        v0, t = loop["vol"], loop["target"]
+        v1 = min(t, v0 + step) if t > v0 else max(t, v0 - step)
+        if blk is not None:
+            block += blk * np.linspace(v0, v1, BLOCK, dtype=np.float32)[:, None]
+        loop["vol"] = v1
+    return bool(loops)
 
 
 def reader():
@@ -173,7 +175,11 @@ def reader():
     for line in sys.stdin:
         parts = line.rstrip("\n").split("\t")
         if parts[0] == "loop":
-            set_loop(parts)
+            set_loop("music", parts[1:])
+            continue
+        if parts[0] == "chan":
+            if len(parts) > 2:
+                set_loop(parts[1], parts[2:])
             continue
         if len(parts) < 2:
             continue
@@ -233,7 +239,6 @@ def close_stream(proc):
 
 
 def main():
-    global loop
     threading.Thread(target=reader, daemon=True).start()
     proc, last_sound = None, 0.0
     heard = False              # a write went through since the server was last missing
@@ -241,7 +246,7 @@ def main():
     while True:
         with lock:
             if proc is None:
-                while not voices and loop is None and not done:
+                while not voices and not loops and not done:
                     lock.wait()
             if done and not voices:
                 break
@@ -264,13 +269,13 @@ def main():
             for samples, pos, vol, _ in mixed:
                 chunk = samples[pos:pos + BLOCK]
                 block[:len(chunk)] += chunk * vol
-            looping = mix_loop(block)
+            looping = mix_loops(block)
             busy = bool(mixed) or looping
         if busy:
             last_sound = now
         elif now - last_sound > IDLE_STOP:
             with lock:
-                while not voices and loop is None and not done:
+                while not voices and not loops and not done:
                     lock.wait()
             last_sound = time.monotonic()
             continue
@@ -287,9 +292,8 @@ def main():
             for v in mixed:
                 v[1] += BLOCK
             voices[:] = [v for v in voices if v[1] < len(v[0])]
-            if loop is not None and loop["vol"] == 0 and loop["target"] == 0:
-                loop["stream"].close()
-                loop = None
+            for name in [n for n, l in loops.items() if l["vol"] == 0 and l["target"] == 0]:
+                loops.pop(name)["stream"].close()
     if proc is not None:
         close_stream(proc)
 

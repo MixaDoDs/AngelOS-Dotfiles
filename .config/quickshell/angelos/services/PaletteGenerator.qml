@@ -45,6 +45,16 @@ Singleton {
 
     onWallpaperChanged: if (auto)
         autoTimer.restart()
+    // a scene with a night of its own (Wallpapers.nightMix) gives the night's colours at night:
+    // the accent is taken again when it turns
+    SystemClock {
+        id: clock
+        enabled: Wallpapers.nightOf(root.wallpaper) !== ""
+        precision: SystemClock.Minutes
+    }
+    readonly property bool wallNight: Wallpapers.nightOf(wallpaper) !== "" && Wallpapers.nightMix(wallpaper, clock.date) >= 0.5
+    onWallNightChanged: if (auto)
+        autoTimer.restart()
     onAutoChanged: if (auto)
         autoTimer.restart()
     Timer {
@@ -77,7 +87,10 @@ Singleton {
     function generateFrom(path, switchFlavor) {
         error = "";
         const rect = area;
-        const key = rect ? path + "#" + rect.join(",") : path;
+        // the picture shown now: a scene's night's at night (its own key: the day's stays cached)
+        const still = Wallpapers.still(path, new Date());
+        const base = still === Wallpapers.display(path) ? path : still;
+        const key = rect ? base + "#" + rect.join(",") : base;
         if (cache[key]) {
             apply(cache[key], switchFlavor);
             return;
@@ -90,7 +103,7 @@ Singleton {
         _switch = !!switchFlavor;
         if (rect) {
             _rect = rect;
-            _source = Wallpapers.display(path);
+            _source = still;
             if (sizes[_source])
                 quantize();
             else {
@@ -99,7 +112,7 @@ Singleton {
             }
             return;
         }
-        process.command = ["python3", Quickshell.shellDir + "/scripts/wallpaper-color.py", Wallpapers.display(path)];
+        process.command = ["python3", Quickshell.shellDir + "/scripts/wallpaper-color.py", still];
         process.running = true;
     }
     property bool _switch: false

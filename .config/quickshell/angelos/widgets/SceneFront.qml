@@ -40,6 +40,7 @@ Item {
             model: root.nearer
             SceneLayer {
                 wall: root.drawn
+                wave: true
             }
         }
     }

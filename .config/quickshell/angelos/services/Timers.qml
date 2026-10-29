@@ -63,6 +63,7 @@ Singleton {
     function add(spec) {
         if (!spec)
             return;
+        Achievements.note("explore", "timer");
         const now = Date.now();
         const it = {
             "id": now + "-" + Math.floor(Math.random() * 1e6),

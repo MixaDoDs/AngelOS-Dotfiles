@@ -2,7 +2,7 @@
 
 Copy of [MixaDoDs/mediafix](https://github.com/MixaDoDs/mediafix) (commit 52ad472):
 prepares videos for DaVinci Resolve — the video stream is copied as is, every audio
-track becomes PCM 24-bit / 48 kHz, results go to `~/Videos/MediaFix`, originals are
+track becomes PCM 24-bit / 48 kHz, results go to `~/Videos/MediaFix` (in angelOS: Settings → Screenshots and recording → Folder for DaVinci videos, passed as `MEDIAFIX_DIR`), originals are
 never changed. Needs `ffmpeg` (`sudo pacman -S ffmpeg`).
 
 angelOS runs it from:

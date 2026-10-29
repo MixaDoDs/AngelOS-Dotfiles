@@ -15,9 +15,11 @@ import qs.config
 //          instead: the player's own track against the mix, the mic a track of its own,
 //          so talking over the music doesn't dim the line
 //          With rode-fader-follow running (a user service of the RØDECaster Duo's PipeWire
-//          setup: it solves the same least squares and sets the Music fader's gain as the
-//          volume of the rcp_duo_fader2_src source) that volume is read instead — no second
-//          20-channel capture solving it again (5–6 % of a core while music plays)
+//          setup: it solves the same least squares and sets a fader's gain as the volume of its
+//          track's rcp_duo_*fader*_src source) that volume is read instead — no second
+//          20-channel capture solving it again (5–6 % of a core while music plays). Which
+//          track is the player's is found once by the script (the console decides which fader
+//          a USB channel goes to: a browser on System came on fader 4, not Music)
 //   level  everyone else: how loud the player really plays — its own output after its
 //          slider in the mixer, plus the master volume; the quiet parts of a song are
 //          dimmer too (fast up, slow down)
@@ -97,8 +99,15 @@ Singleton {
                 root.askFollower();
         }
     }
-    // the Music fader (AUX4/5): only for the main mix or that very track
-    readonly property var faderNode: followerActive && (tap === "main" || tap === "aux45") ? Audio.sources.find(n => n.name === "rcp_duo_fader2_src") || null : null
+    // the tracks whose fader the follower reads (its TARGETS, ~/.local/bin/rode-fader-follow.py)
+    readonly property var followed: ({
+            "AUX4/5": "rcp_duo_fader2_src",
+            "AUX8/9": "rcp_duo_fader4_src",
+            "AUX10/11": "rcp_duo_vfader1_src"
+        })
+    // the player's track: the pair picked in the settings, else the one the script found
+    readonly property string playerTrack: tap !== "main" ? taps[tap].join("/").replace(/\/AUX/, "/") : track
+    readonly property var faderNode: followerActive && followed[playerTrack] ? Audio.sources.find(n => n.name === followed[playerTrack]) || null : null
     PwObjectTracker {
         objects: root.faderNode ? [root.faderNode] : []
     }
@@ -110,7 +119,6 @@ Singleton {
             return;
         _readingFor = "rode";
         db = faderDb;
-        track = "AUX4/5";
     }
 
     readonly property bool wanted: Config.lyrics.enabled && effective !== "off" && Lyrics.hasLyrics && Lyrics.playing && !Lyrics.unseen && streamSerial !== "" && (effective !== "rode" || !!mixNode) && !fromFader
@@ -145,6 +153,49 @@ Singleton {
     onFracChanged: _settle()
     onEffectiveChanged: _settle()
     readonly property real opacity: effective === "off" ? 1 : floor + (1 - floor) * _step
+
+    // how loud the player really plays, 0…1 — for a layered wallpaper's kick wave (WallpaperView,
+    // while Bass.walls): its output after its slider plus the master volume, on the level mode's
+    // scale. The level mode's reading when the line has one, else a reading of its own: a
+    // RØDECaster's fader is no loudness to go by (29.10: the music's channel kept out of the
+    // console's mix, its fader can't be seen at all)
+    readonly property real loud: {
+        const d = effective === "level" && _readingFor === "level" ? db : levelDb;
+        const vol = Audio.muted ? 0.001 : Math.max(0.001, Audio.volume);
+        if (isNaN(d))
+            return Math.min(1, vol);
+        const lo = Config.lyrics.glowLevelMin, hi = Config.lyrics.glowLevelMax;
+        return Math.max(0, Math.min(1, (d + 20 * Math.log(vol) / Math.LN10 - lo) / Math.max(1, hi - lo)));
+    }
+    property real levelDb: NaN
+    readonly property bool hearWanted: Bass.walls > 0 && Lyrics.playing && streamSerial !== "" && !(effective === "level" && probe.running)
+    onHearWantedChanged: hear.running = hearWanted
+    onStreamSerialChanged: {
+        levelDb = NaN;
+        hear.running = false;
+        hear.running = hearWanted;
+    }
+    Process {
+        id: hear
+        command: ["python3", Quickshell.shellDir + "/scripts/lyrics-level.py", "stream", root.streamSerial]
+        stdout: SplitParser {
+            onRead: line => {
+                try {
+                    const d = JSON.parse(line);
+                    if (typeof d.db === "number")
+                        root.levelDb = d.db;
+                } catch (e) {}
+            }
+        }
+        // the stream went away or a hiccup: again while wanted
+        onExited: if (root.hearWanted)
+            hearAgain.restart()
+    }
+    Timer {
+        id: hearAgain
+        interval: 3000
+        onTriggered: hear.running = root.hearWanted
+    }
 
     // calibration (Lyrics page): "this is the top" / "this is the bottom"
     function markTop() {

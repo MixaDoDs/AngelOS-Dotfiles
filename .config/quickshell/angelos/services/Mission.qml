@@ -8,8 +8,33 @@ import Quickshell
 Singleton {
     id: root
 
+    // angel-niri: the screen's windows are not drawn while Mission Control is up (its layer
+    // namespace, set-hide-windows-layer) — the desktop under the cards, as on a Mac; stock niri
+    // and an older angel-niri answer Err, and the windows stay under them, dimmed
+    property bool desktopUnder: false
+    function _hideWindows() {
+        if (Niri.nativeMinimize)
+            Niri.request({
+                "Action": {
+                    "SetHideWindowsLayer": {
+                        "namespace": "angelos-mission",
+                        "on": true
+                    }
+                }
+            }, (ok, err) => root.desktopUnder = !err, true);
+    }
+    Component.onCompleted: _hideWindows()
+    Connections {
+        target: Niri
+        function onMinimizeProbedChanged() {
+            root._hideWindows();
+        }
+    }
+
     property bool shown: false
     property string screenName: ""
+    onShownChanged: if (shown)
+        Achievements.note("explore", "mission")
     // asked to close: the window plays its way out, then calls close()
     property bool leaveAsked: false
     function open() {

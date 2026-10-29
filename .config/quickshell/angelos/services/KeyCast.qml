@@ -45,6 +45,8 @@ Singleton {
         items = [];
         error = "";
         if (on)
+            Achievements.note("explore", "keycast");
+        if (on)
             _add(I18n.t("Показ клавиш · Mod+Shift+K — выключить", "Showing keys · Mod+Shift+K to stop"), "note");
     }
 

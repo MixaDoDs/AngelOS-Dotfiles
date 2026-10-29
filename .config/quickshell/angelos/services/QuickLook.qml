@@ -28,6 +28,7 @@ Singleton {
         if (!p)
             return;
         fromNautilus = !!nautilus;
+        Achievements.note("explore", "quicklook");
         path = p;
         info = null;
         strip = "";

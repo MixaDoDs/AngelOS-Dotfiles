@@ -193,6 +193,7 @@ Item {
     // a click on a window: back if minimized, minimized if in front, else to the front
     function activate(w) {
         preview.visible = false;
+        peek(-1);
         // a window rolled up into its title (angel-niri's Desktop) comes back whole
         if (w.is_shaded) {
             Niri.action("SetWindowFlags", {
@@ -217,6 +218,8 @@ Item {
     property Item hoverBtn: null
     function hovering(btn, on) {
         if (on) {
+            peekOff.stop();
+            peekWait.restart();
             hoverBtn = btn;
             if (preview.visible && preview.anchorItem !== btn)
                 showPreview(btn, false);
@@ -226,8 +229,44 @@ Item {
             hoverBtn = null;
             dwell.stop();
             leave.restart();
+            peekWait.stop();
+            peekOff.restart();
         }
     }
+    // Aero Peek (angel-niri peek-window): resting on the button of an app with one window, or on a
+    // window's picture, melts the other windows of its screen away; off the button and the
+    // pictures, or a click, they come back
+    property int peekId: -1
+    // an older angel-niri answers Err: no more asking
+    property bool peekKnown: true
+    function peek(id) {
+        if (!Niri.nativeMinimize || !peekKnown || id === peekId)
+            return;
+        peekId = id;
+        Niri.request({
+            "Action": {
+                "PeekWindow": id >= 0 ? {
+                    "id": id
+                } : {}
+            }
+        }, (ok, err) => {
+            if (err)
+                peekKnown = false;
+        }, true);
+    }
+    Timer {
+        id: peekWait
+        interval: 700
+        onTriggered: if (root.hoverBtn && root.hoverBtn.wins.length === 1 && !root.hoverBtn.ghost)
+            root.peek(root.hoverBtn.wins[0].id)
+    }
+    Timer {
+        id: peekOff
+        interval: 150
+        onTriggered: if (!preview.peekWin)
+            root.peek(-1)
+    }
+    Component.onDestruction: peek(-1)
     function showPreview(btn, pin) {
         if (preview.anchorItem !== btn)
             preview.visible = false;
@@ -254,6 +293,7 @@ Item {
         onHoveredChanged: if (!hovered)
             leave.restart()
         onPicked: w => root.activate(w)
+        onPeekWinChanged: peekWin ? (peekOff.stop(), root.peek(peekWin.id)) : peekOff.restart()
     }
     readonly property int spacing: Theme.u * 2
     readonly property int iconWidth: height

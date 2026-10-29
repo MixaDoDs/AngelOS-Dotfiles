@@ -273,7 +273,10 @@ Singleton {
     readonly property int firstIdleMinutes: Math.min(...[lockMinutes, screenOffMinutes, sleepMinutes].filter(m => m > 0).concat([0x7fffffff]))
     readonly property bool idleWatch: Config.ready && !Shell.dev || Quickshell.env("ANGELOS_LAPTOP_STAND") === "1"
 
+    // the screens are off (idle): a wallpaper's sounds stop then, even the night's event
+    readonly property bool screensOff: screenOff.isIdle
     IdleWatch {
+        id: screenOff
         enabled: root.idleWatch && root.screenOffMinutes > 0
         timeout: Math.max(1, root.screenOffMinutes) * 60
         respectInhibitors: true

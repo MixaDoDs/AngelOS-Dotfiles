@@ -1000,6 +1000,91 @@ CatPage {
             onToggled: c => sceneGroup.pick("sceneDepthTexture", c)
         }
     }
+    // a layered scene with a night of its own (scripts/scene-night.py): by the clock or always one
+    CatGroup {
+        id: timeGroup
+        name: "scene-time"
+        title: I18n.t("Время суток", "Time of day")
+        icon: "image"
+        readonly property string here: Wallpapers.resolve(page.output, page.wsIdx)
+        present: Wallpapers.nightOf(here) !== ""
+        CatChoice {
+            label: I18n.t("День и ночь", "Day and night")
+            hint: I18n.t("«По часам»: в 21:00 двор начинает темнеть, к 8 утра снова день", "By the clock: the yard starts to darken at 21:00, it is day again by 8 in the morning")
+            model: [["auto", "По часам", "By the clock"], ["day", "Всегда день", "Always day"], ["night", "Всегда ночь", "Always night"]].map(c => ({
+                        "label": I18n.t(c[1], c[2]),
+                        "value": c[0]
+                    }))
+            currentValue: Wallpapers.own(timeGroup.here, "sceneTime")
+            onActivated: v => Wallpapers.setOwn(timeGroup.here, "sceneTime", v)
+        }
+    }
+    // a layered scene's sounds (services/SceneSound): its air and its night's event, and how far
+    // the air gives way to music; a video or a game silences the air
+    CatGroup {
+        id: soundGroup
+        name: "scene-sounds"
+        title: I18n.t("Звуки обоев", "Wallpaper sounds")
+        icon: "volume"
+        readonly property string here: Wallpapers.resolve(page.output, page.wsIdx)
+        present: Wallpapers.sceneOf(Wallpapers.origin(here)) !== ""
+        CatToggle {
+            label: I18n.t("Звуки обоев", "Wallpaper sounds")
+            hint: I18n.t("у этих обоев (у релиза — у всех его обоев)", "For this wallpaper (a release's: all of its wallpapers)")
+            checked: Wallpapers.own(soundGroup.here, "sceneSounds")
+            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneSounds", c)
+        }
+        CatSlider {
+            present: Wallpapers.own(soundGroup.here, "sceneSounds")
+            label: I18n.t("Воздух", "Air")
+            hint: I18n.t("сверчки ночью, птицы днём, листва — как дует ветер", "Crickets at night, birds by day, the leaves as the wind blows")
+            from: 0
+            to: 100
+            stepSize: 5
+            suffix: " %"
+            value: Wallpapers.own(soundGroup.here, "sceneSoundAir")
+            onMoved: v => Wallpapers.setOwn(soundGroup.here, "sceneSoundAir", Math.round(v))
+        }
+        CatSlider {
+            present: Wallpapers.own(soundGroup.here, "sceneSounds") && Wallpapers.nightOf(soundGroup.here) !== ""
+            label: I18n.t("События", "Events")
+            hint: I18n.t("то, что случается ночью, и всё до и после — звучит поверх музыки и окон", "What happens at night, and all before and after it — heard over music and windows")
+            from: 0
+            to: 100
+            stepSize: 5
+            suffix: " %"
+            value: Wallpapers.own(soundGroup.here, "sceneSoundEvent")
+            onMoved: v => Wallpapers.setOwn(soundGroup.here, "sceneSoundEvent", Math.round(v))
+        }
+        CatSlider {
+            present: Wallpapers.own(soundGroup.here, "sceneSounds")
+            label: I18n.t("Под музыку, стол виден", "With music, the desktop seen")
+            hint: I18n.t("сколько воздуха остаётся, когда играет Spotify или другой плеер, а окон нет", "How much air stays while Spotify or another player plays and no window is open")
+            from: 0
+            to: 100
+            stepSize: 5
+            suffix: " %"
+            value: Config.wallpaper.sceneDuckDesk
+            onMoved: v => Config.wallpaper.sceneDuckDesk = Math.round(v)
+        }
+        CatSlider {
+            present: Wallpapers.own(soundGroup.here, "sceneSounds")
+            label: I18n.t("Под музыку, окно поверх", "With music, a window over it")
+            hint: I18n.t("видео или браузер со звуком, игра и полный экран — воздух молчит", "A video or a browser with sound, a game or fullscreen — the air falls silent")
+            from: 0
+            to: 100
+            stepSize: 5
+            suffix: " %"
+            value: Config.wallpaper.sceneDuckWindow
+            onMoved: v => Config.wallpaper.sceneDuckWindow = Math.round(v)
+        }
+        CatToggle {
+            label: I18n.t("Волна под бас", "A wave on the bass")
+            hint: I18n.t("Под музыку от каждого удара из старого телевизора по картинке расходится волна — чем громче играет, тем сильнее. Ночью во время события — нет", "With music each kick sends a wave out of the old TV through the picture, the louder it plays, the stronger. Not through the night's event")
+            checked: Wallpapers.own(soundGroup.here, "sceneBass")
+            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneBass", c)
+        }
+    }
     // windows behind a layered scene's nearer things (services/SceneBehind; angel-niri only)
     CatGroup {
         id: behindGroup

@@ -113,6 +113,7 @@ Singleton {
         onTriggered: root.run(["bench", "next"])
     }
     function openNote(appid) {
+        Achievements.note("explore", "gametune");
         note = appid;
         seen.command = ["python3", "-I", Quickshell.shellPath("scripts/game-tune.py"), "seen", appid];
         seen.running = true;

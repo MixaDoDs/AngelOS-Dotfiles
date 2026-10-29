@@ -490,11 +490,12 @@ Scope {
                                 text: Angel.demon ? I18n.t("Пошути", "Joke") : I18n.t("Шутка", "A joke")
                                 onClicked: Angel.joke()
                             }
-                            // the demon asks something, three answers to pick from; in a circle
-                            // it is her talk with the player instead (Story → closeness, item 12)
+                            // she asks something, three answers to pick from (the angel too, while
+                            // warm); in a circle it is the demon's talk with the player instead
+                            // (Story → closeness, item 12)
                             PxButton {
                                 hell: Angel.demon
-                                visible: Angel.demon
+                                visible: Angel.demon || Story.angelStep < 2
                                 compact: true
                                 icon: "chat"
                                 text: Story.circle ? I18n.t("Поговорить", "Talk") : I18n.t("Поболтаем", "Let's chat")

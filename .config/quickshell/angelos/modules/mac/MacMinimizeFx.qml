@@ -14,9 +14,10 @@ import qs.widgets
 // up only while something flies (Minimize.flights). The Dock writes where its items are
 // (Minimize.dockSlots); the place is read each frame, so the item that appears in the Dock a
 // moment after the window has gone is where the snapshot lands.
-// The pixel skins use it too (Background.qml, Minimize.effect "pixel"): the same genie into the
-// taskbar's button (Tasks.qml writes dockSlots), on the art-pixel grid — nearest sampling, a
-// coarse mesh, vertices snapped to the art pixel — and upwards when the bar is at the top.
+// The pixel skins use it too (Background.qml, Minimize.effect "pixel"): Scale into the taskbar's
+// button (Tasks.qml writes dockSlots), on the art-pixel grid — the snapshot coarsens into a mosaic
+// of art pixels as it goes (averaged down, drawn nearest: no shimmer) and steps over the grid.
+// (The genie there shimmered — a whole window sampled nearest into a funnel; the owner, 28.10.)
 PanelWindow {
     id: win
 
@@ -46,7 +47,7 @@ PanelWindow {
             id: fx
             required property var modelData
             readonly property bool pixel: Minimize.effect === "pixel"
-            readonly property bool genie: Minimize.effect === "genie" || pixel
+            readonly property bool genie: Minimize.effect === "genie"
             width: win.width
             height: win.height
             // where the window is, in this screen's coordinates
@@ -69,13 +70,29 @@ PanelWindow {
                 const k = Math.min(d[2] * 0.82 / h[2], d[2] * 0.82 / h[3]);
                 const w1 = h[2] * k, h1 = h[3] * k;
                 const e = t;
-                scaled.width = h[2] + (w1 - h[2]) * e;
-                scaled.height = h[3] + (h1 - h[3]) * e;
-                scaled.x = h[0] + h[2] / 2 + (d[0] - h[0] - h[2] / 2) * e - scaled.width / 2;
+                let w = h[2] + (w1 - h[2]) * e;
+                let ht = h[3] + (h1 - h[3]) * e;
+                let x = h[0] + h[2] / 2 + (d[0] - h[0] - h[2] / 2) * e - w / 2;
                 // a curve on the way, like the Dock's: it sinks faster than it moves sideways
                 const ey = 1 - Math.pow(1 - e, 1.6);
-                scaled.y = h[1] + h[3] / 2 + (d[1] - h[1] - h[3] / 2) * ey - scaled.height / 2;
+                let y = h[1] + h[3] / 2 + (d[1] - h[1] - h[3] / 2) * ey - ht / 2;
+                if (pixel) {
+                    // on the art-pixel grid, at least a few of them in the end
+                    const g = Theme.u;
+                    const snap = v => Math.round(v / g) * g;
+                    w = Math.max(g * 4, snap(w));
+                    ht = Math.max(g * 3, snap(ht));
+                    x = snap(x);
+                    y = snap(y);
+                }
+                scaled.width = w;
+                scaled.height = ht;
+                scaled.x = x;
+                scaled.y = y;
             }
+            // the pixel skins: the mosaic's cell, from the screen's own pixel (where the window
+            // stands, so it doesn't jump) to two art pixels a third of the way
+            readonly property real cell: pixel ? 1 + (Theme.u * 2 - 1) * Math.min(1, t * 3) : 1
             onTChanged: place()
             Component.onCompleted: {
                 t = modelData.back ? 1 : 0;
@@ -107,6 +124,11 @@ PanelWindow {
                     cache: false
                     // a touch of see-through near the Dock, as on a Mac
                     opacity: 1 - 0.15 * fx.t
+                    // the pixel skins: averaged down into a texture of one texel per cell, shown
+                    // nearest — the mosaic
+                    layer.enabled: fx.pixel
+                    layer.smooth: false
+                    layer.textureSize: Qt.size(Math.max(1, Math.round(width / fx.cell)), Math.max(1, Math.round(height / fx.cell)))
                 }
             }
 

@@ -334,6 +334,39 @@ Singleton {
         return list[i];
     }
 
+    // tips, jokes and talks as a deck: none again till every one has been said, across restarts
+    // (stateDir/angel-said.json); a new line in AngelLines.js is simply not said yet
+    property var _said: ({})
+    function deck(list, key) {
+        if (!list || !list.length)
+            return "";
+        let seen = (_said[key] || []).filter(i => i < list.length);
+        if (seen.length >= list.length)
+            seen = seen.slice(-1);
+        const left = [];
+        for (let i = 0; i < list.length; i++)
+            if (!seen.includes(i))
+                left.push(i);
+        const i = left[Math.floor(Math.random() * left.length)];
+        const s = Object.assign({}, _said);
+        s[key] = seen.concat([i]);
+        _said = s;
+        saidFile.write(JSON.stringify(s));
+        return list[i];
+    }
+    AsyncFile {
+        id: saidFile
+        path: Config.stateDir + "/angel-said.json"
+        printErrors: false
+        onLoaded: {
+            try {
+                const s = JSON.parse(text());
+                if (s && typeof s === "object" && !Array.isArray(s))
+                    root._said = s;
+            } catch (e) {}
+        }
+    }
+
     function showMe(page) {
         return {
             "label": I18n.t("Покажи", "Show me"),
@@ -343,15 +376,17 @@ Singleton {
     }
 
     function tip() {
-        const t = pick(demon ? Lines.demonTips : Lines.tips, demon ? "dtip" : "tip");
+        const t = deck(demon ? Lines.demonTips : Lines.tips, demon ? "dtip" : "tip");
+        if (!demon)
+            Achievements.note("angel.tip");
         say(I18n.t(t[0], t[1]), t[2] ? showMe(t[2]) : null);
     }
     function joke() {
         const list = demon ? (I18n.english ? Lines.demonJokesEn : Lines.demonJokesRu) : (I18n.english ? Lines.jokesEn : Lines.jokesRu);
         // cold for good: a joke now and then, never "another"
         if (!demon && Story.angelStep >= 3)
-            return say(pick(list, "joke" + demon));
-        say(pick(list, "joke" + demon), {
+            return say(deck(list, "joke" + demon + I18n.english));
+        say(deck(list, "joke" + demon + I18n.english), {
             "label": I18n.t("Ещё!", "Another!"),
             "icon": "star",
             "run": () => {
@@ -396,23 +431,30 @@ Singleton {
             return;
         if (own && Math.random() < [0, 0.3, 0.5, 0.7][step])
             return say(own);
-        if (Config.y2k.jokes && Math.random() < 0.4 / (1 + step))
+        // warm, she has her own small talk and now and then asks something; cooler, less of it
+        const r = Math.random() * (1 + step);
+        if (r < 0.22)
+            say(Story.render(tr(deck(Lines.angelChatter, "achat"))));
+        else if (r < 0.32 && step < 2)
+            talk();
+        else if (Config.y2k.jokes && r < 0.6)
             joke();
         else
             tip();
     }
     // "Let's chat": she asks, three answers as buttons (alike: `choice`), she has the last word
     function talk() {
-        const list = demon ? Lines.demonTalk : [];
+        const list = demon ? Lines.demonTalk : Lines.angelTalk;
         if (!list.length)
             return tip();
-        const q = pick(list, "talk" + demon);
+        const q = deck(list, "talk" + demon);
+        Achievements.note("angel.talk", demon ? "demon" : "angel");
         const en = I18n.english;
-        say(tr(q.q), q.a.map(a => ({
-                    "label": en ? a[1] : a[0],
+        say(Story.render(tr(q.q)), q.a.map(a => ({
+                    "label": Story.render(en ? a[1] : a[0]),
                     "icon": "chat",
                     "choice": true,
-                    "run": () => root.say(en ? a[3] : a[2])
+                    "run": () => root.say(Story.render(en ? a[3] : a[2]))
                 })), 30000);
     }
     // her menu in a circle (story/game.json → closeness, item 12): a word, a gift her sin

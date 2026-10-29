@@ -47,6 +47,7 @@ Singleton {
             return;
         finished = false;
         scanner.running = true;
+        Achievements.note("explore", "care");
     }
     function start() {
         const ids = items.filter(i => isPicked(i.id)).map(i => i.id);

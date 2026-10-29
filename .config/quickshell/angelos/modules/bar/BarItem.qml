@@ -28,33 +28,10 @@ Loader {
     // The hearts, the lyrics, the runner and the player aren't buttons, and "show desktop" is the
     // bar's end strip: they keep their own sizes.
     readonly property bool gridded: !hellBar && !["workspaces", "lyrics", "runner", "media", "showdesk"].includes(wid)
-    // the run this widget is in (BarSection): its place there, for the gap before a new group
+    // the run this widget is in (BarSection): its cell and gap. One step for the whole row: an
+    // icon takes one cell; a wider widget (the cat, the charge rack) only its own width, never
+    // a second cell's worth of air around it
     property var section: null
-    property int place: -1
-    // the groups of the right side, so it reads as a few runs instead of one row of icons:
-    // the plugins, the notices (tray, bell), the state (layout, network, charge, sound…), the time
-    function groupOf(id) {
-        if (id.startsWith("plugin:"))
-            return "plugins";
-        if (id === "tray" || id === "bell")
-            return "notices";
-        if (id === "clock" || id === "showdesk")
-            return "time";
-        if (["start", "workspaces", "tasks", "lyrics", "runner", "media"].includes(id))
-            return id;
-        return "state";
-    }
-    // a group begins here: the nearest widget shown before it is of another group
-    readonly property bool groupStart: {
-        if (!section || !section.grouped || hellBar || place < 1)
-            return false;
-        for (let i = place - 1; i >= 0; i--) {
-            const it = section.items[i];
-            if (it && it.visible)
-                return groupOf(it.wid) !== groupOf(wid);
-        }
-        return false;
-    }
     onLoaded: {
         if (item && item.vertical !== undefined)
             item.vertical = Qt.binding(() => root.vertical);
@@ -66,7 +43,8 @@ Loader {
             item.barGrid = Qt.binding(() => root.gridded);
     }
     // an icon without words takes a square cell on the hell bar: one grid, equal steps
-    readonly property bool iconOnly: !!item && item.barInk !== undefined && item.icon !== undefined && item.icon !== "" && item.text === ""
+    // (a plugin drawn as one square — the eye — is an icon too: one cell, its margin may spill into the gap)
+    readonly property bool iconOnly: !!item && (item.barInk !== undefined && item.icon !== undefined && item.icon !== "" && item.text === "" || item.square === true)
 
     readonly property bool tall: wid === "start" || wid === "tasks" || wid === "media" || wid === "lyrics" || wid === "runner" || wid === "peripherals" || wid === "eq"
     // Windows 11-like centred taskbar: the window buttons as wide as they need, shrinking when crowded
@@ -82,8 +60,6 @@ Loader {
     Layout.minimumHeight: vertical && wid === "tasks" ? Theme.u * 16 : vertical && gridded && !!section ? section.cell : -1
     // the hell bar: every widget as tall as the bar's cell, so the state plates are one height
     Layout.preferredHeight: vertical ? (wid === "tasks" ? ((fillTasks && Config.bar.tasksWidth !== "compact") || !item ? Theme.u * 16 : Math.max(Theme.u * 16, item.naturalHeight)) : -1) : tall || hellBar || gridded ? bar.itemHeight : -1
-    Layout.leftMargin: !vertical && groupStart ? section.groupGap : 0
-    Layout.topMargin: vertical && groupStart ? section.groupGap : 0
     Layout.alignment: vertical ? Qt.AlignHCenter : Qt.AlignVCenter
     // Never bind a parent's visibility to its child's effective visibility:
     // once hidden during a track change, both can otherwise stay hidden.
