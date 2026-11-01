@@ -197,6 +197,8 @@ CatPage {
             onToggled: c => Config.halo.enabled = c
         }
         CatChoice {
+            // a part of Golden Gate's menu bar, it keeps no strip and never hides (Mac → Appearance)
+            present: !GoldenGate.haloInBar
             label: I18n.t("Окна и Нимб", "Windows and the Halo")
             hint: ({
                     "bar": I18n.t("как меню-бар Mac: у Нимба своя полоса, окна начинаются и остаются под ним; раскрытая карточка всё равно ложится поверх", "Like a Mac's menu bar: the Halo has a strip of its own, windows start and stay below it; the open card still lies over them"),

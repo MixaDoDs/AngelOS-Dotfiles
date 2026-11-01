@@ -53,13 +53,13 @@ PanelWindow {
     readonly property bool musicCapsule: Config.halo.musicSmart === false || Halo.peek || Halo.pauseFresh || ((Halo.synced || Lyrics.status === "loading") && lyricsHere)
     readonly property var items: baseItems.filter(i => i.kind !== "music" || musicCapsule || baseItems.some(o => !["music", "paused", "shelf"].includes(o.kind)))
     readonly property bool musicEar: Config.halo.showMusic !== false && Halo.music && Lyrics.playing && !items.some(i => i.kind === "music")
-    readonly property bool shown: (!full || items.length > 0) && (!Halo.hidden || items.some(i => i.kind === "ring")) && !(dodging && !peeking) && !mission
+    readonly property bool shown: (!full || items.length > 0) && (inBar || !Halo.hidden || items.some(i => i.kind === "ring")) && !(dodging && !peeking) && !mission
     // Mission Control on this screen: its desks are where the Halo sits, the Halo stepped aside
     // (it took their clicks)
     readonly property bool mission: Mission.shown && Mission.screenName === modelData.name
     // Settings → Halo → «Windows and the Halo» → hide: while a window on this screen's desk
     // touches the top, the Halo slides away; the pointer at the top edge brings it back
-    readonly property bool dodging: Config.halo.windows === "hide" && !expanded && !Shell.dev && windowAtTop
+    readonly property bool dodging: Config.halo.windows === "hide" && !inBar && !expanded && !Shell.dev && windowAtTop
     readonly property bool windowAtTop: {
         const ws = Niri.activeWorkspace(modelData.name);
         if (!ws)
@@ -125,7 +125,8 @@ PanelWindow {
     }
     readonly property string restRight: musicEar ? "music" : restRights.length ? restRights[restTurn % restRights.length] : "none"
     readonly property bool restCat: Config.halo.idleMiddle === "cat" || Config.halo.idleMiddle === "angel"
-    readonly property bool rest: !main && !vol && !seeking && (restLeft !== "none" || restRight !== "none" || restCat)
+    // (in the menu bar it rests as a pill even with nothing at rest: an island doesn't shrink to the ring)
+    readonly property bool rest: !main && !vol && !seeking && (inBar || restLeft !== "none" || restRight !== "none" || restCat)
     Timer {
         interval: Math.max(3, Config.halo.idleRotate) * 1000
         repeat: true
@@ -530,22 +531,37 @@ PanelWindow {
     readonly property int strip: glued ? px(16) : px(18) + topGap + (skin === "float" ? u * 3 : 0)
     // Normal said outright: a 0 at start (the strip off) doesn't change the zone, so Quickshell
     // never left Auto and the strip came back after every restart (#89)
-    exclusionMode: ExclusionMode.Normal
+    // a part of Golden Gate's menu bar (GoldenGate.haloInBar): no strip, the Halo lies over the
+    // bar's middle (the islands' middle one), centred in it, in the skin's glass, and never hides by
+    // itself, as the bar doesn't. Ignore, and -1 with it: a zone of its own, even 0, puts a layer
+    // below the menu bar's
+    readonly property bool inBar: GoldenGate.haloInBar
+    exclusionMode: inBar ? ExclusionMode.Ignore : ExclusionMode.Normal
     // «Around it» is niri's title bars stepping round it, Desktop's only: in the Strip it keeps the
     // strip (the browser's tabs were under it, 26.10)
     readonly property string zoneMode: Config.halo.windows === "maximized" && !WindowConfig.floatAll ? "bar" : Config.halo.windows || "bar"
-    exclusiveZone: Config.halo.reserve && zoneMode === "bar" && !Shell.dev ? strip : 0
+    exclusiveZone: inBar ? -1 : Config.halo.reserve && zoneMode === "bar" && !Shell.dev ? strip : 0
     onStripChanged: Halo.strip = strip
     readonly property int notch: Math.ceil(closedW + u * 8)
     onNotchChanged: Halo.notch = notch
+    readonly property int closedH: px(16)
+    onClosedHChanged: Halo.pillHeight = closedH
     Component.onCompleted: {
         Halo.strip = strip;
         Halo.notch = notch;
+        Halo.pillHeight = closedH;
         Tour.register("halo", hit, win);
     }
     Component.onDestruction: Tour.unregister("halo", hit)
     color: "transparent"
     WlrLayershell.namespace: "angelos-halo"
+    // the bar's glass is blurred under it, so is the closed pill there
+    BackgroundEffect.blurRegion: inBar && GoldenGate.blurOn && open && !expanded ? pillBlur : null
+    Region {
+        id: pillBlur
+        item: pill
+        radius: pill.radius
+    }
     // the keyboard only for the quick buttons' fields
     // a reply typed into the notification's card (Notifs.replyTo): the keys go to its field
     readonly property bool replying: !!Halo.flashNote && Notifs.same(Notifs.replyTo, Halo.flashNote)
@@ -580,7 +596,7 @@ PanelWindow {
     readonly property bool fixedWidth: Config.halo.fixedWidth !== false
     // the bass's «halo» style draws an arc over the pill: the pill comes down a few pixels for it
     readonly property bool bassHalo: Config.halo.bassGlow !== false && Config.halo.bassStyle === "halo" && !glued
-    readonly property int topGap: bassHalo ? px(4) : 0
+    readonly property int topGap: bassHalo && !inBar ? px(4) : 0
     readonly property real fixedW: px(176)
     // what the closed pill's content may take at most (its round ends aside)
     readonly property real innerW: fixedW - px(16)
@@ -674,15 +690,16 @@ PanelWindow {
     // lower; tamagotchi — taller, the cat on a strip of grass. Open, every look is the widgets'
     // pixel window (PxWindow: its title bar, bevels and hard shadow) ----
     readonly property string skin: Halo.skin
-    readonly property bool glued: skin === "notch"
-    readonly property bool earsRest: skin === "ears" && rest && !expanded && !card.visible
-    readonly property int pillY: glued ? 0 : skin === "float" ? u * 4 + topGap : u + topGap
+    // (in the menu bar it has the bar's look: the Halo's own is set aside meanwhile)
+    readonly property bool glued: skin === "notch" && !inBar
+    readonly property bool earsRest: skin === "ears" && !inBar && rest && !expanded && !card.visible
+    readonly property int pillY: inBar ? Math.round((GoldenGate.barHeight - closedH) / 2) : glued ? 0 : skin === "float" ? u * 4 + topGap : u + topGap
     readonly property bool hell: Theme.hell
     // the widgets' see-through plate, a little denser: it lies over windows
     readonly property color baseFace: hell ? Theme.hellPanel : Qt.alpha(Theme.face, Math.max(0.9, Theme.panelAlpha))
     // (the notch is black on a dark theme; by day the text is dark, so the day's plate)
-    readonly property color face: skin === "notch" && (Theme.dark || hell) ? "#000000" : skin === "tamagotchi" ? Qt.tint(baseFace, "#402f6f9f") : baseFace
-    readonly property color line: skin === "notch" ? "transparent" : hell ? Theme.hellEdge : Theme.edge
+    readonly property color face: inBar ? GoldenGate.glass(0.1) : skin === "notch" && (Theme.dark || hell) ? "#000000" : skin === "tamagotchi" ? Qt.tint(baseFace, "#402f6f9f") : baseFace
+    readonly property color line: inBar ? GoldenGate.glassEdge : skin === "notch" ? "transparent" : hell ? Theme.hellEdge : Theme.edge
     readonly property color inkColor: hell ? "#ff4d4d" : Theme.text
     readonly property color textInk: Theme.text
     readonly property color textInkDim: Theme.textDim
@@ -877,7 +894,7 @@ PanelWindow {
         // closed: the widgets' hard pixel shadow down-right (the notch hangs from the edge: none);
         // open, the window has its own
         PxPill {
-            visible: win.open && !win.glued && !win.earsRest && !win.expanded && Config.appearance.shadows
+            visible: win.open && !win.glued && !win.earsRest && !win.expanded && !win.inBar && Config.appearance.shadows
             width: pill.width
             height: pill.height
             radius: pill.radius
@@ -1348,8 +1365,9 @@ PanelWindow {
     onShownChanged: if (!shown)
         haloMenu.close()
     function menuItems() {
+        // (in the menu bar it doesn't hide: the bar has no hiding of its own)
         return [
-            {
+            win.inBar ? null : {
                 "label": I18n.t("Спрятать на час", "Hide for an hour"),
                 "icon": "moon",
                 "run": () => Halo.hideFor(60 * 60 * 1000)
@@ -1364,7 +1382,7 @@ PanelWindow {
                 "icon": "gear",
                 "run": () => Shell.openSettings("halo")
             }
-        ];
+        ].filter(x => x);
     }
 
     // someone records the microphone (orange), has the camera on (green) or takes the screen

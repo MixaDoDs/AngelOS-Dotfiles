@@ -52,6 +52,8 @@ Singleton {
     property int strip: 0
     // and its closed width with some air: niri splits the title bars around it there (WindowConfig)
     property int notch: 0
+    // the closed pill's height: Golden Gate's menu bar is as tall while the Halo is in it (GoldenGate.haloPill)
+    property int pillHeight: 0
 
     // the right-click menu's «hide for an hour»: the pill and the ring go, the strip stays (the
     // windows don't jump)

@@ -27,7 +27,17 @@ Singleton {
     function px(v) {
         return Math.round(v * s);
     }
-    readonly property int barHeight: px(24)
+    // the islands menu bar (Config.mac.barStyle): glass pills held a little off the top edge: the
+    // menus on the left, the status items on the right
+    readonly property bool islands: on && Config.mac.barStyle === "islands"
+    // the Halo in the middle of the bar (Config.mac.haloInBar), either style: the bar is as tall as
+    // its closed pill (Halo.pillHeight), which HaloWindow then centres in it
+    readonly property bool haloInBar: on && Config.mac.haloInBar && !!Config.halo.enabled
+    readonly property int haloPill: haloInBar && Halo.pillHeight > 0 ? Halo.pillHeight : 0
+    readonly property int islandGap: px(6)
+    readonly property int islandHeight: Math.max(px(28), haloPill)
+    // what the menu bar keeps from the windows; the menus and panels hang under it
+    readonly property int barHeight: islands ? islandGap * 2 + islandHeight : Math.max(px(24), haloPill + px(4))
     readonly property int textSize: px(13)
     readonly property int smallSize: px(11)
     readonly property int menuRow: px(22)
@@ -102,6 +112,7 @@ Singleton {
             "mac.accent": ["blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"],
             "mac.minimizeEffect": ["genie", "scale"],
             "mac.dockPosition": ["bottom", "left", "right"],
+            "mac.barStyle": ["bar", "islands"],
             "appearance.mode": ["light", "dark", "auto"],
             "desktop.widgetStyle": ["auto", "pixel", "mac"]
         })
@@ -130,13 +141,13 @@ Singleton {
         }
     }
     // (any of them changed, also from the file: checked once things settle)
-    readonly property string _watched: Config.ready ? JSON.stringify([Config.mac.glass, Config.mac.soundVolume, Config.mac.dockSize, Config.mac.dockMagnifySize, Config.mac.accent, Config.mac.minimizeEffect, Config.mac.dockPosition, Config.appearance.mode, Config.appearance.fontScale, Config.desktop.widgetStyle]) : ""
+    readonly property string _watched: Config.ready ? JSON.stringify([Config.mac.glass, Config.mac.soundVolume, Config.mac.dockSize, Config.mac.dockMagnifySize, Config.mac.accent, Config.mac.minimizeEffect, Config.mac.dockPosition, Config.mac.barStyle, Config.appearance.mode, Config.appearance.fontScale, Config.desktop.widgetStyle]) : ""
     on_WatchedChanged: if (_watched)
         Qt.callLater(sanitize)
     // what "Reset the theme" puts back: what the skin's own pages show (Dock, Appearance,
     // Wallpaper, Widgets' style, Windows, the Mac keys). The apps kept in the Dock stay (they are
     // yours, not a setting: Dock → "Reset the order"), and so does the skin itself
-    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.appMenus", "mac.keys", "mac.minimizeEffect", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "mac.reduceTransparency", "mac.sounds", "mac.soundVolume", "mac.volumeSound", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
+    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.barStyle", "mac.haloInBar", "mac.appMenus", "mac.keys", "mac.minimizeEffect", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "mac.reduceTransparency", "mac.sounds", "mac.soundVolume", "mac.volumeSound", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
     function resetTheme() {
         return Config.resetKeys(themeKeys);
     }
@@ -355,7 +366,7 @@ Singleton {
     function barInk(screenName) {
         if (hell)
             return Theme.hellText;
-        if (Config.mac.barBackground)
+        if (Config.mac.barBackground || islands)
             return label;
         const l = barLight[screenName];
         return l === undefined ? (dark ? "#ffffff" : "#000000") : l > 0.6 ? Qt.rgba(0, 0, 0, 0.86) : "#ffffff";

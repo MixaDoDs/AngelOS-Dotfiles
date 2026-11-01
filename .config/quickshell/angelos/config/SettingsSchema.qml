@@ -895,6 +895,12 @@ JsonAdapter {
         property bool volumeSound: true     // the "pop" when the volume changes
         property string accent: "blue"      // blue | purple | pink | red | orange | yellow | green | graphite
         property bool barBackground: false  // the menu bar on a band of its own ("Show menu bar background")
+        // the menu bar's shape: bar = one strip along the top (macOS's); islands = glass islands, the menus on
+        // the left and the status items on the right, the Halo between them if it is in the bar (modules/mac/MacMenuBar)
+        property string barStyle: "bar"
+        // the Halo as a part of the menu bar, in either style: in its middle at the bar's height, in the
+        // glass, never hiding by itself (the bar doesn't); off: the Halo of its own (Settings → Halo)
+        property bool haloInBar: false
         property bool appMenus: true        // the focused app's own menus in the menu bar (scripts/appmenu.py)
         // Qt apps' menus in the menu bar too: the AppMenu registrar on the bus, so Qt apps started
         // while it is there export their menu bar and hide their own. Off: Qt apps keep their own menus

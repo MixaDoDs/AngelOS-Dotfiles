@@ -260,7 +260,31 @@ CatPage {
             checked: Config.appearance.blur
             onToggled: v => Config.appearance.blur = v
         }
+        CatChoice {
+            label: I18n.t("Строка меню", "Menu bar")
+            hint: Config.mac.barStyle === "islands" ? I18n.t("стеклянные островки: меню слева, значки справа, посередине Нимб, если он в строке меню", "glass islands: the menus on the left, the icons on the right, the Halo in the middle if it is in the menu bar") : I18n.t("одна полоса вдоль верха, как в macOS", "one strip along the top, as in macOS")
+            model: [
+                {
+                    "label": I18n.t("Полоса", "Strip"),
+                    "value": "bar"
+                },
+                {
+                    "label": I18n.t("Островки", "Islands"),
+                    "value": "islands"
+                }
+            ]
+            currentValue: Config.mac.barStyle
+            onActivated: v => Config.mac.barStyle = v
+        }
         CatToggle {
+            present: !!Config.halo.enabled
+            label: I18n.t("Нимб в строке меню", "The Halo in the menu bar")
+            hint: I18n.t("посередине строки, в её стекле и её высоты; сам не прячется. Выключено: Нимб сам по себе, со своей полосой (Настройки → Нимб)", "in the bar's middle, in its glass and at its height; it doesn't hide by itself. Off: the Halo on its own, with its own strip (Settings → Halo)")
+            checked: Config.mac.haloInBar
+            onToggled: v => Config.mac.haloInBar = v
+        }
+        CatToggle {
+            present: Config.mac.barStyle !== "islands"
             label: I18n.t("Фон строки меню", "Menu bar background")
             hint: I18n.t("своя полоса вместо обоев под строкой", "a band of its own instead of the wallpaper under it")
             checked: Config.mac.barBackground
