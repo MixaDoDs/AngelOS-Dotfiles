@@ -18,15 +18,23 @@ Singleton {
     Component.onCompleted: if (!DefaultApps.data || !DefaultApps.data.files)
         DefaultApps.refresh()
 
+    // an entry's id from an id or a file name: ".desktop" goes only when it is the file's suffix,
+    // not a part of the id itself (Telegram is org.telegram.desktop, its file
+    // org.telegram.desktop.desktop: stripped always, it was looked for as org.telegram, never found,
+    // and the Dock dropped it as uninstalled)
+    function bareId(id) {
+        const s = String(id);
+        return DesktopEntries.byId(s) ? s : s.replace(/\.desktop$/, "");
+    }
     function entryOf(id) {
         if (!id)
             return null;
-        const bare = String(id).replace(/\.desktop$/, "");
+        const bare = bareId(id);
         return DesktopEntries.byId(bare) || DesktopEntries.heuristicLookup(bare);
     }
     function defaultId(cat) {
         const d = DefaultApps.data && DefaultApps.data[cat];
-        return d && d.current ? String(d.current).replace(/\.desktop$/, "") : "";
+        return d && d.current ? bareId(d.current) : "";
     }
     // the ids kept in the Dock ("@apps" — the Apps grid, "@settings" — System Settings)
     readonly property var keptIds: {
@@ -35,7 +43,7 @@ Singleton {
             return own;
         const out = [defaultId("files") || "org.gnome.Nautilus", "@apps", defaultId("browser"), defaultId("terminal")];
         for (const id of Config.bar.startPinned || [])
-            out.push(String(id).replace(/\.desktop$/, ""));
+            out.push(bareId(id));
         out.push("@settings");
         return out.filter((id, i) => id && out.indexOf(id) === i);
     }
