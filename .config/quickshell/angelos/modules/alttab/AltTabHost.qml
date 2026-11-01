@@ -83,7 +83,7 @@ Scope {
                 }
                 // the fallback when the keyboard watcher is not allowed to read keys
                 Keys.onReleased: e => {
-                    const mod = AltTab.mode === "apps" ? [Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R] : [Qt.Key_Alt, Qt.Key_AltGr];
+                    const mod = AltTab.modKey === "meta" ? [Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R] : [Qt.Key_Alt, Qt.Key_AltGr];
                     if (mod.includes(e.key)) {
                         if (!AltTab.demo)
                             AltTab.commit();

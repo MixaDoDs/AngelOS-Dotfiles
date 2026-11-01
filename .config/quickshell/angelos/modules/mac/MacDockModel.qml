@@ -67,7 +67,7 @@ Singleton {
                 "id": id,
                 "name": I18n.t("Системные настройки", "System Settings"),
                 "kept": true,
-                "windows": Niri.windows.filter(w => w.app_id === "org.quickshell" && String(w.title).indexOf("angelOS") === 0)
+                "windows": Niri.windows.filter(w => AppMenu.isShellSettings(w))
             };
         const e = entryOf(id);
         const key = e ? e.id : id;
@@ -102,15 +102,17 @@ Singleton {
         return out;
     }
     // the minimized windows, oldest first: a snapshot each, its app's icon in the corner
+    // (System Settings' own window: its icon in the corner, not Quickshell's)
     readonly property var minimized: Minimize.windows.map(w => {
-        const e = entryOf(w.app_id);
+        const own = AppMenu.isShellSettings(w);
+        const e = own ? null : entryOf(w.app_id);
         return {
             "kind": "window",
             "id": "@w" + w.id,
             "wid": w.id,
             "entry": e,
-            "name": Niri.titleOf(w) || (e && e.name ? e.name : AppMenu.prettyName(w.app_id)),
-            "icon": e ? e.icon : w.app_id,
+            "name": own ? I18n.t("Системные настройки", "System Settings") : Niri.titleOf(w) || (e && e.name ? e.name : AppMenu.prettyName(w.app_id)),
+            "icon": own ? "preferences-system" : e ? e.icon : w.app_id,
             "shot": Minimize.shots[w.id] || "",
             "windows": []
         };

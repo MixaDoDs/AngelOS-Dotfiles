@@ -100,7 +100,9 @@ Singleton {
     }
 
     // ---- the switcher ----
-    property string mode: "windows"          // windows (Alt+Tab) | apps (⌘Tab)
+    property string mode: "windows"          // windows (Alt+Tab) | apps (⌘Tab; Alt+Tab with Golden Gate)
+    // the key whose release picks: meta for ⌘Tab, alt for Alt+Tab (whatever it shows)
+    property string modKey: "alt"
     property bool active: false              // cycling (Alt held)
     property bool shown: false               // the switcher is on screen
     property bool demo: false                // settings "Try it": plays by itself, focuses nothing
@@ -113,11 +115,18 @@ Singleton {
     function step(dir) {
         if (!ours || Shell.locked || Shell.setupLocked)
             return;
+        // the skin's own switcher: with Golden Gate Alt+Tab is the Mac one (the apps, as ⌘Tab
+        // shows them), with the pixel skins their pixel ones. Alt still picks on release
+        if (GoldenGate.on && (!active || mode === "apps")) {
+            stepApps(dir, "alt");
+            return;
+        }
         if (!active) {
             const list = candidates();
             if (list.length === 0)
                 return;
             mode = "windows";
+            modKey = "alt";
             items = list;
             index = list.length === 1 ? 0 : (dir < 0 ? list.length - 1 : 1);
             screenName = Niri.focusedOutput;
@@ -149,9 +158,23 @@ Singleton {
         const out = [];
         const at = {};
         for (const w of wins) {
-            const key = String(w.app_id || "");
+            // System Settings' window has Quickshell's app id: its own app here, not "Quickshell"
+            const own = AppMenu.isShellSettings(w);
+            const key = own ? "@settings" : String(w.app_id || "");
             if (!key)
                 continue;
+            if (at[key] === undefined && own) {
+                at[key] = out.length;
+                out.push({
+                    "kind": "app",
+                    "id": key,
+                    "appId": String(w.app_id),
+                    "entry": null,
+                    "name": I18n.t("Системные настройки", "System Settings"),
+                    "icon": "preferences-system",
+                    "windows": []
+                });
+            }
             if (at[key] === undefined) {
                 const e = DesktopEntries.byId(key) || DesktopEntries.heuristicLookup(key);
                 at[key] = out.length;
@@ -169,7 +192,7 @@ Singleton {
         }
         return out;
     }
-    function stepApps(dir) {
+    function stepApps(dir, mod) {
         if (Shell.locked || Shell.setupLocked)
             return;
         if (!active) {
@@ -177,6 +200,7 @@ Singleton {
             if (list.length === 0)
                 return;
             mode = "apps";
+            modKey = mod || "meta";
             items = list;
             index = list.length === 1 ? 0 : (dir < 0 ? list.length - 1 : 1);
             screenName = Niri.focusedOutput;
@@ -325,7 +349,7 @@ Singleton {
     Process {
         id: watcher
         // ⌘Tab waits for ⌘ (the Windows key), Alt+Tab for Alt
-        command: ["python3", Quickshell.shellDir + "/scripts/alt-watch.py", "--timeout", "30"].concat(root.mode === "apps" ? ["--mod", "meta"] : [])
+        command: ["python3", Quickshell.shellDir + "/scripts/alt-watch.py", "--timeout", "30"].concat(root.modKey === "meta" ? ["--mod", "meta"] : [])
         stdout: SplitParser {
             onRead: line => {
                 const l = line.trim();
