@@ -16,6 +16,8 @@ Item {
     property var items: []
     property int current: -1
     property real maxWidth: 520
+    // the glass; denser where a menu lies over other glass (Spotlight's app menu)
+    property color fill: GoldenGate.glassFill
     readonly property real minWidth: GoldenGate.px(180)
     signal activated(var item)
     signal hovered(int index, var item, real rowY)
@@ -65,6 +67,7 @@ Item {
     MacGlass {
         anchors.fill: parent
         radius: GoldenGate.menuRadius
+        fill: root.fill
     }
 
     Column {

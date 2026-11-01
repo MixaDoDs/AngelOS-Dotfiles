@@ -15,6 +15,8 @@ import "../../widgets/MacIcons.js" as MacIcons
 // Ctrl+1…4 switch them, ↑↓ (←→ in the grid) choose, Enter opens, Ctrl+Enter shows a file in its
 // folder, Esc clears and closes. Found files get thumbnails and, on the panel's right, a preview
 // (Settings → Spotlight turns either off). Same interface as the other Start looks.
+// A right click on an app (the grid, or a result) opens its menu, as the Dock's: Open, the app's
+// own actions, Keep in Dock. Drawn inside Spotlight, so it is never under its window.
 Item {
     id: root
 
@@ -62,6 +64,37 @@ Item {
 
     function matches(label, q) {
         return String(label).toLowerCase().indexOf(q) >= 0;
+    }
+    // ---- an app's menu (right click): Open, its .desktop actions, Keep in Dock (MacDockModel) ----
+    property var ctxRow: null
+    property real ctxX: 0
+    property real ctxY: 0
+    onQueryChanged: ctxRow = null
+    onModeChanged: ctxRow = null
+    function openCtx(r, item, m) {
+        const p = item.mapToItem(root, m.x, m.y);
+        ctxX = p.x;
+        ctxY = p.y;
+        ctxRow = r;
+    }
+    function ctxItems(r) {
+        if (!r || !r.app)
+            return [];
+        const a = r.app;
+        const out = [MacMenus.fn("s:open", I18n.t("Открыть", "Open"), () => root.runRow(r))];
+        const acts = a.actions || [];
+        if (acts.length)
+            out.push(AppMenu.sep("s1"));
+        for (let i = 0; i < acts.length; i++)
+            out.push(MacMenus.fn("s:a" + i, acts[i].name, () => {
+                root.closeRequested();
+                Shell.launchAction(acts[i], a.id);
+            }));
+        out.push(AppMenu.sep("s2"), MacMenus.fn("s:keep", I18n.t("Оставить в Dock", "Keep in Dock"), () => MacDockModel.setKept(a.id, !MacDockModel.isKept(a.id)), {
+            "toggle": "check",
+            "checked": MacDockModel.isKept(a.id)
+        }));
+        return AppMenu.tidy(out);
     }
     function appRow(a, section) {
         return {
@@ -254,6 +287,14 @@ Item {
     }
     readonly property var pickedFile: rows[current] && rows[current].file ? rows[current].file : null
     function key(e) {
+        // the app's menu open: Esc closes it, any other key closes it and goes on
+        if (ctxRow) {
+            ctxRow = null;
+            if (e.key === Qt.Key_Escape) {
+                e.accepted = true;
+                return;
+            }
+        }
         if ((e.modifiers & Qt.ControlModifier) && (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && pickedFile) {
             const f = pickedFile;
             closeRequested();
@@ -313,6 +354,7 @@ Item {
     // the glass parts: StartOverlay asks niri to blur under them
     readonly property Item capsuleItem: capsule
     readonly property Item panelItem: panel
+    readonly property Item menuItem: ctxMenu
 
     // ---- the capsule ----
     MacGlass {
@@ -503,8 +545,9 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onPositionChanged: m => root.pointed(this, m, row.index)
-                    onClicked: root.runRow(row.modelData)
+                    onClicked: m => m.button === Qt.RightButton ? (row.modelData.app ? root.openCtx(row.modelData, this, m) : null) : root.runRow(row.modelData)
                 }
             }
         }
@@ -621,10 +664,52 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onPositionChanged: m => root.pointed(this, m, cell.index)
-                    onClicked: root.runRow(cell.modelData)
+                    onClicked: m => m.button === Qt.RightButton ? (cell.modelData.app ? root.openCtx(cell.modelData, this, m) : null) : root.runRow(cell.modelData)
                 }
             }
+        }
+    }
+
+    // the app's menu over everything: the panel dims a little under it, a click beside it closes it
+    Rectangle {
+        visible: !!root.ctxRow
+        z: 99
+        x: panel.x
+        y: panel.y
+        width: panel.width
+        height: panel.height
+        radius: panel.radius
+        color: Qt.rgba(0, 0, 0, GoldenGate.dark ? 0.3 : 0.18)
+    }
+    MouseArea {
+        anchors.fill: parent
+        visible: !!root.ctxRow
+        z: 100
+        acceptedButtons: Qt.AllButtons
+        onPressed: root.ctxRow = null
+    }
+    MacMenuView {
+        id: ctxMenu
+        visible: !!root.ctxRow
+        z: 101
+        items: root.ctxItems(root.ctxRow)
+        width: implicitWidth
+        height: implicitHeight
+        maxWidth: GoldenGate.px(360)
+        // over the panel's glass a glass menu can't be read: solid, as a window's content
+        fill: GoldenGate.contentBg
+        x: Math.max(0, Math.min(root.width - width, root.ctxX))
+        y: root.ctxY
+        onActivated: it => {
+            root.ctxRow = null;
+            AppMenu.trigger(it);
+        }
+        // a click inside the menu never closes it
+        MouseArea {
+            z: -1
+            anchors.fill: parent
         }
     }
 }

@@ -156,6 +156,11 @@ Variants {
                 item: win.macLook && win.macLook.panelItem.visible ? win.macLook.panelItem : null
                 radius: win.macLook ? win.macLook.panelItem.radius : 0
             }
+            // an app's menu (a right click in Spotlight)
+            Region {
+                item: win.macLook && win.macLook.menuItem && win.macLook.menuItem.visible ? win.macLook.menuItem : null
+                radius: GoldenGate.menuRadius
+            }
         }
 
         MouseArea {
