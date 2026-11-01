@@ -114,6 +114,17 @@ CatPage {
                 }
             }
         }
+        CatCustom {
+            label: I18n.t("Свои значки", "Your own icons")
+            hint: I18n.t("файл <имя>.svg или .png в этой папке важнее значков macOS и темы: имя значка программы, её id или последняя часть id (org.gnome.Nautilus → nautilus)", "an <name>.svg or .png in this folder comes before the Mac icons and the theme: the app's icon name, its id or the id's last part (org.gnome.Nautilus → nautilus)")
+            CatBox {
+                PxButton {
+                    text: I18n.t("Открыть папку", "Open the folder")
+                    icon: "folder"
+                    onClicked: Quickshell.execDetached(["sh", "-c", 'mkdir -p "$1" && exec xdg-open "$1"', "sh", DockIcons.ownDir])
+                }
+            }
+        }
     }
     // ---- the apps kept in the Dock, in order (the same as dragging them in the Dock) ----
     CatGroup {
