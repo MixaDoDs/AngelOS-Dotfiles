@@ -67,7 +67,7 @@ window {
 /* angelOS pixel frames, like the shell's own boxes (PxBox): a 2 px outline whose corners step
    in by one art pixel, and a 2 px bevel inside — light top-left, dark bottom-right on buttons,
    the other way round on fields and pressed buttons. The outline is an image
-   (assets/frame-*.svg, drawn by scripts/gtk-live.py in the palette's edge colour) laid 4 px wide
+   (angelos-assets/frame-*.svg, drawn by scripts/gtk-live.py in the palette's edge colour) laid 4 px wide
    over a 2 px border: the pixels outside the step fall on the border, where nothing is painted,
    so what is behind shows and the corner looks round in pixels. Qt apps get the same frames
    (scripts/qt-theme.py). */
@@ -105,19 +105,19 @@ tooltip.background,
 switch > slider,
 scale > trough > slider {
     border: 2px solid transparent;
-    border-image: url("assets/frame-raised.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-raised.svg") 4 / 4px stretch;
     border-radius: 0;
     background-clip: padding-box;
     box-shadow: none;
 }
 headerbar button:not(.flat):not(.titlebutton):not(.link) {
-    border-image: url("assets/frame-raised.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-raised.svg") 4 / 4px stretch;
 }
 button:not(.flat):not(.titlebutton):not(.link):active,
 button:not(.flat):not(.titlebutton):not(.link):checked,
 splitbutton > button:active,
 menubutton > button:checked {
-    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-sunken.svg") 4 / 4px stretch;
 }
 entry,
 spinbutton,
@@ -127,7 +127,7 @@ list.boxed-list,
 switch,
 searchbar > revealer > box > entry {
     border: 2px solid transparent;
-    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-sunken.svg") 4 / 4px stretch;
     border-radius: 0;
     background-clip: padding-box;
     box-shadow: none;
@@ -171,13 +171,13 @@ switch > slider {
     box-shadow: none;
 }
 .nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize):hover {
-    border-image: url("assets/frame-raised.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-raised.svg") 4 / 4px stretch;
     background-color: {{bgAlt}};
     background-clip: padding-box;
 }
 .nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize):active,
 .nautilus-window.nautilus-window headerbar button:not(.titlebutton):not(.link):not(.image-text-button):not(.toggle-pill):not(.close):not(.maximize):not(.minimize):checked {
-    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-sunken.svg") 4 / 4px stretch;
     background-color: alpha({{accent}}, 0.18);
     background-clip: padding-box;
 }
@@ -188,7 +188,7 @@ switch > slider {
 
 .nautilus-pathbar {
     border: 2px solid transparent;
-    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-sunken.svg") 4 / 4px stretch;
     border-radius: 0;
     background-color: {{bg}};
     color: {{fg}};
@@ -269,7 +269,7 @@ rubberband {
 /* the status bar in the corner (what is selected, what loads) */
 .floating-bar {
     border: 2px solid transparent;
-    border-image: url("assets/frame-raised.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-raised.svg") 4 / 4px stretch;
     border-radius: 0;
     background-color: {{bgAlt}};
     background-clip: padding-box;

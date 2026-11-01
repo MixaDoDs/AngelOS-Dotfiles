@@ -29,7 +29,7 @@
 /* angelOS pixel frames, like the shell's own boxes (PxBox): a 2 px outline whose corners step
    in by one art pixel, and a 2 px bevel inside — light top-left, dark bottom-right on buttons,
    the other way round on fields and pressed buttons. The outline is an image
-   (assets/frame-*.svg, drawn by scripts/gtk-live.py in the palette's edge colour) laid 4 px wide
+   (angelos-assets/frame-*.svg, drawn by scripts/gtk-live.py in the palette's edge colour) laid 4 px wide
    over a 2 px border: the pixels outside the step fall on the border, where nothing is painted,
    so what is behind shows and the corner looks round in pixels. Windows round by the same 4 px in
    niri (templates/niri.kdl, it clips them); Qt apps get the same frames (scripts/qt-theme.py). */
@@ -61,7 +61,7 @@ tooltip.background,
 switch slider,
 scale slider {
     border: 2px solid transparent;
-    border-image: url("assets/frame-raised.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-raised.svg") 4 / 4px stretch;
     border-radius: 0;
     background-clip: padding-box;
     box-shadow: none;
@@ -69,7 +69,7 @@ scale slider {
 button:not(.flat):not(.titlebutton):not(.link):active,
 button:not(.flat):not(.titlebutton):not(.link):checked,
 combobox button.combo:checked {
-    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-sunken.svg") 4 / 4px stretch;
 }
 entry,
 spinbutton:not(.vertical),
@@ -77,7 +77,7 @@ frame > border,
 .frame,
 switch {
     border: 2px solid transparent;
-    border-image: url("assets/frame-sunken.svg") 4 / 4px stretch;
+    border-image: url("angelos-assets/frame-sunken.svg") 4 / 4px stretch;
     border-radius: 0;
     background-clip: padding-box;
     box-shadow: none;

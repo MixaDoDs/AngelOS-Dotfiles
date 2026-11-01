@@ -56,21 +56,21 @@ headerbar button.titlebutton.close:not(.appmenu),
 .titlebar button.titlebutton.close:not(.appmenu),
 headerbar button.titlebutton.close:backdrop:not(.appmenu),
 .titlebar button.titlebutton.close:backdrop:not(.appmenu) {
-    background-image: url("assets/close.svg");
+    background-image: url("angelos-assets/close.svg");
 }
 
 headerbar button.titlebutton.maximize:not(.appmenu),
 .titlebar button.titlebutton.maximize:not(.appmenu),
 headerbar button.titlebutton.maximize:backdrop:not(.appmenu),
 .titlebar button.titlebutton.maximize:backdrop:not(.appmenu) {
-    background-image: url("assets/maximize.svg");
+    background-image: url("angelos-assets/maximize.svg");
 }
 
 headerbar button.titlebutton.minimize:not(.appmenu),
 .titlebar button.titlebutton.minimize:not(.appmenu),
 headerbar button.titlebutton.minimize:backdrop:not(.appmenu),
 .titlebar button.titlebutton.minimize:backdrop:not(.appmenu) {
-    background-image: url("assets/minimize.svg");
+    background-image: url("angelos-assets/minimize.svg");
 }
 
 headerbar button.titlebutton:hover:not(.appmenu),
@@ -85,7 +85,7 @@ headerbar button.titlebutton.close:hover:not(.appmenu),
 headerbar button.titlebutton.close:backdrop:hover:not(.appmenu),
 .titlebar button.titlebutton.close:backdrop:hover:not(.appmenu) {
     background-color: {{decorDanger}};
-    background-image: url("assets/close-hover.svg");
+    background-image: url("angelos-assets/close-hover.svg");
 }
 
 headerbar button.titlebutton:backdrop:not(.appmenu),

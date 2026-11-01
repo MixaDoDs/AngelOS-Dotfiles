@@ -39,17 +39,17 @@ headerbar windowcontrols > button > image {
 
 windowcontrols > button.close,
 headerbar windowcontrols > button.close {
-    background-image: url("assets/close.svg");
+    background-image: url("angelos-assets/close.svg");
 }
 
 windowcontrols > button.maximize,
 headerbar windowcontrols > button.maximize {
-    background-image: url("assets/maximize.svg");
+    background-image: url("angelos-assets/maximize.svg");
 }
 
 windowcontrols > button.minimize,
 headerbar windowcontrols > button.minimize {
-    background-image: url("assets/minimize.svg");
+    background-image: url("angelos-assets/minimize.svg");
 }
 
 windowcontrols > button:hover,
@@ -60,6 +60,6 @@ headerbar windowcontrols > button:hover {
 windowcontrols > button.close:hover,
 headerbar windowcontrols > button.close:hover {
     background-color: {{decorDanger}};
-    background-image: url("assets/close-hover.svg");
+    background-image: url("angelos-assets/close-hover.svg");
 }
 

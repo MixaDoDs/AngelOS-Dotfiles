@@ -31,12 +31,12 @@ headerbar button.titlebutton.maximize:hover:not(.appmenu),
 .titlebar button.titlebutton.maximize:hover:not(.appmenu),
 windowcontrols > button.maximize:hover,
 headerbar windowcontrols > button.maximize:hover {
-    background-image: url("assets/maximize-hover.svg");
+    background-image: url("angelos-assets/maximize-hover.svg");
 }
 
 headerbar button.titlebutton.minimize:hover:not(.appmenu),
 .titlebar button.titlebutton.minimize:hover:not(.appmenu),
 windowcontrols > button.minimize:hover,
 headerbar windowcontrols > button.minimize:hover {
-    background-image: url("assets/minimize-hover.svg");
+    background-image: url("angelos-assets/minimize-hover.svg");
 }

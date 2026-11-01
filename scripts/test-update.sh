@@ -161,7 +161,7 @@ for base, dirs, files in os.walk(home):
     # purpose for apps still running in them, so a restore leaves the newer one there too
     # Strata's icons (folder-tint.py) too: rebuilt whole from the theme by its hook, a cache
     dirs[:] = sorted(d for d in dirs if os.path.join(base, d) not in skip
-                     and not (d.startswith("v-") and base.endswith(".config/gtk-4.0/assets"))
+                     and not (d.startswith("v-") and base.endswith(".config/gtk-4.0/angelos-assets"))
                      and not (d == "strata-icons" and base.endswith(".local/share/angelos")))
     for f in sorted(files):
         p = os.path.join(base, f)
