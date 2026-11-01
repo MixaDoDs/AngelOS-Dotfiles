@@ -909,6 +909,9 @@ JsonAdapter {
         property int dockMagnifySize: 96    // the icon right under the pointer, logical px (dockSize..128)
         property bool dockMacIcons: true    // MacTahoe's icons in the Dock (DockIcons, scripts/mac-icons.py)
         property bool dockAutohide: false
+        // a click on the app in front minimizes its focused window (as the pixel taskbar does);
+        // off, as on a Mac: the click goes to its next window
+        property bool dockClickMinimizes: false
         property string dockPosition: "bottom" // bottom | left | right — the screen's edge the Dock stands on
         property var dockApps: []           // desktop ids in the Dock; empty: Start's pinned apps
         property string font: ""            // "" = Inter (open, drawn close to SF Pro); any installed family

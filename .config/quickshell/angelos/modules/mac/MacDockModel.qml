@@ -249,7 +249,19 @@ Singleton {
             return;
         }
         if (it.kind === "settings") {
+            // its window as an app's: a minimized one comes back, the one in front may go down
+            // (Settings already open, openSettings alone did nothing: the window stayed minimized)
+            const wins = it.windows;
+            const up = wins.filter(w => !Minimize.isMinimized(w));
+            if (wins.length && !up.length) {
+                Minimize.restore(wins[0].id, false, screen);
+                return;
+            }
+            if (minimizeFront(up))
+                return;
             Shell.openSettings();
+            if (up.length)
+                Niri.focusWindow(up[0].id);
             return;
         }
         if (it.kind === "window") {
@@ -271,6 +283,8 @@ Singleton {
             return;
         }
         if (shown.length) {
+            if (minimizeFront(shown))
+                return;
             // the app in front already: its next window; otherwise its last used one
             const front = AppMenu.window;
             const mine = shown;
@@ -285,6 +299,14 @@ Singleton {
             bouncing = b;
             bounceStop.restart();
         }
+    }
+    // Settings → Dock → «A click minimizes the app in front»: the focused window of these goes down
+    function minimizeFront(wins) {
+        const front = AppMenu.window;
+        if (!Config.mac.dockClickMinimizes || !front || !wins.some(w => w.id === front.id))
+            return false;
+        Minimize.request(front.id, "dock");
+        return true;
     }
     // a window of a bouncing app came: it stops (or after 8 s anyway)
     onRunningChanged: {

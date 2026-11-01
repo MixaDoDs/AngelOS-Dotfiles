@@ -95,6 +95,12 @@ CatPage {
             currentValue: Config.mac.minimizeEffect === "scale" ? "scale" : "genie"
             onActivated: v => Config.mac.minimizeEffect = v
         }
+        CatToggle {
+            label: I18n.t("Клик по активной программе сворачивает её", "Click the app in front to minimize it")
+            hint: I18n.t("как на пиксельной панели: её окно в фокусе уходит в Dock. Выключено, как на Mac: клик переходит к её следующему окну", "as on the pixel taskbar: its focused window goes to the Dock. Off, as on a Mac: the click goes to its next window")
+            checked: Config.mac.dockClickMinimizes
+            onToggled: v => Config.mac.dockClickMinimizes = v
+        }
         CatCustom {
             label: I18n.t("Значки как в macOS", "Mac-style icons")
             hint: DockIcons.busy ? I18n.t("скачиваются…", "downloading…") : DockIcons.error ? I18n.t("не скачались: ", "not downloaded: ") + DockIcons.error : I18n.t("свободная тема MacTahoe (GPL-3.0), скачивается один раз; выключено — значки вашей темы", "the free MacTahoe theme (GPL-3.0), downloaded once; off — your theme's icons")
