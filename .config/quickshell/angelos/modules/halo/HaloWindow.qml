@@ -69,13 +69,34 @@ PanelWindow {
             if (w.workspace_id !== ws.id || Minimize.isAppHidden(w))
                 return false;
             const l = w.layout;
-            const pos = l && l.tile_pos_in_workspace_view;
-            // a tiled window starts at the very top (no strip in this mode)
+            // a window dragged with the mouse comes without a position (niri fills none for an
+            // interactive move) while it still counts on its desk here: where it was last seen,
+            // not "at the top": the Halo used to hide at a drag anywhere on the screen
+            const pos = l && l.tile_pos_in_workspace_view || lastPos[w.id];
+            // a tiled window starts at the very top (no strip in this mode; stock niri gives tiles
+            // no position)
             if (!pos)
                 return true;
             const mid = width / 2;
-            return pos[1] < strip && pos[0] < mid + half && pos[0] + l.tile_size[0] > mid - half;
+            return pos[1] < strip && pos[0] < mid + half && pos[0] + (l ? l.tile_size[0] : 0) > mid - half;
         });
+    }
+    // the windows' last known positions (window id -> [x, y]), for the drag above
+    property var lastPos: ({})
+    Connections {
+        target: Niri
+        enabled: Config.halo.windows === "hide"
+        function onWindowsChanged() {
+            const seen = {};
+            for (const w of Niri.windows) {
+                const p = w.layout && w.layout.tile_pos_in_workspace_view;
+                if (p)
+                    seen[w.id] = p;
+                else if (win.lastPos[w.id])
+                    seen[w.id] = win.lastPos[w.id];
+            }
+            win.lastPos = seen;
+        }
     }
     property bool peeking: false
     Timer {
