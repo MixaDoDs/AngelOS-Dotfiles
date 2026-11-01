@@ -904,6 +904,10 @@ JsonAdapter {
         property var ownFrameApps: ["org.telegram.desktop", "TelegramDesktop", "com.ayugram.desktop", "io.github.kotatogram", "org.materialgram.desktop"]
         property bool keys: false           // Mac-style shortcuts: Golden Gate's key profile (cfg/keybinds-macos.kdl, services/KeyProfile) — offered, never imposed
         property string minimizeEffect: "genie" // genie | scale — how a window goes to the Dock (modules/mac/MacMinimizeFx)
+        // what the green light of angel-niri's title bars does: fullscreen (onto a workspace of its own,
+        // over the menu bar and the Dock, as on a Mac) | maximize (the room between the menu bar and the
+        // Dock, the title bar and its lights kept)
+        property string greenButton: "fullscreen"
         property int dockSize: 48           // Dock icons, logical px
         property bool dockMagnify: true     // icons grow under the pointer
         property int dockMagnifySize: 96    // the icon right under the pointer, logical px (dockSize..128)

@@ -101,6 +101,7 @@ Singleton {
     readonly property var choices: ({
             "mac.accent": ["blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"],
             "mac.minimizeEffect": ["genie", "scale"],
+            "mac.greenButton": ["fullscreen", "maximize"],
             "mac.dockPosition": ["bottom", "left", "right"],
             "appearance.mode": ["light", "dark", "auto"],
             "desktop.widgetStyle": ["auto", "pixel", "mac"]
@@ -130,13 +131,13 @@ Singleton {
         }
     }
     // (any of them changed, also from the file: checked once things settle)
-    readonly property string _watched: Config.ready ? JSON.stringify([Config.mac.glass, Config.mac.soundVolume, Config.mac.dockSize, Config.mac.dockMagnifySize, Config.mac.accent, Config.mac.minimizeEffect, Config.mac.dockPosition, Config.appearance.mode, Config.appearance.fontScale, Config.desktop.widgetStyle]) : ""
+    readonly property string _watched: Config.ready ? JSON.stringify([Config.mac.glass, Config.mac.soundVolume, Config.mac.dockSize, Config.mac.dockMagnifySize, Config.mac.accent, Config.mac.minimizeEffect, Config.mac.greenButton, Config.mac.dockPosition, Config.appearance.mode, Config.appearance.fontScale, Config.desktop.widgetStyle]) : ""
     on_WatchedChanged: if (_watched)
         Qt.callLater(sanitize)
     // what "Reset the theme" puts back: what the skin's own pages show (Dock, Appearance,
     // Wallpaper, Widgets' style, Windows, the Mac keys). The apps kept in the Dock stay (they are
     // yours, not a setting: Dock → "Reset the order"), and so does the skin itself
-    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.appMenus", "mac.keys", "mac.minimizeEffect", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "mac.reduceTransparency", "mac.sounds", "mac.soundVolume", "mac.volumeSound", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
+    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.appMenus", "mac.keys", "mac.minimizeEffect", "mac.greenButton", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "mac.reduceTransparency", "mac.sounds", "mac.soundVolume", "mac.volumeSound", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
     function resetTheme() {
         return Config.resetKeys(themeKeys);
     }

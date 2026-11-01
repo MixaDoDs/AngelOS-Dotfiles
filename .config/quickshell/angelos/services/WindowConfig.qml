@@ -324,7 +324,8 @@ Singleton {
                 // one side for every window, by the skin (GTK's follows it, gtk-live.py): Desktop
                 // as Windows 11, the Golden Gate as macOS — the owner, 26.10
                 "title_buttons": GoldenGate.on ? "left" : "right",
-                "green": GoldenGate.on ? "fullscreen" : "maximize",
+                // Golden Gate: Settings → Windows → «The green light» (fullscreen as on a Mac, or maximize)
+                "green": GoldenGate.on && Config.mac.greenButton !== "maximize" ? "fullscreen" : "maximize",
                 // Settings → Halo → «Windows and the Halo» → around it (it reserves nothing itself
                 // then): windows with niri's title bar go up to the top, the bar split around the
                 // Halo; the others, and snapped ones whose buttons would be under it, keep clear
@@ -338,7 +339,7 @@ Singleton {
     }
     readonly property bool aroundHalo: Config.halo.enabled && Config.halo.windows === "maximized"
     onFloatAllChanged: applyStacking()
-    readonly property var _stackingLook: [GoldenGate.on, Config.halo.windows, Config.halo.enabled, Halo.strip, Halo.notch, String(Config.halo.screens), Config.windows.buttonLook]
+    readonly property var _stackingLook: [GoldenGate.on, Config.mac.greenButton, Config.halo.windows, Config.halo.enabled, Halo.strip, Halo.notch, String(Config.halo.screens), Config.windows.buttonLook]
     on_StackingLookChanged: applyStacking()
     Connections {
         target: Theme

@@ -488,6 +488,23 @@ CatPage {
                 }
             }
         }
+        CatChoice {
+            present: Niri.nativeMinimize
+            label: I18n.t("Зелёная кнопка", "The green light")
+            hint: Config.mac.greenButton === "maximize" ? I18n.t("разворачивает окно между строкой меню и Dock, заголовок и кнопки остаются", "maximizes the window between the menu bar and the Dock, its title bar and lights stay") : I18n.t("как на Mac: окно на весь экран на своём рабочем столе, поверх строки меню и Dock; назад: та же кнопка у программ со своим заголовком или клавиши полноэкранного режима", "as on a Mac: the window full screen on a workspace of its own, over the menu bar and the Dock; back: the same light in apps with their own title bar, or the fullscreen keys")
+            model: [
+                {
+                    "label": I18n.t("На весь экран", "Full screen"),
+                    "value": "fullscreen"
+                },
+                {
+                    "label": I18n.t("Развернуть", "Maximize"),
+                    "value": "maximize"
+                }
+            ]
+            currentValue: Config.mac.greenButton === "maximize" ? "maximize" : "fullscreen"
+            onActivated: v => Config.mac.greenButton = v
+        }
     }
     // ---- the Mac keys ----
     CatGroup {
