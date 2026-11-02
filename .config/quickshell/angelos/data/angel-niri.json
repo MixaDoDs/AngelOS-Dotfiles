@@ -11,5 +11,10 @@
   "satellite_tag": "angelos-42184a85",
   "satellite_asset": "angel-satellite-42184a85-x86_64.tar.zst",
   "satellite_sha256": "fe0d61893957c9dab9206295ff64404752d1b5d29f80835873d3f6b15908acd3",
-  "satellite_repo": "MixaDoDs/angel-satellite"
+  "satellite_repo": "MixaDoDs/angel-satellite",
+  "ear_commit": "82db2f94cf99d7293996241b5db0eb0b4e9b75b1",
+  "ear_tag": "angelos-82db2f94",
+  "ear_asset": "angel-ear-82db2f94-x86_64.tar.zst",
+  "ear_sha256": "86d78ca2530388a3d39a9c6b52a8e0df01a655367f01d9789bb4fd4af1dfe792",
+  "ear_repo": "MixaDoDs/angel-ear"
 }

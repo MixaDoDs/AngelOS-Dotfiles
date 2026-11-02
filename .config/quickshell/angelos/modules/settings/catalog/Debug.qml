@@ -130,6 +130,12 @@ CatPage {
         name: "sound"
         title: I18n.t("Звуки обоев", "Wallpaper sounds")
         icon: "volume"
+        CatToggle {
+            label: I18n.t("Слух: angel-ear вместо cava", "Hearing: angel-ear instead of cava")
+            hint: !Bass.wanted ? I18n.t("Сейчас никто не слушает: включи музыку", "Nobody listens now: play some music") : Bass.earOn ? I18n.t("Сейчас слушает angel-ear", "angel-ear is listening now") : Bass.earGone ? I18n.t("angel-ear не запустился, слушает cava. Выключи и включи, чтобы попробовать снова", "angel-ear didn't start, cava is listening. Turn off and on to try again") : I18n.t("Сейчас слушает cava", "cava is listening now")
+            checked: Config.system.angelEar
+            onToggled: c => Config.system.angelEar = c
+        }
         CatNote {
             text: I18n.t("Сейчас: ", "Now: ") + SceneSound.why + (SceneSound.dir ? " · " + SceneSound.dir.split("/").slice(-2).join("/") : "") + I18n.t(" · воздух ", " · air ") + Math.round(SceneSound.airDuck * 100) + " %" + (SceneSound.music ? I18n.t(" · музыка", " · music") : "") + (SceneSound.video ? I18n.t(" · видео", " · video") : "")
         }

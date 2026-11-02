@@ -11,6 +11,8 @@ Item {
     property Item wall: null
     property rect area
     property real plane: Infinity
+    // bend by the kick's wave itself (over windows); under the desktop widgets' wave: not again
+    property bool wave: true
     // the wall the layers are drawn from: kept while it goes away (a transition hides the scene,
     // and the layers are not gone yet when `wall` is null already)
     property Item drawn: null
@@ -40,7 +42,7 @@ Item {
             model: root.nearer
             SceneLayer {
                 wall: root.drawn
-                wave: true
+                wave: root.wave
             }
         }
     }

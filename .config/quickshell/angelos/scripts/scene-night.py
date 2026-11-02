@@ -219,7 +219,7 @@ fire_rgb = np.asarray(Image.fromarray(fire[..., :3].astype(np.uint8)).quantize(1
 Image.fromarray(np.dstack([fire_rgb, np.where(fa >= 96, 255, 0).astype(np.uint8)]), "RGBA").save(OUT / "fire.png", optimize=True)
 
 # what the author set by hand stays (the depth text's place at night), and the shards
-kept = {k: v for k, v in (scene.get("night") or {}).items() if k in ("depth_text", "debris")}
+kept = {k: v for k, v in (scene.get("night") or {}).items() if k in ("depth_text", "debris", "throw")}
 scene["night"] = kept | {
     "layers": "night/",
     "keep": [l["id"] for l in scene["layers"] if keep(l)],

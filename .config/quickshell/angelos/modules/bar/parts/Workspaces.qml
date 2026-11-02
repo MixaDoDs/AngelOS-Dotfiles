@@ -42,8 +42,34 @@ Item {
 
     Grid {
         id: row
-        columns: root.vertical ? 1 : Math.max(1, root.list.length)
+        columns: root.vertical ? 1 : Math.max(1, root.list.length + (zeroCell.visible ? 1 : 0))
         spacing: Theme.u * 2
+
+        // the clean desk 0 above desk 1 (angel-niri, Niri.zeroDesk): a faint "+" before the
+        // hearts, lit while it is the one shown; a window put there makes it desk 1
+        Item {
+            id: zeroCell
+            readonly property var desk: Niri.zeroDesk(root.screenName)
+            readonly property bool lit: !!desk && desk.is_active
+            visible: !!desk
+            width: plus.width + Theme.u * 4
+            height: Theme.u * 13
+            PxIcon {
+                id: plus
+                anchors.centerIn: parent
+                name: "plus"
+                pixel: Theme.u
+                ink: root.barInk ? (zeroCell.lit ? Theme.hellAccent : Theme.hellSprite) : zeroCell.lit ? Theme.accent : Theme.accent4
+                opacity: zeroCell.lit || zeroMouse.containsMouse ? 1 : 0.45
+            }
+            MouseArea {
+                id: zeroMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: zeroCell.desk.output === Niri.focusedOutput ? WorkspaceAnim.go("0") : Niri.focusWorkspace(zeroCell.desk.id)
+            }
+        }
 
         // model = the count, not the list: niri rebuilds the list on every switch and
         // a list model would recreate every heart (no layout yet when the animation
@@ -201,7 +227,7 @@ Item {
             if (Config.workspaces.popupMode !== "bar" || root.vertical)
                 return;
             const names = Config.workspaces.names || {};
-            root.flashText = names[ws.output + ":" + ws.idx] || ws.name || String(ws.idx);
+            root.flashText = ws.idx === 0 ? I18n.t("чистый стол", "clean desk") : names[ws.output + ":" + ws.idx] || ws.name || String(ws.idx);
             flash.restart();
         }
     }
@@ -275,7 +301,9 @@ Item {
                 WorkspaceAnim.go(w.angleDelta.y > 0 ? "up" : "down");
                 return;
             }
-            const to = root.list[root.activeIndex + (w.angleDelta.y > 0 ? -1 : 1)];
+            // up from desk 1: desk 0 (Niri.zeroDesk); down from it (activeIndex -1): desk 1
+            const up = w.angleDelta.y > 0;
+            const to = up && root.activeIndex === 0 ? Niri.zeroDesk(root.screenName) : root.activeIndex < 0 && up ? null : root.list[root.activeIndex + (up ? -1 : 1)];
             if (to)
                 Niri.focusWorkspace(to.id);
         }

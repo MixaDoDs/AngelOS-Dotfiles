@@ -54,6 +54,16 @@ Variants {
             Item {
                 id: faceArea
                 anchors.fill: parent
+                // the music's wave out of the CRT passes through the widgets as through the scene
+                // (shaders/scene_kick, the wall's own kick), and the meteor's blast; not while they
+                // are moved about
+                readonly property Item wall: wallpaper.sceneItem
+                layer.enabled: !!wall && (wall.kick > 0 || wall.edge > 0 || wall.breathOn || (wall.shockAge >= 0 && wall.shockAge < 3)) && !DesktopWidgets.editMode
+                layer.smooth: false
+                layer.effect: SceneKickFx {
+                    wall: faceArea.wall
+                    widgets: true
+                }
                 // edit mode: the grid under the widgets, the dragged one's landing place over them
                 DesktopGrid {
                     anchors.fill: parent
@@ -100,6 +110,7 @@ Variants {
                         readonly property int pad: Theme.u * 4
                         readonly property point reach: depth ? Qt.point(Math.max(pad, depth.shadowOffset.x), Math.max(pad, depth.shadowOffset.y)) : Qt.point(0, 0)
                         wall: depth ? depth.wall : null
+                        wave: !faceArea.layer.enabled
                         plane: depth && depth.covered ? depth.plane : Infinity
                         area: face ? Qt.rect(face.x + depth.shift.x - pad, face.y + depth.shift.y - pad, face.width + pad + reach.x, face.height + pad + reach.y) : Qt.rect(0, 0, 0, 0)
                     }

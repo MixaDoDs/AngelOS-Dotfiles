@@ -210,6 +210,16 @@ Singleton {
                 root.syncRoute();
         }
     }
+    // desk 0 became desk 1 (Niri.deskZeroTaken): the desks' names go along with them, a name
+    // stays with its windows, not with its number (the owner, 30.10)
+    Connections {
+        target: Niri
+        function onDeskZeroTaken(output) {
+            const names = Config.workspaces.names || {};
+            if (Object.keys(names).some(k => k.startsWith(output + ":")))
+                Config.workspaces.names = Niri.shiftDeskKeys(names, output);
+        }
+    }
     function refresh() {
         if (!reader.running)
             reader.running = true;
@@ -230,10 +240,12 @@ Singleton {
         const out = Niri.focusedOutput;
         const screen = Shell.screenByName(out);
         const list = Niri.workspacesOn(out);
-        const active = list.find(w => w.is_active);
+        // the clean desk 0 above desk 1 (angel-niri, Niri.zeroDesk): not in the list
+        const zero = Niri.zeroDesk(out);
+        const active = list.find(w => w.is_active) || (zero && zero.is_active ? zero : null);
         const idx = active ? active.idx : -1;
         // nothing would change: no transition
-        const same = /^[0-9]+$/.test(target) ? !!list[parseInt(target) - 1] && list[parseInt(target) - 1].is_active : target === "up" ? idx <= (list[0] ? list[0].idx : 1) : target === "down" ? idx >= (list.length ? list[list.length - 1].idx : 1) : false;
+        const same = target === "0" ? !zero || zero.is_active : /^[0-9]+$/.test(target) ? !!list[parseInt(target) - 1] && list[parseInt(target) - 1].is_active : target === "up" ? idx <= (zero ? 0 : list[0] ? list[0].idx : 1) : target === "down" ? idx >= (list.length ? list[list.length - 1].idx : 1) : false;
         // leaving a fullscreen game or video: switch plainly, no grab of the game
         const plain = !screen || same || Idle.active || Shell.locked || MetaTap.coversOutput(Niri.focusedWindow);
         if (!captured || Motion.still) {
@@ -252,7 +264,7 @@ Singleton {
         // which way the switch goes: numbers by their place, "prev" as if down
         let dir = target === "up" ? -1 : 1;
         if (/^[0-9]+$/.test(target)) {
-            const to = list[parseInt(target) - 1];
+            const to = target === "0" ? zero : list[parseInt(target) - 1];
             dir = to && to.idx < idx ? -1 : 1;
         }
         captureRequested(out, target, dir);
@@ -269,13 +281,23 @@ Singleton {
             return;
         const out = Niri.focusedOutput;
         const list = Niri.workspacesOn(out);
-        const active = list.find(w => w.is_active) || Niri.workspaceById(Minimize.lastDesk[out]);
-        const i = active ? list.findIndex(w => w.id === active.id) : -1;
+        // desk 0 (Niri.zeroDesk) sits before the list: up from desk 1, down onto desk 1
+        const zero = Niri.zeroDesk(out);
+        const onZero = !!zero && zero.is_active;
+        const active = list.find(w => w.is_active) || (onZero ? null : Niri.workspaceById(Minimize.lastDesk[out]));
+        const i = onZero ? -1 : active ? list.findIndex(w => w.id === active.id) : -1;
+        // no desk 0 (stock niri): niri's index 0 would be desk 1
+        if (target === "0" && !zero)
+            return;
         let to = null;
-        if (/^[0-9]+$/.test(target))
+        if (target === "0")
+            to = zero;
+        else if (/^[0-9]+$/.test(target))
             to = list[parseInt(target) - 1] || null;
         else if (target === "up" && i >= 0)
-            to = list[i - 1] || null;
+            to = list[i - 1] || (i === 0 ? zero : null);
+        else if (target === "down" && onZero)
+            to = list[0] || null;
         else if (target === "down" && i >= 0)
             to = list[i + 1] || null;
         if (to) {

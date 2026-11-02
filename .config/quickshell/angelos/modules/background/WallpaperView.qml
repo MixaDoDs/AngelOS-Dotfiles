@@ -327,45 +327,32 @@ Item {
                 time = (time + Math.min(dt, 0.1)) % 3600;
             }
             onTimedChanged: count(timed)
-            Component.onDestruction: {
-                count(false);
-                listen(false);
-            }
-
-            // each kick of the music sends a wave through it (Settings → Wallpaper → Wallpaper sounds),
-            // as strong as the player really plays (LyricsGlow.loud: its sound after its slider and
-            // the master volume). Never through the night's event
-            readonly property bool hearsBass: running && !eventOn && Wallpapers.own(folder, "sceneBass") === true
-            property real kickGain: 0
-            kick: hearsBass ? kickGain : 0
+            Component.onDestruction: count(false)
+            // the editor's changes show at once, but never by themselves on a screen on the stream
+            follow: !StreamMode.onStream(root.screenName)
             Connections {
-                target: Bass
-                enabled: sceneWall.hearsBass
-                function onKicked() {
-                    sceneWall.kickAt = sceneWall.time;
-                    sceneWall.kickGain = LyricsGlow.loud;
+                target: WallStudio
+                function onApplied(folder) {
+                    if (folder === sceneWall.folder)
+                        sceneWall.reloadScene();
                 }
             }
-            property bool listening: false
-            function listen(on) {
-                if (on === listening)
-                    return;
-                listening = on;
-                Bass.walls += on ? 1 : -1;
+
+            // the music's hits: Settings → Wallpaper → Wallpaper sounds, and the scene's modifiers.
+            // Never through the night's meteor: its approach and its strike until its glow is
+            // gone (~1000 s); its aftermath till 20:00 is no event, the music goes on through it
+            SceneDrums {
+                id: drums
+                wall: sceneWall
+                folder: sceneWall.folder
+                hearing: sceneWall.running && !(sceneWall.eventOn && sceneWall.eventAge < 1000) && Lyrics.isSong
             }
-            onHearsBassChanged: listen(hearsBass)
-            Component.onCompleted: listen(hearsBass)
-            // the wave bends all the wall draws at once: shards, the text, leaves (shaders/scene_kick)
-            layer.enabled: hearsBass
+            // the wave bends all the wall draws at once: shards, the text, leaves (shaders/scene_kick);
+            // the meteor's blast sends one too
+            layer.enabled: drums.bends || (sceneWall.shockAge >= 0 && sceneWall.shockAge < 3)
             layer.smooth: false
-            layer.effect: ShaderEffect {
-                property size size: Qt.size(sceneWall.width, sceneWall.height)
-                property point from: Qt.point(sceneWall.ox + sceneWall.kickFrom.x * sceneWall.k, sceneWall.oy + sceneWall.kickFrom.y * sceneWall.k)
-                property real k: sceneWall.k
-                property real kick: sceneWall.kick
-                property real kickAt: sceneWall.kickAt
-                property real time: sceneWall.time
-                fragmentShader: Qt.resolvedUrl("../../shaders/scene_kick.frag.qsb")
+            layer.effect: SceneKickFx {
+                wall: sceneWall
             }
             Connections {
                 target: DeskClock

@@ -108,6 +108,7 @@
 | `Mod+Ctrl+R` | `reset-window-height` |  |
 | `Mod+WheelScrollDown` | `angelos ws down` |  |
 | `Mod+WheelScrollUp` | `angelos ws up` |  |
+| `Mod+0` | `angelos ws 0` | Чистый стол сверху |
 | `Mod+1` | `angelos ws 1` |  |
 | `Mod+2` | `angelos ws 2` |  |
 | `Mod+3` | `angelos ws 3` |  |
@@ -117,6 +118,7 @@
 | `Mod+7` | `angelos ws 7` |  |
 | `Mod+8` | `angelos ws 8` |  |
 | `Mod+9` | `angelos ws 9` |  |
+| `Mod+CTRL+0` | `move-column-to-workspace 0` | Колонку на чистый стол сверху |
 | `Mod+CTRL+1` | `move-column-to-workspace 1` |  |
 | `Mod+CTRL+2` | `move-column-to-workspace 2` |  |
 | `Mod+CTRL+3` | `move-column-to-workspace 3` |  |
@@ -187,6 +189,7 @@
 | `Mod+Alt+7` | `angelos ws 7` | Стол 7 |
 | `Mod+Alt+8` | `angelos ws 8` | Стол 8 |
 | `Mod+Alt+9` | `angelos ws 9` | Стол 9 |
+| `Mod+Alt+Ctrl+0` | `move-column-to-workspace 0` | Колонку на чистый стол сверху |
 | `Mod+Alt+Ctrl+1` | `move-column-to-workspace 1` | Колонку на стол 1 |
 | `Mod+Alt+Ctrl+2` | `move-column-to-workspace 2` | Колонку на стол 2 |
 | `Mod+Alt+Ctrl+3` | `move-column-to-workspace 3` | Колонку на стол 3 |

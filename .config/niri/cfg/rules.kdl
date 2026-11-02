@@ -139,6 +139,12 @@ window-rule {
         default-column-width { fixed 1040; }
         default-window-height { fixed 740; }
     }
+    // the wallpaper editor: the picture wants the room
+    window-rule {
+        match app-id="^org.quickshell$" title="(Редактор обоев|Wallpaper editor)$"
+        default-column-width { proportion 0.85; }
+        default-window-height { proportion 0.85; }
+    }
     // angelOS dev instances (ANGELOS_DEV=1): keep test windows off the stream monitor
     window-rule {
         match app-id="^org.quickshell$" title=r#"^angelOS \[dev\]"#

@@ -3,8 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 
 // The night's event in a layered scene (widgets/SceneWall, scene.json "night" → "event"): a
-// meteor that comes near for forty minutes, growing along its path, then a dome of fire rising
-// behind the scene's houses and dying down. Drawn at the event's depth (between the clouds and
+// meteor that comes near for forty minutes, growing along its path, then the flash and a dome of
+// fire swelling behind the scene's houses and dying down. Drawn at the event's depth (between the clouds and
 // the houses), so the nearer layers cover it and it shows only in the sky; sprites nearest, at
 // art pixels, faded by dithering. The meteor is light added (black is nothing), the fire is over.
 Item {
@@ -76,6 +76,10 @@ Item {
         property color deep: ev.wall.fire ? ev.wall.fire[0] : "black"
         property color mid: ev.wall.fire ? ev.wall.fire[1] : "black"
         property color hot: ev.wall.fire ? ev.wall.fire[2] : "black"
+        property real flash: ev.wall.flash
+        property color flame0: ev.wall.flame[0]
+        property color flame1: ev.wall.flame[1]
+        property color flame2: ev.wall.flame[2]
         fragmentShader: Qt.resolvedUrl("../shaders/scene_event.frag.qsb")
     }
 }

@@ -100,10 +100,20 @@ Item {
         property color blastColor: wall.blastColor
         property real screenHit: layer.modelData.role === "screen" ? wall.screenHit : 0
         property real kick: wall.kick
-        property real kickAt: wall.kickAt
-        property point kickFrom: wall.kickFrom
+        property vector4d kickAt: wall.kicksAt
+        property vector4d kickGain: wall.kicksGain
+        property vector4d punch: wall.kicksPunch
+        property vector4d hype: wall.kicksHype
+        property vector4d kickX: wall.kicksX
+        property vector4d kickY: wall.kicksY
+        property vector4d kickRate: wall.kicksRate
         property real wave: layer.wave ? 1 : 0
         property real flare: layer.modelData.role === "screen" ? 1 : 0
+        property real snare: layer.modelData.role === "screen" ? wall.snare : 0
+        property real snareAt: wall.snareAt
+        property real hat: layer.modelData.role === "screen" ? wall.hat : 0
+        property real hatAt: wall.hatAt
+        property real hatSeed: wall.hatSeed
         property var light: wall.lightReady ? wall.lightImage : source
         property size canvas: Qt.size(wall.cw, wall.ch)
         property point origin: Qt.point(layer.x0, layer.y0)
@@ -118,6 +128,11 @@ Item {
         property point pan: wall.panShift
         property real clampEdge: layer.modelData.edge_mode === "clamp" ? 1 : 0
         property real warp: layer.bends ? wall.bend * wall.strength : 0
+        property real shockAge: wall.shockAge
+        property real flash: wall.flash * wall.nightMix
+        property color flashColor: wall.flame[2]
+        property point shockFrom: wall.shockFrom
+        property real shockSpeed: wall.shockSpeed
         property real time: layer.t
         property real wind: wall.windNow
         property real windDir: wall.windDir

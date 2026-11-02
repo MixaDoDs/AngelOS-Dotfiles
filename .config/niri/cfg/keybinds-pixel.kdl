@@ -60,6 +60,8 @@ binds {
     Mod+WheelScrollDown                 cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws wheel-down"; }
     Mod+WheelScrollUp                   cooldown-ms=150 { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos ws wheel-up"; }
 
+    // the clean desk above desk 1 (angel-niri set-desk-zero; a window put there makes it desk 1)
+    Mod+0                               hotkey-overlay-title="Чистый стол сверху" { focus-workspace 0; }
     Mod+1                               { focus-workspace 1; }
     Mod+2                               { focus-workspace 2; }
     Mod+3                               { focus-workspace 3; }
@@ -70,6 +72,7 @@ binds {
     Mod+8                               { focus-workspace 8; }
     Mod+9                               { focus-workspace 9; }
 
+    Mod+CTRL+0                          hotkey-overlay-title="Колонку на чистый стол сверху" { move-column-to-workspace 0; }
     Mod+CTRL+1                          { move-column-to-workspace 1; }
     Mod+CTRL+2                          { move-column-to-workspace 2; }
     Mod+CTRL+3                          { move-column-to-workspace 3; }

@@ -1,8 +1,9 @@
 #version 440
 // The night's event in a layered scene (widgets/SceneEvent): a meteor (light added: black is
-// nothing, so the colour goes out with alpha 0 — premultiplied blending adds it) and a dome of
-// fire drawn over. Both sampled nearest at art pixels; how much of them shows (coming out of the
-// dark, dying down) is an 8×8 Bayer dither, never a half-transparent pixel.
+// nothing, so the colour goes out with alpha 0 — premultiplied blending adds it), a dome of fire
+// drawn over, and the flash that opens it: the sky round the fire white-hot for a moment. Art
+// pixels only; how much of anything shows (coming out of the dark,
+// dying down) is an 8×8 Bayer dither, never a half-transparent pixel.
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 layout(std140, binding = 0) uniform buf {
@@ -26,6 +27,10 @@ layout(std140, binding = 0) uniform buf {
     vec4 deep;
     vec4 mid;
     vec4 hot;
+    float flash;        // 0..1: the blast's flash (SceneWall.flash)
+    vec4 flame0;        // what burns, in any colour (SceneWall.flame): deep, mid, hot
+    vec4 flame1;
+    vec4 flame2;
 };
 layout(binding = 1) uniform sampler2D meteor;
 layout(binding = 2) uniform sampler2D fire;
@@ -38,6 +43,7 @@ float bayer2(vec2 a) {
 float bayer8(vec2 a) {
     return bayer2(0.25 * a) * 0.0625 + bayer2(0.5 * a) * 0.25 + bayer2(a);
 }
+
 
 // a lightness through tonight's ramp, in eight flat steps
 vec3 ramp(float l) {
@@ -57,6 +63,13 @@ void main() {
             if (f.a > 0.5)
                 c = vec4(tint > 0.5 ? ramp(dot(f.rgb, vec3(0.3, 0.59, 0.11)) * 1.25) : f.rgb, 1.0);
         }
+    }
+    if (flash > 0.0 && c.a < 0.5) {
+        // the flash: the sky round the fire white-hot for a moment, its edge running out in the
+        // fire's colours, all of it dithered down as it dies
+        float amt = flash * night * clamp(1.15 - length(t + 0.5 - fireOrigin) / 380.0, 0.0, 1.0);
+        if (d < amt)
+            c = d < amt - 0.45 ? flame2 : d < amt - 0.15 ? flame1 : flame0;
     }
     if (meteorAlpha > 0.0 && c.a < 0.5 && d < meteorAlpha * night) {
         vec2 u = floor((t + 0.5 - head) / meteorScale + headIn);

@@ -24,9 +24,14 @@ the rock's four shades — the scene's own stone greys (STONE) in its palette (p
 night/palette.json), darker at night as the ground there is, so a cold shard is a stone of the
 scene, not a sticker.
 
-  debris  [{"at": [x, y] (art px, the middle of where it touches), "z", "map", "size": [w, h],
-            "lands", "cools", "gone" (s after the impact), "lean" (art px: the day's shadow
-            leans this way), "day"/"night": {"rock": [4], "shadow", "scorch", "ground"}}]
+When: the blast throws them out of the fire; each flies to its place along an arc seen through
+the scene's camera (widgets/SceneThrow, scene.json "night" → "throw", set by hand: "horizon" and
+"focal" in art px, "depth" of the fire and "wall": [x, depth] of the house in front of it, in
+units of the camera's height), the farther the longer: it lands 3–5 s after the impact.
+
+  debris  [{"at": [x, y] (art px, the middle of where it touches), "z", "map", "size": [w, h], "lands", "cools", "gone" (s after
+            the impact), "lean" (art px: the day's shadow leans this way),
+            "day"/"night": {"rock": [4], "shadow", "scorch", "ground"}}]
 """
 import json
 import sys
@@ -77,6 +82,7 @@ def over(z):
 
 GROUND_Z = 22
 covered = over(GROUND_Z)
+FIRE = scene["night"]["event"]["fire"]["origin"]
 background = role[top] == "background"
 green = (day[..., 1] > day[..., 0] * 1.04) & (day[..., 1] > day[..., 2] * 1.1)
 low = np.broadcast_to(np.arange(h)[:, None] > h * 0.66, (h, w))
@@ -260,7 +266,8 @@ for kind, n in QUOTA.items():
                           "scorch": hexc(nearest(pal, (g * 0.32 + lum(g) * 255 * 0.32 * 0.6) / 1.6, 3.0))}
         debris.append({"at": [x, y], "z": bench_z + 1 if kind == "seat" else GROUND_Z, "on": kind,
                        "map": f"night/shards/{i}.png", "size": [int(A.shape[1]), int(A.shape[0])],
-                       "lands": round(float(rng.uniform(4, 22)), 1), "cools": round(float(rng.uniform(900, 2600))),
+                       "lands": round(1.9 + float(np.hypot(x - FIRE[0], y - FIRE[1] + 27)) / 200
+                                      + 0.6 * float(rng.uniform(0, 1)), 1), "cools": round(float(rng.uniform(900, 2600))),
                        "gone": round(float(rng.uniform(9000, 57000))), "lean": -1 if kind != "seat" else -1,
                        "day": cols["day"], "night": cols["night"]})
         got += 1

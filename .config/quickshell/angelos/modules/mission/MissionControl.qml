@@ -275,7 +275,15 @@ Scope {
                     a.window = windowId;
                 Niri.action("OpenSpareWorkspace", a);
             }
+            // the clean desk 0 above desk 1 (angel-niri, Niri.zeroDesk): first in the strip; a
+            // window dropped on it makes it desk 1 (niri puts a new desk 0 above)
+            readonly property var zero: Niri.zeroDesk(output)
             function deskAt(x, y) {
+                if (zeroTile.visible) {
+                    const p = zeroTile.mapFromItem(win.contentItem, x, y);
+                    if (p.x >= 0 && p.y >= 0 && p.x < zeroTile.width && p.y < zeroTile.height)
+                        return win.zero.id;
+                }
                 if (plusTile.visible) {
                     const p = plusTile.mapFromItem(win.contentItem, x, y);
                     if (p.x >= 0 && p.y >= 0 && p.x < plusTile.width && p.y < plusTile.height)
@@ -294,6 +302,46 @@ Scope {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: Math.round(win.u * 8 - (1 - win.progress) * (height + win.u * 8))
                 spacing: win.u * 6
+                Item {
+                    id: zeroTile
+                    visible: !!win.zero
+                    width: win.deskW
+                    height: win.deskH + win.u * 10
+                    readonly property bool hot: !!win.zero && win.dropDesk === win.zero.id || zeroArea.containsMouse
+                    PxBox {
+                        id: zeroBox
+                        width: win.deskW
+                        height: win.deskH
+                        color: zeroTile.hot ? Theme.accent : Theme.face
+                        edgeColor: win.zero && win.zero.is_active ? Theme.accent : Theme.edge
+                        PxIcon {
+                            anchors.centerIn: parent
+                            name: "plus"
+                            pixel: win.u * 2
+                            ink: zeroTile.hot ? "#ffffff" : Theme.textDim
+                        }
+                    }
+                    PxText {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: win.deskH + win.u * 2
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                        text: I18n.t("Чистый стол", "Clean desk")
+                        color: "#ffffff"
+                        font.bold: !!win.zero && win.zero.is_active
+                    }
+                    MouseArea {
+                        id: zeroArea
+                        anchors.fill: zeroBox
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            const id = win.zero.id;
+                            win.leave("desk", () => Niri.focusWorkspace(id));
+                        }
+                    }
+                }
                 Repeater {
                     id: deskRep
                     // by id: the workspace list is a fresh array on every niri event, and a Repeater

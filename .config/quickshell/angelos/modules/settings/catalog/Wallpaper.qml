@@ -1058,31 +1058,65 @@ CatPage {
         }
         CatSlider {
             present: Wallpapers.own(soundGroup.here, "sceneSounds")
-            label: I18n.t("Под музыку, стол виден", "With music, the desktop seen")
-            hint: I18n.t("сколько воздуха остаётся, когда играет Spotify или другой плеер, а окон нет", "How much air stays while Spotify or another player plays and no window is open")
+            label: I18n.t("Когда звучит программа", "While a program sounds")
+            hint: I18n.t("сколько воздуха остаётся, пока звучит музыка, звонок, браузер или игра в окне. Открытые окна не важны. Видео, полный экран и редактор звука — воздух молчит", "How much air stays while music, a call, a browser or a windowed game sounds. Open windows don't matter. A video, fullscreen or a sound editor — the air falls silent")
             from: 0
             to: 100
             stepSize: 5
             suffix: " %"
-            value: Config.wallpaper.sceneDuckDesk
-            onMoved: v => Config.wallpaper.sceneDuckDesk = Math.round(v)
-        }
-        CatSlider {
-            present: Wallpapers.own(soundGroup.here, "sceneSounds")
-            label: I18n.t("Под музыку, окно поверх", "With music, a window over it")
-            hint: I18n.t("видео или браузер со звуком, игра и полный экран — воздух молчит", "A video or a browser with sound, a game or fullscreen — the air falls silent")
-            from: 0
-            to: 100
-            stepSize: 5
-            suffix: " %"
-            value: Config.wallpaper.sceneDuckWindow
-            onMoved: v => Config.wallpaper.sceneDuckWindow = Math.round(v)
+            value: Config.wallpaper.sceneDuck
+            onMoved: v => Config.wallpaper.sceneDuck = Math.round(v)
         }
         CatToggle {
             label: I18n.t("Волна под бас", "A wave on the bass")
-            hint: I18n.t("Под музыку от каждого удара из старого телевизора по картинке расходится волна — чем громче играет, тем сильнее. Ночью во время события — нет", "With music each kick sends a wave out of the old TV through the picture, the louder it plays, the stronger. Not through the night's event")
+            hint: I18n.t("Под музыку от каждого удара из старого телевизора по картинке и виджетам расходится волна — первые удары трека ярче, чем громче играет, тем сильнее. Под видео и ночью во время события — нет", "With music each kick sends a wave out of the old TV through the picture and the widgets, a song's first kicks brighter, the louder it plays, the stronger. Not under videos or through the night's event")
             checked: Wallpapers.own(soundGroup.here, "sceneBass")
             onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneBass", c)
+        }
+        CatToggle {
+            label: I18n.t("Помехи в телевизоре под малый барабан", "The TV glitches on the snare")
+            hint: I18n.t("на каждый малый барабан или хлопок телевизор на миг теряет сигнал: строки срываются, по экрану бегут помехи", "Each snare or clap knocks the TV off its signal for a moment: the rows tear, interference rolls down the screen")
+            checked: Wallpapers.own(soundGroup.here, "sceneSnare")
+            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneSnare", c)
+        }
+        CatToggle {
+            label: I18n.t("Строки в телевизоре под тарелки", "TV scanlines on the hi-hats")
+            hint: I18n.t("на хэты и тарелки по экрану телевизора пробегает светлая строка развёртки", "On the hi-hats and cymbals a light scanline runs across the TV's screen")
+            checked: Wallpapers.own(soundGroup.here, "sceneHats")
+            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneHats", c)
+        }
+        CatToggle {
+            label: I18n.t("Края экрана расслаиваются под малый барабан", "The screen's edges split on the snare")
+            hint: I18n.t("на каждый малый барабан или хлопок по краям картинки и виджетов на миг расходятся красный и синий и пространство гнётся, как в линзе; середина остаётся чистой", "Each snare or clap parts red from blue for a moment at the edges of the picture and the widgets and bends the space like a lens; the middle stays clean")
+            checked: Wallpapers.own(soundGroup.here, "sceneEdges")
+            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneEdges", c)
+        }
+        CatToggle {
+            label: I18n.t("Края экрана дышат под бас", "The screen's edges breathe with the bass")
+            hint: I18n.t("пока играет бас, картинка и виджеты у краёв чуть раздуваются, как в линзе, и слегка расходятся по цветам; середина стоит на месте", "While the bass plays, the picture and the widgets swell a little at the edges, as through a lens, and part slightly by colour; the middle stays put")
+            checked: Wallpapers.own(soundGroup.here, "sceneBreath")
+            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneBreath", c)
+        }
+        CatToggle {
+            label: I18n.t("Реакция из редактора обоев", "Reactions from the wallpaper editor")
+            hint: I18n.t("зоны и волны, настроенные в редакторе обоев, двигаются под музыку", "The zones and waves set up in the wallpaper editor move with the music")
+            checked: Wallpapers.own(soundGroup.here, "sceneMods")
+            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneMods", c)
+        }
+        CatSlider {
+            label: I18n.t("Сила реакции", "Reaction strength")
+            present: Wallpapers.own(soundGroup.here, "sceneMods")
+            from: 0
+            to: 100
+            stepSize: 5
+            suffix: " %"
+            value: Wallpapers.own(soundGroup.here, "sceneModsGain")
+            onMoved: v => Wallpapers.setOwn(soundGroup.here, "sceneModsGain", Math.round(v))
+        }
+        CatButton {
+            label: I18n.t("Редактор обоев", "Wallpaper editor")
+            text: I18n.t("Открыть", "Open")
+            onClicked: WallStudio.edit(Wallpapers.sceneOf(soundGroup.here) || soundGroup.here)
         }
     }
     // windows behind a layered scene's nearer things (services/SceneBehind; angel-niri only)

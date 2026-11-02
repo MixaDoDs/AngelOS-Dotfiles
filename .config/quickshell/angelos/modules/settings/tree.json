@@ -475,7 +475,9 @@
             "wallpaper/pixel",
             "wallpaper/variants",
             "wallpaper/scene-depth",
-            "wallpaper/scene-behind"
+            "wallpaper/scene-behind",
+            "wallpaper/scene-time",
+            "wallpaper/scene-sounds"
           ],
           "more": [
             "wallpaper/release-mark"

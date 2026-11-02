@@ -22,8 +22,112 @@ Item {
     property real wind: 0.35
     property real windDir: 1
     property real pulse: 0
-    property real kick: 0                     // 0..1: the music's last kick, a wave rings out (WallpaperView)
-    property real kickAt: -1                  // `time` of that kick
+    property real kick: 0                     // 0..1: the music's last kick, its waves ring out (WallpaperView); 0 = off
+    // the last four kicks, each its own wave (kickNow): a wave rings 1.2 s and the kicks come every
+    // half second, so a new one rings out over the ones before instead of cutting them short.
+    // Per kick: its `time`, how loud, how hard its bass hit (the CRT's flare), the song's first
+    // kicks ring harder (services/Bass)
+    property vector4d kicksAt: Qt.vector4d(-9, -9, -9, -9)
+    property vector4d kicksGain: Qt.vector4d(0, 0, 0, 0)
+    property vector4d kicksPunch: Qt.vector4d(0, 0, 0, 0)
+    property vector4d kicksHype: Qt.vector4d(0, 0, 0, 0)
+    // each its own place (art px) and speed: the CRT's kicks ring out of it, a modifier's out of
+    // the place it was given; the widgets feel only the ones that say so
+    property vector4d kicksX: Qt.vector4d(0, 0, 0, 0)
+    property vector4d kicksY: Qt.vector4d(0, 0, 0, 0)
+    property vector4d kicksRate: Qt.vector4d(1, 1, 1, 1)
+    property vector4d kicksOnWidgets: Qt.vector4d(0, 0, 0, 0)
+    property int kickSlot: 0
+    function slotOf(v, i, x) {
+        return Qt.vector4d(i === 0 ? x : v.x, i === 1 ? x : v.y, i === 2 ? x : v.z, i === 3 ? x : v.w);
+    }
+    function ringNow(from, gain, punch, hype, rate, widgets) {
+        const i = kickSlot;
+        kicksAt = slotOf(kicksAt, i, time);
+        kicksGain = slotOf(kicksGain, i, gain);
+        kicksPunch = slotOf(kicksPunch, i, punch);
+        kicksHype = slotOf(kicksHype, i, hype);
+        kicksX = slotOf(kicksX, i, from.x);
+        kicksY = slotOf(kicksY, i, from.y);
+        kicksRate = slotOf(kicksRate, i, rate);
+        kicksOnWidgets = slotOf(kicksOnWidgets, i, widgets ? gain : 0);
+        kickSlot = (i + 1) % 4;
+    }
+    function kickNow(gain, punch, hype) {
+        ringNow(kickFrom, gain, punch, hype, 1, true);
+    }
+
+    // ---- the wallpaper editor's modifiers (scene.json "modifiers", modules/wallstudio) ----
+    // {id, type: "bulge" | "wave", source: "kick" | "snare" | "hat", strength 0..1, on,
+    //  threshold 0..1 (a softer hit does nothing), even (every hit alike), and by type
+    //  bulge: center [x, y], radius [rx, ry] art px, release s; wave: center, or zone (a bulge's id),
+    //  speed (1 = as the CRT's), widgets (false: they stay still)}
+    property var mods: []
+    property var modsOverride: null           // the editor's own while it is being changed
+    property bool modsOn: false               // the host hears the music (widgets/SceneDrums)
+    property real modsGain: 1                 // Settings → Wallpaper: all of it, softer
+    readonly property var modifiers: (modsOverride || mods).filter(m => m.on !== false)
+    readonly property var zoneMods: modifiers.filter(m => m.type === "bulge").slice(0, 4)
+    readonly property bool hasWaves: modifiers.some(m => m.type === "wave")
+    // false: only what the modifiers say, none of the effects a scene has by itself
+    readonly property bool builtin: !scene || scene.builtin !== false
+    property vector4d zonesAt: Qt.vector4d(-9, -9, -9, -9)
+    property vector4d zonesGain: Qt.vector4d(0, 0, 0, 0)
+    readonly property vector4d zonesRelease: {
+        const r = i => zoneMods[i] ? zoneMods[i].release || 0.18 : 0.18;
+        return Qt.vector4d(r(0), r(1), r(2), r(3));
+    }
+    function zoneRect(i) {
+        const m = zoneMods[i];
+        if (!m)
+            return Qt.vector4d(-9, -9, 1, 1);
+        return Qt.vector4d(ox + (m.center[0] + panShift.x) * k, oy + (m.center[1] + panShift.y) * k, m.radius[0] * k, m.radius[1] * k);
+    }
+    readonly property vector4d zoneA: zoneRect(0)
+    readonly property vector4d zoneB: zoneRect(1)
+    readonly property vector4d zoneC: zoneRect(2)
+    readonly property vector4d zoneD: zoneRect(3)
+    function modCenter(m) {
+        const z = m.zone ? zoneMods.find(b => b.id === m.zone) : null;
+        const c = z ? z.center : m.center || [cw / 2, ch / 2];
+        return Qt.point(c[0], c[1]);
+    }
+    // a hit of the music: how loud it plays, how hard the hit (punch), the song's first ones (hype)
+    function drum(source, gain, punch, hype) {
+        const hit = gain * (1 + 0.6 * punch + 0.6 * hype);
+        for (const m of modifiers) {
+            if (m.source !== source || (!m.even && hit < (m.threshold || 0)))
+                continue;
+            const g = (m.strength === undefined ? 0.6 : m.strength) * modsGain * (m.even ? 1 : hit);
+            if (m.type === "wave")
+                ringNow(modCenter(m), g * 1.6, punch, hype, m.speed || 1, m.widgets !== false);
+            else if (m.type === "bulge") {
+                const i = zoneMods.indexOf(m);
+                zonesAt = slotOf(zonesAt, i, time);
+                zonesGain = slotOf(zonesGain, i, g * 0.4);
+            }
+        }
+    }
+    // what the editor's brush pinned: nothing moves there. Any picture when there is none
+    property int holdRev: 0
+    readonly property string holdFile: scene && scene.modifier_hold ? dir + "/" + scene.modifier_hold : ""
+    readonly property Image holdImage: holdImg
+    readonly property bool holdReady: holdFile !== "" && holdImg.status === Image.Ready
+    Image {
+        id: holdImg
+        source: root.holdFile ? "file://" + root.holdFile + "?" + root.holdRev : "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/>"
+        cache: false
+        smooth: true
+        visible: false
+    }
+    property real snare: 0                    // 0..1: the last snare, the CRT loses its signal (shaders/scene_layer)
+    property real snareAt: -1
+    property real edge: 0                     // 0..1: the last snare, red and blue part at the screen's edges (shaders/scene_kick)
+    property real breath: 0                   // 0..1: the bass now, the lens at the edges follows it (shaders/scene_kick)
+    property bool breathOn: false             // listening to it: the widgets' layer stays on through its quiet moments
+    property real hat: 0                      // 0..1: the last hi-hat, a scanline lights on the CRT (shaders/scene_layer)
+    property real hatAt: -1
+    property real hatSeed: 0
     // it rings out of the CRT's screen (the music plays there); a scene without one: its middle
     readonly property point kickFrom: {
         const s = (scene && scene.layers || []).find(l => l.role === "screen" && l.bounds_logical);
@@ -49,6 +153,8 @@ Item {
     property int variant: 0
     readonly property var fires: [null, ["#3a0612", "#d8203c", "#ffd6c8"], ["#04281c", "#20d880", "#e2ffe8"], ["#081440", "#3c8cff", "#eaf4ff"], ["#220838", "#a446ff", "#f6e2ff"], ["#3c2204", "#ffb424", "#fffbe6"]]
     readonly property var fire: fires[variant] || null
+    // the same three for what burns in any colour (the blast, the shards): its own fire's tonight
+    readonly property var flame: fire || ["#8a1a0c", "#ff8a1e", "#fff0b0"]
     readonly property var nightInfo: scene && scene.night ? scene.night : null
     readonly property var nightEventInfo: nightInfo && nightInfo.event ? nightInfo.event : null
     // the event moves, so not on a still wallpaper; and only as dark as the night is
@@ -59,15 +165,23 @@ Item {
     }
     // 40 minutes coming near — a cold spark for half an hour, its warm light on the walls only in
     // the last ten minutes (sooner, four in the morning looked like a sunset) — the impact behind
-    // the left house, the light dies down over the next 15
+    // the left house: a flash over everything, a ball of fire that swells in a second or two and
+    // then slowly grows on, the light dying down over the next 15 minutes
     readonly property real approach: eventOn && eventAge < 0 ? smooth((eventAge + 2400) / 2400) : 0
-    readonly property real fireRise: eventOn && eventAge >= 0 ? smooth(eventAge / (nightEventInfo.fire.rise || 120)) : 0
+    readonly property real flash: !eventOn || eventAge < 0 ? 0 : eventAge < 0.08 ? 1 : Math.exp(-(eventAge - 0.08) / 0.45)
+    readonly property real fireRise: eventOn && eventAge >= 0 ? 0.7 * (1 - Math.exp(-eventAge / 0.8)) + 0.3 * smooth(eventAge / (nightEventInfo.fire.rise || 120)) : 0
     readonly property real fireFade: eventOn && eventAge >= 0 ? 1 - smooth((eventAge - 100) / 360) : 0
     readonly property real glowNear: !eventOn ? 0 : nightMix * (eventAge < 0 ? smooth((eventAge + 600) / 600) : 1 - smooth((eventAge - 250) / 720))
-    readonly property real glowBlast: !eventOn ? 0 : nightMix * Math.min(0.75, fireRise * fireFade * (nightEventInfo.fire.scale || 0.65))
-    // the CRT feels it a few seconds after the flash
+    readonly property real glowBlast: !eventOn ? 0 : nightMix * Math.max(flash, Math.min(0.75, fireRise * fireFade * (nightEventInfo.fire.scale || 0.65)))
+    // the blast's wave: out of the fire's foot at `shockSpeed` art px a second, bending all it passes
+    // (WallpaperView: shaders/scene_kick), throwing the plants away from the fire as it reaches them
+    // (shaders/scene_layer); after it a strong wind for some seconds
+    readonly property real shockSpeed: 420
+    readonly property real shockAge: eventOn && eventAge >= 0 && eventAge < 25 ? eventAge : -1
+    readonly property point shockFrom: nightEventInfo ? Qt.point(nightEventInfo.fire.origin[0], nightEventInfo.fire.origin[1]) : Qt.point(0, 0)
+    // the CRT is hit when the wave reaches it, keeps flickering for a while
     // and keeps twitching now and then for hours after, less and less often
-    readonly property real screenHit: Math.max(!eventOn || eventAge < 5 ? 0 : smooth((eventAge - 5) / 2) * (1 - smooth((eventAge - 19) / 3)), aftershock)
+    readonly property real screenHit: Math.max(!eventOn || eventAge < 0.3 ? 0 : smooth((eventAge - 0.3) / 0.15) * (1 - 0.6 * smooth((eventAge - 0.8) / 2)) * (1 - smooth((eventAge - 10) / 4)), aftershock)
     readonly property real aftershock: !afterOn || afterAge < 40 ? 0 : hash(Math.floor(time / 9) * 1.7 + 0.3) < 0.3 * Math.exp(-afterAge / 7200) && time % 9 < 0.4 ? 0.4 : 0
     readonly property color nearColor: fire ? fire[1] : nightInfo && nightInfo.approach_color ? Qt.rgba(...nightInfo.approach_color, 1) : "black"
     readonly property color blastColor: fire ? fire[1] : nightInfo && nightInfo.blast_color ? Qt.rgba(...nightInfo.blast_color, 1) : "black"
@@ -156,8 +270,10 @@ Item {
         return g * g * (3 - 2 * g);
     }
     function windAt(t) {
-        return Math.min(1.6, wind * (0.55 + 0.9 * gust(t)) + pulse);
+        return Math.min(1.6, wind * (0.55 + 0.9 * gust(t)) + pulse + blastGust);
     }
+    // the wind behind the blast's wave: strong for a few seconds, gusting, dying down
+    readonly property real blastGust: !eventOn || eventAge < 0 || eventAge > 12 ? 0 : 1.6 * smooth((eventAge - 0.3) / 0.3) * (1 - smooth((eventAge - 1.5) / 9)) * (0.75 + 0.25 * Math.sin(eventAge * 2.7))
     readonly property real windNow: moving ? windAt(time) : 0
 
     // scene.layers plus the window glints as a layer of their own, sorted by z
@@ -252,6 +368,8 @@ Item {
     // how far each spot of the plants bends, one field for the scene (scripts/scene-hold.py, cached)
     property string flexPath: ""
     onDirChanged: {
+        mods = [];
+        sceneText = "";
         dayPalette = [];
         nightPalette = [];
         depthLuma = -1;
@@ -518,9 +636,29 @@ Item {
         }
     }
 
+    // false: a change in the file waits for reloadScene (a screen on the stream)
+    property bool follow: true
+    function reloadScene() {
+        sceneFile.reload();
+    }
+    // a change of the modifiers alone leaves the layers as they are, they would load anew
+    property string sceneText: ""
     FileView {
+        id: sceneFile
         path: root.dir ? root.dir + "/scene.json" : ""
-        onLoaded: root.scene = JSON.parse(text())
+        watchChanges: root.follow
+        onFileChanged: reload()
+        onLoaded: {
+            const s = JSON.parse(text());
+            root.mods = s.modifiers || [];
+            root.holdRev++;
+            delete s.modifiers;
+            const t = JSON.stringify(s);
+            if (t !== root.sceneText) {
+                root.sceneText = t;
+                root.scene = s;
+            }
+        }
         onLoadFailed: console.warn("SceneWall: no scene.json in", root.dir)
     }
 

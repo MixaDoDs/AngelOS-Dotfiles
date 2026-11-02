@@ -17,6 +17,7 @@
 #   sounds; off = no animations at all (the shell, niri, hell), an optimisation mode
 #   angelos pixelWall [status] | on | off | size N | colors N | dither N — any wallpaper redrawn in
 #   big pixels (Settings → Wallpaper → Pixel wallpaper), a copy per screen; the file is not touched
+#   angelos studio [edit [picture]] | close | status — the wallpaper editor
 #   angelos scene edit [picture] | close | web [picture] | mcp — the author's live-wallpaper scene
 #   editor (a window of the shell; web: the same as a page in a browser) and its MCP server
 #   angelos author status|fetch|login — the author's own tools (the chapter editor), only for
@@ -460,6 +461,11 @@ case "$1" in
       *) exec niri msg action focus-window-previous ;;
     esac
     ;;
+  studio)
+    # the wallpaper editor, a window of the shell (services/WallStudio)
+    pic="${3:-}"
+    [ -n "$pic" ] && pic="$(realpath -- "$pic" 2>/dev/null || printf '%s' "$pic")"
+    exec qs -c angelos ipc call angelos studio "${2:-edit}${pic:+ $pic}" ;;
   scene)
     # which parts of a wallpaper come alive: the scene editor (`angelos scene edit [picture]`, a window of the shell,
     # scripts/scene-editor) and its MCP server for Claude (`angelos scene mcp`: the author's, owner/scene-editor)

@@ -9,6 +9,7 @@
 # features. A session that doesn't start: Ctrl+Alt+F3, log in, `angel-niri-install.sh off`.
 # Beside it angel-satellite, the fork of xwayland-satellite niri runs X11 apps with (drag and drop
 # into X11 apps, menus on two monitors): ~/.local/bin/xwayland-satellite, picked up from PATH.
+# And angel-ear, which hears the music's drums (services/Bass; without it, cava): ~/.local/bin/angel-ear.
 #
 #   angel-niri-install.sh [install]   the pinned build, made the session's niri
 #   angel-niri-install.sh off         back to the niri package (from the next login)
@@ -24,6 +25,8 @@ DROPIN="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/niri.service.d/angel-niri
 LINK="$HOME/.local/bin/niri"
 SAT_LIB="$HOME/.local/lib/angel-satellite"
 SAT_LINK="$HOME/.local/bin/xwayland-satellite"
+EAR_LIB="$HOME/.local/lib/angel-ear"
+EAR_LINK="$HOME/.local/bin/angel-ear"
 case "${ANGELOS_LANG:-${LANG:-}}" in ru*) UI=ru ;; *) UI=en ;; esac
 _() { if [[ "$UI" == ru ]]; then printf '%s' "$2"; else printf '%s' "$1"; fi; }
 step() { echo "STEP $*"; }
@@ -113,8 +116,28 @@ satellite() {
   done
 }
 
+# shortcut: download only, no build from source; without it the shell hears through cava.
+ear() {
+  local commit dir old
+  commit="$(pin ear_commit 2>/dev/null)" || return 0
+  dir="$EAR_LIB/${commit:0:8}"
+  if ! "$dir/angel-ear" --version >/dev/null 2>&1; then
+    rm -rf -- "$dir"
+    if ! download "$dir" ear_ angel-ear angel-ear || ! "$dir/angel-ear" --version >/dev/null 2>&1; then
+      rm -rf -- "$dir"
+      step "$(_ 'angel-ear could not be downloaded; the shell hears the music through cava' 'angel-ear не скачался; оболочка слышит музыку через cava')"
+      return 0
+    fi
+  fi
+  mkdir -p -- "${EAR_LINK%/*}" && ln -sfn -- "$dir/angel-ear" "$EAR_LINK"
+  for old in "$EAR_LIB"/*/; do
+    [[ "${old%/}" == "$dir" ]] || rm -rf -- "$old"
+  done
+}
+
 install_it() {
   [[ -f "$PIN" ]] || fail "$(_ 'no data/angel-niri.json' 'нет data/angel-niri.json')"
+  ear # first: it doesn't need niri, and angel-niri failing ends the script
   local commit dir
   commit="$(pin commit)" || fail "$(_ 'data/angel-niri.json is broken' 'data/angel-niri.json сломан')"
   dir="$LIB/${commit:0:8}"

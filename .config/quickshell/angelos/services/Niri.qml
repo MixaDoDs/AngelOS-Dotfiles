@@ -12,7 +12,7 @@ Singleton {
     readonly property string socketPath: Quickshell.env("NIRI_SOCKET")
     readonly property bool available: socketPath !== ""
 
-    property var workspaces: []       // sorted by output, idx; without the hidden ones (below)
+    property var workspaces: []       // sorted by output, idx; without the hidden ones (below) and desk 0
     // every workspace, the hidden ones too: a workspace named hiddenPrefix + output holds the
     // windows minimized on that output (services/Minimize — niri itself has no minimizing); the
     // shell's lists of desktops leave it out
@@ -58,8 +58,35 @@ Singleton {
             minimizeProbed = true;
         }, true);
     }
-    Component.onCompleted: if (available)
-        _probeMinimize()
+    // angel-niri keeps a clean desk above desk 1 (set-desk-zero; the owner, 30.10: always on, no
+    // switch): niri numbers it 0 and the desks with windows stay 1…N. It is left out of
+    // `workspaces` — every list of desks and every "desk N" stays as it was — and asked for
+    // through zeroDesk(); a window put on it makes it desk 1 (deskZeroTaken). Stock niri: none
+    property bool deskZero: false
+    function zeroDesk(output) {
+        return allWorkspaces.find(w => w.output === output && w.idx === 0) || null;
+    }
+    // desk 0 of `output` became desk 1, every desk there one number on: what the shell keeps by
+    // "output:number" (names, wallpapers) goes along with its desk
+    signal deskZeroTaken(string output)
+    function shiftDeskKeys(map, output) {
+        const out = {};
+        for (const k in map || {}) {
+            const m = k.match(/^(.*):([0-9]+)$/);
+            out[m && m[1] === output ? output + ":" + (Number(m[2]) + 1) : k] = map[k];
+        }
+        return out;
+    }
+    Component.onCompleted: if (available) {
+        _probeMinimize();
+        request({
+            "Action": {
+                "SetDeskZero": {
+                    "on": true
+                }
+            }
+        }, (ok, err) => deskZero = !err, true);
+    }
     property int focusedWindowId: -1
     // A title alone changes many times a second (a terminal's spinner, a player's track):
     // it is patched into its window in place and announced by this tick only, so the
@@ -131,7 +158,7 @@ Singleton {
         return workspaces.filter(w => w.output === output);
     }
     function activeWorkspace(output) {
-        return workspaces.find(w => w.output === output && w.is_active) || null;
+        return workspaces.find(w => w.output === output && w.is_active) || allWorkspaces.find(w => w.output === output && w.is_active && w.idx === 0) || null;
     }
     function windowsOn(wsId) {
         return windows.filter(w => w.workspace_id === wsId);
@@ -354,8 +381,11 @@ Singleton {
     }
 
     function _setWorkspaces(list) {
+        const taken = allWorkspaces.filter(w => w.idx === 0 && list.some(x => x.id === w.id && x.idx === 1 && x.output === w.output)).map(w => w.output);
         allWorkspaces = list.slice().sort((a, b) => a.output === b.output ? a.idx - b.idx : (a.output < b.output ? -1 : 1));
-        workspaces = allWorkspaces.filter(w => !isHidden(w));
+        workspaces = allWorkspaces.filter(w => !isHidden(w) && w.idx !== 0);
+        for (const output of taken)
+            deskZeroTaken(output);
     }
 
     function _handle(line) {
@@ -393,7 +423,7 @@ Singleton {
                 if (ready && switched && isHidden(target))
                     hiddenActivated(target, from);
                 else if (ready && switched)
-                    workspaceActivated(workspaces.find(w => w.id === d.id), d.focused);
+                    workspaceActivated(allWorkspaces.find(w => w.id === d.id), d.focused);
                 break;
             }
         case "WorkspaceActiveWindowChanged":

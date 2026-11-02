@@ -90,7 +90,7 @@ Singleton {
     // its live effects and its scene's text — water that suits one picture may not suit another.
     // A release's wallpapers (Pictures/AngelOS/NN-name/) share theirs, any other picture keeps its
     // own; what a wallpaper has not set is the common Config.wallpaper value
-    readonly property var ownKeys: ["liveStrength", "liveStars", "liveMeteors", "liveWater", "liveLights", "liveEvents", "sceneDepth", "sceneDepthStyle", "sceneDepthTexture", "sceneTime", "sceneSounds", "sceneSoundAir", "sceneSoundEvent", "sceneBass"]
+    readonly property var ownKeys: ["liveStrength", "liveStars", "liveMeteors", "liveWater", "liveLights", "liveEvents", "sceneDepth", "sceneDepthStyle", "sceneDepthTexture", "sceneTime", "sceneSounds", "sceneSoundAir", "sceneSoundEvent", "sceneBass", "sceneSnare", "sceneHats", "sceneEdges", "sceneBreath", "sceneMods", "sceneModsGain"]
     function wallKey(path) {
         const p = sceneOf(path) || origin(path);
         const r = p ? releases.find(r => p === r.dir || p.startsWith(r.dir + "/")) : null;
@@ -120,6 +120,20 @@ Singleton {
     }
     readonly property bool hellOn: Angel.demon
     readonly property var hellWall: Story.player.hellWall || null
+    // desk 0 became desk 1 (Niri.deskZeroTaken): a desk's own wallpaper goes along with it, as its
+    // name does (services/WorkspaceAnim)
+    Connections {
+        target: Niri
+        function onDeskZeroTaken(output) {
+            const own = map => Object.keys(map || {}).some(k => k.startsWith(output + ":"));
+            if (own(Config.wallpaper.workspaces))
+                Config.wallpaper.workspaces = Niri.shiftDeskKeys(Config.wallpaper.workspaces, output);
+            if (root.hellWall && own(root.hellWall.workspaces))
+                Story.player.hellWall = Object.assign({}, root.hellWall, {
+                    "workspaces": Niri.shiftDeskKeys(root.hellWall.workspaces, output)
+                });
+        }
+    }
     // what the screens show: hell's once it is painted (until then the last picture stays)
     readonly property var shown: hellOn && hellWall ? hellWall : Config.wallpaper
     readonly property string stateKey: JSON.stringify([shown.fallback, shown.outputs, shown.workspaces])

@@ -133,6 +133,26 @@ Singleton {
     // Plain lyrics have no timing: display a first-line preview in the bar
     // and the complete text on the Lyrics settings page.
     readonly property bool hasLyrics: (status === "ok" || status === "plain") && lines.length > 0
+    // what a player plays: "music", "video" or "" (a messenger's voice message, a call). A music app
+    // plays music; a browser or a video player a video, unless it is a song: an album (YouTube Music,
+    // Spotify's web player), YouTube's music channels ("Artist - Topic", VEVO), a track the lyric
+    // databases know, or a short "Artist - Title" upload that doesn't name itself a stream or an episode
+    readonly property var videoApps: /firefox|chrom|brave|vivaldi|helium|zen|edge|opera|librewolf|browser|yandex|mpv|vlc|celluloid|totem|haruna|smplayer|kodi|jellyfin|plex/i
+    readonly property var notSong: /#\d|\b(?:ep|part|pt)\.?\s*\d|стрим|stream|обзор|review|гайд|guide|tutorial|туториал|trailer|трейлер|подкаст|podcast|прохождение|let'?s play|выпуск|episode|серия|часть|vlog|влог|reaction|реакция|новости|news|shorts/i
+    function kindOf(p) {
+        const id = (p.identity || "") + " " + (p.desktopEntry || "");
+        if (/discord|vesktop|telegram|signal|element|slack/i.test(id))
+            return "";
+        if (!videoApps.test(id))
+            return "music";
+        if (p.trackAlbum || /\s-\sTopic$|VEVO$/i.test(p.trackArtist || ""))
+            return "music";
+        if (p === player && (status === "ok" || status === "plain" || status === "instrumental"))
+            return "music";
+        const len = p.lengthSupported ? p.length : 0;
+        return /\s[-–—]\s/.test(p.trackTitle || "") && len > 60 && len < 480 && !notSong.test(p.trackTitle) ? "music" : "video";
+    }
+    readonly property bool isSong: playing && kindOf(player) === "music"
     readonly property string current: index >= 0 && index < lines.length ? lines[index].text : ""
     readonly property string previous: index > 0 && index <= lines.length ? lines[index - 1].text : ""
     readonly property string next: index >= -1 && index + 1 < lines.length ? lines[index + 1].text : ""

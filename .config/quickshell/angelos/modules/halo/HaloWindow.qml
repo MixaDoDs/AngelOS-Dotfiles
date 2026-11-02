@@ -983,7 +983,7 @@ PanelWindow {
                 y: -m * win.u
                 width: pill.width + 2 * m * win.u
                 height: pill.height + 2 * m * win.u
-                visible: here && (level > 0 || flash > 0 || wave > 0)
+                visible: here && (level > 0 || flash > 0 || wave > 0 || wave2 > 0)
                 readonly property real dpr: Window.window && Window.window.devicePixelRatio > 0 ? Window.window.devicePixelRatio : 1
                 readonly property real artPx: Math.max(1, Math.round(win.u * dpr))
                 property size cells: Qt.size(Math.max(1, Math.round(width * dpr / artPx)), Math.max(1, Math.round(height * dpr / artPx)))
@@ -993,12 +993,14 @@ PanelWindow {
                 property real level: here ? Bass.level : 0
                 property real flash: here ? Bass.flash : 0
                 property real wave: 0
+                property real wave2: 0
                 readonly property color tint: win.accent
                 property color cBright: tint
                 property color cMid: Qt.tint(win.face, Qt.alpha(tint, 0.55))
                 property color cDim: Qt.tint(win.face, Qt.alpha(tint, 0.3))
                 fragmentShader: Qt.resolvedUrl("../../shaders/halo_bass.frag.qsb")
-                // the kick's ring, in four steps out (whole frames, not a smooth slide)
+                // the kick's ring, in four steps out (whole frames, not a smooth slide); two of them
+                // in turn, so a kick sooner than 360 ms after the last doesn't cut its ring short
                 NumberAnimation on wave {
                     id: waveRun
                     running: false
@@ -1008,11 +1010,22 @@ PanelWindow {
                     easing.type: Easing.Linear
                     onFinished: beat.wave = 0
                 }
+                NumberAnimation on wave2 {
+                    id: waveRun2
+                    running: false
+                    from: 0.01
+                    to: 1
+                    duration: Motion.ms(360)
+                    easing.type: Easing.Linear
+                    onFinished: beat.wave2 = 0
+                }
+                property bool second: false
                 Connections {
                     target: Bass
                     enabled: beat.here && win.bassHalo
                     function onKicked() {
-                        waveRun.restart();
+                        (beat.second ? waveRun2 : waveRun).restart();
+                        beat.second = !beat.second;
                     }
                 }
             }

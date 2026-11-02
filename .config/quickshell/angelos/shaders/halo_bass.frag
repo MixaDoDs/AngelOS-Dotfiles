@@ -8,7 +8,7 @@
 //                   thinning inwards. `flash` (a kick, 1 → 0) fills it solid for a moment
 //   style 1 halo    an arc over the pill, thicker with the level, a pixel higher on a kick;
 //                   `wave` (0 → 1 after a kick) sends a dotted ring out from the pill's edge,
-//                   fading in three steps
+//                   fading in three steps; `wave2` the same for every other kick, so two can ring at once
 // colours: bright (the cover's or the accent), mid and dim (mixed with the face beforehand)
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
@@ -22,6 +22,7 @@ layout(std140, binding = 0) uniform buf {
     float level;    // 0…3
     float flash;    // 0…1
     float wave;     // 0…1, 0 = none
+    float wave2;    // the other ring
     vec4 cBright;
     vec4 cMid;
     vec4 cDim;
@@ -86,13 +87,18 @@ void main() {
             else if (level >= 1.0 && p.y == y - thick && bayer(cell) < 0.5)
                 o = cDim;
         }
-        // the kick's ring: a dotted outline that walks out from the pill's edge
-        if (wave > 0.0 && !inside) {
+        // the kick's rings: a dotted outline that walks out from the pill's edge
+        if ((wave > 0.0 || wave2 > 0.0) && !inside) {
             vec2 q = abs(p + 0.5 - size * 0.5) - (size * 0.5 - n);
-            float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - n;
-            float at = 1.0 + floor(wave * (margin - 1.0));
-            if (floor(d) == at && mod(cell.x + cell.y, 2.0) < 1.0)
-                o = wave < 0.34 ? cBright : (wave < 0.67 ? cMid : cDim);
+            float d = floor(length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - n);
+            bool dot = mod(cell.x + cell.y, 2.0) < 1.0;
+            // the younger one over the older
+            float w = wave2 > 0.0 && (wave <= 0.0 || wave2 < wave) ? wave2 : wave;
+            float v = w == wave ? wave2 : wave;
+            if (v > 0.0 && d == 1.0 + floor(v * (margin - 1.0)) && dot)
+                o = v < 0.34 ? cBright : (v < 0.67 ? cMid : cDim);
+            if (d == 1.0 + floor(w * (margin - 1.0)) && dot)
+                o = w < 0.34 ? cBright : (w < 0.67 ? cMid : cDim);
         }
     }
     fragColor = o * qt_Opacity;

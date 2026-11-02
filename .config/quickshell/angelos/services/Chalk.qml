@@ -9,7 +9,9 @@ import qs.config
 // and it melts away (modules/chalk). An Overlay layer, so the stream sees it too. The key is
 // angel-niri's press/release bind (`angelos chalk on|off`): written to cfg/angelos-windows.kdl
 // through window-config.py once angel-niri answers Niri.pointer (the same build has the
-// binds), taken out again on another niri, where the config would not load with it.
+// binds), taken out again on another niri, where the config would not load with it. The held Mod+D
+// (show the desktop while held, `show-desktop --release`) goes the same way, once WindowDither is
+// supported (the same angel-niri build).
 Singleton {
     id: root
 
@@ -37,22 +39,33 @@ Singleton {
 
     // ---- the niri key (like the lens's, services/Lens) ----
     property bool niriKeys: false
+    property bool niriPeek: false
     property bool niriRead: false
     property bool probed: false
     property string log: ""
     // once per wish: a write that niri validate turned down (rolled back) isn't tried again and again
     property var tried: null
     readonly property bool wantKeys: Niri.pointerSeen
+    readonly property bool wantPeek: WindowDither.supported
+    readonly property string wish: wantKeys + "/" + wantPeek
     function sync() {
-        if (!Shell.dev && Config.ready && niriRead && probed && niriKeys !== wantKeys && tried !== wantKeys && !writer.running) {
-            tried = wantKeys;
+        if (!Shell.dev && Config.ready && niriRead && probed && WindowDither.probed && (niriKeys !== wantKeys || niriPeek !== wantPeek) && tried !== wish && !writer.running) {
+            tried = wish;
             writer.command = ["python3", Quickshell.shellDir + "/scripts/window-config.py", JSON.stringify({
-                    "chalk": wantKeys
+                    "chalk": wantKeys,
+                    "peek": wantPeek
                 })];
             writer.running = true;
         }
     }
     onWantKeysChanged: sync()
+    onWantPeekChanged: sync()
+    Connections {
+        target: WindowDither
+        function onProbedChanged() {
+            root.sync();
+        }
+    }
     Connections {
         target: Config
         function onReadyChanged() {
@@ -80,7 +93,9 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    root.niriKeys = !!JSON.parse(text).chalk;
+                    const keys = JSON.parse(text);
+                    root.niriKeys = !!keys.chalk;
+                    root.niriPeek = !!keys.peek;
                     root.niriRead = true;
                     root.sync();
                 } catch (e) {}

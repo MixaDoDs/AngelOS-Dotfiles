@@ -368,6 +368,10 @@ IpcHandler {
     function scene(line: string): string {
         return SceneEditor.command(line);
     }
+    // the wallpaper editor (services/WallStudio): `angelos studio edit [picture] | close | status`
+    function studio(line: string): string {
+        return WallStudio.command(line);
+    }
     // the corner helper: `angelos helper "tip | joke | hint | ask <text> | plea | talk | gift | stay | status"`
     // (owner: angel — the demon leaves at once; dev or owner: prank, ascend, fx,
     // hell, throw; dev only: drag)

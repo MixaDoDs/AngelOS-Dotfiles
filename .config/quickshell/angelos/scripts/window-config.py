@@ -23,6 +23,8 @@
       chalk:  true (Mod+Alt+left button held → `angelos chalk on`, let go → `off`: the chalk, services/Chalk;
               press/release binds, angel-niri only — on another niri `niri validate` fails and
               nothing is written) | false (no block)
+      peek:   true (Mod+D press/release over the keybinds one: a tap shows the desktop, held it peeks;
+              angel-niri with `show-desktop --release`, services/Chalk) | false (no block)
 
 Writers take a lock (the Alt+Tab and the lens services may write at the same time).
 
@@ -121,16 +123,26 @@ def read_chalk(text=None):
     return CH_BEGIN.split(" (")[0] in text
 
 
+PK_BEGIN = "// >>> angelOS desktop peek (держи Mod+D — стол виден, отпустил — окна вернулись; angel-niri)"
+PK_END = "// <<< angelOS desktop peek"
+
+
+def read_peek(text=None):
+    if text is None:
+        text = apps_path.read_text() if apps_path.exists() else ""
+    return PK_BEGIN in text
+
+
 def read_quit(text=None):
     if text is None:
         text = apps_path.read_text() if apps_path.exists() else ""
     return QT_BEGIN in text
 
 
-def render_keys(alttab, lens, quit=False, stream_angel=False, chalk=False):
+def render_keys(alttab, lens, quit=False, stream_angel=False, chalk=False, peek=False):
     """the Alt+Tab block (niri's switcher off), the lens, game-off and chalk markers, then one
     binds node with the keys of all (niri takes a single binds node per file)"""
-    if not alttab and not lens and not quit and not stream_angel and not chalk:
+    if not alttab and not lens and not quit and not stream_angel and not chalk and not peek:
         return ""
     out = []
     if alttab == "mac":
@@ -144,6 +156,8 @@ def render_keys(alttab, lens, quit=False, stream_angel=False, chalk=False):
         out += [QT_BEGIN, "// out of angelOS's game at once: no angel, demon, novel or hell", QT_END]
     if chalk:
         out += [CH_BEGIN, "// the chalk: its key is in the binds below", CH_END]
+    if peek:
+        out += [PK_BEGIN, "// Mod+D held: its key below overrides the one in keybinds", PK_END]
     out += ["// angelOS keys (one binds node per file)", "binds {"]
     if alttab and alttab != "mac":
         out += [f'    Alt+Tab repeat=false hotkey-overlay-title="angelOS: Alt+Tab" {{ spawn-sh "{ANGELOS}next"; }}',
@@ -156,6 +170,9 @@ def render_keys(alttab, lens, quit=False, stream_angel=False, chalk=False):
         out += [f'    Mod+Alt+A repeat=false allow-inhibiting=false hotkey-overlay-title="angelOS: ангел на стриме — спрятать/показать" {{ spawn-sh "{STREAM_VIEW}"; }}']
     if chalk:
         out += [f'    Mod+Alt+MouseLeft hotkey-overlay-title="angelOS: мелок (держать)" {{ press {{ spawn-sh "{CHALK}on"; }}; release {{ spawn-sh "{CHALK}off"; }}; }}']
+    if peek:
+        # straight to niri, so the release can't overtake the press (show-desktop --release: back if held)
+        out += ['    Mod+D repeat=false hotkey-overlay-title="Показать рабочий стол (держать — подглядеть)" { press { spawn-sh "exec niri msg action show-desktop"; }; release { spawn-sh "exec niri msg action show-desktop --release"; }; }']
     if quit:
         out += [f'    Mod+Ctrl+Shift+Escape repeat=false allow-inhibiting=false hotkey-overlay-title="angelOS: выйти из игры" {{ spawn-sh "{GAME_OFF}"; }}']
     out += ["}", "// <<< angelOS keys", ""]
@@ -288,6 +305,7 @@ def current():
         "quit": read_quit(),
         "streamAngel": read_stream_angel(),
         "chalk": read_chalk(),
+        "peek": read_peek(),
     }
 
 
@@ -319,12 +337,12 @@ def set_block(text, name, lines):
     return new
 
 
-def render_apps(rules, taskmgr=None, alttab=False, lens=False, quit=False, stream_angel=False, chalk=False):
+def render_apps(rules, taskmgr=None, alttab=False, lens=False, quit=False, stream_angel=False, chalk=False, peek=False):
     out = ["// Managed by angelOS → Настройки → Окна. Per-app default widths.", ""]
     for app, w in sorted(rules.items()):
         out += ["window-rule {", f'    match app-id=r#"^{re.escape(app)}$"#', f"    default-column-width {{ {w}; }}", "}", ""]
     return ("\n".join(out) + render_taskmgr(taskmgr) + (render_stream_angel() if stream_angel else "")
-            + render_keys(alttab, lens, quit, stream_angel, chalk))
+            + render_keys(alttab, lens, quit, stream_angel, chalk, peek))
 
 
 def atomic_write(path, content):
@@ -341,7 +359,7 @@ def atomic_write(path, content):
 
 
 def apply(changes):
-    unknown = set(changes) - {"gaps", "center", "defaultWidth", "presets", "frame", "apps", "taskmgr", "alttab", "lens", "quit", "streamAngel", "chalk"}
+    unknown = set(changes) - {"gaps", "center", "defaultWidth", "presets", "frame", "apps", "taskmgr", "alttab", "lens", "quit", "streamAngel", "chalk", "peek"}
     if unknown:
         raise ValueError("unknown keys: " + ", ".join(sorted(unknown)))
     layout = layout_path.read_text()
@@ -370,7 +388,7 @@ def apply(changes):
             new_layout = set_block(new_layout, name, lines)
 
     files = {layout_path: (layout, new_layout)} if new_layout != layout else {}
-    if any(k in changes for k in ("apps", "taskmgr", "alttab", "lens", "quit", "streamAngel", "chalk")):
+    if any(k in changes for k in ("apps", "taskmgr", "alttab", "lens", "quit", "streamAngel", "chalk", "peek")):
         rules = read_apps()
         for app, w in (changes.get("apps") or {}).items():
             if not re.match(r"^[\w.+-]{1,120}$", app):
@@ -385,8 +403,9 @@ def apply(changes):
         quit = bool(changes["quit"]) if "quit" in changes else read_quit()
         stream_angel = bool(changes["streamAngel"]) if "streamAngel" in changes else read_stream_angel()
         chalk = bool(changes["chalk"]) if "chalk" in changes else read_chalk()
+        peek = bool(changes["peek"]) if "peek" in changes else read_peek()
         old_apps = apps_path.read_text() if apps_path.exists() else None
-        files[apps_path] = (old_apps, render_apps(rules, taskmgr, alttab, lens, quit, stream_angel, chalk))
+        files[apps_path] = (old_apps, render_apps(rules, taskmgr, alttab, lens, quit, stream_angel, chalk, peek))
         cfg = config_path.read_text()
         if 'include "./cfg/angelos-windows.kdl"' not in cfg:
             anchor = 'include "./cfg/rules.kdl"'

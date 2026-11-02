@@ -148,8 +148,13 @@ JsonAdapter {
         property int sceneSoundAir: 40
         property int sceneSoundEvent: 50
         property bool sceneBass: true       // the scene flinches on the music's kicks (services/Bass)
-        property int sceneDuckDesk: 65
-        property int sceneDuckWindow: 25
+        property bool sceneSnare: true      // the CRT's screen loses its signal on the snares (services/Bass)
+        property bool sceneHats: true       // a scanline lights on the CRT's screen on the hi-hats (services/Bass)
+        property bool sceneEdges: true      // red and blue part at the screen's edges on the snares (services/Bass)
+        property bool sceneBreath: true     // a lens at the screen's edges follows the bass (services/Bass)
+        property bool sceneMods: true       // the wallpaper editor's modifiers play with the music
+        property int sceneModsGain: 100     // and how strongly, %
+        property int sceneDuck: 45
         // a wallpaper's own picks (services/Wallpapers: own): a release's folder (its wallpapers share them)
         // or a picture -> {liveStrength, liveStars, …, sceneDepth, …}; what is not there is the value above
         property var perWall: ({})
@@ -194,6 +199,8 @@ JsonAdapter {
         property bool clipboardKeep: true   // angel-niri: the clipboard outlives the program it was copied from (services/WindowConfig)
         property bool keepOnCopy: true      // angel-niri: a program doesn't minimize itself right after it copies (services/WindowConfig)
         property bool deskThrow: true       // angel-niri: entering Desktop the windows of other desks fly in, the far ones break the screen (a broken LCD); leaving, they fly off (services/WindowConfig)
+        property bool kickPulse: false      // angel-niri: the windows spring a pixel or two on the music's kicks (services/WindowPulse)
+        property bool ditherWheel: false    // angel-niri: Alt+wheel over a window makes it see-through in dots (services/WindowDither)
         property string deskThrowFeel: "normal" // how hard: calm (they knock, nothing breaks) | normal | wild (further apart, trails, a bigger, longer break)
         property string buttonLook: "glyphs" // the pixel skins' window buttons, niri's and GTK's: glyphs (× _ □) | keys (square keys); Golden Gate keeps its lights
         // angel-niri: a floating window let go mid-drag flies on, bounces off the edges, squashes
@@ -468,6 +475,7 @@ JsonAdapter {
     }
 
     property JsonObject system: JsonObject {
+        property bool angelEar: true        // services/Bass hears through angel-ear; without the program, cava (Debug → Wallpaper sounds)
         property string terminal: "kitty"
         property bool convertRing: true     // Shift + right click on files in Strata: the conversion ring (services/Convert)
         property string fileManager: ""     // the Start menu's «Files»; "" = the default one (xdg-open: Strata)

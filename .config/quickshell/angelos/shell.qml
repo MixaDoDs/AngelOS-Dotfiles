@@ -177,6 +177,8 @@ ShellRoot {
         InputConfig.numlock; // NumLock on login: checked once per login (scripts/numlock.py)
         FastfetchLogo.signature; // fastfetch draws the chosen emblem (Settings → Bar → Logo)
         CursorShake.status; // shake the mouse to find the pointer (Settings → Cursor)
+        WindowPulse.on; // the windows spring on the music's kicks (angel-niri, Settings → Windows)
+        WindowDither.on; // Alt+wheel: a window see-through in dots (angel-niri, Settings → Windows)
         Novel.loaded; // the novel (~/AngelOs-Nov): chapters, the notes, her questions
         KeyProfile.want; // every theme its own niri keys, switched with the theme
         CommunityPlugins.entries; // the plugin catalog: a daily update check, the old store retired

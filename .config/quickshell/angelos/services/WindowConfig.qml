@@ -149,8 +149,9 @@ Singleton {
     }
     onPixelCornersChanged: applyCorners()
     // angel-niri: window shadows as dithered 2 px dots, the focused one in the accent (its glow);
-    // colours and softness are templates/niri.kdl's `shadow` (no `on` there: stock niri draws none)
-    readonly property bool pixelShadow: Niri.nativeMinimize && Config.windows.pixelShadow && !GoldenGate.on
+    // colours and softness are templates/niri.kdl's `shadow` (no `on` there: stock niri draws none).
+    // None in Desktop (Golden Gate included): the owner wants its windows flat
+    readonly property bool pixelShadow: Niri.nativeMinimize && Config.windows.pixelShadow && !floatAll
     function applyShadow() {
         if (Niri.nativeMinimize)
             Niri.action("SetPixelShadow", {
@@ -170,8 +171,9 @@ Singleton {
             });
     }
     onPixelOverviewChanged: applyOverview()
-    // angel-niri: a sparse grid of dark dots over every window but the focused one
-    readonly property bool inactiveDim: Niri.nativeMinimize && Config.windows.inactiveDim && !GoldenGate.on
+    // angel-niri: a sparse grid of dark dots over every window but the focused one;
+    // none in Desktop (Golden Gate included), like the shadows: its windows stay flat
+    readonly property bool inactiveDim: Niri.nativeMinimize && Config.windows.inactiveDim && !floatAll
     function applyDim() {
         if (Niri.nativeMinimize)
             Niri.action("SetInactiveDim", {

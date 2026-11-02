@@ -348,6 +348,20 @@ CatPage {
             checked: Config.windows.deskThrow
             onToggled: c => Config.windows.deskThrow = c
         }
+        CatToggle {
+            present: WindowPulse.supported && !GoldenGate.on
+            label: I18n.t("Окна вздрагивают под бочку", "Windows spring on the kick")
+            hint: I18n.t("Пока играет песня, на каждый удар бочки окна на миг становятся на пиксель-два больше. Окна во весь экран (игры, видео) не трогаются. Видно и на стриме.", "While a song plays, each kick makes the windows a pixel or two bigger for a moment. Fullscreen windows (games, videos) stay put. Shows on the stream too.")
+            checked: Config.windows.kickPulse === true
+            onToggled: c => Config.windows.kickPulse = c
+        }
+        CatToggle {
+            present: WindowDither.supported
+            label: I18n.t("Прозрачность окна колесом", "Window see-through with the wheel")
+            hint: I18n.t("Alt+колесо над окном: вниз — окно тает точками и сквозь него видно, что за ним, вверх — обратно. Без размытия, по пикселям. Окна во весь экран не трогаются. Пока включено, программы не получают Alt+колесо. Забывается при перезаходе.", "Alt+wheel over a window: down, it melts into dots and you see what's behind; up, back. No blur, pixel by pixel. Fullscreen windows stay whole. While on, apps don't get Alt+wheel. Forgotten at the next login.")
+            checked: Config.windows.ditherWheel === true
+            onToggled: c => Config.windows.ditherWheel = c
+        }
         CatChoice {
             present: Niri.nativeMinimize && !GoldenGate.on && Config.windows.deskThrow
             label: I18n.t("Сила броска", "How hard they're thrown")
@@ -475,7 +489,7 @@ CatPage {
         CatToggle {
             present: Niri.nativeMinimize && !GoldenGate.on
             label: I18n.t("Пиксельные тени", "Pixel shadows")
-            hint: I18n.t("тень под окнами из точек, редеющих к краю; у активного окна — свечение цветом акцента", "Shadows of dots thinning out at the edge; the focused window glows in the accent")
+            hint: I18n.t("тень под окнами из точек, редеющих к краю; у активного окна — свечение цветом акцента. Только в Ленте: в Desktop окна без теней", "Shadows of dots thinning out at the edge; the focused window glows in the accent. Strip only: Desktop windows have none")
             checked: Config.windows.pixelShadow
             onToggled: c => Config.windows.pixelShadow = c
         }
@@ -489,7 +503,7 @@ CatPage {
         CatToggle {
             present: Niri.nativeMinimize && !GoldenGate.on
             label: I18n.t("Тусклые неактивные окна", "Dim inactive windows")
-            hint: I18n.t("поверх окон, в которых ты сейчас не работаешь, — редкая сетка тёмных точек", "A sparse grid of dark dots over the windows you aren't working in")
+            hint: I18n.t("поверх окон, в которых ты сейчас не работаешь, — редкая сетка тёмных точек. Только в Ленте: в Desktop окна без точек", "A sparse grid of dark dots over the windows you aren't working in. Strip only: Desktop windows have none")
             checked: Config.windows.inactiveDim
             onToggled: c => Config.windows.inactiveDim = c
         }

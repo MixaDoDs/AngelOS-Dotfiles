@@ -18,6 +18,8 @@ PanelWindow {
     readonly property string label: {
         if (!ws)
             return "";
+        if (ws.idx === 0)
+            return I18n.t("чистый стол", "clean desk");
         const names = Config.workspaces.names || {};
         return names[ws.output + ":" + ws.idx] || ws.name || ("workspace " + ws.idx);
     }

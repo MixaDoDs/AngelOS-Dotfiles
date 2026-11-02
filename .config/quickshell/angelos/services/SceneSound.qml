@@ -11,12 +11,12 @@ import qs.config
 // impact a few seconds after the flash, the fire, sirens far off, the CRT's static). All through
 // sfx-player's one stream (Sounds.channel / playFile): a new stream per sound crashes Discord.
 //
-// The air gives way (Settings → Wallpaper → Sounds; the owner's table, 28.10):
-//                 desktop seen   a window over it
-//   silence         100 %          100 %
-//   music            duckDesk       duckWindow       (65 % / 25 %: Spotify and other players)
-//   a video          0              0                (a browser or a video player playing)
-//   a game, fullscreen, locked, the idle screen: 0
+// The air gives way (Settings → Wallpaper → Sounds; the owner, 01.11: what counts is what sounds,
+// not which windows are open):
+//   silence                     100 %
+//   any program sounding        sceneDuck (45 %: music, a call, a browser, on any screen or none)
+//   a video (a browser or a video player playing)   0
+//   a game, fullscreen, locked, the idle screen, a video/sound editor open: 0
 // The event plays over all of that at its own level; only screens gone dark stop it.
 Singleton {
     id: root
@@ -52,29 +52,35 @@ Singleton {
     // every screen showing it: someone may look at one of them
     readonly property var screens: shown ? Shell.screens.map(s => sceneOn(s.name)).filter(x => x && x.dir === dir) : []
     readonly property bool seen: screens.some(x => !Shell.gaming && !Shell.hiddenScreen(x.screen))
-    readonly property bool desktop: Niri.overviewOpen || screens.some(x => x.ws && Niri.windowsOn(x.ws.id).length === 0)
-
-    // what plays (MPRIS): a browser or a video player is a video, a messenger is nothing, the rest
-    // is music. A browser playing a song is music: an album (YouTube Music, Spotify's web player)
-    // or YouTube's own music channels ("Artist - Topic") — the owner listens there
-    function kindOf(p) {
-        const id = (p.identity || "") + " " + (p.desktopEntry || "");
-        if (/discord|vesktop|telegram|signal|element|slack/i.test(id))
-            return "";
-        if (!/firefox|chrom|brave|vivaldi|helium|zen|edge|opera|librewolf|browser|yandex|mpv|vlc|celluloid|totem|haruna|smplayer|kodi|jellyfin|plex/i.test(id))
-            return "music";
-        return p.trackAlbum || / - Topic$/.test(p.trackArtist || "") ? "music" : "video";
-    }
-    readonly property var playing: (Lyrics.players || []).filter(p => p.isPlaying).map(p => kindOf(p))
+    // what plays (MPRIS): music or a video, told apart in Lyrics.kindOf (the wallpaper's bass wave too)
+    readonly property var playing: (Lyrics.players || []).filter(p => p.isPlaying).map(p => Lyrics.kindOf(p))
     readonly property bool video: playing.includes("video")
     readonly property bool music: playing.includes("music")
+    // a video or sound editor on any screen: it plays through ALSA/JACK, not MPRIS, and the leaves
+    // must not get into the edit (the owner, 30.10)
+    readonly property bool editing: Shell.screens.some(s => {
+        const ws = Niri.activeWorkspace(s.name);
+        return ws && Niri.windowsOn(ws.id).some(w => !w.is_minimized && /resolve|kdenlive|audacity|reaper|ardour|bitwig/i.test(w.app_id || ""));
+    })
     // the air's share now (0..1) and why, for the debug page
-    readonly property real airDuck: !seen || video ? 0 : music ? (desktop ? Config.wallpaper.sceneDuckDesk : Config.wallpaper.sceneDuckWindow) / 100 : 1
-    readonly property string why: !shown ? "no scene" : !seen ? "not seen" : video ? "video" : music ? (desktop ? "music, desktop" : "music, window") : desktop ? "desktop" : "window"
+    readonly property real airDuck: !seen || video || editing ? 0 : music || sounding ? Config.wallpaper.sceneDuck / 100 : 1
+    readonly property string why: !shown ? "no scene" : !seen ? "not seen" : editing ? "editor" : video ? "video" : music ? "music" : sounding ? "a program sounds" : "silence"
 
     readonly property bool on: !!shown && Config.y2k.sounds && Wallpapers.own(shown.path, "sceneSounds") !== false
     readonly property real airVol: on ? Wallpapers.own(shown.path, "sceneSoundAir") / 100 : 0
     readonly property real eventVol: on && !Power.screensOff ? Wallpapers.own(shown.path, "sceneSoundEvent") / 100 : 0
+
+    // any program really sounding (scripts/sound-watch.py): games, calls, what has no MPRIS
+    property bool sounding: false
+    Process {
+        running: root.on && root.airVol > 0 && root.seen
+        command: ["python3", Quickshell.shellDir + "/scripts/sound-watch.py"]
+        stdout: SplitParser {
+            onRead: line => root.sounding = line === "1"
+        }
+        onRunningChanged: if (!running)
+            root.sounding = false
+    }
 
     // the scene's list
     property var sounds: null

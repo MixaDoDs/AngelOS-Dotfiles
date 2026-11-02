@@ -228,6 +228,12 @@ Scope {
         active: SceneEditor.shown
     }
 
+    // the wallpaper editor (modules/wallstudio, services/WallStudio)
+    LazyLoader {
+        source: WallStudio.windowUrl
+        active: WallStudio.open
+    }
+
     // the Angel's diary (services/Diary): its closing swing plays inside the window
     Linger {
         id: diaryKeep

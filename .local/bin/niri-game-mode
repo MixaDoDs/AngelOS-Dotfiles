@@ -16,7 +16,7 @@ animates on the other screens. A game counts while it covers its output or has t
 game leaves or this exits. Such a 4:3 window is stretched over the screen too (STRETCH_GAMES).
 
 angelOS's "esports" power profile ($XDG_RUNTIME_DIR/angelos/esports) counts as a game all the
-time. While boosted, Discord, Helium and Spotify step below the game (Chromium raises its own
+time. While boosted, Discord and Helium step below the game (Chromium raises its own
 threads to nice -8 when the limit allows it), back to what they were after. A run without
 --watch (angelOS makes one when the eco or esports flag changes) wakes the watching one.
 
@@ -43,8 +43,9 @@ BOOST_SAVED = RUN_DIR / "boost.json"
 STATE_FILE = RUN_DIR / "state"
 WATCH_PID = RUN_DIR / "watch.pid"
 NIRI_NICE = -11
-# below the game's 0, not so low that a voice call stutters
-BACKGROUND = ("Discord", "helium", "spotify")
+# below the game's 0, not so low that a voice call stutters; not the music player: at nice 5
+# under a game Spotify's stream runs dry and crackles (Minecraft, 29.10)
+BACKGROUND = ("Discord", "helium")
 BACKGROUND_NICE = 5
 # the focused window's processes, this many nice steps up (not past the user's limit)
 FOCUS_BOOST = 3
@@ -288,9 +289,27 @@ def steam_game_running() -> bool:
     return False
 
 
+def _minecraft(pid: int) -> bool:
+    """Minecraft's java: Prism/MultiMC put INST_MC_DIR in its environment, other launchers
+    have net.minecraft on its line."""
+    if not _comm(pid).startswith("java"):
+        return False
+    if b"INST_MC_DIR=" in _environ(pid):
+        return True
+    try:
+        return b"minecraft" in Path(f"/proc/{pid}/cmdline").read_bytes().lower()
+    except OSError:
+        return False
+
+
+def minecraft_running() -> bool:
+    return any(_minecraft(int(d.name)) for d in Path("/proc").iterdir() if d.name.isdigit())
+
+
 def is_game(win: dict) -> bool:
     """Proton games show up as steam_app_<id>; native ones carry Steam's SteamGameId; X11 ones
-    reach niri through xwayland-satellite, so for those a running Steam game has to do."""
+    reach niri through xwayland-satellite, so for those a running Steam game has to do, or a
+    "Minecraft…" window while Minecraft's java runs (no Steam: Prism and the like)."""
     app_id = win.get("app_id") or ""
     if app_id.startswith("steam_app_") or app_id == "gamescope":
         return True
@@ -300,7 +319,11 @@ def is_game(win: dict) -> bool:
     env = _environ(pid)
     if re.search(rb"(?:^|\0)Steam(?:Game|App)Id=[1-9]", env):
         return True
-    return _comm(pid).lower().startswith(("xwayland", "xwayland-satellite")) and steam_game_running()
+    if _minecraft(pid):
+        return True
+    if not _comm(pid).lower().startswith(("xwayland", "xwayland-satellite")):
+        return False
+    return steam_game_running() or (win.get("title") or "").lower().startswith("minecraft") and minecraft_running()
 
 
 def _run(*cmd: str) -> str | None:
@@ -340,7 +363,7 @@ def renice_niri(nice: int) -> int | None:
 
 
 def background_threads() -> list[int]:
-    """the threads of this user's Discord, Helium and Spotify"""
+    """the threads of this user's Discord and Helium"""
     tids = []
     for d in Path("/proc").iterdir():
         if d.name.isdigit() and _comm(int(d.name)) in BACKGROUND:

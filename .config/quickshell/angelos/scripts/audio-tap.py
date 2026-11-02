@@ -4,9 +4,10 @@
   audio-tap.py list
       JSON with every output (sink monitor) and input, their channels and
       labelled channel pairs (multichannel interfaces such as the RØDECaster).
-  audio-tap.py run --conf CONF --fifo FIFO [SPEC]
+  audio-tap.py run --conf CONF --fifo FIFO [--rate HZ] [SPEC]
       Keeps `pw-record → (channel mix) → FIFO → cava -p CONF` running; cava's
-      output goes to our stdout. CONF must use `method = fifo`, `source = FIFO`.
+      output goes to our stdout. CONF must use `method = fifo`, `source = FIFO`
+      and `sample_rate` = HZ (22050 by default; 44100 to hear above 11 kHz).
 
 SPEC
   "" | auto                 everything the computer plays: the default output; when
@@ -398,6 +399,7 @@ def run(conf, fifo, spec):
 
 
 def main():
+    global RATE
     args = sys.argv[1:]
     if not args or args[0] == "list":
         print(json.dumps(listing(), ensure_ascii=False))
@@ -414,10 +416,12 @@ def main():
                 conf, i = args[i + 1], i + 2
             elif args[i] == "--fifo":
                 fifo, i = args[i + 1], i + 2
+            elif args[i] == "--rate":
+                RATE, i = int(args[i + 1]), i + 2
             else:
                 spec, i = args[i], i + 1
         if not conf or not fifo:
-            sys.exit("usage: audio-tap.py run --conf CONF --fifo FIFO [SPEC]")
+            sys.exit("usage: audio-tap.py run --conf CONF --fifo FIFO [--rate HZ] [SPEC]")
         run(conf, fifo, spec)
         return
     sys.exit(__doc__)

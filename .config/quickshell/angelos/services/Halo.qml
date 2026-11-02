@@ -241,6 +241,12 @@ Singleton {
     // its card is open: it stays
     property bool flashHeld: false
     property var flashNote: null
+    // the reply field goes with its card: left open it kept the Halo's exclusive keyboard grab
+    // with nothing on screen, and no window could take focus (Telegram unreachable, 29.10)
+    onFlashChanged: {
+        if (!(flash && flash.kind === "notif") && Notifs.same(Notifs.replyTo, flashNote))
+            Notifs.replyTo = null;
+    }
     function flashOf(kind, data, ms) {
         flash = Object.assign({
             "key": "f" + kind,
