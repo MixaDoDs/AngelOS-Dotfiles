@@ -322,6 +322,22 @@ Singleton {
         return s.length > 48 ? s.slice(0, 46) + "…" : s;
     }
     // the Dock menu of an app (right click): its windows, New Window, Keep in Dock, Quit
+    // an app's menu items the Dock's menu and Spotlight's share: its .desktop actions (`before`
+    // runs first: Spotlight closes) and «Keep in Dock»; `prefix` keeps the menus' keys apart
+    function actionItems(entry, appId, prefix, before) {
+        const acts = entry && entry.actions ? entry.actions : [];
+        return acts.map((a, i) => MacMenus.fn(prefix + ":a" + i, a.name, () => {
+                if (before)
+                    before();
+                Shell.launchAction(a, appId);
+            }));
+    }
+    function keepItem(id, prefix) {
+        return MacMenus.fn(prefix + ":keep", I18n.t("Оставить в Dock", "Keep in Dock"), () => root.setKept(id, !root.isKept(id)), {
+            "toggle": "check",
+            "checked": root.isKept(id)
+        });
+    }
     function menuFor(it) {
         if (it.kind === "window")
             return AppMenu.tidy([MacMenus.fn("d:open", I18n.t("Открыть", "Open"), () => Minimize.restore(it.wid)), AppMenu.sep("d1"), MacMenus.fn("d:close", I18n.t("Закрыть", "Close"), () => Niri.closeWindow(it.wid))]);
@@ -334,16 +350,11 @@ Singleton {
             }));
         if (it.windows.length)
             out.push(AppMenu.sep("d1"));
-        const acts = it.entry && it.entry.actions ? it.entry.actions : [];
-        for (let i = 0; i < acts.length; i++)
-            out.push(MacMenus.fn("d:a" + i, acts[i].name, () => Shell.launchAction(acts[i], it.entry ? it.entry.id : it.id)));
+        const acts = actionItems(it.entry, it.entry ? it.entry.id : it.id, "d");
         if (acts.length)
-            out.push(AppMenu.sep("d2"));
+            out.push(...acts, AppMenu.sep("d2"));
         if (it.kind === "app") {
-            out.push(MacMenus.fn("d:keep", I18n.t("Оставить в Dock", "Keep in Dock"), () => root.setKept(it.id, !root.isKept(it.id)), {
-                "toggle": "check",
-                "checked": root.isKept(it.id)
-            }));
+            out.push(keepItem(it.id, "d"));
             if (!it.windows.length)
                 out.push(MacMenus.fn("d:open", I18n.t("Открыть", "Open"), () => root.open(it)));
         }

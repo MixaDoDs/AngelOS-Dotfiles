@@ -77,23 +77,22 @@ Item {
         ctxY = p.y;
         ctxRow = r;
     }
+    // a click on a result: the right button opens an app's menu, the left one runs it
+    function clickRow(r, item, m) {
+        if (m.button !== Qt.RightButton)
+            runRow(r);
+        else if (r.app)
+            openCtx(r, item, m);
+    }
     function ctxItems(r) {
         if (!r || !r.app)
             return [];
         const a = r.app;
         const out = [MacMenus.fn("s:open", I18n.t("Открыть", "Open"), () => root.runRow(r))];
-        const acts = a.actions || [];
+        const acts = MacDockModel.actionItems(a, a.id, "s", () => root.closeRequested());
         if (acts.length)
-            out.push(AppMenu.sep("s1"));
-        for (let i = 0; i < acts.length; i++)
-            out.push(MacMenus.fn("s:a" + i, acts[i].name, () => {
-                root.closeRequested();
-                Shell.launchAction(acts[i], a.id);
-            }));
-        out.push(AppMenu.sep("s2"), MacMenus.fn("s:keep", I18n.t("Оставить в Dock", "Keep in Dock"), () => MacDockModel.setKept(a.id, !MacDockModel.isKept(a.id)), {
-            "toggle": "check",
-            "checked": MacDockModel.isKept(a.id)
-        }));
+            out.push(AppMenu.sep("s1"), ...acts);
+        out.push(AppMenu.sep("s2"), MacDockModel.keepItem(a.id, "s"));
         return AppMenu.tidy(out);
     }
     function appRow(a, section) {
@@ -547,7 +546,7 @@ Item {
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onPositionChanged: m => root.pointed(this, m, row.index)
-                    onClicked: m => m.button === Qt.RightButton ? (row.modelData.app ? root.openCtx(row.modelData, this, m) : null) : root.runRow(row.modelData)
+                    onClicked: m => root.clickRow(row.modelData, this, m)
                 }
             }
         }
@@ -666,7 +665,7 @@ Item {
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onPositionChanged: m => root.pointed(this, m, cell.index)
-                    onClicked: m => m.button === Qt.RightButton ? (cell.modelData.app ? root.openCtx(cell.modelData, this, m) : null) : root.runRow(cell.modelData)
+                    onClicked: m => root.clickRow(cell.modelData, this, m)
                 }
             }
         }
