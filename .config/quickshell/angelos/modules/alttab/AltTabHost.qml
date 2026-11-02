@@ -12,7 +12,8 @@ import qs.widgets
 // keyboard from the app. Keys: Tab / arrows move, Enter or letting Alt go
 // picks, Esc cancels, Delete closes the highlighted window; the mouse picks too, and a
 // click beside the switcher (on any screen) cancels it.
-// ⌘Tab (AltTab.mode "apps") shows the apps the Mac way (AltTabMac); letting ⌘ go picks.
+// ⌘Tab (AltTab.mode "apps"), and Alt+Tab in Golden Gate, show the apps the Mac way (AltTabMac);
+// letting the key go picks.
 Scope {
     LazyLoader {
         active: AltTab.shown

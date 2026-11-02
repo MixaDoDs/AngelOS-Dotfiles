@@ -95,6 +95,11 @@ CatPage {
         advanced: true
         icon: "layers"
         CatNote {
+            present: GoldenGate.on
+            dim: true
+            text: I18n.t("В Golden Gate Alt+Tab – маковский переключатель программ, стили ниже вернутся с другим скином.", "In Golden Gate Alt+Tab is the Mac app switcher; the styles below come back with another skin.")
+        }
+        CatNote {
             dim: true
             text: I18n.t("Держи Alt и жми Tab, отпусти — переключится. Shift+Tab — назад, Esc — отмена, Delete — закрыть окно.", "Hold Alt and press Tab, let go to switch. Shift+Tab: back, Esc: cancel, Delete: close the window.")
         }

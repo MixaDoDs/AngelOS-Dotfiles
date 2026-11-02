@@ -22,7 +22,8 @@ import qs.config
 // ⌘Tab of the Golden Gate skin's Mac keys (`angelos alttab apps|appsback`) is the same switcher
 // in `mode` "apps": one item per app, every desktop, held by ⌘ (the Windows key) instead of Alt;
 // ⌘` (`angelos alttab appwin|appwinback`) steps through the front app's windows at once.
-// With the Mac keys in front (KeyProfile "macos") Alt+Tab is not bound at all — the block keeps
+// In Golden Gate without the Mac keys Alt+Tab is that apps switcher too (step(): the styles above
+// don't apply there). With the Mac keys in front (KeyProfile "macos") Alt+Tab is not bound at all — the block keeps
 // niri's own switcher off but leaves Alt(Option)+Tab to the apps, as on a Mac.
 Singleton {
     id: root

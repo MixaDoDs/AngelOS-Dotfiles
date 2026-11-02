@@ -282,7 +282,7 @@ if you don't touch a window for a long time, a cobweb grows on it. i've got one 
   layout by dragging.
 - **Settings itself:** four faces (Windows 11, a macOS sidebar, a Win98 Control Panel, Properties tabs;
   `angelos settingsView …`), search with synonyms and history.
-- **Alt+Tab:** three styles (angelOS, NGO, Y2K) or niri's own with live previews.
+- **Alt+Tab:** three styles (angelOS, NGO, Y2K) or niri's own with live previews; in Golden Gate the Mac app switcher.
 - **Switching workspaces:** thirteen animations — soft, dash, spring, snap, zoom, card, wipe, fade, dissolve, glitch,
   CRT, realm, instant; a `workspace_N.exe` popup and a row of hearts.
 - **The login screen** (SDDM): five looks, a live preview, the same wallpaper as the desktop. **The lock screen:** two —
