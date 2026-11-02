@@ -28,6 +28,8 @@ Singleton {
         return Math.round(v * s);
     }
     readonly property int barHeight: px(24)
+    // niri's overview zoom, set in templates/niri-mac.kdl (MacOverviewCard's edge and corners)
+    readonly property real overviewZoom: 0.5
     readonly property int textSize: px(13)
     readonly property int smallSize: px(11)
     readonly property int menuRow: px(22)
