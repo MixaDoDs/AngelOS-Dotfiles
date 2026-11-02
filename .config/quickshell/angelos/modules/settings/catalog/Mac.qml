@@ -132,7 +132,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Значки перетаскиваются в Dock; вытащи вверх — уберётся. Запущенную оставит её меню: «Оставить в Dock».", "Drag icons into the Dock; drag one up to remove it. Keep a running app: its menu → «Keep in Dock».")
+            text: I18n.t("Значки перетаскиваются в Dock; вытащи вверх — уберётся. Запущенную оставит её меню: «Оставить в Dock», любую – её меню в Spotlight.", "Drag icons into the Dock; drag one up to remove it. Keep a running app: its menu → «Keep in Dock»; any app: its menu in Spotlight.")
         }
         CatRepeat {
             model: keptGroup.kept

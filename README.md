@@ -392,7 +392,7 @@ single file of Apple's. Pick it in the installer, in the wizard (*"Coming from a
 - **Minimize.** niri can't minimize; angelOS can: the window goes to a hidden workspace and **its snapshot lands on the
   right of the Dock**. The yellow light, *Window → Minimize*, `⌘M`, or `angelos macMinimize`; back with a click on the
   snapshot, the icon, Alt+Tab or the overview.
-- **Spotlight** (`⌘Space`): apps, files, actions, the clipboard. **Control Center** in the macOS layout. The date
+- **Spotlight** (`⌘Space`): apps, files, actions, the clipboard; a right click on an app: Open, its actions, Keep in Dock. **Control Center** in the macOS layout. The date
   opens the **Notification Center**.
 - **Liquid Glass**: niri 26.04's blur and saturation under the glass, a tint from clear to tinted, and a lens edge
   drawn by [`shaders/liquid_glass.frag`](.config/quickshell/angelos/shaders/liquid_glass.frag). *Reduce
