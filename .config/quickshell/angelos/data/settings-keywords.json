@@ -830,5 +830,17 @@
     "стекло",
     "blur",
     "glass"
+  ],
+  "mac/windows/Рабочие столы в обзоре": [
+    "обзор",
+    "обзор niri",
+    "overview",
+    "рабочие столы",
+    "столы",
+    "прозрачные столы",
+    "mission control",
+    "workspaces",
+    "desks",
+    "spaces"
   ]
 }

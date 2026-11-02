@@ -156,6 +156,37 @@ Variants {
 
             // (not in Golden Gate: no glitter behind a Mac's pointer)
             readonly property bool sparkles: !GoldenGate.on && Config.y2k.sparkles && Heaven.has("fx.sparkles") && (!(Config.y2k.sparkleScreens || []).length || Config.y2k.sparkleScreens.includes(modelData.name)) && StreamMode.effectsOn(modelData.name)
+
+            // Golden Gate: in niri's overview every desk a card of the skin's glass (Settings →
+            // Golden Gate → Windows). The workspaces are clear (the wallpaper is in the backdrop),
+            // and this layer is the one niri draws inside each of them, zoomed out with it: one card
+            // under every desk, the wallpaper behind blurred by niri. Gone before the desk is back
+            // at full size
+            readonly property bool deskCards: GoldenGate.on && Config.mac.overviewDesks === "glass" && Niri.overviewOpen
+            // niri's overview zoom (its default: angelOS sets none), so the edge and the corners
+            // come out as on the other glass
+            readonly property real overviewZoom: 0.5
+            BackgroundEffect.blurRegion: GoldenGate.blurOn && deskCard.visible ? deskBlur : null
+            Region {
+                id: deskBlur
+                item: deskCard
+                radius: deskCard.radius
+            }
+            MacGlass {
+                id: deskCard
+                anchors.fill: parent
+                radius: GoldenGate.px(12) / win.overviewZoom
+                bevel: GoldenGate.px(14) / win.overviewZoom
+                shadow: false
+                visible: opacity > 0
+                opacity: win.deskCards ? 1 : 0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Motion.ms(win.deskCards ? 200 : 120)
+                        easing.type: Easing.OutCubic
+                    }
+                }
+            }
             // where the pointer is, over the widgets too (Pointer: the demon's glass
             // clears up as it comes near)
             HoverHandler {

@@ -904,6 +904,10 @@ JsonAdapter {
         property bool volumeSound: true     // the "pop" when the volume changes
         property string accent: "blue"      // blue | purple | pink | red | orange | yellow | green | graphite
         property bool barBackground: false  // the menu bar on a band of its own ("Show menu bar background")
+        // the desks in niri's overview (modules/background/Background): glass = each a card of the skin's
+        // glass, its edge lit (the workspaces themselves are clear: the wallpaper is in the backdrop);
+        // clear = only their windows over the wallpaper, as niri draws them
+        property string overviewDesks: "glass"
         property bool appMenus: true        // the focused app's own menus in the menu bar (scripts/appmenu.py)
         // Qt apps' menus in the menu bar too: the AppMenu registrar on the bus, so Qt apps started
         // while it is there export their menu bar and hide their own. Off: Qt apps keep their own menus

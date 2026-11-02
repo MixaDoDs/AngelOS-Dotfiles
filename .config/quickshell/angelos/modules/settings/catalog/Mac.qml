@@ -488,6 +488,22 @@ CatPage {
                 }
             }
         }
+        CatChoice {
+            label: I18n.t("Рабочие столы в обзоре", "Desktops in the overview")
+            hint: Config.mac.overviewDesks === "clear" ? I18n.t("как рисует niri: на обоях видно только окна столов, самих столов не видно", "as niri draws them: only the desktops' windows over the wallpaper, the desktops themselves unseen") : I18n.t("в обзоре niri (жест на тачпаде, обзор с клавиш) каждый стол лежит на стеклянной карточке, обои под ней размыты", "in niri's overview (the touchpad gesture, the overview key) every desktop lies on a glass card, the wallpaper under it blurred")
+            model: [
+                {
+                    "label": I18n.t("Стекло", "Glass"),
+                    "value": "glass"
+                },
+                {
+                    "label": I18n.t("Прозрачные", "Clear"),
+                    "value": "clear"
+                }
+            ]
+            currentValue: Config.mac.overviewDesks
+            onActivated: v => Config.mac.overviewDesks = v
+        }
     }
     // ---- the Mac keys ----
     CatGroup {
