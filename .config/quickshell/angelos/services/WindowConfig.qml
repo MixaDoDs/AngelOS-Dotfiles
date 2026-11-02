@@ -91,6 +91,14 @@ Singleton {
     // Mod+Ctrl+Shift+M and the bar's mode button flip it too. Golden Gate is always Desktop and
     // leaves the switch alone, so the pixel skins get back what they had.
     readonly property bool floatAll: GoldenGate.on || Config.windows.floatAll
+    // angel-niri's Desktop: it keeps the empty desk at the end out of sight, a "+" opens it
+    // (Niri.openSpareDesk): Mission Control's, the Golden Gate menu bar's (MacDesks). Shown while
+    // the last desk has windows (niri's own test: an empty last desk in front is the new one)
+    readonly property bool desktopMode: Niri.nativeMinimize && floatAll
+    function newDeskShown(output) {
+        const l = Niri.workspacesOn(output);
+        return desktopMode && l.length > 0 && Niri.windowsOn(l[l.length - 1].id).length > 0;
+    }
     // the OSD and the first-time hint (modules/osd/Osd.qml): a flip by hand, not a skin change
     signal modeFlipped(bool desktop, bool locked)
     property var _floatedByUs: []

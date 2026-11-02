@@ -187,6 +187,16 @@ Singleton {
             "Action": body
         });
     }
+    // angel-niri's Desktop: the empty desk it keeps at the end, in front (with the window if one
+    // is given); left empty, it is hidden again (WindowConfig.newDeskShown)
+    function openSpareDesk(output, windowId) {
+        const a = {
+            "output": output
+        };
+        if (windowId !== undefined)
+            a.window = windowId;
+        action("OpenSpareWorkspace", a);
+    }
     function focusWorkspace(id) {
         action("FocusWorkspace", {
             "reference": {

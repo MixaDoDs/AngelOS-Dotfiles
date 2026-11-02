@@ -37,8 +37,9 @@ Singleton {
         Achievements.note("explore", "mission")
     // asked to close: the window plays its way out, then calls close()
     property bool leaveAsked: false
-    function open() {
-        screenName = Niri.focusedOutput || "";
+    // on `screen` (a bar's own screen), else the focused one
+    function open(screen) {
+        screenName = screen || Niri.focusedOutput || "";
         leaveAsked = false;
         shown = true;
     }
@@ -46,10 +47,10 @@ Singleton {
         shown = false;
         leaveAsked = false;
     }
-    function toggle() {
+    function toggle(screen) {
         if (shown)
             leaveAsked = true;
         else
-            open();
+            open(screen);
     }
 }

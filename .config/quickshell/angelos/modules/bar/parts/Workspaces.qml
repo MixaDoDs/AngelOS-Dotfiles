@@ -67,7 +67,7 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: zeroCell.desk.output === Niri.focusedOutput ? WorkspaceAnim.go("0") : Niri.focusWorkspace(zeroCell.desk.id)
+                onClicked: WorkspaceAnim.goDesk(zeroCell.desk)
             }
         }
 
@@ -180,7 +180,7 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     // on the focused screen through angelOS (animated transitions)
-                    onClicked: cell.modelData.output === Niri.focusedOutput ? WorkspaceAnim.go(String(cell.modelData.idx)) : Niri.focusWorkspace(cell.modelData.id)
+                    onClicked: WorkspaceAnim.goDesk(cell.modelData)
                 }
             }
         }
@@ -292,20 +292,9 @@ Item {
 
     MouseArea {
         // wheel anywhere on the row switches this screen's workspaces (the row isn't on the bar
-        // in Desktop); another screen in focus: the neighbouring desk here by its id — the plain
-        // up/down action would switch the focused screen's (DP-1, on air)
+        // in Desktop), another screen's too (WorkspaceAnim.stepDesk)
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
-        onWheel: w => {
-            if (root.screenName === Niri.focusedOutput) {
-                WorkspaceAnim.go(w.angleDelta.y > 0 ? "up" : "down");
-                return;
-            }
-            // up from desk 1: desk 0 (Niri.zeroDesk); down from it (activeIndex -1): desk 1
-            const up = w.angleDelta.y > 0;
-            const to = up && root.activeIndex === 0 ? Niri.zeroDesk(root.screenName) : root.activeIndex < 0 && up ? null : root.list[root.activeIndex + (up ? -1 : 1)];
-            if (to)
-                Niri.focusWorkspace(to.id);
-        }
+        onWheel: w => WorkspaceAnim.stepDesk(root.screenName, w.angleDelta.y > 0)
     }
 }

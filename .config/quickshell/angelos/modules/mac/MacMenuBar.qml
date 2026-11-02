@@ -68,11 +68,13 @@ PanelWindow {
     }
     Row {
         id: titles
-        x: GoldenGate.px(10) + (leftDesks.visible ? leftDesks.width + GoldenGate.px(4) : 0)
+        x: GoldenGate.px(10) + (leftDesks.width > 0 ? leftDesks.width + GoldenGate.px(4) : 0)
         height: win.h
         spacing: 0
         clip: true
         width: Math.min(implicitWidth, status.x - x - GoldenGate.px(16))
+        // the desks on the left (MacDesks) move the row: the menus' places go along (MacMenus.titleX)
+        onXChanged: win.recordTitles()
 
         Repeater {
             id: titleRep
@@ -175,33 +177,11 @@ PanelWindow {
     }
 
     // ---- trailing: status items ----
-    component StatusButton: Item {
-        id: sb
+    component StatusButton: MacStatusButton {
         property string kind: ""
-        property bool active: win.menuHere && MacMenus.statusKind === kind && kind !== ""
-        default property alias content: box.data
-        signal clicked(var mouse)
-        width: Math.max(GoldenGate.px(26), box.childrenRect.width + GoldenGate.px(12))
-        height: win.h
-        Rectangle {
-            anchors.fill: parent
-            anchors.topMargin: GoldenGate.px(2)
-            anchors.bottomMargin: GoldenGate.px(2)
-            radius: height / 2
-            color: Qt.alpha(win.ink, win.ink.r > 0.5 ? 0.22 : 0.1)
-            visible: sb.active
-        }
-        Item {
-            id: box
-            anchors.centerIn: parent
-            width: childrenRect.width
-            height: childrenRect.height
-        }
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-            onClicked: m => sb.clicked(m)
-        }
+        ink: win.ink
+        rowH: win.h
+        active: win.menuHere && MacMenus.statusKind === kind && kind !== ""
     }
     function rightOf(item) {
         return item.mapToItem(null, item.width, 0).x;

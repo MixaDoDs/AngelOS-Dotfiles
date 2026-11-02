@@ -266,14 +266,9 @@ Scope {
             property int dropDesk: -1          // the desk under a dragged card (-2: the "+")
             // angel-niri's Desktop keeps no empty desk at the end: a new one comes from "+" (a click
             // goes there, a window dropped on it goes along); the last desk empty, it is there
-            readonly property bool plus: Niri.nativeMinimize && WindowConfig.floatAll && desks.length > 0 && windowsOf(desks[desks.length - 1]).length > 0
+            readonly property bool plus: WindowConfig.newDeskShown(output)
             function openDesk(windowId) {
-                const a = {
-                    "output": win.output
-                };
-                if (windowId !== undefined)
-                    a.window = windowId;
-                Niri.action("OpenSpareWorkspace", a);
+                Niri.openSpareDesk(win.output, windowId);
             }
             // the clean desk 0 above desk 1 (angel-niri, Niri.zeroDesk): first in the strip; a
             // window dropped on it makes it desk 1 (niri puts a new desk 0 above)
