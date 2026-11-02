@@ -52,6 +52,10 @@
 - **Курсор** `macOS` (если установлен, иначе capitaine-cursors; прежний — в `Config.cursor.beforeMac`), **обои** скина (прежние —
   в `Config.mac.wallBefore`).
 
+Картинки тем GTK (рамки, огни светофора, значки кнопок) angelOS кладёт в свою папку
+`~/.config/gtk-{3,4}.0/angelos-assets/` и в темы `angelOS-a/b` при любом скине; чужую папку `assets/`
+рядом (например, ссылку темы adw-gtk3) он не трогает.
+
 Шрифт Inter скачивается при первом включении (`scripts/fonts.py`, закреплённый коммит
 google/fonts и sha256). Пакеты `appmenu-gtk-module` и `capitaine-cursors` ставит установщик
 (`packages/angelos.txt`, `packages/pacman.txt`).
