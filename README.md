@@ -388,7 +388,7 @@ single file of Apple's. Pick it in the installer, in the wizard (*"Coming from a
 - **The Dock.** A Liquid Glass slab: pinned apps, *Applications*, recent ones, **minimized windows**, Downloads, Trash.
   A dot under running apps, a right-click menu with windows and `.desktop` actions, **magnification** like on a Mac,
   auto-hide. Icons from [MacTahoe](https://github.com/vinceliuice/MacTahoe-icon-theme) (GPL-3.0, pinned release,
-  sha256-checked).
+  sha256-checked); your own icons in `~/.local/share/angelos/icons/dock/` win over it.
 - **Minimize.** niri can't minimize; angelOS can: the window goes to a hidden workspace and **its snapshot lands on the
   right of the Dock**. The yellow light, *Window → Minimize*, `⌘M`, or `angelos macMinimize`; back with a click on the
   snapshot, the icon, Alt+Tab or the overview.
