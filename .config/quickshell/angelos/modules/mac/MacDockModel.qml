@@ -65,7 +65,7 @@ Singleton {
             return {
                 "kind": "settings",
                 "id": id,
-                "name": I18n.t("Системные настройки", "System Settings"),
+                "name": AppMenu.shellSettingsName,
                 "kept": true,
                 "windows": Niri.windows.filter(w => AppMenu.isShellSettings(w))
             };
@@ -111,8 +111,8 @@ Singleton {
             "id": "@w" + w.id,
             "wid": w.id,
             "entry": e,
-            "name": own ? I18n.t("Системные настройки", "System Settings") : Niri.titleOf(w) || (e && e.name ? e.name : AppMenu.prettyName(w.app_id)),
-            "icon": own ? "preferences-system" : e ? e.icon : w.app_id,
+            "name": own ? AppMenu.shellSettingsName : Niri.titleOf(w) || (e && e.name ? e.name : AppMenu.prettyName(w.app_id)),
+            "icon": own ? AppMenu.shellSettingsIcon : e ? e.icon : w.app_id,
             "shot": Minimize.shots[w.id] || "",
             "windows": []
         };

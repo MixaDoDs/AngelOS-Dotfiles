@@ -32,7 +32,7 @@ Singleton {
         if (it.kind === "apps")
             return file("apps", "view-app-grid");
         if (it.kind === "settings")
-            return file("apps", "preferences-system");
+            return file("apps", AppMenu.shellSettingsIcon);
         if (it.kind === "downloads")
             return file("places", "folder-download");
         if (it.kind === "trash")

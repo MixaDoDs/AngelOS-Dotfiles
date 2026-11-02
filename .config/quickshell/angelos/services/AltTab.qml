@@ -163,28 +163,16 @@ Singleton {
             const key = own ? "@settings" : String(w.app_id || "");
             if (!key)
                 continue;
-            if (at[key] === undefined && own) {
-                at[key] = out.length;
-                out.push({
-                    "kind": "app",
-                    "id": key,
-                    "appId": String(w.app_id),
-                    "entry": null,
-                    "name": I18n.t("Системные настройки", "System Settings"),
-                    "icon": "preferences-system",
-                    "windows": []
-                });
-            }
             if (at[key] === undefined) {
-                const e = DesktopEntries.byId(key) || DesktopEntries.heuristicLookup(key);
+                const e = own ? null : DesktopEntries.byId(key) || DesktopEntries.heuristicLookup(key);
                 at[key] = out.length;
                 out.push({
                     "kind": "app",
                     "id": e ? e.id : key,
-                    "appId": key,
+                    "appId": own ? String(w.app_id) : key,
                     "entry": e,
-                    "name": e && e.name ? e.name : AppMenu.prettyName(key),
-                    "icon": e ? e.icon : key,
+                    "name": own ? AppMenu.shellSettingsName : e && e.name ? e.name : AppMenu.prettyName(key),
+                    "icon": own ? AppMenu.shellSettingsIcon : e ? e.icon : key,
                     "windows": []
                 });
             }

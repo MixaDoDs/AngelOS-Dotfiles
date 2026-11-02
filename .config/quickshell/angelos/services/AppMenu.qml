@@ -42,13 +42,16 @@ Singleton {
     function isShellSettings(w) {
         return !!w && String(w.app_id || "") === "org.quickshell" && String(w.title || "").indexOf("angelOS") === 0;
     }
+    // how that window shows as an app (the menu bar, the Dock, Alt+Tab)
+    readonly property string shellSettingsName: I18n.t("Системные настройки", "System Settings")
+    readonly property string shellSettingsIcon: "preferences-system"
     readonly property bool shellSettings: isShellSettings(window)
     // no window in front (the desktop): the file manager's menus, as a Mac shows Finder's
     readonly property var filesEntry: {
         const d = DefaultApps.data && DefaultApps.data.files ? String(DefaultApps.data.files.current || "").replace(/\.desktop$/, "") : "";
         return DesktopEntries.byId(d || "org.gnome.Nautilus") || null;
     }
-    readonly property string appName: shellSettings ? I18n.t("Системные настройки", "System Settings") : !window ? (filesEntry && filesEntry.name ? filesEntry.name : I18n.t("Файлы", "Files")) : entry && entry.name ? entry.name : prettyName(appId)
+    readonly property string appName: shellSettings ? shellSettingsName : !window ? (filesEntry && filesEntry.name ? filesEntry.name : I18n.t("Файлы", "Files")) : entry && entry.name ? entry.name : prettyName(appId)
 
     // what the helper reported for the focused window
     property var report: ({
