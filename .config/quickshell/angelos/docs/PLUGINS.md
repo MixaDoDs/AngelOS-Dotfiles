@@ -133,7 +133,7 @@ QtObject {
 |---|---|
 | какая тема | `Skin.mac`, `Skin.pixel`, `Skin.name` (`"pixel"` / `"mac"` / `"hell"`), `Skin.macWidgets` — вид виджетов рабочего стола (у них свой стиль в Настройках → Виджеты; в `desktopWidget` проверяй его), `Skin.hell`, `Skin.dark` |
 | цвета | `accent`, `accentText`, `text`, `textDim`, `textFaint`, `surface` (тело карточки; в macOS — стекло), `surfaceAlt`, `sunken`, `separator`, `hover`, `danger`, `ok`, `warn`, `shadow`; `Skin.mix(a, b, t)` |
-| панель | `Skin.ink(screenName)` — цвет виджета панели: в macOS строка меню чёрная или белая по обоям под ней, виджет одноцветный, как «menu bar extra» |
+| панель | `Skin.ink(screenName)` — цвет виджета панели: в macOS строка меню чёрная или белая по обоям под ней (с фоном строки и в «Островках» – цвета темы), виджет одноцветный, как «menu bar extra» |
 | шрифт | `font`, `titleFont`, `mono`, `fontSize("small" / "body" / "title" / "big" / "huge")`, `smallSize`, `textSize`, `titleSize`, `bigSize`, `renderType` (проще — `PxText { kind }`) |
 | размеры | `Skin.px(n)` — длина в пунктах (macOS: × масштаб шрифта; пиксель: по сетке, 2 пункта = арт-пиксель), `spacing`, `padding`, `radius` (у контролов; 0 в пикселе), `cardRadius`, `controlHeight`, `iconSize` |
 | прозрачность | `Skin.reduceTransparency` (macOS → «Уменьшить прозрачность», размытие выключено или идёт полноэкранная игра) и `Skin.glass` (стекло можно) |

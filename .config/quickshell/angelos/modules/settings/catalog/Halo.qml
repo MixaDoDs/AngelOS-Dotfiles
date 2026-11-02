@@ -196,6 +196,11 @@ CatPage {
             checked: Config.halo.enabled
             onToggled: c => Config.halo.enabled = c
         }
+        CatNote {
+            present: GoldenGate.haloInBar
+            dim: true
+            text: I18n.t("Нимб сейчас часть строки меню Golden Gate: своей полосы у него нет, сам он не прячется. Отдельным Нимбом его делает выключатель «Нимб в строке меню» (Golden Gate → Внешний вид).", "The Halo is a part of the Golden Gate menu bar now: no strip of its own, it doesn't hide by itself. The «Halo in the menu bar» switch (Golden Gate → Appearance) makes it a Halo of its own again.")
+        }
         CatChoice {
             // a part of Golden Gate's menu bar, it keeps no strip and never hides (Mac → Appearance)
             present: !GoldenGate.haloInBar

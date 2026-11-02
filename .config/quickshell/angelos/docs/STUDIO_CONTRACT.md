@@ -98,7 +98,7 @@ supplied in full):
   `separator`, `hover`, `danger`, `ok`, `warn`, `shadow`; `Skin.mix(a, b, t)`.
   They follow light/dark, the user's accent colour and hell by themselves.
 - Bar ink: `Skin.ink(screenName)` — in macOS the menu bar is black or white by
-  the wallpaper under it; a bar widget is one colour in it, like a macOS menu
+  the wallpaper under it (the theme's ink with its band or as islands); a bar widget is one colour in it, like a macOS menu
   bar extra (a line icon `MacIcon { name; color: Skin.ink(screenName) }`, short
   text), never a coloured box. In pixel it is the bar's text colour.
 - Type: `Skin.font`, `titleFont`, `mono`, `Skin.fontSize("small" | "body" |

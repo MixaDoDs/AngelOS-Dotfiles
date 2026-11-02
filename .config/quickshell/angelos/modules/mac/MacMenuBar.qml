@@ -8,7 +8,7 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// The Golden Gate menu bar: 24 pt along the top of every screen, no band of its own (the
+// The Golden Gate menu bar. The strip (Config.mac.barStyle "bar"): 24 pt along the top of every screen, no band of its own (the
 // wallpaper shows through; Config.mac.barBackground puts one under it), ink black or white by
 // the wallpaper under it. Leading: angelOS's emblem where the Apple logo is (its menu: About,
 // Settings, Force Quit, Sleep…), the focused app's name in bold and its menus (services/AppMenu).

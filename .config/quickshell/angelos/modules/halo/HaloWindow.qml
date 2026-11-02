@@ -23,8 +23,9 @@ import "HaloCat.js" as Kitty
 // round the card still counts), it waits 0.6 s with a strip running out, then shrinks. Closed: the wheel is the
 // player's volume (the pill shows it a moment), a middle click pauses, a right click opens its
 // menu in place.
-// It keeps a strip of its own at the top (Settings → Halo); the open card lies over the
-// windows. A full-screen game or film hides it, but for a timer's end.
+// It keeps a strip of its own at the top (Settings → Halo), but in Golden Gate's menu bar
+// (GoldenGate.haloInBar) it has none: it lies over the bar's middle and never hides. The open
+// card lies over the windows. A full-screen game or film hides it, but for a timer's end.
 // The surface keeps the screen's width and a fixed height, the pill grows inside it: resizing
 // the layer surface itself went in jerks (issue #14). Input only on the pill and the bubbles.
 PanelWindow {

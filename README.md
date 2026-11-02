@@ -157,7 +157,7 @@ cursor, niri's keys) comes back when you leave it.
 
 | | **Pixel** (angelOS) | **macOS** (Golden Gate) |
 | --- | --- | --- |
-| Panel | a Win98 taskbar: pixel-heart workspaces, window buttons, the **current lyric line** in the middle | a menu bar: the app's own menus, Control Center, Spotlight, the date |
+| Panel | a Win98 taskbar: pixel-heart workspaces, window buttons, the **current lyric line** in the middle | a menu bar (a strip or glass islands, the Halo in it if you like): the app's own menus, Control Center, Spotlight, the date |
 | Apps | Start menu + launcher | a **Dock** with magnification, minimized windows, Downloads and Trash |
 | Windows | pixel frames, 4 px corners, a thin accent outline | 16 px corners, shadows, traffic lights, **minimize to the Dock** |
 | Glass | — | **Liquid Glass**: niri's blur under the shell, a lens edge drawn by a shader |
@@ -380,7 +380,7 @@ the macOS look. the dock's at the bottom, icons swell under the mouse. minimise 
 The whole desktop as macOS 27 *Golden Gate*, drawn from screenshots and Apple's guidelines, not from memory, and without a
 single file of Apple's. Pick it in the installer, in the wizard (*"Coming from a Mac?"*), in Settings → Appearance, or with `angelos settingsSkin goldengate`.
 
-- **The menu bar.** 24 pt on top of every screen. On the left the angelOS emblem (About, Settings, Force Quit, Sleep,
+- **The menu bar.** 24 pt on top of every screen, as one strip or as glass islands, the Halo in its middle if you like. On the left the angelOS emblem (About, Settings, Force Quit, Sleep,
   Restart, Shut Down, Lock, Log Out), the app's name in bold and **its own menus**: Qt over dbusmenu, GTK 3 through
   `appmenu-gtk-module`, GtkApplication actions, and for the rest a standard set built from the app's own shortcuts.
   Nothing in the menus is dead. On the right: sound, layout, Wi-Fi and Bluetooth, the tray, Spotlight, **Control
