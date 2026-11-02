@@ -18,8 +18,9 @@ import qs.widgets
 //                       overview, but gets no input
 //   angelos-desktop   — transparent, drawn inside every workspace: the widgets'
 //                       input copies (invisible unless a button in them is used,
-//                       see DesktopWidgetHost), the right-click menu and the
-//                       sparkle trail
+//                       see DesktopWidgetHost), the right-click menu, the
+//                       sparkle trail and, in Golden Gate, a glass card under
+//                       every desk in niri's overview (MacOverviewCard)
 // and, under angel-niri while windows stand behind a layered wallpaper (services/SceneBehind),
 // a bottom-layer one:
 //   angelos-scene-behind — the scene's nearer layers once more over each such window (niri draws
