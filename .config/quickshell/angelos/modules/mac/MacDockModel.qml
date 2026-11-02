@@ -256,22 +256,6 @@ Singleton {
             Shell.openApps(Shell.focusedScreen ? Shell.focusedScreen.name : "");
             return;
         }
-        if (it.kind === "settings") {
-            // its window as an app's: a minimized one comes back, the one in front may go down
-            // (Settings already open, openSettings alone did nothing: the window stayed minimized)
-            const wins = it.windows;
-            const up = wins.filter(w => !Minimize.isMinimized(w));
-            if (wins.length && !up.length) {
-                Minimize.restore(wins[0].id, false, screen);
-                return;
-            }
-            if (minimizeFront(up))
-                return;
-            Shell.openSettings();
-            if (up.length)
-                Niri.focusWindow(up[0].id);
-            return;
-        }
         if (it.kind === "window") {
             Minimize.restore(it.wid, false, screen);
             return;
@@ -298,6 +282,12 @@ Singleton {
             const mine = shown;
             const i = front ? mine.findIndex(w => w.id === front.id) : -1;
             Niri.focusWindow(i >= 0 ? mine[(i + 1) % mine.length].id : mine[0].id);
+            return;
+        }
+        // Settings' windows go the apps' way above (Shell.openSettings alone did nothing to a
+        // minimized one); with none it opens them
+        if (it.kind === "settings") {
+            Shell.openSettings();
             return;
         }
         if (it.entry) {
