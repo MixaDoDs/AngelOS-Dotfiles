@@ -63,15 +63,16 @@ Singleton {
     readonly property real tint: Math.max(0, Math.min(1, Config.mac.glass))
     // "Reduce transparency" (Accessibility, like macOS's): solid tint, no blur, no rim effect
     readonly property bool reduceTransparency: Config.ready && Config.mac.reduceTransparency
-    // niri-game-mode is on (a fullscreen window; cfg/game-mode.kdl "effects off"): it turns niri's
-    // blur off for angelOS's layers too, the glass goes solid and the shader is unloaded
+    // niri-game-mode is on (a fullscreen window; cfg/game-mode.kdl "effects off") or the eco mode
+    // ("no blur"): either turns niri's blur off for angelOS's layers too, the glass goes solid
+    // and the shader is unloaded
     property bool gameMode: false
     FileView {
         path: Config.home + "/.config/niri/cfg/game-mode.kdl"
         printErrors: false
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: root.gameMode = text().indexOf("effects off") >= 0
+        onLoaded: root.gameMode = /effects off|no blur/.test(text())
         onLoadFailed: root.gameMode = false
     }
     // the glass itself (clear, rim, saturation) — else the solid fallback
