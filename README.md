@@ -384,7 +384,8 @@ single file of Apple's. Pick it in the installer, in the wizard (*"Coming from a
   Restart, Shut Down, Lock, Log Out), the app's name in bold and **its own menus**: Qt over dbusmenu, GTK 3 through
   `appmenu-gtk-module`, GtkApplication actions, and for the rest a standard set built from the app's own shortcuts.
   Nothing in the menus is dead. On the right: sound, layout, Wi-Fi and Bluetooth, the tray, Spotlight, **Control
-  Center**, the date. `Ctrl`+`F2` walks the menus.
+  Center**, the date. If you like, the screen's desktops (numbers or dots, a «+» for a new one) and an overview
+  button, on the left or the right. `Ctrl`+`F2` walks the menus.
 - **The Dock.** A Liquid Glass slab: pinned apps, *Applications*, recent ones, **minimized windows**, Downloads, Trash.
   A dot under running apps, a right-click menu with windows and `.desktop` actions, **magnification** like on a Mac,
   auto-hide. Icons from [MacTahoe](https://github.com/vinceliuice/MacTahoe-icon-theme) (GPL-3.0, pinned release,

@@ -14,7 +14,9 @@ import qs.widgets
 // Settings, Force Quit, Sleep…), the focused app's name in bold and its menus (services/AppMenu).
 // Trailing, right to left: the date and time (Notification Center), Control Center, Spotlight,
 // the input source, sound, Bluetooth, Wi-Fi, the apps' tray icons and the plugins' panel widgets
-// (menu bar extras). While the demon rules: hell's ink and her horns on the emblem.
+// (menu bar extras). The screen's desks and an overview button (MacDesks, Config.mac.barDesks and
+// barOverview) stand where Settings puts them: before the emblem, by the clock or left of the status
+// icons (barDesksAt, barOverviewAt). While the demon rules: hell's ink and her horns on the emblem.
 PanelWindow {
     id: win
 

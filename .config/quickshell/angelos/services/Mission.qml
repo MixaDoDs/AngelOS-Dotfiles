@@ -3,8 +3,9 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// Mission Control (Mod+W, `angelos open mission`, modules/mission): the windows of the focused
-// monitor's desk laid out side by side, its desks in a strip on top. Open on one screen at a time.
+// Mission Control (Mod+W, `angelos open mission`, modules/mission): the windows of a monitor's desk
+// laid out side by side, its desks in a strip on top. Open on one screen at a time: the one of the
+// bar that asked (open(screen), the Golden Gate menu bar's desks and button), else the focused one.
 Singleton {
     id: root
 
