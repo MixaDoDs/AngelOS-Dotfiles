@@ -136,7 +136,7 @@ QtObject {
 | панель | `Skin.ink(screenName)` — цвет виджета панели: в macOS строка меню чёрная или белая по обоям под ней, виджет одноцветный, как «menu bar extra» |
 | шрифт | `font`, `titleFont`, `mono`, `fontSize("small" / "body" / "title" / "big" / "huge")`, `smallSize`, `textSize`, `titleSize`, `bigSize`, `renderType` (проще — `PxText { kind }`) |
 | размеры | `Skin.px(n)` — длина в пунктах (macOS: × масштаб шрифта; пиксель: по сетке, 2 пункта = арт-пиксель), `spacing`, `padding`, `radius` (у контролов; 0 в пикселе), `cardRadius`, `controlHeight`, `iconSize` |
-| прозрачность | `Skin.reduceTransparency` (macOS → «Уменьшить прозрачность», размытие выключено или идёт полноэкранная игра) и `Skin.glass` (стекло можно) |
+| прозрачность | `Skin.reduceTransparency` (macOS → «Уменьшить прозрачность», размытие выключено, идёт полноэкранная игра или включён режим экономии) и `Skin.glass` (стекло можно) |
 | слова, время | `Skin.title(name)` — «name.exe» в пикселе, «name» в macOS; `Skin.ms(ms)` — длительность с учётом «Движения» |
 
 **Общие компоненты меняют вид сами.** Хосты плагинов (панель, строка меню, попап,
