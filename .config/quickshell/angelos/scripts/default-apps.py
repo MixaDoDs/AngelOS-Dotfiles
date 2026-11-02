@@ -226,11 +226,12 @@ def file_manager1(did, b):
 
 def open_files(folder):
     folder = os.path.abspath(os.path.expanduser(folder or "~"))
-    # the same folder again before the first window came up (a double press, a held key — #127):
-    # a file manager that starts slowly would open one window per press, all at once
+    # the same folder again before the first window came up (a double press — #127): a file manager
+    # that starts slowly would open one window per press, all at once. Short: the bind doesn't
+    # repeat, and a window opened, closed and asked for again must come back (#133)
     last = Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp") / "angelos-open-files"
     try:
-        if time.time() - last.stat().st_mtime < 1.5 and last.read_text() == folder:
+        if time.time() - last.stat().st_mtime < 0.4 and last.read_text() == folder:
             return
     except OSError:
         pass

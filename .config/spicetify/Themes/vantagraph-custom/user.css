@@ -779,10 +779,12 @@ button[aria-checked="true"][data-testid="add-button"] path {
 }
 
 /* volume bar: wider */
-[data-testid="volume-bar"],
-.vg-volume-bar {
-  min-width: 250px !important;
-  width: 250px !important;
+@media (min-width: 1200px) {
+  [data-testid="volume-bar"],
+  .vg-volume-bar {
+    min-width: 250px !important;
+    width: 250px !important;
+  }
 }
 
 /* responsive */

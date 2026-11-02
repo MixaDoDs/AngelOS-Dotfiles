@@ -86,6 +86,10 @@ shell_env() {
   # shell keeps the GTK platform theme it was made with, apps get theirs back (Shell.childEnv)
   if [ "${QT_QPA_PLATFORMTHEME:-}" = qt6ct ]; then
     export ANGELOS_PRE_QT_QPA_PLATFORMTHEME=qt6ct QT_QPA_PLATFORMTHEME=gtk3
+  elif [ -z "${QT_QPA_PLATFORMTHEME:-}" ]; then
+    # Qt apps off dropped the line from niri's environment (qt-theme.py): no theme means hicolor
+    # and no icons of ours (#137)
+    export QT_QPA_PLATFORMTHEME=gtk3
   fi
   # Memory. Quickshell is linked with jemalloc, which gives every thread an arena of its own
   # (64 on a 16-core machine for the ~35 threads the shell has) and keeps freed pages for 10 s:
@@ -220,6 +224,9 @@ case "$1" in
   # → SIGABRT: Quickshell writes a crash report with the stack and the log tail
   # (~/.cache/quickshell/crashes, `angelos report`) and starts itself again in the
   # same process. Off with `echo off > ~/.config/angelos/guard`.
+  # A machine short of CPU, disk or memory (a build, a game starting) slows a healthy shell and its
+  # probes alike, and a restart only adds to that (#128, #140): about a minute then, not 15 s. Why it
+  # aborted goes to the journal: the pressure, the main thread and the render threads.
   # A probe starts a whole quickshell (~40 ms of CPU, and it wakes the shell), so it is
   # asked only when the main thread looks wrong — busy all the tick (spinning, as that
   # hang) or not woken once in it (stuck) — after a miss, and once a minute anyway
@@ -242,6 +249,7 @@ case "$1" in
   guard)
     pid="${2:?pid}" misses=0 first="${ANGELOS_GUARD_FIRST:-25}" tick="${ANGELOS_GUARD_TICK:-3}" probe_timeout="${ANGELOS_GUARD_TIMEOUT:-2}"
     every="${ANGELOS_GUARD_EVERY:-60}" hz="$(getconf CLK_TCK 2>/dev/null || echo 100)" last_cpu="" last_sw="" since=0
+    psi="${ANGELOS_GUARD_PSI:-/proc/pressure}"
     # the main thread now: $state (R, S, T…), $cpu (ticks) and $sw (times it slept), or false
     # when unreadable
     main_thread() {
@@ -253,6 +261,31 @@ case "$1" in
         [ "$k" = voluntary_ctxt_switches: ] && { sw="$v"; break; }
       done <"/proc/$pid/task/$pid/status"
       [ -n "$sw" ]
+    }
+    # $worst: the most of the last 10 s the machine was short of something (/proc/pressure, 0 without
+    # it), $why: all three
+    pressure() {
+      worst=0 why=""
+      for f in cpu io memory; do
+        { read -r _ avg _ <"$psi/$f"; } 2>/dev/null || continue
+        avg="${avg#avg10=}" avg="${avg%.*}"
+        why="$why $f=$avg%"
+        [ "$avg" -gt "$worst" ] && worst="$avg"
+      done
+    }
+    # the main thread and what could hold it up: name=state/kernel wait
+    threads() {
+      seen=""
+      for t in "/proc/$pid/task"/*; do
+        { read -r comm <"$t/comm" && read -r line <"$t/stat"; } 2>/dev/null || continue
+        set -- ${line##*) }
+        case "${t##*/}:$1:$comm" in
+          "$pid":*|*:D:*|*:*:QSG*)
+            wait=""
+            { read -r wait <"$t/wchan"; } 2>/dev/null
+            seen="$seen $comm=$1/$wait" ;;
+        esac
+      done
     }
     sleep "$first"
     while kill -0 "$pid" 2>/dev/null; do
@@ -280,8 +313,14 @@ case "$1" in
           misses=$((misses + 1))
         fi
       fi
-      if [ "$misses" -ge 3 ]; then
-        echo "angelOS guard: pid $pid has not answered IPC for ~15 s, SIGABRT (crash report + restart)" >&2
+      limit=3
+      if [ "$misses" -ge "$limit" ]; then
+        pressure
+        [ "$worst" -ge 40 ] && limit=12
+      fi
+      if [ "$misses" -ge "$limit" ]; then
+        threads
+        echo "angelOS guard: pid $pid has not answered IPC for ~$((misses * 5)) s, SIGABRT (a hang, not a crash: crash report + restart); pressure:$why; threads:$seen" >&2
         kill -ABRT "$pid" 2>/dev/null
         misses=0 last_cpu=""
         sleep "$first"

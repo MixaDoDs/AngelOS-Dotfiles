@@ -10,6 +10,8 @@
 #   stopped    kill -STOP, a debugger: left alone (#46)
 #   refused    qs says no three times running: SIGABRT
 #   silent     qs never comes back (a hung shell answers nobody): cut off, SIGABRT
+#   loaded     qs says no on a machine under pressure: not after three, SIGABRT after twelve,
+#              and the journal line says why
 #
 #   tests/guard/run.sh [angelOS dir]     exit 0 = all good
 #   GUARD_SPAN=s                         how long the first five are watched (10)
@@ -39,12 +41,20 @@ esac
 QS
 chmod +x "$T/bin/qs"
 
+# the machine's pressure as the guard reads it: none, whatever this machine is doing now
+pressure_files() {
+  mkdir -p "$1"
+  for f in cpu io memory; do printf 'some avg10=%s avg60=0.00 avg300=0.00 total=0\n' "$2" >"$1/$f"; done
+}
+pressure_files "$T/calm" 0.00
+pressure_files "$T/high" 85.50
+
 state() { sed 's/^.*) //' "/proc/$1/stat" 2>/dev/null | cut -c1; }
 probes() { local n=0; [[ -f "$T/$1.probes" ]] && n="$(wc -l <"$T/$1.probes")"; echo "$n"; }
 watch() { # NAME [ANSWER]: the guard over target[NAME], a second a tick, a probe anyway every six
   GUARD_LOG="$T/$1.probes" GUARD_ANSWER="${2:-yes}" PATH="$T/bin:$PATH" \
     ANGELOS_GUARD_FIRST=0 ANGELOS_GUARD_TICK=1 ANGELOS_GUARD_EVERY=6 ANGELOS_GUARD_TIMEOUT=1 \
-    sh "$DIR/bin/angelos" guard "${target[$1]}" >/dev/null 2>"$T/$1.err" &
+    ANGELOS_GUARD_PSI="${3:-$T/calm}" sh "$DIR/bin/angelos" guard "${target[$1]}" >/dev/null 2>"$T/$1.err" &
   guard[$1]=$!
 }
 
@@ -60,7 +70,7 @@ sleep 600 & target[stuck]=$!
 python3 -c 'import time
 while True: time.sleep(0.02)' & target[stopped]=$!
 # (these two take the SIGABRT themselves and leave with 86: no core dump of a test in the journal)
-for n in refused silent; do
+for n in refused silent loaded; do
   python3 -c 'import os, signal, time
 signal.signal(signal.SIGABRT, lambda *a: os._exit(86))
 time.sleep(600)' & target[$n]=$!
@@ -77,6 +87,7 @@ for n in healthy busy spinning stuck; do watch "$n"; done
 watch stopped no
 watch refused no
 watch silent never
+watch loaded no "$T/high"
 sleep "$SPAN"
 share=$((($(ticks "${target[busy]}") - busy0) * 100 / ($(getconf CLK_TCK) * SPAN)))
 
@@ -113,4 +124,17 @@ for n in refused silent; do
   elif kill -0 "${guard[$n]}" 2>/dev/null; then bad "$n: the guard outlived its shell"
   else ok "$what three times running: SIGABRT (a crash report and a restart), and the guard goes with its shell"; fi
 done
+
+# under pressure: twelve misses, not three (by now well past three, whatever SPAN is)
+for _ in $(seq 300); do
+  s="$(state "${target[loaded]}")"
+  [[ -z "$s" || "$s" == Z ]] && break
+  sleep 0.1
+done
+wait "${target[loaded]}" 2>/dev/null; rc=$?
+p="$(probes loaded)"
+if ((rc != 86)); then bad "loaded: the shell ended with $rc after $p probes (wanted 86: SIGABRT in the end)"
+elif ((p != 12)); then bad "loaded: SIGABRT after $p probes (wanted 12 on a machine under pressure)"
+elif ! grep -q 'pressure: cpu=85% io=85% memory=85%; threads:' "$T/loaded.err"; then bad "loaded: the journal line does not say why: $(cat "$T/loaded.err")"
+else ok "under pressure the guard waits twelve misses, and says what it saw"; fi
 exit "$fail"

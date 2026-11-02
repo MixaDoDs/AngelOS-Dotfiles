@@ -91,15 +91,23 @@
   const volumeBar = await waitForEl("[data-testid='volume-bar']");
   const sliderContainer = await waitForEl(".volume-bar__slider-container", volumeBar);
 
-  // 4. enforce 250px width
+  // 4. enforce 250px width, in a wide window only: in a narrow one the right column has to shrink,
+  // or its buttons run into the player's controls (user.css, the same breakpoint)
+  const wide = window.matchMedia("(min-width: 1200px)");
   function enforceBarWidth() {
-    volumeBar.style.setProperty("width", "250px", "important");
-    volumeBar.style.setProperty("min-width", "250px", "important");
+    if (wide.matches) {
+      volumeBar.style.setProperty("width", "250px", "important");
+      volumeBar.style.setProperty("min-width", "250px", "important");
+    } else {
+      volumeBar.style.removeProperty("width");
+      volumeBar.style.removeProperty("min-width");
+    }
     volumeBar.style.setProperty("transition", "none", "important");
     sliderContainer.style.setProperty("width", "100%", "important");
     sliderContainer.style.setProperty("transition", "none", "important");
   }
   enforceBarWidth();
+  wide.addEventListener("change", enforceBarWidth);
   const barObserver = new MutationObserver(enforceBarWidth);
   barObserver.observe(volumeBar,       { attributes: true, attributeFilter: ["style"] });
   barObserver.observe(sliderContainer, { attributes: true, attributeFilter: ["style"] });

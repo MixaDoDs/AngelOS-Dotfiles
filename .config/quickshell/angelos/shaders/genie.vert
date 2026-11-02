@@ -47,8 +47,9 @@ void main() {
     if (flip > 0.5)
         y = screenH - y;
     if (snap > 0.0) {
-        x = floor(x / snap + 0.5) * snap;
-        y = floor(y / snap + 0.5) * snap;
+        // max: virgl divides by snap = 0 even inside this if, and the whole genie is gone (#129)
+        x = floor(x / max(snap, 1.0) + 0.5) * snap;
+        y = floor(y / max(snap, 1.0) + 0.5) * snap;
     }
     qt_TexCoord0 = qt_MultiTexCoord0;
     gl_Position = qt_Matrix * vec4(x, y, 0.0, 1.0);

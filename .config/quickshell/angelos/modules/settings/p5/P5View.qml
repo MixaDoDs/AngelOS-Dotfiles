@@ -949,7 +949,7 @@ FocusScope {
         accent: root.pal.grey
         black: root.pal.black
         paper: root.pal.paper
-        restSolid: root.pal.shade
+        restSolid: Config.settingsUi.dollRest ? root.pal.shade : "transparent"
         still: root.still
         gaze: pointer.hovered ? pointer.point.position : Qt.point(-1, -1)
         onSay: text => speech.show(text)
