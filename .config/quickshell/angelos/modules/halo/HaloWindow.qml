@@ -544,7 +544,8 @@ PanelWindow {
     onStripChanged: Halo.strip = strip
     readonly property int notch: Math.ceil(closedW + u * 8)
     onNotchChanged: Halo.notch = notch
-    readonly property int closedH: px(16)
+    // the closed pill's height, the one wantH draws (the menu bar is as tall: Halo.pillHeight)
+    readonly property int closedH: px(skin === "tamagotchi" ? 20 : 16)
     onClosedHChanged: Halo.pillHeight = closedH
     Component.onCompleted: {
         Halo.strip = strip;
@@ -588,7 +589,8 @@ PanelWindow {
 
     // the pill's size and corners, sprung on the render clock; the pill snaps to whole pixels
     // the pointer on it: the pill swells a little and its outline lights up — it is about to open
-    readonly property bool lifted: hover.hovered && !expanded
+    // (not in the menu bar: it would grow off the bar's middle, and the bar's items don't lift)
+    readonly property bool lifted: hover.hovered && !expanded && skin !== "bar"
     readonly property bool open: expanded || !!main || vol || seeking || rest
     // closed: the content between the round ends (a radius of room each side); open: a card at
     // least as wide as the closed pill was, so opening never makes it narrower
@@ -603,7 +605,7 @@ PanelWindow {
     // open: wide and low, as the MacBook notch's apps (the owner's 16.10 answers)
     readonly property real cardW: Math.min(width - u * 8, Math.max(px(300), closedW))
     readonly property real wantW: expanded ? cardW : main || vol || seeking || rest ? Math.min(width - u * 40, closedW) + (lifted ? u * 4 : 0) : ring.width
-    readonly property real wantH: expanded ? cardTop + cardBoxH + frame.chrome + u * 4 : main || vol || seeking || rest ? px(skin === "tamagotchi" ? 20 : 16) + (lifted ? u * 2 : 0) : ring.height
+    readonly property real wantH: expanded ? cardTop + cardBoxH + frame.chrome + u * 4 : main || vol || seeking || rest ? closedH + (lifted ? u * 2 : 0) : ring.height
     // open it is a desktop widget's window (square, PxWindow); closed the look's pill
     readonly property real wantR: expanded ? 0 : px(8)
     // the open card's content starts under the window's title bar
@@ -689,17 +691,17 @@ PanelWindow {
     // black, glued to the screen's top edge like a MacBook's (square top, round bottom); float —
     // lower; tamagotchi — taller, the cat on a strip of grass. Open, every look is the widgets'
     // pixel window (PxWindow: its title bar, bevels and hard shadow) ----
-    readonly property string skin: Halo.skin
-    // (in the menu bar it has the bar's look: the Halo's own is set aside meanwhile)
-    readonly property bool glued: skin === "notch" && !inBar
-    readonly property bool earsRest: skin === "ears" && !inBar && rest && !expanded && !card.visible
-    readonly property int pillY: inBar ? Math.round((GoldenGate.barHeight - closedH) / 2) : glued ? 0 : skin === "float" ? u * 4 + topGap : u + topGap
+    // "bar" in Golden Gate's menu bar (inBar): the bar's look, the Halo's own set aside meanwhile
+    readonly property string skin: inBar ? "bar" : Halo.skin
+    readonly property bool glued: skin === "notch"
+    readonly property bool earsRest: skin === "ears" && rest && !expanded && !card.visible
+    readonly property int pillY: skin === "bar" ? Math.round((GoldenGate.barHeight - closedH) / 2) : glued ? 0 : skin === "float" ? u * 4 + topGap : u + topGap
     readonly property bool hell: Theme.hell
     // the widgets' see-through plate, a little denser: it lies over windows
     readonly property color baseFace: hell ? Theme.hellPanel : Qt.alpha(Theme.face, Math.max(0.9, Theme.panelAlpha))
     // (the notch is black on a dark theme; by day the text is dark, so the day's plate)
-    readonly property color face: inBar ? GoldenGate.glass(0.1) : skin === "notch" && (Theme.dark || hell) ? "#000000" : skin === "tamagotchi" ? Qt.tint(baseFace, "#402f6f9f") : baseFace
-    readonly property color line: inBar ? GoldenGate.glassEdge : skin === "notch" ? "transparent" : hell ? Theme.hellEdge : Theme.edge
+    readonly property color face: skin === "bar" ? GoldenGate.barGlass : skin === "notch" && (Theme.dark || hell) ? "#000000" : skin === "tamagotchi" ? Qt.tint(baseFace, "#402f6f9f") : baseFace
+    readonly property color line: skin === "bar" ? GoldenGate.glassEdge : skin === "notch" ? "transparent" : hell ? Theme.hellEdge : Theme.edge
     readonly property color inkColor: hell ? "#ff4d4d" : Theme.text
     readonly property color textInk: Theme.text
     readonly property color textInkDim: Theme.textDim

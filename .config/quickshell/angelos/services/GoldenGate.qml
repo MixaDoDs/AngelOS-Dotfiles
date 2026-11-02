@@ -95,6 +95,8 @@ Singleton {
         return hell ? Qt.rgba(0.07, 0.03, 0.03, Math.min(0.97, a + 0.1)) : dark ? Qt.rgba(0.12, 0.12, 0.13, Math.min(0.97, a)) : Qt.rgba(0.97, 0.97, 0.975, Math.min(0.97, a));
     }
     readonly property color glassFill: glass(0)
+    // the menu bar's own glass: its band, the islands, the Halo in it
+    readonly property color barGlass: glass(0.1)
 
     // ---- the skin's settings: their limits, and "Reset the theme" (Settings → Appearance) ----
     // every number has a range and every choice a list (Settings shows the same ones): a value out
@@ -372,7 +374,7 @@ Singleton {
         return l === undefined ? (dark ? "#ffffff" : "#000000") : l > 0.6 ? Qt.rgba(0, 0, 0, 0.86) : "#ffffff";
     }
     function barBand(screenName) {
-        return Config.mac.barBackground ? glass(0.1) : "transparent";
+        return Config.mac.barBackground ? barGlass : "transparent";
     }
     // which wallpaper is under each bar right now
     readonly property var barWalls: {

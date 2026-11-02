@@ -83,7 +83,7 @@ PanelWindow {
         height: win.rowH
         radius: height / 2
         visible: win.islands && width > 0
-        color: GoldenGate.glass(0.1)
+        color: GoldenGate.barGlass
         border.width: 1
         border.color: GoldenGate.glassEdge
     }
@@ -107,7 +107,7 @@ PanelWindow {
         spacing: 0
         clip: true
         // the Halo in the middle: the menus stop short of it
-        width: Math.min(implicitWidth, (GoldenGate.haloInBar ? (win.width - Halo.notch) / 2 : status.x) - x - GoldenGate.px(16))
+        width: Math.min(implicitWidth, (GoldenGate.haloInBar && Halo.on(win.screenName) ? (win.width - Halo.notch) / 2 : status.x) - x - GoldenGate.px(16))
 
         Repeater {
             id: titleRep
