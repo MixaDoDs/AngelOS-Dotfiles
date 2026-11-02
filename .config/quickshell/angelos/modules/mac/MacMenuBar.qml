@@ -56,10 +56,19 @@ PanelWindow {
         color: GoldenGate.barBand(win.screenName)
     }
 
-    // ---- leading: the emblem, the app, its menus ----
+    // ---- leading: the desks and the overview button if they stand here (MacDesks), the emblem,
+    // the app, its menus ----
+    MacDesks {
+        id: leftDesks
+        place: "left"
+        x: GoldenGate.px(10)
+        screenName: win.screenName
+        ink: win.ink
+        rowH: win.h
+    }
     Row {
         id: titles
-        x: GoldenGate.px(10)
+        x: GoldenGate.px(10) + (leftDesks.visible ? leftDesks.width + GoldenGate.px(4) : 0)
         height: win.h
         spacing: 0
         clip: true
@@ -226,6 +235,13 @@ PanelWindow {
                 }
                 color: win.ink
             }
+        }
+        // the desks and the overview button by the clock (MacDesks)
+        MacDesks {
+            place: "clock"
+            screenName: win.screenName
+            ink: win.ink
+            rowH: win.h
         }
         // Control Center
         StatusButton {
@@ -425,6 +441,13 @@ PanelWindow {
                     Component.onCompleted: load()
                 }
             }
+        }
+        // the desks and the overview button at the left of the status icons (MacDesks)
+        MacDesks {
+            place: "icons"
+            screenName: win.screenName
+            ink: win.ink
+            rowH: win.h
         }
     }
 

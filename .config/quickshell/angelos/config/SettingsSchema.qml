@@ -904,6 +904,15 @@ JsonAdapter {
         property bool volumeSound: true     // the "pop" when the volume changes
         property string accent: "blue"      // blue | purple | pink | red | orange | yellow | green | graphite
         property bool barBackground: false  // the menu bar on a band of its own ("Show menu bar background")
+        // this screen's desks in the menu bar (modules/mac/MacDesks): off | numbers | dots; a click goes to
+        // the desk, the wheel switches, a right click opens Mission Control, "+" opens a new desk (Desktop)
+        property string barDesks: "off"
+        property string barDesksAt: "icons"     // where: left (before the emblem) | icons (left of the status icons) | clock (by the clock)
+        property string barDesksLit: "all"      // all (the one in front filled, the empty ones paler, one asking for you red) | current | none
+        // a button for the overview in the menu bar: off | niri (niri's overview, Control Center's
+        // Mission Control) | mission (angelOS's Mission Control); where, as barDesksAt
+        property string barOverview: "off"
+        property string barOverviewAt: "icons"
         property bool appMenus: true        // the focused app's own menus in the menu bar (scripts/appmenu.py)
         // Qt apps' menus in the menu bar too: the AppMenu registrar on the bus, so Qt apps started
         // while it is there export their menu bar and hide their own. Off: Qt apps keep their own menus

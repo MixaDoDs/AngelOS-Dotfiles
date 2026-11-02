@@ -266,6 +266,109 @@ CatPage {
             checked: Config.mac.barBackground
             onToggled: v => Config.mac.barBackground = v
         }
+        CatChoice {
+            label: I18n.t("Рабочие столы в строке меню", "Desktops in the menu bar")
+            hint: Config.mac.barDesks === "off" ? I18n.t("в macOS их там нет; столы видны в Mission Control", "macOS has none there; the desktops are in Mission Control") : I18n.t("клик переходит на стол, колесо листает, правый клик открывает Mission Control, «+» в конце открывает новый пустой стол", "a click goes to the desktop, the wheel switches, a right click opens Mission Control, the «+» at the end opens a new empty desktop")
+            model: [
+                {
+                    "label": I18n.t("Нет", "Off"),
+                    "value": "off"
+                },
+                {
+                    "label": I18n.t("Номера", "Numbers"),
+                    "value": "numbers"
+                },
+                {
+                    "label": I18n.t("Точки", "Dots"),
+                    "value": "dots"
+                }
+            ]
+            currentValue: Config.mac.barDesks
+            onActivated: v => Config.mac.barDesks = v
+        }
+        CatChoice {
+            present: Config.mac.barDesks !== "off"
+            label: I18n.t("Где стоят рабочие столы", "Where the desktops stand")
+            hint: I18n.t("слева перед эмблемой, справа перед значками программ или рядом с часами", "on the left before the emblem, on the right before the apps' icons, or by the clock")
+            model: [
+                {
+                    "label": I18n.t("Слева", "Left"),
+                    "value": "left"
+                },
+                {
+                    "label": I18n.t("Перед значками", "Before the icons"),
+                    "value": "icons"
+                },
+                {
+                    "label": I18n.t("У часов", "By the clock"),
+                    "value": "clock"
+                }
+            ]
+            currentValue: Config.mac.barDesksAt
+            onActivated: v => Config.mac.barDesksAt = v
+        }
+        CatChoice {
+            present: Config.mac.barDesks !== "off"
+            label: I18n.t("Подсветка рабочих столов", "Desktop highlighting")
+            hint: Config.mac.barDesksLit === "all" ? I18n.t("стол спереди закрашен, пустые бледнее, красный стол ждёт тебя: там окно просит внимания", "the desktop in front filled, the empty ones paler, a red one waits for you: a window there asks for attention") : Config.mac.barDesksLit === "current" ? I18n.t("закрашен только стол спереди", "only the desktop in front is filled") : I18n.t("все столы выглядят одинаково", "all desktops look alike")
+            model: [
+                {
+                    "label": I18n.t("Все состояния", "Every state"),
+                    "value": "all"
+                },
+                {
+                    "label": I18n.t("Только текущий", "Current only"),
+                    "value": "current"
+                },
+                {
+                    "label": I18n.t("Без подсветки", "None"),
+                    "value": "none"
+                }
+            ]
+            currentValue: Config.mac.barDesksLit
+            onActivated: v => Config.mac.barDesksLit = v
+        }
+        CatChoice {
+            label: I18n.t("Кнопка обзора в строке меню", "Overview button in the menu bar")
+            hint: Config.mac.barOverview === "mission" ? I18n.t("открывает Mission Control angelOS: окна стола сеткой, столы полосой сверху", "opens angelOS's Mission Control: the desktop's windows in a grid, the desktops in a strip on top") : Config.mac.barOverview === "niri" ? I18n.t("открывает обзор niri, как жест на тачпаде и кнопка Mission Control в Пункте управления", "opens niri's overview, like the touchpad gesture and Control Center's Mission Control") : I18n.t("обзор открывается жестом, клавишами или из Пункта управления", "the overview opens by the gesture, the keys or from Control Center")
+            model: [
+                {
+                    "label": I18n.t("Нет", "Off"),
+                    "value": "off"
+                },
+                {
+                    "label": I18n.t("Обзор niri", "niri's overview"),
+                    "value": "niri"
+                },
+                {
+                    "label": "Mission Control",
+                    "value": "mission"
+                }
+            ]
+            currentValue: Config.mac.barOverview
+            onActivated: v => Config.mac.barOverview = v
+        }
+        CatChoice {
+            present: Config.mac.barOverview !== "off"
+            label: I18n.t("Где стоит кнопка обзора", "Where the overview button stands")
+            hint: I18n.t("в одном месте со столами кнопка встаёт перед ними", "in the same place as the desktops the button goes before them")
+            model: [
+                {
+                    "label": I18n.t("Слева", "Left"),
+                    "value": "left"
+                },
+                {
+                    "label": I18n.t("Перед значками", "Before the icons"),
+                    "value": "icons"
+                },
+                {
+                    "label": I18n.t("У часов", "By the clock"),
+                    "value": "clock"
+                }
+            ]
+            currentValue: Config.mac.barOverviewAt
+            onActivated: v => Config.mac.barOverviewAt = v
+        }
         CatToggle {
             label: I18n.t("Меню программ в строке меню", "App menus in the menu bar")
             hint: I18n.t("Меню Файл, Правка, Вид программы в фокусе. Уже открытые — после перезапуска.", "The focused app's File, Edit, View. Apps already open: after a restart.")
