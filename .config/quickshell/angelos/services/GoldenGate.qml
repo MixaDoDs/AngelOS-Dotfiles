@@ -91,20 +91,20 @@ Singleton {
     // every number has a range and every choice a list (Settings shows the same ones): a value out
     // of them — settings.json edited by hand, an older version — goes back into them, never to 0
     readonly property var limits: ({
-            "mac.glass": [0, 1],
-            "mac.soundVolume": [0, 1],
-            "mac.dockSize": [32, 96],
-            "mac.dockMagnifySize": [32, 128],
+            "appearance.darkFrom": [0, 23],
             "appearance.fontScale": [1, 2],
             "appearance.lightFrom": [0, 23],
-            "appearance.darkFrom": [0, 23]
+            "mac.dockMagnifySize": [32, 128],
+            "mac.dockSize": [32, 96],
+            "mac.glass": [0, 1],
+            "mac.soundVolume": [0, 1]
         })
     readonly property var choices: ({
-            "mac.accent": ["blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"],
-            "mac.minimizeEffect": ["genie", "scale"],
-            "mac.dockPosition": ["bottom", "left", "right"],
             "appearance.mode": ["light", "dark", "auto"],
-            "desktop.widgetStyle": ["auto", "pixel", "mac"]
+            "desktop.widgetStyle": ["auto", "pixel", "mac"],
+            "mac.accent": ["blue", "purple", "pink", "red", "orange", "yellow", "green", "graphite"],
+            "mac.dockPosition": ["bottom", "left", "right"],
+            "mac.minimizeEffect": ["genie", "scale"]
         })
     // the screen edge the Dock stands on
     readonly property string dockEdge: choices["mac.dockPosition"].includes(Config.mac.dockPosition) ? Config.mac.dockPosition : "bottom"
@@ -130,14 +130,44 @@ Singleton {
                 fix(path, Config.defaultOf(path));
         }
     }
-    // (any of them changed, also from the file: checked once things settle)
-    readonly property string _watched: Config.ready ? JSON.stringify([Config.mac.glass, Config.mac.soundVolume, Config.mac.dockSize, Config.mac.dockMagnifySize, Config.mac.accent, Config.mac.minimizeEffect, Config.mac.dockPosition, Config.appearance.mode, Config.appearance.fontScale, Config.desktop.widgetStyle]) : ""
+    // (any of them changed, also from the file: checked once things settle; every key of limits
+    // and choices, so a new one is watched with no list of its own)
+    readonly property string _watched: Config.ready ? JSON.stringify(Object.keys(limits).concat(Object.keys(choices)).map(path => {
+            const [sec, key] = path.split(".");
+            return Config[sec][key];
+        })) : ""
     on_WatchedChanged: if (_watched)
         Qt.callLater(sanitize)
     // what "Reset the theme" puts back: what the skin's own pages show (Dock, Appearance,
     // Wallpaper, Widgets' style, Windows, the Mac keys). The apps kept in the Dock stay (they are
     // yours, not a setting: Dock → "Reset the order"), and so does the skin itself
-    readonly property var themeKeys: ["mac.glass", "mac.accent", "mac.barBackground", "mac.appMenus", "mac.keys", "mac.minimizeEffect", "mac.dockSize", "mac.dockMagnify", "mac.dockMagnifySize", "mac.dockMacIcons", "mac.dockAutohide", "mac.dockPosition", "mac.font", "mac.wallpaper", "mac.reduceTransparency", "mac.sounds", "mac.soundVolume", "mac.volumeSound", "appearance.mode", "appearance.lightFrom", "appearance.darkFrom", "appearance.blur", "appearance.fontScale", "desktop.widgetStyle"]
+    // (one a line, in order: a new setting is a line of its own)
+    readonly property var themeKeys: [
+        "appearance.blur",
+        "appearance.darkFrom",
+        "appearance.fontScale",
+        "appearance.lightFrom",
+        "appearance.mode",
+        "desktop.widgetStyle",
+        "mac.accent",
+        "mac.appMenus",
+        "mac.barBackground",
+        "mac.dockAutohide",
+        "mac.dockMacIcons",
+        "mac.dockMagnify",
+        "mac.dockMagnifySize",
+        "mac.dockPosition",
+        "mac.dockSize",
+        "mac.font",
+        "mac.glass",
+        "mac.keys",
+        "mac.minimizeEffect",
+        "mac.reduceTransparency",
+        "mac.soundVolume",
+        "mac.sounds",
+        "mac.volumeSound",
+        "mac.wallpaper"
+    ]
     function resetTheme() {
         return Config.resetKeys(themeKeys);
     }

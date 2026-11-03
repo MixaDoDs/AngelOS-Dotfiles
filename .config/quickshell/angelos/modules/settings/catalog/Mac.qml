@@ -12,8 +12,10 @@ import qs.modules.settings.kit
 // The Golden Gate skin's own settings (services/GoldenGate, modules/mac): its pages in Settings
 // while the skin is on are put together from these groups (tree.json "mac": Dock, Appearance,
 // Wallpaper, Widgets, Keyboard and mouse, Windows). The pixel skins' pages are not in that tree.
-// Every number has the range GoldenGate.limits holds (a value out of it from the file is put back
-// there too); "Reset the theme" puts GoldenGate.themeKeys back to their defaults.
+// Every number has the range GoldenGate.limits holds and every choice a list in GoldenGate.choices
+// (a value out of them from the file is put back there too: both are watched by their keys);
+// "Reset the theme" puts GoldenGate.themeKeys back to their defaults. A new setting: its key in
+// limits or choices and in themeKeys, a line of its own each.
 CatPage {
     id: page
     heading: "Golden Gate"
