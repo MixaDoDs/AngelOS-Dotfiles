@@ -43,7 +43,7 @@ binds {
     Mod+Alt+G                           repeat=false allow-inhibiting=false hotkey-overlay-title="angelOS: клип — последние секунды экрана на Полку" { spawn-sh "qs -c angelos ipc call angelos clip"; }
     Mod+Shift+S                         repeat=false allow-inhibiting=false hotkey-overlay-title="angelOS: скриншот — выделить, найти, текст, перевод" { spawn-sh "~/.config/quickshell/angelos/bin/angelos capture 2>&1 | grep -q . && exec ~/.local/bin/niri-screenshot-region"; }
     Print                               repeat=false allow-inhibiting=false hotkey-overlay-title="angelOS: скриншот — выделить, найти, текст, перевод" { spawn-sh "~/.config/quickshell/angelos/bin/angelos capture 2>&1 | grep -q . && exec ~/.local/bin/niri-screenshot-region"; }
-    Mod+Shift+V                         repeat=false hotkey-overlay-title="Голосовой ввод вкл/выкл" { spawn "@HOME@/.local/bin/voxtype" "record" "toggle"; }
+    Mod+Shift+V                         repeat=false hotkey-overlay-title="Голосовой ввод вкл/выкл" { spawn-sh "exec ~/.config/quickshell/angelos/bin/angelos voice"; }
     CTRL+Shift+2                        repeat=false hotkey-overlay-title="angelOS: скриншот экрана" { spawn-sh "qs -c angelos ipc call angelos shotScreen 2>&1 | grep -q . && exec niri msg action screenshot-screen"; }
     CTRL+Shift+3                        repeat=false hotkey-overlay-title="angelOS: скриншот окна" { spawn-sh "qs -c angelos ipc call angelos shotWindow 2>&1 | grep -q . && exec niri msg action screenshot-window"; }
     Mod+ESCAPE                          allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
