@@ -109,7 +109,8 @@ supplied in full):
   (controls), `cardRadius`, `controlHeight`, `iconSize`. Radius is 0 in pixel —
   bind to it, don't branch on it.
 - Transparency: `Skin.reduceTransparency` (macOS Accessibility "Reduce
-  transparency", blur off, a fullscreen game) and `Skin.glass` (glass allowed).
+  transparency", blur off, a fullscreen game, the eco mode) and `Skin.glass`
+  (glass allowed).
   With reduce transparency draw solid surfaces: no translucent fills, no
   blur, no glow — `Skin.surface` and `SkinCard` already do this.
 - Words and time: `Skin.title(name)`, `Skin.ms(duration)` (0 with motion off).
