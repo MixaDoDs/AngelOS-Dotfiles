@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Services.SystemTray
 import qs.config
 
 // Which widget sits where on the bar. Edited in Settings → Панель.
@@ -126,6 +127,32 @@ Singleton {
 
     readonly property var pluginIds: Plugins.barWidgets.map(p => "plugin:" + p.id)
     readonly property var hidden: (Config.bar.hidden || []).filter(id => valid(id))
+    // tray icons pinned to the bar (#136): "tray:<the app's StatusNotifier id>", there while the app runs
+    readonly property var trayIds: SystemTray.items.values.map(t => "tray:" + t.id)
+    function trayItem(id) {
+        return SystemTray.items.values.find(t => "tray:" + t.id === id) || null;
+    }
+    function pinned(t) {
+        return !!t && all.includes("tray:" + t.id);
+    }
+    // pin: next to the tray's arrow (the start of the right side without one); unpin: out of the layout
+    function pinTray(t, on) {
+        const id = "tray:" + t.id;
+        if (!on) {
+            const cfg = Config.bar.layout || {};
+            const out = {};
+            for (const s of sections)
+                out[s] = (cfg[s] || effective[s]).filter(x => x !== id);
+            Config.bar.layout = out;
+            return;
+        }
+        for (const s of sections) {
+            const at = effective[s].indexOf("tray");
+            if (at >= 0)
+                return move(id, s, at);
+        }
+        move(id, "right", 0);
+    }
 
     function valid(id) {
         // the equalizer: not with a RØDECaster plugged in (services/Eq, `offered`)
@@ -133,9 +160,18 @@ Singleton {
             return false;
         if (id === "winmode" && (!Niri.nativeMinimize || GoldenGate.on))
             return false;
+        if (id.startsWith("tray:"))
+            return trayIds.includes(id);
         return id.startsWith("plugin:") ? pluginIds.includes(id) : !!meta[id];
     }
     function info(id) {
+        if (id.startsWith("tray:")) {
+            const t = trayItem(id);
+            return {
+                "label": t ? (t.tooltipTitle || t.title || t.id) : id.slice(5),
+                "icon": "layers"
+            };
+        }
         if (id.startsWith("plugin:")) {
             const p = Plugins.byId(id.slice(7));
             return {

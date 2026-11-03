@@ -28,7 +28,9 @@ PxButton {
     readonly property int iconSize: Theme.u * density[2]
     readonly property int cellGap: Theme.u * density[3]
     readonly property int columns: density[0]
-    readonly property int rows: Math.ceil(SystemTray.items.values.length / columns)
+    // the ones pinned to the bar (BarLayout "tray:<id>") stand there, not here
+    readonly property var loose: SystemTray.items.values.filter(t => !BarLayout.pinned(t))
+    readonly property int rows: Math.ceil(loose.length / columns)
     readonly property real gridHeight: Math.max(0, rows * (cellSize + cellGap) - cellGap)
     compact: true
     flat: true
@@ -64,7 +66,7 @@ PxButton {
                     columns: root.columns
                     spacing: root.cellGap
                     Repeater {
-                        model: SystemTray.items
+                        model: root.loose
                         PxButton {
                             id: cell
                             required property var modelData
@@ -89,6 +91,7 @@ PxButton {
                                         cell.modelData.secondaryActivate();
                                     else if (m.button === Qt.RightButton || cell.modelData.onlyMenu) {
                                         menu.handle = cell.modelData.hasMenu ? cell.modelData.menu : null;
+                                        menu.tray = cell.modelData;
                                         menu.toggle();
                                     } else {
                                         cell.modelData.activate();
@@ -103,7 +106,7 @@ PxButton {
             }
             PxText {
                 anchors.centerIn: parent
-                visible: SystemTray.items.values.length === 0
+                visible: root.loose.length === 0
                 text: I18n.t("Трей пуст", "No tray apps")
                 dim: true
             }

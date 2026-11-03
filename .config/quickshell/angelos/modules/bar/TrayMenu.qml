@@ -14,6 +14,8 @@ PxMenu {
     required property Item anchorItem
     property bool above: true
     property var handle: null
+    // the tray item itself: its menu ends with «На панель» / «Убрать с панели» (#136)
+    property var tray: null
 
     // An app sends its menu items over DBus after the menu is asked for, sometimes in
     // several bursts. The menu shows once the items have stopped coming; one that still
@@ -31,7 +33,7 @@ PxMenu {
             PopupManager.toggle(root);
             return;
         }
-        if (!handle)
+        if (!handle && !tray)
             return;
         opening = true;
         openingSince = Date.now();
@@ -66,7 +68,18 @@ PxMenu {
         id: opener
         menu: root.handle
     }
-    items: entriesOf(opener.children)
+    items: {
+        const own = root.handle ? entriesOf(opener.children) : [];
+        if (!root.tray)
+            return own;
+        const t = root.tray, on = BarLayout.pinned(t);
+        return own.concat(own.length ? [{
+                    "separator": true
+                }] : [], [{
+                    "label": on ? I18n.t("Убрать с панели", "Unpin from the bar") : I18n.t("На панель", "Pin to the bar"),
+                    "run": () => BarLayout.pinTray(t, !on)
+                }]);
+    }
     // the app's items as menu entries; read in a binding, so a changed label rebuilds them
     function entriesOf(model) {
         return Array.from(model ? model.values : []).map(e => e.isSeparator ? {
