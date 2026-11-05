@@ -64,6 +64,7 @@ wl-clipboard
 libnotify
 playerctl
 brightnessctl
+upower
 fontconfig
 ttf-dejavu
 noto-fonts-emoji
