@@ -55,7 +55,7 @@ for ((i = 0; i < 120; i++)); do kill -0 "$(cat "$D/qemu.pid")" 2>/dev/null || br
 echo "install: $((SECONDS - start)) s"
 
 # 2. the disk alone
-vm -boot c -device virtio-vga,xres=1920,yres=1080 -display none
+vm -device virtio-vga,xres=1920,yres=1080 -display none
 shot() {
   python3 -I - "$D/qmp.sock" "$1" <<'PY'
 import json, socket, sys

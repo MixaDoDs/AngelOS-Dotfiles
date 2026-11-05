@@ -130,13 +130,16 @@ c systemctl enable sddm.service
 
 say 90 boot
 c bootctl --esp-path=/boot install
-ls -R "$M/boot"
+# in a chroot bootctl leaves the firmware's boot entries alone: ours first, from the live (as archinstall does);
+# a firmware that refuses still finds \EFI\BOOT\BOOTX64.EFI
+efibootmgr --create --disk "$DISK" --part 1 --label angelOS --loader '\EFI\systemd\systemd-bootx64.efi' ||
+  echo "WARNING: no firmware boot entry, the fallback path it is"
 uuid="$(blkid -s UUID -o value "${P[1]}")"
 printf 'default angelos.conf\ntimeout 3\neditor no\n' >"$M/boot/loader/loader.conf"
-for e in "angelos:" "angelos-fallback:-fallback"; do
-  printf 'title   angelOS%s\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux%s.img\noptions root=UUID=%s rootflags=subvol=@ rw quiet\n' \
-    "${e#*:}" "${e#*:}" "$uuid" >"$M/boot/loader/entries/${e%%:*}.conf"
-done
+# one entry: mkinitcpio makes no fallback image any more
+printf 'title   angelOS\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux.img\noptions root=UUID=%s rootflags=subvol=@ rw quiet\n' \
+  "$uuid" >"$M/boot/loader/entries/angelos.conf"
+ls -R "$M/boot"
 # host keys are made by each machine's first sshd start, never carried over
 rm -f "$M"/etc/ssh/ssh_host_*
 
