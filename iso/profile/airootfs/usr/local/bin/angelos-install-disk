@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# angelOS onto a whole disk, over the network (the live is only the installer): the disk wiped →
+# EFI + btrfs → pacstrap base → the user → install.sh in the new system's chroot → systemd-boot.
+# The live's shell (milestone 4) drives it; it asks nothing.
+#
+#   angelos-install-disk list        the disks and what is on them (JSON) — the confirmation shows it (#163)
+#   echo "$PASSWORD" | sudo INSTALL_DISK=/dev/nvme0n1 INSTALL_CONFIRM=/dev/nvme0n1 INSTALL_USER=mila \
+#     [INSTALL_HOST=angelos INSTALL_TZ=Europe/Moscow INSTALL_LOCALE=ru_RU.UTF-8 INSTALL_KB=us,ru] angelos-install-disk
+# (INSTALL_*: HOSTNAME, USERNAME, LANG and TZ are already set by bash, sudo and the live session)
+#
+# stdout: progress lines "@@ <percent> <step>" (check disk base system user angelos boot done) or
+# "@@ fail <step>"; everything else goes to /var/log/angelos-install.log (copied onto the new disk).
+# shortcut: UEFI and the whole disk only (v1, the owner's decision 05.11); manual layouts — archinstall
+set -Eeuo pipefail
+
+if [[ "${1:-}" == list ]]; then
+  exec lsblk -J -o NAME,PATH,TYPE,SIZE,MODEL,TRAN,RM,FSTYPE,LABEL,FSUSE%,MOUNTPOINTS -e 7,11
+fi
+
+LOG=/var/log/angelos-install.log
+exec 3>&1 4>&2 >>"$LOG" 2>&1
+STEP=check
+say() { STEP=$2; echo "@@ $1 $2" >&3; echo "== $(date +%T) $1 $2"; }
+die() { echo "✕ $*"; echo "✕ $*" >&4; exit 1; }
+M=/mnt U="${INSTALL_USER:-}"
+MOUNTED=0
+cleanup() {
+  local rc=$?
+  rm -f "$M/etc/sudoers.d/99-angelos-install"
+  ((rc == 0)) || { echo "@@ fail $STEP" >&3; tail -n 25 "$LOG" >&4; }
+  if ((MOUNTED)); then
+    [[ -d $M/var/log ]] && cp "$LOG" "$M/var/log/angelos-install.log"
+    umount -R "$M" || true
+  fi
+}
+trap cleanup EXIT
+
+say 1 check
+((EUID == 0)) || die "run as root"
+[[ -d /sys/firmware/efi ]] || die "not booted in UEFI mode (v1 installs with systemd-boot only)"
+DISK="${INSTALL_DISK:?INSTALL_DISK=/dev/… is required}"
+[[ "${INSTALL_CONFIRM:-}" == "$DISK" ]] || die "INSTALL_CONFIRM must repeat INSTALL_DISK: everything on $DISK is erased"
+[[ -b $DISK && "$(lsblk -dno TYPE "$DISK")" == disk ]] || die "$DISK is not a whole disk"
+[[ -z "$(lsblk -no MOUNTPOINTS "$DISK" | tr -d '[:space:]')" ]] || die "something on $DISK is mounted"
+boot_src="$(findmnt -no SOURCE /run/archiso/bootmnt 2>/dev/null || true)"
+[[ -n $boot_src ]] && [[ $boot_src == "$DISK" || "/dev/$(lsblk -no PKNAME "$boot_src" 2>/dev/null | head -1)" == "$DISK" ]] && die "$DISK is the installer's own stick"
+(($(lsblk -bdno SIZE "$DISK") >= 20 * 1024 ** 3)) || die "$DISK is smaller than 20 GB"
+[[ $U =~ ^[a-z_][a-z0-9_-]{0,31}$ && $U != root ]] || die "INSTALL_USER: lowercase latin letters, digits, - and _"
+HOST="${INSTALL_HOST:-angelos}"
+[[ $HOST =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]] || die "INSTALL_HOST: letters, digits and -"
+ZONE="${INSTALL_TZ:-UTC}"
+[[ -f /usr/share/zoneinfo/$ZONE && $ZONE != *..* ]] || die "INSTALL_TZ: no such time zone $ZONE"
+LOCALE="${INSTALL_LOCALE:-en_US.UTF-8}"
+[[ $LOCALE =~ ^[a-z]{2,3}_[A-Z]{2}\.UTF-8$ ]] && grep -q "^#\?$LOCALE UTF-8" /etc/locale.gen || die "INSTALL_LOCALE: no such locale $LOCALE"
+KB="${INSTALL_KB:-us,ru}"
+[[ $KB =~ ^[a-z]{2,3}(,[a-z]{2,3})*$ ]] || die "INSTALL_KB: XKB layouts, comma separated"
+IFS= read -r PASS || true
+[[ -n $PASS ]] || die "the password comes on stdin, one line"
+curl -fsS --max-time 15 -o /dev/null https://archlinux.org || die "no internet: the system is downloaded"
+
+say 5 disk
+echo "$DISK before: $(lsblk -no NAME,SIZE,FSTYPE,LABEL "$DISK" | tr '\n' ';')"
+wipefs -af "$DISK"
+sgdisk -Z "$DISK"
+sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n2:0:0 -t2:8304 -c2:angelos "$DISK"
+partprobe "$DISK"; udevadm settle
+mapfile -t P < <(lsblk -lnpo PATH,TYPE "$DISK" | awk '$2 == "part" {print $1}')
+((${#P[@]} == 2)) || die "the new partitions did not show up on $DISK"
+mkfs.fat -F 32 -n EFI "${P[0]}"
+mkfs.btrfs -f -L angelos "${P[1]}"
+mount "${P[1]}" "$M"
+for sv in @ @home @log @pkg; do btrfs subvolume create "$M/$sv"; done
+umount "$M"
+o=noatime,compress=zstd:1
+mount -o "$o,subvol=@" "${P[1]}" "$M"; MOUNTED=1
+mount --mkdir -o "$o,subvol=@home" "${P[1]}" "$M/home"
+mount --mkdir -o "$o,subvol=@log" "${P[1]}" "$M/var/log"
+mount --mkdir -o "$o,subvol=@pkg" "${P[1]}" "$M/var/cache/pacman/pkg"
+mount --mkdir -o umask=0077 "${P[0]}" "$M/boot"
+
+say 10 base
+# -K: the new system's own pacman keyring (none is shared with the image or with other installs)
+pacstrap -K "$M" base linux linux-firmware sof-firmware amd-ucode intel-ucode btrfs-progs dosfstools \
+  networkmanager sudo git python curl nano
+genfstab -U "$M" >>"$M/etc/fstab"
+
+say 30 system
+c() { arch-chroot "$M" "$@"; }
+c ln -sf "/usr/share/zoneinfo/$ZONE" /etc/localtime
+c hwclock --systohc || true   # a VM may have no RTC to write
+sed -i -e 's/^#\(en_US.UTF-8 UTF-8\)/\1/' -e 's/^#\(ru_RU.UTF-8 UTF-8\)/\1/' -e "s/^#\($LOCALE UTF-8\)/\1/" "$M/etc/locale.gen"
+c locale-gen
+echo "LANG=$LOCALE" >"$M/etc/locale.conf"
+echo "$HOST" >"$M/etc/hostname"
+: >"$M/etc/machine-id"; c systemd-machine-id-setup
+c systemctl enable NetworkManager.service
+
+say 35 user
+c useradd -m -G wheel,video,audio,input -s /bin/bash "$U"
+printf '%s:%s\n' "$U" "$PASS" | c chpasswd
+unset PASS
+c passwd -l root
+echo '%wheel ALL=(ALL:ALL) ALL' >"$M/etc/sudoers.d/10-wheel"
+# install.sh's sudo without a password only while it runs (cleanup removes it, also on a failure)
+echo "$U ALL=(ALL) NOPASSWD: ALL" >"$M/etc/sudoers.d/99-angelos-install"
+chmod 440 "$M"/etc/sudoers.d/{10-wheel,99-angelos-install}
+
+say 40 angelos
+# the image's own copy: the installed system is the version the ISO was built from (Updates move it on)
+cp -a /home/angel/AngelOS-Dotfiles "$M/home/$U/AngelOS-Dotfiles"
+c chown -R "$U:$U" "/home/$U/AngelOS-Dotfiles"
+# wallpapers, apps, games and voice: the first run in the new system offers them (SetupIntro), not asked twice;
+# INTRO_SOUNDS=0: its background bake would hold the chroot busy — the first run makes the sounds itself
+c su - "$U" -c "cd ~/AngelOS-Dotfiles && INTERACTIVE=0 NO_MUSIC=1 NO_ANIM=1 ANGELOS_SELF_UPDATE=0 \
+  KB_LAYOUTS=$KB INSTALL_SDDM=1 INSTALL_APPS=0 INSTALL_GAMING=0 GITHUB_LOGIN=0 \
+  INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 WALLPAPER_PACKS=none INTRO_SOUNDS=0 ./install.sh </dev/null"
+# install.sh only warns when a package fails (a user's update retries); a system without these doesn't start
+c pacman -Q quickshell sddm niri
+[[ -x $M/home/$U/.local/bin/niri ]] || die "angel-niri was not installed"
+c systemctl enable sddm.service
+
+say 90 boot
+c bootctl --esp-path=/boot install
+uuid="$(blkid -s UUID -o value "${P[1]}")"
+printf 'default angelos.conf\ntimeout 3\neditor no\n' >"$M/boot/loader/loader.conf"
+for e in "angelos:" "angelos-fallback:-fallback"; do
+  printf 'title   angelOS%s\nlinux   /vmlinuz-linux\ninitrd  /initramfs-linux%s.img\noptions root=UUID=%s rootflags=subvol=@ rw quiet\n' \
+    "${e#*:}" "${e#*:}" "$uuid" >"$M/boot/loader/entries/${e%%:*}.conf"
+done
+# host keys are made by each machine's first sshd start, never carried over
+rm -f "$M"/etc/ssh/ssh_host_*
+
+say 100 done

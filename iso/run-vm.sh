@@ -24,23 +24,8 @@ nice -n 15 qemu-system-x86_64 -enable-kvm -cpu host -smp 4 -m 4096 -machine q35 
   -qmp "unix:$D/qmp.sock,server,nowait" -daemonize -pidfile "$D/qemu.pid"
 
 # g 'shell command' → its stdout (run as root in the guest); fails while the agent is not up yet
-g() {
-  timeout 60 python3 -I - "$D/qga.sock" "$1" <<'PY'
-import base64, json, socket, sys, time
-s = socket.socket(socket.AF_UNIX); s.settimeout(10); s.connect(sys.argv[1]); f = s.makefile("rw")
-def call(cmd, **args):
-    f.write(json.dumps({"execute": cmd, "arguments": args}) + "\n"); f.flush()
-    while True:
-        r = json.loads(f.readline())
-        if "return" in r: return r["return"]
-        if "error" in r: sys.exit(r["error"]["desc"])
-call("guest-sync", id=4711)
-pid = call("guest-exec", path="/bin/sh", arg=["-c", sys.argv[2]], **{"capture-output": True})["pid"]
-while not (st := call("guest-exec-status", pid=pid))["exited"]: time.sleep(0.3)
-sys.stdout.buffer.write(base64.b64decode(st.get("out-data", "")))
-sys.exit(st.get("exitcode", 1))
-PY
-}
+HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+g() { timeout 60 python3 -I "$HERE/qga.py" "$D/qga.sock" "$1"; }
 AS_ANGEL='export XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1;'
 
 for ((t = STEP; t <= SECS; t += STEP)); do
