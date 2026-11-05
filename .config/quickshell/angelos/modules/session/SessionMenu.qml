@@ -121,7 +121,9 @@ PanelWindow {
                 else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter || e.key === Qt.Key_Space)
                     win.run(win.actions[win.current].id);
                 else {
-                    const a = win.actions.find(a => a.key === e.text.toUpperCase());
+                    // the same key in the Russian layout too (#165): «Д» is L, «Ы» is S…
+                    const t = e.text.toUpperCase(), sw = SettingsSearch.swapLayout(e.text).toUpperCase();
+                    const a = win.actions.find(a => a.key === t || a.key === sw);
                     if (a)
                         win.run(a.id);
                 }
