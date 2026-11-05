@@ -1,0 +1,5 @@
+
+# angelOS (the rest is installed by install.sh in customize_airootfs.sh)
+sudo
+git
+grim

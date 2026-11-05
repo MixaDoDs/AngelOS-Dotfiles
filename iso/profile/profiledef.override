@@ -1,0 +1,7 @@
+
+# angelOS (appended to releng's profiledef.sh by inside.sh)
+iso_name="angelos"
+iso_label="ANGELOS_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
+iso_publisher="angelOS <https://github.com/MixaDoDs/AngelOS-Dotfiles>"
+iso_application="angelOS Live"
+file_permissions+=(["/root/customize_airootfs.sh"]="0:0:755")
