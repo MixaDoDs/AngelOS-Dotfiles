@@ -48,8 +48,9 @@ done
 g "cat /tmp/progress" >"$D/progress.txt" || true
 g "cat /var/log/angelos-install.log" >"$D/install.log" || true
 g "cat /tmp/err" >"$D/err.txt" || true
-g "systemctl poweroff" >/dev/null 2>&1 || true
-for ((i = 0; i < 30; i++)); do kill -0 "$(cat "$D/qemu.pid")" 2>/dev/null || break; sleep 1; done; stop
+g "mkdir -p /tmp/esp && mount -o ro /dev/vda1 /tmp/esp && find /tmp/esp; umount /tmp/esp" >"$D/esp.txt" 2>&1 || true
+g "sync; systemctl poweroff" >/dev/null 2>&1 || true
+for ((i = 0; i < 120; i++)); do kill -0 "$(cat "$D/qemu.pid")" 2>/dev/null || break; sleep 1; done; stop
 [[ $rc == 0 ]] || { echo "✕ install failed (rc=${rc:-timeout}), see $D/err.txt and install.log"; cat "$D/err.txt"; exit 1; }
 echo "install: $((SECONDS - start)) s"
 

@@ -33,7 +33,12 @@ cleanup() {
     # what install.sh left running in the chroot (gpg-agent of pacman-key…) keeps /mnt busy
     for p in /proc/[0-9]*; do [[ "$(readlink "$p/root" 2>/dev/null)" == "$M" ]] && kill "${p#/proc/}" 2>/dev/null; done
     sleep 1
-    umount -R "$M" || true
+    sync
+    if ! umount -R "$M"; then
+      echo "still holding $M:"
+      for p in /proc/[0-9]*; do ls -l "$p"/{root,cwd,fd} 2>/dev/null | grep -q " $M" && echo "  ${p#/proc/} $(cat "$p/comm")"; done
+      umount -R -l "$M" || true
+    fi
   fi
 }
 trap cleanup EXIT
@@ -125,6 +130,7 @@ c systemctl enable sddm.service
 
 say 90 boot
 c bootctl --esp-path=/boot install
+ls -R "$M/boot"
 uuid="$(blkid -s UUID -o value "${P[1]}")"
 printf 'default angelos.conf\ntimeout 3\neditor no\n' >"$M/boot/loader/loader.conf"
 for e in "angelos:" "angelos-fallback:-fallback"; do
