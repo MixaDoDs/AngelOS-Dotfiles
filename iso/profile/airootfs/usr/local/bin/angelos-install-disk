@@ -8,7 +8,7 @@
 #     [INSTALL_HOST=angelos INSTALL_TZ=Europe/Moscow INSTALL_LOCALE=ru_RU.UTF-8 INSTALL_KB=us,ru] angelos-install-disk
 # (INSTALL_*: HOSTNAME, USERNAME, LANG and TZ are already set by bash, sudo and the live session)
 #
-# stdout: progress lines "@@ <percent> <step>" (check disk base system user angelos boot done) or
+# stdout: progress lines "@@ <percent> <step>" (check disk base system user angelos gpu boot done) or
 # "@@ fail <step>"; everything else goes to /var/log/angelos-install.log (copied onto the new disk).
 # shortcut: UEFI and the whole disk only (v1, the owner's decision 05.11); manual layouts — archinstall
 set -Eeuo pipefail
@@ -127,6 +127,20 @@ c pacman -Q quickshell sddm niri
 # the link points inside the new system: tested from there
 c test -x "/home/$U/.local/bin/niri" || die "angel-niri was not installed"
 c systemctl enable sddm.service
+
+say 80 gpu
+# the graphics driver, as CachyOS's own installer picks it (chwd: the open NVIDIA driver for Turing and newer,
+# 580xx / 470xx for older cards, PRIME on laptops; AMD, Intel, VMs). install.sh has added [cachyos] and [multilib]
+# by now. Its NVIDIA profiles build a DKMS module for Arch's kernel: the headers first
+nvidia=0
+lspci -n | grep -qE ' 03(00|02|80): 10de:' && nvidia=1
+((nvidia)) && c pacman -S --noconfirm --needed linux-headers
+c pacman -S --noconfirm --needed chwd
+c chwd --autoconfigure
+if ((nvidia)); then
+  c sh -c 'pacman -Qq | grep -qE "^nvidia(-[0-9]+xx)?-utils$"' || die "NVIDIA: chwd installed no driver"
+  c sh -c 'dkms status | grep -q "nvidia.*installed"' || die "NVIDIA: the driver's kernel module was not built"
+fi
 
 say 90 boot
 c bootctl --esp-path=/boot install
