@@ -30,6 +30,9 @@ cleanup() {
   ((rc == 0)) || { echo "@@ fail $STEP" >&3; tail -n 25 "$LOG" >&4; }
   if ((MOUNTED)); then
     [[ -d $M/var/log ]] && cp "$LOG" "$M/var/log/angelos-install.log"
+    # what install.sh left running in the chroot (gpg-agent of pacman-key…) keeps /mnt busy
+    for p in /proc/[0-9]*; do [[ "$(readlink "$p/root" 2>/dev/null)" == "$M" ]] && kill "${p#/proc/}" 2>/dev/null; done
+    sleep 1
     umount -R "$M" || true
   fi
 }
@@ -116,7 +119,8 @@ c su - "$U" -c "cd ~/AngelOS-Dotfiles && INTERACTIVE=0 NO_MUSIC=1 NO_ANIM=1 ANGE
   INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 WALLPAPER_PACKS=none INTRO_SOUNDS=0 ./install.sh </dev/null"
 # install.sh only warns when a package fails (a user's update retries); a system without these doesn't start
 c pacman -Q quickshell sddm niri
-[[ -x $M/home/$U/.local/bin/niri ]] || die "angel-niri was not installed"
+# the link points inside the new system: tested from there
+c test -x "/home/$U/.local/bin/niri" || die "angel-niri was not installed"
 c systemctl enable sddm.service
 
 say 90 boot
