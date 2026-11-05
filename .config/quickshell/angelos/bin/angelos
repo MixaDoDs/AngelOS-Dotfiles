@@ -466,7 +466,7 @@ case "$1" in
       t="Голосовой ввод выключен"; b="Включить: systemctl --user enable --now voxtype.service"
     fi
     case "${LANG:-}" in ru*) ;; *)
-      case "$t" in *установлен) t="Voice typing is not installed"; b="Turn it on: angelos setup → “What else angelOS can do” → Voice input (~1.6 GB)" ;;
+      case "$t" in *установлен) t="Voice typing is not installed"; b="Turn it on: angelos setup → «What else angelOS can do» → Voice input (~1.6 GB)" ;;
         *паузе) t="Voice typing is paused"; b="Game mode turns it off while a game runs" ;;
         *) t="Voice typing is off"; b="Turn it on: systemctl --user enable --now voxtype.service" ;; esac ;;
     esac

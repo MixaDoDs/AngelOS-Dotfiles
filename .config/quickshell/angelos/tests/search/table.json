@@ -70,7 +70,7 @@
     {"q": "angel", "want": ["helper"], "top": 2},
     {"q": "анжел", "want": ["helper"], "top": 3},
     {"q": "крылья", "want": ["helper"], "top": 3},
-    {"q": "нимб", "want": ["helper"], "top": 3},
+    {"q": "нимб", "want": ["halo", "helper"], "top": 4},
     {"q": "облик ангела", "want": ["helper/Внешность"], "top": 3},
     {"q": "скины ангела", "want": ["rewards/Скины ангела"]},
     {"q": "голос ангела", "want": ["sfx/Голос ангела"], "top": 3},
