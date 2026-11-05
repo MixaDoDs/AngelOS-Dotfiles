@@ -62,7 +62,7 @@ echo "install: $((SECONDS - start)) s"
 vm -device virtio-vga-gl,xres=1920,yres=1080 -display egl-headless \
   -device virtio-serial -chardev "socket,path=$D/qga.sock,server=on,wait=off,id=qga0" \
   -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0
-# qmp type <keys…> (QEMU key names: a b … minus ret) — the keyboard works with virgl, screendump does not
+# qmp <keys…> (QEMU key names: a b … minus ret) — the keyboard works with virgl, screendump does not
 qmp() {
   python3 -I - "$D/qmp.sock" "$@" <<'PY'
 import json, socket, sys, time
@@ -81,7 +81,7 @@ PY
 for ((i = 0; i < 40; i++)); do g "pgrep -x sddm-greeter-qt6 || pgrep -f sddm-greeter" >/dev/null 2>&1 && break; sleep 5; done
 sleep 10
 g "pgrep -a sddm; pgrep -a Xorg" >"$D/greeter.txt" 2>&1 || echo "✕ no login screen"
-qmp type a n g e l minus t e s t ret
+qmp a n g e l minus t e s t ret
 AS_TESTER='runuser -u tester -- env XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1'
 for t in 30 60 90 120 150; do
   sleep 30
