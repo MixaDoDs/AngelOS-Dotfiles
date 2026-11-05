@@ -32,7 +32,13 @@ vm -cdrom "$ISO" -boot d -device virtio-vga-gl,xres=1920,yres=1080 -display egl-
   -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0
 for ((i = 0; i < 60; i++)); do g true 2>/dev/null && break; sleep 5; done
 g true || { echo "✕ the live's guest agent never answered"; exit 1; }
-g "echo $(base64 -w0 "$HERE/profile/airootfs/usr/local/bin/angelos-install-disk") | base64 -d >/usr/local/bin/angelos-install-disk && chmod 755 /usr/local/bin/angelos-install-disk"
+S="$HERE/profile/airootfs/usr/local/bin/angelos-install-disk"
+if [[ "$(g 'test -x /usr/local/bin/angelos-install-disk && sha256sum </usr/local/bin/angelos-install-disk' 2>/dev/null)" == "$(sha256sum <"$S")" ]]; then
+  echo "the image's own angelos-install-disk"
+else
+  echo "angelos-install-disk from the tree (the image has another or none)"
+  g "echo $(base64 -w0 "$S") | base64 -d >/usr/local/bin/angelos-install-disk && chmod 755 /usr/local/bin/angelos-install-disk"
+fi
 g "angelos-install-disk list" >"$D/list.json"
 g "setsid sh -c 'echo angel-test | INSTALL_DISK=/dev/vda INSTALL_CONFIRM=/dev/vda INSTALL_USER=tester \
    INSTALL_TZ=Europe/Moscow INSTALL_LOCALE=ru_RU.UTF-8 angelos-install-disk >/tmp/progress 2>/tmp/err; echo \$? >/tmp/rc' \
