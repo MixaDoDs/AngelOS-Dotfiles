@@ -18,7 +18,8 @@ sed -i '/automated_script/d' "$P/profiledef.sh"
 
 cp -rT /stage/profile/airootfs "$P/airootfs"
 cat /stage/profile/packages.x86_64 >>"$P/packages.x86_64"
-cp -r /stage/src "$P/airootfs/root/angelos-src"
+# a tarball: mkarchiso copies airootfs with --no-preserve=mode, the scripts would lose their x bit
+tar -C /stage/src -cf "$P/airootfs/root/angelos-src.tar" .
 cat /stage/profile/profiledef.override >>"$P/profiledef.sh"   # name, label, permissions
 
 mkarchiso -v -w /work/w -o /work/out "$P"

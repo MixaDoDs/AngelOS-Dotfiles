@@ -15,7 +15,9 @@ passwd -d angel >/dev/null
 printf 'angel ALL=(ALL) NOPASSWD: ALL\n' >/etc/sudoers.d/00-live
 chmod 440 /etc/sudoers.d/00-live
 
-mv /root/angelos-src /home/angel/AngelOS-Dotfiles
+mkdir /home/angel/AngelOS-Dotfiles
+tar -xf /root/angelos-src.tar -C /home/angel/AngelOS-Dotfiles
+rm /root/angelos-src.tar
 git -C /home/angel/AngelOS-Dotfiles remote set-url origin https://github.com/MixaDoDs/AngelOS-Dotfiles.git
 chown -R angel:angel /home/angel
 
