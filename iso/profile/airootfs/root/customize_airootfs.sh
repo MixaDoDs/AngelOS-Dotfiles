@@ -26,12 +26,17 @@ chown -R angel:angel /home/angel
 # the live is the installer: install.sh lays out the shell only, its packages are packages.x86_64's short list;
 # the installed system gets the full install.sh (packages, CachyOS, apps, voice, wallpapers) over the network
 su - angel -c 'cd ~/AngelOS-Dotfiles && INTERACTIVE=0 NO_MUSIC=1 NO_ANIM=1 ANGELOS_SELF_UPDATE=0 \
-  SKIP_PACKAGES=1 INSTALL_SDDM=1 INSTALL_TOOLS=0 MINIMIZE_HOOK=0 \
+  SKIP_PACKAGES=1 FOLLOW_SYSTEM=0 INSTALL_SDDM=1 INSTALL_TOOLS=0 MINIMIZE_HOOK=0 \
   CACHYOS_REPOS=0 INSTALL_APPS=0 INSTALL_GAMING=0 GITHUB_LOGIN=0 \
   INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 WALLPAPER_PACKS=none FISH_DEFAULT=0 INTRO_SOUNDS=0 \
   ./install.sh </dev/null'
-# the live is the installer, not a first login: no first-run wizard or intro (they belong to the installed system)
+# the live is the installer, not a first login: no first-run wizard or intro (they belong to the installed system).
+# FOLLOW_SYSTEM=0 above: that step installs packages/*.txt despite SKIP_PACKAGES (gcc, webengine, CJK — 1.5 GB).
+# setup skip still leaves the once-per-version intro (10 s after start): its sound bake took 2.9 GB, OOM on 4 GB
 su - angel -c '~/.local/bin/angelos setup skip'
+install -d -o angel -g angel /home/angel/.config/environment.d
+printf 'ANGELOS_SETUP_INTRO=0\n' >/home/angel/.config/environment.d/50-angelos-live.conf
+chown angel:angel /home/angel/.config/environment.d/50-angelos-live.conf
 # install.sh only warns when pacman fails (a user's next update retries); an image without them is broken
 pacman -Q quickshell sddm niri >/dev/null
 [[ -x /home/angel/.local/bin/niri ]]   # angel-niri (scripts/angel-niri-install.sh links it there)
