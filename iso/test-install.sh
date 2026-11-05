@@ -56,20 +56,33 @@ echo "install: $((SECONDS - start)) s"
 
 # 2. the disk alone
 vm -device virtio-vga,xres=1920,yres=1080 -display none
-shot() {
-  python3 -I - "$D/qmp.sock" "$1" <<'PY'
-import json, socket, sys
+# qmp shot <file.png> | qmp type <keys…> (QEMU key names: a b … minus ret)
+qmp() {
+  python3 -I - "$D/qmp.sock" "$@" <<'PY'
+import json, socket, sys, time
 s = socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); f = s.makefile("rw")
 f.readline()
-for cmd, args in (("qmp_capabilities", {}), ("screendump", {"filename": sys.argv[2], "format": "png"})):
+def call(cmd, **args):
     f.write(json.dumps({"execute": cmd, "arguments": args}) + "\n"); f.flush()
     while "return" not in (r := json.loads(f.readline())):
         if "error" in r: sys.exit(r["error"]["desc"])
+call("qmp_capabilities")
+if sys.argv[2] == "shot":
+    call("screendump", filename=sys.argv[3], format="png")
+else:
+    for k in sys.argv[3:]:
+        call("send-key", keys=[{"type": "qcode", "data": k}]); time.sleep(0.15)
 PY
 }
+for t in 30 60 90; do
+  sleep 30
+  qmp shot "$D/boot-$(printf %03d "$t").png" && echo "boot $t s: picture"
+done
+# the login screen: the test user's password (angel-test), then the first login's desktop
+qmp type a n g e l minus t e s t ret
 for t in 30 60 90 120; do
   sleep 30
-  shot "$D/boot-$(printf %03d "$t").png" && echo "boot $t s: picture"
+  qmp shot "$D/login-$(printf %03d "$t").png" && echo "login $t s: picture"
 done
 stop
 [[ ${KEEP_DISK:-0} == 1 ]] || rm -f "$D/disk.qcow2"
