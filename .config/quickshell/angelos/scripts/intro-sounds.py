@@ -172,9 +172,34 @@ def nextpow2(n):
     return 1 << (int(n) - 1).bit_length()
 
 
+# Longer than this (~22 s, the prequel's whole-track beds) is filtered in blocks: one FFT over the
+# whole padded track held ~2.9 GB and the kernel killed the desktop with it on 4 GB machines
+BIG = 1 << 20
+FIR = 1 << 16       # a gain curve as a linear-phase FIR for the blocks: 1.4 s, 0.7 Hz apart
+
+
+def _ola(x, h):
+    """x convolved with a shorter h, full length, block by block (overlap-add); (n,) or (n, 2) each."""
+    if x.ndim != h.ndim:
+        x, h = (x[:, None], h) if x.ndim == 1 else (x, h[:, None])
+    m = len(h)
+    size = nextpow2(max(4 * m, 1 << 16))
+    step = size - m + 1
+    H = np.fft.rfft(h, size, axis=0)
+    out = np.zeros((len(x) + m - 1,) + x.shape[1:])
+    for a in range(0, len(x), step):
+        seg = x[a:a + step]
+        y = np.fft.irfft(np.fft.rfft(seg, size, axis=0) * H, size, axis=0)[: len(seg) + m - 1]
+        out[a:a + len(y)] += y
+    return out
+
+
 def fft_filter(x, gain):
     """x (n,) or (n, 2) filtered by gain(freqs)."""
     n = len(x)
+    if n > BIG:
+        h = np.roll(np.fft.irfft(gain(np.fft.rfftfreq(FIR, 1 / RATE)), FIR), FIR // 2) * np.blackman(FIR)
+        return _ola(x, h)[FIR // 2: FIR // 2 + n]
     size = nextpow2(n)
     spec = np.fft.rfft(x, size, axis=0)
     g = gain(np.fft.rfftfreq(size, 1 / RATE))
@@ -200,6 +225,8 @@ def band(lo, hi):
 
 def convolve(x, ir):
     n = len(x) + len(ir) - 1
+    if n > BIG:
+        return _ola(x, ir) if len(ir) <= len(x) else _ola(ir, x)
     size = nextpow2(n)
     return np.fft.irfft(np.fft.rfft(x, size, axis=0) * np.fft.rfft(ir, size, axis=0), size, axis=0)[:n]
 
@@ -538,10 +565,15 @@ def her_music(n, until):
     k = np.floor(tt / step).astype(int)
     roots = np.array([220.0, 174.61, 130.81, 196.0])[(k // 16) % 4]
     arp = np.array([1, 1.5, 2, 2.4, 3, 2.4, 2, 1.5])[k % 8]
+    del k       # whole-length temporaries go as soon as they are used (4 GB machines)
     phase = 2 * np.pi * np.cumsum(roots * arp) / RATE
+    del arp
     x = (np.sin(phase) + 0.3 * ((phase / (2 * np.pi)) % 1 * 2 - 1)) * np.exp(-(tt % step) / 0.3)
+    del phase
     bar = tt % (step * 16)
+    del tt
     x += 0.7 * np.sin(2 * np.pi * np.cumsum(roots / 2) / RATE) * np.minimum(1, bar / 0.4) * np.exp(-bar / 3.0)
+    del roots, bar
     x = fft_filter(x, band(180, 3200))
     return pan(unit(x), -0.2) * ramp(n, until, until + 1.5, 1, 0)
 
@@ -666,13 +698,19 @@ def game_tune(n):
     cuts = PRE["inserts"]
     wrong = np.interp(tt, [cuts[0][1]] + [c[0] for c in cuts[1:]] + [PRE["length"]],
                       [0.0] + list(np.linspace(0.45, 1.0, len(cuts) - 1)) + [1.0])
+    # each of these is the whole 245 s (90 MB): dropped as soon as the next is made (4 GB machines)
     notes = 4 * (1 - 0.45 * wrong)
     k = np.floor(np.cumsum(notes) / RATE).astype(int)
+    del notes
     scale = np.array([523.25, 659.25, 783.99, 659.25, 880.0, 783.99, 659.25, 587.33,
                       523.25, 587.33, 659.25, 783.99, 1046.5, 880.0, 783.99, 659.25])[k % 16]
+    del k
     freq = scale * 2 ** (-(5 * wrong + 1.2 * wrong * np.sin(2 * np.pi * 0.7 * tt)) / 12)
+    del scale, wrong, tt
     phase = 2 * np.pi * np.cumsum(freq) / RATE
+    del freq
     x = np.sign(np.sin(phase)) * 0.6 + np.sign(np.sin(phase / 2)) * 0.4
+    del phase
     # coarser: fewer and fewer samples a second
     for (a, _b), hold in zip(cuts[-2:], (4, 9)):
         i = np.arange(n_of(a), n)
@@ -681,6 +719,7 @@ def game_tune(n):
     a, piece = n_of(cuts[-1][0] + 1.0), n_of(0.125)
     i = np.arange(a, n)
     x[i] = x[a + (i - a) % piece]
+    del i
     x[: n_of(PRE["goggles"])] = 0
     loud = np.zeros(n)
     for a, b in cuts:
@@ -708,6 +747,7 @@ def prequel():
                 seek[i] = rng.uniform(0.4, 1)
     m = n_of(0.004)
     mix += pan(convolve(seek, fft_filter(rng.standard_normal(m), band(900, 3500)) * exp_env(m, 0.0012))[:n], 0.35) * 0.05
+    del seek    # whole-length arrays go as soon as they are mixed in: the prequel is 245 s (4 GB machines)
     # what is behind — her music, the neighbours, the wind, the fireworks — gives way while she
     # thinks, laughs, or he writes: one thing at a time
     front = np.zeros(n)
@@ -766,8 +806,12 @@ def prequel():
     two = dance(L - mid - 3, 140, [73.42, 58.27, 87.31, 65.41], [12, 7, 3, 7, 12, 7, 15, 12, 10, 7, 3, 7, 10, 7, 14, 10])
     tune[n_of(mid + 3):n_of(mid + 3) + len(two)] = two * np.minimum(1, t_axis(len(two)) / 1.5) * 1.5
     party += pan(fft_filter(tune, lambda f: lowpass(250, 2)(f) + 0.1 * band(250, 1400)(f)), 0.3) * 0.15
+    del tune, one, two
     people = fft_filter(bed("party", n, 0.0, 3.0), lowpass(750, 2))
-    party += people * np.interp(tt, [0, mid - 62, mid - 58, mid - 8, mid, mid + 6, L], [0.6, 0.6, 0.3, 0.45, 1.5, 1.0, 1.0])[:, None] * np.array([0.3, 0.5])
+    people *= np.interp(tt, [0, mid - 62, mid - 58, mid - 8, mid, mid + 6, L], [0.6, 0.6, 0.3, 0.45, 1.5, 1.0, 1.0])[:, None]
+    people *= np.array([0.3, 0.5])       # in place: two 180 MB products fewer, the same numbers
+    party += people
+    del people
     wallring = lowpass(1300, 2)
     for name, at, gain in (("cheer", mid + 0.2, 0.3), ("cork", mid + 1.1, 0.2), ("clink", mid + 2.0, 0.12), ("clink", mid + 2.7, 0.09), ("cheer", mid + 9.0, 0.15)):
         add(party, at, fft_filter(sample(name), wallring) * np.array([0.6, 1.0]) * gain)
@@ -775,6 +819,7 @@ def prequel():
     for i in range(12):
         add(party, mid - (11 - i) * 2.2 - onset("bell"), bell * np.array([0.18, 0.36]) * (0.5 + 0.5 * i / 11))
     behind += party
+    del party
     # ---- outside her window: the wind; fireworks (their light is in the picture a moment before)
     behind += wind(n) * np.array([1.0, 0.6]) * 0.75
     shots = np.zeros((n, 2))
@@ -784,7 +829,9 @@ def prequel():
             add(shots, at - 0.05, faded(fw[n_of(where - 0.05):n_of(where + 1.5)], 0.02, 0.9) * (0.16 + 0.24 * size))
     add(shots, mid - 0.4, faded(fw[n_of(THICK):n_of(THICK + L - mid + 0.4)], 0.3, 0.1) * 0.42)
     behind += fft_filter(shots, lowpass(3000, 1)) * np.array([1.0, 0.55])
+    del shots
     mix += behind * (1 - 0.6 * front)[:, None]
+    del behind, front
     # the pills taking hold: a low swim under everything
     a, b = PRE["high"]
     mix += pan(np.sin(2 * np.pi * 110 * tt) + np.sin(2 * np.pi * 111.3 * tt) + 0.5 * np.sin(2 * np.pi * 165.4 * tt), 0) * (np.interp(tt, [a, b, PRE["cut"]], [0, 0.03, 0.03]) * (0.7 + 0.3 * np.sin(2 * np.pi * 0.23 * tt)))[:, None]

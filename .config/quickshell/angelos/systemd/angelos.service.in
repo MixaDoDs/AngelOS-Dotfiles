@@ -26,3 +26,5 @@ RestartSec=1
 # must survive a shell restart.
 KillMode=process
 TimeoutStopSec=6
+# a helper the kernel kills for memory (intro-sounds.py on 4 GB) takes only itself down, not the desktop
+OOMPolicy=continue
