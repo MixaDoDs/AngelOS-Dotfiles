@@ -49,6 +49,8 @@ recent-windows {
 }
 
 overview {
+    // services/GoldenGate.overviewZoom draws the desks' glass cards for it (MacOverviewCard)
+    zoom 0.5
     backdrop-color "{{macOverview}}"
     workspace-shadow {
         softness 50

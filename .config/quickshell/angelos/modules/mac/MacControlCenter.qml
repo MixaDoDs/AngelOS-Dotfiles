@@ -430,8 +430,8 @@ PanelWindow {
                 spacing: win.gap
                 Round {
                     icon: "contrast"
-                    on: Theme.dark
-                    onClicked: Config.appearance.mode = Theme.dark ? "light" : "dark"
+                    on: Theme.night
+                    onClicked: Config.appearance.mode = Theme.night ? "light" : "dark"
                 }
                 Round {
                     icon: "scan"

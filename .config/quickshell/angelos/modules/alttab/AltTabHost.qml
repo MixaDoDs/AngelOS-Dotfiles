@@ -12,7 +12,8 @@ import qs.widgets
 // keyboard from the app. Keys: Tab / arrows move, Enter or letting Alt go
 // picks, Esc cancels, Delete closes the highlighted window; the mouse picks too, and a
 // click beside the switcher (on any screen) cancels it.
-// ⌘Tab (AltTab.mode "apps") shows the apps the Mac way (AltTabMac); letting ⌘ go picks.
+// ⌘Tab (AltTab.mode "apps"), and Alt+Tab in Golden Gate, show the apps the Mac way (AltTabMac);
+// letting the key go picks.
 Scope {
     LazyLoader {
         active: AltTab.shown
@@ -83,7 +84,7 @@ Scope {
                 }
                 // the fallback when the keyboard watcher is not allowed to read keys
                 Keys.onReleased: e => {
-                    const mod = AltTab.mode === "apps" ? [Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R] : [Qt.Key_Alt, Qt.Key_AltGr];
+                    const mod = AltTab.modKey === "meta" ? [Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R] : [Qt.Key_Alt, Qt.Key_AltGr];
                     if (mod.includes(e.key)) {
                         if (!AltTab.demo)
                             AltTab.commit();

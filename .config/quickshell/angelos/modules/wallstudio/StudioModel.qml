@@ -193,6 +193,36 @@ Item {
                 }]));
         sel = mods.length - 2;
     }
+    // the presets of the editor's «Заготовка» row: one click, and the picture moves; returns the
+    // sound that shows it off (the window strikes it once). "speaker" — a cone and its wave on the
+    // kick, "wave" — a wave over the whole picture, "shake" — a spot jolting on the snare, "tick" —
+    // a small twitch on the hats
+    function addPreset(kind) {
+        if (kind === "speaker") {
+            addSpeaker();
+            return "kick";
+        }
+        if (kind === "wave") {
+            addWave();
+            return "kick";
+        }
+        if (bulges >= maxBulges)
+            return "";
+        const m = bulge(cw / 2, ch / 2);
+        if (kind === "shake") {
+            m.source = "snare";
+            m.strength = 0.45;
+            m.release = 0.1;
+        } else {
+            m.source = "hat";
+            m.strength = 0.25;
+            m.release = 0.08;
+            m.radius = [Math.round(m.radius[0] * 0.6), Math.round(m.radius[1] * 0.6)];
+        }
+        change(mods.concat([m]));
+        sel = mods.length - 1;
+        return m.source;
+    }
     function remove(i) {
         const gone = mods[i];
         // a wave of that zone stays where it was

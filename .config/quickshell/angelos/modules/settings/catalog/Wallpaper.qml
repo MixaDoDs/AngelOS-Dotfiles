@@ -85,6 +85,21 @@ CatPage {
             }
         }
     }
+    // the wallpaper editor (services/WallStudio, modules/wallstudio): the picture on the focused
+    // screen, its speakers and what moves with the music
+    CatGroup {
+        id: editorGroup
+        name: "editor"
+        title: I18n.t("Редактор обоев", "Wallpaper editor")
+        icon: "image"
+        readonly property string here: Wallpapers.resolve(page.output, page.wsIdx)
+        CatButton {
+            label: I18n.t("Оживить обои под музыку", "Make the wallpaper move with the music")
+            hint: I18n.t("колонки, свет и волны на картинке этого экрана: начни с готовой заготовки", "Speakers, lights and waves on this screen's picture: start from a ready preset")
+            text: I18n.t("Открыть", "Open")
+            onClicked: WallStudio.edit(Wallpapers.sceneOf(editorGroup.here) || editorGroup.here)
+        }
+    }
     CatGroup {
         name: "images"
         title: I18n.t("Картинки (", "Images (") + page.filtered.length + ")"
@@ -1067,56 +1082,72 @@ CatPage {
             value: Config.wallpaper.sceneDuck
             onMoved: v => Config.wallpaper.sceneDuck = Math.round(v)
         }
+        CatLink {
+            label: I18n.t("Под музыку", "With the music")
+            hint: I18n.t("волна, помехи, края — в «Музыке и ритме»", "The wave, the glitches, the edges — in Music and rhythm")
+            page: "rhythm"
+            group: "scene-rhythm"
+        }
+    }
+    // a layered scene with the music (services/Bass → widgets/SceneWall) — shown on the Music
+    // and rhythm page (tree.json "rhythm"); each wallpaper keeps its own (Wallpapers.own)
+    CatGroup {
+        id: rhythmGroup
+        name: "scene-rhythm"
+        title: I18n.t("Обои", "Wallpaper")
+        icon: "image"
+        readonly property string here: Wallpapers.resolve(page.output, page.wsIdx)
+        present: Wallpapers.sceneOf(Wallpapers.origin(here)) !== ""
         CatToggle {
             label: I18n.t("Волна под бас", "A wave on the bass")
             hint: I18n.t("Под музыку от каждого удара из старого телевизора по картинке и виджетам расходится волна — первые удары трека ярче, чем громче играет, тем сильнее. Под видео и ночью во время события — нет", "With music each kick sends a wave out of the old TV through the picture and the widgets, a song's first kicks brighter, the louder it plays, the stronger. Not under videos or through the night's event")
-            checked: Wallpapers.own(soundGroup.here, "sceneBass")
-            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneBass", c)
+            checked: Wallpapers.own(rhythmGroup.here, "sceneBass")
+            onToggled: c => Wallpapers.setOwn(rhythmGroup.here, "sceneBass", c)
         }
         CatToggle {
             label: I18n.t("Помехи в телевизоре под малый барабан", "The TV glitches on the snare")
             hint: I18n.t("на каждый малый барабан или хлопок телевизор на миг теряет сигнал: строки срываются, по экрану бегут помехи", "Each snare or clap knocks the TV off its signal for a moment: the rows tear, interference rolls down the screen")
-            checked: Wallpapers.own(soundGroup.here, "sceneSnare")
-            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneSnare", c)
+            checked: Wallpapers.own(rhythmGroup.here, "sceneSnare")
+            onToggled: c => Wallpapers.setOwn(rhythmGroup.here, "sceneSnare", c)
         }
         CatToggle {
             label: I18n.t("Строки в телевизоре под тарелки", "TV scanlines on the hi-hats")
             hint: I18n.t("на хэты и тарелки по экрану телевизора пробегает светлая строка развёртки", "On the hi-hats and cymbals a light scanline runs across the TV's screen")
-            checked: Wallpapers.own(soundGroup.here, "sceneHats")
-            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneHats", c)
+            checked: Wallpapers.own(rhythmGroup.here, "sceneHats")
+            onToggled: c => Wallpapers.setOwn(rhythmGroup.here, "sceneHats", c)
         }
         CatToggle {
             label: I18n.t("Края экрана расслаиваются под малый барабан", "The screen's edges split on the snare")
             hint: I18n.t("на каждый малый барабан или хлопок по краям картинки и виджетов на миг расходятся красный и синий и пространство гнётся, как в линзе; середина остаётся чистой", "Each snare or clap parts red from blue for a moment at the edges of the picture and the widgets and bends the space like a lens; the middle stays clean")
-            checked: Wallpapers.own(soundGroup.here, "sceneEdges")
-            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneEdges", c)
+            checked: Wallpapers.own(rhythmGroup.here, "sceneEdges")
+            onToggled: c => Wallpapers.setOwn(rhythmGroup.here, "sceneEdges", c)
         }
         CatToggle {
             label: I18n.t("Края экрана дышат под бас", "The screen's edges breathe with the bass")
             hint: I18n.t("пока играет бас, картинка и виджеты у краёв чуть раздуваются, как в линзе, и слегка расходятся по цветам; середина стоит на месте", "While the bass plays, the picture and the widgets swell a little at the edges, as through a lens, and part slightly by colour; the middle stays put")
-            checked: Wallpapers.own(soundGroup.here, "sceneBreath")
-            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneBreath", c)
+            checked: Wallpapers.own(rhythmGroup.here, "sceneBreath")
+            onToggled: c => Wallpapers.setOwn(rhythmGroup.here, "sceneBreath", c)
         }
         CatToggle {
             label: I18n.t("Реакция из редактора обоев", "Reactions from the wallpaper editor")
             hint: I18n.t("зоны и волны, настроенные в редакторе обоев, двигаются под музыку", "The zones and waves set up in the wallpaper editor move with the music")
-            checked: Wallpapers.own(soundGroup.here, "sceneMods")
-            onToggled: c => Wallpapers.setOwn(soundGroup.here, "sceneMods", c)
+            checked: Wallpapers.own(rhythmGroup.here, "sceneMods")
+            onToggled: c => Wallpapers.setOwn(rhythmGroup.here, "sceneMods", c)
         }
         CatSlider {
             label: I18n.t("Сила реакции", "Reaction strength")
-            present: Wallpapers.own(soundGroup.here, "sceneMods")
+            present: Wallpapers.own(rhythmGroup.here, "sceneMods")
             from: 0
             to: 100
             stepSize: 5
             suffix: " %"
-            value: Wallpapers.own(soundGroup.here, "sceneModsGain")
-            onMoved: v => Wallpapers.setOwn(soundGroup.here, "sceneModsGain", Math.round(v))
+            value: Wallpapers.own(rhythmGroup.here, "sceneModsGain")
+            onMoved: v => Wallpapers.setOwn(rhythmGroup.here, "sceneModsGain", Math.round(v))
         }
-        CatButton {
-            label: I18n.t("Редактор обоев", "Wallpaper editor")
-            text: I18n.t("Открыть", "Open")
-            onClicked: WallStudio.edit(Wallpapers.sceneOf(soundGroup.here) || soundGroup.here)
+        CatLink {
+            label: I18n.t("Зоны и волны настраиваются в редакторе обоев", "The zones and waves are set up in the wallpaper editor")
+            page: "wallpaper"
+            group: "editor"
         }
     }
     // windows behind a layered scene's nearer things (services/SceneBehind; angel-niri only)

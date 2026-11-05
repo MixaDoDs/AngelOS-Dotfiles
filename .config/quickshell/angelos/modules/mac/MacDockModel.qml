@@ -18,15 +18,23 @@ Singleton {
     Component.onCompleted: if (!DefaultApps.data || !DefaultApps.data.files)
         DefaultApps.refresh()
 
+    // an entry's id from an id or a file name: ".desktop" goes only when it is the file's suffix,
+    // not a part of the id itself (Telegram is org.telegram.desktop, its file
+    // org.telegram.desktop.desktop: stripped always, it was looked for as org.telegram, never found,
+    // and the Dock dropped it as uninstalled)
+    function bareId(id) {
+        const s = String(id);
+        return DesktopEntries.byId(s) ? s : s.replace(/\.desktop$/, "");
+    }
     function entryOf(id) {
         if (!id)
             return null;
-        const bare = String(id).replace(/\.desktop$/, "");
+        const bare = bareId(id);
         return DesktopEntries.byId(bare) || DesktopEntries.heuristicLookup(bare);
     }
     function defaultId(cat) {
         const d = DefaultApps.data && DefaultApps.data[cat];
-        return d && d.current ? String(d.current).replace(/\.desktop$/, "") : "";
+        return d && d.current ? bareId(d.current) : "";
     }
     // the ids kept in the Dock ("@apps" — the Apps grid, "@settings" — System Settings)
     readonly property var keptIds: {
@@ -35,7 +43,7 @@ Singleton {
             return own;
         const out = [defaultId("files") || "org.gnome.Nautilus", "@apps", defaultId("browser"), defaultId("terminal")];
         for (const id of Config.bar.startPinned || [])
-            out.push(String(id).replace(/\.desktop$/, ""));
+            out.push(bareId(id));
         out.push("@settings");
         return out.filter((id, i) => id && out.indexOf(id) === i);
     }
@@ -65,9 +73,9 @@ Singleton {
             return {
                 "kind": "settings",
                 "id": id,
-                "name": I18n.t("Системные настройки", "System Settings"),
+                "name": AppMenu.shellSettingsName,
                 "kept": true,
-                "windows": Niri.windows.filter(w => w.app_id === "org.quickshell" && String(w.title).indexOf("angelOS") === 0)
+                "windows": Niri.windows.filter(w => AppMenu.isShellSettings(w))
             };
         const e = entryOf(id);
         const key = e ? e.id : id;
@@ -102,15 +110,17 @@ Singleton {
         return out;
     }
     // the minimized windows, oldest first: a snapshot each, its app's icon in the corner
+    // (System Settings' own window: its icon in the corner, not Quickshell's)
     readonly property var minimized: Minimize.windows.map(w => {
-        const e = entryOf(w.app_id);
+        const own = AppMenu.isShellSettings(w);
+        const e = own ? null : entryOf(w.app_id);
         return {
             "kind": "window",
             "id": "@w" + w.id,
             "wid": w.id,
             "entry": e,
-            "name": Niri.titleOf(w) || (e && e.name ? e.name : AppMenu.prettyName(w.app_id)),
-            "icon": e ? e.icon : w.app_id,
+            "name": own ? AppMenu.shellSettingsName : Niri.titleOf(w) || (e && e.name ? e.name : AppMenu.prettyName(w.app_id)),
+            "icon": own ? AppMenu.shellSettingsIcon : e ? e.icon : w.app_id,
             "shot": Minimize.shots[w.id] || "",
             "windows": []
         };
@@ -248,10 +258,6 @@ Singleton {
             Shell.openApps(Shell.focusedScreen ? Shell.focusedScreen.name : "");
             return;
         }
-        if (it.kind === "settings") {
-            Shell.openSettings();
-            return;
-        }
         if (it.kind === "window") {
             Minimize.restore(it.wid, false, screen);
             return;
@@ -271,11 +277,19 @@ Singleton {
             return;
         }
         if (shown.length) {
+            if (minimizeFront(shown))
+                return;
             // the app in front already: its next window; otherwise its last used one
             const front = AppMenu.window;
             const mine = shown;
             const i = front ? mine.findIndex(w => w.id === front.id) : -1;
             Niri.focusWindow(i >= 0 ? mine[(i + 1) % mine.length].id : mine[0].id);
+            return;
+        }
+        // Settings' windows go the apps' way above (Shell.openSettings alone did nothing to a
+        // minimized one); with none it opens them
+        if (it.kind === "settings") {
+            Shell.openSettings();
             return;
         }
         if (it.entry) {
@@ -285,6 +299,14 @@ Singleton {
             bouncing = b;
             bounceStop.restart();
         }
+    }
+    // Settings → Dock → «A click minimizes the app in front»: the focused window of these goes down
+    function minimizeFront(wins) {
+        const front = AppMenu.window;
+        if (!Config.mac.dockClickMinimizes || !front || !wins.some(w => w.id === front.id))
+            return false;
+        Minimize.request(front.id, "dock");
+        return true;
     }
     // a window of a bouncing app came: it stops (or after 8 s anyway)
     onRunningChanged: {
@@ -322,6 +344,22 @@ Singleton {
         return s.length > 48 ? s.slice(0, 46) + "…" : s;
     }
     // the Dock menu of an app (right click): its windows, New Window, Keep in Dock, Quit
+    // an app's menu items the Dock's menu and Spotlight's share: its .desktop actions (`before`
+    // runs first: Spotlight closes) and «Keep in Dock»; `prefix` keeps the menus' keys apart
+    function actionItems(entry, appId, prefix, before) {
+        const acts = entry && entry.actions ? entry.actions : [];
+        return acts.map((a, i) => MacMenus.fn(prefix + ":a" + i, a.name, () => {
+                if (before)
+                    before();
+                Shell.launchAction(a, appId);
+            }));
+    }
+    function keepItem(id, prefix) {
+        return MacMenus.fn(prefix + ":keep", I18n.t("Оставить в Dock", "Keep in Dock"), () => root.setKept(id, !root.isKept(id)), {
+            "toggle": "check",
+            "checked": root.isKept(id)
+        });
+    }
     function menuFor(it) {
         if (it.kind === "window")
             return AppMenu.tidy([MacMenus.fn("d:open", I18n.t("Открыть", "Open"), () => Minimize.restore(it.wid)), AppMenu.sep("d1"), MacMenus.fn("d:close", I18n.t("Закрыть", "Close"), () => Niri.closeWindow(it.wid))]);
@@ -334,16 +372,11 @@ Singleton {
             }));
         if (it.windows.length)
             out.push(AppMenu.sep("d1"));
-        const acts = it.entry && it.entry.actions ? it.entry.actions : [];
-        for (let i = 0; i < acts.length; i++)
-            out.push(MacMenus.fn("d:a" + i, acts[i].name, () => Shell.launchAction(acts[i], it.entry ? it.entry.id : it.id)));
+        const acts = actionItems(it.entry, it.entry ? it.entry.id : it.id, "d");
         if (acts.length)
-            out.push(AppMenu.sep("d2"));
+            out.push(...acts, AppMenu.sep("d2"));
         if (it.kind === "app") {
-            out.push(MacMenus.fn("d:keep", I18n.t("Оставить в Dock", "Keep in Dock"), () => root.setKept(it.id, !root.isKept(it.id)), {
-                "toggle": "check",
-                "checked": root.isKept(it.id)
-            }));
+            out.push(keepItem(it.id, "d"));
             if (!it.windows.length)
                 out.push(MacMenus.fn("d:open", I18n.t("Открыть", "Open"), () => root.open(it)));
         }

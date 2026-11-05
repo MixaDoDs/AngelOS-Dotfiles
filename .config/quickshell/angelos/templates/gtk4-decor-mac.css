@@ -85,25 +85,25 @@ windowcontrols > button.maximize:not(:backdrop) {
    would be a square); pressed, the light a shade darker */
 windowcontrols:hover > button.image-button.close:not(:backdrop),
 windowcontrols:hover > button.close:not(:backdrop) {
-    background-image: url("assets/mac-close.svg"), radial-gradient(circle closest-side, #ff8e87 0%, #ff5f57 62%, #e0443e 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+    background-image: url("angelos-assets/mac-close.svg"), radial-gradient(circle closest-side, #ff8e87 0%, #ff5f57 62%, #e0443e 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
 }
 windowcontrols:hover > button.image-button.minimize:not(:backdrop),
 windowcontrols:hover > button.minimize:not(:backdrop) {
-    background-image: url("assets/mac-minimize.svg"), radial-gradient(circle closest-side, #ffd56a 0%, #febc2e 62%, #dea123 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+    background-image: url("angelos-assets/mac-minimize.svg"), radial-gradient(circle closest-side, #ffd56a 0%, #febc2e 62%, #dea123 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
 }
 windowcontrols:hover > button.image-button.maximize:not(:backdrop),
 windowcontrols:hover > button.maximize:not(:backdrop) {
-    background-image: url("assets/mac-maximize.svg"), radial-gradient(circle closest-side, #5fdc71 0%, #28c840 62%, #1aab29 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
+    background-image: url("angelos-assets/mac-maximize.svg"), radial-gradient(circle closest-side, #5fdc71 0%, #28c840 62%, #1aab29 88%, rgba(0, 0, 0, 0.2) 93%, transparent 100%);
 }
 windowcontrols > button.image-button.close:active:not(:backdrop),
 windowcontrols:hover > button.image-button.close:active:not(:backdrop) {
-    background-image: url("assets/mac-close.svg"), radial-gradient(circle closest-side, #e0443e 0%, #c9302a 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
+    background-image: url("angelos-assets/mac-close.svg"), radial-gradient(circle closest-side, #e0443e 0%, #c9302a 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
 }
 windowcontrols > button.image-button.minimize:active:not(:backdrop),
 windowcontrols:hover > button.image-button.minimize:active:not(:backdrop) {
-    background-image: url("assets/mac-minimize.svg"), radial-gradient(circle closest-side, #dea123 0%, #c4881a 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
+    background-image: url("angelos-assets/mac-minimize.svg"), radial-gradient(circle closest-side, #dea123 0%, #c4881a 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
 }
 windowcontrols > button.image-button.maximize:active:not(:backdrop),
 windowcontrols:hover > button.image-button.maximize:active:not(:backdrop) {
-    background-image: url("assets/mac-maximize.svg"), radial-gradient(circle closest-side, #1aab29 0%, #13921f 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
+    background-image: url("angelos-assets/mac-maximize.svg"), radial-gradient(circle closest-side, #1aab29 0%, #13921f 88%, rgba(0, 0, 0, 0.25) 93%, transparent 100%);
 }

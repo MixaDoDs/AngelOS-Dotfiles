@@ -57,6 +57,13 @@ PanelWindow {
     readonly property int boomPx: Theme.u * 50           // «5 metres»: 100 px at the usual size
     property int booms: 0                                // bangs still on the screen
     property int blink: 0
+    property real now: 0                                 // the cats' one clock (ChatRunner.now)
+    Timer {
+        interval: 16
+        repeat: true
+        running: win.visible && StreamChat.runners.length > 0
+        onTriggered: win.now = Date.now()
+    }
 
     Repeater {
         id: cats
@@ -65,6 +72,7 @@ PanelWindow {
             values: StreamChat.runners
         }
         ChatRunner {
+            now: win.now
             pixel: win.pixel
             lane: win.width
             y: win.height - height

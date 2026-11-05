@@ -362,7 +362,7 @@ CatPage {
         // services/Timelapse: gpu-screen-recorder at a frame a second, glued at midnight
         CatCustom {
             label: I18n.t("Таймлапс дня", "The day's timelapse")
-            hint: !Capture.canReplay ? I18n.t("Нужна программа записи: sudo pacman -S gpu-screen-recorder", "Needs the recorder: sudo pacman -S gpu-screen-recorder") : I18n.t("главный экран весь день, кадр в секунду, маленький; в полночь — «Таймлапс <дата>.mp4» в папке записей, со временем в углу. Пишется всё — что выкладывать, решаешь ты", "The main screen all day, a frame a second, small; at midnight «Таймлапс <date>.mp4» in the recordings folder, the time in a corner. Everything is recorded: what to post is yours")
+            hint: !Capture.canReplay ? I18n.t("Нужна программа записи: sudo pacman -S gpu-screen-recorder", "Needs the recorder: sudo pacman -S gpu-screen-recorder") : I18n.t("Главный экран весь день, кадр в секунду. Когда ты говоришь, кричишь, смеёшься или чат взрывается — сохраняются 20 секунд со звуком. В полночь — «Таймлапс <дата>.mp4»: 15 секунд дня и пять лучших моментов. Что выкладывать, решаешь ты", "The main screen all day, a frame a second. When you talk, shout, laugh or the chat blows up, 20 seconds with sound are kept. At midnight «Таймлапс <date>.mp4»: 15 seconds of the day and its five best moments. What to post is yours")
             CatBox {
                 Row {
                     spacing: Theme.u * 3
@@ -385,7 +385,7 @@ CatPage {
         CatChoice {
             present: Config.capture.timelapse
             label: I18n.t("Кадр ролика", "A frame of the video")
-            hint: I18n.t("раз во сколько секунд дня — меньше значит длиннее ролик (за 8 часов: 30 с — около 40 с видео)", "Every how many seconds of the day: less means a longer video (8 hours at 30 s: about 40 s of video)")
+            hint: I18n.t("Раз во сколько секунд дня. Есть моменты — таймлапс сжимается до 15 с, нет — за 8 часов при 30 с около 40 с видео", "Every how many seconds of the day. With moments the timelapse is squeezed to 15 s; without, 8 hours at 30 s make about 40 s of video")
             model: [10, 30, 60].map(n => ({
                         "label": I18n.t(n + " с", n + " s"),
                         "value": n

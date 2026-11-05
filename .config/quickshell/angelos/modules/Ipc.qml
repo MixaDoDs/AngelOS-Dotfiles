@@ -1215,7 +1215,7 @@ IpcHandler {
     function theme(mode: string): void {
         if (Shell.setupLocked)
             return;
-        Config.appearance.mode = mode === "toggle" ? (Theme.dark ? "light" : "dark") : mode;
+        Config.appearance.mode = mode === "toggle" ? (Theme.night ? "light" : "dark") : mode;
     }
     function flavor(name: string): void {
         Config.appearance.flavor = name;

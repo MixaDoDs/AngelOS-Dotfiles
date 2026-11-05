@@ -21,10 +21,10 @@ Also sets the title bar buttons (org.gnome.desktop.wm.preferences button-layout 
 gtk-decoration-layout in gtk-3.0/gtk-4.0 settings.ini) to decorButtons, e.g. "maximize,close".
 The Golden Gate skin (palette key skin "goldengate"): the decorations are macOS's traffic lights
 (templates/gtk3-decor-mac.css, gtk4-decor-mac.css) on the leading side, close,minimize,maximize:
-— all three lit, their glyphs assets/mac-{close,minimize,maximize}.svg; off again, the leading
+– all three lit, their glyphs angelos-assets/mac-{close,minimize,maximize}.svg; off again, the leading
 side goes back.
 Always (on or off): the pixel frames the palette CSS draws its buttons, fields and menus with
-(templates/gtk3.css, gtk4.css → assets/frame-raised.svg, frame-sunken.svg next to each CSS):
+(templates/gtk3.css, gtk4.css → angelos-assets/frame-raised.svg, frame-sunken.svg next to each CSS):
 the outline in the palette's edge colour with stepped corners, and the bevel.
 """
 import hashlib
@@ -41,6 +41,10 @@ SHELL = Path(__file__).resolve().parent.parent
 THEMES = HOME / ".local/share/themes"
 GTK3 = HOME / ".config/gtk-3.0"
 GTK4 = HOME / ".config/gtk-4.0"
+# angelOS's pictures (frames, window buttons, the Mac lights' glyphs) in a folder of its own next to
+# each CSS: assets/ is a common name: adw-gtk3's old setup links ~/.config/gtk-*.0/assets to the
+# system theme's, not ours to write in (01.11: a PermissionError there ended the whole render)
+ASSETS = "angelos-assets"
 STUB = "/* angelOS: the colours live in the angelOS-a/b GTK theme now (gtk-live.py) */\n"
 
 # angel-niri's CELL_GLYPHS (src/stacking_title.rs): one look for both
@@ -151,8 +155,8 @@ def frame_line(pal):
 
 def frames(folder, pal):
     line = frame_line(pal)
-    write(folder / "assets" / "frame-raised.svg", frame(line, False))
-    write(folder / "assets" / "frame-sunken.svg", frame(line, True))
+    write(folder / ASSETS / "frame-raised.svg", frame(line, False))
+    write(folder / ASSETS / "frame-sunken.svg", frame(line, True))
 
 
 def write(path, text):
@@ -191,13 +195,13 @@ def assets(folder, pal):
                 face = danger if name == "close" else _mix(bg, ink, 0.22)
                 face = _mix(face, "#ffffff", 0.25) if lit else face
                 on = "#ffffff" if name == "close" else ("#000000" if _lum(face) > 0.18 else "#ffffff")
-                write(folder / "assets" / (name + tail + ".svg"), key(rows, face, on, edge))
+                write(folder / ASSETS / (name + tail + ".svg"), key(rows, face, on, edge))
     else:
         for name, rows in ICONS.items():
-            write(folder / "assets" / (name + ".svg"), glyph(rows, ink, bg))
-        write(folder / "assets" / "close-hover.svg", glyph(ICONS["close"], "#ffffff", danger))
+            write(folder / ASSETS / (name + ".svg"), glyph(rows, ink, bg))
+        write(folder / ASSETS / "close-hover.svg", glyph(ICONS["close"], "#ffffff", danger))
     for name, path in MAC_GLYPHS.items():
-        write(folder / "assets" / ("mac-" + name + ".svg"), mac_glyph(path))
+        write(folder / ASSETS / ("mac-" + name + ".svg"), mac_glyph(path))
 
 
 def gsettings(schema, key, value=None):
@@ -245,9 +249,9 @@ def version_gtk4():
     only when a widget first needs them. With the same file names rewritten in place, a Nautilus
     started before a theme change drew the old colours with the new frames — here and there, as
     new kinds of widgets came up. So the GTK 4 pictures live in a folder named after their
-    content (assets/v-<hash>/) and the CSS points there: an app keeps its whole old look until it
+    content (angelos-assets/v-<hash>/) and the CSS points there: an app keeps its whole old look until it
     starts again (services/NautilusSetup restarts Nautilus once none of its windows is open)."""
-    src = GTK4 / "assets"
+    src = GTK4 / ASSETS
     files = sorted(f for f in src.glob("*.svg") if f.is_file())
     if not files:
         return
@@ -261,11 +265,12 @@ def version_gtk4():
             shutil.copy2(f, tmp / f.name)
         os.replace(tmp, dest)
     os.utime(dest)
-    rx = re.compile(r"""url\(\s*(["']?)assets/(?:v-[0-9a-f]+/)?([\w.-]+\.svg)\1\s*\)""")
+    # (also the plain assets/ of a CSS rendered before angelos-assets/: it moves over)
+    rx = re.compile(r"""url\(\s*(["']?)(?:angelos-)?assets/(?:v-[0-9a-f]+/)?([\w.-]+\.svg)\1\s*\)""")
     for css in (GTK4 / "angelos.css", GTK4 / "angelos-decor.css"):
         if css.exists():
             text = css.read_text()
-            fixed = rx.sub(lambda m: 'url("assets/v-%s/%s")' % (h, m.group(2)), text)
+            fixed = rx.sub(lambda m: 'url("%s/v-%s/%s")' % (ASSETS, h, m.group(2)), text)
             if fixed != text:
                 write(css, fixed)
     # old looks: a few stay for apps still running in them
@@ -273,8 +278,30 @@ def version_gtk4():
     for d in olds[6:]:
         shutil.rmtree(d, ignore_errors=True)
 
+# each part on its own: one that fails (a folder it can't write in, a theme file gone) is said on
+# stderr and the rest still happen; the button layout always. The exit status tells it.
+FAILED = []
+
+
+def step(what, fn, *args):
+    try:
+        return fn(*args)
+    except Exception as e:  # noqa: BLE001 (any failure: reported, the next part goes on)
+        FAILED.append(what)
+        print("gtk-live: %s: %s" % (what, e), file=sys.stderr)
+        return None
+
+
 def main():
-    pal = json.loads(Path(sys.argv[1]).read_text())
+    try:
+        live(json.loads(Path(sys.argv[1]).read_text()))
+    finally:
+        if FAILED:
+            print("gtk-live: failed: " + ", ".join(FAILED), file=sys.stderr)
+    sys.exit(1 if FAILED else 0)
+
+
+def live(pal):
     interface_defaults()
     suffix = "-dark" if pal.get("mode") == "dark" else ""
     base = "adw-gtk3" + suffix
@@ -288,25 +315,25 @@ def main():
     keys_css = "" if mac or not pal.get("decorKeys") else "\n" + (SHELL / "templates/gtk-decor-keys.css").read_text()
     # the palette CSS's frames, next to it, in the apps' colours (hell's while the demon rules)
     apps = dict(pal, **(pal.get("apps") or {}))
-    frames(GTK3, apps)
-    frames(GTK4, apps)
+    step("frames gtk-3.0", frames, GTK3, apps)
+    step("frames gtk-4.0", frames, GTK4, apps)
 
     if not on or base_dir is None:
         # back to the plain theme; the user's palette CSS comes back with the next render
         if current.startswith("angelOS-"):
             gsettings("org.gnome.desktop.interface", "gtk-theme", base)
-        write(GTK4 / "angelos-decor.css", "/* angelOS window buttons: off */\n")
-        version_gtk4()
+        step("decor gtk-4.0", write, GTK4 / "angelos-decor.css", "/* angelOS window buttons: off */\n")
+        step("versions gtk-4.0", version_gtk4)
         if (GTK3 / "angelos.css").exists() and (GTK3 / "angelos.css").read_text() == STUB:
             print("gtk3 palette stub stays until the next render")
-        button_layout(pal, mac)
+        step("button layout", button_layout, pal, mac)
         print(json.dumps({"live": False, "theme": base if current.startswith("angelOS-") else current}))
         return
 
     # GTK 4 / libadwaita: the decorations next to its user CSS
-    write(GTK4 / "angelos-decor.css", render(decor4_tpl.read_text(), pal) + keys_css)
-    assets(GTK4, pal)
-    version_gtk4()
+    step("decor gtk-4.0", write, GTK4 / "angelos-decor.css", render(decor4_tpl.read_text(), pal) + keys_css)
+    step("buttons gtk-4.0", assets, GTK4, pal)
+    step("versions gtk-4.0", version_gtk4)
 
     # GTK 3 (and Chromium's GTK mode): the live theme
     palette_css = (GTK3 / "angelos.css").read_text() if (GTK3 / "angelos.css").exists() else ""
@@ -317,7 +344,7 @@ def main():
     # inlined below the theme's own @import: an @import further down would be dropped
     palette4 = (GTK4 / "angelos.css").read_text() if (GTK4 / "angelos.css").exists() else ""
     palette4 = "\n".join(l for l in palette4.splitlines() if not l.lstrip().startswith("@import"))
-    palette4 = re.sub(r"assets/v-[0-9a-f]+/", "assets/", palette4)   # the theme's own assets/ are plain
+    palette4 = re.sub(r"(?:angelos-)?assets/v-[0-9a-f]+/", ASSETS + "/", palette4)   # the theme's own are plain
     css4 = '@import url("file://%s/gtk-4.0/gtk.css");\n\n%s\n%s' % (base_dir, palette4, render(decor4_tpl.read_text(), pal) + keys_css)
     in_use = THEMES / current if current in ("angelOS-a", "angelOS-b") else None
     if palette_css and in_use and (in_use / "gtk-3.0/gtk.css").exists() and (in_use / "gtk-3.0/gtk.css").read_text() == css3:
@@ -325,20 +352,25 @@ def main():
     else:
         name = "angelOS-b" if current == "angelOS-a" else "angelOS-a"
         d = THEMES / name
-        write(d / "index.theme", "[Desktop Entry]\nType=X-GNOME-Metatheme\nName=%s\nComment=angelOS (generated, %s)\nEncoding=UTF-8\n\n[X-GNOME-Metatheme]\nGtkTheme=%s\n" % (name, pal.get("realm", "heaven"), name))
-        write(d / "gtk-3.0/gtk.css", css3)
-        write(d / "gtk-4.0/gtk.css", css4)
-        assets(d / "gtk-3.0", pal)
-        assets(d / "gtk-4.0", pal)
-        frames(d / "gtk-3.0", apps)
-        frames(d / "gtk-4.0", apps)
-        if palette_css:
+
+        def theme():
+            write(d / "index.theme", "[Desktop Entry]\nType=X-GNOME-Metatheme\nName=%s\nComment=angelOS (generated, %s)\nEncoding=UTF-8\n\n[X-GNOME-Metatheme]\nGtkTheme=%s\n" % (name, pal.get("realm", "heaven"), name))
+            write(d / "gtk-3.0/gtk.css", css3)
+            write(d / "gtk-4.0/gtk.css", css4)
+            assets(d / "gtk-3.0", pal)
+            assets(d / "gtk-4.0", pal)
+            frames(d / "gtk-3.0", apps)
+            frames(d / "gtk-4.0", apps)
+            return True
+
+        # (only a theme written whole is switched to: a half one would be worse than the old)
+        if step("theme " + name, theme) and palette_css:
             gsettings("org.gnome.desktop.interface", "gtk-theme", name)
         print(json.dumps({"live": True, "theme": name, "changed": True}))
     # the palette now comes with the theme: the user CSS would outrank it with stale colours
-    if palette_css:
-        write(GTK3 / "angelos.css", STUB)
-    button_layout(pal, mac)
+    if palette_css and "theme " + ("angelOS-b" if current == "angelOS-a" else "angelOS-a") not in FAILED:
+        step("palette stub gtk-3.0", write, GTK3 / "angelos.css", STUB)
+    step("button layout", button_layout, pal, mac)
 
 
 def button_layout(pal, mac):

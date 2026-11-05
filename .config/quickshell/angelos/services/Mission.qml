@@ -3,8 +3,9 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// Mission Control (Mod+W, `angelos open mission`, modules/mission): the windows of the focused
-// monitor's desk laid out side by side, its desks in a strip on top. Open on one screen at a time.
+// Mission Control (Mod+W, `angelos open mission`, modules/mission): the windows of a monitor's desk
+// laid out side by side, its desks in a strip on top. Open on one screen at a time: the one of the
+// bar that asked (open(screen), the Golden Gate menu bar's desks and button), else the focused one.
 Singleton {
     id: root
 
@@ -37,8 +38,9 @@ Singleton {
         Achievements.note("explore", "mission")
     // asked to close: the window plays its way out, then calls close()
     property bool leaveAsked: false
-    function open() {
-        screenName = Niri.focusedOutput || "";
+    // on `screen` (a bar's own screen), else the focused one
+    function open(screen) {
+        screenName = screen || Niri.focusedOutput || "";
         leaveAsked = false;
         shown = true;
     }
@@ -46,10 +48,10 @@ Singleton {
         shown = false;
         leaveAsked = false;
     }
-    function toggle() {
+    function toggle(screen) {
         if (shown)
             leaveAsked = true;
         else
-            open();
+            open(screen);
     }
 }

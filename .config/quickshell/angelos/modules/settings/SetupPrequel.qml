@@ -124,6 +124,12 @@ Item {
         t: root.t
         b: root.b
         calm: Motion.calm
+        gate: root.intro ? root.intro.gate : null
+        hand: root.intro ? root.intro.hand : Qt.point(-1, -1)
+        creep: root.intro ? root.intro.creep : 0
+        kept: !!root.intro && root.intro.kept
+        read: root.intro ? root.intro.read : []
+        shut: root.intro ? root.intro.shut : []
     }
     ShaderEffectSource {
         id: deskPicture
@@ -522,5 +528,26 @@ Item {
         opacity: 0.3
         color: "#f4eefc"
         text: I18n.t("пробел ×5 — пропустить", "space ×5 to skip")
+    }
+    // the picture waits for you (SetupIntro's gates): after a few seconds, what to do, at the top
+    Rectangle {
+        readonly property var gate: root.intro ? root.intro.gate : null
+        visible: root.hosting && !!gate && root.intro.gateLong
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: root.px * 6
+        width: ask.implicitWidth + root.px * 10
+        height: ask.implicitHeight + root.px * 6
+        color: "#e6120c1c"
+        border.color: "#b98be0"
+        border.width: Math.max(1, Math.round(root.px / 2))
+        Hud {
+            id: ask
+            anchors.centerIn: parent
+            style: Text.Normal
+            color: "#f4eefc"
+            font.pixelSize: root.sayPx
+            text: !parent.gate ? "" : parent.gate.id === "unsaid" ? I18n.t("отправить как есть — «отправить» или Enter · стереть — Backspace", "send it as it is — «отправить» or Enter · rub it out — Backspace") : parent.gate.id === "link" ? I18n.t("нажми на ссылку", "press the link") : I18n.t("крестик — закрыть · текст — прочитать", "the cross shuts it · the words read it")
+        }
     }
 }

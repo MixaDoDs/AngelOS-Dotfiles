@@ -136,33 +136,30 @@ Item {
             iconStyle: "angelos"
             exactPixel: root.column.unit
         }
-        // bubbles rise while it charges: squares, moving with the monitor's frames
+        // bubbles rise while it charges: squares, a whole art pixel a step on a timer — an endless
+        // NumberAnimation kept the whole bar drawing at the monitor's rate (145 fps, 03.11)
         Repeater {
             model: root.charging && root.bubbles && !root.asleep && !Motion.still && root.visible ? Math.min(2, Math.max(1, (root.w - 2) / 2)) : 0
             Rectangle {
                 id: bubble
                 required property int index
+                // the art-pixel rows from below the liquid to above it, the time a row, and the
+                // pauses before and after (hidden below / above the cut) in rows
+                readonly property int rise: Math.ceil(cut.height / root.pixel) + 1
+                readonly property int every: Math.max(16, Math.round((1500 + index * 500) / rise))
+                readonly property int pre: Math.round(index * 700 / every)
+                readonly property int post: Math.round((900 - index * 400) / every)
+                property int t: 0
                 width: root.pixel
                 height: root.pixel
                 x: (index === 0 ? 0 : root.w - 3) * root.pixel
-                y: cut.height
+                y: t < pre || t >= pre + rise ? cut.height : cut.height - (t - pre + 1) * root.pixel
                 color: Qt.alpha("#ffffff", 0.75)
-                SequentialAnimation {
+                Timer {
+                    interval: bubble.every
+                    repeat: true
                     running: true
-                    loops: Animation.Infinite
-                    PauseAnimation {
-                        duration: bubble.index * 700
-                    }
-                    NumberAnimation {
-                        target: bubble
-                        property: "y"
-                        from: cut.height
-                        to: -root.pixel
-                        duration: 1500 + bubble.index * 500
-                    }
-                    PauseAnimation {
-                        duration: 900 - bubble.index * 400
-                    }
+                    onTriggered: bubble.t = (bubble.t + 1) % (bubble.pre + bubble.rise + bubble.post)
                 }
             }
         }

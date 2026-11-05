@@ -56,7 +56,7 @@
 | `Mod+V` | `angelos clipboard` | angelOS: буфер обмена |
 | `Mod+Shift+S` | `angelos capture` (нет оболочки → `niri-screenshot-region`) | Скриншот: экран замирает — окно/картинка/текст, сохранить, найти, перевести |
 | `Print` | `angelos capture` (как Mod+Shift+S) | Скриншот |
-| `Mod+Shift+V` | `~/.local/bin/voxtype record toggle` | Voice: toggle dictation |
+| `Mod+Shift+V` | `angelos voice` (voxtype record toggle; без voxtype — подсказка) | Voice: toggle dictation |
 | `CTRL+Shift+2` | `angelos ipc shotScreen` | angelOS: скриншот экрана |
 | `CTRL+Shift+3` | `angelos ipc shotWindow` | angelOS: скриншот окна |
 | `Mod+ESCAPE` | `toggle-keyboard-shortcuts-inhibit` |  |

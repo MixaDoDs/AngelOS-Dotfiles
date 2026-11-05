@@ -196,7 +196,14 @@ CatPage {
             checked: Config.halo.enabled
             onToggled: c => Config.halo.enabled = c
         }
+        CatNote {
+            present: GoldenGate.haloInBar
+            dim: true
+            text: I18n.t("Нимб сейчас часть строки меню Golden Gate: своей полосы у него нет, сам он не прячется. Отдельным Нимбом его делает выключатель «Нимб в строке меню» (Golden Gate → Внешний вид).", "The Halo is a part of the Golden Gate menu bar now: no strip of its own, it doesn't hide by itself. The «Halo in the menu bar» switch (Golden Gate → Appearance) makes it a Halo of its own again.")
+        }
         CatChoice {
+            // a part of Golden Gate's menu bar, it keeps no strip and never hides (Mac → Appearance)
+            present: !GoldenGate.haloInBar
             label: I18n.t("Окна и Нимб", "Windows and the Halo")
             hint: ({
                     "bar": I18n.t("как меню-бар Mac: у Нимба своя полоса, окна начинаются и остаются под ним; раскрытая карточка всё равно ложится поверх", "Like a Mac's menu bar: the Halo has a strip of its own, windows start and stay below it; the open card still lies over them"),
@@ -328,16 +335,11 @@ CatPage {
         }
     }
     // the rest of what it can show (Settings → Halo → More)
+    // the Halo with the music's bass — shown on the Music and rhythm page (tree.json "rhythm")
     CatGroup {
-        name: "show-more"
-        title: I18n.t("Что ещё показывать", "What else it shows")
-        icon: "eye"
-        CatToggle {
-            label: I18n.t("Точка приватности", "Privacy dot")
-            hint: I18n.t("Оранжевая — пишут микрофон, зелёная — камера, фиолетовая — снимают экран. Наведи — скажет кто.", "Orange: the mic. Green: the camera. Purple: the screen is captured. Point at it to see who.")
-            checked: Config.halo.privacyDot
-            onToggled: c => Config.halo.privacyDot = c
-        }
+        name: "bass"
+        title: I18n.t("Нимб", "Halo")
+        icon: "music"
         CatToggle {
             label: I18n.t("Свечение в такт басам", "Glow with the bass")
             hint: I18n.t("капсула с музыкой отзывается на плотный бас и на удары", "the music's pill answers a dense bass and the kicks")
@@ -360,6 +362,23 @@ CatPage {
             ]
             currentValue: Config.halo.bassStyle
             onActivated: v => Config.halo.bassStyle = v
+        }
+    }
+    CatGroup {
+        name: "show-more"
+        title: I18n.t("Что ещё показывать", "What else it shows")
+        icon: "eye"
+        CatToggle {
+            label: I18n.t("Точка приватности", "Privacy dot")
+            hint: I18n.t("Оранжевая — пишут микрофон, зелёная — камера, фиолетовая — снимают экран. Наведи — скажет кто.", "Orange: the mic. Green: the camera. Purple: the screen is captured. Point at it to see who.")
+            checked: Config.halo.privacyDot
+            onToggled: c => Config.halo.privacyDot = c
+        }
+        CatLink {
+            label: I18n.t("Свечение в такт басам", "Glow with the bass")
+            hint: I18n.t("в «Музыке и ритме»", "In Music and rhythm")
+            page: "rhythm"
+            group: "bass"
         }
         CatToggle {
             label: I18n.t("Цвет обложки", "Cover colour")

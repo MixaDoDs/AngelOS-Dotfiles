@@ -11,6 +11,20 @@ CatPage {
     heading: I18n.t("Лирика", "Lyrics")
     subtitle: I18n.t("Строка песни на панели или в Нимбе. Работает с любым плеером: Spotify, браузер, mpv.", "The song's current line on the bar or in the Halo. Any player: Spotify, a browser, mpv.")
     id: page
+    // the lyrics with the beat — shown on the Music and rhythm page (tree.json "rhythm")
+    CatGroup {
+        name: "beat"
+        title: I18n.t("Текст песни", "Lyrics")
+        icon: "mic"
+        present: Config.lyrics.byWord !== false
+        CatToggle {
+            present: Config.lyrics.byWord !== false
+            label: I18n.t("Слова на бит", "Words on the beat")
+            hint: I18n.t("Слова появляются в такт музыке и подпрыгивают.", "Words come up on the beat with a hop.")
+            checked: Config.lyrics.onBeat !== false
+            onToggled: c => Config.lyrics.onBeat = c
+        }
+    }
     CatGroup {
         name: "display"
         title: I18n.t("Показ", "Display")
@@ -104,12 +118,12 @@ CatPage {
             checked: Config.lyrics.byWord !== false
             onToggled: c => Config.lyrics.byWord = c
         }
-        CatToggle {
+        CatLink {
             present: Config.lyrics.byWord !== false
             label: I18n.t("Слова на бит", "Words on the beat")
-            hint: I18n.t("Слова появляются в такт музыке и подпрыгивают.", "Words come up on the beat with a hop.")
-            checked: Config.lyrics.onBeat !== false
-            onToggled: c => Config.lyrics.onBeat = c
+            hint: I18n.t("в «Музыке и ритме»", "In Music and rhythm")
+            page: "rhythm"
+            group: "beat"
         }
         CatChoice {
             present: Config.lyrics.byWord !== false

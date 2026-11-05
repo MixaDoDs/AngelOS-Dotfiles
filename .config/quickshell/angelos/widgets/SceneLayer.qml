@@ -60,9 +60,10 @@ Item {
     // the layer at night (scripts/scene-night.py), frame for frame; a layer that keeps its own
     // (the CRT's screen glows the same) or a scene without a night has none
     readonly property bool ownNight: wall.nightInfo !== null && !(wall.nightInfo.keep || []).includes(modelData.id) && modelData.id !== "windows"
+    // loaded only while the night shows: by day they held a second copy of every layer (03.11)
     Repeater {
         id: nightFrames
-        model: layer.ownNight ? layer.modelData.frames : []
+        model: layer.ownNight && wall.nightMix > 0 ? layer.modelData.frames : []
         Image {
             required property string modelData
             source: "file://" + wall.dir + "/logical/" + wall.nightInfo.layers + modelData

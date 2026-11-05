@@ -883,6 +883,44 @@ CatPage {
             }
         }
     }
+    // what angelOS holds in memory and why (scripts/mem-summary.py: the shell's cgroup, by PSS) —
+    // counted when the group shows, not watched
+    CatGroup {
+        id: memGroup
+        name: "memory"
+        title: I18n.t("Память", "Memory")
+        icon: "chip"
+        property var mem: null
+        onVisibleChanged: if (visible)
+            memProc.running = true
+        Component.onCompleted: memProc.running = true
+        readonly property string biggest: mem ? mem.helpers.slice(0, 4).map(h => h.name.replace(/\.py$/, "") + " " + Math.round(h.mb) + I18n.t(" МБ", " MB")).join(", ") : ""
+        CatNote {
+            text: !memGroup.mem ? I18n.t("Считаю…", "Counting…") : I18n.t("Сейчас angelOS занимает ", "angelOS holds ") + (memGroup.mem.shellMB + memGroup.mem.helpersMB) + I18n.t(" МБ: сама оболочка ", " MB now: the shell itself ") + memGroup.mem.shellMB + I18n.t(" МБ и её помощники ", " MB and its helpers ") + memGroup.mem.helpersMB + I18n.t(" МБ (больше всех — ", " MB (the biggest: ") + memGroup.biggest + ")."
+        }
+        CatNote {
+            dim: true
+            text: I18n.t("Почему столько. Оболочка рисует всё сама и держит наготове, чтобы открывалось сразу: обои-сцены — слои картинки, свет и волны под музыку — на каждом мониторе (больше всего, около 150 МБ на экран), панель, Нимб, меню и окна angelOS. Ещё около 250 МБ — сам Qt и видеодрайвер, они есть у любой такой оболочки. Помощники — маленькие программы для звука, ритма, повтора игр и устройств, по 5–20 МБ; запись повтора держит в памяти последние секунды видео. Ночные слои обоев грузятся только ночью.", "Why so much. The shell draws everything itself and keeps it ready to open at once: the scene wallpapers — the picture's layers, the light and the waves with the music — on every monitor (the most, about 150 MB a screen), the bar, the Halo, the menus and angelOS's windows. Another 250 MB or so is Qt itself and the graphics driver, as with any such shell. The helpers are small programs for the sound, the rhythm, the game replay and the devices, 5–20 MB each; the replay keeps its last seconds of video in memory. The wallpaper's night layers load only at night.")
+        }
+        CatButton {
+            text: I18n.t("Пересчитать", "Count again")
+            icon: "refresh"
+            onClicked: memProc.running = true
+        }
+        Process {
+            id: memProc
+            command: ["python3", Quickshell.shellDir + "/scripts/mem-summary.py"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        memGroup.mem = JSON.parse(text);
+                    } catch (e) {
+                        memGroup.mem = null;
+                    }
+                }
+            }
+        }
+    }
     CatGroup {
         name: "report-problem"
         id: reportGroup

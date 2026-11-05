@@ -34,10 +34,10 @@ QtObject {
         },
         {
             "id": "theme",
-            "icon": Theme.dark ? "moon" : "sun",
-            "label": Theme.dark ? I18n.t("Тёмная", "Dark") : I18n.t("Светлая", "Light"),
-            "on": Theme.dark,
-            "act": () => Config.appearance.mode = Theme.dark ? "light" : "dark"
+            "icon": Theme.night ? "moon" : "sun",
+            "label": Theme.night ? I18n.t("Тёмная", "Dark") : I18n.t("Светлая", "Light"),
+            "on": Theme.night,
+            "act": () => Config.appearance.mode = Theme.night ? "light" : "dark"
         },
         {
             "id": "night",

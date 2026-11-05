@@ -96,7 +96,8 @@
             "sound/osd"
           ],
           "links": [
-            "sfx"
+            "sfx",
+            "rhythm"
           ]
         },
         {
@@ -116,7 +117,30 @@
             "sfx/your-own-sounds"
           ],
           "links": [
-            "sound"
+            "sound",
+            "rhythm"
+          ]
+        },
+        {
+          "id": "rhythm",
+          "ru": "Музыка и ритм",
+          "en": "Music and rhythm",
+          "icon": "music",
+          "hintRu": "обои, Нимб, окна, ангел и текст песни под музыку",
+          "hintEn": "the wallpaper, the Halo, the windows, the angel and the lyrics with the music",
+          "blocks": [
+            "wallpaper/scene-rhythm",
+            "halo/bass",
+            "windows/kick",
+            "y2k/nod",
+            "lyrics/beat"
+          ],
+          "more": [
+            "rhythm/hearing"
+          ],
+          "links": [
+            "sound",
+            "sfx"
           ]
         },
         {
@@ -447,6 +471,7 @@
           "hintEn": "pictures, release wallpapers, alive wallpaper, the transition",
           "blocks": [
             "wallpaper/@",
+            "wallpaper/editor",
             "wallpaper/images",
             "wallpaper/destination",
             "wallpaper/releases",
@@ -552,6 +577,8 @@
           "hintEn": "pixel themes and size",
           "blocks": [
             "cursor/pixel-themes",
+            "cursor/motion",
+            "cursor/camera",
             "cursor/size-compatibility"
           ],
           "links": [
@@ -1191,6 +1218,7 @@
           "blocks": [
             "system/this-computer",
             "system/angelos",
+            "system/memory",
             "system/report-problem"
           ],
           "more": [
@@ -1499,6 +1527,25 @@
               "mac/sounds",
               "sound/osd"
             ]
+          },
+          {
+            "id": "rhythm",
+            "ru": "Музыка и ритм",
+            "en": "Music and rhythm",
+            "icon": "music",
+            "hintRu": "Нимб, ангел и текст песни под музыку",
+            "hintEn": "the Halo, the angel and the lyrics with the music",
+            "blocks": [
+              "halo/bass",
+              "y2k/nod",
+              "lyrics/beat"
+            ],
+            "more": [
+              "rhythm/hearing"
+            ],
+            "links": [
+              "sound"
+            ]
           }
         ]
       },
@@ -1547,6 +1594,7 @@
             "blocks": [
               "system/this-computer",
               "system/angelos",
+              "system/memory",
               "system/report-problem"
             ],
             "more": [
@@ -1945,6 +1993,7 @@
             "hintEn": "Golden Gate's wallpaper or your pictures",
             "blocks": [
               "mac/wallpaper",
+              "wallpaper/editor",
               "wallpaper/@",
               "wallpaper/images"
             ],
@@ -2044,6 +2093,22 @@
             ],
             "more": [
               "cursor/size-compatibility"
+            ]
+          },
+          {
+            "id": "mac-cursor",
+            "ru": "Курсор",
+            "en": "Pointer",
+            "icon": "cursor",
+            "hintRu": "живой курсор и камера за курсором",
+            "hintEn": "motion cursor and the camera that follows it",
+            "blocks": [
+              "cursor/motion",
+              "cursor/camera"
+            ],
+            "more": [
+              "cursor/size-compatibility",
+              "cursor/shake-find-pointer"
             ]
           },
           {
@@ -2372,7 +2437,7 @@
         "page": "mac-mouse"
       },
       "cursor": {
-        "page": "mac-mouse"
+        "page": "mac-cursor"
       },
       "mac-input": {
         "page": "mac-keyboard"

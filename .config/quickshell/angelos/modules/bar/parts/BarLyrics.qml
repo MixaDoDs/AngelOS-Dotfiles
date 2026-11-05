@@ -451,6 +451,12 @@ Item {
             visible: root.byWord && root.settled < root.typed
             x: cur.x + root.clipW
             anchors.verticalCenter: parent.verticalCenter
+            // the hop in whole art pixels and the fade in tenths: the window draws a frame per
+            // step, not each frame of the monitor for every word sung (03.11)
+            property int hop: 0
+            property int fade: 10
+            anchors.verticalCenterOffset: hop * Theme.u
+            opacity: fade / 10
             font.family: cur.font.family
             font.pixelSize: cur.font.pixelSize
             renderType: Text.NativeRendering
@@ -462,17 +468,17 @@ Item {
             id: freshIn
             NumberAnimation {
                 target: fresh
-                property: "opacity"
-                from: 0.3
-                to: 1
+                property: "fade"
+                from: 3
+                to: 10
                 duration: Motion.ms(90)
                 easing.type: Easing.OutQuad
             }
             // a hop on the beat: up from below, a little past its place and back
             NumberAnimation {
                 target: fresh
-                property: "anchors.verticalCenterOffset"
-                from: Theme.u * 3
+                property: "hop"
+                from: 3
                 to: 0
                 duration: Motion.ms(200)
                 easing.type: Easing.OutBack

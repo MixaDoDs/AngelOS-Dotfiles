@@ -15,7 +15,22 @@ Singleton {
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property bool available: !!adapter
     readonly property bool enabled: !!adapter && adapter.enabled
-    readonly property bool blocked: !!adapter && adapter.state === BluetoothAdapterState.Blocked
+    // rfkill: a soft block (another desktop's applet, `rfkill block`) we lift ourselves;
+    // only a hard one (a laptop key/switch) really keeps Bluetooth off — that is `blocked`
+    readonly property bool rfBlocked: !!adapter && adapter.state === BluetoothAdapterState.Blocked
+    property bool hardBlocked: false
+    readonly property bool blocked: rfBlocked && hardBlocked
+    property bool wantOn: false
+    Component.onCompleted: if (rfBlocked)
+        hardCheck.running = true
+    onRfBlockedChanged: {
+        if (rfBlocked)
+            hardCheck.running = true;
+        else if (wantOn && adapter) {
+            wantOn = false;
+            adapter.enabled = true;
+        }
+    }
     readonly property bool discovering: !!adapter && adapter.discovering
     readonly property var devices: adapter && adapter.devices ? adapter.devices.values : []
     readonly property var paired: devices.filter(d => d.paired || d.bonded).sort((a, b) => (b.connected - a.connected) || String(a.name).localeCompare(String(b.name)))
@@ -30,8 +45,14 @@ Singleton {
     property string lastError: ""
 
     function setEnabled(on) {
-        if (adapter)
-            adapter.enabled = on;
+        if (!adapter)
+            return;
+        if (on && rfBlocked && !hardBlocked) {
+            wantOn = true;      // the adapter is powered once rfkill lets go (onRfBlockedChanged)
+            Quickshell.execDetached(["rfkill", "unblock", "bluetooth"]);
+            return;
+        }
+        adapter.enabled = on;
     }
     function scan(on) {
         if (adapter && adapter.enabled)
@@ -111,6 +132,13 @@ Singleton {
                 root.serviceInstalled = text.includes("installed");
                 root.serviceActive = text.includes("active");
             }
+        }
+    }
+    Process {
+        id: hardCheck
+        command: ["sh", "-c", "for d in /sys/class/rfkill/rfkill*; do [ \"$(cat \"$d/type\")\" = bluetooth ] && cat \"$d/hard\"; done; true"]
+        stdout: StdioCollector {
+            onStreamFinished: root.hardBlocked = text.includes("1")
         }
     }
     Timer {

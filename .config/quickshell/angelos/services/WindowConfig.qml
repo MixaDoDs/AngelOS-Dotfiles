@@ -91,6 +91,14 @@ Singleton {
     // Mod+Ctrl+Shift+M and the bar's mode button flip it too. Golden Gate is always Desktop and
     // leaves the switch alone, so the pixel skins get back what they had.
     readonly property bool floatAll: GoldenGate.on || Config.windows.floatAll
+    // angel-niri's Desktop: it keeps the empty desk at the end out of sight, a "+" opens it
+    // (Niri.openSpareDesk): Mission Control's, the Golden Gate menu bar's (MacDesks). Shown while
+    // the last desk has windows (niri's own test: an empty last desk in front is the new one)
+    readonly property bool desktopMode: Niri.nativeMinimize && floatAll
+    function newDeskShown(output) {
+        const l = Niri.workspacesOn(output);
+        return desktopMode && l.length > 0 && Niri.windowsOn(l[l.length - 1].id).length > 0;
+    }
     // the OSD and the first-time hint (modules/osd/Osd.qml): a flip by hand, not a skin change
     signal modeFlipped(bool desktop, bool locked)
     property var _floatedByUs: []
@@ -326,7 +334,8 @@ Singleton {
                 // one side for every window, by the skin (GTK's follows it, gtk-live.py): Desktop
                 // as Windows 11, the Golden Gate as macOS — the owner, 26.10
                 "title_buttons": GoldenGate.on ? "left" : "right",
-                "green": GoldenGate.on ? "fullscreen" : "maximize",
+                // Golden Gate: Settings → Windows → «The green light» (fullscreen as on a Mac, or maximize)
+                "green": GoldenGate.on && Config.mac.greenButton !== "maximize" ? "fullscreen" : "maximize",
                 // Settings → Halo → «Windows and the Halo» → around it (it reserves nothing itself
                 // then): windows with niri's title bar go up to the top, the bar split around the
                 // Halo; the others, and snapped ones whose buttons would be under it, keep clear
@@ -340,7 +349,7 @@ Singleton {
     }
     readonly property bool aroundHalo: Config.halo.enabled && Config.halo.windows === "maximized"
     onFloatAllChanged: applyStacking()
-    readonly property var _stackingLook: [GoldenGate.on, Config.halo.windows, Config.halo.enabled, Halo.strip, Halo.notch, String(Config.halo.screens), Config.windows.buttonLook]
+    readonly property var _stackingLook: [GoldenGate.on, Config.mac.greenButton, Config.halo.windows, Config.halo.enabled, Halo.strip, Halo.notch, String(Config.halo.screens), Config.windows.buttonLook]
     on_StackingLookChanged: applyStacking()
     Connections {
         target: Theme

@@ -8,13 +8,19 @@ import qs.config
 import qs.services
 import qs.widgets
 
-// The Golden Gate menu bar: 24 pt along the top of every screen, no band of its own (the
+// The Golden Gate menu bar. The strip (Config.mac.barStyle "bar"): 24 pt along the top of every screen, no band of its own (the
 // wallpaper shows through; Config.mac.barBackground puts one under it), ink black or white by
 // the wallpaper under it. Leading: angelOS's emblem where the Apple logo is (its menu: About,
 // Settings, Force Quit, Sleep…), the focused app's name in bold and its menus (services/AppMenu).
 // Trailing, right to left: the date and time (Notification Center), Control Center, Spotlight,
 // the input source, sound, Bluetooth, Wi-Fi, the apps' tray icons and the plugins' panel widgets
-// (menu bar extras). While the demon rules: hell's ink and her horns on the emblem.
+// (menu bar extras). The screen's desks and an overview button (MacDesks, Config.mac.barDesks and
+// barOverview) stand where Settings puts them: before the emblem, by the clock or left of the status
+// icons (barDesksAt, barOverviewAt). While the demon rules: hell's ink and her horns on the emblem.
+// Islands (Config.mac.barStyle, GoldenGate.islands): the same rows, each on a glass pill held off
+// the top edge: the desks on the left and the menus, the status items on the right. The Halo in the
+// bar (GoldenGate.haloInBar), either style: its window of its own lies over the bar's middle at the
+// bar's height (HaloWindow), and the menus stop short of it.
 PanelWindow {
     id: win
 
@@ -23,6 +29,12 @@ PanelWindow {
     readonly property color ink: GoldenGate.barInk(screenName)
     readonly property bool menuHere: MacMenus.isOpen && MacMenus.screen === screenName
     readonly property real h: GoldenGate.barHeight
+    readonly property bool islands: GoldenGate.islands
+    // the rows' height and top: the whole bar, or the islands' pills inside it
+    readonly property real rowH: islands ? GoldenGate.islandHeight : h
+    readonly property real rowY: islands ? GoldenGate.islandGap : 0
+    // room between an island's round end and its first item
+    readonly property real islandPad: islands ? GoldenGate.px(6) : 0
     // the plugins' panel widgets the panel would show (BarLayout: its order, hidden ones stay
     // hidden), leftmost first — the status row runs right to left
     readonly property var plugins: BarLayout.all.filter(id => id.startsWith("plugin:")).reverse()
@@ -44,26 +56,73 @@ PanelWindow {
         win: win
         key: "macbar"
     }
-    BackgroundEffect.blurRegion: GoldenGate.blurOn && Config.mac.barBackground ? blurRegion : null
+    BackgroundEffect.blurRegion: !GoldenGate.blurOn ? null : islands ? islandsRegion : Config.mac.barBackground ? blurRegion : null
     Region {
         id: blurRegion
         item: band
+    }
+    Region {
+        id: islandsRegion
+        Region {
+            item: leftIsland
+            radius: leftIsland.radius
+        }
+        Region {
+            item: rightIsland
+            radius: rightIsland.radius
+        }
     }
 
     Rectangle {
         id: band
         anchors.fill: parent
+        visible: !win.islands
         color: GoldenGate.barBand(win.screenName)
     }
+    // the islands' glass, under the rows they hold
+    component Island: Rectangle {
+        y: win.rowY
+        height: win.rowH
+        radius: height / 2
+        visible: win.islands && width > 0
+        color: GoldenGate.barGlass
+        border.width: 1
+        border.color: GoldenGate.glassEdge
+    }
+    Island {
+        id: leftIsland
+        // from the desks if they stand on the left, to the end of the menus
+        x: (leftDesks.width > 0 ? leftDesks.x : titles.x) - win.islandPad
+        width: titles.width > 0 || leftDesks.width > 0 ? titles.x + titles.width - x + win.islandPad : 0
+    }
+    Island {
+        id: rightIsland
+        x: status.x - win.islandPad
+        width: status.width + win.islandPad * 2
+    }
 
-    // ---- leading: the emblem, the app, its menus ----
+    // ---- leading: the desks and the overview button if they stand here (MacDesks), the emblem,
+    // the app, its menus ----
+    MacDesks {
+        id: leftDesks
+        place: "left"
+        x: win.islands ? GoldenGate.islandGap + win.islandPad : GoldenGate.px(10)
+        y: win.rowY
+        screenName: win.screenName
+        ink: win.ink
+        rowH: win.rowH
+    }
     Row {
         id: titles
-        x: GoldenGate.px(10)
-        height: win.h
+        x: leftDesks.x + (leftDesks.width > 0 ? leftDesks.width + GoldenGate.px(4) : 0)
+        y: win.rowY
+        height: win.rowH
         spacing: 0
         clip: true
-        width: Math.min(implicitWidth, status.x - x - GoldenGate.px(16))
+        // the Halo in the middle: the menus stop short of it
+        width: Math.min(implicitWidth, (GoldenGate.haloInBar && Halo.on(win.screenName) ? (win.width - Halo.notch) / 2 : status.x) - x - GoldenGate.px(16))
+        // the desks on the left (MacDesks) move the row: the menus' places go along (MacMenus.titleX)
+        onXChanged: win.recordTitles()
 
         Repeater {
             id: titleRep
@@ -77,7 +136,7 @@ PanelWindow {
                 required property int index
                 readonly property bool isOpen: win.menuHere && MacMenus.index === index
                 width: modelData.emblem ? GoldenGate.px(38) : label.implicitWidth + GoldenGate.px(20)
-                height: win.h
+                height: win.rowH
                 // where its menu hangs, for ←/→ (MacMenus.step)
                 onXChanged: win.recordTitles()
                 Component.onCompleted: win.recordTitles()
@@ -166,33 +225,11 @@ PanelWindow {
     }
 
     // ---- trailing: status items ----
-    component StatusButton: Item {
-        id: sb
+    component StatusButton: MacStatusButton {
         property string kind: ""
-        property bool active: win.menuHere && MacMenus.statusKind === kind && kind !== ""
-        default property alias content: box.data
-        signal clicked(var mouse)
-        width: Math.max(GoldenGate.px(26), box.childrenRect.width + GoldenGate.px(12))
-        height: win.h
-        Rectangle {
-            anchors.fill: parent
-            anchors.topMargin: GoldenGate.px(2)
-            anchors.bottomMargin: GoldenGate.px(2)
-            radius: height / 2
-            color: Qt.alpha(win.ink, win.ink.r > 0.5 ? 0.22 : 0.1)
-            visible: sb.active
-        }
-        Item {
-            id: box
-            anchors.centerIn: parent
-            width: childrenRect.width
-            height: childrenRect.height
-        }
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-            onClicked: m => sb.clicked(m)
-        }
+        ink: win.ink
+        rowH: win.rowH
+        active: win.menuHere && MacMenus.statusKind === kind && kind !== ""
     }
     function rightOf(item) {
         return item.mapToItem(null, item.width, 0).x;
@@ -201,8 +238,9 @@ PanelWindow {
     Row {
         id: status
         anchors.right: parent.right
-        anchors.rightMargin: GoldenGate.px(8)
-        height: win.h
+        anchors.rightMargin: win.islands ? GoldenGate.islandGap + win.islandPad : GoldenGate.px(8)
+        y: win.rowY
+        height: win.rowH
         layoutDirection: Qt.RightToLeft
         spacing: GoldenGate.px(2)
 
@@ -226,6 +264,13 @@ PanelWindow {
                 }
                 color: win.ink
             }
+        }
+        // the desks and the overview button by the clock (MacDesks)
+        MacDesks {
+            place: "clock"
+            screenName: win.screenName
+            ink: win.ink
+            rowH: win.rowH
         }
         // Control Center
         StatusButton {
@@ -395,7 +440,7 @@ PanelWindow {
                 readonly property string settingsSkin: "goldengate"
                 visible: !!plug.item
                 width: plug.item ? Math.max(GoldenGate.px(22), Math.round(plug.item.implicitWidth) + GoldenGate.px(10)) : 0
-                height: win.h
+                height: win.rowH
                 // the open state under it, like the other extras
                 Rectangle {
                     anchors.fill: parent
@@ -425,6 +470,13 @@ PanelWindow {
                     Component.onCompleted: load()
                 }
             }
+        }
+        // the desks and the overview button at the left of the status icons (MacDesks)
+        MacDesks {
+            place: "icons"
+            screenName: win.screenName
+            ink: win.ink
+            rowH: win.rowH
         }
     }
 

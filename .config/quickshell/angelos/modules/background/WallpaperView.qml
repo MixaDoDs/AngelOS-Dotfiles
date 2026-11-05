@@ -286,7 +286,8 @@ Item {
             levels: hearing.item ? hearing.item.levels : []
         }
         // a layered scene (widgets/SceneWall: parallax, wind, frames) over its still once the
-        // transition is over; still under Motion.still and with the stream's effects off
+        // transition is over; still under Motion.still, with the stream's effects off, and on a
+        // screen off the stream while OBS is live (owner's pick 03.11: the GPU goes to the stream)
         SceneWall {
             id: sceneWall
             readonly property string folder: Wallpapers.sceneOf(root.shown)
@@ -294,7 +295,7 @@ Item {
             anchors.fill: parent
             visible: folder !== "" && root.progress >= 1 && !anim.running && !Theme.hell
             dir: visible ? folder : ""
-            still: Motion.still || !StreamMode.effectsOn(root.screenName)
+            still: Motion.still || !StreamMode.effectsOn(root.screenName) || (StreamMode.onAir && StreamMode.screens.length > 0 && !StreamMode.screens.includes(root.screenName))
             wind: SceneWind.strength
             windDir: SceneWind.dir
             pulse: SceneWind.pulse

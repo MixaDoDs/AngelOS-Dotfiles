@@ -141,7 +141,10 @@ Variants {
         // (the pixel Spotlight's pill and list are near opaque; its box is mostly air. Golden
         // Gate's is Liquid Glass: blur under its capsule and its results only)
         readonly property var macLook: win.style === "mac" && body.item && body.item.capsuleItem ? body.item : null
-        BackgroundEffect.blurRegion: !win.shown ? null : win.macLook ? (GoldenGate.blurOn ? macBlur : null) : Config.appearance.blur && !win.spot ? blurRegion : null
+        // (Golden Gate's: none while it drops in. Its regions follow the capsule and the panel, and
+        // those don't move inside the body that does: the blur stayed where the first frame had
+        // them, Theme.u * 10 higher, a second band of glass over the capsule. Set anew at rest)
+        BackgroundEffect.blurRegion: !win.shown ? null : win.macLook ? (GoldenGate.blurOn && !revealAnim.running ? macBlur : null) : Config.appearance.blur && !win.spot ? blurRegion : null
         Region {
             id: blurRegion
             item: win.full ? catcher : body
@@ -155,6 +158,11 @@ Variants {
             Region {
                 item: win.macLook && win.macLook.panelItem.visible ? win.macLook.panelItem : null
                 radius: win.macLook ? win.macLook.panelItem.radius : 0
+            }
+            // an app's menu (a right click in Spotlight)
+            Region {
+                item: win.macLook && win.macLook.menuItem && win.macLook.menuItem.visible ? win.macLook.menuItem : null
+                radius: GoldenGate.menuRadius
             }
         }
 

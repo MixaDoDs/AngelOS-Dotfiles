@@ -36,8 +36,8 @@ Singleton {
     // what the shared controls read (Theme.settingsSkinFor): hosts put it on plugin content
     readonly property string settingsSkin: mac && !hell ? "goldengate" : "classic"
     readonly property bool dark: Theme.dark
-    // macOS's Accessibility → Reduce transparency (Golden Gate's Appearance), a fullscreen game
-    // (niri-game-mode) or the blur switched off: solid surfaces, no glass effects
+    // macOS's Accessibility → Reduce transparency (Golden Gate's Appearance), a fullscreen game or
+    // the eco mode (niri-game-mode) or the blur switched off: solid surfaces, no glass effects
     readonly property bool reduceTransparency: !Config.appearance.blur || (Config.ready && Config.mac.reduceTransparency) || GoldenGate.gameMode
     // draw glass (translucent, rim): the Mac look with transparency allowed
     readonly property bool glass: mac && !reduceTransparency

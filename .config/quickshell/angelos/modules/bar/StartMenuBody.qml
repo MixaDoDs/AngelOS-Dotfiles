@@ -113,10 +113,10 @@ PxBox {
             "act": () => Shell.gameOpen = true
         },
         {
-            "text": Theme.dark ? I18n.t("Светлая тема", "Light theme") : I18n.t("Тёмная тема", "Dark theme"),
+            "text": Theme.night ? I18n.t("Светлая тема", "Light theme") : I18n.t("Тёмная тема", "Dark theme"),
             "extra": true,
-            "icon": Theme.dark ? "sun" : "moon",
-            "act": () => Config.appearance.mode = Theme.dark ? "light" : "dark"
+            "icon": Theme.night ? "sun" : "moon",
+            "act": () => Config.appearance.mode = Theme.night ? "light" : "dark"
         },
         {
             "separator": true

@@ -452,6 +452,10 @@ JsonAdapter {
         property int discordMb: 20          // «≤20 MB for Discord» (services/VideoGrab): the size a video is squeezed under
         property bool timelapse: false      // the day's timelapse: gpu-screen-recorder writes the main screen at a frame a second, glued at midnight (services/Timelapse)
         property int timelapseStep: 30      // a frame of the video every this many seconds of the day
+        property string momentsMic: ""      // the mic the timelapse's moments listen to (a PipeWire source; "" = the default one)
+        property string momentsAudio: ""    // the moments' sound for gpu-screen-recorder -a ("" = what you hear + momentsMic; a mixer's stream mix that has both: just that)
+        property string momentsEar: ""      // the night's ears, laughter and shouting: "<python> <worker> <model dir>" of an AudioSet tagger (scripts/timelapse.py)
+        property string momentsWhisper: ""  // the night's ears, the words: "<whisper-cli> <model>"
     }
 
     property JsonObject plugins: JsonObject {
@@ -475,7 +479,7 @@ JsonAdapter {
     }
 
     property JsonObject system: JsonObject {
-        property bool angelEar: true        // services/Bass hears through angel-ear; without the program, cava (Debug → Wallpaper sounds)
+        property bool angelEar: true        // services/Bass hears through angel-ear; without the program, cava (Settings → Music and rhythm)
         property string terminal: "kitty"
         property bool convertRing: true     // Shift + right click on files in Strata: the conversion ring (services/Convert)
         property string fileManager: ""     // the Start menu's «Files»; "" = the default one (xdg-open: Strata)
@@ -511,6 +515,16 @@ JsonAdapter {
         property string beforeHell: ""      // never picked one: the cursor she replaced, put back by the angel
         property int beforeHellSize: 0
         property string beforeMac: ""       // the cursor the Golden Gate skin's arrow replaced (services/Cursors)
+        property bool motion: true          // the living pointer (angel-niri cursor_fx), any theme
+        property real motionSize: 2         // × the cursor size, whole numbers (pixels stay even)
+        property real motionSway: 1         // lean into motion (0–3)
+        property real motionBounce: 1       // click dip + ring (0–3)
+        property real motionShadow: 1       // shadow darkness (0–3)
+        property real motionShadowDist: 1   // how far the shadow falls (0–3; 1 = one art pixel)
+        property bool camera: true          // Super+Ctrl+Shift+U zooms in and follows the pointer (angel-niri camera.rs)
+        property real cameraZoom: 1.8       // × (1.25–3.5)
+        property real cameraSmooth: 1       // how slowly it glides (0.3–3)
+        property real cameraBlur: 1         // smear of pans and zoom (0–3)
     }
 
     property JsonObject updates: JsonObject {
@@ -904,6 +918,21 @@ JsonAdapter {
         property bool volumeSound: true     // the "pop" when the volume changes
         property string accent: "blue"      // blue | purple | pink | red | orange | yellow | green | graphite
         property bool barBackground: false  // the menu bar on a band of its own ("Show menu bar background")
+        // the menu bar's shape: bar = one strip along the top (macOS's); islands = glass islands, the menus on
+        // the left and the status items on the right, the Halo between them if it is in the bar (modules/mac/MacMenuBar)
+        property string barStyle: "bar"
+        // the Halo as a part of the menu bar, in either style: in its middle at the bar's height, in the
+        // glass, never hiding by itself (the bar doesn't); off: the Halo of its own (Settings → Halo)
+        property bool haloInBar: false
+        // this screen's desks in the menu bar (modules/mac/MacDesks): off | numbers | dots; a click goes to
+        // the desk, the wheel switches, a right click opens Mission Control, "+" opens a new desk (Desktop)
+        property string barDesks: "off"
+        property string barDesksAt: "icons"     // where: left (before the emblem) | icons (left of the status icons) | clock (by the clock)
+        property string barDesksLit: "all"      // all (the one in front filled, the empty ones paler, one asking for you red) | current | none
+        // a button for the overview in the menu bar: off | niri (niri's overview, Control Center's
+        // Mission Control) | mission (angelOS's Mission Control); where, as barDesksAt
+        property string barOverview: "off"
+        property string barOverviewAt: "icons"
         property bool appMenus: true        // the focused app's own menus in the menu bar (scripts/appmenu.py)
         // Qt apps' menus in the menu bar too: the AppMenu registrar on the bus, so Qt apps started
         // while it is there export their menu bar and hide their own. Off: Qt apps keep their own menus
@@ -913,11 +942,22 @@ JsonAdapter {
         property var ownFrameApps: ["org.telegram.desktop", "TelegramDesktop", "com.ayugram.desktop", "io.github.kotatogram", "org.materialgram.desktop"]
         property bool keys: false           // Mac-style shortcuts: Golden Gate's key profile (cfg/keybinds-macos.kdl, services/KeyProfile) — offered, never imposed
         property string minimizeEffect: "genie" // genie | scale — how a window goes to the Dock (modules/mac/MacMinimizeFx)
+        // what the green light of angel-niri's title bars does: fullscreen (onto a workspace of its own,
+        // over the menu bar and the Dock, as on a Mac) | maximize (the room between the menu bar and the
+        // Dock, the title bar and its lights kept)
+        property string greenButton: "fullscreen"
+        // the desks in niri's overview (modules/mac/MacOverviewCard): glass = each a card of the skin's
+        // glass, its edge lit (the workspaces themselves are clear: the wallpaper is in the backdrop);
+        // clear = only their windows over the wallpaper, as niri draws them
+        property string overviewDesks: "glass"
         property int dockSize: 48           // Dock icons, logical px
         property bool dockMagnify: true     // icons grow under the pointer
         property int dockMagnifySize: 96    // the icon right under the pointer, logical px (dockSize..128)
         property bool dockMacIcons: true    // MacTahoe's icons in the Dock (DockIcons, scripts/mac-icons.py)
         property bool dockAutohide: false
+        // a click on the app in front minimizes its focused window (as the pixel taskbar does);
+        // off, as on a Mac: the click goes to its next window
+        property bool dockClickMinimizes: false
         property string dockPosition: "bottom" // bottom | left | right — the screen's edge the Dock stands on
         property var dockApps: []           // desktop ids in the Dock; empty: Start's pinned apps
         property string font: ""            // "" = Inter (open, drawn close to SF Pro); any installed family

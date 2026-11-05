@@ -299,6 +299,10 @@ Scope {
             plink.source = root.fileUrl(root.timeline.files.plink);
             music.source = root.fileUrl(root.timeline.files.doki);
             root.phase = "pre";
+            root.passed = {};
+            root.kept = false;
+            root.read = [];
+            root.shut = [];
             root.duck();
             if (root.timeline.files.prequel) {
                 before.source = root.fileUrl(root.timeline.files.prequel);
@@ -360,14 +364,185 @@ Scope {
             start();
         }
         onTriggered: {
-            root.pre = Math.min(root.preBeats.length, (Date.now() - t0) / 1000);
+            const now = Math.min(root.preBeats.length, (Date.now() - t0) / 1000);
+            const g = root.asks ? root.gates.find(x => !root.passed[x.id] && x.at >= root.preFrom && x.at <= now) : undefined;
+            if (g) {
+                root.stopAt(g);
+                return;
+            }
+            root.pre = now;
             if (root.pre >= root.preBeats.length)
                 root.toRun();
         }
     }
+
+    // ---- the minute before waits for you at her moments (gates): what she does there, you do —
+    // shut his message or read it, send the line or rub it out, press the link. The picture and
+    // its sound stand still meanwhile. The end is one whatever you do. Nobody there (no input
+    // for 45 s: it also plays by itself once after an update) — she does it as she always did;
+    // the link waits 10 s, then her hand goes to it by itself. ANGELOS_SETUP_INTRO_AUTO=1: no gates
+    readonly property bool asks: Quickshell.env("ANGELOS_SETUP_INTRO_AUTO") !== "1" && Quickshell.env("ANGELOS_TEST") !== "1"
+    readonly property var gates: {
+        const b = preBeats, m = b.messages || [], g = [];
+        if (m.length)
+            g.push({
+                "id": "first",
+                "at": m[0].until - 0.15,
+                "msgs": [0]
+            });
+        if (b.erase)
+            g.push({
+                "id": "unsaid",
+                "at": b.erase[0] - 0.1
+            });
+        if (b.download)
+            g.push({
+                "id": "link",
+                "at": b.download - 0.15
+            });
+        if (m.length >= 4) {
+            const l = m.length, last = [l - 3, l - 2, l - 1];
+            g.push({
+                "id": "last",
+                "at": Math.min(...last.map(i => m[i].until)) - 0.15,
+                "msgs": last
+            });
+        }
+        return g.sort((a, c) => a.at - c.at);
+    }
+    property var gate: null
+    property var passed: ({})
+    property bool gateLong: false            // waited a while: the hint comes up
+    // what you chose: the line kept in her answer; his messages read or shut, by index
+    property bool kept: false
+    property var read: []
+    property var shut: []
+    // her pointer while it waits, on her 320×240 screen: yours; `creep` 0 → 1 her hand to the link
+    property point hand: Qt.point(-1, -1)
+    property real creep: 0
+    function stopAt(g) {
+        preClock.stop();
+        before.pause();
+        pre = g.at;
+        hand = Qt.point(-1, -1);
+        gateLong = false;
+        gate = g;
+        gateHint.restart();
+        gateIdle.interval = g.id === "link" ? 10000 : 45000;
+        gateIdle.restart();
+    }
+    function pass() {
+        if (!gate)
+            return;
+        const g = gate;
+        passed[g.id] = true;
+        gate = null;
+        gateHint.stop();
+        gateIdle.stop();
+        creeping.stop();
+        creep = 0;
+        // the line sent as it is: on past the rubbing out, the sound too
+        const from = g.id === "unsaid" && kept ? Math.max(pre, (preBeats.send || pre) - 0.3) : pre;
+        pre = from;
+        preClock.t0 = Date.now() - from * 1000;
+        // the clock first: the sound's «playing» would start it over from the beginning
+        preClock.start();
+        if (before.playbackState === MediaPlayer.PausedState) {
+            before.position = Math.round(from * 1000);
+            before.play();
+        }
+        watchdog.restart();
+    }
+    Timer {
+        id: gateHint
+        interval: 4000
+        onTriggered: root.gateLong = true
+    }
+    Timer {
+        id: gateIdle
+        onTriggered: {
+            if (!root.gate)
+                return;
+            if (root.gate.id === "link")
+                creeping.restart();
+            else
+                root.pass();
+        }
+    }
+    NumberAnimation {
+        id: creeping
+        target: root
+        property: "creep"
+        from: 0
+        to: 1
+        duration: 1400
+        easing.type: Easing.InOutCubic
+        onFinished: root.pass()
+    }
+    // the pointer over her screen while it waits: x, y 0…1 of this screen, its aspect. The same
+    // fit and the same bulge of the glass as shaders/setup_prequel.frag (her screen whole, no lean)
+    function toDesk(x, y, aspect) {
+        let qx = (x - 0.5) * Math.max(1, aspect / 1.3333) * 2, qy = (y - 0.5) * Math.max(1, 1.3333 / aspect) * 2;
+        const k = 1 + 0.045 * (qx * qx + qy * qy) - 0.045;
+        qx *= k;
+        qy *= k;
+        return Qt.point((qx * 0.5 + 0.5) * 320, (qy * 0.5 + 0.5) * 240);
+    }
+    function pointAt(x, y, aspect) {
+        if (!gate)
+            return;
+        hand = toDesk(x, y, aspect);
+        gateIdle.restart();
+    }
+    function clickAt(x, y, aspect) {
+        if (!gate || creeping.running)
+            return;
+        const p = hand = toDesk(x, y, aspect);
+        gateIdle.restart();
+        const inside = (r) => p.x >= r[0] && p.x < r[2] && p.y >= r[1] && p.y < r[3];
+        const m = preBeats.messages || [];
+        if (gate.id === "unsaid") {
+            // her «отправить»
+            if (inside([170, 198, 236, 216])) {
+                kept = true;
+                pass();
+            }
+        } else if (gate.id === "link") {
+            if (inside([4, 156, 184, 176]))
+                pass();
+        } else {
+            // the topmost of his windows still up: its cross shuts it, its words read it
+            const open = gate.msgs.filter(i => !shut.includes(i) && !read.includes(i)).reverse();
+            for (const i of open) {
+                const w = m[i];
+                if (inside([w.x + 112, w.y, w.x + 126, w.y + 14])) {
+                    shut = shut.concat([i]);
+                    break;
+                }
+                if (inside([w.x, w.y + 14, w.x + 126, w.y + 64])) {
+                    read = read.concat([i]);
+                    break;
+                }
+            }
+            if (gate.msgs.every(i => shut.includes(i) || read.includes(i)))
+                pass();
+        }
+    }
+    // the keys at her answer: Enter sends it as it is, Backspace rubs the line out (as she did)
+    function keyAt(send) {
+        if (!gate || gate.id !== "unsaid")
+            return;
+        kept = send;
+        pass();
+    }
+
     function toRun() {
         if (phase !== "pre")
             return;
+        gate = null;
+        gateHint.stop();
+        gateIdle.stop();
+        creeping.stop();
         preClock.stop();
         preStart.stop();
         before.stop();

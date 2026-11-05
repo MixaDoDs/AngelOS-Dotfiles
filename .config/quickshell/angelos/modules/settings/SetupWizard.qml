@@ -343,6 +343,17 @@ Scope {
                 enabled: cover.hosting && introCtl.alone
                 onActivated: introCtl.skip()
             }
+            // her answer, while the minute before waits on it: sent as it is, or the line rubbed out
+            Shortcut {
+                sequences: ["Return", "Enter"]
+                enabled: cover.hosting && !!introCtl.gate && introCtl.gate.id === "unsaid"
+                onActivated: introCtl.keyAt(true)
+            }
+            Shortcut {
+                sequence: "Backspace"
+                enabled: cover.hosting && !!introCtl.gate && introCtl.gate.id === "unsaid"
+                onActivated: introCtl.keyAt(false)
+            }
             RightClickGuard {}
             // no pointer at all while the intro plays (alone: until the desktop is back)
             MouseArea {
@@ -353,6 +364,15 @@ Scope {
                 acceptedButtons: Qt.AllButtons
                 cursorShape: Qt.BlankCursor
                 onWheel: wheel => wheel.accepted = true
+                // while the minute before waits for you, your pointer is her hand on her screen
+                onPositionChanged: mouse => {
+                    if (cover.hosting && introCtl.gate)
+                        introCtl.pointAt(mouse.x / width, mouse.y / height, width / height);
+                }
+                onClicked: mouse => {
+                    if (cover.hosting && introCtl.gate && mouse.button === Qt.LeftButton)
+                        introCtl.clickAt(mouse.x / width, mouse.y / height, width / height);
+                }
             }
         }
     }

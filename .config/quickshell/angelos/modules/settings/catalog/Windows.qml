@@ -95,6 +95,11 @@ CatPage {
         advanced: true
         icon: "layers"
         CatNote {
+            present: GoldenGate.on
+            dim: true
+            text: I18n.t("В Golden Gate Alt+Tab – маковский переключатель программ, стили ниже вернутся с другим скином.", "In Golden Gate Alt+Tab is the Mac app switcher; the styles below come back with another skin.")
+        }
+        CatNote {
             dim: true
             text: I18n.t("Держи Alt и жми Tab, отпусти — переключится. Shift+Tab — назад, Esc — отмена, Delete — закрыть окно.", "Hold Alt and press Tab, let go to switch. Shift+Tab: back, Esc: cancel, Delete: close the window.")
         }
@@ -330,6 +335,20 @@ CatPage {
             }
         }
     }
+    // the windows with the music's kick — shown on the Music and rhythm page (tree.json "rhythm")
+    CatGroup {
+        name: "kick"
+        title: I18n.t("Окна", "Windows")
+        icon: "window"
+        present: WindowPulse.supported && !GoldenGate.on
+        CatToggle {
+            present: WindowPulse.supported && !GoldenGate.on
+            label: I18n.t("Окна вздрагивают под бочку", "Windows spring on the kick")
+            hint: I18n.t("Пока играет песня, на каждый удар бочки окна на миг становятся на пиксель-два больше. Окна во весь экран (игры, видео) не трогаются. Видно и на стриме.", "While a song plays, each kick makes the windows a pixel or two bigger for a moment. Fullscreen windows (games, videos) stay put. Shows on the stream too.")
+            checked: Config.windows.kickPulse === true
+            onToggled: c => Config.windows.kickPulse = c
+        }
+    }
     CatGroup {
         name: "floating"
         title: I18n.t("Desktop или Лента", "Desktop or Strip")
@@ -348,12 +367,12 @@ CatPage {
             checked: Config.windows.deskThrow
             onToggled: c => Config.windows.deskThrow = c
         }
-        CatToggle {
+        CatLink {
             present: WindowPulse.supported && !GoldenGate.on
             label: I18n.t("Окна вздрагивают под бочку", "Windows spring on the kick")
-            hint: I18n.t("Пока играет песня, на каждый удар бочки окна на миг становятся на пиксель-два больше. Окна во весь экран (игры, видео) не трогаются. Видно и на стриме.", "While a song plays, each kick makes the windows a pixel or two bigger for a moment. Fullscreen windows (games, videos) stay put. Shows on the stream too.")
-            checked: Config.windows.kickPulse === true
-            onToggled: c => Config.windows.kickPulse = c
+            hint: I18n.t("в «Музыке и ритме»", "In Music and rhythm")
+            page: "rhythm"
+            group: "kick"
         }
         CatToggle {
             present: WindowDither.supported

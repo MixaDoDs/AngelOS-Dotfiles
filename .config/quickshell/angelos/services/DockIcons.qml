@@ -4,12 +4,17 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Qt.labs.folderlistmodel
 import qs.config
 
 // The Golden Gate Dock's icons drawn like macOS: MacTahoe (scripts/mac-icons.py — GPL-3.0, a
 // pinned release, downloaded once while the skin is on; or a MacTahoe installed already). Only
 // the Dock reads it: GTK and the rest keep their icon theme. Without it (not downloaded yet, no
 // network, turned off in Settings) the Dock shows the theme's icons as before.
+// Your own icons come before both: ~/.local/share/angelos/icons/dock/<name>.svg or .png, under
+// any name the Dock looks for (the .desktop's icon, the app's id, the last part of a reverse-DNS
+// id). For an app MacTahoe draws badly (Steam's is cut at the tile's edge), or one it lacks.
+// Read live: an icon put there shows at once. With MacTahoe off they still do.
 Singleton {
     id: root
 
@@ -24,19 +29,52 @@ Singleton {
     function file(kind, name) {
         return name && have[kind + "/" + name] ? "file://" + dir + "/" + kind + "/scalable/" + name + ".svg" : "";
     }
+    // ---- your own icons (see above) ----
+    readonly property string ownDir: Config.home + "/.local/share/angelos/icons/dock"
+    // name (without .svg / .png) -> file url; an .svg wins over a .png of the same name
+    readonly property var own: {
+        const out = {};
+        for (let i = 0; i < ownModel.count; i++) {
+            const f = String(ownModel.get(i, "fileName"));
+            const m = f.match(/^(.+)\.(svg|png)$/i);
+            if (m && (!out[m[1]] || m[2].toLowerCase() === "svg"))
+                out[m[1]] = "file://" + ownDir + "/" + f;
+        }
+        return out;
+    }
+    FolderListModel {
+        id: ownModel
+        folder: "file://" + root.ownDir
+        nameFilters: ["*.svg", "*.png", "*.SVG", "*.PNG"]
+        showDirs: false
+    }
+    // one of the names: your icon, else MacTahoe's (while it is on)
+    function pick(kind, names) {
+        for (const n of names)
+            if (own[n])
+                return own[n];
+        if (!ready || !Config.mac.dockMacIcons)
+            return "";
+        for (const n of names) {
+            const f = file(kind, n);
+            if (f)
+                return f;
+        }
+        return "";
+    }
     // the icon of a Dock item, "" when MacTahoe has none: its .desktop icon, its id, the last
     // part of a reverse-DNS id (org.gnome.Nautilus -> nautilus)
     function forItem(it) {
-        if (!ready || !Config.mac.dockMacIcons || !it)
+        if (!it)
             return "";
         if (it.kind === "apps")
-            return file("apps", "view-app-grid");
+            return pick("apps", ["view-app-grid"]);
         if (it.kind === "settings")
-            return file("apps", "preferences-system");
+            return pick("apps", [AppMenu.shellSettingsIcon]);
         if (it.kind === "downloads")
-            return file("places", "folder-download");
+            return pick("places", ["folder-download"]);
         if (it.kind === "trash")
-            return file("places", it.icon === "user-trash-full" ? "user-trash-full" : "user-trash");
+            return pick("places", [it.icon === "user-trash-full" ? "user-trash-full" : "user-trash"]);
         const out = [];
         const add = n => {
             n = String(n || "").replace(/\.desktop$/, "");
@@ -53,12 +91,7 @@ Singleton {
             if (n.indexOf(".") > 0 && tail.length > 2)
                 add(tail);
         }
-        for (const n of out) {
-            const f = file("apps", n);
-            if (f)
-                return f;
-        }
-        return "";
+        return pick("apps", out);
     }
 
     function refresh() {

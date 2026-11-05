@@ -98,7 +98,7 @@ supplied in full):
   `separator`, `hover`, `danger`, `ok`, `warn`, `shadow`; `Skin.mix(a, b, t)`.
   They follow light/dark, the user's accent colour and hell by themselves.
 - Bar ink: `Skin.ink(screenName)` — in macOS the menu bar is black or white by
-  the wallpaper under it; a bar widget is one colour in it, like a macOS menu
+  the wallpaper under it (the theme's ink with its band or as islands); a bar widget is one colour in it, like a macOS menu
   bar extra (a line icon `MacIcon { name; color: Skin.ink(screenName) }`, short
   text), never a coloured box. In pixel it is the bar's text colour.
 - Type: `Skin.font`, `titleFont`, `mono`, `Skin.fontSize("small" | "body" |
@@ -109,7 +109,8 @@ supplied in full):
   (controls), `cardRadius`, `controlHeight`, `iconSize`. Radius is 0 in pixel —
   bind to it, don't branch on it.
 - Transparency: `Skin.reduceTransparency` (macOS Accessibility "Reduce
-  transparency", blur off, a fullscreen game) and `Skin.glass` (glass allowed).
+  transparency", blur off, a fullscreen game, the eco mode) and `Skin.glass`
+  (glass allowed).
   With reduce transparency draw solid surfaces: no translucent fills, no
   blur, no glow — `Skin.surface` and `SkinCard` already do this.
 - Words and time: `Skin.title(name)`, `Skin.ms(duration)` (0 with motion off).

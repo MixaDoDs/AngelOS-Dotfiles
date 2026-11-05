@@ -232,6 +232,30 @@ Singleton {
     }
 
     // ---- switching ----
+    // a desk of any screen (a click on a bar's desk): the focused screen's through go(), with its
+    // transition; another screen's by its id, the number would switch the focused screen's
+    function goDesk(ws) {
+        if (!ws)
+            return;
+        if (ws.output === Niri.focusedOutput)
+            go(String(ws.idx));
+        else
+            Niri.focusWorkspace(ws.id);
+    }
+    // the wheel over a screen's desks (the bars): up or down from the one in front. Another screen
+    // in focus: the neighbouring desk there by its id, the plain up/down action would switch the
+    // focused screen's (DP-1, on air); up from desk 1 is desk 0 (Niri.zeroDesk), down from it desk 1
+    function stepDesk(output, up) {
+        if (output === Niri.focusedOutput) {
+            go(up ? "up" : "down");
+            return;
+        }
+        const list = Niri.workspacesOn(output);
+        const i = list.findIndex(w => w.is_active);
+        const to = up && i === 0 ? Niri.zeroDesk(output) : i < 0 && up ? null : list[i + (up ? -1 : 1)];
+        if (to)
+            Niri.focusWorkspace(to.id);
+    }
     // target: a workspace number, "up", "down" or "prev"
     function go(target) {
         target = String(target);

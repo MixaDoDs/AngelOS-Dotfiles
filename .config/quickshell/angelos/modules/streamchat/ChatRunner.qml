@@ -35,17 +35,22 @@ Item {
     height: chip.height + Theme.u + 16 * pixel
     property int tick: 0
     property real done: 0                   // 0 = just off the left edge, 1 = past the right one
-    readonly property bool going: go.running // set off and not past the edge yet
+    property bool going: false              // set off and not past the edge yet
+    // the strip's one clock (ChatRunners.now, ~60 a second, the stream's rate): an animation
+    // stepped each cat every frame of the 200 Hz screen, and a timer of its own each out of phase
+    // drew a frame for each (172 and 98 frames a second of this strip, 03.11)
+    property real now: 0
+    onNowChanged: if (going)
+        step()
     x: -width + done * (lane + width)
-    NumberAnimation on done {
-        id: go
-        running: false
-        to: 1
+    function step() {
+        done = Math.min(1, (Date.now() - modelData.at) / modelData.ms);
+        tick = Math.floor(Date.now() / 110);
+        going = done < 1;
     }
     function setOff() {
-        done = Math.min(1, (Date.now() - modelData.at) / modelData.ms);
-        go.duration = Math.max(1, (1 - done) * modelData.ms);
-        go.start();
+        going = true;
+        step();
     }
     Component.onCompleted: {
         if (still)
@@ -60,12 +65,6 @@ Item {
     Timer {
         id: turn
         onTriggered: runner.setOff()
-    }
-    Timer {
-        interval: 110
-        repeat: true
-        running: go.running
-        onTriggered: runner.tick++
     }
 
     // the nick on a plate of the theme's face: readable over any game

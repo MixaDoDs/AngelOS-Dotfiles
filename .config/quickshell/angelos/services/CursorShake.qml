@@ -140,6 +140,71 @@ Singleton {
             _probe();
     }
 
+    // the living pointer — angel-niri (cursor_fx) draws it, whatever the
+    // theme; these settings go to it at start and on every change. Stock niri says Err: ownMotion
+    // stays false and Settings greys the switch out
+    property bool ownMotion: false
+    readonly property string motionKey: Config.ready ? [Config.cursor.motion, Config.cursor.motionSize, Config.cursor.motionSway, Config.cursor.motionBounce, Config.cursor.motionShadow, Config.cursor.motionShadowDist, Motion.still].join("|") : ""
+    onMotionKeyChanged: motionApply.restart()
+    function _motion() {
+        if (!Config.ready)
+            return;
+        const c = Config.cursor;
+        const n = (v, d) => (typeof v === "number" && isFinite(v)) ? v : d;
+        Niri.request({
+            "Action": {
+                "SetCursorFx": {
+                    "on": !!c.motion && !Motion.still,
+                    "size": n(c.motionSize, 2),
+                    "sway": n(c.motionSway, 1),
+                    "bounce": n(c.motionBounce, 1),
+                    "shadow": n(c.motionShadow, 1),
+                    "shadow_dist": n(c.motionShadowDist, 1)
+                }
+            }
+        }, (ok, err) => root.ownMotion = !err, true);
+    }
+    Timer {
+        id: motionApply
+        interval: 80
+        running: true
+        onTriggered: root._motion()
+    }
+    // the camera that follows the pointer (angel-niri camera.rs) —
+    // allowed or not and how; Super+Ctrl+Shift+U (user.kdl) or cameraToggle() moves it in and out
+    property bool ownCamera: false
+    readonly property string cameraKey: Config.ready ? [Config.cursor.camera, Config.cursor.cameraZoom, Config.cursor.cameraSmooth, Config.cursor.cameraBlur].join("|") : ""
+    onCameraKeyChanged: cameraApply.restart()
+    function _camera() {
+        if (!Config.ready)
+            return;
+        const c = Config.cursor;
+        const n = (v, d) => (typeof v === "number" && isFinite(v)) ? v : d;
+        Niri.request({
+            "Action": {
+                "SetCursorCamera": {
+                    "allowed": !!c.camera,
+                    "zoom": n(c.cameraZoom, 1.8),
+                    "smooth": n(c.cameraSmooth, 1),
+                    "blur": n(c.cameraBlur, 1)
+                }
+            }
+        }, (ok, err) => root.ownCamera = !err, true);
+    }
+    function cameraToggle() {
+        Niri.request({
+            "Action": {
+                "ToggleCursorCamera": {}
+            }
+        }, null, true);
+    }
+    Timer {
+        id: cameraApply
+        interval: 80
+        running: true
+        onTriggered: root._camera()
+    }
+
     // the arrow of the current theme, again when the theme changes
     readonly property string theme: Cursors.active || "default"
     onThemeChanged: if (wanted)

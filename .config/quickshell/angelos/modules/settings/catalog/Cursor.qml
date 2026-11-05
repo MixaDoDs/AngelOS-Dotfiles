@@ -214,6 +214,152 @@ CatPage {
             }
         }
     }
+    // the living pointer drawn by angel-niri (cursor_fx) — any cursor theme,
+    // Classic and Golden Gate alike (services/CursorShake sends it to the compositor)
+    CatGroup {
+        name: "motion"
+        title: I18n.t("Живой курсор", "Motion cursor")
+        icon: "sparkle"
+        CatToggle {
+            label: I18n.t("Живой курсор", "Motion cursor")
+            hint: !CursorShake.ownMotion ? I18n.t("нужна сборка angel-niri с cursor_fx", "needs angel-niri with cursor_fx") : Motion.still ? I18n.t("сейчас выключен: в «Движении» стоит «без анимаций»", "off for now: Motion is set to no animation") : I18n.t("курсор наклоняется в движении, пружинит при клике с кольцом и отбрасывает пиксельную тень — с любой темой курсора", "the pointer leans as it moves, springs on a click with a ring and casts a pixel shadow — with any cursor theme")
+            enabled: CursorShake.ownMotion
+            checked: Config.cursor.motion && CursorShake.ownMotion
+            onToggled: c => Config.cursor.motion = c
+        }
+        CatSlider {
+            present: Config.cursor.motion && CursorShake.ownMotion
+            label: I18n.t("Размер", "Size")
+            hint: I18n.t("во сколько раз больше обычного", "how many times bigger than usual")
+            from: 1
+            to: 3
+            stepSize: 1
+            value: Math.round(Config.cursor.motionSize ?? 2)
+            suffix: "×"
+            onMoved: v => Config.cursor.motionSize = v
+        }
+        CatSlider {
+            present: Config.cursor.motion && CursorShake.ownMotion
+            label: I18n.t("Наклон", "Lean")
+            hint: I18n.t("как сильно курсор наклоняется по ходу движения", "how far the pointer leans into its motion")
+            from: 0
+            to: 300
+            stepSize: 10
+            value: Math.round((Config.cursor.motionSway ?? 1) * 100)
+            suffix: "%"
+            onMoved: v => Config.cursor.motionSway = v / 100
+        }
+        CatSlider {
+            present: Config.cursor.motion && CursorShake.ownMotion
+            label: I18n.t("Клик", "Click")
+            hint: I18n.t("пружина и кольцо при нажатии; 0 — без них", "the dip and ring on a click; 0 — none")
+            from: 0
+            to: 300
+            stepSize: 10
+            value: Math.round((Config.cursor.motionBounce ?? 1) * 100)
+            suffix: "%"
+            onMoved: v => Config.cursor.motionBounce = v / 100
+        }
+        CatSlider {
+            present: Config.cursor.motion && CursorShake.ownMotion
+            label: I18n.t("Тень", "Shadow")
+            hint: I18n.t("насколько тёмная; 0 — без тени", "how dark; 0 — no shadow")
+            from: 0
+            to: 300
+            stepSize: 10
+            value: Math.round((Config.cursor.motionShadow ?? 1) * 100)
+            suffix: "%"
+            onMoved: v => Config.cursor.motionShadow = v / 100
+        }
+        CatSlider {
+            present: Config.cursor.motion && CursorShake.ownMotion
+            label: I18n.t("Дальность тени", "Shadow distance")
+            hint: I18n.t("на сколько пикселей она отступает; на скорости — дальше", "how many pixels away it falls; further when fast")
+            from: 0
+            to: 300
+            stepSize: 10
+            value: Math.round((Config.cursor.motionShadowDist ?? 1) * 100)
+            suffix: "%"
+            onMoved: v => Config.cursor.motionShadowDist = v / 100
+        }
+        CatCustom {
+            wide: true
+            present: Config.cursor.motion && CursorShake.ownMotion
+            CatBox {
+                PxButton {
+                    compact: true
+                    icon: "refresh"
+                    text: I18n.t("Как было по умолчанию", "Back to defaults")
+                    onClicked: {
+                        Config.cursor.motionSize = 2;
+                        Config.cursor.motionSway = 1;
+                        Config.cursor.motionBounce = 1;
+                        Config.cursor.motionShadow = 1;
+                        Config.cursor.motionShadowDist = 1;
+                    }
+                }
+            }
+        }
+    }
+    // the camera that follows the pointer (angel-niri camera.rs)
+    CatGroup {
+        name: "camera"
+        title: I18n.t("Камера за курсором", "Camera follows the pointer")
+        icon: "search"
+        CatToggle {
+            label: I18n.t("Камера за курсором", "Follow the pointer")
+            hint: !CursorShake.ownCamera ? I18n.t("нужна сборка angel-niri с камерой", "needs angel-niri with the camera") : I18n.t("Super + Ctrl + Shift + U — экран приближается к курсору и плавно едет за ним, смазываясь в движении; ещё раз — назад. Курсор, клики и окна работают как обычно.", "Super + Ctrl + Shift + U — the screen zooms in on the pointer and glides after it, smearing as it moves; again — back out. The pointer, clicks and windows work as usual.")
+            enabled: CursorShake.ownCamera
+            checked: Config.cursor.camera && CursorShake.ownCamera
+            onToggled: c => Config.cursor.camera = c
+        }
+        CatSlider {
+            present: Config.cursor.camera && CursorShake.ownCamera
+            label: I18n.t("Приближение", "Zoom")
+            hint: I18n.t("во сколько раз крупнее", "how many times closer")
+            from: 1.25
+            to: 3.5
+            stepSize: 0.05
+            decimals: 2
+            value: Config.cursor.cameraZoom ?? 1.8
+            suffix: "×"
+            onMoved: v => Config.cursor.cameraZoom = v
+        }
+        CatSlider {
+            present: Config.cursor.camera && CursorShake.ownCamera
+            label: I18n.t("Плавность", "Smoothness")
+            hint: I18n.t("как мягко камера догоняет курсор", "how softly the camera catches up")
+            from: 30
+            to: 300
+            stepSize: 10
+            value: Math.round((Config.cursor.cameraSmooth ?? 1) * 100)
+            suffix: "%"
+            onMoved: v => Config.cursor.cameraSmooth = v / 100
+        }
+        CatSlider {
+            present: Config.cursor.camera && CursorShake.ownCamera
+            label: I18n.t("Размытие в движении", "Motion blur")
+            hint: I18n.t("смаз экрана на быстром проезде и при приближении; 0 — без него", "the screen smears on a fast pan and while zooming; 0 — none")
+            from: 0
+            to: 300
+            stepSize: 10
+            value: Math.round((Config.cursor.cameraBlur ?? 1) * 100)
+            suffix: "%"
+            onMoved: v => Config.cursor.cameraBlur = v / 100
+        }
+        CatCustom {
+            wide: true
+            present: Config.cursor.camera && CursorShake.ownCamera
+            CatBox {
+                PxButton {
+                    compact: true
+                    icon: "sparkle"
+                    text: I18n.t("Приблизить / назад", "Zoom in / back")
+                    onClicked: CursorShake.cameraToggle()
+                }
+            }
+        }
+    }
     CatGroup {
         name: "shake-find-pointer"
         title: I18n.t("Найти курсор встряхиванием", "Shake to find the pointer")

@@ -18,8 +18,9 @@ import qs.widgets
 //                       overview, but gets no input
 //   angelos-desktop   — transparent, drawn inside every workspace: the widgets'
 //                       input copies (invisible unless a button in them is used,
-//                       see DesktopWidgetHost), the right-click menu and the
-//                       sparkle trail
+//                       see DesktopWidgetHost), the right-click menu, the
+//                       sparkle trail and, in Golden Gate, a glass card under
+//                       every desk in niri's overview (MacOverviewCard)
 // and, under angel-niri while windows stand behind a layered wallpaper (services/SceneBehind),
 // a bottom-layer one:
 //   angelos-scene-behind — the scene's nearer layers once more over each such window (niri draws
@@ -156,6 +157,13 @@ Variants {
 
             // (not in Golden Gate: no glitter behind a Mac's pointer)
             readonly property bool sparkles: !GoldenGate.on && Config.y2k.sparkles && Heaven.has("fx.sparkles") && (!(Config.y2k.sparkleScreens || []).length || Config.y2k.sparkleScreens.includes(modelData.name)) && StreamMode.effectsOn(modelData.name)
+
+            // Golden Gate: in niri's overview every desk on a glass card (MacOverviewCard)
+            BackgroundEffect.blurRegion: deskCard.blurring ? deskCard.region : null
+            MacOverviewCard {
+                id: deskCard
+                anchors.fill: parent
+            }
             // where the pointer is, over the widgets too (Pointer: the demon's glass
             // clears up as it comes near)
             HoverHandler {

@@ -616,6 +616,20 @@ CatPage {
             }
         }
     }
+    // the angel with the music — shown on the Music and rhythm page (tree.json "rhythm")
+    CatGroup {
+        name: "nod"
+        title: I18n.t("Ангел", "The angel")
+        icon: "heart"
+        present: !Angel.demon
+        CatToggle {
+            present: !Angel.demon
+            label: I18n.t("Кивает в такт музыке", "Nods to the music")
+            hint: I18n.t("пока играет музыка, кивает на каждый удар баса", "While music plays she nods on every kick of the bass")
+            checked: Config.y2k.nod !== false
+            onToggled: c => Config.y2k.nod = c
+        }
+    }
     CatGroup {
         name: "demon-corner"
         title: I18n.t("В углу экрана", "In the corner of the screen")
@@ -682,12 +696,12 @@ CatPage {
             currentValue: Config.y2k.helperTips
             onActivated: v => Config.y2k.helperTips = v
         }
-        CatToggle {
+        CatLink {
             present: !Angel.demon
             label: I18n.t("Кивает в такт музыке", "Nods to the music")
-            hint: I18n.t("пока играет музыка, кивает на каждый удар баса", "While music plays she nods on every kick of the bass")
-            checked: Config.y2k.nod !== false
-            onToggled: c => Config.y2k.nod = c
+            hint: I18n.t("в «Музыке и ритме»", "In Music and rhythm")
+            page: "rhythm"
+            group: "nod"
         }
         CatToggle {
             present: Niri.pointerKnown

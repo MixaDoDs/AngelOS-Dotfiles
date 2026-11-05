@@ -36,14 +36,22 @@ Singleton {
     readonly property int pid: window && window.pid ? window.pid : 0
     readonly property string appId: window ? String(window.app_id || "") : ""
     readonly property var entry: appId ? (DesktopEntries.byId(appId) || DesktopEntries.heuristicLookup(appId)) : null
-    // angelOS's own Settings window: macOS's System Settings here, with menus of its own
-    readonly property bool shellSettings: !!window && appId === "org.quickshell" && String(window.title || "").indexOf("angelOS") === 0
+    // angelOS's own Settings window: macOS's System Settings here, with menus of its own. Its app id
+    // is Quickshell's, so its .desktop entry is Quickshell's too (its name, its green gear with a Q):
+    // the Dock and Alt+Tab ask this to show it as System Settings
+    function isShellSettings(w) {
+        return !!w && String(w.app_id || "") === "org.quickshell" && String(w.title || "").indexOf("angelOS") === 0;
+    }
+    // how that window shows as an app (the menu bar, the Dock, Alt+Tab)
+    readonly property string shellSettingsName: I18n.t("Системные настройки", "System Settings")
+    readonly property string shellSettingsIcon: "preferences-system"
+    readonly property bool shellSettings: isShellSettings(window)
     // no window in front (the desktop): the file manager's menus, as a Mac shows Finder's
     readonly property var filesEntry: {
         const d = DefaultApps.data && DefaultApps.data.files ? String(DefaultApps.data.files.current || "").replace(/\.desktop$/, "") : "";
         return DesktopEntries.byId(d || "org.gnome.Nautilus") || null;
     }
-    readonly property string appName: shellSettings ? I18n.t("Системные настройки", "System Settings") : !window ? (filesEntry && filesEntry.name ? filesEntry.name : I18n.t("Файлы", "Files")) : entry && entry.name ? entry.name : prettyName(appId)
+    readonly property string appName: shellSettings ? shellSettingsName : !window ? (filesEntry && filesEntry.name ? filesEntry.name : I18n.t("Файлы", "Files")) : entry && entry.name ? entry.name : prettyName(appId)
 
     // what the helper reported for the focused window
     property var report: ({

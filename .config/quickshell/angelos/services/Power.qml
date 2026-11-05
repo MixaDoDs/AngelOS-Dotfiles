@@ -247,18 +247,37 @@ Singleton {
             ecoProfile.setText("");
         }
     }
-    // the profile eco replaced, kept over a restart of the shell (it would take the
-    // power-saver eco left behind for one the user chose, and never let go)
+    // the profile eco replaced, kept over a restart of the shell and of the computer (it would
+    // take the power-saver eco left behind for one the user chose, and never let go). On disk:
+    // power-profiles-daemon keeps its profile over a reboot, and a note in XDG_RUNTIME_DIR did
+    // not, so after a reboot mid-eco the eco mode stayed on for good, at 100 % on mains too:
+    // no animations in the shell or niri
+    function tookProfile(text) {
+        const p = String(text || "").trim();
+        if (p && !root._savedByEco) {
+            root._profileBefore = p;
+            root._savedByEco = true;
+        }
+    }
     FileView {
         id: ecoProfile
+        path: Config.stateDir + "/eco-profile"
+        printErrors: false
+        onLoaded: root.tookProfile(text())
+    }
+    // where it was kept before (a shell updated mid-eco, the same boot): read once, then gone
+    FileView {
+        id: ecoProfileOld
         path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos/eco-profile"
         printErrors: false
         onLoaded: {
             const p = text().trim();
-            if (p && !root._savedByEco) {
-                root._profileBefore = p;
-                root._savedByEco = true;
-            }
+            if (!p)
+                return;
+            root.tookProfile(p);
+            if (root._savedByEco)
+                ecoProfile.setText(root._profileBefore);
+            setText("");
         }
     }
     Process {

@@ -454,6 +454,23 @@ case "$1" in
     [ $# -eq 1 ] && exec qs -c angelos ipc call angelos setup
     shift
     exec python3 "$SHELL_DIR/scripts/setup-cli.py" "$@" ;;
+  voice)
+    # Mod+Shift+V: dictation on/off; without voxtype say why instead of doing nothing (#151)
+    v="$HOME/.local/bin/voxtype"
+    pgrep -u "$(id -u)" -f "voxtype daemon" >/dev/null && exec "$v" record toggle
+    if [ ! -x "$v" ]; then
+      t="Голосовой ввод не установлен"; b="Включить: angelos setup → «Что ещё умеет angelOS» → «Голосовой ввод» (~1,6 ГБ)"
+    elif [ "$(cat "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/niri-game-mode/state" 2>/dev/null)" = game ]; then
+      t="Голосовой ввод на паузе"; b="Игровой режим выключает его на время игры"
+    else
+      t="Голосовой ввод выключен"; b="Включить: systemctl --user enable --now voxtype.service"
+    fi
+    case "${LANG:-}" in ru*) ;; *)
+      case "$t" in *установлен) t="Voice typing is not installed"; b="Turn it on: angelos setup → “What else angelOS can do” → Voice input (~1.6 GB)" ;;
+        *паузе) t="Voice typing is paused"; b="Game mode turns it off while a game runs" ;;
+        *) t="Voice typing is off"; b="Turn it on: systemctl --user enable --now voxtype.service" ;; esac ;;
+    esac
+    exec notify-send -a angelOS -i audio-input-microphone "$t" "$b" ;;
   ws)
     # workspace switch through the shell (animated transitions), niri directly as a fallback
     target="$(printf '%s' "${2:-}" | tr -cd 'a-z0-9-')"

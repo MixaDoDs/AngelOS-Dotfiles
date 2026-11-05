@@ -196,7 +196,7 @@ Loader {
         case "clock":
             return clockC;
         default:
-            return wid.startsWith("plugin:") ? pluginC : null;
+            return wid.startsWith("plugin:") ? pluginC : wid.startsWith("tray:") ? trayIconC : null;
         }
     }
 
@@ -250,6 +250,13 @@ Loader {
     Component {
         id: trayC
         Tray {
+            above: root.bar.above
+        }
+    }
+    Component {
+        id: trayIconC
+        TrayIcon {
+            tray: BarLayout.trayItem(root.wid)
             above: root.bar.above
         }
     }

@@ -48,11 +48,19 @@ Scope {
         property: "edge"
         value: root.hearsEdges ? root.snareGain : 0
     }
-    Binding {
+    // the lens takes the bass on the scene's own tick (wall.time), not on each of Bass's lines:
+    // two clocks made the wallpaper draw ~80 frames a second under music, not the scene's 24 (03.11)
+    Connections {
         target: root.wall
-        property: "breath"
-        value: root.hearsBreath ? Bass.dense * LyricsGlow.loud : 0
+        enabled: root.hearsBreath
+        function onTimeChanged() {
+            const v = Bass.dense * LyricsGlow.loud;
+            if (v !== root.wall.breath)
+                root.wall.breath = v;
+        }
     }
+    onHearsBreathChanged: if (!hearsBreath)
+        wall.breath = 0
     Binding {
         target: root.wall
         property: "breathOn"

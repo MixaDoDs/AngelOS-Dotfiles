@@ -12,8 +12,10 @@ import qs.modules.settings.kit
 // The Golden Gate skin's own settings (services/GoldenGate, modules/mac): its pages in Settings
 // while the skin is on are put together from these groups (tree.json "mac": Dock, Appearance,
 // Wallpaper, Widgets, Keyboard and mouse, Windows). The pixel skins' pages are not in that tree.
-// Every number has the range GoldenGate.limits holds (a value out of it from the file is put back
-// there too); "Reset the theme" puts GoldenGate.themeKeys back to their defaults.
+// Every number has the range GoldenGate.limits holds and every choice a list in GoldenGate.choices
+// (a value out of them from the file is put back there too: both are watched by their keys);
+// "Reset the theme" puts GoldenGate.themeKeys back to their defaults. A new setting: its key in
+// limits or choices and in themeKeys, a line of its own each.
 CatPage {
     id: page
     heading: "Golden Gate"
@@ -95,6 +97,12 @@ CatPage {
             currentValue: Config.mac.minimizeEffect === "scale" ? "scale" : "genie"
             onActivated: v => Config.mac.minimizeEffect = v
         }
+        CatToggle {
+            label: I18n.t("Клик по активной программе сворачивает её", "Click the app in front to minimize it")
+            hint: I18n.t("как на пиксельной панели: её окно в фокусе уходит в Dock. Выключено, как на Mac: клик переходит к её следующему окну", "as on the pixel taskbar: its focused window goes to the Dock. Off, as on a Mac: the click goes to its next window")
+            checked: Config.mac.dockClickMinimizes
+            onToggled: v => Config.mac.dockClickMinimizes = v
+        }
         CatCustom {
             label: I18n.t("Значки как в macOS", "Mac-style icons")
             hint: DockIcons.busy ? I18n.t("скачиваются…", "downloading…") : DockIcons.error ? I18n.t("не скачались: ", "not downloaded: ") + DockIcons.error : I18n.t("свободная тема MacTahoe (GPL-3.0), скачивается один раз; выключено — значки вашей темы", "the free MacTahoe theme (GPL-3.0), downloaded once; off — your theme's icons")
@@ -111,6 +119,17 @@ CatPage {
                         icon: "refresh"
                         onClicked: DockIcons.install()
                     }
+                }
+            }
+        }
+        CatCustom {
+            label: I18n.t("Свои значки", "Your own icons")
+            hint: I18n.t("файл <имя>.svg или .png в этой папке важнее значков macOS и темы: имя значка программы, её id или последняя часть id (org.gnome.Nautilus → nautilus)", "an <name>.svg or .png in this folder comes before the Mac icons and the theme: the app's icon name, its id or the id's last part (org.gnome.Nautilus → nautilus)")
+            CatBox {
+                PxButton {
+                    text: I18n.t("Открыть папку", "Open the folder")
+                    icon: "folder"
+                    onClicked: Quickshell.execDetached(["sh", "-c", 'mkdir -p "$1" && exec xdg-open "$1"', "sh", DockIcons.ownDir])
                 }
             }
         }
@@ -132,7 +151,7 @@ CatPage {
         }
         CatNote {
             dim: true
-            text: I18n.t("Значки перетаскиваются в Dock; вытащи вверх — уберётся. Запущенную оставит её меню: «Оставить в Dock».", "Drag icons into the Dock; drag one up to remove it. Keep a running app: its menu → «Keep in Dock».")
+            text: I18n.t("Значки перетаскиваются в Dock; вытащи вверх — уберётся. Запущенную оставит её меню: «Оставить в Dock», любую – её меню в Spotlight.", "Drag icons into the Dock; drag one up to remove it. Keep a running app: its menu → «Keep in Dock»; any app: its menu in Spotlight.")
         }
         CatRepeat {
             model: keptGroup.kept
@@ -260,11 +279,138 @@ CatPage {
             checked: Config.appearance.blur
             onToggled: v => Config.appearance.blur = v
         }
+        CatChoice {
+            label: I18n.t("Строка меню", "Menu bar")
+            hint: Config.mac.barStyle === "islands" ? I18n.t("стеклянные островки: меню слева, значки справа, посередине Нимб, если он в строке меню", "glass islands: the menus on the left, the icons on the right, the Halo in the middle if it is in the menu bar") : I18n.t("одна полоса вдоль верха, как в macOS", "one strip along the top, as in macOS")
+            model: [
+                {
+                    "label": I18n.t("Полоса", "Strip"),
+                    "value": "bar"
+                },
+                {
+                    "label": I18n.t("Островки", "Islands"),
+                    "value": "islands"
+                }
+            ]
+            currentValue: Config.mac.barStyle
+            onActivated: v => Config.mac.barStyle = v
+        }
         CatToggle {
+            present: !!Config.halo.enabled
+            label: I18n.t("Нимб в строке меню", "The Halo in the menu bar")
+            hint: I18n.t("посередине строки, в её стекле и её высоты; сам не прячется. Выключено: Нимб сам по себе, со своей полосой (Настройки → Нимб)", "in the bar's middle, in its glass and at its height; it doesn't hide by itself. Off: the Halo on its own, with its own strip (Settings → Halo)")
+            checked: Config.mac.haloInBar
+            onToggled: v => Config.mac.haloInBar = v
+        }
+        CatToggle {
+            present: Config.mac.barStyle !== "islands"
             label: I18n.t("Фон строки меню", "Menu bar background")
             hint: I18n.t("своя полоса вместо обоев под строкой", "a band of its own instead of the wallpaper under it")
             checked: Config.mac.barBackground
             onToggled: v => Config.mac.barBackground = v
+        }
+        CatChoice {
+            label: I18n.t("Рабочие столы в строке меню", "Desktops in the menu bar")
+            hint: Config.mac.barDesks === "off" ? I18n.t("в macOS их там нет; столы видны в Mission Control", "macOS has none there; the desktops are in Mission Control") : I18n.t("клик переходит на стол, колесо листает, правый клик открывает Mission Control, «+» в конце открывает новый пустой стол", "a click goes to the desktop, the wheel switches, a right click opens Mission Control, the «+» at the end opens a new empty desktop")
+            model: [
+                {
+                    "label": I18n.t("Нет", "Off"),
+                    "value": "off"
+                },
+                {
+                    "label": I18n.t("Номера", "Numbers"),
+                    "value": "numbers"
+                },
+                {
+                    "label": I18n.t("Точки", "Dots"),
+                    "value": "dots"
+                }
+            ]
+            currentValue: Config.mac.barDesks
+            onActivated: v => Config.mac.barDesks = v
+        }
+        CatChoice {
+            present: Config.mac.barDesks !== "off"
+            label: I18n.t("Где стоят рабочие столы", "Where the desktops stand")
+            hint: I18n.t("слева перед эмблемой, справа перед значками программ или рядом с часами", "on the left before the emblem, on the right before the apps' icons, or by the clock")
+            model: [
+                {
+                    "label": I18n.t("Слева", "Left"),
+                    "value": "left"
+                },
+                {
+                    "label": I18n.t("Перед значками", "Before the icons"),
+                    "value": "icons"
+                },
+                {
+                    "label": I18n.t("У часов", "By the clock"),
+                    "value": "clock"
+                }
+            ]
+            currentValue: Config.mac.barDesksAt
+            onActivated: v => Config.mac.barDesksAt = v
+        }
+        CatChoice {
+            present: Config.mac.barDesks !== "off"
+            label: I18n.t("Подсветка рабочих столов", "Desktop highlighting")
+            hint: Config.mac.barDesksLit === "all" ? I18n.t("стол спереди закрашен, пустые бледнее, красный стол ждёт тебя: там окно просит внимания", "the desktop in front filled, the empty ones paler, a red one waits for you: a window there asks for attention") : Config.mac.barDesksLit === "current" ? I18n.t("закрашен только стол спереди", "only the desktop in front is filled") : I18n.t("все столы выглядят одинаково", "all desktops look alike")
+            model: [
+                {
+                    "label": I18n.t("Все состояния", "Every state"),
+                    "value": "all"
+                },
+                {
+                    "label": I18n.t("Только текущий", "Current only"),
+                    "value": "current"
+                },
+                {
+                    "label": I18n.t("Без подсветки", "None"),
+                    "value": "none"
+                }
+            ]
+            currentValue: Config.mac.barDesksLit
+            onActivated: v => Config.mac.barDesksLit = v
+        }
+        CatChoice {
+            label: I18n.t("Кнопка обзора в строке меню", "Overview button in the menu bar")
+            hint: Config.mac.barOverview === "mission" ? I18n.t("открывает Mission Control angelOS: окна стола сеткой, столы полосой сверху", "opens angelOS's Mission Control: the desktop's windows in a grid, the desktops in a strip on top") : Config.mac.barOverview === "niri" ? I18n.t("открывает обзор niri, как жест на тачпаде и кнопка Mission Control в Пункте управления", "opens niri's overview, like the touchpad gesture and Control Center's Mission Control") : I18n.t("обзор открывается жестом, клавишами или из Пункта управления", "the overview opens by the gesture, the keys or from Control Center")
+            model: [
+                {
+                    "label": I18n.t("Нет", "Off"),
+                    "value": "off"
+                },
+                {
+                    "label": I18n.t("Обзор niri", "niri's overview"),
+                    "value": "niri"
+                },
+                {
+                    "label": "Mission Control",
+                    "value": "mission"
+                }
+            ]
+            currentValue: Config.mac.barOverview
+            onActivated: v => Config.mac.barOverview = v
+        }
+        CatChoice {
+            present: Config.mac.barOverview !== "off"
+            label: I18n.t("Где стоит кнопка обзора", "Where the overview button stands")
+            hint: I18n.t("в одном месте со столами кнопка встаёт перед ними", "in the same place as the desktops the button goes before them")
+            model: [
+                {
+                    "label": I18n.t("Слева", "Left"),
+                    "value": "left"
+                },
+                {
+                    "label": I18n.t("Перед значками", "Before the icons"),
+                    "value": "icons"
+                },
+                {
+                    "label": I18n.t("У часов", "By the clock"),
+                    "value": "clock"
+                }
+            ]
+            currentValue: Config.mac.barOverviewAt
+            onActivated: v => Config.mac.barOverviewAt = v
         }
         CatToggle {
             label: I18n.t("Меню программ в строке меню", "App menus in the menu bar")
@@ -487,6 +633,39 @@ CatPage {
                     dim: true
                 }
             }
+        }
+        CatChoice {
+            present: Niri.nativeMinimize
+            label: I18n.t("Зелёная кнопка", "The green light")
+            hint: Config.mac.greenButton === "maximize" ? I18n.t("разворачивает окно между строкой меню и Dock, заголовок и кнопки остаются", "maximizes the window between the menu bar and the Dock, its title bar and lights stay") : I18n.t("как на Mac: окно на весь экран на своём рабочем столе, поверх строки меню и Dock; назад: та же кнопка у программ со своим заголовком или клавиши полноэкранного режима", "as on a Mac: the window full screen on a workspace of its own, over the menu bar and the Dock; back: the same light in apps with their own title bar, or the fullscreen keys")
+            model: [
+                {
+                    "label": I18n.t("На весь экран", "Full screen"),
+                    "value": "fullscreen"
+                },
+                {
+                    "label": I18n.t("Развернуть", "Maximize"),
+                    "value": "maximize"
+                }
+            ]
+            currentValue: Config.mac.greenButton === "maximize" ? "maximize" : "fullscreen"
+            onActivated: v => Config.mac.greenButton = v
+        }
+        CatChoice {
+            label: I18n.t("Рабочие столы в обзоре", "Desktops in the overview")
+            hint: Config.mac.overviewDesks === "clear" ? I18n.t("как рисует niri: на обоях видно только окна столов, самих столов не видно", "as niri draws them: only the desktops' windows over the wallpaper, the desktops themselves unseen") : I18n.t("в обзоре niri (жест на тачпаде, обзор с клавиш) каждый стол лежит на стеклянной карточке, обои под ней размыты", "in niri's overview (the touchpad gesture, the overview key) every desktop lies on a glass card, the wallpaper under it blurred")
+            model: [
+                {
+                    "label": I18n.t("Стекло", "Glass"),
+                    "value": "glass"
+                },
+                {
+                    "label": I18n.t("Прозрачные", "Clear"),
+                    "value": "clear"
+                }
+            ]
+            currentValue: Config.mac.overviewDesks
+            onActivated: v => Config.mac.overviewDesks = v
         }
     }
     // ---- the Mac keys ----

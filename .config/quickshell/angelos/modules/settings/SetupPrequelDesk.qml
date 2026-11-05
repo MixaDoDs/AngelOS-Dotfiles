@@ -24,6 +24,14 @@ Item {
     property real t: 0
     property var b: ({})
     property bool calm: false
+    // the minute before waiting for you (SetupIntro's gates): your pointer as her hand (−1: not
+    // moved yet), her hand going to the link by itself (0 → 1), and what you chose
+    property var gate: null
+    property point hand: Qt.point(-1, -1)
+    property real creep: 0
+    property bool kept: false
+    property var read: []
+    property var shut: []
 
     readonly property color ink: "#4a3560"
     readonly property color face: "#fbeef6"
@@ -51,7 +59,7 @@ Item {
         const part = (i, n) => Math.round(n * Math.max(0, Math.min(1, (t - goes[i][0]) / (goes[i][1] - goes[i][0]))));
         // (the first two goes share the answer by how long they are)
         const first = Math.round(answer.length * (goes[0][1] - goes[0][0]) / (goes[0][1] - goes[0][0] + goes[1][1] - goes[1][0]));
-        const rubbed = b.erase ? Math.max(0, Math.min(1, (t - b.erase[0]) / (b.erase[1] - b.erase[0]))) : 0;
+        const rubbed = root.kept ? 0 : b.erase ? Math.max(0, Math.min(1, (t - b.erase[0]) / (b.erase[1] - b.erase[0]))) : 0;
         return answer.slice(0, part(0, first) + part(1, answer.length - first)) + unsaid.slice(0, Math.round(part(2, unsaid.length) * (1 - rubbed)));
     }
 
@@ -83,6 +91,12 @@ Item {
     // each way: off quickly, slowing, not quite straight, a little past the place and back; there
     // a quarter of a second before the press. Between them the hand is never quite still.
     readonly property point pointer: {
+        if (!gate)
+            return herPointer;
+        const h = hand.x >= 0 ? hand : herPointer;
+        return Qt.point(Math.round(h.x + (70 - h.x) * creep), Math.round(h.y + (166 - h.y) * creep));
+    }
+    readonly property point herPointer: {
         let from = [256, 214], x = from[0], y = from[1];
         for (const c of ways) {
             if (t < c[0]) {
@@ -207,7 +221,7 @@ Item {
                             }, {
                                 "at": root.sent,
                                 "n": "4477",
-                                "s": ">>4475\n" + root.answer,
+                                "s": ">>4475\n" + root.answer + (root.kept ? root.unsaid : ""),
                                 "own": true
                             }, {
                                 "at": (root.b.replies || [1e9, 1e9])[0],
@@ -277,7 +291,7 @@ Item {
                 id: pop
                 required property var modelData
                 required property int index
-                visible: root.t >= modelData.at && root.t < modelData.until
+                visible: root.t >= modelData.at && root.t < modelData.until && !root.shut.includes(index) && !root.read.includes(index)
                 x: modelData.x
                 y: modelData.y
                 width: 126
@@ -455,12 +469,12 @@ Item {
                             y: 2
                             width: line.width - 8
                             wrapMode: Text.WordWrap
-                            text: (line.modelData.at < 0 ? "" : "[" + root.clockAt(line.modelData.at).slice(0, 5) + "] ") + line.modelData.ru
+                            text: (line.modelData.at < 0 ? "" : "[" + root.clockAt(line.modelData.at).slice(0, 5) + "] ") + line.modelData.ru + (root.read.includes(root.msgs.indexOf(line.modelData)) ? " · прочитано" : "")
                         }
                     }
                 }
                 T {
-                    readonly property int unread: root.msgs.filter(m => root.t >= m.at).length
+                    readonly property int unread: root.msgs.filter((m, i) => root.t >= m.at && !root.read.includes(i)).length
                     visible: unread > 0
                     color: root.pink
                     text: "непрочитанных: " + unread

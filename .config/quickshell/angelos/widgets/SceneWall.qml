@@ -209,7 +209,7 @@ Item {
     readonly property bool lightReady: lightImg.status === Image.Ready
     Image {
         id: lightImg
-        source: root.nightInfo && root.nightInfo.light ? "file://" + root.dir + "/logical/" + root.nightInfo.light : ""
+        source: root.nightInfo && root.nightInfo.light && root.nightMix > 0 ? "file://" + root.dir + "/logical/" + root.nightInfo.light : ""
         smooth: true
         visible: false
     }
