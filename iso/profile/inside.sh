@@ -27,7 +27,8 @@ mkarchiso -v -w /work/w -o /work/out "$P"
 # every machine makes its own keys: none may ship in the image (a shared pacman key = anyone signs for everyone)
 R=/work/w/x86_64/airootfs
 leak=$(find "$R/etc/pacman.d/gnupg" "$R/etc/ssh" -maxdepth 1 \( -name 'private-keys*' -o -name 'secring*' -o -name 'ssh_host_*' \) 2>/dev/null || true)
-[[ -s "$R/etc/machine-id" ]] && leak+=" $R/etc/machine-id"
+# empty or "uninitialized" = systemd makes a new one on the first boot
+[[ ! -s "$R/etc/machine-id" || "$(<"$R/etc/machine-id")" == uninitialized ]] || leak+=" $R/etc/machine-id"
 [[ -z "${leak// }" ]] || { echo "✕ machine-specific secrets in the image: $leak" >&2; exit 1; }
 iso=$(ls /work/out/*.iso)
 install -o "$HOST_UID" -g "$HOST_GID" -m 644 "$iso" /out/

@@ -8,6 +8,8 @@ set -Eeuo pipefail
 # pacstrap -G leaves the chroot without a keyring: a temporary one for install.sh's pacman, removed below
 pacman-key --init >/dev/null
 pacman-key --populate archlinux >/dev/null
+# the chroot is no mount point: pacman can't size its cache dir and refuses ("not enough free disk space")
+sed -i 's/^CheckSpace/#CheckSpace/' /etc/pacman.conf
 
 useradd -m -u 1000 -G wheel,video,audio,input -s /bin/bash angel
 passwd -d angel >/dev/null
@@ -26,6 +28,10 @@ su - angel -c 'cd ~/AngelOS-Dotfiles && INTERACTIVE=0 NO_MUSIC=1 NO_ANIM=1 ANGEL
   CACHYOS_REPOS=0 INSTALL_APPS=0 INSTALL_GAMING=0 GITHUB_LOGIN=0 \
   INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 WALLPAPER_PACKS=none FISH_DEFAULT=0 \
   ./install.sh </dev/null'
+# install.sh only warns when pacman fails (a user's next update retries); an image without them is broken
+pacman -Q quickshell sddm niri >/dev/null
+[[ -x /home/angel/.local/bin/niri ]]   # angel-niri (scripts/angel-niri-install.sh links it there)
+sed -i 's/^#CheckSpace/CheckSpace/' /etc/pacman.conf
 
 # machine-specific state out: each boot / each installed system makes its own
 rm -rf /etc/pacman.d/gnupg /etc/ssh/ssh_host_* /var/cache/pacman/pkg/* /home/angel/.cache
