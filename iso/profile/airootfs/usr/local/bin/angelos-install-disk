@@ -14,7 +14,7 @@
 set -Eeuo pipefail
 
 if [[ "${1:-}" == list ]]; then
-  exec lsblk -J -o NAME,PATH,TYPE,SIZE,MODEL,TRAN,RM,FSTYPE,LABEL,FSUSE%,MOUNTPOINTS -e 7,11
+  exec lsblk -J -b -o NAME,PATH,TYPE,SIZE,MODEL,TRAN,RM,FSTYPE,LABEL,FSUSE%,MOUNTPOINTS -e 7,11
 fi
 
 LOG=/var/log/angelos-install.log

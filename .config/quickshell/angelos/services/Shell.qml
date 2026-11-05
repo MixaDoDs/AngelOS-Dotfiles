@@ -89,6 +89,8 @@ Singleton {
     property bool polkitAsking: false
     property var setupHost: null              // the screen the setup wizard asks on (SetupWizard)
     readonly property bool dev: Quickshell.env("ANGELOS_DEV") === "1"
+    // the live ISO: the shell is only the installer (modules/installer; iso/ sets it through environment.d)
+    readonly property bool installer: Quickshell.env("ANGELOS_INSTALLER") === "1"
     // niri sends "angelOS [dev]" windows to the non-stream monitor (cfg/rules.kdl)
     readonly property string appTitle: dev ? "angelOS [dev]" : "angelOS"
     // demo/recording mode: popups open from IPC without an input grab

@@ -35,7 +35,7 @@ su - angel -c 'cd ~/AngelOS-Dotfiles && INTERACTIVE=0 NO_MUSIC=1 NO_ANIM=1 ANGEL
 # setup skip still leaves the once-per-version intro (10 s after start): its sound bake took 2.9 GB, OOM on 4 GB
 su - angel -c '~/.local/bin/angelos setup skip'
 install -d -o angel -g angel /home/angel/.config/environment.d
-printf 'ANGELOS_SETUP_INTRO=0\n' >/home/angel/.config/environment.d/50-angelos-live.conf
+printf 'ANGELOS_SETUP_INTRO=0\nANGELOS_INSTALLER=1\n' >/home/angel/.config/environment.d/50-angelos-live.conf
 chown angel:angel /home/angel/.config/environment.d/50-angelos-live.conf
 # install.sh only warns when pacman fails (a user's next update retries); an image without them is broken
 pacman -Q quickshell sddm niri >/dev/null

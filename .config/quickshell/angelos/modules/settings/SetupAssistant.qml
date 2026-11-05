@@ -32,6 +32,10 @@ Item {
     readonly property string settingsSkin: "classic"
     // the answer on screen (tests look into it)
     readonly property alias answer: body
+    // another course's own answers and pictures by step id (modules/installer); a step may also say
+    // `nextText` (the Continue button's words), `back: false` (no Back) and `rest: false` (no «the rest is in Settings»)
+    property var bodies: ({})
+    property var arts: ({})
 
     // the step on screen: it follows `step` under the transition's blocks (at once while motion
     // is off). After the change has settled: `wizard.step` and `cur` both moved by then
@@ -141,7 +145,7 @@ Item {
                 Loader {
                     anchors.centerIn: parent
                     readonly property real room: Math.min(art.width, art.height * 1.6)
-                    sourceComponent: !root.shown ? null : ({
+                    sourceComponent: !root.shown ? null : root.arts[root.shown.id] || ({
                             "hello": artHello,
                             "game": artGame,
                             "from": artFrom,
@@ -315,7 +319,7 @@ Item {
                             Loader {
                                 id: body
                                 width: parent.width
-                                sourceComponent: !root.shown ? null : ({
+                                sourceComponent: !root.shown ? null : root.bodies[root.shown.id] || ({
                                         "hello": hello,
                                         "game": game,
                                         "from": from,
@@ -378,7 +382,7 @@ Item {
                         spacing: Theme.u * 4
                         PxButton {
                             id: backButton
-                            visible: root.shownIndex > 0 && !(root.shown && root.shown.id === "install")
+                            visible: root.shownIndex > 0 && !(root.shown && (root.shown.id === "install" || root.shown.back === false))
                             kind: "title"
                             icon: "arrowLeft"
                             text: I18n.t("Назад", "Back")
@@ -396,7 +400,7 @@ Item {
                             readonly property var inst: root.wizard ? root.wizard.installState : null
                             enabled: !(inst && inst.running)
                             opacity: enabled ? 1 : 0.5
-                            text: root.shown && root.shown.id === "install" ? (inst && inst.done && (inst.failed.length || inst.auth) ? I18n.t("Пропустить", "Skip") : I18n.t("Начать работу", "Start using angelOS")) : root.shown && root.shown.id === "ready" && root.wizard && root.wizard.appsToInstall.length && !(inst && inst.active) ? I18n.t("Поставить программы", "Install the apps") : root.shownIndex >= root.count - 1 ? I18n.t("Начать работу", "Start using angelOS") : root.shown && root.shown.id === "github" && root.gh && !root.gh.settled ? I18n.t("Пропустить", "Skip") : I18n.t("Продолжить", "Continue")
+                            text: root.shown && root.shown.nextText ? root.shown.nextText : root.shown && root.shown.id === "install" ? (inst && inst.done && (inst.failed.length || inst.auth) ? I18n.t("Пропустить", "Skip") : I18n.t("Начать работу", "Start using angelOS")) : root.shown && root.shown.id === "ready" && root.wizard && root.wizard.appsToInstall.length && !(inst && inst.active) ? I18n.t("Поставить программы", "Install the apps") : root.shownIndex >= root.count - 1 ? I18n.t("Начать работу", "Start using angelOS") : root.shown && root.shown.id === "github" && root.gh && !root.gh.settled ? I18n.t("Пропустить", "Skip") : I18n.t("Продолжить", "Continue")
                             onClicked: root.wizard.next()
                         }
                     }
@@ -1386,7 +1390,7 @@ Item {
             }
             // where the rest of it is: the page the tree puts these groups on
             PxText {
-                readonly property var where: root.shown && root.shown.blocks ? SettingsTree.blockPart(root.shown.blocks[0]).page : ""
+                readonly property var where: root.shown && root.shown.blocks && root.shown.rest !== false ? SettingsTree.blockPart(root.shown.blocks[0]).page : ""
                 readonly property var cat: where ? SettingsTree.categoryOf(where) : null
                 visible: !!where
                 width: parent.width

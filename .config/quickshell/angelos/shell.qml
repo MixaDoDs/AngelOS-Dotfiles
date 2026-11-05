@@ -18,6 +18,7 @@ import qs.modules.osd
 import qs.modules.polkit
 import qs.modules.session
 import qs.modules.settings
+import qs.modules.installer
 import qs.modules.workspace
 import qs.modules.voxtype
 import qs.modules.idle
@@ -70,6 +71,11 @@ ShellRoot {
     SettingsLookPrompt {}
     AppsSyncPrompt {}
     SetupWizard {}
+    // the live ISO only (Shell.installer)
+    LazyLoader {
+        active: Shell.installer
+        Installer {}
+    }
     PluginHost {}
     AngelHelper {}
     StreamerCast {}
