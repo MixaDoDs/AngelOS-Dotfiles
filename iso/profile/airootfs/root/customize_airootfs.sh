@@ -32,6 +32,8 @@ su - angel -c 'cd ~/AngelOS-Dotfiles && INTERACTIVE=0 NO_MUSIC=1 NO_ANIM=1 ANGEL
 pacman -Q quickshell sddm niri >/dev/null
 [[ -x /home/angel/.local/bin/niri ]]   # angel-niri (scripts/angel-niri-install.sh links it there)
 sed -i 's/^#CheckSpace/CheckSpace/' /etc/pacman.conf
+# a user's machine has its network up before install.sh; here nothing would bring it up
+systemctl enable NetworkManager.service
 
 # machine-specific state out: each boot / each installed system makes its own
 rm -rf /etc/pacman.d/gnupg /etc/ssh/ssh_host_* /var/cache/pacman/pkg/* /home/angel/.cache

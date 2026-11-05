@@ -1,5 +1,42 @@
+# The live image's packages, before install.sh adds angelOS's own (packages/*.txt). Replaces releng's
+# rescue set: the installed system is a copy of this image, so only what a desktop and the installer need.
 
-# angelOS (the rest is installed by install.sh in customize_airootfs.sh)
+# boot (mkarchiso needs mkinitcpio-archiso and syslinux; systemd-boot comes with systemd)
+base
+linux
+linux-firmware
+amd-ucode
+intel-ucode
+sof-firmware
+mkinitcpio
+mkinitcpio-archiso
+syslinux
+efibootmgr
+
+# disks — the installer's backend (milestone 3) and archinstall for manual partitioning
+arch-install-scripts
+archinstall
+squashfs-tools
+btrfs-progs
+dosfstools
+e2fsprogs
+exfatprogs
+ntfs-3g
+gptfdisk
+parted
+cryptsetup
+rsync
+
+# network (NetworkManager comes with install.sh)
+wireless-regdb
+
+# install.sh and the tests
 sudo
 git
+openssh
 grim
+qemu-guest-agent
+nano
+less
+usbutils
+pciutils

@@ -14,10 +14,19 @@ cp /etc/pacman.d/mirrorlist "$P/airootfs/etc/pacman.d/mirrorlist"
 rm -f "$P/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf" \
       "$P/airootfs/root/.zlogin" "$P/airootfs/root/.automated_script.sh" \
       "$P/airootfs/etc/motd"
-sed -i '/automated_script/d' "$P/profiledef.sh"
+sed -i '/automated_script\|livecd-sound\|Installation_guide/d' "$P/profiledef.sh"
+# releng's rescue services out: ours is a desktop (NetworkManager, no sshd, no cloud-init, no VM tools of
+# other hypervisors); the installed system is a copy of this one, so nothing rescue-only may stay
+S="$P/airootfs/etc/systemd/system"
+rm -rf "$S"/{cloud-init,network-online,sockets,sound}.target.wants "$S"/systemd-networkd-wait-online.service.d \
+       "$S"/livecd-*.service "$S"/dbus-org.freedesktop.{ModemManager1,network1}.service \
+       "$P/airootfs/etc/systemd/network" "$P/airootfs/usr/local/bin"/{livecd-sound,Installation_guide} \
+       "$P/airootfs/usr/local/share/livecd-sound"
+find "$S/multi-user.target.wants" -mindepth 1 ! -name pacman-init.service ! -name choose-mirror.service \
+     ! -name systemd-resolved.service -delete
 
 cp -rT /stage/profile/airootfs "$P/airootfs"
-cat /stage/profile/packages.x86_64 >>"$P/packages.x86_64"
+cp /stage/profile/packages.x86_64 "$P/packages.x86_64"   # ours replaces releng's rescue set
 # a tarball: mkarchiso copies airootfs with --no-preserve=mode, the scripts would lose their x bit
 tar -C /stage/src -cf "$P/airootfs/root/angelos-src.tar" .
 cat /stage/profile/profiledef.override >>"$P/profiledef.sh"   # name, label, permissions
