@@ -5,7 +5,7 @@
 #   iso/vm-dev.sh keys a b ret   QEMU key names (shift-a for capitals, minus, spc, tab, ret, backspace…)
 #   iso/vm-dev.sh shot <name>    a picture of the live → vm/runs/dev/<name>.png
 #   iso/vm-dev.sh sh '<cmd>'     a command as root in the live
-#   iso/vm-dev.sh down
+#   iso/vm-dev.sh down           power off and delete vm/runs/dev (its disk too)
 set -Eeuo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO="$(cd -- "$HERE/.." && pwd -P)"
@@ -56,6 +56,6 @@ PY
     ;;
   shot) g "$AS_ANGEL grim -" >"$D/${2:?name}.png" && echo "$D/$2.png" ;;
   sh) g "${2:?cmd}" ;;
-  down) g "systemctl poweroff" >/dev/null 2>&1 || true; sleep 5; kill "$(cat "$D/qemu.pid")" 2>/dev/null || true ;;
+  down) g "systemctl poweroff" >/dev/null 2>&1 || true; sleep 5; kill "$(cat "$D/qemu.pid")" 2>/dev/null || true; rm -rf "$D" ;;
   *) sed -n 2,9p "$0"; exit 2 ;;
 esac
