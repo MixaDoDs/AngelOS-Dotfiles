@@ -18,6 +18,8 @@ Scope {
     property var assistant: null
     readonly property var github: null
     readonly property var appsToInstall: []
+    // the screen the questions are on (the others show the ground only)
+    readonly property var host: Shell.focusedScreen
 
     // ---- the answers ----
     property string zone: ""

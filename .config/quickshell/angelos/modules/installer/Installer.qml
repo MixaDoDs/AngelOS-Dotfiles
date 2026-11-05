@@ -65,8 +65,12 @@ Scope {
             Loader {
                 anchors.fill: parent
                 active: cover.hosting
+                // the course is handed over once it is loaded: its first step then lands as a change (as SetupWizard does)
+                onLoaded: {
+                    item.wizard = flow;
+                    flow.assistant = item;
+                }
                 sourceComponent: SetupAssistant {
-                    wizard: flow
                     screenName: cover.modelData.name
                     bodies: ({
                             "lang": langBody,
@@ -78,7 +82,6 @@ Scope {
                     arts: ({
                             "newgame": logoArt
                         })
-                    Component.onCompleted: flow.assistant = this
                 }
             }
             // restart / power off, top right (not while the disk is written)

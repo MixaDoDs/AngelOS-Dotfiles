@@ -114,9 +114,14 @@ echo "$U ALL=(ALL) NOPASSWD: ALL" >"$M/etc/sudoers.d/99-angelos-install"
 chmod 440 "$M"/etc/sudoers.d/{10-wheel,99-angelos-install}
 
 say 40 angelos
-# the image's own copy: the installed system is the version the ISO was built from (Updates move it on)
-cp -a /home/angel/AngelOS-Dotfiles "$M/home/$U/AngelOS-Dotfiles"
-c chown -R "$U:$U" "/home/$U/AngelOS-Dotfiles"
+# GitHub's main as it is today, however old the ISO (the owner's decision 05.11: the image is only rebuilt when the
+# installer changes); Settings → Updates follow main from there. GitHub out of reach: the image's own copy
+if ! c su - "$U" -c "git clone -q --depth 1 --branch main https://github.com/MixaDoDs/AngelOS-Dotfiles.git ~/AngelOS-Dotfiles"; then
+  echo "WARNING: GitHub out of reach, the image's copy of angelOS"
+  rm -rf "$M/home/$U/AngelOS-Dotfiles"
+  cp -a /home/angel/AngelOS-Dotfiles "$M/home/$U/AngelOS-Dotfiles"
+  c chown -R "$U:$U" "/home/$U/AngelOS-Dotfiles"
+fi
 # wallpapers, apps, games and voice: the first run in the new system offers them (SetupIntro), not asked twice;
 # INTRO_SOUNDS=0: its background bake would hold the chroot busy — the first run makes the sounds itself
 c su - "$U" -c "cd ~/AngelOS-Dotfiles && INTERACTIVE=0 NO_MUSIC=1 NO_ANIM=1 ANGELOS_SELF_UPDATE=0 \
