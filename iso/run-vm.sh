@@ -51,6 +51,8 @@ for ((t = STEP; t <= SECS; t += STEP)); do
   else
     rm -f "$D/$(printf %03d "$t").png"; echo "$t s: no picture (agent or session not up)"
   fi
+  # who holds the memory (the journal's OOM report names only "python3")
+  { echo "== $t s"; g "free -m | sed -n 2p; ps -eo rss=,args= --sort=-rss | head -6 | cut -c1-200"; } >>"$D/memory.txt" 2>/dev/null || true
 done
 g "journalctl -b --no-pager -o short-monotonic" >"$D/journal.txt" 2>/dev/null || true
 g "runuser -u angel -- journalctl --user -b --no-pager" >"$D/user-journal.txt" 2>/dev/null || true
