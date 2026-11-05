@@ -86,6 +86,10 @@ cd AngelOS-Dotfiles
 ./install.sh
 ```
 
+> [!WARNING]
+> **CachyOS with COSMIC: don't run `install.sh` for now.** There is a report that the install wiped the home folder there ([#163](https://github.com/MixaDoDs/AngelOS-Dotfiles/issues/163)); until it is understood, the installer refuses to start where COSMIC is installed.
+> **CachyOS с COSMIC: пока не запускайте `install.sh`.** Есть сообщение, что там установка стёрла домашнюю папку ([#163](https://github.com/MixaDoDs/AngelOS-Dotfiles/issues/163)); пока не разберёмся, установщик не запускается, если стоит COSMIC.
+
 ![The installer: profile, look, apps, layouts and the hearts progress bar](docs/demo/installer.gif)
 
 ![The interface tips circling the start button, the workspaces and the clock](docs/demo/tips.gif)

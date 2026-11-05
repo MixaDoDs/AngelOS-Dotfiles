@@ -32,6 +32,15 @@ check_distro() {
 }
 check_distro
 
+# #163: a fresh install on CachyOS with COSMIC was reported to wipe the home folder; until that is
+# understood, refuse there before anything changes. Updates of an existing angelOS (a manifest) go on.
+# shortcut: blocks every COSMIC system, lift once #163 is reproduced and fixed
+if [[ "${ANGELOS_ALLOW_COSMIC:-0}" != 1 && ! -e "${XDG_STATE_HOME:-$HOME_DIR/.local/state}/angelos/installed-files.sha256" ]] &&
+   { command -v cosmic-session >/dev/null 2>&1 || [[ "${XDG_CURRENT_DESKTOP:-}" == *COSMIC* ]]; }; then
+  die "$(_ 'COSMIC is installed here: the installer does not run on it for now (an install there was reported to wipe the home folder, #163). Nothing was changed.' \
+           'Здесь стоит COSMIC: установщик на нём пока не запускается (сообщили, что установка там стёрла домашнюю папку, #163). Ничего не изменено.')"
+fi
+
 [[ "$STAMP" =~ ^[0-9]{8}-[0-9]{6}(-[0-9]+)?$ ]] || die "DOTFILES_STAMP must look like 20260101-120000 (got: $STAMP)"
 [[ "$VALIDATE_NIRI" == 0 || "$VALIDATE_NIRI" == 1 ]] || die "VALIDATE_NIRI must be 0 or 1"
 [[ -z "${GITHUB_LOGIN:-}" || "$GITHUB_LOGIN" == 0 || "$GITHUB_LOGIN" == 1 ]] || die "GITHUB_LOGIN must be 0 or 1"
