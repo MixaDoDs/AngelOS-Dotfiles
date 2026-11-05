@@ -16,7 +16,8 @@ cp /usr/share/edk2/x64/OVMF_VARS.4m.fd "$D/vars.fd"
 qemu-img create -q -f qcow2 "$D/disk.qcow2" 40G
 g() { timeout 60 python3 -I "$HERE/qga.py" "$D/qga.sock" "$1"; }
 stop() { kill "$(cat "$D/qemu.pid" 2>/dev/null)" 2>/dev/null || true; }
-trap stop EXIT
+# the disk goes also when the test fails (KEEP_DISK=1 keeps it to look into)
+trap 'stop; [[ ${KEEP_DISK:-0} == 1 ]] || rm -f "$D/disk.qcow2"' EXIT
 vm() { # common QEMU, then the boot-specific arguments
   nice -n 15 qemu-system-x86_64 -enable-kvm -cpu host -smp 4 -m 4096 -machine q35 \
     -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
@@ -100,5 +101,4 @@ g "free -m; systemctl --failed --no-pager; pgrep -a quickshell; pgrep -a niri" >
 g "systemctl poweroff" >/dev/null 2>&1 || true
 sleep 5
 stop
-[[ ${KEEP_DISK:-0} == 1 ]] || rm -f "$D/disk.qcow2"
 echo "$D"
