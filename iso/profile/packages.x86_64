@@ -27,8 +27,48 @@ parted
 cryptsetup
 rsync
 
-# network (NetworkManager comes with install.sh)
+# network
+networkmanager
 wireless-regdb
+bluez
+bluez-utils
+
+# the live desktop: just enough angelOS to run the installer. The installed system gets the whole
+# packages/*.txt from install.sh over the network (05.11: install over the network, the image ≤ 2 GiB)
+niri
+quickshell
+qt6-declarative
+qt6-5compat
+qt6-imageformats
+qt6-multimedia
+qt6-multimedia-ffmpeg
+qt6-svg
+sddm
+mesa
+vulkan-radeon
+vulkan-intel
+vulkan-nouveau
+pipewire
+pipewire-pulse
+wireplumber
+xdg-desktop-portal-gtk
+xdg-user-dirs
+xsettingsd
+librsvg
+python
+python-gobject
+jq
+socat
+curl
+wl-clipboard
+libnotify
+playerctl
+brightnessctl
+fontconfig
+ttf-dejavu
+noto-fonts-emoji
+capitaine-cursors
+foot
 
 # install.sh and the tests
 sudo

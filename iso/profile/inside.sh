@@ -27,6 +27,8 @@ find "$S/multi-user.target.wants" -mindepth 1 ! -name pacman-init.service ! -nam
 
 cp -rT /stage/profile/airootfs "$P/airootfs"
 cp /stage/profile/packages.x86_64 "$P/packages.x86_64"   # ours replaces releng's rescue set
+# the live only runs the installer (the installed system is built afresh by install.sh): no docs, en/ru only
+sed -i '/^\[options\]/a NoExtract = usr/share/doc/* usr/share/man/* usr/share/info/* usr/share/help/* usr/share/gtk-doc/*\nNoExtract = usr/share/locale/* !usr/share/locale/ru/* !usr/share/locale/en*' "$P/pacman.conf"
 # a tarball: mkarchiso copies airootfs with --no-preserve=mode, the scripts would lose their x bit
 tar -C /stage/src -cf "$P/airootfs/root/angelos-src.tar" .
 cat /stage/profile/profiledef.override >>"$P/profiledef.sh"   # name, label, permissions

@@ -23,11 +23,15 @@ rm /root/angelos-src.tar
 git -c safe.directory='*' -C /home/angel/AngelOS-Dotfiles remote set-url origin https://github.com/MixaDoDs/AngelOS-Dotfiles.git
 chown -R angel:angel /home/angel
 
-# shortcut: no CachyOS repos, apps, games, voice model or wallpaper packs yet (size first), revisit with the size budget
+# the live is the installer: install.sh lays out the shell only, its packages are packages.x86_64's short list;
+# the installed system gets the full install.sh (packages, CachyOS, apps, voice, wallpapers) over the network
 su - angel -c 'cd ~/AngelOS-Dotfiles && INTERACTIVE=0 NO_MUSIC=1 NO_ANIM=1 ANGELOS_SELF_UPDATE=0 \
+  SKIP_PACKAGES=1 INSTALL_SDDM=1 INSTALL_TOOLS=0 MINIMIZE_HOOK=0 \
   CACHYOS_REPOS=0 INSTALL_APPS=0 INSTALL_GAMING=0 GITHUB_LOGIN=0 \
-  INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 WALLPAPER_PACKS=none FISH_DEFAULT=0 \
+  INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 WALLPAPER_PACKS=none FISH_DEFAULT=0 INTRO_SOUNDS=0 \
   ./install.sh </dev/null'
+# the live is the installer, not a first login: no first-run wizard or intro (they belong to the installed system)
+su - angel -c '~/.local/bin/angelos setup skip'
 # install.sh only warns when pacman fails (a user's next update retries); an image without them is broken
 pacman -Q quickshell sddm niri >/dev/null
 [[ -x /home/angel/.local/bin/niri ]]   # angel-niri (scripts/angel-niri-install.sh links it there)
