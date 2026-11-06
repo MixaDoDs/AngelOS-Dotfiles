@@ -59,8 +59,9 @@ Singleton {
     property bool settingsWarm: false        // the main Settings window is built ahead, hidden, while it is likely to be opened (modules/LazyWindows)
     property bool bootCover: false           // …the black second before it, at login
     property bool bootCoverShown: false      // …its first frame is out
-    // the wallpaper, bar and Dock wait for the cover's first frame, so they are never seen before it
-    readonly property bool desktopHeld: bootCover && !bootCoverShown
+    // the wallpaper, bar and Dock wait for the cover's first frame, so they are never seen before it;
+    // the live ISO's installer has no desktop under it at all (no Halo popping up over its questions)
+    readonly property bool desktopHeld: installer || bootCover && !bootCoverShown
     // where it shows: the screens picked (all when none), streamed ones skipped while stream mode is on
     readonly property var bootScreens: screens.filter(s => (!(Config.y2k.bootScreens || []).length || Config.y2k.bootScreens.includes(s.name)) && StreamMode.effectsOn(s.name))
     // the shell's own pid: its windows (settings, osu!mini…) share it, so

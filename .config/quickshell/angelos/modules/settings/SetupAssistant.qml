@@ -33,7 +33,8 @@ Item {
     // the answer on screen (tests look into it)
     readonly property alias answer: body
     // another course's own answers and pictures by step id (modules/installer); a step may also say
-    // `nextText` (the Continue button's words), `back: false` (no Back) and `rest: false` (no «the rest is in Settings»)
+    // `nextText` (the Continue button's words), `back: false` (no Back), `rest: false` (no «the rest is in Settings»)
+    // and `attention: "none"` (nothing pulses: a wait)
     property var bodies: ({})
     property var arts: ({})
 
@@ -96,6 +97,8 @@ Item {
     readonly property var gh: wizard ? wizard.github : null
     readonly property string attention: {
         if (!shown)
+            return "";
+        if (shown.attention === "none")
             return "";
         if (shown.id === "github")
             return gh && gh.state === "access" ? "answer" : gh && gh.state === "waiting" ? "" : "next";

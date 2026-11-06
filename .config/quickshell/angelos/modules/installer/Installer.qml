@@ -262,7 +262,7 @@ Scope {
                     readonly property string blocked: flow.blocker(modelData)
                     readonly property bool picked: flow.disk === modelData.path && !blocked
                     width: parent.width
-                    height: info.implicitHeight + Theme.u * 8
+                    height: info.implicitHeight + Theme.u * 10
                     color: picked ? Theme.mix(Theme.face, Theme.accent, 0.25) : Theme.face
                     opacity: blocked ? 0.5 : 1
                     Column {
@@ -287,6 +287,11 @@ Scope {
                                 kind: "tiny"
                                 text: "· " + modelData
                             }
+                        }
+                        PxText {
+                            visible: flow.contents(card.modelData).length === 0
+                            kind: "tiny"
+                            text: I18n.t("· пустой — разделов нет", "· empty, no partitions")
                         }
                     }
                     MouseArea {
@@ -319,6 +324,10 @@ Scope {
                     text: "✕ " + modelData
                 }
             }
+            PxText {
+                visible: !!flow.diskInfo && flow.contents(flow.diskInfo).length === 0
+                text: I18n.t("ничего — он пустой", "nothing: it is empty")
+            }
             Item {
                 width: 1
                 height: Theme.u * 2
@@ -337,7 +346,6 @@ Scope {
             PxProgress {
                 width: parent.width
                 value: flow.progress
-                busy: flow.installState.running
                 text: Math.round(flow.progress * 100) + "%"
             }
             PxText {

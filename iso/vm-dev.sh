@@ -3,6 +3,7 @@
 #   iso/vm-dev.sh up <iso>       boot it with an empty 40 GB disk (vm/runs/dev/)
 #   iso/vm-dev.sh push           the shell's files this branch changed (vs main) → the live, then restart the shell
 #   iso/vm-dev.sh keys a b ret   QEMU key names (shift-a for capitals, minus, spc, tab, ret, backspace…)
+#   iso/vm-dev.sh click <x> <y>  a left click at screen pixel x,y (1920×1080)
 #   iso/vm-dev.sh shot <name>    a picture of the live → vm/runs/dev/<name>.png
 #   iso/vm-dev.sh sh '<cmd>'     a command as root in the live
 #   iso/vm-dev.sh down           power off and delete vm/runs/dev (its disk too)
@@ -21,7 +22,7 @@ case "${1:-}" in
       -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
       -drive if=pflash,format=raw,file="$D/vars.fd" -drive file="$D/disk.qcow2",if=virtio,format=qcow2 \
       -cdrom "${2:?iso}" -boot d -device virtio-vga-gl,xres=1920,yres=1080 -display egl-headless \
-      -audiodev none,id=snd -nic user,model=virtio-net-pci \
+      -audiodev none,id=snd -nic user,model=virtio-net-pci -device qemu-xhci -device usb-tablet \
       -device virtio-serial -chardev "socket,path=$D/qga.sock,server=on,wait=off,id=qga0" \
       -device virtserialport,chardev=qga0,name=org.qemu.guest_agent.0 \
       -qmp "unix:$D/qmp.sock,server,nowait" -daemonize -pidfile "$D/qemu.pid"
@@ -52,6 +53,22 @@ def call(cmd, **a):
 call("qmp_capabilities")
 for k in sys.argv[2:]:
     call("send-key", keys=[{"type": "qcode", "data": x} for x in k.split("-") if x] if k != "minus" else [{"type": "qcode", "data": "minus"}]); time.sleep(0.12)
+PY
+    ;;
+  click)
+    python3 -I - "$D/qmp.sock" "${2:?x}" "${3:?y}" <<'PY'
+import json, socket, sys, time
+s = socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); f = s.makefile("rw"); f.readline()
+def call(cmd, **a):
+    f.write(json.dumps({"execute": cmd, "arguments": a}) + "\n"); f.flush()
+    while "return" not in (r := json.loads(f.readline())):
+        if "error" in r: sys.exit(r["error"]["desc"])
+call("qmp_capabilities")
+x, y = int(sys.argv[2]) * 32767 // 1919, int(sys.argv[3]) * 32767 // 1079
+call("input-send-event", events=[{"type": "abs", "data": {"axis": "x", "value": x}}, {"type": "abs", "data": {"axis": "y", "value": y}}])
+time.sleep(0.1)
+for down in (True, False):
+    call("input-send-event", events=[{"type": "btn", "data": {"down": down, "button": "left"}}]); time.sleep(0.08)
 PY
     ;;
   shot) g "$AS_ANGEL grim -" >"$D/${2:?name}.png" && echo "$D/$2.png" ;;

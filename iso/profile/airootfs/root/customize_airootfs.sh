@@ -28,7 +28,7 @@ chown -R angel:angel /home/angel
 su - angel -c 'cd ~/AngelOS-Dotfiles && INTERACTIVE=0 NO_MUSIC=1 NO_ANIM=1 ANGELOS_SELF_UPDATE=0 \
   SKIP_PACKAGES=1 FOLLOW_SYSTEM=0 INSTALL_SDDM=1 INSTALL_TOOLS=0 MINIMIZE_HOOK=0 \
   CACHYOS_REPOS=0 INSTALL_APPS=0 INSTALL_GAMING=0 GITHUB_LOGIN=0 \
-  INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 WALLPAPER_PACKS=none FISH_DEFAULT=0 INTRO_SOUNDS=0 \
+  INSTALL_VOXTYPE=0 DOWNLOAD_VOXTYPE_MODEL=0 WALLPAPER_PACKS=none FISH_DEFAULT=0 INTRO_SOUNDS=0 ANGELOS_GAME=0 \
   ./install.sh </dev/null'
 # the live is the installer, not a first login: no first-run wizard or intro (they belong to the installed system).
 # FOLLOW_SYSTEM=0 above: that step installs packages/*.txt despite SKIP_PACKAGES (gcc, webengine, CJK — 1.5 GB).

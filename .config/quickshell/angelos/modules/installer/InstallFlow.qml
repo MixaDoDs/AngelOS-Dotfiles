@@ -88,7 +88,7 @@ Scope {
             "text": Wifi.online ? I18n.t("Сеть есть ♡", "Online ♡") : I18n.t("angelOS скачивается во время установки. Выбери Wi‑Fi или вставь кабель.", "angelOS is downloaded while it installs. Pick a Wi‑Fi network or plug in a cable."),
             "blocks": ["network/status", "network/wifi"],
             "rest": false,
-            "attention": Wifi.online ? "next" : "",
+            "attention": Wifi.online ? "next" : "none",
             "nextText": Wifi.online ? I18n.t("Продолжить", "Continue") : I18n.t("Жду сеть…", "Waiting for the network…"),
             "when": root.needNet
         },
@@ -117,15 +117,19 @@ Scope {
             "title": root.done ? I18n.t("angelOS установлена ♡", "angelOS is installed ♡") : root.error ? I18n.t("Не получилось", "It didn't work") : I18n.t("Ставлю angelOS…", "Installing angelOS…"),
             "text": root.done ? I18n.t("Вынь флешку и перезагрузись. Дальше — первый запуск.", "Take the stick out and restart. Then the first start.") : root.error ? I18n.t("Можно повторить или вернуться и выбрать другой диск.", "Try again, or go back and pick another disk.") : I18n.t("Минут 5–15: всё скачивается по сети. Компьютер не выключай.", "5–15 minutes: everything comes over the network. Don't switch the computer off."),
             "back": !!root.error,
-            "attention": root.done || root.error ? "next" : "",
+            "attention": root.done || root.error ? "next" : "none",
             "nextText": root.done ? I18n.t("Перезагрузить", "Restart") : root.error ? I18n.t("Повторить", "Try again") : I18n.t("Ставлю…", "Installing…")
         }
     ]
     readonly property var steps: stepList.filter(s => s.when === undefined || s.when)
     readonly property int last: steps.length - 1
     readonly property var cur: steps[Math.min(step, last)] || steps[0]
-    onCurChanged: if (cur && cur.id === "disk")
-        diskList.running = true
+    property double shownAt: 0
+    onCurChanged: {
+        shownAt = Date.now();
+        if (cur && cur.id === "disk")
+            diskList.running = true;
+    }
 
     function next() {
         if (run.running)
@@ -148,6 +152,9 @@ Scope {
                 return;
             break;
         case "confirm":
+            // an Enter held or pressed twice from the disk step must not erase it: a second to look first
+            if (Date.now() - shownAt < 1500)
+                return;
             start();
             break;
         case "progress":
@@ -179,7 +186,7 @@ Scope {
     }
     function contents(d) {
         const parts = (d && d.children || []).map(p => [p.label || "", p.fstype || I18n.t("без файловой системы", "no file system"), p.size ? sizeText(p.size) : "", p["fsuse%"] ? I18n.t("занято ", "used ") + p["fsuse%"] : ""].filter(x => x).join(" · "));
-        return parts.length ? parts : [I18n.t("пустой — разделов нет", "empty, no partitions")];
+        return parts;
     }
 
     function start() {
@@ -236,6 +243,10 @@ Scope {
             onStreamFinished: {
                 try {
                     root.disks = (JSON.parse(text).blockdevices || []).filter(d => d.type === "disk");
+                    // one disk it can go on (a laptop, a VM): picked already, Enter goes on
+                    const usable = root.disks.filter(d => !root.blocker(d));
+                    if (!root.diskInfo && usable.length === 1)
+                        root.disk = usable[0].path;
                 } catch (e) {
                     root.disks = [];
                 }
