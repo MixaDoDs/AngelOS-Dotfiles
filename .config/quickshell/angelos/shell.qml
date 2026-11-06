@@ -71,11 +71,7 @@ ShellRoot {
     SettingsLookPrompt {}
     AppsSyncPrompt {}
     SetupWizard {}
-    // the live ISO only (Shell.installer)
-    LazyLoader {
-        active: Shell.installer
-        Installer {}
-    }
+    Installer {}
     PluginHost {}
     AngelHelper {}
     StreamerCast {}

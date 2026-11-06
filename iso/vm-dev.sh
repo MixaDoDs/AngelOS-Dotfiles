@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # A live ISO kept running for working on the installer's screens (no window: DP-1 never sees it).
 #   iso/vm-dev.sh up <iso>       boot it with an empty 40 GB disk (vm/runs/dev/)
-#   iso/vm-dev.sh push           the shell's files this branch changed (vs main) → the live, then restart the shell
+#   iso/vm-dev.sh push           the shell's files changed since BASE (default main; the ISO's own commit when it is older) → the live, restart
 #   iso/vm-dev.sh keys a b ret   QEMU key names (shift-a for capitals, minus, spc, tab, ret, backspace…)
 #   iso/vm-dev.sh click <x> <y>  a left click at screen pixel x,y (1920×1080)
 #   iso/vm-dev.sh shot <name>    a picture of the live → vm/runs/dev/<name>.png
@@ -30,7 +30,7 @@ case "${1:-}" in
     g true && echo "up" ;;
   push)
     cd "$REPO"
-    mapfile -t files < <({ git diff --name-only main -- .config/quickshell/angelos; git ls-files -o --exclude-standard -- .config/quickshell/angelos; } | sort -u)
+    mapfile -t files < <({ git diff --name-only "${BASE:-main}" -- .config/quickshell/angelos; git ls-files -o --exclude-standard -- .config/quickshell/angelos; } | sort -u)
     for f in "${files[@]}"; do
       [[ -f $f ]] || continue
       dst="/home/angel/${f}"

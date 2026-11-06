@@ -114,8 +114,8 @@ Scope {
         {
             "id": "progress",
             "icon": root.done ? "check" : root.error ? "warn" : "package",
-            "title": root.done ? I18n.t("angelOS установлена ♡", "angelOS is installed ♡") : root.error ? I18n.t("Не получилось", "It didn't work") : I18n.t("Ставлю angelOS…", "Installing angelOS…"),
-            "text": root.done ? I18n.t("Вынь флешку и перезагрузись. Дальше — первый запуск.", "Take the stick out and restart. Then the first start.") : root.error ? I18n.t("Можно повторить или вернуться и выбрать другой диск.", "Try again, or go back and pick another disk.") : I18n.t("Минут 5–15: всё скачивается по сети. Компьютер не выключай.", "5–15 minutes: everything comes over the network. Don't switch the computer off."),
+            "title": root.done ? I18n.t("08:00, день первый ♡", "08:00, day one ♡") : root.error ? I18n.t("Не получилось", "It didn't work") : I18n.t("Ставлю angelOS…", "Installing angelOS…"),
+            "text": root.done ? I18n.t("angelOS установлена. Вынь флешку и перезагрузись — дальше первый запуск.", "angelOS is installed. Take the stick out and restart; then the first start.") : root.error ? I18n.t("Можно повторить или вернуться и выбрать другой диск.", "Try again, or go back and pick another disk.") : I18n.t("Минут 5–15: всё скачивается по сети. Компьютер не выключай.", "5–15 minutes: everything comes over the network. Don't switch the computer off."),
             "back": !!root.error,
             "attention": root.done || root.error ? "next" : "none",
             "nextText": root.done ? I18n.t("Перезагрузить", "Restart") : root.error ? I18n.t("Повторить", "Try again") : I18n.t("Ставлю…", "Installing…")
@@ -155,17 +155,31 @@ Scope {
             // an Enter held or pressed twice from the disk step must not erase it: a second to look first
             if (Date.now() - shownAt < 1500)
                 return;
-            start();
-            break;
+            verdictAsked();     // the screen takes its "before", then proceed()
+            return;
         case "progress":
             if (done)
-                reboot.running = true;
+                closing = true;
             else if (error)
                 start();
             return;
         }
         if (step < last)
             step++;
+    }
+    // the verdict over the screen: the install starts under it (Installer.qml)
+    signal verdictAsked
+    function proceed() {
+        start();
+        if (step < last)
+            step++;
+    }
+    // «Restart»: the television goes out first (Installer.qml), then the machine restarts
+    property bool closing: false
+    Timer {
+        running: root.closing
+        interval: Motion.still ? 0 : 800
+        onTriggered: reboot.running = true
     }
     function back() {
         if (run.running || step === 0)
