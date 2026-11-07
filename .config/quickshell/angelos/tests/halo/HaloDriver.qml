@@ -88,6 +88,15 @@ Scope {
                 root.ok("place-bar", Lyrics.placeOn("A") === "bar" && Halo.on("A"), Lyrics.placeOn("A"));
                 L.haloScreens = ["A"];
                 root.ok("place-halo", Lyrics.placeOn("A") === "halo" && Lyrics.placeOn("B") === "bar", Lyrics.placeOn("A") + " " + Lyrics.placeOn("B"));
+                // slid away from a window at the top (or hidden): the line back in the bar, the
+                // volume to the OSD box; back in sight, in the Halo again
+                Halo.dodge("A", true);
+                root.ok("place-dodged", Lyrics.placeOn("A") === "bar" && !Halo.seen("A") && !Halo.takesOsd("volume", "A"), Lyrics.placeOn("A"));
+                Halo.dodge("A", false);
+                Halo.hideFor(60000);
+                root.ok("place-hidden", Lyrics.placeOn("A") === "bar", Lyrics.placeOn("A"));
+                Halo.show();
+                root.ok("place-back", Lyrics.placeOn("A") === "halo" && Halo.seen("A"), Lyrics.placeOn("A"));
                 H.screens = ["B"];
                 root.ok("place-no-halo-there", !Halo.on("A") && Halo.on("B") && Lyrics.placeOn("A") === "bar", Lyrics.placeOn("A"));
                 H.screens = [];

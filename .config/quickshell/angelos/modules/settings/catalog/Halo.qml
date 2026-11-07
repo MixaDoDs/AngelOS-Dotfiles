@@ -208,7 +208,7 @@ CatPage {
             hint: ({
                     "bar": I18n.t("как меню-бар Mac: у Нимба своя полоса, окна начинаются и остаются под ним; раскрытая карточка всё равно ложится поверх", "Like a Mac's menu bar: the Halo has a strip of its own, windows start and stay below it; the open card still lies over them"),
                     "maximized": I18n.t("полосы нет: окна с заголовком angelOS встают до самого верха, заголовок обходит Нимб; браузер и окна со своим заголовком под Нимб не заезжают; это режим Desktop — в Ленте остаётся полоса", "No strip: windows with angelOS's title bar go up to the top, the bar steps around the Halo; the browser and windows with a title bar of their own keep clear of it; in Desktop only — in the Strip the Halo keeps a strip of its own"),
-                    "hide": I18n.t("полосы нет: окно коснулось верха — Нимб прячется, подведи мышь к верхнему краю — вернётся", "No strip: when a window touches the top the Halo hides; move the pointer to the top edge to bring it back")
+                    "hide": I18n.t("полосы нет: окно коснулось верха — Нимб прячется, подведи мышь к верхнему краю — вернётся; пока он спрятан, уведомления приходят в угол, а строка песни — в панель", "No strip: when a window touches the top the Halo hides; move the pointer to the top edge to bring it back; while it hides, notifications come to the corner and the song's line to the bar")
                 })[Config.halo.reserve ? Config.halo.windows : ""] || I18n.t("сейчас Нимб лежит поверх окон", "Now the Halo lies over the windows")
             model: [
                 {

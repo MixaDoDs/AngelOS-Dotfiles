@@ -61,11 +61,18 @@ PanelWindow {
     // Settings → Halo → «Windows and the Halo» → hide: while a window on this screen's desk
     // touches the top, the Halo slides away; the pointer at the top edge brings it back
     readonly property bool dodging: Config.halo.windows === "hide" && !inBar && !expanded && !Shell.dev && windowAtTop
+    // slid away, its lyrics go to the bar and the pill narrows: the band it dodges keeps the width
+    // it had, else the narrower pill came back, took the lyrics, widened and slid away again
+    property real dodgeW: 0
+    onDodgingChanged: {
+        dodgeW = dodging ? pill.width : 0;
+        Halo.dodge(modelData.name, dodging);
+    }
     readonly property bool windowAtTop: {
         const ws = Niri.activeWorkspace(modelData.name);
         if (!ws)
             return false;
-        const half = pill.width / 2 + slack;
+        const half = Math.max(pill.width, dodgeW) / 2 + slack;
         return Niri.windows.some(w => {
             if (w.workspace_id !== ws.id || Minimize.isAppHidden(w))
                 return false;
@@ -573,9 +580,13 @@ PanelWindow {
         Halo.strip = strip;
         Halo.notch = notch;
         Halo.pillHeight = closedH;
+        Halo.dodge(modelData.name, dodging);
         Tour.register("halo", hit, win);
     }
-    Component.onDestruction: Tour.unregister("halo", hit)
+    Component.onDestruction: {
+        Halo.dodge(modelData.name, false);
+        Tour.unregister("halo", hit);
+    }
     color: "transparent"
     WlrLayershell.namespace: "angelos-halo"
     // the bar's glass is blurred under it, so is the closed pill there
