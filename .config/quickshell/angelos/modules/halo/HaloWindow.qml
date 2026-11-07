@@ -64,7 +64,9 @@ PanelWindow {
     // slid away, its lyrics go to the bar and the pill narrows: the band it dodges keeps the width
     // it had, else the narrower pill came back, took the lyrics, widened and slid away again
     property real dodgeW: 0
-    onDodgingChanged: {
+    // a tick later: set inside windowAtTop's own evaluation it was a binding loop
+    onDodgingChanged: Qt.callLater(syncDodge)
+    function syncDodge() {
         dodgeW = dodging ? pill.width : 0;
         Halo.dodge(modelData.name, dodging);
     }
