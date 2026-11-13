@@ -1,0 +1,14 @@
+{
+  "id": "ocr-small",
+  "name": "OCR Small",
+  "version": "0.1.0",
+  "author": "rinn0hara",
+  "description": {
+    "ru": "Локальный OCR области экрана (Ollama GLM-OCR) с маленькой плавающей карточкой PanelWindow/Overlay и офлайн-переводом EN→RU (CTranslate2 MarianMT).",
+    "en": "Local region OCR (Ollama GLM-OCR) with a small floating PanelWindow/Overlay card and offline EN→RU translation (CTranslate2 MarianMT)."
+  },
+  "icon": "eye",
+  "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
+  "main": "Main.qml"
+}
