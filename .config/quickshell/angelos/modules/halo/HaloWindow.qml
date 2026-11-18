@@ -844,11 +844,13 @@ PanelWindow {
         }
         // the wheel: closed, the player's volume; open, the pages
         WheelHandler {
-            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            acceptedDevices: PointerDevice.AllDevices
             onWheel: e => {
-                const d = e.angleDelta.y || e.angleDelta.x;
+                e.accepted = true;
+                const d = e.angleDelta.y || e.angleDelta.x || e.pixelDelta.y || e.pixelDelta.x;
                 if (!d)
                     return;
+                const isNotch = Math.abs(e.angleDelta.y) >= 120 || Math.abs(e.angleDelta.x) >= 120;
                 // Shift: the song ±5 s a notch (a touchpad: a notch's worth), up = ahead
                 if (e.modifiers & Qt.ShiftModifier) {
                     const sp = Lyrics.player;
@@ -871,24 +873,33 @@ PanelWindow {
                         return;
                     // a page taller than the card scrolls first; at its end the spin stops
                     // there, the next page wants a new one (a pause)
-                    if (!win.wheelHeld && win.scrollPage(d)) {
+                    if ((!win.wheelHeld || isNotch) && win.scrollPage(d)) {
                         win.wheelSum = 0;
                         if (win.pageScroll <= 0 || win.pageScroll >= win.pageMax) {
-                            win.wheelHeld = true;
-                            wheelQuiet.restart();
+                            win.wheelHeld = !isNotch;
+                            if (win.wheelHeld)
+                                wheelQuiet.restart();
                         }
                         return;
                     }
                     // one page a notch (120) or a gesture's worth, then quiet until the
                     // gesture (and a touchpad's glide) is over
-                    wheelQuiet.restart();
-                    if (win.wheelHeld || win.pages.length < 2)
+                    if (isNotch) {
+                        win.wheelHeld = false;
+                        wheelQuiet.stop();
+                    } else {
+                        wheelQuiet.restart();
+                        if (win.wheelHeld)
+                            return;
+                    }
+                    if (win.pages.length < 2)
                         return;
                     win.wheelSum += d;
                     if (Math.abs(win.wheelSum) >= 120) {
                         win.turn(win.wheelSum < 0 ? 1 : -1);
                         win.wheelSum = 0;
-                        win.wheelHeld = true;
+                        if (!isNotch)
+                            win.wheelHeld = true;
                     }
                 } else {
                     const p = Lyrics.player;
