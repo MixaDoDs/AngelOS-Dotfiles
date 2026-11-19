@@ -38,6 +38,32 @@ if command -v nvidia-smi >/dev/null 2>&1; then
       exit 0
     fi
   else
+    if [ -n "$every" ] && command -v python3 >/dev/null 2>&1; then
+      exec python3 -c '
+import subprocess, sys, time
+pm, q, every = sys.argv[1], sys.argv[2], float(sys.argv[3])
+ask = max(1, (10 + int(every) - 1) // int(every))
+total, tick = 0, 0
+while True:
+    try:
+        st = open(pm).read().strip()
+    except OSError:
+        st = ""
+    if st == "active":
+        if tick == 0:
+            r = subprocess.run(["nvidia-smi", q, "--format=csv,noheader,nounits", "-i", "0"], capture_output=True, text=True)
+            line = r.stdout.strip()
+            if line:
+                print(line, flush=True)
+                try: total = int(line.split(",")[-1].strip())
+                except ValueError: pass
+        tick = (tick + 1) % ask
+    else:
+        print(f"0, -1, 0, {total}", flush=True)
+        tick = 0
+    time.sleep(every)
+' "$pm" "$q" "$every"
+    fi
     total=0 tick=0
     ask=$(( (10 + ${every:-10} - 1) / ${every:-10} ))   # ticks between questions: ~10 s
     while :; do
@@ -74,6 +100,27 @@ tempfile=""
 for t in "$best"/hwmon/hwmon*/temp1_input; do
   [ -r "$t" ] && { tempfile="$t"; break; }
 done
+if [ -n "$every" ] && command -v python3 >/dev/null 2>&1; then
+  exec python3 -c '
+import sys, time
+best, vram_mb, tempfile, every = sys.argv[1], int(sys.argv[2]) // 1048576, sys.argv[3], float(sys.argv[4])
+while True:
+    try:
+        busy = open(best + "/gpu_busy_percent").read().strip()
+    except OSError:
+        sys.exit(0)
+    temp = -1
+    if tempfile:
+        try: temp = int(open(tempfile).read().strip()) // 1000
+        except OSError: pass
+    try:
+        used = int(open(best + "/mem_info_vram_used").read().strip()) // 1048576
+    except OSError:
+        used = 0
+    print(f"{busy}, {temp}, {used}, {vram_mb}", flush=True)
+    time.sleep(every)
+' "$best" "$bestvram" "$tempfile" "$every"
+fi
 while :; do
   read -r busy <"$best/gpu_busy_percent" 2>/dev/null || exit 0
   temp=-1
