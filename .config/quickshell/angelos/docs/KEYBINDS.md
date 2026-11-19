@@ -139,7 +139,8 @@
 | `Mod+Shift+Space` | `toggle-window-floating` | Toggle floating |
 | `Mod+F` | `fullscreen-window` |  |
 | `Mod+Shift+F` | `maximize-column` |  |
-| `Mod+W` | `toggle-column-tabbed-display` |  |
+| `Mod+W` | `angelos open mission` | Mission Control |
+| `Mod+Shift+W` | `toggle-column-tabbed-display` | Колонка вкладками |
 | `Mod+M` | `maximize-window-to-edges` |  |
 | `Mod+O` | `angelos ws prev` | Previous workspace |
 

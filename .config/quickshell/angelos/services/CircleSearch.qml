@@ -14,10 +14,10 @@ import "CircleLearn.js" as Learn
 // scripts/capture_regions.py) and the words (the whole frame is read at once: Live Text).
 // Three ways to pick (mode): auto — a tap picks a line of text or an area, a loop picks a piece;
 // rect — a rectangle (Shift-drag in any mode); text — words, a tap one word, a drag a run of them.
-// The bar at the bottom: save / copy the picture (Capture), copy / translate the text, search it
+// The bar at the bottom: save / copy / edit the picture (Capture), copy / translate the text, search it
 // or the picture in the island (Island.search / Island.lens), send it nearby (QuickShare), save
 // the whole screen or a window. Nothing picked: the picture is the whole screen, the text all
-// of it. Esc steps back, Enter / Ctrl+C copy, Ctrl+S saves, (the pick's text when it has any, else the picture).
+// of it. Esc steps back, Enter / Ctrl+C copy the picture (text in text mode), Ctrl+S saves.
 // A tap where nothing is puts a frame there to drag about; every frame has 8 grips and moves.
 // It learns (CircleLearn.js, per app): frames moved after tapping an area, how much text a tap
 // takes, areas let go of, words fixed in the card; when unsure it asks after closing.
@@ -40,7 +40,7 @@ Singleton {
     property bool reading: false             // the whole frame is being read
     property bool finding: false             // the areas are being looked for
 
-    property string mode: "auto"             // auto | rect | text
+    property string mode: "rect"             // auto | rect | text
     readonly property var modes: ["auto", "rect", "text"]
     property var picked: []                  // the words of the pick
     property var pickedKeys: ({})            // "x,y" of each picked word: the marks look it up (not picked.some per word)
@@ -76,6 +76,7 @@ Singleton {
     readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos"
     readonly property string script: Quickshell.shellPath("scripts/circle.py")
     readonly property bool hasText: text.trim() !== ""
+    readonly property bool keyboardCopiesText: mode === "text" && (hasText || (!box && words.length > 0))
     readonly property bool textPick: pickKind === "line" || pickKind === "words"
     // every link, mail and phone in the text (services/Links.js): the chips under it
     readonly property var links: Links.find(text, 6)
@@ -98,7 +99,7 @@ Singleton {
         error = "";
         history = [];
         nearDone = false;
-        mode = "auto";
+        mode = "rect";
         words = [];
         screenLinks = [];
         regions = [];
@@ -721,10 +722,10 @@ Singleton {
     function enter() {
         ctrlC();
     }
-    // Ctrl+C: the pick's text when it has any (the card shows it), else the picture;
+    // Ctrl+C: the picture, or the text in the dedicated text mode;
     // keep (Ctrl+Shift+C): the overlay stays for the next piece
     function ctrlC(keep) {
-        if (hasText)
+        if (keyboardCopiesText)
             copyText(keep);
         else
             copyShot(keep);
@@ -777,6 +778,17 @@ Singleton {
     // the window under the pointer (x, y in frame pixels), else the focused one, else the screen
     function saveWindow(x, y) {
         save(targetWindow(x, y));
+    }
+    function editShot() {
+        const rect = rectOf(box);
+        if (!open || !rect)
+            return;
+        learnNow();
+        Capture.saveShot(frame, rect, {"edit": true}, r => {
+            if (!r.path)
+                say(I18n.t("Не удалось открыть снимок в редакторе", "Could not open the screenshot in the editor"), "");
+        });
+        close();
     }
     function copyShot(keep) {
         if (!open)

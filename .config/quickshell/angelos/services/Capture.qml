@@ -66,12 +66,27 @@ Singleton {
     // as the old tool kept it (scripts/capture_save.py): the month folder, the clipboard, the
     // notification with its buttons. opts: {copy, save, open} override the settings; quiet: no
     // notification (the caller says what happened); noThumb: no corner / Halo picture of it.
+    // edit: prepare a draft and open it directly in ShotEdit.
     // done(r): {path, copied} once it is kept
     function saveShot(framePath, rect, opts, done) {
         const o = opts || {};
-        const args = ["python3", Quickshell.shellPath("scripts/capture_save.py"), "save", framePath];
+        const args = ["python3", Quickshell.shellPath("scripts/capture_save.py"), o.edit ? "draft" : "save", framePath];
         if (rect)
             args.push("--rect", [rect.x, rect.y, rect.w, rect.h].map(Math.round).join(","));
+        if (o.edit) {
+            args.push("--out", ShotEdit.shotsDir);
+            shotRun.createObject(root, {
+                "command": args,
+                "noThumb": true,
+                "done": r => {
+                    if (r.path)
+                        ShotEdit.edit(r.path);
+                    if (done)
+                        done(r);
+                }
+            });
+            return;
+        }
         if (o.copy !== undefined)
             args.push(o.copy ? "--copy" : "--no-copy");
         if (o.save === false)

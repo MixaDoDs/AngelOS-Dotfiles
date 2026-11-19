@@ -697,7 +697,8 @@ Media and volume keys go to `angelos …` (a small OSD shows the level) and keep
 | <kbd>Mod</kbd>+<kbd>R</kbd> / <kbd>Mod</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd> | Next / previous column width |
 | <kbd>Mod</kbd>+<kbd>C</kbd> | Centre column |
 | <kbd>Mod</kbd>+<kbd>[</kbd> / <kbd>Mod</kbd>+<kbd>]</kbd> | Pull a window into the neighbouring column, or push it out |
-| <kbd>Mod</kbd>+<kbd>W</kbd> | Tabbed column |
+| <kbd>Mod</kbd>+<kbd>W</kbd> | Mission Control |
+| <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd> | Toggle tabs in the column |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> | Floating ⇄ tiled |
 | <kbd>Mod</kbd>+<kbd>F</kbd> / <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> / <kbd>Mod</kbd>+<kbd>M</kbd> | Fullscreen / maximise column / maximise to the edges |
 | <kbd>Mod</kbd>+<kbd>-</kbd> / <kbd>Mod</kbd>+<kbd>=</kbd> | Column narrower / wider |
@@ -729,7 +730,8 @@ turns them on or off. Without them the macOS look keeps the pixel keys.
 | <kbd>⌃</kbd><kbd>↑</kbd>, <kbd>F3</kbd> | Mission Control (overview) |
 | <kbd>⌃</kbd><kbd>F2</kbd> | The menu bar from the keyboard |
 | <kbd>⌘</kbd><kbd>⌥</kbd><kbd>Space</kbd> | angelOS's launcher |
-| <kbd>⌘</kbd><kbd>⌥</kbd> + <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> / arrows, <kbd>1</kbd>…<kbd>9</kbd>, <kbd>R</kbd>, <kbd>C</kbd>, <kbd>F</kbd>, <kbd>W</kbd> | Tiling: the pixel keys, one <kbd>Alt</kbd> further |
+| <kbd>⌘</kbd><kbd>⌥</kbd> + <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> / arrows, <kbd>1</kbd>…<kbd>9</kbd>, <kbd>R</kbd>, <kbd>C</kbd>, <kbd>F</kbd> | Tiling: the pixel keys, one <kbd>Alt</kbd> further |
+| <kbd>⌘</kbd><kbd>⌥</kbd><kbd>W</kbd> | Toggle tabs in the column |
 
 Inside apps, their own shortcuts stay theirs (<kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>Ctrl</kbd>+<kbd>V</kbd>), and the menus label them that way.
 

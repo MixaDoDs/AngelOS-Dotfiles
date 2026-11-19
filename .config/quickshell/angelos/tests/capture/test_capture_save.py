@@ -156,6 +156,23 @@ try:
           "copy: the part on the clipboard as image/png, exact")
 
     clear()
+    drafts = os.path.join(T, "run", "shots")
+    shot_count = sum(len(fs) for _, _, fs in os.walk(os.path.join(T, "shots")))
+    e = env(shotFormat="jpg", shotOpen=True)
+    rc, out = run(["draft", frame, "--rect", "5,6,7,8", "--out", drafts], e)
+    draft = out.get("path", "")
+    cutout = np.asarray(Image.open(draft)) if os.path.isfile(draft) else None
+    check(rc == 0 and os.path.dirname(draft) == drafts and draft.endswith(".png")
+          and cutout is not None and np.array_equal(cutout, px[6:14, 5:12]),
+          "draft: the exact cutout in a temporary PNG")
+    check(sum(len(fs) for _, _, fs in os.walk(os.path.join(T, "shots"))) == shot_count
+          and not clips() and not logs("open") and not logs("notify", 0.3),
+          "draft: no screenshot saved, no clipboard, viewer or notification")
+    rc, other = run(["draft", frame, "--rect", "5,6,7,8", "--out", drafts], e)
+    check(rc == 0 and other.get("path") != draft and os.path.isfile(draft),
+          "draft: two preparations never overwrite each other")
+
+    clear()
     rc, out = run(["save", frame, "--rect", "0,0,40,30"], env(shotFormat="jpg"))
     p = out.get("path", "")
     check(p.endswith(".jpg") and open(p, "rb").read(3) == b"\xff\xd8\xff" and clips() and clips()[0][0] == "image/jpeg",

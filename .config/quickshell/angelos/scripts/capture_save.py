@@ -14,6 +14,8 @@ tool (~/.local/bin/niri-screenshot-region) kept it:
       only the picture on the clipboard (image/png), nothing kept in the folders; --out: the PNG
       also there (the corner's thumbnail and its editor, services/ShotEdit);
       prints {"copied": bool, "path": <png or "">}
+  capture_save.py draft <frame> [--rect x,y,w,h] --out <directory>
+      prepares a temporary PNG for the editor and prints {"path": <png>}.
 """
 import io
 import json
@@ -21,6 +23,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.parse
 
@@ -152,7 +155,7 @@ def parse(argv):
 
 
 def main(argv):
-    if len(argv) < 2 or argv[0] not in ("save", "copy", "notify"):
+    if len(argv) < 2 or argv[0] not in ("save", "copy", "draft", "notify"):
         print(__doc__)
         return 2
     cmd, frame, o = argv[0], argv[1], parse(argv[2:])
@@ -168,6 +171,25 @@ def main(argv):
             subprocess.run(["notify-send", "-a", "Screenshot", "Ошибка скриншота", str(e)])
         print(json.dumps({"error": str(e)}))
         return 1
+    if cmd == "draft":
+        part = ""
+        try:
+            os.makedirs(o["out"], exist_ok=True)
+            with tempfile.NamedTemporaryFile(dir=o["out"], prefix="shot-draft-", suffix=".png.part", delete=False) as f:
+                part = f.name
+                f.write(encode(im, False))
+            path = part.removesuffix(".part")
+            os.replace(part, path)
+        except OSError as e:
+            if part:
+                try:
+                    os.unlink(part)
+                except OSError:
+                    pass
+            print(json.dumps({"error": str(e)}))
+            return 1
+        print(json.dumps({"path": path}))
+        return 0
     if cmd == "copy":
         data = encode(im, False)
         path = ""

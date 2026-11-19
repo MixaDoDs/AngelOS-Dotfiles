@@ -694,7 +694,8 @@ MIT, всё целиком: дотфайлы, оболочка, обои — с�
 | <kbd>Mod</kbd>+<kbd>R</kbd> / <kbd>Mod</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd> | Следующая / предыдущая ширина колонки |
 | <kbd>Mod</kbd>+<kbd>C</kbd> | Колонку в центр |
 | <kbd>Mod</kbd>+<kbd>[</kbd> / <kbd>Mod</kbd>+<kbd>]</kbd> | Втянуть окно в соседнюю колонку или вытолкнуть |
-| <kbd>Mod</kbd>+<kbd>W</kbd> | Колонка вкладками |
+| <kbd>Mod</kbd>+<kbd>W</kbd> | Mission Control |
+| <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>W</kbd> | Колонка вкладками |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> | Плавающее ⇄ в сетке |
 | <kbd>Mod</kbd>+<kbd>F</kbd> / <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> / <kbd>Mod</kbd>+<kbd>M</kbd> | Полный экран / развернуть колонку / развернуть до краёв |
 | <kbd>Mod</kbd>+<kbd>-</kbd> / <kbd>Mod</kbd>+<kbd>=</kbd> | Колонка уже / шире |
@@ -726,7 +727,8 @@ MIT, всё целиком: дотфайлы, оболочка, обои — с�
 | <kbd>⌃</kbd><kbd>↑</kbd>, <kbd>F3</kbd> | Mission Control (обзор) |
 | <kbd>⌃</kbd><kbd>F2</kbd> | Строка меню с клавиатуры |
 | <kbd>⌘</kbd><kbd>⌥</kbd><kbd>Space</kbd> | Лаунчер angelOS |
-| <kbd>⌘</kbd><kbd>⌥</kbd> + <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> / стрелки, <kbd>1</kbd>…<kbd>9</kbd>, <kbd>R</kbd>, <kbd>C</kbd>, <kbd>F</kbd>, <kbd>W</kbd> | Тайлинг: пиксельные клавиши на один <kbd>Alt</kbd> дальше |
+| <kbd>⌘</kbd><kbd>⌥</kbd> + <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> / стрелки, <kbd>1</kbd>…<kbd>9</kbd>, <kbd>R</kbd>, <kbd>C</kbd>, <kbd>F</kbd> | Тайлинг: пиксельные клавиши на один <kbd>Alt</kbd> дальше |
+| <kbd>⌘</kbd><kbd>⌥</kbd><kbd>W</kbd> | Колонка вкладками |
 
 Внутри программ их собственные сочетания остаются своими (<kbd>Ctrl</kbd>+<kbd>C</kbd>, <kbd>Ctrl</kbd>+<kbd>V</kbd>), и в меню они подписаны так же.
 

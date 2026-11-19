@@ -980,7 +980,7 @@ Item {
                 wrapMode: Text.Wrap
                 kind: "tiny"
                 dim: true
-                text: canvas.miss || (CircleSearch.error === "tesseract" ? I18n.t("Нужен tesseract — без него текст не прочитать", "Needs tesseract to read text") : (CircleSearch.mode === "text" ? I18n.t("Нажмите на слово или проведите по словам · Ctrl+A — весь текст", "Tap a word or drag over words · Ctrl+A for all") : CircleSearch.mode === "rect" ? I18n.t("Тяните рамку или нажмите на область", "Drag a rectangle or tap an area") : I18n.t("Нажмите на область или строку · тяните рамку · обведите", "Tap an area or a line · drag a rectangle · circle it")) + (CircleSearch.reading ? I18n.t(" · читаю экран…", " · reading the screen…") : CircleSearch.box ? (CircleSearch.hasText ? I18n.t(" · Ctrl+C — копировать текст", " · Ctrl+C copies the text") : I18n.t(" · Ctrl+C — копировать картинку", " · Ctrl+C copies the picture")) + I18n.t(" · Enter — копировать · Ctrl+Shift+C — не закрывая · Ctrl+Z — назад · Ctrl+S — сохранить · Esc — снять", " · Enter copies · Ctrl+Shift+C keeps it open · Ctrl+Z back · Ctrl+S saves · Esc lets go") : I18n.t(" · Enter — копировать экран · Esc — закрыть", " · Enter copies the screen · Esc closes")))
+                text: canvas.miss || (CircleSearch.error === "tesseract" ? I18n.t("Нужен tesseract — без него текст не прочитать", "Needs tesseract to read text") : (CircleSearch.mode === "text" ? I18n.t("Нажмите на слово или проведите по словам · Ctrl+A — весь текст", "Tap a word or drag over words · Ctrl+A for all") : CircleSearch.mode === "rect" ? I18n.t("Тяните рамку или нажмите на область", "Drag a rectangle or tap an area") : I18n.t("Нажмите на область или строку · тяните рамку · обведите", "Tap an area or a line · drag a rectangle · circle it")) + (CircleSearch.reading ? I18n.t(" · читаю экран…", " · reading the screen…") : CircleSearch.box ? (CircleSearch.keyboardCopiesText ? I18n.t(" · Ctrl+C — копировать текст", " · Ctrl+C copies the text") : I18n.t(" · Ctrl+C — копировать картинку", " · Ctrl+C copies the picture")) + I18n.t(" · Enter — копировать · Ctrl+Shift+C — не закрывая · Ctrl+Z — назад · Ctrl+S — сохранить · Esc — снять", " · Enter copies · Ctrl+Shift+C keeps it open · Ctrl+Z back · Ctrl+S saves · Esc lets go") : CircleSearch.keyboardCopiesText ? I18n.t(" · Enter — копировать весь текст · Esc — закрыть", " · Enter copies all the text · Esc closes") : I18n.t(" · Enter — копировать экран · Esc — закрыть", " · Enter copies the screen · Esc closes")))
             }
         }
     }
@@ -1109,8 +1109,16 @@ Item {
             easing.type: Easing.OutCubic
         }
         property bool more: false
-        // the clipboard first, always (the first button is lit): the text when there is some, else the picture
-        readonly property var liveOrder: !CircleSearch.box ? ["copy", "text", "save", "search", "lens", "translate", "share", "full", "window"] : CircleSearch.kind !== "text" ? ["text", "search", "copy", "more", "translate", "save", "lens", "share", "full", "window"] : CircleSearch.hasText ? ["text", "copy", "search", "translate", "more", "save", "lens", "share", "full", "window"] : ["copy", Config.circle.lens ? "lens" : "search", "save", "more", Config.circle.lens ? "search" : "lens", "translate", "share", "full", "window"]
+        // The first button is the keyboard's copy action in the current mode.
+        readonly property var liveOrder: {
+            const copy = CircleSearch.keyboardCopiesText ? ["text", "copy"] : ["copy", "text"];
+            if (!CircleSearch.box)
+                return copy.concat(["save", "search", "lens", "translate", "share", "full", "window"]);
+            if (CircleSearch.hasText)
+                return copy.concat(["edit", "search", "more", "translate", "save", "lens", "share", "full", "window"]);
+            return ["copy", "edit", Config.circle.lens ? "lens" : "search", "save", "more", "text",
+                Config.circle.lens ? "search" : "lens", "translate", "share", "full", "window"];
+        }
         // what the buttons show: liveOrder, held while the pointer is on the bar (the words came
         // and "Copy picture" under a click turned into "Copy text")
         property var order: []
@@ -1146,6 +1154,13 @@ Item {
                     "on": true,
                     "shown": !behind("copy"),
                     "run": () => CircleSearch.copyShot()
+                },
+                "edit": {
+                    "icon": "pen",
+                    "text": I18n.t("Редактировать", "Edit"),
+                    "on": !!CircleSearch.box,
+                    "shown": !behind("edit"),
+                    "run": () => CircleSearch.editShot()
                 },
                 "text": {
                     "icon": "document",

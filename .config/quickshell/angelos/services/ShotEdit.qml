@@ -21,7 +21,7 @@ Singleton {
 
     property string path: ""                 // the shot in the corner / in the editor
     property string screenName: ""
-    property bool temp: false                // only copied: the PNG is ours (shotsDir), not in the folders
+    property bool temp: false                // the PNG is ours (shotsDir), not in the folders
     property bool thumb: false               // the corner's picture is up
     property string at: "bottom-right"       // where it is (widgets/Place.js names): capture.shotPreviewAt, or a free place
     property bool editing: false             // the editor's window is open
@@ -30,6 +30,7 @@ Singleton {
     property string error: ""
     readonly property bool wanted: Config.capture.shotPreview !== false
     readonly property string shotsDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos/shots"
+    readonly property bool draft: temp && path.startsWith(shotsDir + "/shot-draft-")
     readonly property string dir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos/shot-edit"
     readonly property string script: Quickshell.shellPath("scripts/shot_edit.py")
     readonly property string folder: (Config.capture.shotDir || "~/Pictures/Screenshots").replace(/^~/, Quickshell.env("HOME"))
@@ -54,15 +55,17 @@ Singleton {
         // privacy on stream too: the owner wants the picture always (19.10)
         if (!wanted)
             return;
-        // copied shots of an hour ago go (the runtime dir is memory)
-        if (isTemp)
-            Quickshell.execDetached(["find", shotsDir, "-maxdepth", "1", "-name", "shot-*.png", "-mmin", "+60", "-delete"]);
         path = p;
         temp = !!isTemp;
+        if (temp)
+            pruneTempShots();
         screenName = screen || "";
         at = placeOn(screenName);
         thumb = false;
         thumb = true;
+    }
+    function pruneTempShots() {
+        Quickshell.execDetached(["find", shotsDir, "-maxdepth", "1", "-name", "shot-*.png", "!", "-path", path, "-mmin", "+60", "-delete"]);
     }
     // where the picture goes: the place picked in Settings, or ("auto") the first of the corners
     // and sides that the angel, the desktop widgets and the notifications' corner leave free
@@ -118,6 +121,8 @@ Singleton {
         thumb = false;
         error = "";
         editing = true;
+        if (draft)
+            pruneTempShots();
         loadRecent();
         opened(path);
     }

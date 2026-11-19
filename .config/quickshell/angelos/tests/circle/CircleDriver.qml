@@ -436,6 +436,10 @@ Scope {
             return true;
         },
         () => root.until("start-freezes-the-screen-with-the-pointer", () => CircleSearch.open && CircleSearch.frameW === 900 && CircleSearch.frameH === 400 && / -c /.test(" " + root.fileText(grimLog)), 8000, () => CircleSearch.open + " " + CircleSearch.frameW + "x" + CircleSearch.frameH + " grim: " + grimLog.text()),
+        () => {
+            root.report("capture-starts-in-rectangle-mode", CircleSearch.mode === "rect", CircleSearch.mode);
+            return true;
+        },
         () => root.until("the-areas-are-found-on-the-frame", () => !CircleSearch.finding && CircleSearch.regions.length > 0 && CircleSearch.regions.every(r => r.x >= 0 && r.y >= 0 && r.x + r.w <= 901 && r.y + r.h <= 401), 15000, () => JSON.stringify(CircleSearch.regions)),
         () => {
             // the "photo" (620,40 220×150): some area is about it (its kind is capture_regions.py's call)
@@ -575,6 +579,7 @@ Scope {
             }));
             root.report("the-window-under-the-pointer-else-the-focused", CircleSearch.targetWindow(150, 150).title === "small" && CircleSearch.targetWindow(50, 350).title === "big" && CircleSearch.targetWindow(-1, -1).title === "small");
             root.report("a-window-half-off-the-screen-is-cut-to-it", root.rectIs(CircleSearch.clampRect(root.windowsHere[2]), 700, 300, 200, 100), JSON.stringify(CircleSearch.clampRect(root.windowsHere[2])));
+            CircleSearch.setMode("auto");
             CircleSearch.nextMode();
             const m1 = CircleSearch.mode;
             CircleSearch.nextMode();
@@ -783,19 +788,21 @@ Scope {
             face.key("Escape");
             root.report("Esc-steps-back-then-away", first && !CircleSearch.open, first + " " + CircleSearch.open);
             root.reopen();
+            CircleSearch.setMode("rect");
             face.key("Tab");
-            root.report("Tab-changes-the-mode", CircleSearch.mode === "rect", CircleSearch.mode);
+            root.report("Tab-from-rectangle-switches-to-text", CircleSearch.mode === "text", CircleSearch.mode);
             face.key("Ctrl+A");
             root.report("Ctrl+A-selects-all-the-text", CircleSearch.pickKind === "words" && /hello[\s\S]*line/i.test(CircleSearch.text), CircleSearch.text);
-            CircleSearch.setMode("auto");
+            CircleSearch.setMode("text");
             copied.setText("");
             face.key("Ctrl+C");
             root.report("Ctrl+C-on-text-closes", !CircleSearch.open);
             return true;
         },
-        () => root.until("Ctrl+C-copies-a-text-pick's-text", () => /^hello angelos world\nsearch the second line$/i.test(root.fileText(copied)), 4000, () => copied.text()),
+        () => root.until("Ctrl+C-in-text-mode-copies-text", () => /^hello angelos world\nsearch the second line$/i.test(root.fileText(copied)), 4000, () => copied.text()),
         () => {
             root.reopen();
+            CircleSearch.setMode("rect");
             CircleSearch.tapAt(700, 150);
             copied.setText("");
             face.key("Ctrl+C");
@@ -804,6 +811,7 @@ Scope {
         () => root.until("Ctrl+C-copies-an-area's-picture", () => /image\/png/.test(root.fileText(copied)), 8000, () => copied.text()),
         () => {
             root.reopen();
+            CircleSearch.setMode("auto");
             const w = root.word("world");
             CircleSearch.pickLoop([{
                     "x": w.x - 10,
@@ -819,13 +827,15 @@ Scope {
                     "y": w.y + w.h + 10
                 }]);
             copied.setText("");
+            root.report("the-screenshot-pick-also-has-recognised-text", /^world$/i.test(CircleSearch.text), CircleSearch.text);
             face.key("Ctrl+C");
             return true;
         },
-        () => root.until("Ctrl+C-copies-a-loop's-text-not-its-picture", () => /^world$/i.test(root.fileText(copied)), 4000, () => copied.text()),
+        () => root.until("Ctrl+C-in-screenshot-mode-copies-a-picture-with-text", () => /image\/png/.test(root.fileText(copied)), 4000, () => copied.text()),
         () => {
             root.reopen();
-            CircleSearch.tapAt(root.word("second").x + 3, root.word("second").y + 3);
+            CircleSearch.setMode("text");
+            CircleSearch.selectAll();
             copied.setText("");
             face.key("Ctrl+Shift+C");
             root.report("Ctrl+Shift+C-copies-and-keeps-it-open", CircleSearch.open && face.miss !== "", CircleSearch.open + " " + face.miss);
@@ -844,6 +854,7 @@ Scope {
         },
         () => root.until("Ctrl+Shift+C-copies-the-text", () => /search the second line/i.test(root.fileText(copied)), 4000, () => copied.text()),
         () => {
+            CircleSearch.setMode("auto");
             root.look();
             return root.wait(1500);
         },
@@ -1041,6 +1052,36 @@ Scope {
             ShotEdit.close();
             return true;
         },
+        () => {
+            root.reopen();
+            ShotEdit.dismiss();
+            CircleSearch.pickRect({ "x": 40, "y": 50, "w": 300, "h": 90 });
+            copied.setText("kept for edit");
+            root.click("act-edit");
+            return true;
+        },
+        () => root.until("edit-opens-the-cutout-as-a-draft", () => !CircleSearch.open && ShotEdit.editing && ShotEdit.temp
+            && editorFace.page.width === 300 && editorFace.page.height === 90, 8000, () => ShotEdit.path),
+        () => {
+            root.report("edit-leaves-the-clipboard-and-thumbnail-alone", root.fileText(copied) === "kept for edit" && !ShotEdit.thumb, copied.text());
+            editorFace.add({ "t": "rect", "x": 10, "y": 10, "w": 80, "h": 25, "c": "#ff5cad", "lw": 2, "fill": false });
+            copied.setText("");
+            editorFace.copy();
+            return true;
+        },
+        () => root.until("the-editor-copies-the-draft", () => /image\/png/.test(root.fileText(copied)), 8000, () => copied.text()),
+        () => {
+            if (!root.wait(1200))
+                return false;
+            root.report("the-draft-is-still-temporary-after-copy", ShotEdit.temp, ShotEdit.path);
+            editorFace.save();
+            return true;
+        },
+        () => root.until("the-editor-saves-the-draft-on-request", () => !ShotEdit.temp && /Pictures\/Screenshots\/.*\.png$/.test(ShotEdit.path), 8000, () => ShotEdit.path),
+        () => {
+            ShotEdit.close();
+            return true;
+        },
         // ---- the bar
         () => {
             root.reopen();
@@ -1050,7 +1091,6 @@ Scope {
                 return !b || !b.visible;
             });
             root.report("the-bar-has-every-action", missing.length === 0, missing.join(" "));
-            root.report("the-bar-is-at-the-bottom", face.bar.visible && face.bar.y + face.bar.height > 400 * 0.75 && face.bar.y + face.bar.height <= 400, face.bar.y + " " + face.bar.height);
             root.report("nothing-picked:-search-waits-for-a-pick", !root.btn("act-search").enabled);
             CircleSearch.words = [];
             root.report("no-words:-text-and-translate-wait", !root.btn("act-text").enabled && !root.btn("act-translate").enabled);
@@ -1058,7 +1098,7 @@ Scope {
             root.snap("5-bar");
             return true;
         },
-        () => root.until("the-bar-settles-at-the-bottom", () => root.wait(400) && face.bar.y + face.bar.height > 400 * 0.75 && face.bar.y + face.bar.height <= 400 && face.bar.height < 120, 1500, () => face.bar.y + " " + face.bar.height + " " + face.bar.width),
+        () => root.until("the-bar-settles-at-the-bottom", () => root.wait(400) && face.bar.visible && face.bar.y + face.bar.height > 400 * 0.75 && face.bar.y + face.bar.height <= 400 && face.bar.height < 120, 1500, () => face.bar.y + " " + face.bar.height + " " + face.bar.width),
         () => {
             root.shots0 = shots.count;
             CircleSearch.pickRect({
