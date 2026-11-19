@@ -272,12 +272,13 @@ Singleton {
         }
     }
 
-    // where a screen shows the line: "bar" | "halo" (Settings → Lyrics, the Halo on there) | ""
+    // where a screen shows the line: "bar" | "halo" (Settings → Lyrics, the Halo seen there: hidden
+    // or slid away from a window, the line comes back to the bar) | ""
     function placeOn(name) {
         const l = Config.lyrics.screens || [];
         if (l.length && !l.includes(name))
             return "";
-        return (Config.lyrics.haloScreens || []).includes(name) && Halo.on(name) ? "halo" : "bar";
+        return (Config.lyrics.haloScreens || []).includes(name) && Halo.seen(name) ? "halo" : "bar";
     }
     function updateIndex() {
         if (!player || lines.length === 0)

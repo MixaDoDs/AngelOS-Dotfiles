@@ -61,11 +61,20 @@ PanelWindow {
     // Settings → Halo → «Windows and the Halo» → hide: while a window on this screen's desk
     // touches the top, the Halo slides away; the pointer at the top edge brings it back
     readonly property bool dodging: Config.halo.windows === "hide" && !inBar && !expanded && !Shell.dev && windowAtTop
+    // slid away, its lyrics go to the bar and the pill narrows: the band it dodges keeps the width
+    // it had, else the narrower pill came back, took the lyrics, widened and slid away again
+    property real dodgeW: 0
+    // a tick later: set inside windowAtTop's own evaluation it was a binding loop
+    onDodgingChanged: Qt.callLater(syncDodge)
+    function syncDodge() {
+        dodgeW = dodging ? pill.width : 0;
+        Halo.dodge(modelData.name, dodging);
+    }
     readonly property bool windowAtTop: {
         const ws = Niri.activeWorkspace(modelData.name);
         if (!ws)
             return false;
-        const half = pill.width / 2 + slack;
+        const half = Math.max(pill.width, dodgeW) / 2 + slack;
         return Niri.windows.some(w => {
             if (w.workspace_id !== ws.id || Minimize.isAppHidden(w))
                 return false;
@@ -573,9 +582,13 @@ PanelWindow {
         Halo.strip = strip;
         Halo.notch = notch;
         Halo.pillHeight = closedH;
+        Halo.dodge(modelData.name, dodging);
         Tour.register("halo", hit, win);
     }
-    Component.onDestruction: Tour.unregister("halo", hit)
+    Component.onDestruction: {
+        Halo.dodge(modelData.name, false);
+        Tour.unregister("halo", hit);
+    }
     color: "transparent"
     WlrLayershell.namespace: "angelos-halo"
     // the bar's glass is blurred under it, so is the closed pill there
@@ -844,11 +857,13 @@ PanelWindow {
         }
         // the wheel: closed, the player's volume; open, the pages
         WheelHandler {
-            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            acceptedDevices: PointerDevice.AllDevices
             onWheel: e => {
-                const d = e.angleDelta.y || e.angleDelta.x;
+                e.accepted = true;
+                const d = e.angleDelta.y || e.angleDelta.x || e.pixelDelta.y || e.pixelDelta.x;
                 if (!d)
                     return;
+                const isNotch = Math.abs(e.angleDelta.y) >= 120 || Math.abs(e.angleDelta.x) >= 120;
                 // Shift: the song ±5 s a notch (a touchpad: a notch's worth), up = ahead
                 if (e.modifiers & Qt.ShiftModifier) {
                     const sp = Lyrics.player;
@@ -871,24 +886,33 @@ PanelWindow {
                         return;
                     // a page taller than the card scrolls first; at its end the spin stops
                     // there, the next page wants a new one (a pause)
-                    if (!win.wheelHeld && win.scrollPage(d)) {
+                    if ((!win.wheelHeld || isNotch) && win.scrollPage(d)) {
                         win.wheelSum = 0;
                         if (win.pageScroll <= 0 || win.pageScroll >= win.pageMax) {
-                            win.wheelHeld = true;
-                            wheelQuiet.restart();
+                            win.wheelHeld = !isNotch;
+                            if (win.wheelHeld)
+                                wheelQuiet.restart();
                         }
                         return;
                     }
                     // one page a notch (120) or a gesture's worth, then quiet until the
                     // gesture (and a touchpad's glide) is over
-                    wheelQuiet.restart();
-                    if (win.wheelHeld || win.pages.length < 2)
+                    if (isNotch) {
+                        win.wheelHeld = false;
+                        wheelQuiet.stop();
+                    } else {
+                        wheelQuiet.restart();
+                        if (win.wheelHeld)
+                            return;
+                    }
+                    if (win.pages.length < 2)
                         return;
                     win.wheelSum += d;
                     if (Math.abs(win.wheelSum) >= 120) {
                         win.turn(win.wheelSum < 0 ? 1 : -1);
                         win.wheelSum = 0;
-                        win.wheelHeld = true;
+                        if (!isNotch)
+                            win.wheelHeld = true;
                     }
                 } else {
                     const p = Lyrics.player;

@@ -40,6 +40,20 @@ Singleton {
         const l = Config.halo.screens || [];
         return !!Config.halo.enabled && (!l.length || l.includes(name));
     }
+    // the screens where it slid away from a window at the top (Settings → Halo → «Windows and the
+    // Halo» → hide; HaloWindow.dodging)
+    property var dodged: []
+    function dodge(name, away) {
+        const l = dodged.filter(n => n !== name);
+        dodged = away ? l.concat([name]) : l;
+    }
+    // it can be seen on this screen now: on there, not hidden for an hour (in Golden Gate's menu
+    // bar it stays), not slid away. Out of sight its notifications, the volume, the game's cards
+    // and the moments go the usual way, as on Windows, and the lyrics back to the bar
+    function seen(name) {
+        return on(name) && (!hidden || GoldenGate.haloInBar) && !dodged.includes(name);
+    }
+    readonly property bool seenSomewhere: Shell.screens.some(s => seen(s.name))
 
     // Settings → Halo → size: s | m | l, a factor on the pixel step
     readonly property real scale: ({
@@ -127,9 +141,9 @@ Singleton {
     // ---- notifications, the volume, calls (the owner's 16.10 answers) ----
     // a notification: in the pill until it is seen — the pointer on the pill or its card open
     // (#106: 3.5 s and gone, missed by anyone away from the screen); the bell counts the unread
-    // (modules/bar/parts/Bell). Not over a hidden or
+    // (modules/bar/parts/Bell). Not over a hidden, slid-away or
     // full-screen-hidden Halo (then the corner popup comes as before)
-    readonly property bool takesNotifications: Config.ready && !!Config.halo.enabled && Config.halo.notify !== false && !hidden && !(gameOn && Config.halo.overFullscreen !== "timer")
+    readonly property bool takesNotifications: Config.ready && Config.halo.notify !== false && seenSomewhere && !(gameOn && Config.halo.overFullscreen !== "timer")
     // somewhere a full-screen window (the Halo's screens): it hides there
     readonly property bool gameOn: Shell.screens.some(s => on(s.name) && Shell.fullscreenOn(s.name))
     Connections {
@@ -150,7 +164,7 @@ Singleton {
     }
     // volume / mic / brightness / the keyboard's light: a bar a moment
     function takesOsd(kind, screen) {
-        return Config.ready && !!Config.halo.enabled && Config.halo.osd !== false && ["volume", "mic", "brightness", "kbd"].includes(kind) && on(screen) && !hidden && !Shell.fullscreenOn(screen);
+        return Config.ready && !!Config.halo.enabled && Config.halo.osd !== false && ["volume", "mic", "brightness", "kbd"].includes(kind) && seen(screen) && !Shell.fullscreenOn(screen);
     }
     Connections {
         target: Audio
@@ -256,6 +270,27 @@ Singleton {
         }, data || {});
         flashOff.interval = ms || 3500;
         flashOff.restart();
+        const t = seenSomewhere ? null : toastOf(kind, data || {});
+        if (t)
+            Quickshell.execDetached(["notify-send", "-a", "angelOS", "-e", "-i", t[0], "--", t[1], t[2] || ""]);
+    }
+    // a moment the Halo is out of sight for: [icon, title, text] of its usual notification (a
+    // transient one: it was never kept). The volume has its OSD box, a picked colour and a
+    // screenshot their own notifications already
+    function toastOf(kind, d) {
+        switch (kind) {
+        case "net":
+            return [d.on ? "network-wireless" : "network-offline", d.on ? I18n.t("Интернет есть", "Online") : I18n.t("Нет интернета", "Offline"), Wifi.connectivityText];
+        case "power":
+            return ["battery-full-charging", I18n.t("Зарядка подключена", "Charger plugged in"), Power.percent + "%"];
+        case "dlDone":
+            return ["folder-download", I18n.t("Скачано", "Downloaded"), (StreamMode.onAir ? "" : d.name + "\n") + I18n.t("Лежит на полке.", "It is on the shelf.")];
+        case "updated":
+            return d.ok ? ["system-software-update", I18n.t("angelOS обновлена", "angelOS updated"), ""] : ["dialog-warning", I18n.t("Обновление не удалось", "The update failed"), Updates.failure];
+        case "place":
+            return ["view-pin", d.app + " → " + I18n.t("стол ", "desk ") + d.desk, ""];
+        }
+        return null;
     }
     Timer {
         id: flashOff
@@ -417,12 +452,12 @@ Singleton {
         }, 5000)
 
     // ---- the game: an achievement's or a diary page's card, the day's chest ----
-    // in the Halo when it is on the screen the card would go to (the main one, or the first the
+    // in the Halo when it is seen on the screen the card would go to (the main one, or the first the
     // stream doesn't show; modules/y2k/AchievementToast): that card steps aside
     readonly property string gameScreen: {
         const all = [Shell.primaryScreen].concat(Quickshell.screens.filter(s => s !== Shell.primaryScreen));
         const s = all.find(x => x && StreamMode.effectsOn(x.name));
-        return s && on(s.name) ? s.name : "";
+        return s && seen(s.name) ? s.name : "";
     }
     // the open Halo holds the card, as the pointer on the toast does
     property bool trophyHeld: false
