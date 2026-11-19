@@ -19,6 +19,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FAKE = Path(__file__).resolve().parent / "fake"
 SCRIPT = ROOT / "scripts" / "vault.py"
+
+
+def plugin_spec(name):
+    directory = ROOT / "plugins" / name
+    manifest = json.loads((directory / "manifest.json").read_text())
+    vault = manifest["vault"]
+    return {"id": vault["id"], "dir": str(directory), "entry": vault["entry"], "vault": vault}
+
+
+PLUGINS = json.dumps([plugin_spec(name) for name in ("bitwarden", "rbw", "onepassword")])
 SECRETS = ("gh-secret-1", "пароль-ё", "wifi pass with spaces", "secret note")
 
 
@@ -52,8 +62,15 @@ class Vault(unittest.TestCase):
 
     def run_vault(self, *args, stdin=None, **env):
         e = {"PATH": str(self.bin), "HOME": str(self.dir), "FAKE_VAULT_DIR": str(self.dir), "ANGELOS_LANG": "en", "ANGELOS_TEST": "1",
+             "ANGELOS_VAULT_PLUGINS": PLUGINS,
              "XDG_STATE_HOME": str(self.dir / "state")}
         e.update(env)
+        sessions = {}
+        if "ANGELOS_BW_SESSION" in env:
+            sessions["bw"] = env["ANGELOS_BW_SESSION"]
+        if "ANGELOS_OP_SESSION" in env:
+            sessions["op"] = env["ANGELOS_OP_SESSION"]
+        e["ANGELOS_VAULT_SESSIONS"] = json.dumps(sessions)
         done = subprocess.run([sys.executable, str(SCRIPT), *args], env=e, input=stdin, stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, text=True, timeout=30)
         self.last = done
@@ -65,6 +82,18 @@ class Vault(unittest.TestCase):
     def calls(self):
         f = self.dir / "calls.log"
         return f.read_text().splitlines() if f.exists() else []
+
+    def recorder(self, name):
+        path = self.bin / name
+        path.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$FAKE_VAULT_DIR/install.log"\n')
+        path.chmod(0o755)
+
+    def install_vault(self, bid):
+        e = {"PATH": str(self.bin), "HOME": str(self.dir), "FAKE_VAULT_DIR": str(self.dir),
+             "ANGELOS_LANG": "en", "ANGELOS_VAULT_PLUGINS": PLUGINS,
+             "ANGELOS_VAULT_NOWAIT": "1"}
+        return subprocess.run([sys.executable, str(SCRIPT), "install", bid], env=e,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=30)
 
     def test_states(self):
         b = self.backends()
@@ -172,13 +201,14 @@ class Vault(unittest.TestCase):
 
     def login(self, bid, typed):
         """the terminal's first sign-in, with these lines typed; → (exit code, what it printed, the state)"""
-        e = {"PATH": str(self.bin), "HOME": str(self.dir), "FAKE_VAULT_DIR": str(self.dir), "ANGELOS_LANG": "en"}
+        e = {"PATH": str(self.bin), "HOME": str(self.dir), "FAKE_VAULT_DIR": str(self.dir), "ANGELOS_LANG": "en",
+             "ANGELOS_VAULT_PLUGINS": PLUGINS}
         done = subprocess.run([sys.executable, str(SCRIPT), "login", bid], env=e, input=typed, stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT, text=True, timeout=30)
         return done.returncode, done.stdout, json.loads((self.dir / "state.json").read_text())
 
     def test_first_sign_in_and_the_server_question(self):
-        spec = importlib.util.spec_from_file_location("vault", SCRIPT)
+        spec = importlib.util.spec_from_file_location("vault", ROOT / "plugins/bitwarden/vault.py")
         vault = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(vault)
         for typed, want in (("", ""), ("  ", ""), ("eu", "https://vault.bitwarden.eu"), ("vault.example.org", "https://vault.example.org"),
@@ -213,6 +243,21 @@ class Vault(unittest.TestCase):
         self.assertEqual((code, st.get("rbw_email"), st.get("rbw_url")), (0, "angel@example.com", None), said)
         self.state(rbw="unset")
         self.assertEqual(self.login("rbw", "not-a-mail\n")[0], 1)
+
+    def test_install_uses_manifest_metadata(self):
+        self.recorder("sudo")
+        self.recorder("pacman")
+        self.recorder("paru")
+
+        for bid in ("bw", "rbw", "op"):
+            result = self.install_vault(bid)
+            self.assertEqual(result.returncode, 0, result.stdout)
+
+        self.assertEqual((self.dir / "install.log").read_text().splitlines(), [
+            "pacman -S --needed bitwarden-cli",
+            "pacman -S --needed rbw",
+            "-S --needed 1password-cli",
+        ])
 
     def kept(self):
         f = self.dir / "keyring-service-angelos-vault-backend-bw"

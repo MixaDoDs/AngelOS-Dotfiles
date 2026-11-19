@@ -1,0 +1,11 @@
+{
+  "id": "bitwarden",
+  "name": {"ru": "Bitwarden", "en": "Bitwarden"},
+  "version": "1.0.0",
+  "author": "angelOS",
+  "description": {"ru": "Неофициальная интеграция Bitwarden CLI в password manager AngelOS.", "en": "Unofficial Bitwarden CLI integration for the AngelOS password manager."},
+  "icon": "lock",
+  "enabledByDefault": true,
+  "themes": ["pixel", "mac"],
+  "vault": {"entry": "vault.py", "id": "bw", "packageManager": "pacman", "package": "bitwarden-cli", "docs": "https://bitwarden.com/help/cli/"}
+}
