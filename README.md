@@ -74,6 +74,13 @@ here's the scrap of paper, three lines, type them into the terminal. then it ask
 then there'll be a minute you won't remember. i've got one like that too. then the wizard and the tips.\
 don't listen to the recording up there. it's not mine. well, it is. let's skip it.
 
+**Before installing:** a running Arch Linux or CachyOS system, internet access, and a regular user with sudo.
+On a fresh Arch install, run `sudo pacman -S --needed git` first. Setup takes about 10–30 minutes.
+
+> [!WARNING]
+> **CachyOS with COSMIC: don't run `install.sh` for now.** There is a report that the install wiped the home folder.
+> While the cause is being investigated, the installer refuses to start where COSMIC is installed. [#163](https://github.com/MixaDoDs/AngelOS-Dotfiles/issues/163)
+
 <div align="center">
 <img src="docs/readme/install-note.png" width="560" alt="EVIDENCE: a torn scrap of lined paper: git clone the repository, cd into it, run install.sh. One command, it asks the rest.">
 
@@ -86,10 +93,6 @@ cd AngelOS-Dotfiles
 ./install.sh
 ```
 
-> [!WARNING]
-> **CachyOS with COSMIC: don't run `install.sh` for now.** There is a report that the install wiped the home folder there ([#163](https://github.com/MixaDoDs/AngelOS-Dotfiles/issues/163)); until it is understood, the installer refuses to start where COSMIC is installed.
-> **CachyOS с COSMIC: пока не запускайте `install.sh`.** Есть сообщение, что там установка стёрла домашнюю папку ([#163](https://github.com/MixaDoDs/AngelOS-Dotfiles/issues/163)); пока не разберёмся, установщик не запускается, если стоит COSMIC.
-
 ![The installer: profile, look, apps, layouts and the hearts progress bar](docs/demo/installer.gif)
 
 ![The interface tips circling the start button, the workspaces and the clock](docs/demo/tips.gif)
@@ -98,9 +101,6 @@ cd AngelOS-Dotfiles
 <summary>✉ <b>inventory, tape 1</b> · install</summary>
 
 <br>
-
-Before: Arch Linux or CachyOS, the internet, your own user (not root) with sudo (`sudo pacman -S --needed git`
-first on a bare Arch). About 10–30 minutes, mostly downloads.
 
 The installer is a small show right in the terminal: a hard disk spins up, the angel flaps its wings
 ([chafa](https://hpjansson.org/chafa/) draws real pictures in kitty, foot, Konsole, WezTerm; coloured blocks in any
@@ -233,25 +233,18 @@ one per workspace. Changing it plays a pixel mosaic with a dither, only when the
 > opened the recycle bin. ***pause*** restored it. **idiot**. ***pulls on a boot***
 
 **◉ NOW**\
-right-click the desktop. the menu comes in six kinds, pick any. there's a sev̷enth in the files. it's mine, don't touch it yet.\
+right-click the desktop. there's the usual list. you have to earn the wings and the harp. i have a menu of my own, don't touch it yet.\
 you can throw widgets on the desktop: a clock, a player, a system monitor.\
 just don't hang photos. ***quickly*** just a tip.
-
-![The right-click menu in its six looks: list, radial, Y2K bubble, tiles, wings, harp](docs/demo/menu-styles.gif)
-
-![The Windows 11-style menu adding a widget to the desktop](docs/demo/menu.gif)
-
-<sub><b>DETECTIVE.</b> The seventh menu exists. We are not printing it.</sub>
 
 <details>
 <summary>✉ <b>inventory, tape 4</b> · menus and widgets</summary>
 
 <br>
 
-Whatever the menu looks like, it holds the same things: quick actions on top, **View ▸** (widgets, edit mode, snap to
-grid), **New ▸** (note, screenshot, recording), **Open ▸** (folders), display settings, personalisation, *Open in
-Terminal*, and **Show more options ▸** for what the plugins add. What is in it, in what order, your own items:
-*Settings → Right-click menu*.
+The standard menu has a row of quick actions over a short list. The entries depend on what you right-click.
+Choose the entries and their order in *Settings → Personalization → Right-click menu*. Wings and Harp unlock through achievements.
+Pentagram is available while the demon rules in the game.
 
 Widgets (`clock.exe`, `sysmon.exe` with CPU/GPU/RAM/VRAM/net, `cava.exe`, `music.exe` and the plugins' own) live on the
 wallpaper and are dragged by the title bar; double-click the title for edit mode. Around each one: a pixel window, a
@@ -442,7 +435,7 @@ listen. how do you see me? fine, tell me later.
 > whatever is going on. Everything that flashes, shakes or gets loud has a *calm* switch.
 >
 > - **Out at once, any time:** `angelos game off`, or **`Mod`+`Ctrl`+`Shift`+`Esc`**. What stays is plain dotfiles:
->   she is gone, and the right-click menu loses its seventh look. `angelos game on` brings it back. The installer and
+>   she is gone. `angelos game on` brings it back. The installer and
 >   the wizard ask first.
 > - **Motion:** `angelos motion full|calm|off`. *Calm*: no flashes, no shaking, no sudden loud sounds. *Off*: no
 >   animations at all.
@@ -658,13 +651,13 @@ ever gets in. Your angelOS settings (`~/.config/angelos`) stay yours.
 | --- | --- |
 | <kbd>Mod</kbd>+<kbd>T</kbd> | Terminal (kitty) |
 | <kbd>Mod</kbd>+<kbd>B</kbd> | Default browser |
-| <kbd>Mod</kbd>+<kbd>E</kbd> | Files (Nautilus) |
+| <kbd>Mod</kbd>+<kbd>E</kbd> | Default file manager |
 | <kbd>Mod</kbd>+<kbd>V</kbd> | Clipboard history (Enter pastes into the window you were in, Shift+Enter only copies) |
 | <kbd>Mod</kbd>+<kbd>S</kbd> / <kbd>Mod</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> | Settings |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Return</kbd> | Wallpaper picker |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Q</kbd> | Power menu |
 | <kbd>Mod</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd> / <kbd>Mod</kbd>+<kbd>Alt</kbd>+<kbd>Y</kbd> | Light ⇄ dark / lyrics on-off |
-| <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> | Screenshot a region ("gravity ropes") |
+| <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> | Screenshot a region (Rectangle mode) |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> | Record a region (toggle) |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> | Voice dictation (toggle) |
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> | Screencast privacy: chats and password managers go black on the stream |
@@ -675,7 +668,10 @@ ever gets in. Your angelOS settings (`~/.config/angelos`) stay yours.
 | <kbd>Mod</kbd>+<kbd>Alt</kbd>+<kbd>=</kbd> / <kbd>-</kbd> / <kbd>0</kbd> | Lens: zoom in / out / close |
 | <kbd>Mod</kbd>+<kbd>Esc</kbd> | Release a fullscreen app's keyboard grab |
 | <kbd>Mod</kbd>+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd> | **Out of the game at once** |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Delete</kbd> | Quit niri |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Delete</kbd> | Power menu |
+
+To copy text from the screen, open capture with <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>, choose **Text**,
+select the words, and press <kbd>Ctrl</kbd>+<kbd>C</kbd>.
 
 Media and volume keys go to `angelos …` (a small OSD shows the level) and keep working on the lock screen.
 
@@ -702,7 +698,6 @@ Media and volume keys go to `angelos …` (a small OSD shows the level) and keep
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> | Floating ⇄ tiled |
 | <kbd>Mod</kbd>+<kbd>F</kbd> / <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> / <kbd>Mod</kbd>+<kbd>M</kbd> | Fullscreen / maximise column / maximise to the edges |
 | <kbd>Mod</kbd>+<kbd>-</kbd> / <kbd>Mod</kbd>+<kbd>=</kbd> | Column narrower / wider |
-| <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> | OCR a region to the clipboard |
 
 </details>
 
