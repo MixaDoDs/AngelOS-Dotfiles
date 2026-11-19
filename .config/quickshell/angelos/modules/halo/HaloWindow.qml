@@ -1458,7 +1458,7 @@ PanelWindow {
     // a dot left of the pill or the arc (services/Sensors; Settings → Halo → «Privacy dot»)
     Item {
         id: privacy
-        visible: Config.halo.privacyDot !== false && Sensors.active && !win.full
+        visible: win.shown && Config.halo.privacyDot !== false && Sensors.active && !win.full
         readonly property real at: (win.open ? pill.height : ring.height) / 2
         width: privacyDots.width + win.u * 6
         height: win.u * 9

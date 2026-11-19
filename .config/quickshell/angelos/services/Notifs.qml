@@ -13,6 +13,15 @@ Singleton {
     id: root
 
     property var popups: []      // Notification objects currently on screen
+    readonly property var popupTarget: popupScreen(Shell.screens.filter(s => Halo.on(s.name)), Shell.focusedScreen)
+    function popupScreen(haloScreens, focused) {
+        const selected = Config.notifications.screen === "primary" ? Shell.primaryScreen : Shell.screenByName(Config.notifications.screen);
+        if (Config.notifications.screen)
+            return selected || focused;
+        if (Config.halo.notify !== false && !Halo.seenSomewhere && haloScreens.length)
+            return haloScreens.find(s => s.name === Shell.primaryName) || haloScreens[0];
+        return focused;
+    }
     // every incoming notification ({appName, summary, urgency, quiet}); the Y2K
     // sounds and the angel listen here
     signal arrived(var info)
@@ -231,7 +240,7 @@ Singleton {
             const toHalo = Halo.takesNotifications && n.urgency !== NotificationUrgency.Critical;
             // a fullscreen game or film where the cards would stand: nothing over it, the bell
             // keeps it (the owner, 16.10; Windows' focus assist in games) — but a critical one
-            const at = Config.notifications.screen === "primary" ? Shell.primaryScreen : Shell.screenByName(Config.notifications.screen) || Shell.focusedScreen;
+            const at = root.popupTarget;
             const overGame = n.urgency !== NotificationUrgency.Critical && !!at && Shell.fullscreenOn(at.name);
             if (!dnd && !toHalo && !overGame)
                 root.popups = root.popups.concat([n]).slice(-Config.notifications.maxPopups);
