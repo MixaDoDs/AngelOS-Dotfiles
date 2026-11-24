@@ -22,6 +22,24 @@ install_voxtype_model() {
   fi
 }
 
+# voxtype.service restarts a failing daemon every 5 s, and each start loads the 1.6 GB model: with no
+# model or a GPU it can't use that is for ever (#167: 96 restarts in 8 min). A drop-in, not the unit
+# itself: updates run with ENABLE_SERVICES=0 and leave the unit alone, so this reaches everyone.
+limit_voxtype_restarts() {
+  [[ -x "$HOME_DIR/.local/bin/voxtype" || -f "$HOME_DIR/.config/systemd/user/voxtype.service" ]] || return 0
+  local dropin="$HOME_DIR/.config/systemd/user/voxtype.service.d/50-start-limit.conf"
+  mkdir -p -- "${dropin%/*}"
+  cat >"$dropin" <<'UNIT'
+# angelOS (installer/steps/35-voxtype.sh): a daemon that keeps failing gives up after 5 tries in
+# 5 min instead of reloading its model every 5 s for ever (#167)
+[Unit]
+StartLimitIntervalSec=300
+StartLimitBurst=5
+UNIT
+  systemctl --user daemon-reload 2>/dev/null || true
+}
+
 # the steps of this file, in the order of the run (see step() in installer/lib/core.sh)
 step 40 install_voxtype "Voxtype" "Voxtype"
 step 41 install_voxtype_model "the Whisper model" "модель Whisper"
+step 44 limit_voxtype_restarts "Voxtype's restarts" "перезапуски Voxtype"
