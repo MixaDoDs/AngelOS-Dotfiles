@@ -120,11 +120,11 @@ PanelWindow {
 
     // unified rows: {app} for desktop entries, {provider, r} for plugin results
     readonly property var results: {
+        if (!visible || command)
+            return [];
         providerTick;
         Vault.tick;
         Timers.items;
-        if (command)
-            return [];
         if (vaultMode)
             return Vault.rows(vaultQuery).map(v => ({
                         "builtin": "vault",

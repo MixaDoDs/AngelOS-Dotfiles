@@ -596,8 +596,12 @@ Singleton {
         command: ["python3", "-c", "import json,sys,pathlib\nb=pathlib.Path(sys.argv[1])\ndef load(d):\n    out={}\n    for f in sorted(d.glob('*.json')) if d.is_dir() else []:\n        try: out[f.stem]=json.loads(f.read_text())\n        except Exception as e: print('novel: '+f.name+': '+str(e),file=sys.stderr)\n    return out\nsp={}\nfor w in sorted((b/'sprites').iterdir()) if (b/'sprites').is_dir() else []:\n    if w.is_dir():\n        m={}\n        for f in sorted(w.iterdir()):\n            if f.suffix.lower() in ('.png','.webp','.gif','.jpg','.jpeg'): m.setdefault(f.stem,str(f))\n        sp[w.name]=m\nprint(json.dumps({'stories':load(b/'story'),'scenes':load(pathlib.Path(sys.argv[2])),'sprites':sp}))", root.dir, Quickshell.shellDir + "/story/scenes"]
         stdout: StdioCollector {
             onStreamFinished: {
+                // An aborted reload() kills the earlier python3 mid-flight with empty stdout;
+                // ignore it so root.scenes is never wiped and root.loaded stays false until real data arrives.
+                if (!text || !text.trim())
+                    return;
                 try {
-                    const d = JSON.parse(text || "{}");
+                    const d = JSON.parse(text);
                     root.stories = d.stories || {};
                     root.scenes = d.scenes || {};
                     root.sprites = d.sprites || {};
