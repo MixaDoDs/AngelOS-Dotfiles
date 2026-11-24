@@ -179,8 +179,71 @@ def strata_icons(themes):
             shutil.copyfile(src, STRATA_ICONS / f"{name}.svg")
 
 
+def mac_icons(pal):  # Golden Gate → «значки MacTahoe» (палитра, иначе settings.json)
+    if "macIcons" in pal:
+        return pal["macIcons"] != ""
+    try:
+        return json.loads((HOME / ".config/angelos/settings.json").read_text()).get("mac", {}).get("dockMacIcons", True)
+    except (OSError, ValueError, AttributeError):
+        return True
+
+
+MAC_OURS = ("angelos-folders-mac-a", "angelos-folders-mac-b")
+
+
+def mac_qt(name):
+    """Qt apps' icon theme (qt6ct) to the same one (qt-theme.py runs before this hook)"""
+    conf = CONFIG / "qt6ct/qt6ct.conf"
+    if conf.exists():
+        text = conf.read_text()
+        new = re.sub(r"^icon_theme=.*$", f"icon_theme={name}", text, flags=re.M)
+        if new != text:
+            conf.write_text(new)
+
+
+def mac_folders(palette):
+    """Golden Gate without MacTahoe's icons — the user's Pixora with its folders in
+    Golden Gate's colours, the pixel theme's logic: a tinted copy in angelos-folders-mac-a/-b (the name
+    swaps on every change, so GTK apps reload live), the icon theme for GTK, Qt and Strata. The pixel
+    theme's own angelos-folders-a/-b stay as they are for when it comes back"""
+    gg = HOME / ".local/state/angelos/goldengate-before.json"
+    own = (json.loads(gg.read_text())["gsettings"].get("icon-theme") or "").strip("'") if gg.exists() else current()
+    base = base_of(own)
+    if base not in BASES or not theme_dirs(base):
+        strata_icons([])
+        return f"icon theme {own or '?'} is not Pixora: folders left alone"
+    cur = current()
+    tint = palette.get("folderTint") or "pixora"
+    if tint == "pixora":
+        if cur != base:
+            set_theme(base)
+        mac_qt(base)
+        for name in MAC_OURS:
+            shutil.rmtree(ICONS / name, ignore_errors=True)
+        strata_icons([base])
+        return f"Golden Gate: folders as Pixora draws them ({base})"
+    fill = (palette.get("folderFill") or "#" + BODY).lstrip("#")[:6]
+    shade = (palette.get("folderShade") or "#" + SHADE).lstrip("#")[:6]
+    stamp = ICONS / ".angelos-folders-mac"
+    want = f"{base} {fill} {shade}"
+    if cur in MAC_OURS and stamp.is_file() and stamp.read_text() == want and theme_dirs(cur):
+        mac_qt(cur)
+        strata_icons([cur, base])
+        return f"Golden Gate: folders {fill} already ({cur})"
+    name = MAC_OURS[1] if cur == MAC_OURS[0] else MAC_OURS[0]
+    n = build(name, base, fill, shade)
+    stamp.write_text(want)
+    set_theme(name)
+    mac_qt(name)
+    shutil.rmtree(ICONS / (MAC_OURS[0] if name == MAC_OURS[1] else MAC_OURS[1]), ignore_errors=True)
+    strata_icons([name, base])
+    return f"Golden Gate: folders {fill}/{shade}: {n} icons in {name} over {base}"
+
+
 def apply(palette):
     if palette.get("skin") == "goldengate":
+        if not mac_icons(palette):  # папки в цветах Golden Gate, как в пиксельной теме
+            return mac_folders(palette)
         strata_icons([])
         return "Golden Gate's icons: folders left alone"
     cur = current()

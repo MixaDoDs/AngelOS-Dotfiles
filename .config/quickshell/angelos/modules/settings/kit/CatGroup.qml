@@ -11,6 +11,7 @@ Item {
     property string icon: ""
     property bool advanced: false
     property bool wide: false
+    property bool outlined: true
     // the group's visibility (PxGroup's `shown`/`visible`)
     property bool present: true
     readonly property var entries: {

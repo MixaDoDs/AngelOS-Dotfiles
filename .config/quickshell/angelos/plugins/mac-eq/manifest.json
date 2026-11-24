@@ -1,0 +1,14 @@
+{
+  "id": "mac-eq",
+  "name": {"ru": "Эквалайзер для Golden Gate", "en": "Golden Gate equalizer"},
+  "version": "1.0.0",
+  "author": "frostpix",
+  "description": {
+    "ru": "Тот же эквалайзер EasyEffects, что на пиксельной панели, но в стиле macOS: значок в строке меню прямо перед громкостью и стеклянный поповер. Клик — открыть, ПКМ — вкл/выкл. В пиксельной теме ничего не показывает.",
+    "en": "The pixel bar's EasyEffects equalizer, done the macOS way: a menu bar extra right before the volume and a glass popover. Click: open, right click: on/off. Shows nothing in the pixel theme."
+  },
+  "icon": "music",
+  "enabledByDefault": false,
+  "themes": ["mac"],
+  "barWidget": "BarWidget.qml"
+}

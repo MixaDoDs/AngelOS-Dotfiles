@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """angelOS's own log history: the journal keeps ~50 MB here (a day or so), so "the logs of all
-time" were gone when they were asked for (2026-10-15). Each finished day of the shell, niri
-and the USB bridge is kept as one compressed file:
+time" were gone when they were asked for (2026-10-15). Each finished day of the shell and
+niri is kept as one compressed file:
 
   ~/.local/state/angelos/logs/YYYY-MM-DD.log.zst   (.log.gz without zstd)
 
@@ -23,13 +23,9 @@ UNITS = ["angelos.service", "niri.service", "mem-janitor.service"]
 
 def day_log(day):
     since, until = day.isoformat() + " 00:00:00", (day + datetime.timedelta(days=1)).isoformat() + " 00:00:00"
-    parts = []
-    for args in (["--user"] + sum((["-u", u] for u in UNITS), []), ["-u", "angelos-usb-bridge.service"]):
-        r = subprocess.run(["journalctl", "--no-pager", "-q", "-o", "short-iso", "--since", since, "--until", until] + args,
-                           capture_output=True, text=True, timeout=120)
-        if r.stdout.strip():
-            parts.append(r.stdout)
-    return "".join(parts)
+    r = subprocess.run(["journalctl", "--no-pager", "-q", "-o", "short-iso", "--since", since, "--until", until, "--user"]
+                       + sum((["-u", u] for u in UNITS), []), capture_output=True, text=True, timeout=120)
+    return r.stdout if r.stdout.strip() else ""
 
 
 def keep(day, text):

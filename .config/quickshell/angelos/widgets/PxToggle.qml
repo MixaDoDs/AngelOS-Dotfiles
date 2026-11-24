@@ -61,7 +61,7 @@ Item {
         height: track.height
         anchors.verticalCenter: parent.verticalCenter
         radius: height / 2
-        color: root.shown ? GoldenGate.accent : GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.1)
+        color: root.shown ? GoldenGate.accent : Serp.on ? Serp.surface2 : GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.1)  // serp-skin
         Behavior on color {
             ColorAnimation {
                 duration: Motion.ms(150)
@@ -73,8 +73,8 @@ Item {
             radius: width / 2
             y: GoldenGate.px(2)
             x: root.shown ? parent.width - width - GoldenGate.px(2) : GoldenGate.px(2)
-            color: "#ffffff"
-            border.width: 1
+            color: Serp.on ? (root.shown ? Serp.onAccent : Serp.subtext1) : "#ffffff"  // serp-skin
+            border.width: Serp.on ? 0 : 1  // serp-skin
             border.color: Qt.rgba(0, 0, 0, 0.08)
             Behavior on x {
                 NumberAnimation {

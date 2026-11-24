@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.modules.desktop
+import qs.modules.capture
 import qs.modules.mac
 import qs.modules.y2k
 import qs.widgets
@@ -55,6 +56,8 @@ Variants {
             Item {
                 id: faceArea
                 anchors.fill: parent
+                anchors.topMargin: Serp.on ? Serp.barHeight + Serp.px(8) : 0  // serp-skin
+                anchors.bottomMargin: Serp.on && Serp.cfg.dock && !Serp.cfg.dockAutohide ? Serp.px(Serp.cfg.dockSize) + Serp.px(40) : 0  // serp-skin
                 // the music's wave out of the CRT passes through the widgets as through the scene
                 // (shaders/scene_kick, the wall's own kick), and the meteor's blast; not while they
                 // are moved about
@@ -214,6 +217,8 @@ Variants {
             Item {
                 id: deskArea
                 anchors.fill: parent
+                anchors.topMargin: Serp.on ? Serp.barHeight + Serp.px(8) : 0  // serp-skin
+                anchors.bottomMargin: Serp.on && Serp.cfg.dock && !Serp.cfg.dockAutohide ? Serp.px(Serp.cfg.dockSize) + Serp.px(40) : 0  // serp-skin
                 // a switch the shell prepares waits for an input copy on show to be gone
                 Connections {
                     target: deskArea.Window.window
@@ -233,6 +238,11 @@ Variants {
                         onContextMenu: (x, y) => menu.openWidget(modelData, x, y)
                     }
                 }
+            }
+
+            DesktopCrops {
+                anchors.fill: parent
+                screenName: win.modelData.name
             }
 
             // «what's new» after an update to a big release, on the main screen

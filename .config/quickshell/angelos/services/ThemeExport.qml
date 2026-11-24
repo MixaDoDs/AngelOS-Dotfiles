@@ -77,6 +77,7 @@ Singleton {
             };
         const d = Theme.dark;
         const h = c => Theme.hex(c);
+        const t = c => Theme.macTinted(c);  // the apps' surfaces lean toward the wallpaper
         // Golden Gate is always Desktop: windows float like on a Mac; on angel-niri the stacking
         // mode floats them (WindowConfig), a rule would keep them floating after it
         const rules = Niri.nativeMinimize ? "" : "window-rule {\n    open-floating true\n}\n";
@@ -85,12 +86,14 @@ Singleton {
         // than the theme switch, would mix the two themes' keys for a moment)
         return {
             "skin": "goldengate",
+            // MacTahoe's icons off: the user's own (Pixora, scripts/folder-tint.py), not Adwaita
+            "macIcons": Config.mac.dockMacIcons ? "1" : "",
             "macBinds": "",
             "macAccent": h(Theme.macAccent),
-            "macWindow": d ? "#1e1e1e" : "#f5f5f5",
-            "macContent": d ? "#232323" : "#ffffff",
-            "macSidebar": d ? "#2a2a2c" : "#e8e8ea",
-            "macPopover": d ? "#2b2b2d" : "#f6f6f6",
+            "macWindow": t(d ? "#1e1e1e" : "#f5f5f5"),
+            "macContent": t(d ? "#232323" : "#ffffff"),
+            "macSidebar": t(d ? "#2a2a2c" : "#e8e8ea"),
+            "macPopover": t(d ? "#2b2b2d" : "#f6f6f6"),
             "macText": d ? "#f5f5f7" : "#1d1d1f",
             "macLine": d ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)",
             "macLineHex": d ? "#ffffff24" : "#0000001f",
@@ -98,7 +101,7 @@ Singleton {
             "macControlHover": d ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.09)",
             "macSelectedSidebar": d ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)",
             "macLightOff": d ? "#4a4a4d" : "#d1d1d6",
-            "macOverview": d ? "#101012" : "#2c2c30",
+            "macOverview": t(d ? "#101012" : "#2c2c30"),
             "macWindowRules": rules,
             // angel-niri draws Mac title bars for the windows that let it (stacking, WindowConfig)
             "macCsd": Niri.nativeMinimize ? "true" : "false"

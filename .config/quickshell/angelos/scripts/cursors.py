@@ -5,6 +5,7 @@
   cursors.py install <id> [--accent #rrggbb --edge #rrggbb --light #rrggbb]
   cursors.py apply <theme> <size> [--no-flatpak]
   cursors.py preview <theme>           -> PNG strip in ~/.cache/angelos/cursors/<theme>.png
+  cursors.py x11                       -> X11's default cursor (the root window) to the theme niri wears
 
 Themes are downloaded from pinned archives (SHA-256 checked) or built from the
 pixel-cursors assets (mikaeladev, GPL-3.0) recoloured with the angelOS palette.
@@ -22,6 +23,7 @@ GTK 3/4 (settings.ini, gsettings, xsettingsd), plain X11 clients and Steam
 (~/.icons/default, ~/.icons/<theme>), the systemd/D-Bus activation environment
 and Flatpak apps. niri's config is validated before it is written.
 """
+import ctypes
 import io
 import json
 import os
@@ -781,6 +783,51 @@ def run(argv):
         return False
 
 
+def x11_root(theme, size):
+    """X11's own default cursor (the root window's; Steam's top strip, Wine): Xwayland keeps the
+    one it started with, so after a switch an X11 window that sets none of its own showed the old
+    theme. libXcursor gives the theme's arrow, every window without a cursor inherits it at once
+    (after frostpix's pc-kit, which did it with xsetroot)"""
+    display = os.environ.get("DISPLAY")
+    if not display:
+        try:
+            env = subprocess.run(["systemctl", "--user", "show-environment"], capture_output=True, text=True, timeout=5).stdout
+            display = next((l[8:] for l in env.splitlines() if l.startswith("DISPLAY=")), "")
+        except (OSError, subprocess.TimeoutExpired):
+            display = ""
+    if not display:
+        return False
+    try:
+        x11 = ctypes.CDLL("libX11.so.6")
+        xc = ctypes.CDLL("libXcursor.so.1")
+    except OSError:
+        return False
+    vp, ul = ctypes.c_void_p, ctypes.c_ulong
+    x11.XOpenDisplay.argtypes, x11.XOpenDisplay.restype = [ctypes.c_char_p], vp
+    x11.XDefaultRootWindow.argtypes, x11.XDefaultRootWindow.restype = [vp], ul
+    x11.XDefineCursor.argtypes = [vp, ul, ul]
+    x11.XFreeCursor.argtypes = [vp, ul]
+    x11.XFlush.argtypes = x11.XCloseDisplay.argtypes = [vp]
+    xc.XcursorSetTheme.argtypes = [vp, ctypes.c_char_p]
+    xc.XcursorSetDefaultSize.argtypes = [vp, ctypes.c_int]
+    xc.XcursorLibraryLoadCursor.argtypes, xc.XcursorLibraryLoadCursor.restype = [vp, ctypes.c_char_p], ul
+    d = x11.XOpenDisplay(display.encode())
+    if not d:
+        return False
+    try:
+        xc.XcursorSetTheme(d, theme.encode())
+        xc.XcursorSetDefaultSize(d, int(size))
+        cur = xc.XcursorLibraryLoadCursor(d, b"left_ptr")
+        if not cur:
+            return False
+        x11.XDefineCursor(d, x11.XDefaultRootWindow(d), cur)
+        x11.XFreeCursor(d, cur)
+        x11.XFlush(d)
+        return True
+    finally:
+        x11.XCloseDisplay(d)
+
+
 def apply(theme, size, flatpak=True):
     if not NAME_RE.fullmatch(theme):
         raise Fail("bad theme name")
@@ -795,6 +842,8 @@ def apply(theme, size, flatpak=True):
         d.mkdir(parents=True, exist_ok=True)
         (d / "index.theme").write_text(f"[Icon Theme]\nName=Default\nComment=Default cursor (angelOS)\nInherits={theme}\n")
     done.append("x11")
+    if x11_root(theme, size):
+        done.append("x11-root")
     for g in ("gtk-3.0", "gtk-4.0"):
         set_ini(HOME / f".config/{g}/settings.ini", {"gtk-cursor-theme-name": theme, "gtk-cursor-theme-size": size})
     done.append("gtk")
@@ -905,6 +954,11 @@ def main():
         elif cmd == "apply":
             done = apply(args[1], args[2], "--no-flatpak" not in args)
             print(json.dumps({"ok": True, "done": done}))
+        elif cmd == "x11":
+            # at the shell's start: the X11 server of this login has the theme niri wears
+            now = status().get("niri") or []
+            ok = bool(now and NAME_RE.fullmatch(now[0] or "") and x11_root(now[0], now[1] or 24))
+            print(json.dumps({"ok": ok}))
         elif cmd == "preview":
             if not NAME_RE.fullmatch(args[1]):
                 raise Fail("bad theme name")

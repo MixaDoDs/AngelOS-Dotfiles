@@ -44,7 +44,8 @@ Singleton {
 
     Process {
         id: proc
-        command: ["sh", "-c", "exec stdbuf -oL -eL speedtest-cli --secure 2>&1"]
+        // servers.py: speedtest-cli with the site's own, near servers (the old list fails over a VPN)
+        command: ["sh", "-c", "exec python3 -I -u \"$1\" --secure 2>&1", "sh", decodeURIComponent(Qt.resolvedUrl("servers.py").toString().replace(/^file:\/\//, ""))]
         stdout: SplitParser {
             onRead: line => {
                 root.log += line + "\n";

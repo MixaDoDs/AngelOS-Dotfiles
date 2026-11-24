@@ -144,7 +144,7 @@ Singleton {
     // theme; these settings go to it at start and on every change. Stock niri says Err: ownMotion
     // stays false and Settings greys the switch out
     property bool ownMotion: false
-    readonly property string motionKey: Config.ready ? [Config.cursor.motion, Config.cursor.motionSize, Config.cursor.motionSway, Config.cursor.motionBounce, Config.cursor.motionShadow, Config.cursor.motionShadowDist, Motion.still].join("|") : ""
+    readonly property string motionKey: Config.ready ? [Config.cursor.motion, Config.cursor.motionSize, Config.cursor.motionSway, Config.cursor.motionBounce, Config.cursor.motionShadow, Config.cursor.motionShadowDist, Config.cursor.motionFineSize, Config.cursor.motionBlur, Config.cursor.motionShadowSoft, Motion.still].join("|") : ""
     onMotionKeyChanged: motionApply.restart()
     function _motion() {
         if (!Config.ready)
@@ -155,14 +155,40 @@ Singleton {
             "Action": {
                 "SetCursorFx": {
                     "on": !!c.motion && !Motion.still,
-                    "size": n(c.motionSize, 2),
+                    "size": c.motionFineSize ? Math.round(n(c.motionSize, 2) * 4) / 4 : Math.round(n(c.motionSize, 2)),
                     "sway": n(c.motionSway, 1),
+                    "blur": n(c.motionBlur, 0),
                     "bounce": n(c.motionBounce, 1),
                     "shadow": n(c.motionShadow, 1),
-                    "shadow_dist": n(c.motionShadowDist, 1)
+                    "shadow_dist": n(c.motionShadowDist, 1),
+                    "shadow_soft": n(c.motionShadowSoft, 0)
                 }
             }
         }, (ok, err) => root.ownMotion = !err, true);
+        // the hop on the beat: strength 0 is the probe (an older angel-niri says Err)
+        Niri.request({
+            "Action": {
+                "CursorKick": {
+                    "strength": 0
+                }
+            }
+        }, (ok, err) => root.ownKick = !err, true);
+    }
+    // the pointer hops on the music's kicks (angel-niri CursorKick), with the drum hearing that
+    // springs the windows (services/Bass); off by default
+    property bool ownKick: false
+    readonly property bool beatOn: ownKick && Config.ready && !!Config.cursor.motion && !Motion.still && Config.cursor.motionBeat === true
+    onBeatOnChanged: Bass.cursorListens = beatOn
+    Connections {
+        target: Bass
+        enabled: root.beatOn && Lyrics.isSong
+        function onKicked() {
+            const p = Config.cursor.motionBeatPower;
+            // a light kick lower, a hard one higher; the song's first kicks a step more
+            Niri.action("CursorKick", {
+                "strength": (typeof p === "number" && isFinite(p) ? p : 1) * (0.6 + 0.4 * Bass.punch) * (Bass.hype > 0.5 ? 1.3 : 1)
+            });
+        }
     }
     Timer {
         id: motionApply

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.config
+import qs.services  // serp-skin
 
 // Text with pixel-font defaults. kind: tiny | body | title | big | huge | mono
 // In the grimoire's window (Theme.scriptWindows) it is handwritten instead (Theme.fontScript).
@@ -17,8 +18,8 @@ Text {
 
     // the P5 window's text in its own narrow face (Theme.fontP5Body), a size larger
     readonly property bool p5Body: p5 && !script && (kind === "body" || kind === "tiny")
-    color: dim ? (p5 ? Theme.p5Dim : Theme.textDim) : (p5 ? Theme.p5Black : Theme.text)
-    font.family: script ? Theme.fontScript : mac ? (kind === "mono" ? Theme.macMono : Theme.macFont) : p5Body ? Theme.fontP5Body : kind === "body" ? Theme.fontBody : kind === "mono" ? Theme.fontMono : Theme.fontTitle
+    color: Serp.on && mac ? (dim ? Serp.subtext1 : Serp.text) : dim ? (p5 ? Theme.p5Dim : Theme.textDim) : (p5 ? Theme.p5Black : Theme.text)  // serp-skin
+    font.family: script ? Theme.fontScript : mac ? (Serp.on ? Serp.font : kind === "mono" ? Theme.macMono : Theme.macFont) : p5Body ? Theme.fontP5Body : kind === "body" ? Theme.fontBody : kind === "mono" ? Theme.fontMono : Theme.fontTitle  // serp-skin
     font.pixelSize: script ? Theme.scriptPx(Math.max(basePx, Theme.sizeTiny + 2)) : p5Body ? Theme.p5BodyPx(basePx) : basePx
     font.weight: (mac && (kind === "title" || kind === "big" || kind === "huge")) || (p5 && kind !== "mono") ? Font.Bold : Font.Normal
     font.hintingPreference: mac ? Font.PreferVerticalHinting : Font.PreferFullHinting

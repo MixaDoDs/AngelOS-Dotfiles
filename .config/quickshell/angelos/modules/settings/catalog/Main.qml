@@ -140,7 +140,7 @@ CatPage {
                 Flow {
                     id: chipFlow
                     width: parent.width
-                    spacing: Theme.u * 2
+                    spacing: Theme.p5For(parent) ? Theme.u * 2 : Theme.gap
                     Repeater {
                         model: page.chips
                         Item {
@@ -197,8 +197,9 @@ CatPage {
                 Grid {
                     id: grid
                     width: parent.width
-                    columns: Math.max(2, Math.floor(width / (Theme.u * 70)))
-                    spacing: Theme.u * 3
+                    readonly property bool p5: Theme.p5For(parent)
+                    columns: p5 ? Math.max(2, Math.floor(width / (Theme.u * 70))) : Math.max(1, Math.min(page.tiles.length, Math.floor((width + spacing) / (Theme.fit(66) + spacing))))
+                    spacing: p5 ? Theme.u * 3 : Theme.gap
                     readonly property int cell: Math.floor((width - spacing * (columns - 1)) / columns)
                     Repeater {
                         model: page.tiles
@@ -209,13 +210,14 @@ CatPage {
                             // the one the keys are on (P5)
                             readonly property bool picked: page.keysOn && page.tilePick === index
                             width: grid.cell
-                            height: Theme.u * 34
+                            height: grid.p5 ? Theme.u * 34 : Math.max(Theme.u * 34, content.implicitHeight + Theme.gap * 2)
                             PxBox {
                                 anchors.fill: parent
                                 color: tileMouse.containsMouse || tile.picked ? Theme.mix(Theme.toneFor("face", parent), Theme.accent, 0.18) : Theme.toneFor("face", parent)
                                 sunken: tileMouse.pressed
                             }
                             Column {
+                                id: content
                                 anchors.centerIn: parent
                                 spacing: Theme.u * 2
                                 PxIcon {
@@ -225,7 +227,7 @@ CatPage {
                                 }
                                 PxText {
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    width: grid.cell - Theme.u * 4
+                                    width: grid.p5 ? grid.cell - Theme.u * 4 : Math.max(0, grid.cell - Theme.gap * 2)
                                     horizontalAlignment: Text.AlignHCenter
                                     elide: Text.ElideRight
                                     text: tile.modelData.label

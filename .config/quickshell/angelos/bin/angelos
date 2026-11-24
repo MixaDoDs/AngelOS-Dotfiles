@@ -44,8 +44,8 @@
 #   lid close|open | tablet on|off | rotate … — the rest of a laptop (`angelos laptop help`)
 #   angelos peripherals [list | refresh] — the charge of the mouse, the keyboard, the headphones
 #   (the bar's ampoules; Settings → Devices → Device charge)
-#   angelos devices [list | info [ID] | dump [ID] | sniff [ID] | check FILE… | status] — the devices'
-#   driver: Hall-effect keyboards and mice (Settings → Devices → Device driver; docs/devices.md)
+#   angelos devices [list | info [ID] | check FILE… | status] — the devices' driver: mice
+#   (Settings → Devices → Device driver; docs/devices.md)
 #   angelos cobweb [status | grow [id] [minutes] | demo | clear [id|all] | qte [id]] — the cobwebs
 #   on windows (Settings → Windows → Cobwebs)
 #   angelos autostart [list] | add APP | add-command NAME COMMAND… | on|off ID | remove ID — what
@@ -555,7 +555,7 @@ case "$1" in
     # the devices' driver: the shell's side (status) through IPC, the rest is the helper itself
     shift
     case "${1:-list}" in
-      status|lend|back|rt|mode|pair|unpair|restore|failed|key|pairs|mouse|state|open) exec qs -c angelos ipc call angelos devices "$*" ;;
+      status|restore|failed|mouse|state|open) exec qs -c angelos ipc call angelos devices "$*" ;;
       *) exec python3 "$SHELL_DIR/scripts/devices.py" "$@" ;;
     esac ;;
   apps)    shift; exec qs -c angelos ipc call angelos apps "$*" ;;

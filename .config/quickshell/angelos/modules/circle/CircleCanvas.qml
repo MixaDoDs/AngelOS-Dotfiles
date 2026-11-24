@@ -1112,12 +1112,13 @@ Item {
         // The first button is the keyboard's copy action in the current mode.
         readonly property var liveOrder: {
             const copy = CircleSearch.keyboardCopiesText ? ["text", "copy"] : ["copy", "text"];
+            const live = Capture.liveCropSupported ? ["liveCrop"] : [];
             if (!CircleSearch.box)
-                return copy.concat(["save", "search", "lens", "translate", "share", "full", "window"]);
+                return copy.concat(["save", "search", "lens", "translate", "share", "full", "window"], live);
             if (CircleSearch.hasText)
-                return copy.concat(["edit", "search", "more", "translate", "save", "lens", "share", "full", "window"]);
+                return copy.concat(["edit", "search", "more", "translate", "save", "lens", "share", "full", "window"], live);
             return ["copy", "edit", Config.circle.lens ? "lens" : "search", "save", "more", "text",
-                Config.circle.lens ? "search" : "lens", "translate", "share", "full", "window"];
+                Config.circle.lens ? "search" : "lens", "translate", "share", "full", "window"].concat(live);
         }
         // what the buttons show: liveOrder, held while the pointer is on the bar (the words came
         // and "Copy picture" under a click turned into "Copy text")
@@ -1211,6 +1212,13 @@ Item {
                     "on": CircleSearch.windowsHere.length > 0,
                     "shown": !behind("window"),
                     "run": () => CircleSearch.saveWindow(canvas.at.x, canvas.at.y)
+                },
+                "liveCrop": {
+                    "icon": "pin",
+                    "text": I18n.t("Живая вырезка", "Live window clip"),
+                    "on": Capture.liveCropWindow >= 0,
+                    "shown": !behind("liveCrop"),
+                    "run": () => CircleSearch.pickLiveCrop()
                 },
                 "more": {
                     "icon": "plus",

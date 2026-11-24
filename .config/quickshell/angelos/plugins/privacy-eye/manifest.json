@@ -1,0 +1,14 @@
+{
+  "id": "privacy-eye",
+  "name": {"ru": "Глазик приватности", "en": "Privacy eye"},
+  "version": "1.0.0",
+  "author": "frostpix",
+  "description": {
+    "ru": "Пиксельный глаз на панели: открыт — приватность выключена, закрыт — включена (Mod+Shift+X). Клик — настройки приватности, ПКМ — включить/выключить.",
+    "en": "A pixel eye on the bar: open — privacy is off, shut — on (Mod+Shift+X). Click: privacy settings, right click: switch it."
+  },
+  "icon": "eye",
+  "enabledByDefault": false,
+  "themes": ["pixel", "mac"],
+  "barWidget": "BarWidget.qml"
+}

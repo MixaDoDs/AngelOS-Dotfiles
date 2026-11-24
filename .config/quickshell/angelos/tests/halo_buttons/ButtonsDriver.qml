@@ -33,11 +33,12 @@ Scope {
                 const bad = B.catalog.filter(b => !names.includes(b.icon)).map(b => b.id + ":" + b.icon);
                 root.ok("icons", bad.length === 0, bad.join(","));
                 root.ok("labels", B.catalog.every(b => B.label(b) !== "" && ["action", "toggle", "field"].includes(b.kind)) && B.hint("timer") !== "" && B.hint("note") !== "", "");
-                // the game's button (reaper) is the player's pick, not a default
-                root.ok("default-order", B.list.map(b => b.id).join(",") === want.filter(id => id !== "reaper").join(","), B.list.map(b => b.id).join(","));
+                root.ok("default-order-without-shelf", B.list.map(b => b.id).join(",") === "pomodoro,timer,record,picker", B.list.map(b => b.id).join(","));
                 const keep = Config.halo.buttons;
                 // "dnd" was a button once (the sidebar has it): an old settings file keeps working
                 Config.halo.buttons = ["note", "bogus", "dnd", "picker"];
+                root.ok("shelf-off-hides-note", B.list.map(b => b.id).join(",") === "picker" && !B.submit("note", "не скрывать такую заметку"), B.list.map(b => b.id).join(","));
+                Config.halo.shelf = true;
                 root.ok("order-skips-unknown", B.list.map(b => b.id).join(",") === "note,picker", B.list.map(b => b.id).join(","));
                 Config.halo.buttons = keep;
 

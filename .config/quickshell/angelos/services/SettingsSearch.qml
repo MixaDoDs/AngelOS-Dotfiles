@@ -124,7 +124,7 @@ Singleton {
             "bluetooth": ["блютуз", "беспроводные", "наушники", "bluetooth", "wireless"],
             "gamepad": ["геймпад", "джойстик", "контроллер", "gamepad", "controller", "joystick"],
             "peripherals": ["заряд", "заряд мыши", "заряд наушников", "батарея мыши", "батарейка", "ампулы", "склянки", "беспроводная мышь", "донгл", "charge", "device charge", "mouse battery", "headset battery", "ampoules", "dongle"],
-            "driver": ["драйвер", "драйвер устройств", "магнитная клавиатура", "магнитка", "холл", "ход клавиш", "глубина нажатия", "точка срабатывания", "рапид триггер", "снап тап", "nuphy", "polling rate", "частота опроса", "hall effect", "rapid trigger", "snap tap", "socd", "actuation", "key travel", "device driver"],
+            "driver": ["драйвер", "драйвер устройств", "драйвер мыши", "dpi", "чувствительность мыши", "polling rate", "частота опроса", "lamzu", "mouse driver", "device driver"],
             "defaults": ["по умолчанию", "браузер", "терминал", "редактор", "файловый менеджер", "пробел", "просмотр файла", "предпросмотр", "quick look", "sushi", "default apps", "browser", "terminal", "editor", "file manager", "preview"],
             "taskmanager": ["диспетчер задач", "системный монитор", "btop", "htop", "task manager", "system monitor"],
             "notifications": ["уведомления", "не беспокоить", "notifications", "do not disturb", "dnd"],

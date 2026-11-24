@@ -63,8 +63,9 @@ PanelWindow {
         return Qt.point(dockSide === "right" ? modelData.width - width + p.x : p.x, modelData.height - height + p.y);
     }
     readonly property real icon: GoldenGate.px(Math.max(32, Math.min(96, Config.mac.dockSize)))
-    readonly property real gap: Math.round(icon * 0.1)          // between icons
-    readonly property real pad: Math.round(icon * 0.14)         // inside the slab, around the icons
+    // Settings → Golden Gate → Dock, in % of an icon (10 and 14 by default)
+    readonly property real gap: Math.round(icon * Config.mac.dockSpacing / 100)    // between icons
+    readonly property real pad: Math.round(icon * Config.mac.dockPadding / 100)    // inside the slab, around the icons
     readonly property real slabH: icon + pad * 2
     readonly property real margin: GoldenGate.px(5)            // from the screen's edge
     readonly property bool magnify: Config.mac.dockMagnify
@@ -597,7 +598,7 @@ PanelWindow {
             // MacTahoe's icon (DockIcons), else the theme's; else drawn here, in the squircle
             // every Mac icon has: System Settings, Apps, Downloads, the Trash — and an app whose
             // icon the theme doesn't have (its initial)
-            readonly property bool drawn: !cell.mac && !appIcon.badge && (cell.item.kind !== "app" && !cell.isWin || appIcon.status === Image.Error || appIcon.source.toString() === "")
+            readonly property bool drawn: !cell.mac && !appIcon.badge && (cell.item.kind !== "app" && !cell.isWin && appIcon.source.toString() === "" || appIcon.status === Image.Error || appIcon.source.toString() === "")
             Rectangle {
                 visible: art.drawn
                 anchors.fill: parent
@@ -633,7 +634,7 @@ PanelWindow {
                 }
             }
             Rectangle {
-                visible: !cell.mac && (cell.item.kind === "settings" || cell.item.kind === "apps")
+                visible: !cell.mac && art.drawn && (cell.item.kind === "settings" || cell.item.kind === "apps")
                 anchors.fill: parent
                 anchors.margins: parent.width * 0.06
                 radius: width * 0.225
@@ -715,7 +716,10 @@ PanelWindow {
                     if (cell.mac)
                         return cell.mac;
                     const n = String(cell.item.icon || "");
-                    if (cell.item.kind !== "app" && !cell.isWin || !n)
+                    // the Dock's own items from the icon theme (angelos-dock-*), when it has them
+                    if (cell.item.kind !== "app" && !cell.isWin)
+                        return Quickshell.iconPath("angelos-dock-" + (cell.item.kind === "trash" && n === "user-trash-full" ? "trash-full" : cell.item.kind), true) || "";
+                    if (!n)
                         return "";
                     if (n.startsWith("/"))
                         return "file://" + n;

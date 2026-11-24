@@ -75,6 +75,15 @@ Singleton {
     readonly property bool busy: open || grab.running
     readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos"
     readonly property string script: Quickshell.shellPath("scripts/circle.py")
+    function pickLiveCrop() {
+        const id = Capture.liveCropWindow;
+        if (!Capture.liveCropSupported || id < 0)
+            return;
+        acted = true;
+        close();
+        Capture.pickLiveCrop(id, screenName);
+    }
+
     readonly property bool hasText: text.trim() !== ""
     readonly property bool keyboardCopiesText: mode === "text" && (hasText || (!box && words.length > 0))
     readonly property bool textPick: pickKind === "line" || pickKind === "words"
@@ -765,9 +774,9 @@ Singleton {
         if (r === undefined)
             learnNow();
         const rect = rectOf(r === undefined ? box : r);
-        // the file only: the clipboard keeps what was copied (a text, then Enter, lost it)
+        // In Text mode keep the OCR text on the clipboard. Screenshots follow shotCopy.
         Capture.saveShot(frame, rect, {
-            "copy": false
+            "copy": mode === "text" ? false : undefined
         });
         shot(rect);
         close();

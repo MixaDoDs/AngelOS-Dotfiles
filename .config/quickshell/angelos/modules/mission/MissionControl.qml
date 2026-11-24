@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Mission Control (services/Mission, Mod+W), like a Mac's: the windows of the monitor's desk come
 // out of their places into a grid without overlap, its desks sit in a strip on top. A click on a
@@ -252,7 +253,7 @@ Scope {
             // titles; the windows under them — well
             Rectangle {
                 anchors.fill: parent
-                color: Qt.alpha("#000000", (Mission.desktopUnder ? 0.3 : 0.78) * win.progress)
+                color: Qt.alpha(Serp.on ? Serp.crust : "#000000", (Mission.desktopUnder ? 0.3 : 0.78) * win.progress)  // serp-skin
             }
             MouseArea {
                 anchors.fill: parent
@@ -292,8 +293,24 @@ Scope {
                 }
                 return -1;
             }
+            // serp-skin: the wallpaper for the liquid glass, and the strip's island
+            SerpBackdrop {
+                id: serpMissionBack
+                origin: Qt.point(0, 0)
+            }
+            SGlass {
+                visible: Serp.on
+                anchors.fill: deskRow
+                anchors.margins: -Serp.px(12)
+                anchors.bottomMargin: -Serp.px(6)
+                backdrop: serpMissionBack
+                radius: Math.min(Serp.px(24), Math.round(Serp.radius * 1.4))
+                opacity: win.progress
+            }
             Row {
                 id: deskRow
+                // serp-skin: its labels in the skin's font and colours; as before otherwise
+                readonly property string settingsSkin: Serp.on ? "goldengate" : Theme.settingsSkinFor(win.contentItem)
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: Math.round(win.u * 8 - (1 - win.progress) * (height + win.u * 8))
                 spacing: win.u * 6
@@ -307,13 +324,23 @@ Scope {
                         id: zeroBox
                         width: win.deskW
                         height: win.deskH
-                        color: zeroTile.hot ? Theme.accent : Theme.face
+                        color: Serp.on ? "transparent" : zeroTile.hot ? Theme.accent : Theme.face  // serp-skin
                         edgeColor: win.zero && win.zero.is_active ? Theme.accent : Theme.edge
+                        outline: !Serp.on  // serp-skin
+                        flat: Serp.on || Theme.zine  // serp-skin
+                        SerpMissionTile {  // serp-skin
+                            visible: Serp.on
+                            anchors.fill: parent
+                            hot: zeroTile.hot
+                            current: !!win.zero && win.zero.is_active
+                            plus: true
+                        }
                         PxIcon {
                             anchors.centerIn: parent
                             name: "plus"
                             pixel: win.u * 2
                             ink: zeroTile.hot ? "#ffffff" : Theme.textDim
+                            visible: !Serp.on  // serp-skin
                         }
                     }
                     PxText {
@@ -323,7 +350,7 @@ Scope {
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
                         text: I18n.t("Чистый стол", "Clean desk")
-                        color: "#ffffff"
+                        color: Serp.on ? Serp.text : "#ffffff"  // serp-skin
                         font.bold: !!win.zero && win.zero.is_active
                     }
                     MouseArea {
@@ -359,8 +386,17 @@ Scope {
                             id: deskBox
                             width: win.deskW
                             height: win.deskH
-                            color: win.dropDesk === deskTile.modelData.id ? Theme.accent : Theme.face
+                            color: Serp.on ? "transparent" : win.dropDesk === deskTile.modelData.id ? Theme.accent : Theme.face  // serp-skin
                             edgeColor: deskTile.current ? Theme.accent : Theme.edge
+                            outline: !Serp.on  // serp-skin
+                            flat: Serp.on || Theme.zine  // serp-skin
+                            SerpMissionTile {  // serp-skin
+                                visible: Serp.on
+                                anchors.fill: parent
+                                hot: win.dropDesk === deskTile.modelData.id
+                                current: deskTile.current
+                                plus: deskTile.list.length === 0
+                            }
                             readonly property var minis: win.grid(deskTile.list.map(w => win.sizeOf(w)), width - win.u * 6, height - win.u * 6, win.u * 2)
                             Repeater {
                                 model: deskTile.list.length
@@ -396,7 +432,7 @@ Scope {
                                 }
                             }
                             PxIcon {
-                                visible: deskTile.list.length === 0
+                                visible: deskTile.list.length === 0 && !Serp.on  // serp-skin
                                 anchors.centerIn: parent
                                 name: "plus"
                                 pixel: win.u * 2
@@ -410,7 +446,7 @@ Scope {
                             horizontalAlignment: Text.AlignHCenter
                             elide: Text.ElideRight
                             text: win.deskName(deskTile.modelData)
-                            color: "#ffffff"
+                            color: Serp.on ? Serp.text : "#ffffff"  // serp-skin
                             font.bold: deskTile.current
                         }
                         MouseArea {
@@ -431,13 +467,22 @@ Scope {
                         id: plusBox
                         width: win.deskW
                         height: win.deskH
-                        color: win.dropDesk === -2 || plusArea.containsMouse ? Theme.accent : Theme.face
+                        color: Serp.on ? "transparent" : win.dropDesk === -2 || plusArea.containsMouse ? Theme.accent : Theme.face  // serp-skin
                         edgeColor: Theme.edge
+                        outline: !Serp.on  // serp-skin
+                        flat: Serp.on || Theme.zine  // serp-skin
+                        SerpMissionTile {  // serp-skin
+                            visible: Serp.on
+                            anchors.fill: parent
+                            hot: win.dropDesk === -2 || plusArea.containsMouse
+                            plus: true
+                        }
                         PxIcon {
                             anchors.centerIn: parent
                             name: "plus"
                             pixel: win.u * 2
                             ink: win.dropDesk === -2 || plusArea.containsMouse ? "#ffffff" : Theme.textDim
+                            visible: !Serp.on  // serp-skin
                         }
                     }
                     PxText {
@@ -447,7 +492,7 @@ Scope {
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
                         text: I18n.t("Новый стол", "New desk")
-                        color: "#ffffff"
+                        color: Serp.on ? Serp.text : "#ffffff"  // serp-skin
                     }
                     MouseArea {
                         id: plusArea
@@ -463,6 +508,8 @@ Scope {
             Item {
                 id: stage
                 x: win.u * 16
+                // serp-skin: the titles in the skin's font; as before otherwise
+                readonly property string settingsSkin: Serp.on ? "goldengate" : Theme.settingsSkinFor(win.contentItem)
                 y: deskRow.y + win.deskH + win.u * 24
                 width: win.width - win.u * 32
                 height: win.height - y - win.u * 16
@@ -533,9 +580,16 @@ Scope {
                         PxBox {
                             anchors.fill: parent
                             anchors.margins: -win.u * 2
-                            color: card.lit ? Theme.accent : "transparent"
-                            outline: card.lit
+                            color: card.lit && !Serp.on ? Theme.accent : "transparent"  // serp-skin
+                            outline: card.lit && !Serp.on  // serp-skin
                             flat: true
+                            // serp-skin: the picked window in a rounded accent frame
+                            Rectangle {
+                                visible: Serp.on && card.lit
+                                anchors.fill: parent
+                                radius: Serp.radiusSmall
+                                color: Serp.accent
+                            }
                         }
                         Image {
                             id: shot
@@ -549,14 +603,26 @@ Scope {
                         Rectangle {
                             anchors.fill: parent
                             visible: shot.status !== Image.Ready
-                            color: Theme.face
+                            color: Serp.on ? Serp.solid : Theme.face  // serp-skin
+                            radius: Serp.on ? Serp.radiusSmall : 0  // serp-skin
                             AppIcon {
                                 anchors.centerIn: parent
                                 appId: card.w ? card.w.app_id || "" : ""
                                 size: Math.max(win.u * 8, Math.min(parent.width, parent.height) * 0.3)
                             }
                         }
+                        // serp-skin: the title on a small plate of the skin
+                        Rectangle {
+                            visible: Serp.on
+                            anchors.centerIn: serpTitleRow
+                            width: serpTitleRow.width + Serp.px(18)
+                            height: serpTitleRow.height + Serp.px(8)
+                            radius: height / 2
+                            color: Serp.solid
+                            opacity: win.progress
+                        }
                         Row {
+                            id: serpTitleRow  // serp-skin
                             anchors.horizontalCenter: parent.horizontalCenter
                             y: parent.height + win.u * 3
                             spacing: win.u * 2
@@ -570,7 +636,7 @@ Scope {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: Math.min(implicitWidth, Math.max(win.u * 30, card.width - win.u * 9))
                                 elide: Text.ElideRight
-                                color: "#ffffff"
+                                color: Serp.on ? Serp.text : "#ffffff"  // serp-skin
                                 text: card.hidden ? win.appName(card.w) : Niri.titleOf(card.w) || win.appName(card.w)
                             }
                         }
@@ -627,7 +693,7 @@ Scope {
                 PxText {
                     visible: win.ids.length === 0
                     anchors.centerIn: parent
-                    color: "#ffffff"
+                    color: Serp.on ? Serp.text : "#ffffff"  // serp-skin
                     opacity: win.progress
                     text: I18n.t("На этом столе нет окон", "No windows on this desk")
                 }

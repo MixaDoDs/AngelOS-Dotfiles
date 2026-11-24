@@ -87,7 +87,7 @@ def processes():
     return out
 
 
-def niri_state():
+def niri_state(cast_windows):
     try:
         wins = json.loads(run(["niri", "msg", "-j", "windows"]).stdout)
         wss = json.loads(run(["niri", "msg", "-j", "workspaces"]).stdout)
@@ -95,7 +95,14 @@ def niri_state():
         return None
     shown = {w["id"] for w in wss if w.get("is_active")}
     return [{"pid": w.get("pid"), "app": w.get("app_id") or "",
-             "seen": w.get("workspace_id") in shown and not w.get("is_minimized")} for w in wins]
+             "seen": w.get("id") in cast_windows or
+                     (w.get("workspace_id") in shown and not w.get("is_minimized"))} for w in wins]
+
+
+def cast_window_ids(event):
+    return {cast["target"]["Window"]["id"]
+            for cast in event["CastsChanged"]["casts"]
+            if cast.get("is_active") and "Window" in cast.get("target", {})}
 
 
 def sounding():
@@ -264,6 +271,7 @@ class Sleeper:
         self.hidden = {}          # key → since when out of sight
         self.cpu = {}             # key → [(t, usec)]
         self.clip_pid = None      # the focused window's pid when the clipboard last changed
+        self.cast_windows = set()  # windows still in use through a capture, including live desktop clips
         self.recover()
 
     def save(self, tell=True):
@@ -304,7 +312,7 @@ class Sleeper:
 
     def quick(self):
         """a niri event: wake what is seen again — niri's lists only, no /proc walk"""
-        wins = niri_state()
+        wins = niri_state(self.cast_windows)
         if wins is None:
             return
         seen = {w["pid"] for w in wins if w["seen"]}
@@ -313,7 +321,7 @@ class Sleeper:
 
     def look(self):
         """decide who sleeps and who wakes"""
-        wins = niri_state()
+        wins = niri_state(self.cast_windows)
         if wins is None:
             return
         procs = processes()
@@ -406,6 +414,11 @@ def self_test():
     assert decide(a, 16 * 60, 0.30, False, 15 * 60) == "stay", "busy CPU: not idle"
     assert decide(a, 16 * 60, 0.01, True, 15 * 60) == "wake", "a sound / camera / download"
     assert decide(by["gedit"], 99 * 60, 0, False, 15 * 60) == "wake", "a window in sight"
+    assert cast_window_ids({"CastsChanged": {"casts": [
+        {"is_active": True, "target": {"Window": {"id": 11}}},
+        {"is_active": False, "target": {"Window": {"id": 12}}},
+        {"is_active": True, "target": {"Output": {"name": "HDMI-A-1"}}},
+    ]}}) == {11}
     print("app-sleep ok")
 
 
@@ -448,6 +461,7 @@ def main():
                             bufsize=0, preexec_fn=die_with_us)
     ev, cl, inp = events.stdout.fileno(), clip.stdout.fileno(), sys.stdin.fileno()
     pending = b""
+    event_pending = b""
     full = 0.0
     due = None                                   # a quick look after niri's events
     newcomers_at = 0.0
@@ -473,8 +487,16 @@ def main():
                 if b"wake" in (x.strip() for x in lines):
                     s.wake_all()
             if ev in r:
-                if not os.read(ev, 65536):
+                chunk = os.read(ev, 65536)
+                if not chunk:
                     break                        # niri gone
+                *event_lines, event_pending = (event_pending + chunk).split(b"\n")
+                for line in event_lines:
+                    if line.startswith(b'{"CastsChanged":'):
+                        try:
+                            s.cast_windows = cast_window_ids(json.loads(line))
+                        except (ValueError, TypeError, KeyError):
+                            pass
                 if s.asleep and due is None:
                     due = time.monotonic() + 0.02    # a burst of events: one look
             if due is not None and time.monotonic() >= due:

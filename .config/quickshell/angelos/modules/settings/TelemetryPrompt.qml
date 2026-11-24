@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Set up before the wizard had its telemetry step: asked once, a while after the start
 // (services/Telemetry). Yes / No is the answer; Esc, a click beside it or «Позже» ask again at
@@ -26,7 +27,7 @@ PanelWindow {
     }
     // takes input: a question over the screen, a click beside the card is «later»
     exclusionMode: ExclusionMode.Ignore
-    color: Qt.alpha(Theme.shadow, 0.35)
+    color: Serp.on ? Qt.alpha(Serp.crust, 0.25) : Qt.alpha(Theme.shadow, 0.35)  // serp-skin
     WlrLayershell.namespace: "angelos-telemetry"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
@@ -54,6 +55,7 @@ PanelWindow {
 
     PxWindow {
         anchors.centerIn: parent
+        visible: !Serp.on  // serp-skin: SerpDialog* draws
         width: Theme.u * 220
         height: titleHeight + col.implicitHeight + Theme.pad * 2 + Theme.u * 8
         title: I18n.t("Телеметрия", "Telemetry")
@@ -99,6 +101,8 @@ PanelWindow {
             }
         }
     }
+
+    SerpDialogTelemetry { id: serpDlg; host: win }  // serp-skin
 
     RightClickGuard {}
 }

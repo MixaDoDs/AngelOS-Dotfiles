@@ -25,9 +25,9 @@ Item {
     property Item backdrop: null
     property point backdropOrigin: Qt.point(0, 0)
     property real backdropScale: 1
-    readonly property bool blurred: !!backdrop && Config.appearance.blur && !GoldenGate.reduceTransparency
+    readonly property bool blurred: !!backdrop && Config.appearance.blur && !GoldenGate.reduceTransparency && (!Serp.on || Serp.glassOn)  // serp-skin: solid cards, no live blur (~5% CPU) — but under the glass
     // the Liquid Glass rim (shaders/liquid_glass.frag) instead of the flat 1 px lines
-    readonly property bool rimFx: glassBody && blurred && !GoldenGate.gameMode && !(GoldenGate.on && GoldenGate.hell)
+    readonly property bool rimFx: glassBody && blurred && !GoldenGate.gameMode && !(GoldenGate.on && GoldenGate.hell) && !Serp.on  // serp-skin: flat
     // the shared controls in the widget take the Mac look (Theme.settingsSkinFor, services/Skin)
     readonly property string settingsSkin: "goldengate"
     property alias dragArea: dragArea

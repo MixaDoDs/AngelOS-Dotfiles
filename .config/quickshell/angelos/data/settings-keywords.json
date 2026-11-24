@@ -990,5 +990,16 @@
     "workspaces",
     "desks",
     "spaces"
+  ],
+  "sound/output/Моно": [
+    "моно",
+    "mono",
+    "один канал",
+    "одно ухо",
+    "имплант",
+    "слух",
+    "доступность",
+    "accessibility",
+    "hearing"
   ]
 }

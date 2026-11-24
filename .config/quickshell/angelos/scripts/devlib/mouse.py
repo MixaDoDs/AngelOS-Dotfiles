@@ -1,18 +1,16 @@
 """A mouse of the "lamzu-aurora" family being talked to: read its settings, change one, read
 it back (devlib/lamzu_aurora.py is the protocol; devlib/hidraw.py the channel).
 
-Like a keyboard's session (devlib/session.py), with what a mouse needs instead of keys: no
-stream, a question and its answer at a time. A mouse behind its dongle sleeps within a minute
+No stream, a question and its answer at a time. A mouse behind its dongle sleeps within a minute
 of lying still and the dongle alone answers then: DeviceError("asleep"), which is no fault —
 the page says "move the mouse" and asks again.
 
-Writing follows the same rules as for a keyboard: only the settings of lamzu_aurora.ALLOWED
+Writing: only the settings of lamzu_aurora.ALLOWED
 (there is no firmware command to build), a file with everything as it was before the first
 write ever, every write read back.
 """
 import json
 import os
-import queue
 import time
 from pathlib import Path
 
@@ -30,25 +28,17 @@ class AuroraSession:
         self.channel = channel
         self.writes = writes
         self.why_readonly = "" if writes else "off"
-        self.events = queue.Queue()
         self.state = None
         self.backup_file = ""
         self.profile = 0
         self.stats = {"packets": 0, "retries": 0}
 
-    # ---- the same face as a keyboard's session ----
     def open(self):
         self.channel.open()
         return self
 
     def close(self):
         self.channel.close()
-
-    def take_depth(self):
-        return []
-
-    def all_depth(self):
-        return []
 
     # ---- a question and its answer ----
     def _exchange(self, request, name, tries=5):
@@ -107,9 +97,6 @@ class AuroraSession:
             "lod": out["lod"], "debounce": out["debounce"], "motionSync": out["motionSync"],
             "angleSnap": out["angleSnap"], "ripple": out["ripple"], "sleep": out["sleep"],
             "readonly": self.why_readonly, "backup": self.find_backup(),
-            # a keyboard's fields, empty: one shape for the shell
-            "keys": {}, "actions": {}, "pairs": [], "modes": [], "mismatch": [], "upload": False,
-            "mode": 0, "modeName": "", "modeNames": [], "layersPerMode": 0,
         }
         return self.state
 

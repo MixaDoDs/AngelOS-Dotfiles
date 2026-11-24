@@ -6,6 +6,7 @@ import Quickshell
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // One screen of the lock: the look picked in Settings → Lock (NGO stream, heaven's gate or 2004's save point).
 // When the password is right, Lock.qml asks every screen for a picture of itself
@@ -26,7 +27,17 @@ Item {
     Loader {
         id: look
         anchors.fill: parent
-        sourceComponent: root.lockScope.look === "heaven" ? heaven : root.lockScope.look === "2004" ? save : ngo
+        sourceComponent: Serp.on ? serpLook : root.lockScope.look === "heaven" ? heaven : root.lockScope.look === "2004" ? save : ngo  // serp-skin
+    }
+    Component {  // serp-skin: the skin's face
+        id: serpLook
+        SerpLock {
+            screenName: root.screenName
+            primary: root.primary
+            lockScope: root.lockScope
+            now: clock.date
+            preview: root.preview
+        }
     }
     Component {
         id: ngo
@@ -88,7 +99,28 @@ Item {
         readonly property var here: Quickshell.screens.find(s => s.name === root.screenName) || null
         readonly property var main: Quickshell.screens.find(s => s.name === (root.preview ? root.lockScope.shownMain : root.lockScope.lockMain)) || null
         readonly property string arrow: !here || !main ? "" : main.x + main.width <= here.x ? "←  " : main.x >= here.x + here.width ? "  →" : main.y + main.height <= here.y ? "↑  " : "  ↓"
+        // serp-skin: the plate as the skin's capsule
+        Rectangle {
+            visible: Serp.on
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Serp.px(48)
+            width: serpHint.implicitWidth + Serp.px(40)
+            height: Serp.px(42)
+            radius: height / 2
+            color: Qt.alpha(Serp.base, 0.72)
+            border.width: 1
+            border.color: Serp.line
+            SText {
+                id: serpHint
+                anchors.centerIn: parent
+                text: hint.text
+                bold: true
+                elide: Text.ElideNone
+            }
+        }
         PxBox {
+            visible: !Serp.on  // serp-skin
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: Theme.u * 24

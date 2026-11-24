@@ -121,6 +121,23 @@ Item {
             waitingForLoad = true;
     }
     property bool waitingForLoad: false
+    // serp-skin: the wallpaper is on screen — its picture loaded and the background window has
+    // put frames of it out since (at login Image.Ready came before the window's first frame:
+    // the boot show opened onto black for a moment). The boot show waits for it
+    readonly property bool serpDrawn: shown !== "" && progress >= 1 && toImg.status === Image.Ready
+    property int serpFrames: 0
+    onSerpDrawnChanged: {
+        serpFrames = 0;
+        if (!serpDrawn)
+            Serp.noteWallDrawn(screenName, false);
+    }
+    Connections {
+        target: root.serpDrawn && root.serpFrames < 2 ? root.Window.window : null
+        function onFrameSwapped() {
+            if (++root.serpFrames === 2)
+                Serp.noteWallDrawn(root.screenName, true);
+        }
+    }
     property bool gateFailed: false
 
     GateScene {
@@ -291,7 +308,7 @@ Item {
         SceneWall {
             id: sceneWall
             readonly property string folder: Wallpapers.sceneOf(root.shown)
-            readonly property bool covers: visible && scene !== null
+            readonly property bool covers: visible && scene !== null && loadedOnce  // once its layers have loaded: no black flash
             anchors.fill: parent
             visible: folder !== "" && root.progress >= 1 && !anim.running && !Theme.hell
             dir: visible ? folder : ""

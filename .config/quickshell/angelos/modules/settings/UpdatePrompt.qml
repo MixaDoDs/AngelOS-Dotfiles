@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // After Settings → Updates installed a new version: this shell still runs the
 // previous one from memory, so ask to restart it now or leave it for later.
@@ -21,7 +22,7 @@ PanelWindow {
         right: true
     }
     exclusionMode: ExclusionMode.Ignore
-    color: Qt.alpha(Theme.shadow, 0.35)
+    color: Serp.on ? Qt.alpha(Serp.crust, 0.25) : Qt.alpha(Theme.shadow, 0.35)  // serp-skin
     WlrLayershell.namespace: "angelos-update"
     WlrLayershell.layer: WlrLayer.Overlay
     // takes input: asks to restart: a click beside it means later
@@ -47,14 +48,16 @@ PanelWindow {
         onClicked: win.answer(false)
     }
 
-    BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
+    BackgroundEffect.blurRegion: (Serp.on ? Serp.blurOn : Config.appearance.blur) ? blurRegion : null  // serp-skin
     Region {
         id: blurRegion
-        item: dialog
+        item: Serp.on ? serpDlg.card : dialog  // serp-skin
+        radius: Serp.on ? Serp.radius + Serp.px(4) : 0  // serp-skin
     }
 
     PxWindow {
         id: dialog
+        opacity: Serp.on ? 0 : 1  // serp-skin: hidden, its keys still listen (SerpDialog* draws)
         anchors.centerIn: parent
         width: Theme.u * 200
         height: titleHeight + col.implicitHeight + Theme.pad * 2 + Theme.u * 8
@@ -133,6 +136,8 @@ PanelWindow {
             }
         }
     }
+
+    SerpDialogUpdate { id: serpDlg; host: win }  // serp-skin
 
     RightClickGuard {}
 }

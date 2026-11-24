@@ -134,14 +134,17 @@ PxScroll {
     contentHeight: embedded ? col.implicitHeight : col.implicitHeight + (footer.visible ? footer.height + Theme.u * 8 : 0) + Theme.u * 10
 
     // the groups as cards, two columns once the page is wide enough (the angelOS look)
-    readonly property int cardColumns: fluent && settingsSkin !== "goldengate" && col.width >= Theme.u * 300 ? 2 : 1
+    readonly property bool pixelCards: fluent && settingsSkin !== "goldengate"
+    readonly property int cardColumns: pixelCards && col.width >= (p5 ? Theme.u * 300 : Theme.fit(300)) ? 2 : 1
     PxCards {
         id: col
-        x: root.embedded ? 0 : Theme.u * 4
-        y: root.embedded ? 0 : Theme.u * 4
-        width: parent.width - (root.embedded ? 0 : Theme.u * 8)
+        x: root.embedded ? 0 : Theme.gap
+        y: root.embedded ? 0 : Theme.gap
+        width: parent.width - x * 2
         columns: root.cardColumns
-        spacing: Theme.u * (root.fluent ? 5 : root.settingsSkin === "stream" ? 6 : 8)
+        spacing: root.pixelCards && !root.p5 ? Theme.gap * 2 : Theme.u * (root.fluent ? 5 : root.settingsSkin === "stream" ? 6 : 8)
+        onVisibleChanged: if (visible && root.pixelCards && !root.p5)
+            later()
         resizing: root.resizing
         viewBottom: root.contentY + root.height - y
 

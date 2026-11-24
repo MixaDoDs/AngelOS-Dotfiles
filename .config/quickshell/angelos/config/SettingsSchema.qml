@@ -196,6 +196,8 @@ JsonAdapter {
         property bool pixelOverview: true   // angel-niri: the overview in pixels: sharp thumbnails, pixel frames and desk numbers (services/WindowConfig)
         property bool pixelShadow: true     // angel-niri: dithered window shadows, the focused one glows in the accent (services/WindowConfig)
         property bool remember: true        // angel-niri: programs pinned by hand open on their monitor and desk (services/WindowConfig)
+        property bool rememberAll: false    // every program's window in Desktop opens where and as big as it was closed (scripts/window-memory.py; pins win)
+        property bool stackMemory: false    // Strip ↔ Desktop: each side gets its windows back as they were (services/StackMemory)
         property bool clipboardKeep: true   // angel-niri: the clipboard outlives the program it was copied from (services/WindowConfig)
         property bool keepOnCopy: true      // angel-niri: a program doesn't minimize itself right after it copies (services/WindowConfig)
         property bool deskThrow: true       // angel-niri: entering Desktop the windows of other desks fly in, the far ones break the screen (a broken LCD); leaving, they fly off (services/WindowConfig)
@@ -277,6 +279,12 @@ JsonAdapter {
         property string screen: ""          // empty = focused output
         property string position: "top-right"
         property int maxPopups: 4
+    }
+
+    // Settings → Sound (services/MonoAudio)
+    property JsonObject audio: JsonObject {
+        property bool mono: false           // every output in mono: stereo mixed down, the same on both sides (#177)
+        property string monoDevice: ""      // node.name of the device mono is over, put back at the next start
     }
 
     property JsonObject osd: JsonObject {
@@ -521,6 +529,11 @@ JsonAdapter {
         property real motionBounce: 1       // click dip + ring (0–3)
         property real motionShadow: 1       // shadow darkness (0–3)
         property real motionShadowDist: 1   // how far the shadow falls (0–3; 1 = one art pixel)
+        property bool motionFineSize: false // the size in quarters (1.25×, 1.5×…): pixels of uneven width, smooth themes fine
+        property real motionBlur: 0         // smear when fast (0–3; 0 = none)
+        property real motionShadowSoft: 0   // shadow edges (0–4; 0 = a hard pixel silhouette)
+        property bool motionBeat: false     // the pointer hops on the music's kicks (angel-niri CursorKick)
+        property real motionBeatPower: 1    // how high it hops (0.3–3)
         property bool camera: true          // Super+Ctrl+Shift+U zooms in and follows the pointer (angel-niri camera.rs)
         property real cameraZoom: 1.8       // × (1.25–3.5)
         property real cameraSmooth: 1       // how slowly it glides (0.3–3)
@@ -576,8 +589,6 @@ JsonAdapter {
         property bool show: true            // bar: an ampoule a device (only where a device reports its charge)
         property bool glyphs: true          // the device's icon next to its ampoule
         property string percent: "low"      // the number next to it: never | low | always
-        property bool keyboardAccent: false // the keyboard's lights follow the system's colour (services/Devices)
-        property var keyboardColors: []      // the colours last given to the keyboard's lights, newest first (Settings → Device driver)
         property int showBelow: 100         // on the bar only the devices at or below this % (100 = all of them)
         property string sort: "manual"      // manual (the list in Settings) | lowest (the emptiest first)
         property int max: 4                 // at most this many on the bar, the rest in the panel
@@ -791,6 +802,7 @@ JsonAdapter {
         property int hintsLeft: 3           // the first openings at rest show what the wheel, a drop and a right click do; ✕ = 0
         property bool privacyDot: true      // an orange (microphone) / green (camera) dot beside it while a program records (services/Sensors)
         property bool shotThumb: true       // a saved screenshot's picture in the pill for a few seconds: drag it out or onto the shelf
+        property bool shelf: false          // drag-and-drop storage and notes, shown on request
         property bool coverTint: true       // the pill's outline and the dancing bars in the colour of the song's cover
         property string anim: "steps"       // how the pill grows: steps (whole 8-bit jumps) | spring (a bounce)
         // the look (modules/halo HaloWindow `skin`): ears | notch | float | tamagotchi
@@ -917,6 +929,9 @@ JsonAdapter {
         property real soundVolume: 0.5      // their volume, 0 … 1 (on top of the system's)
         property bool volumeSound: true     // the "pop" when the volume changes
         property string accent: "blue"      // blue | purple | pink | red | orange | yellow | green | graphite
+        property bool pixelCursor: false    // the skin's arrow as pixel art: angelOS Mac Pixel (services/Cursors)
+        property bool wallpaperTint: false  // the accent and a tint of everything from the wallpaper (PaletteGenerator)
+        property string wallpaperAccent: "" // the wallpaper's colour for Golden Gate, kept apart from appearance.customAccent
         property bool barBackground: false  // the menu bar on a band of its own ("Show menu bar background")
         // the menu bar's shape: bar = one strip along the top (macOS's); islands = glass islands, the menus on
         // the left and the status items on the right, the Halo between them if it is in the bar (modules/mac/MacMenuBar)
@@ -953,6 +968,8 @@ JsonAdapter {
         property int dockSize: 48           // Dock icons, logical px
         property bool dockMagnify: true     // icons grow under the pointer
         property int dockMagnifySize: 96    // the icon right under the pointer, logical px (dockSize..128)
+        property int dockSpacing: 10        // between the Dock's icons, % of an icon (MacDock)
+        property int dockPadding: 14        // inside the slab around the icons, % of an icon
         property bool dockMacIcons: true    // MacTahoe's icons in the Dock (DockIcons, scripts/mac-icons.py)
         property bool dockAutohide: false
         // a click on the app in front minimizes its focused window (as the pixel taskbar does);

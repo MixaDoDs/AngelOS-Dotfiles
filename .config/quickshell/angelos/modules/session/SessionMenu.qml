@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // "Shut down angelOS?" dialog.
 PanelWindow {
@@ -20,7 +21,7 @@ PanelWindow {
         right: true
     }
     exclusionMode: ExclusionMode.Ignore
-    color: Qt.alpha(Theme.shadow, 0.35)
+    color: Serp.on ? Qt.alpha(Serp.crust, 0.25) : Qt.alpha(Theme.shadow, 0.35)  // serp-skin
     WlrLayershell.namespace: "angelos-session"
     WlrLayershell.layer: WlrLayer.Overlay
     // takes input: the power menu: a click beside it closes it
@@ -88,14 +89,16 @@ PanelWindow {
         onClicked: Shell.sessionOpen = false
     }
 
-    BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
+    BackgroundEffect.blurRegion: (Serp.on ? Serp.blurOn : Config.appearance.blur) ? blurRegion : null  // serp-skin
     Region {
         id: blurRegion
-        item: dialog
+        item: Serp.on ? serpDlg.card : dialog  // serp-skin
+        radius: Serp.on ? Serp.radius + Serp.px(4) : 0  // serp-skin
     }
 
     PxWindow {
         id: dialog
+        opacity: Serp.on ? 0 : 1  // serp-skin: hidden, its keys still listen (SerpDialog* draws)
         anchors.centerIn: parent
         width: row.implicitWidth + Theme.pad * 2 + Theme.u * 8
         height: titleHeight + col.implicitHeight + Theme.pad * 2 + Theme.u * 10
@@ -188,6 +191,8 @@ PanelWindow {
             }
         }
     }
+
+    SerpDialogSession { id: serpDlg; host: win }  // serp-skin
 
     RightClickGuard {}
 }

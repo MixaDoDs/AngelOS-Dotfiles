@@ -29,6 +29,7 @@ FloatingWindow {
     Region {
         id: blurRegion
         item: view.frame
+        radius: Serp.on && view.viewId === "serp" ? Math.min(Serp.px(24), Serp.radius * 1.4) : 0  // serp-skin
     }
 
     SettingsView {

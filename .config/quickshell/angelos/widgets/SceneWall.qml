@@ -662,7 +662,16 @@ Item {
         onLoadFailed: console.warn("SceneWall: no scene.json in", root.dir)
     }
 
+    // every layer's picture has loaded; noted per scene folder, so a later hour's frames loading
+    // don't hand the screen back to the still
+    readonly property bool layersLoaded: layerItems.count > 0 && layerItems.count === layers.length
+        && Array.from({ length: layerItems.count }, (_, i) => layerItems.itemAt(i)).every(l => !!l && l.loadedNow)
+    property string loadedFor: ""
+    onLayersLoadedChanged: if (layersLoaded)
+        loadedFor = dir
+    readonly property bool loadedOnce: dir !== "" && loadedFor === dir
     Repeater {
+        id: layerItems
         model: root.layers
 
         SceneLayer {

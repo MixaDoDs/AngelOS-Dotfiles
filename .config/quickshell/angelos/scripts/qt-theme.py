@@ -311,7 +311,16 @@ def backup_conf():
     flag.write_text(str(d) + "\n")
 
 
-def set_conf(on, mac=False):
+def mac_icons(pal):  # Golden Gate: MacTahoe's icons on? (the palette, else settings.json)
+    if "macIcons" in pal:
+        return pal["macIcons"] != ""
+    try:
+        return json.loads((HOME / ".config/angelos/settings.json").read_text()).get("mac", {}).get("dockMacIcons", True)
+    except (OSError, ValueError, AttributeError):
+        return True
+
+
+def set_conf(on, mac=False, mac_ic=True):
     cp = configparser.RawConfigParser()
     cp.optionxform = str
     if CONF.exists():
@@ -335,7 +344,20 @@ def set_conf(on, mac=False):
             mac_want[("Fonts", "general")] = '"Inter,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"'
         if "JetBrains Mono" in fams:
             mac_want[("Fonts", "fixed")] = '"JetBrains Mono,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"'
-        if any((d / "Adwaita/index.theme").exists() for d in (HOME / ".local/share/icons", Path("/usr/share/icons"))):
+        if not mac_ic:  # the icon theme from before the skin (Qt has none of its own: GTK's)
+            prev = json.loads(keep_mac.read_text()).get("Appearance/icon_theme") if keep_mac.exists() else None
+            gg = HOME / ".local/state/angelos/goldengate-before.json"
+            if not prev and gg.exists():
+                prev = (json.loads(gg.read_text())["gsettings"].get("icon-theme") or "").strip("'") or None
+            try:  # the folders in Golden Gate's colours (folder-tint.py) when they are on
+                cur = subprocess.run(["gsettings", "get", "org.gnome.desktop.interface", "icon-theme"], capture_output=True, text=True).stdout.strip().strip("'")
+            except OSError:
+                cur = ""
+            if cur.startswith("angelos-folders-mac-") or cur in ("pixora", "pixora-dark"):
+                prev = cur
+            if prev:
+                mac_want[("Appearance", "icon_theme")] = prev
+        elif any((d / "Adwaita/index.theme").exists() for d in (HOME / ".local/share/icons", Path("/usr/share/icons"))):
             mac_want[("Appearance", "icon_theme")] = "Adwaita"
         if not keep_mac.exists():
             write(keep_mac, json.dumps({"%s/%s" % k: cp.get(*k, fallback=None) for k in mac_want}))
@@ -481,7 +503,7 @@ def main():
     # qt6ct reloads on a change in its folder only: a stamp there tells running apps
     if changed:
         write(QT6CT / ".angelos-stamp", hashlib.sha1((SCHEME.read_text() + QSS.read_text()).encode()).hexdigest() + "\n")
-    set_conf(True, mac)
+    set_conf(True, mac, mac_icons(pal))
     if niri_env(True) == "set":
         session_env("qt6ct")
     print(json.dumps({"qt": "on", "realm": p.get("appsRealm", "heaven")}))

@@ -178,8 +178,11 @@ Singleton {
         launcherOpen = false;
         startScreen = screen;
     }
-    function closeStart() {
+    signal dismissStartOverlay
+    function closeStart(immediate) {
         startScreen = "";
+        if (immediate)
+            dismissStartOverlay();
     }
     // the Golden Gate skin's Spotlight in a browsing mode ("apps": every app as a grid — the
     // Dock's Apps, macOS's successor of Launchpad); the look takes it when it opens
@@ -336,6 +339,8 @@ Singleton {
     }
     // with no page given Settings open on Home (a window already open stays where it is)
     function openSettings(page, sub) {
+        // Settings takes focus now, even if Start is still playing its closing animation.
+        closeStart(true);
         sessionConfirm = "";
         // an old page id leads to its page in the tree (SettingsTree.resolve: "bar" → taskbar…);
         // the views with a home of their own (a folder of icons, the tiles) open there

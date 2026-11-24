@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // The Alt+Tab switcher (services/AltTab) on the screen Alt+Tab was pressed on.
 // It exists only while it is shown, so a quick Alt+Tab tap never takes the
@@ -100,7 +101,17 @@ Scope {
             readonly property bool hellSkin: Angel.demon && Config.y2k.hellAltTab === "skin"
             readonly property int skinPad: 0
             // Golden Gate's ⌘Tab panel is Liquid Glass: niri blurs under its rounded slab
-            BackgroundEffect.blurRegion: AltTab.mode === "apps" && GoldenGate.on && GoldenGate.blurOn ? atBlur : null
+            BackgroundEffect.blurRegion: Serp.on ? (Serp.blurOn && !win.hellOwn ? serpAtBlur : null) : AltTab.mode === "apps" && GoldenGate.on && GoldenGate.blurOn ? atBlur : null  // serp-skin
+            // serp-skin: niri's blur under the skin's island, and the wallpaper for its liquid glass
+            Region {
+                id: serpAtBlur
+                item: stage
+                radius: Math.min(Serp.px(24), Math.round(Serp.radius * 1.4))
+            }
+            SerpBackdrop {
+                id: serpAtBack
+                origin: Qt.point(0, 0)
+            }
             Region {
                 id: atBlur
                 item: stage
@@ -146,7 +157,7 @@ Scope {
                     id: view
                     anchors.fill: parent
                     anchors.topMargin: win.skinPad
-                    sourceComponent: AltTab.mode === "apps" ? mac : win.hellOwn ? hell : AltTab.style === "ngo" ? ngo : AltTab.style === "y2k" ? y2k : angelos
+                    sourceComponent: Serp.on && !win.hellOwn ? serpLook : AltTab.mode === "apps" ? mac : win.hellOwn ? hell : AltTab.style === "ngo" ? ngo : AltTab.style === "y2k" ? y2k : angelos  // serp-skin
                     layer.enabled: win.hellSkin
                     layer.effect: ShaderEffect {
                         property real keep: 0.35
@@ -187,6 +198,14 @@ Scope {
                 id: hell
                 AltTabHell {
                     host: win
+                }
+            }
+            // serp-skin: the skin's switcher
+            Component {
+                id: serpLook
+                SerpAltTab {
+                    host: win
+                    backdrop: serpAtBack
                 }
             }
             Component {

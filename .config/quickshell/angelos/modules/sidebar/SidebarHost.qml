@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Experimental sidebar (Settings → Bar → Sidebar). A small bookmark tab sits on
 // the chosen screen edge: click opens the panel (or the phone: Config.sidebar.look, Phone),
@@ -47,6 +48,7 @@ Scope {
                 readonly property point origin: Qt.point(scope.edge === "right" ? scope.modelData.width - width : scope.vertical ? 0 : margins.left, scope.edge === "bottom" ? scope.modelData.height - height : scope.vertical ? margins.top : 0)
 
                 PxBox {
+                    visible: !Serp.on  // serp-skin
                     anchors.fill: parent
                     color: Sidebar.open || Sidebar.shown ? Theme.accent : tabMouse.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.3) : Theme.panel
                     edgeColor: Theme.menuBorder
@@ -54,6 +56,31 @@ Scope {
                         anchors.centerIn: parent
                         name: tabMouse.pressed && Sidebar.dragging ? "sparkle" : "heart"
                         fill: Sidebar.open || Sidebar.shown ? "#ffffff" : Theme.accent
+                    }
+                }
+                // serp-skin: the heart on the skin's island
+                SerpBackdrop {
+                    id: serpTabBack
+                    screenName: scope.modelData.name
+                    origin: tab.origin
+                }
+                SGlass {
+                    visible: Serp.on
+                    anchors.fill: parent
+                    backdrop: serpTabBack
+                    radius: Serp.radiusSmall
+                    hover: tabMouse.containsMouse ? 1 : 0
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: Sidebar.open || Sidebar.shown ? Serp.accent : tabMouse.containsMouse ? Serp.hover : "transparent"
+                    }
+                    SIcon {
+                        anchors.centerIn: parent
+                        name: "heart"
+                        size: Serp.px(13)
+                        filled: true
+                        color: Sidebar.open || Sidebar.shown ? Serp.onAccent : Serp.accent
                     }
                 }
                 MouseArea {
@@ -190,10 +217,11 @@ Scope {
                         item: !panelWin.open && phoneLoader.item ? phoneLoader.item.plugBox : null
                     }
                 }
-                BackgroundEffect.blurRegion: Config.appearance.blur && panelWin.shown && !Sidebar.phone ? blurRegion : null
+                BackgroundEffect.blurRegion: (Serp.on ? Serp.blurOn : Config.appearance.blur) && panelWin.shown && !Sidebar.phone ? blurRegion : null  // serp-skin
                 Region {
                     id: blurRegion
-                    item: panelLoader.item
+                    item: Serp.on ? (serpSideLoader.item ? serpSideLoader.item.island : null) : panelLoader.item  // serp-skin
+                    radius: Serp.on ? Math.min(Serp.radius * 1.4, Serp.px(24)) : 0  // serp-skin
                 }
 
                 MouseArea {
@@ -220,10 +248,33 @@ Scope {
                     }
                 }
 
+                // serp-skin: the skin's side panel (modules/serp/SerpSidebarPanel): an island at the edge
+                Loader {
+                    id: serpSideLoader
+                    anchors.fill: parent
+                    active: Serp.on && panelWin.shown && !Sidebar.phone
+                    sourceComponent: SerpSidebarPanel {
+                        host: panelWin
+                        edge: scope.edge
+                        screenName: scope.modelData.name
+                        toggles: serpQuick.list
+                        SidebarToggles {
+                            id: serpQuick
+                        }
+                    }
+                    // the phone gone with the look swap: no window left open with nothing in it
+                    Connections {
+                        target: Serp
+                        function onOnChanged() {
+                            panelWin.shown = false;
+                            panelWin.slideAt = 1;
+                        }
+                    }
+                }
                 // built while the panel is shown only: closed, the sidebar holds no panel at all
                 Loader {
                     id: panelLoader
-                    active: panelWin.shown && !Sidebar.phone
+                    active: panelWin.shown && !Sidebar.phone && !Serp.on  // serp-skin: SerpSidebarPanel instead
                     focus: true
                     sourceComponent: SidebarPanel {
                         visible: !Sidebar.phone

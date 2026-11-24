@@ -37,6 +37,11 @@ PxMenu {
             return;
         opening = true;
         openingSince = Date.now();
+        // let go and take it again: AboutToShow goes out at every opening, so items an app changes
+        // only then (Telegram's «turn notifications off/on») are not stale
+        const held = handle;
+        handle = null;
+        handle = held;
         settle.restart();
     }
     onItemsChanged: {
@@ -125,6 +130,9 @@ PxMenu {
                 return;
             root.openers.forEach(o => o.destroy());
             root.openers = [];
+            // closed: nobody holds the app's menu (a pinned icon has a TrayMenu of its own)
+            if (!root.opening)
+                root.handle = null;
         }
     }
 

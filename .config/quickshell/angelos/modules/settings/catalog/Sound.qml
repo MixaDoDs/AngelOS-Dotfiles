@@ -24,6 +24,12 @@ CatPage {
             currentValue: Audio.sink ? Audio.sink.id : -1
             onActivated: v => Audio.setDefaultSink(Audio.sinks.find(n => n.id === v))
         }
+        CatToggle {
+            label: I18n.t("Моно", "Mono audio")
+            hint: I18n.t("левый и правый канал сводятся в один и звучат с обеих сторон — на любом устройстве", "Left and right are mixed into one and play on both sides, on any device")
+            checked: Config.audio.mono
+            onToggled: c => Config.audio.mono = c
+        }
         CatSlider {
             label: I18n.t("Громкость", "Volume")
             from: 0

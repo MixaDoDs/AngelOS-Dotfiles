@@ -34,18 +34,14 @@ Item {
     // the windows of the desktop in front, and the ones minimized on this screen (dimmed, a click
     // brings one back — as Windows' taskbar keeps them); in Desktop every desk's of this screen;
     // not an app hidden whole (⌘H)
-    readonly property var liveList: Niri.sortedWindows(Niri.windows.filter(w => !Minimize.isAppHidden(w) && (Config.bar.allWindows || (WindowConfig.floatAll ? Minimize.outputOf(w) === screenName : (ws && w.workspace_id === ws.id) || minimizedHere(w)))))
-    // niri sends a window update on every step of a resize or a move: the buttons are built
-    // again only when what they show changes (the order, the title, the focus, the alert)
-    readonly property string listKey: JSON.stringify(liveList.map(w => [w.id, w.app_id, w.title, w.is_focused, w.is_urgent, w.workspace_id, w.is_shaded]))
-    property var list: []
-    onListKeyChanged: {
-        list = liveList;
+    readonly property var list: Niri.sortedWindows(Niri.taskWindows.filter(w => !Minimize.isAppHidden(w) && (Config.bar.allWindows || (WindowConfig.floatAll ? Minimize.outputOf(w) === screenName : (ws && w.workspace_id === ws.id) || minimizedHere(w)))))
+    onListChanged: {
         // the genie's landing places of windows that are gone (they'd pile up for the session)
         const pre = screenName + "|@w";
         for (const k of Object.keys(Minimize.dockSlots))
-            if (k.startsWith(pre) && !Niri.windows.some(w => pre + w.id === k))
+            if (k.startsWith(pre) && !Niri.taskWindows.some(w => pre + w.id === k))
                 delete Minimize.dockSlots[k];
+        Qt.callLater(reveal);
     }
     function minimizedHere(w) {
         return Minimize.isMinimized(w) && Minimize.outputOf(w) === screenName;
@@ -333,11 +329,7 @@ Item {
         else if (x1 > flick.contentX + flick.width)
             scrollBy(x1 - flick.contentX - flick.width + Theme.u * 8);
     }
-    onListChanged: Qt.callLater(reveal)
-    Component.onCompleted: {
-        list = liveList;
-        sync();
-    }
+    Component.onCompleted: sync()
     onOverflowChanged: if (!overflow) {
         flick.contentX = 0;
         flick.contentY = 0;
@@ -535,8 +527,11 @@ Item {
                         const mode = Config.bar.taskRightClick || "menu";
                         if (mode === "close")
                             btn.closeAll();
-                        else if (mode === "menu")
-                            menu.openFor(btn, win);
+                        else if (mode === "menu") {
+                            const current = Niri.windows.find(w => w.id === win.id);
+                            if (current)
+                                menu.openFor(btn, current);
+                        }
                     }
 
                     AppIcon {
@@ -647,7 +642,7 @@ Item {
                             const ws = btn.wins, i = btn.win && btn.win.is_focused ? ws.indexOf(btn.win) : -1;
                             const w = ws[(i + dir + ws.length) % ws.length];
                             root.activate(w);
-                            root.flash(w);
+                            root.flash(w.id);
                             Sounds.play("windowCycle");
                         }
                     }
@@ -659,9 +654,10 @@ Item {
     // the window the wheel brought forward: its frame blinks twice, dim, in pixels (not while it
     // comes back from minimized — that flies in on its own — nor when motion is calm)
     property rect flashRect
-    function flash(w) {
+    function flash(id) {
         const s = Shell.screenByName(screenName);
-        const r = !Motion.calm && s && !Minimize.isMinimized(w) ? Minimize.rectOf(w, screenName) : null;
+        const w = Niri.windows.find(win => win.id === id);
+        const r = !Motion.calm && s && w && !Minimize.isMinimized(w) ? Minimize.rectOf(w, screenName) : null;
         if (!r)
             return;
         flashRect = Qt.rect(r[0] - s.x, r[1] - s.y, r[2], r[3]);

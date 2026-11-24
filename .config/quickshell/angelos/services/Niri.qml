@@ -37,6 +37,9 @@ Singleton {
         return w.app_id === "org.quickshell" && w.title === plateTitle;
     }
     property var windows: []
+    // Task buttons depend on window state and tiling order. Keep their input stable while
+    // the full window list follows size and position changes for other consumers.
+    property var taskWindows: []
     // niri's screencasts (CastsChanged…): who takes the screen now — Sensors' screen dot
     property var casts: []
     // angel-niri (our fork) minimizes for itself: a window reports is_minimized and is out of every
@@ -366,6 +369,34 @@ Singleton {
         return true;
     }
 
+    function _sameTaskPosition(a, b) {
+        const pa = a && a.pos_in_scrolling_layout;
+        const pb = b && b.pos_in_scrolling_layout;
+        return pa && pb ? pa[0] === pb[0] && pa[1] === pb[1] : !pa && !pb;
+    }
+
+    function _sameTaskWindow(a, b) {
+        return a.app_id === b.app_id && a.workspace_id === b.workspace_id && a.is_focused === b.is_focused
+            && a.is_urgent === b.is_urgent && a.is_shaded === b.is_shaded && a.is_minimized === b.is_minimized
+            && a.left_output === b.left_output && _sameTaskPosition(a.layout, b.layout);
+    }
+
+    function _publishWindows(list, tasksChanged = true) {
+        windows = list;
+        if (tasksChanged)
+            taskWindows = list;
+    }
+
+    function _updateWindowTitle(window, title) {
+        if (window.title === title)
+            return;
+        window.title = title;
+        const task = taskWindows.find(w => w.id === window.id);
+        if (task && task !== window)
+            task.title = title;
+        titleTick++;
+    }
+
     // While a window is dragged with Mod + mouse (niri's interactive move) niri reports it on
     // no workspace (workspace_id null) until it is dropped: the taskbar, Alt+Tab and the
     // window menu would lose it mid-drag. It keeps its last workspace, marked `moving`.
@@ -455,7 +486,7 @@ Singleton {
                 plateWindowId = plate ? plate.id : -1;
                 plateWindowWs = plate ? plate.workspace_id : -1;
             }
-            windows = d.windows.filter(w => !root._isCast(w) && !root._isPlate(w)).map(w => _keepWorkspace(w, windows.find(o => o.id === w.id)));
+            _publishWindows(d.windows.filter(w => !root._isCast(w) && !root._isPlate(w)).map(w => _keepWorkspace(w, windows.find(o => o.id === w.id))));
             {
                 const f = d.windows.find(w => w.is_focused);
                 focusedWindowId = f ? f.id : -1;
@@ -476,24 +507,26 @@ Singleton {
                 const old = windows.find(w => w.id === d.window.id);
                 const next = _keepWorkspace(d.window, old);
                 if (old && _sameBesidesTitle(old, next)) {
-                    if (old.title !== next.title) {
-                        old.title = next.title;
-                        titleTick++;
-                    }
+                    _updateWindowTitle(old, next.title);
                     break;
                 }
                 const list = windows.filter(w => w.id !== d.window.id);
                 const isNew = !old;
+                let tasksChanged = isNew || !_sameTaskWindow(old, next);
                 list.push(next);
                 if (d.window.is_focused) {
                     focusedWindowId = d.window.id;
                     for (let i = 0; i < list.length; i++)
-                        if (list[i].id !== d.window.id && list[i].is_focused)
+                        if (list[i].id !== d.window.id && list[i].is_focused) {
                             list[i] = Object.assign({}, list[i], {
                                 "is_focused": false
                             });
+                            tasksChanged = true;
+                        }
                 }
-                windows = list;
+                if (!tasksChanged)
+                    _updateWindowTitle(old, next.title);
+                _publishWindows(list, tasksChanged);
                 if (isNew && ready)
                     windowOpened(d.window.id);
                 break;
@@ -527,7 +560,7 @@ Singleton {
                 plateWindowId = -1;
                 plateWindowWs = -1;
             }
-            windows = windows.filter(w => w.id !== d.id);
+            _publishWindows(windows.filter(w => w.id !== d.id));
             if (ready)
                 windowClosed(d.id);
             if (focusedWindowId === d.id)
@@ -535,28 +568,35 @@ Singleton {
             break;
         case "WindowFocusChanged":
             focusedWindowId = d.id === null ? -1 : d.id;
-            windows = windows.map(w => w.is_focused === (w.id === d.id) ? w : Object.assign({}, w, {
+            _publishWindows(windows.map(w => w.is_focused === (w.id === d.id) ? w : Object.assign({}, w, {
                     "is_focused": w.id === d.id
-                }));
+                })));
             break;
         case "WindowFocusTimestampChanged":
-            windows = windows.map(w => w.id === d.id ? Object.assign({}, w, {
+            _publishWindows(windows.map(w => w.id === d.id ? Object.assign({}, w, {
                     "focus_timestamp": d.focus_timestamp
-                }) : w);
+                }) : w), false);
             break;
         case "WindowUrgencyChanged":
-            windows = windows.map(w => w.id === d.id ? Object.assign({}, w, {
+            _publishWindows(windows.map(w => w.id === d.id ? Object.assign({}, w, {
                     "is_urgent": d.urgent
-                }) : w);
+                }) : w));
             break;
         case "WindowLayoutsChanged":
             {
                 const map = {};
                 for (const [id, layout] of d.changes)
                     map[id] = layout;
-                windows = windows.map(w => map[w.id] ? Object.assign({}, w, {
-                        "layout": map[w.id]
-                    }) : w);
+                let tasksChanged = false;
+                const list = windows.map(w => {
+                    const layout = map[w.id];
+                    if (!layout)
+                        return w;
+                    if (!_sameTaskPosition(w.layout, layout))
+                        tasksChanged = true;
+                    return Object.assign({}, w, { "layout": layout });
+                });
+                _publishWindows(list, tasksChanged);
                 break;
             }
         case "KeyboardLayoutsChanged":

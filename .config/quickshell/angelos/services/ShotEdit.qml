@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
@@ -28,11 +29,16 @@ Singleton {
     property var sessions: ({})              // path → {base, items, undo, redo, temp}: the work on each shot
     property var recentShots: []             // newest first: the folder's and the copied ones
     property string error: ""
+    property var privacyScan: null
+    property var reviewMasks: null
+    property var scanner: null
+    readonly property bool copyingMasked: maskedCopy.running
     readonly property bool wanted: Config.capture.shotPreview !== false
     readonly property string shotsDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos/shots"
     readonly property bool draft: temp && path.startsWith(shotsDir + "/shot-draft-")
     readonly property string dir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/angelos/shot-edit"
     readonly property string script: Quickshell.shellPath("scripts/shot_edit.py")
+    readonly property string privacyScript: Quickshell.shellPath("scripts/shot_privacy.py")
     readonly property string folder: (Config.capture.shotDir || "~/Pictures/Screenshots").replace(/^~/, Quickshell.env("HOME"))
     // a new picture in the editor's window (the editor loads its session)
     signal opened(string path)
@@ -61,8 +67,62 @@ Singleton {
             pruneTempShots();
         screenName = screen || "";
         at = placeOn(screenName);
+        privacyScan = null;
+        if (scanner)
+            scanner.destroy();
+        scanner = privacyScanner.createObject(root, {"source": p});
         thumb = false;
         thumb = true;
+    }
+    Component {
+        id: privacyScanner
+        Process {
+            id: scan
+            required property string source
+            command: ["python3", root.privacyScript, "scan", source]
+            running: true
+            stdout: StdioCollector {
+                id: answer
+            }
+            onExited: code => {
+                if (root.scanner === scan) {
+                    let result = {"failed": true, "boxes": []};
+                    if (code === 0) {
+                        try {
+                            result = JSON.parse(answer.text);
+                        } catch (e) {}
+                    }
+                    if (root.path === scan.source) {
+                        result.source = scan.source;
+                        root.privacyScan = result;
+                    }
+                    root.scanner = null;
+                }
+                Qt.callLater(scan.destroy);
+            }
+        }
+    }
+    function copyMasked() {
+        if (copyingMasked || !privacyScan || privacyScan.source !== path || !privacyScan.boxes.length)
+            return;
+        maskedCopy.source = path;
+        maskedCopy.command = ["python3", privacyScript, "copy", path, JSON.stringify(privacyScan.boxes)];
+        maskedCopy.running = true;
+    }
+    Process {
+        id: maskedCopy
+        property string source: ""
+        onExited: code => {
+            if (root.path !== source)
+                return;
+            if (code === 0)
+                root.dismiss();
+            root.say(code === 0 ? I18n.t("Снимок с плашками скопирован", "Masked screenshot copied") : I18n.t("Не удалось скопировать снимок с плашками", "Could not copy the masked screenshot"));
+        }
+    }
+    function review() {
+        if (privacyScan && privacyScan.source === path)
+            edit(path, privacyScan.boxes);
     }
     function pruneTempShots() {
         Quickshell.execDetached(["find", shotsDir, "-maxdepth", "1", "-name", "shot-*.png", "!", "-path", path, "-mmin", "+60", "-delete"]);
@@ -106,7 +166,7 @@ Singleton {
     }
     // the editor on a shot (none: the last one, else the newest in the folder); its window comes
     // up, or the open one takes it
-    function edit(p) {
+    function edit(p, masks) {
         Achievements.note("explore", "shotedit");
         if (p) {
             path = p;
@@ -120,6 +180,7 @@ Singleton {
         }
         thumb = false;
         error = "";
+        reviewMasks = masks === undefined ? null : masks;
         editing = true;
         if (draft)
             pruneTempShots();
@@ -243,9 +304,10 @@ Singleton {
         }
     }
     // the finished picture on the clipboard
-    function copyFile(file) {
+    function copyFile(file, silent) {
         Quickshell.execDetached(["sh", "-c", 'wl-copy --type image/png < "$1"', "sh", file]);
-        say(I18n.t("Картинка скопирована", "Picture copied"));
+        if (!silent)
+            say(I18n.t("Картинка скопирована", "Picture copied"));
     }
     // the finished picture kept: over the shot, or a copied one into the folder (as a new screenshot)
     // silent: no notification of its own (the editor's Copy saves its changes too, and says "copied")
@@ -256,7 +318,7 @@ Singleton {
             // save failed, and took the next real screenshot for this one)
             const from = path;
             Capture.saveShot(file, null, {
-                "copy": false,
+                "copy": silent ? false : undefined,
                 "quiet": !!silent,
                 "noThumb": true
             }, r => {
@@ -266,19 +328,24 @@ Singleton {
             return;
         }
         saver.silent = !!silent;
-        saver.command = ["sh", "-c", 'cp -- "$1" "$2.part" && mv -f -- "$2.part" "$2"', "sh", file, path];
+        saver.path = path;
+        saver.command = ["sh", "-c", 'cp -- "$1" "$2.part" && mv -f -- "$2.part" "$2"', "sh", file, saver.path];
         saver.running = true;
     }
     Process {
         id: saver
         property bool silent: false
+        property string path: ""
         onExited: code => {
             if (code !== 0) {
                 root.error = I18n.t("Не сохранилось", "Not saved");
                 return;
             }
-            if (!saver.silent)
+            if (!saver.silent) {
+                if (Config.capture.shotCopy)
+                    root.copyFile(saver.path, true);
                 root.say(I18n.t("Снимок сохранён", "Screenshot saved"));
+            }
             root.loadRecent();
         }
     }

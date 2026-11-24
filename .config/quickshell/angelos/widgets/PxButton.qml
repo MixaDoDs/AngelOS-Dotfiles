@@ -94,9 +94,9 @@ Item {
     Rectangle {
         visible: root.mac && (!root.flat || mouse.containsMouse || root.checked)
         anchors.fill: parent
-        radius: GoldenGate.px(7)
-        color: root.accent || root.checked ? (mouse.pressed ? Qt.darker(GoldenGate.accent, 1.12) : GoldenGate.accent) : mouse.pressed ? GoldenGate.hoverBg : GoldenGate.dark ? Qt.rgba(1, 1, 1, mouse.containsMouse ? 0.18 : 0.12) : mouse.containsMouse ? "#fafafa" : "#ffffff"
-        border.width: root.accent || root.checked ? 0 : 1
+        radius: Serp.on ? Serp.radiusSmall : GoldenGate.px(7)  // serp-skin
+        color: root.accent || root.checked ? (mouse.pressed ? Qt.darker(GoldenGate.accent, 1.12) : GoldenGate.accent) : Serp.on ? (mouse.containsMouse || mouse.pressed ? Serp.surface2 : Serp.surface1) : mouse.pressed ? GoldenGate.hoverBg : GoldenGate.dark ? Qt.rgba(1, 1, 1, mouse.containsMouse ? 0.18 : 0.12) : mouse.containsMouse ? "#fafafa" : "#ffffff"  // serp-skin
+        border.width: root.accent || root.checked || Serp.on ? 0 : 1  // serp-skin
         border.color: GoldenGate.separator
     }
     Rectangle {
@@ -149,7 +149,7 @@ Item {
             size: GoldenGate.px(15)
             stroke: 1.9
             anchors.verticalCenter: parent.verticalCenter
-            color: root.accent || root.checked ? "#ffffff" : root.danger ? GoldenGate.lights[0] : GoldenGate.label
+            color: root.accent || root.checked ? (Serp.on ? Serp.onAccent : "#ffffff") : root.danger ? (Serp.on ? Serp.red : GoldenGate.lights[0]) : GoldenGate.label  // serp-skin
         }
         PxIcon {
             id: glyph
@@ -175,7 +175,7 @@ Item {
             text: root.text
             kind: root.kind
             anchors.verticalCenter: parent.verticalCenter
-            color: root.barInk ? (root.checked ? Theme.hellAccent : Theme.hellText) : root.hell ? Theme.hellText : root.p5 ? (root.checked || root.danger ? Theme.p5Paper : Theme.p5Black) : root.mac ? (root.accent || root.checked ? "#ffffff" : root.danger ? GoldenGate.lights[0] : GoldenGate.label) : root.settingsSkin !== "classic" ? (root.danger ? "#ffffff" : root.accent || root.checked ? Theme.selectText : Theme.text) : root.accent ? Theme.selectText : root.danger && mouse.containsMouse ? "#ffffff" : Theme.text
+            color: root.barInk ? (root.checked ? Theme.hellAccent : Theme.hellText) : root.hell ? Theme.hellText : root.p5 ? (root.checked || root.danger ? Theme.p5Paper : Theme.p5Black) : root.mac ? (root.accent || root.checked ? (Serp.on ? Serp.onAccent : "#ffffff") : root.danger ? (Serp.on ? Serp.red : GoldenGate.lights[0]) : GoldenGate.label) :  /* serp-skin */ root.settingsSkin !== "classic" ? (root.danger ? "#ffffff" : root.accent || root.checked ? Theme.selectText : Theme.text) : root.accent ? Theme.selectText : root.danger && mouse.containsMouse ? "#ffffff" : Theme.text
             font.bold: (root.checked && !root.mac) || root.p5
         }
     }

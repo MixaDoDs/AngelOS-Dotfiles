@@ -306,6 +306,88 @@ def minecraft_running() -> bool:
     return any(_minecraft(int(d.name)) for d in Path("/proc").iterdir() if d.name.isdigit())
 
 
+# the real owner of an X11 window (XRes) instead of satellite's pid
+_X = None
+_XPID: dict[int, tuple[str, int | None]] = {}   # niri window id -> (title, pid)
+
+
+def _xdisplay():
+    global _X
+    if _X is None:
+        try:
+            from Xlib import display
+            _X = display.Display(os.environ.get("DISPLAY") or ":1")
+            if not _X.has_extension("X-Resource"):
+                _X = False
+        except Exception:
+            _X = False
+    return _X or None
+
+
+def x11_pid(win: dict) -> int | None:
+    """the process behind an X11 window: niri's app_id is its WM_CLASS, the title its name; the
+    X server tells the owner from the socket (XRes). None: unknown (no python-xlib/XRes, not found)"""
+    global _X
+    wid, title, app = win.get("id"), win.get("title") or "", win.get("app_id") or ""
+    hit = _XPID.get(wid)
+    if hit and hit[0] == title and hit[1] and Path(f"/proc/{hit[1]}").exists():
+        return hit[1]
+    d = _xdisplay()
+    if d is None:
+        return None
+    try:
+        from Xlib.ext import res
+        named, same_app = [], []
+        todo = [d.screen().root]
+        while todo:
+            w = todo.pop()
+            for c in w.query_tree().children:
+                todo.append(c)
+                try:
+                    cls = c.get_wm_class()
+                except Exception:
+                    cls = None
+                if not cls or app not in cls:
+                    continue
+                same_app.append(c)
+                try:
+                    p = c.get_full_property(d.intern_atom("_NET_WM_NAME"), d.intern_atom("UTF8_STRING"))
+                    name = p.value.decode("utf-8", "replace") if p else (c.get_wm_name() or "")
+                except Exception:
+                    name = ""
+                if name == title:
+                    named.append(c)
+        pick = named or same_app
+        pid = None
+        for c in pick:
+            r = d.res_query_client_ids([{"client": c.id, "mask": res.LocalClientPIDMask}])
+            pids = [i.value[0] for i in r.ids if i.spec.mask == res.LocalClientPIDMask and i.value]
+            if pids:
+                pid = pids[0]
+                break
+    except Exception:
+        _X = None          # satellite restarted: connect again next time
+        return None
+    _XPID[wid] = (title, pid)
+    return pid
+
+
+def _satellite(pid) -> bool:
+    return isinstance(pid, int) and pid > 0 and _comm(pid).lower().startswith(("xwayland", "xwayland-satellite"))
+
+
+def boost_pids(win: dict | None) -> tuple[int, ...]:
+    """whom FocusBoost raises for the focused window: its process; for an X11 window the real
+    owner and satellite (with its Xwayland)"""
+    pid = (win or {}).get("pid")
+    if not isinstance(pid, int) or pid <= 1:
+        return ()
+    if _satellite(pid):
+        real = x11_pid(win)
+        return (real, pid) if real and real != pid else (pid,)
+    return (pid,)
+
+
 def is_game(win: dict) -> bool:
     """Proton games show up as steam_app_<id>; native ones carry Steam's SteamGameId; X11 ones
     reach niri through xwayland-satellite, so for those a running Steam game has to do, or a
@@ -323,6 +405,9 @@ def is_game(win: dict) -> bool:
         return True
     if not _comm(pid).lower().startswith(("xwayland", "xwayland-satellite")):
         return False
+    real = x11_pid(win)
+    if real is not None:   # the owner's own environment decides
+        return bool(re.search(rb"(?:^|\0)Steam(?:Game|App)Id=[1-9]", _environ(real))) or _minecraft(real)
     return steam_game_running() or (win.get("title") or "").lower().startswith("minecraft") and minecraft_running()
 
 
@@ -491,18 +576,20 @@ class FocusBoost:
     back when the focus moves on (unless someone changed it meanwhile)."""
 
     def __init__(self) -> None:
-        self.pid: int | None = None
+        self.pid: tuple[int, ...] = ()   # the roots boosted (boost_pids)
         self.saved: dict[int, tuple[int, int]] = {}   # tid: (nice before, nice set)
         self.floor = 20 - resource.getrlimit(resource.RLIMIT_NICE)[0]
 
-    def move(self, pid: int | None) -> None:
-        if pid == self.pid:
+    def move(self, pids) -> None:
+        # a tuple of roots (boost_pids), or a pid / None as before
+        pids = tuple(pids) if isinstance(pids, (tuple, list)) else ((pids,) if pids else ())
+        if pids == self.pid:
             return
         self.restore()
-        self.pid = pid
-        if pid is None or pid <= 1 or not focus_boost_wanted():
+        self.pid = pids
+        if not pids or not focus_boost_wanted():
             return
-        for proc in process_tree(pid):
+        for proc in [p for root in pids if root > 1 for p in process_tree(root)]:
             try:
                 tids = [int(t.name) for t in Path(f"/proc/{proc}/task").iterdir()]
             except OSError:
@@ -521,8 +608,8 @@ class FocusBoost:
         # a thread born while boosted took its creator's nice: back to what that one had
         back = {new: before for before, new in sorted(self.saved.values())}
         tids = set(self.saved)
-        if self.pid is not None and back:
-            for proc in process_tree(self.pid):
+        if self.pid and back:
+            for proc in [p for root in self.pid for p in process_tree(root)]:
                 try:
                     tids.update(int(t.name) for t in Path(f"/proc/{proc}/task").iterdir())
                 except OSError:
@@ -536,7 +623,7 @@ class FocusBoost:
             except OSError:
                 pass
         self.saved = {}
-        self.pid = None
+        self.pid = ()
 
 
 _stretching: dict[str, subprocess.Popen] = {}
@@ -586,7 +673,9 @@ def boost(on: bool, output: str | None = None) -> str:
         gpu_clocks(gpu_clocks_wanted())
         GAME_FLAG.touch()
         write_state(True)
-        return "boost on: performance, niri nice %d" % NIRI_NICE
+        tids = niri_threads()   # the nice niri really has
+        real = os.getpriority(os.PRIO_PROCESS, tids[0]) if tids else None
+        return "boost on: performance, niri nice %s" % real
     GAME_FLAG.unlink(missing_ok=True)
     write_state(False)
     background_fps(0)
@@ -747,7 +836,7 @@ def _watch(hyst: Hysteresis, game: Hysteresis, dry_run: bool, wake: int, focus: 
                         continue
                     if not dry_run:
                         win = next((w for w in state.windows.values() if w.get("is_focused")), None)
-                        focus.move(win.get("pid") if win else None)
+                        focus.move(boost_pids(win))
                         stretch_games(state.windows)
                     now = time.monotonic()
                     result = hyst.update(state.covering() is not None or esports(), now)

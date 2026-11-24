@@ -81,6 +81,7 @@ Item {
         }
         Row {
             id: lights
+            visible: !Niri.nativeMinimize  // angel-niri draws the title bar with its own lights
             x: GoldenGate.px(20)
             y: (root.toolbarH - height) / 2
             spacing: GoldenGate.px(8)

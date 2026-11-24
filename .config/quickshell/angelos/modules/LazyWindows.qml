@@ -35,13 +35,23 @@ Scope {
     Connections {
         target: Shell
         function onLauncherOpenChanged() {
-            if (Shell.launcherOpen)
+            if (Shell.launcherOpen && Serp.on) {  // serp-skin: Start instead
+                Shell.launcherOpen = false;
+                const pre = Shell.launcherPrefill;
+                Shell.launcherPrefill = "";
+                if (pre)
+                    Shell.startPrefill = pre;
+                if (Shell.startScreen !== "" && !pre)
+                    Shell.closeStart();
+                else
+                    Shell.openStart("");
+            } else if (Shell.launcherOpen)
                 launcherLoader.active = true;
         }
     }
     LazyLoader {
         id: launcherLoader
-        activeAsync: launcherKeep.alive || root.launcherWarm
+        activeAsync: (launcherKeep.alive || root.launcherWarm) && !Serp.on  // serp-skin
         Launcher {}
     }
 
@@ -88,7 +98,7 @@ Scope {
         when: Shell.clipboardOpen
     }
     LazyLoader {
-        active: clipboardKeep.alive
+        active: clipboardKeep.alive && !Serp.on  // serp-skin
         ClipboardPanel {}
     }
 

@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // The window round SessionConfirmCard: up while Shell.sessionConfirm names an action.
 // A click beside the card cancels, like the session menu's.
@@ -20,7 +21,7 @@ PanelWindow {
         right: true
     }
     exclusionMode: ExclusionMode.Ignore
-    color: Qt.alpha(Theme.shadow, 0.35)
+    color: Serp.on ? Qt.alpha(Serp.crust, 0.25) : Qt.alpha(Theme.shadow, 0.35)  // serp-skin
     WlrLayershell.namespace: "angelos-session"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: visible ? (Shell.dev ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive) : WlrKeyboardFocus.None
@@ -44,16 +45,20 @@ PanelWindow {
         onClicked: card.cancel()
     }
 
-    BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
+    BackgroundEffect.blurRegion: (Serp.on ? Serp.blurOn : Config.appearance.blur) ? blurRegion : null  // serp-skin
     Region {
         id: blurRegion
-        item: card
+        item: Serp.on ? serpDlg.card : card  // serp-skin
+        radius: Serp.on ? Serp.radius + Serp.px(4) : 0  // serp-skin
     }
 
     SessionConfirmCard {
         id: card
+        opacity: Serp.on ? 0 : 1  // serp-skin: hidden, its keys still listen (SerpDialog* draws)
         anchors.centerIn: parent
     }
+
+    SerpDialogConfirm { id: serpDlg; host: card }  // serp-skin
 
     RightClickGuard {}
 }

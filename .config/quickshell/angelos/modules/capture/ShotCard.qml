@@ -15,6 +15,8 @@ PxBox {
 
     readonly property int u: Theme.u
     readonly property bool held: hover.hovered || drag.active
+    readonly property var scan: ShotEdit.privacyScan
+    readonly property bool found: !!scan && scan.boxes.length > 0
     // the picture's own shape, at most a phone-like card
     readonly property size pic: {
         const w = img.implicitWidth || 16, h = img.implicitHeight || 9;
@@ -22,8 +24,8 @@ PxBox {
         return Qt.size(Math.round(w * k), Math.round(h * k));
     }
     readonly property int pad: inset + u
-    width: pic.width + pad * 2
-    height: pic.height + pad * 2
+    width: Math.max(pic.width, footer.implicitWidth) + pad * 2
+    height: pic.height + footer.implicitHeight + pad * 2 + u * 2
     shadow: true
     // in from the screen's edge it sits at (ShotEdit.at)
     transform: Translate {
@@ -41,7 +43,7 @@ PxBox {
 
     Image {
         id: img
-        x: card.u   // (a PxBox's children sit inside its frame already)
+        anchors.horizontalCenter: parent.horizontalCenter
         y: card.u
         width: card.pic.width
         height: card.pic.height
@@ -50,15 +52,65 @@ PxBox {
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         cache: false
+
+        Repeater {
+            model: card.found && img.status === Image.Ready ? card.scan.boxes : []
+            Rectangle {
+                required property var modelData
+                x: (img.width - img.paintedWidth) / 2 + modelData.x * img.paintedWidth / card.scan.width
+                y: (img.height - img.paintedHeight) / 2 + modelData.y * img.paintedHeight / card.scan.height
+                width: modelData.w * img.paintedWidth / card.scan.width
+                height: modelData.h * img.paintedHeight / card.scan.height
+                color: Qt.alpha(Theme.accent, 0.23)
+                border.color: Theme.accent
+                border.width: 1
+            }
+        }
+        TapHandler {
+            acceptedButtons: Qt.LeftButton
+            enabled: !!card.scan && !ShotEdit.copyingMasked
+            onTapped: ShotEdit.review()
+        }
+        DragHandler {
+            id: drag
+            enabled: !!card.scan && !card.found
+            target: null
+        }
     }
-    Rectangle {
-        anchors.fill: img
-        color: Qt.alpha(Theme.accent, 0.14)
-        visible: hover.hovered
+    Column {
+        id: footer
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: img.y + img.height + card.u * 2
+        spacing: card.u
+
         PxText {
-            anchors.centerIn: parent
+            anchors.horizontalCenter: parent.horizontalCenter
             kind: "tiny"
-            text: I18n.t("Править", "Edit")
+            text: !card.scan ? I18n.t("Проверяю снимок…", "Checking screenshot…") :
+                card.scan.failed ? I18n.t("Проверка не удалась", "Could not check") :
+                card.found ? I18n.t("Найдено областей: %1", "Areas found: %1").arg(card.scan.boxes.length) :
+                I18n.t("Совпадений нет", "No matches")
+        }
+        Row {
+            spacing: card.u
+            PxButton {
+                objectName: "shot-privacy-copy"
+                visible: card.found
+                enabled: !ShotEdit.copyingMasked
+                compact: true
+                accent: true
+                kind: "tiny"
+                text: ShotEdit.copyingMasked ? I18n.t("Копирую…", "Copying…") : I18n.t("Копировать с плашками", "Copy with masks")
+                onClicked: ShotEdit.copyMasked()
+            }
+            PxButton {
+                objectName: "shot-privacy-review"
+                enabled: !!card.scan && !ShotEdit.copyingMasked
+                compact: true
+                kind: "tiny"
+                text: I18n.t("Править", "Edit")
+                onClicked: ShotEdit.review()
+            }
         }
     }
     HoverHandler {
@@ -68,19 +120,11 @@ PxBox {
             img.grabToImage(r => card.dragPic = r.url, Qt.size(card.u * 40, card.u * 24))
     }
     TapHandler {
-        acceptedButtons: Qt.LeftButton
-        onTapped: ShotEdit.edit()
-    }
-    TapHandler {
         acceptedButtons: Qt.RightButton
         onTapped: ShotEdit.dismiss()
     }
     // dragged out: the file (into a chat, a folder)
     property url dragPic
-    DragHandler {
-        id: drag
-        target: null
-    }
     Drag.active: drag.active
     Drag.dragType: Drag.Automatic
     Drag.imageSource: card.dragPic

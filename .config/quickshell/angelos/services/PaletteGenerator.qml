@@ -33,7 +33,7 @@ Singleton {
         return areas[area] || null;
     }
     readonly property var area: Config.ready ? rectOf(Config.appearance.paletteArea, Config.appearance.paletteRect) : null
-    onAreaChanged: if (auto)
+    onAreaChanged: if (auto || macAuto)
         autoTimer.restart()
     readonly property string screenName: Config.appearance.paletteScreen || (Shell.primaryScreen ? Shell.primaryScreen.name : "")
     readonly property var workspace: Niri.activeWorkspace(screenName)
@@ -42,8 +42,12 @@ Singleton {
     readonly property string wallpaper: Wallpapers.origin(Wallpapers.resolve(screenName, workspace ? workspace.idx : 1))
     // never in hell: there the colours are the circle's (Theme.generated), whatever the picture
     readonly property bool auto: Config.ready && Config.appearance.flavor === "wallpaper" && Config.appearance.autoWallpaperColors && !Wallpapers.hellOn
+    // Golden Gate's "Colour from the wallpaper" follows the picture as well
+    readonly property bool macAuto: Config.ready && Theme.macLook && !!Config.mac.wallpaperTint && !Wallpapers.hellOn
+    onMacAutoChanged: if (macAuto)
+        autoTimer.restart()
 
-    onWallpaperChanged: if (auto)
+    onWallpaperChanged: if (auto || macAuto)
         autoTimer.restart()
     // a scene with a night of its own (Wallpapers.nightMix) gives the night's colours at night:
     // the accent is taken again when it turns
@@ -53,14 +57,14 @@ Singleton {
         precision: SystemClock.Minutes
     }
     readonly property bool wallNight: Wallpapers.nightOf(wallpaper) !== "" && Wallpapers.nightMix(wallpaper, clock.date) >= 0.5
-    onWallNightChanged: if (auto)
+    onWallNightChanged: if (auto || macAuto)
         autoTimer.restart()
     onAutoChanged: if (auto)
         autoTimer.restart()
     Timer {
         id: autoTimer
         interval: 900       // wallpaper transitions and workspace bursts settle first
-        onTriggered: if (root.auto && root.wallpaper)
+        onTriggered: if ((root.auto || root.macAuto) && root.wallpaper)
             root.generateFrom(root.wallpaper)
     }
     // (local patch 56) Heaven's Gate: the colours at once, while its frozen frame hides the whole
@@ -68,7 +72,7 @@ Singleton {
     function settleNow() {
         if (autoTimer.running) {
             autoTimer.stop();
-            if (auto && wallpaper)
+            if ((auto || macAuto) && wallpaper)
                 generateFrom(wallpaper);
         }
     }
@@ -254,6 +258,11 @@ Singleton {
     }
     // heaven's accent only: hell's picture recolours nothing (hell wears its circle's colours)
     function apply(accent, switchFlavor) {
+        // Golden Gate keeps its own; the pixel theme's only when it asked
+        if (macAuto && Config.mac.wallpaperAccent !== accent)
+            Config.mac.wallpaperAccent = accent;
+        if (macAuto && !auto && !switchFlavor)
+            return;
         if (!Wallpapers.hellOn && Config.appearance.customAccent !== accent)
             Config.appearance.customAccent = accent;
         if (switchFlavor)

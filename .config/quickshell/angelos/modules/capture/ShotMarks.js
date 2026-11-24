@@ -3,7 +3,7 @@
 // The screenshot editor's marks (modules/capture/ShotEditor, drawn by ShotMark), in the picture's
 // pixels: {t: "pen" | "marker", pts: [[x, y]…], c, w} · {t: "line" | "arrow", a: [x, y], b: [x, y], c, w}
 // · {t: "rect" | "ellipse", x, y, w, h, c, lw, fill} · {t: "num", x, y, n, c, s} · {t: "text", x, y, s, c,
-// size, pixel} · {t: "sticker", x, y, icon, s}
+// size, pixel} · {t: "sticker", x, y, icon, s} · {t: "redact", x, y, w, h}
 
 // the box a mark covers: {x, y, w, h}
 function bounds(m) {

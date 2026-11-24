@@ -310,6 +310,7 @@ PopupWindow {
         y: list.y
         width: list.width
         height: list.height
+        radius: list.t.serp ? Serp.radius : 0  // serp-skin
     }
 
     PxMenuList {

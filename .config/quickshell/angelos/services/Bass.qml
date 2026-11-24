@@ -34,8 +34,10 @@ Singleton {
     property int walls: 0
     // the windows that spring on the kicks (services/WindowPulse)
     property bool windowsListen: false
+    // the living pointer that hops on the kicks (services/CursorShake)
+    property bool cursorListens: false
     readonly property bool haloWants: !!Config.halo.enabled && Config.halo.bassGlow !== false && shownMusic && Shell.screens.some(s => Halo.on(s.name) && !Shell.stillScreen(s.name))
-    readonly property bool wanted: Config.ready && !Shell.dev && !Power.eco && Lyrics.playing && !Lyrics.unseen && (haloWants || angelListens || walls > 0 || windowsListen)
+    readonly property bool wanted: Config.ready && !Shell.dev && !Power.eco && Lyrics.playing && !Lyrics.unseen && (haloWants || angelListens || walls > 0 || windowsListen || cursorListens)
 
     property int level: 0
     property real flash: 0

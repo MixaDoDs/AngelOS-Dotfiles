@@ -4,8 +4,7 @@
   ~/.config/angelos/devices/*.json                   yours (a file of the same id wins)
 
 A description names the device (USB ids), the protocol family that talks to it, the channel
-(which interface, which endpoints), what it can do and within which limits, and its keys:
-where each one sits on the picture and which slot of the protocol's key matrix it is.
+it speaks through and what it can do, within which limits.
 
 check() returns every problem of a file as {"at", "ru", "en"}; a file with problems is listed
 with them and never opened as a device.
@@ -16,22 +15,15 @@ import re
 from pathlib import Path
 
 SCHEMA = 1
-KINDS = ("keyboard", "mouse")
+KINDS = ("mouse",)
 SUPPORT = ("verified", "described", "readonly")
 # family -> (the channel it speaks through, the kinds of device it drives)
 FAMILIES = {
-    "nuphy-io": {"via": "usbfs", "kinds": ("keyboard",)},
     "lamzu-aurora": {"via": "hidraw", "kinds": ("mouse",)},
 }
 # capability -> the fields it must carry
 CAPABILITIES = {
-    "liveTravel": {},
-    "actuation": {"min": float, "max": float, "step": float},
-    "rapidTrigger": {"min": float, "max": float, "steps": list},
-    "deadZones": {"max": float},
-    "socd": {"modes": list},
-    "dks": {}, "modTap": {}, "toggle": {}, "remap": {}, "layers": {}, "macros": {}, "lighting": {},
-    "pollingRate": {"values": list}, "calibration": {}, "profiles": {},
+    "pollingRate": {"values": list},
     "dpi": {"min": float, "max": float, "step": float, "stages": float},
     "lod": {"values": list}, "debounce": {"min": float, "max": float}, "motionSync": {},
     "sleep": {"values": list}, "battery": {}, "angleSnap": {}, "rippleControl": {},
@@ -63,15 +55,6 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def _ep(v):
-    """An endpoint address: 0x82, "0x82" or 130."""
-    try:
-        n = int(v, 0) if isinstance(v, str) else int(v)
-    except (TypeError, ValueError):
-        return None
-    return n if 0 < n <= 0xFF else None
-
-
 def check(d):
     """Every problem of a parsed description, [] for a good one."""
     out = []
@@ -81,8 +64,8 @@ def check(d):
         out.append(_problem("schema", "нужно \"schema\": %d — эта версия оболочки понимает только её" % SCHEMA,
                             "\"schema\": %d is required: this shell understands no other" % SCHEMA))
     if not isinstance(d.get("id"), str) or not ID_RE.match(d.get("id", "")):
-        out.append(_problem("id", "id — латиница, цифры и дефис, например \"nuphy-air60-he\"",
-                            "id is lower-case letters, digits and dashes, like \"nuphy-air60-he\""))
+        out.append(_problem("id", "id — латиница, цифры и дефис, например \"lamzu-maya-x\"",
+                            "id is lower-case letters, digits and dashes, like \"lamzu-maya-x\""))
     if not isinstance(d.get("name"), str) or not d.get("name", "").strip():
         out.append(_problem("name", "нет названия устройства", "the device has no name"))
     kind = d.get("kind")
@@ -101,8 +84,8 @@ def check(d):
 
     usb = d.get("usb")
     if not isinstance(usb, list) or not usb:
-        out.append(_problem("usb", "нужен список usb: [{\"vid\": \"19f5\", \"pid\": \"fee0\"}]",
-                            "a list is needed: usb: [{\"vid\": \"19f5\", \"pid\": \"fee0\"}]"))
+        out.append(_problem("usb", "нужен список usb: [{\"vid\": \"373e\", \"pid\": \"001c\"}]",
+                            "a list is needed: usb: [{\"vid\": \"373e\", \"pid\": \"001c\"}]"))
     else:
         for n, u in enumerate(usb):
             if not isinstance(u, dict) or not HEX4_RE.match(str(u.get("vid", ""))) or not HEX4_RE.match(str(u.get("pid", ""))):
@@ -117,17 +100,6 @@ def check(d):
         if via and ch.get("via") != via:
             out.append(_problem("channel.via", "семейство %s говорит через «%s»" % (family, via),
                                 "the family %s speaks through \"%s\"" % (family, via)))
-        if ch.get("via") == "usbfs" and (not isinstance(ch.get("interface"), int) or isinstance(ch.get("interface"), bool) or not 0 <= ch["interface"] <= 31):
-            out.append(_problem("channel.interface", "interface — номер USB-интерфейса служебного канала (число)",
-                                "interface is the number of the service channel's USB interface"))
-        if ch.get("via") == "usbfs":
-            i, o = _ep(ch.get("in")), _ep(ch.get("out"))
-            if i is None or not i & 0x80:
-                out.append(_problem("channel.in", "in — адрес входящей конечной точки, например \"0x82\"",
-                                    "in is the IN endpoint's address, like \"0x82\""))
-            if o is None or o & 0x80:
-                out.append(_problem("channel.out", "out — адрес исходящей конечной точки, например \"0x02\"",
-                                    "out is the OUT endpoint's address, like \"0x02\""))
 
     caps = d.get("capabilities")
     if not isinstance(caps, dict):
@@ -157,49 +129,6 @@ def check(d):
             if _num(value.get("min")) and _num(value.get("max")) and value["min"] > value["max"]:
                 out.append(_problem(at, "min больше max", "min is above max"))
 
-    if kind == "keyboard":
-        out += _check_layout(d.get("layout"))
-    sw = d.get("switches")
-    if sw is not None:
-        if not isinstance(sw, list):
-            out.append(_problem("switches", "switches — список", "switches is a list"))
-        else:
-            for n, s in enumerate(sw):
-                if not isinstance(s, dict) or not isinstance(s.get("id"), int) or not _num(s.get("travel")) or not s.get("name"):
-                    out.append(_problem("switches[%d]" % n, "переключателю нужны id (число), name и travel (ход в мм)",
-                                        "a switch needs id (a number), name and travel (mm)"))
-    return out
-
-
-def _check_layout(layout):
-    out = []
-    keys = layout.get("keys") if isinstance(layout, dict) else None
-    if not isinstance(keys, list) or not keys:
-        return [_problem("layout.keys", "клавиатуре нужна раскладка: layout.keys — список клавиш",
-                         "a keyboard needs its layout: layout.keys is the list of keys")]
-    seen = {}
-    for n, k in enumerate(keys):
-        at = "layout.keys[%d]" % n
-        if not isinstance(k, dict):
-            out.append(_problem(at, "клавиша — объект { \"m\": …, \"x\": …, \"y\": … }", "a key is an object { \"m\": …, \"x\": …, \"y\": … }"))
-            continue
-        m = k.get("m")
-        if not isinstance(m, int) or isinstance(m, bool) or not 0 <= m <= 255:
-            out.append(_problem(at + ".m", "m — номер клавиши в протоколе, 0…255", "m is the key's number in the protocol, 0…255"))
-        elif m in seen:
-            out.append(_problem(at + ".m", "номер %d уже занят клавишей %d" % (m, seen[m]), "number %d is taken by key %d already" % (m, seen[m])))
-        else:
-            seen[m] = n
-        for f in ("x", "y"):
-            if not _num(k.get(f)) or k[f] < 0 or k[f] > 40:
-                out.append(_problem(at + "." + f, "%s — положение в ширинах клавиши, 0…40" % f, "%s is the position in key widths, 0…40" % f))
-        for f in ("w", "h"):
-            if f in k and (not _num(k[f]) or not 0.25 <= k[f] <= 12):
-                out.append(_problem(at + "." + f, "%s — размер в ширинах клавиши, 0.25…12" % f, "%s is the size in key widths, 0.25…12" % f))
-        if "default" in k and not (isinstance(k["default"], list) and len(k["default"]) == 3 and all(isinstance(b, int) and 0 <= b <= 255 for b in k["default"])):
-            out.append(_problem(at + ".default", "default — три байта заводского действия клавиши", "default is the three bytes of the key's factory action"))
-        if len(out) > 40:
-            break
     return out
 
 
@@ -260,10 +189,6 @@ def stamp():
     return tuple(sorted(out))
 
 
-def endpoint(value):
-    return _ep(value)
-
-
 def schema():
     """The same rules as check(), as a JSON Schema for editors (data/devices/schema.json is
     this, written by `angelos devices schema`)."""
@@ -291,20 +216,11 @@ def schema():
             "family": {"enum": sorted(FAMILIES)},
             "usb": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["vid", "pid"], "properties": {"vid": hex4, "pid": hex4}}},
             "channel": {"type": "object", "required": ["via"], "properties": {
-                "via": {"enum": sorted({f["via"] for f in FAMILIES.values()})},
-                "interface": {"type": "integer", "minimum": 0, "maximum": 31},
-                "in": {"type": ["string", "integer"]}, "out": {"type": ["string", "integer"]}}},
+                "via": {"enum": sorted({f["via"] for f in FAMILIES.values()})}}},
             "support": {"enum": list(SUPPORT)},
             "checked": {"type": "array", "items": {"type": "string"}, "description": "The capabilities checked on real hardware."},
             "firmware": {"type": "object"},
             "notes": {"type": "object", "properties": {"ru": {"type": "string"}, "en": {"type": "string"}}},
             "capabilities": {"type": "object", "additionalProperties": False, "properties": caps},
-            "switches": {"type": "array", "items": {"type": "object", "required": ["id", "name", "travel"], "properties": {"id": {"type": "integer"}, "name": {"type": "string"}, "travel": num}}},
-            "layout": {"type": "object", "required": ["keys"], "properties": {"keys": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["m", "x", "y"], "properties": {
-                "m": {"type": "integer", "minimum": 0, "maximum": 255, "description": "The key's number in the protocol (its slot of the key matrix)."},
-                "x": {"type": "number", "minimum": 0, "maximum": 40}, "y": {"type": "number", "minimum": 0, "maximum": 40},
-                "w": {"type": "number", "minimum": 0.25, "maximum": 12}, "h": {"type": "number", "minimum": 0.25, "maximum": 12},
-                "label": {"type": "string"},
-                "default": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "integer", "minimum": 0, "maximum": 255}, "description": "The three bytes of the key's factory action."}}}}}},
         },
     }

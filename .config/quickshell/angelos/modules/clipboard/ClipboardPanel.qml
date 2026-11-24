@@ -31,6 +31,13 @@ PanelWindow {
     // takes input: the clipboard history: a click beside it closes it
     WlrLayershell.keyboardFocus: visible ? (Shell.dev ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive) : WlrKeyboardFocus.None
 
+    readonly property var pages: [
+        {label: I18n.t("Буфер", "Clipboard"), value: "clipboard"},
+        {label: I18n.t("Эмодзи", "Emoji"), value: "emoji"},
+        {label: I18n.t("Символы", "Symbols"), value: "symbols"}
+    ]
+    property string tab: "clipboard"
+    readonly property bool historyTab: tab === "clipboard"
     property string query: ""
     property int current: 0
     property string kind: "all"          // all | text | image | fav
@@ -100,6 +107,7 @@ PanelWindow {
         filters: [
             RegExpFilter {
                 roleName: "hay"
+                enabled: win.historyTab
                 regExp: new RegExp(win.query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i")
             },
             ValueFilter {
@@ -139,11 +147,55 @@ PanelWindow {
         Shell.clipboardOpen = false;
     }
     function pick(entry, copyOnly) {
+        if (!entry)
+            return;
         if (copyOnly)
             Clipboard.copy(entry);
         else
             Clipboard.paste(entry);
         Shell.clipboardOpen = false;
+    }
+
+    function selectTab(value) {
+        tab = value;
+        tabs.currentValue = value;
+        query = "";
+        current = 0;
+        field.text = "";
+        field.focusField();
+    }
+    function cycleTab(back) {
+        const index = pages.findIndex(p => p.value === tab);
+        selectTab(pages[(index + (back ? pages.length - 1 : 1)) % pages.length].value);
+    }
+    function pickCurrent(copyOnly) {
+        if (historyTab)
+            pick(entryAt(current), copyOnly);
+        else if (picker.item)
+            picker.item.pickCurrent(copyOnly);
+    }
+    function pickerKey(event) {
+        if (!picker.item)
+            return false;
+        switch (event.key) {
+        case Qt.Key_Tab:
+        case Qt.Key_Backtab:
+            picker.item.cycleCategory(event.key === Qt.Key_Backtab || !!(event.modifiers & Qt.ShiftModifier));
+            return true;
+        case Qt.Key_Up:
+        case Qt.Key_Down:
+            picker.item.moveSelection(0, event.key === Qt.Key_Up ? -1 : 1);
+            return true;
+        case Qt.Key_Left:
+        case Qt.Key_Right:
+            // Keep the normal cursor keys while editing a search.
+            if (query !== "" && !(event.modifiers & Qt.AltModifier))
+                return false;
+            picker.item.moveSelection(event.key === Qt.Key_Left ? -1 : 1, 0);
+            return true;
+        default:
+            return false;
+        }
     }
 
     // built when it opens (shell.qml: LazyLoader), so the first showing is the creation itself
@@ -152,16 +204,17 @@ PanelWindow {
         if (visible)
             opened();
     }
-    onVisibleChanged: if (visible)
-        opened()
+    onVisibleChanged: {
+        if (visible)
+            opened();
+        else if (!Shell.clipboardOpen)
+            Clipboard.rememberPickerTab(tab);
+    }
     function opened() {
         Clipboard.aim();
-        query = "";
-        current = 0;
         kind = "all";
         kinds.currentValue = "all";
-        field.text = "";
-        field.focusField();
+        selectTab(Clipboard.restorePickerTab());
     }
 
     MouseArea {
@@ -188,48 +241,62 @@ PanelWindow {
             anchors.fill: parent
         }
 
+        PxSegmented {
+            id: tabs
+            width: parent.width
+            spacing: Theme.gap
+            model: win.pages
+            currentValue: win.tab
+            onActivated: value => win.selectTab(value)
+        }
+
         PxField {
             id: field
             keepFocus: true
-            width: parent.width - clearBtn.width - Theme.u * 3
+            y: tabs.height + Theme.gap
+            width: win.historyTab ? parent.width - clearBtn.width - Theme.gap : parent.width
             icon: "search"
-            placeholder: I18n.t("поиск…", "Searching…")
+            placeholder: win.historyTab ? I18n.t("Поиск по буферу…", "Search clipboard…") : win.tab === "emoji" ? I18n.t("Поиск эмодзи…", "Search emoji…") : I18n.t("Поиск символов…", "Search symbols…")
             onEdited: {
                 win.query = text;
                 win.current = 0;
             }
-            onAccepted: if (win.count)
-                win.pick(win.entryAt(win.current))
+            onAccepted: win.pickCurrent(false)
             onKeyPressed: e => {
+                const shift = !!(e.modifiers & Qt.ShiftModifier);
+                const ctrl = !!(e.modifiers & Qt.ControlModifier);
+                const tabKey = e.key === Qt.Key_Tab || e.key === Qt.Key_Backtab;
+                const back = e.key === Qt.Key_Backtab || shift;
                 if (e.key === Qt.Key_Escape) {
                     Shell.clipboardOpen = false;
                     e.accepted = true;
-                } else if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & Qt.ShiftModifier)) {
-                    if (win.count)
-                        win.pick(win.entryAt(win.current), true);
+                } else if (ctrl && tabKey) {
+                    win.cycleTab(back);
                     e.accepted = true;
-                } else if (e.key === Qt.Key_O && (e.modifiers & Qt.ControlModifier) && win.count) {
+                } else if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && shift) {
+                    win.pickCurrent(true);
+                    e.accepted = true;
+                } else if (!win.historyTab) {
+                    e.accepted = win.pickerKey(e);
+                } else if (e.key === Qt.Key_O && ctrl && win.count) {
                     win.openLink(win.entryAt(win.current));
                     e.accepted = true;
-                } else if (e.key === Qt.Key_D && (e.modifiers & Qt.ControlModifier) && win.count) {
+                } else if (e.key === Qt.Key_D && ctrl && win.count) {
                     Clipboard.toggleFav(win.entryAt(win.current));
                     e.accepted = true;
-                } else if (e.key === Qt.Key_Tab || e.key === Qt.Key_Backtab) {
+                } else if (tabKey) {
                     const order = ["all", "text", "image", "fav"];
-                    win.kind = order[(order.indexOf(win.kind) + (e.key === Qt.Key_Tab ? 1 : 3)) % 4];
+                    win.kind = order[(order.indexOf(win.kind) + (back ? 3 : 1)) % 4];
                     kinds.currentValue = win.kind;   // PxSegmented keeps its own value after clicks
                     win.current = 0;
                     e.accepted = true;
-                } else if (e.key === Qt.Key_Down) {
-                    win.current = Math.min(win.count - 1, win.current + 1);
-                    list.positionViewAtIndex(win.current, ListView.Contain);
-                    e.accepted = true;
-                } else if (e.key === Qt.Key_Up) {
-                    win.current = Math.max(0, win.current - 1);
+                } else if ((e.key === Qt.Key_Down || e.key === Qt.Key_Up) && win.count) {
+                    win.current = Math.max(0, Math.min(win.count - 1, win.current + (e.key === Qt.Key_Up ? -1 : 1)));
                     list.positionViewAtIndex(win.current, ListView.Contain);
                     e.accepted = true;
                 } else if (e.key === Qt.Key_Delete && win.count) {
                     Clipboard.remove(win.entryAt(win.current));
+                    win.current = Math.min(win.current, Math.max(0, win.count - 1));
                     e.accepted = true;
                 }
             }
@@ -238,6 +305,8 @@ PanelWindow {
         PxButton {
             id: clearBtn
             property bool armed: false
+            visible: win.historyTab
+            y: field.y
             anchors.right: parent.right
             height: field.height
             icon: "trash"
@@ -263,7 +332,8 @@ PanelWindow {
 
         PxSegmented {
             id: kinds
-            y: field.height + Theme.u * 4
+            visible: win.historyTab
+            y: field.y + field.height + Theme.gap
             width: parent.width
             model: [
                 {
@@ -291,8 +361,23 @@ PanelWindow {
             }
         }
 
+        Loader {
+            id: picker
+            active: !win.historyTab
+            y: field.y + field.height + Theme.gap
+            width: parent.width
+            height: parent.height - y
+            sourceComponent: ClipboardPicker {
+                emoji: win.tab === "emoji"
+                query: win.query
+                onFocusSearch: field.focusField()
+                onPicked: (glyph, copyOnly) => win.pick(glyph, copyOnly)
+            }
+        }
+
         PxBox {
-            y: kinds.y + kinds.height + Theme.u * 4
+            visible: win.historyTab
+            y: kinds.y + kinds.height + Theme.gap
             width: parent.width
             height: parent.height - y
             sunken: true

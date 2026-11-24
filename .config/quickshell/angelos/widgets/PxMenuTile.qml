@@ -29,9 +29,18 @@ Item {
     height: col.implicitHeight + Theme.u * 4
     opacity: usable ? 1 : 0.45
 
+    // serp-skin: a soft rounded plate instead of the bevelled tile
+    Rectangle {
+        visible: !!root.t.serp && (root.lit || root.on)
+        anchors.fill: parent
+        radius: Serp.radiusSmall
+        color: root.on ? Serp.selected : Serp.hover
+        border.width: root.on && root.highlighted ? 1 : 0
+        border.color: Serp.accent
+    }
     PxBox {
         anchors.fill: parent
-        visible: root.lit || root.on
+        visible: (root.lit || root.on) && !root.t.serp  // serp-skin
         sunken: mouse.pressed || root.on
         hell: root.t.hellBox
         color: root.on ? Theme.mix(root.t.tileBg, Theme.accent, 0.35) : root.t.tileBg
@@ -49,6 +58,16 @@ Item {
                 name: root.entry ? root.entry.icon || "heart" : "heart"
                 pixel: root.scale_ > 1.1 ? Theme.u * 2 : Theme.u
                 ink: root.t.ink
+                visible: !root.t.serp  // serp-skin
+            }
+            // serp-skin: the skin's line icon
+            MacIcon {
+                anchors.centerIn: parent
+                visible: !!root.t.serp
+                name: root.t.serp ? MenuLook.serpIcon(root.entry ? root.entry.icon || "heart" : "heart") : "circle-dot"
+                size: Math.round(parent.width * 0.75)
+                stroke: 2
+                color: root.on || root.lit ? Serp.accent : Serp.text
             }
         }
         PxText {
@@ -75,7 +94,8 @@ Item {
                     readonly property bool sel: MenuLook.on(modelData.checked, false)
                     width: Math.max(Theme.u * 7, chipText.implicitWidth + Theme.u * 2)
                     height: Theme.u * 7
-                    color: sel ? Theme.accent : chipMouse.containsMouse ? Qt.alpha(Theme.accent, 0.3) : Qt.alpha(root.t.lo, 0.5)
+                    color: sel ? (root.t.serp ? Serp.accent : Theme.accent) : chipMouse.containsMouse ? Qt.alpha(root.t.serp ? Serp.accent : Theme.accent, 0.3) : Qt.alpha(root.t.lo, 0.5)  // serp-skin
+                    radius: root.t.serp ? Serp.px(3) : 0  // serp-skin
                     border.width: Math.max(1, Theme.u / 2)
                     border.color: root.t.edge
                     PxText {
@@ -83,7 +103,7 @@ Item {
                         anchors.centerIn: parent
                         kind: "tiny"
                         text: chip.modelData.label || ""
-                        color: chip.sel ? Theme.selectText : root.t.text
+                        color: chip.sel ? (root.t.serp ? Serp.onAccent : Theme.selectText) : root.t.text  // serp-skin
                     }
                     MouseArea {
                         id: chipMouse

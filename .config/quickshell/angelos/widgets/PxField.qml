@@ -100,12 +100,12 @@ Item {
         anchors.rightMargin: Theme.u * 5
         anchors.verticalCenter: parent.verticalCenter
         clip: true
-        color: Theme.toneOf(root.settingsSkin, "text")
+        color: Serp.on && root.mac ? Serp.text : Theme.toneOf(root.settingsSkin, "text")  // serp-skin
         selectionColor: Theme.select
         selectedTextColor: Theme.selectText
         // handwritten in the grimoire (Theme.scriptWindows), like PxText
         readonly property bool script: Theme.scriptWindows.length > 0 && Theme.scriptWindows.includes(Window.window)
-        font.family: script ? Theme.fontScript : root.mac ? Theme.macFont : root.kind === "title" ? Theme.fontTitle : Theme.fontBody
+        font.family: script ? Theme.fontScript : root.mac ? (Serp.on ? Serp.font : Theme.macFont) : root.kind === "title" ? Theme.fontTitle : Theme.fontBody  // serp-skin
         font.pixelSize: script ? Theme.scriptPx(root.kind === "title" ? Theme.sizeTitle : Theme.sizeBody) : root.mac ? GoldenGate.px(root.kind === "title" ? 15 : 13) : root.kind === "title" ? Theme.sizeTitle : Theme.sizeBody
         font.hintingPreference: root.mac ? Font.PreferVerticalHinting : Font.PreferFullHinting
         renderType: script || root.mac ? Text.QtRendering : Text.NativeRendering

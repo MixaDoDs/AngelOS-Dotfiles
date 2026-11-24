@@ -40,6 +40,7 @@ PxPage {
         id: part
         required property var modelData
         width: parent.width
+        height: item ? item.implicitHeight : 0
         function load() {
             const props = {
                 "embedded": true,
@@ -96,7 +97,7 @@ PxPage {
     Flow {
         visible: root.linkTargets.length > 0
         width: parent.width
-        spacing: Theme.u * 3
+        spacing: Theme.gap
         PxText {
             text: I18n.t("Рядом:", "Next door:")
             dim: true
@@ -107,6 +108,7 @@ PxPage {
             model: root.linkTargets
             PxButton {
                 required property var modelData
+                maxWidth: parent.width
                 compact: true
                 icon: modelData.icon
                 text: modelData.label + " ›"

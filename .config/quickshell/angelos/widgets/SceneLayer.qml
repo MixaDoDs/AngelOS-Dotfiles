@@ -15,6 +15,17 @@ Item {
     // layers over a widget must bend alike on their own
     property bool wave: false
     readonly property var anim: modelData.animation || ({})
+    // what this layer draws now has loaded (the day's frame, the night's or the dusk's while they
+    // show): SceneWall covers its still only once every layer has (no black flash at login)
+    readonly property bool loadedNow: {
+        const f = layer.frame;
+        const ok = r => r.count > f && !!r.itemAt(f) && r.itemAt(f).status === Image.Ready;
+        if (!ok(frames))
+            return false;
+        if (layer.ownNight && wall.nightMix > 0 && !ok(nightFrames))
+            return false;
+        return !layer.ownTwilight || ok(twilightFrames);
+    }
     readonly property real t: wall.time
     readonly property int frame: {
         if (!wall.moving)

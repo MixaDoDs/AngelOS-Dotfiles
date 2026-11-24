@@ -1,0 +1,20 @@
+{
+  "id": "skin-morph",
+  "name": {
+    "ru": "Морфинг тем",
+    "en": "Skin morph"
+  },
+  "version": "1.4.0",
+  "author": "frostpix",
+  "description": {
+    "ru": "Переключение Classic angelOS ↔ Golden Gate ↔ serp превращается в трансформацию: если включена Лента и бросок окон — сначала окна прилетают на стол (обратно улетают вниз), с «Каждая сторона помнит свои окна» (Настройки → Окна) окна возвращаются как были на той стороне (свёрнутые, места), потом волна сверху вниз (панель → окна и виджеты → Dock). В macOS пиксели запотевают в матовое стекло и тают, обратно — стекло деградирует в пиксельную мозаику и рассыпается. Звук перехода: стеклянные колокольчики в macOS, 8-битное выключение обратно. В serp: капля падает над островами, и кольцо расходится как по воде: фронт — жидкая линза с бликом в цвет акцента, за ним рябь; звук — капля и мягкий аккорд.",
+    "en": "Switching Classic angelOS ↔ Golden Gate ↔ serp becomes a transformation: with the Strip and the desk throw on, the windows fly in first (back: drop off), then a wave from top to bottom (bar → windows and widgets → Dock). To macOS the pixels frost into glass and melt; back, the glass degrades into a pixel mosaic and crumbles. With a sound: glass bells to macOS, an 8-bit power-down back. Into serp: a drop falls over the islands and a ring runs out like on water — a liquid lens front with an accent sheen, ripples behind; a drop and a soft chord."
+  },
+  "icon": "sparkle",
+  "enabledByDefault": true,
+  "themes": [
+    "pixel",
+    "mac"
+  ],
+  "main": "Main.qml"
+}

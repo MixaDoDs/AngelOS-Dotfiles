@@ -42,7 +42,8 @@ Singleton {
             "calm": Motion.calm,
             "still": Motion.still,
             "hell": Theme.hell,
-            "privacy": Privacy.hiddenNow.length > 0
+            "privacy": Privacy.hiddenNow.length > 0,
+            "liveCrop": Capture.liveCropSupported
         })
     onShellStateChanged: send(shellState)
 
@@ -70,6 +71,7 @@ Singleton {
             "ws": ws,
             "windows": ws ? Niri.windowsOn(ws.id) : [],
             "focused": Niri.focusedWindowId,
+            "cropWindow": ws && ws.active_window_id !== null ? ws.active_window_id : -1,
             "land": ShotEdit.placeOn(name),
             "barEdge": BarLayout.edge
         };
@@ -104,6 +106,8 @@ Singleton {
             screenName = m.screen || "";
         } else if (m.t === "learned") {
             learnedCount = m.n || 0;
+        } else if (m.t === "live-crop" && sock === client) {
+            Capture.pickLiveCrop(m.windowId, m.screen);
         } else if (m.t === "save") {
             Capture.saveShot(m.frame, m.rect, m.opts || {}, r => send({
                     "t": "answer",

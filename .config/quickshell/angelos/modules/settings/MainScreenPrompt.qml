@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Two screens or more and nobody ever said which one is the main one: asked once, the first
 // time this version runs (an update brings it). The login (SDDM) and the lock put the
@@ -27,7 +28,7 @@ PanelWindow {
         right: true
     }
     exclusionMode: ExclusionMode.Ignore
-    color: Qt.alpha(Theme.shadow, 0.35)
+    color: Serp.on ? Qt.alpha(Serp.crust, 0.25) : Qt.alpha(Theme.shadow, 0.35)  // serp-skin
     WlrLayershell.namespace: "angelos-main-screen"
     WlrLayershell.layer: WlrLayer.Overlay
     // takes input: one question, Esc or a click beside it = later (it asks again next time)
@@ -66,6 +67,7 @@ PanelWindow {
 
     PxWindow {
         id: dialog
+        visible: !Serp.on  // serp-skin: SerpDialog* draws
         anchors.centerIn: parent
         width: Theme.u * 220
         height: titleHeight + col.implicitHeight + Theme.pad * 2 + Theme.u * 8
@@ -112,6 +114,8 @@ PanelWindow {
             }
         }
     }
+
+    SerpDialogScreen { id: serpDlg; host: win }  // serp-skin
 
     RightClickGuard {}
 }

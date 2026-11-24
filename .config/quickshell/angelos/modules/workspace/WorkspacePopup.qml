@@ -36,7 +36,7 @@ PanelWindow {
     }
 
     readonly property string pos: Config.workspaces.popupPosition || "bottom-center"
-    visible: shown
+    visible: shown && !Serp.on  // serp-skin
     anchors.top: Place.top(pos)
     anchors.bottom: Place.bottom(pos)
     anchors.left: Place.left(pos)

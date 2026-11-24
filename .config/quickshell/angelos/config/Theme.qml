@@ -531,8 +531,21 @@ Singleton {
             "green": ["#62ba46", "#4cd964"],
             "graphite": ["#8c8c8c", "#98989d"]
         })
-    readonly property color macAccent: (macAccents[Config.mac.accent] || macAccents.blue)[dark ? 1 : 0]
-    readonly property var macBase: dark ? ({
+    // Golden Gate under the wallpaper's colour (Config.mac.wallpaperTint)
+    readonly property bool macTint: macLook && !!Config.mac.wallpaperTint && /^#[0-9a-f]{6}$/i.test(Config.mac.wallpaperAccent || "")
+    readonly property color macSeed: macTint ? Qt.color(Config.mac.wallpaperAccent) : "#0091ff"
+    // the seed at a Mac accent's brightness; a grey picture gives graphite
+    function macTone(isDark, hueShift) {
+        const s = macSeed;
+        const grey = s.hslSaturation < 0.12;
+        return hex(Qt.hsla((s.hslHue + (hueShift || 0) + 1) % 1, grey ? s.hslSaturation : Math.min(0.9, Math.max(0.55, s.hslSaturation)), isDark ? 0.62 : 0.5, 1));
+    }
+    // a surface leaned toward the wallpaper, as macOS tints its windows
+    function macTinted(c, k) {
+        return macTint ? hex(mix(Qt.color(c), macSeed, k === undefined ? (dark ? 0.07 : 0.05) : k)) : c;
+    }
+    readonly property color macAccent: macTint ? macTone(dark) : (macAccents[Config.mac.accent] || macAccents.blue)[dark ? 1 : 0]
+    readonly property var macBaseRaw: dark ? ({
             desk: "#1c1c1e",
             face: "#242426",
             faceAlt: "#2c2c2e",
@@ -578,6 +591,19 @@ Singleton {
             shadow: "#000000",
             // Terminal.app's "Basic" colours
             ansi: ["#000000", "#990000", "#00a600", "#999900", "#0000b2", "#b200b2", "#00a6b2", "#bfbfbf", "#666666", "#e50000", "#00d900", "#e5e500", "#0000ff", "#e500e5", "#00e5e5", "#e5e5e5"]
+        })
+    // the Mac's surfaces tinted by the wallpaper, its accents from it
+    readonly property var macBase: !macTint ? macBaseRaw : Object.assign({}, macBaseRaw, {
+            desk: macTinted(macBaseRaw.desk),
+            face: macTinted(macBaseRaw.face),
+            faceAlt: macTinted(macBaseRaw.faceAlt),
+            sunken: macTinted(macBaseRaw.sunken),
+            hi: macTinted(macBaseRaw.hi),
+            lo: macTinted(macBaseRaw.lo),
+            accent: hex(macAccent),
+            title1: hex(macAccent),
+            accent2: macTone(dark, 0.08),
+            title2: macTone(dark, 0.08)
         })
     readonly property var base: macLook ? macBase : baseOf(flavor, dark, night)
     readonly property color menuSurface: mix(face, accent, dark ? 0.08 : 0.04)

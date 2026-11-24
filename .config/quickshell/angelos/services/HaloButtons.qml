@@ -62,7 +62,7 @@ Singleton {
         }
     ]
     // the chosen ones, in the chosen order; ids nobody knows are skipped
-    readonly property var list: (Config.halo.buttons || []).map(id => catalog.find(b => b.id === id)).filter(b => !!b)
+    readonly property var list: (Config.halo.buttons || []).map(id => catalog.find(b => b.id === id)).filter(b => b && (b.id !== "note" || Config.halo.shelf))
 
     function byId(id) {
         return catalog.find(b => b.id === id) || null;
@@ -116,7 +116,7 @@ Singleton {
             Timers.add(spec);
             return true;
         }
-        if (id === "note") {
+        if (id === "note" && Config.halo.shelf) {
             Shelf.addText(t, true);
             return true;
         }

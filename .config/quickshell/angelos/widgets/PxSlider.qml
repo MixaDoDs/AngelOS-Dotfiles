@@ -94,9 +94,9 @@ Item {
         x: track.x
         anchors.verticalCenter: track.verticalCenter
         width: track.width
-        height: GoldenGate.px(4)
+        height: Serp.on ? Serp.px(6) : GoldenGate.px(4)  // serp-skin
         radius: height / 2
-        color: GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(0, 0, 0, 0.12)
+        color: Serp.on ? Serp.surface2 : GoldenGate.dark ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(0, 0, 0, 0.12)  // serp-skin
         Rectangle {
             width: Math.max(parent.height, thumb.x - track.x + thumb.width / 2)
             height: parent.height
@@ -145,9 +145,9 @@ Item {
         radius: width / 2
         anchors.verticalCenter: track.verticalCenter
         x: thumb.x + (thumb.width - width) / 2
-        color: "#ffffff"
-        border.width: 1
-        border.color: Qt.rgba(0, 0, 0, mouse.pressed ? 0.25 : 0.14)
+        color: Serp.on ? Serp.accent : "#ffffff"  // serp-skin
+        border.width: Serp.on ? Serp.px(2) : 1  // serp-skin
+        border.color: Serp.on ? Serp.base : Qt.rgba(0, 0, 0, mouse.pressed ? 0.25 : 0.14)  // serp-skin
     }
     Rectangle {
         visible: !root.classicLike && !root.mac

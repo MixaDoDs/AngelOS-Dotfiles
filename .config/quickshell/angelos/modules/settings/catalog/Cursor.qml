@@ -233,10 +233,22 @@ CatPage {
             hint: I18n.t("во сколько раз больше обычного", "how many times bigger than usual")
             from: 1
             to: 3
-            stepSize: 1
-            value: Math.round(Config.cursor.motionSize ?? 2)
+            stepSize: Config.cursor.motionFineSize ? 0.25 : 1
+            decimals: Config.cursor.motionFineSize ? 2 : 0
+            value: Config.cursor.motionFineSize ? Config.cursor.motionSize ?? 2 : Math.round(Config.cursor.motionSize ?? 2)
             suffix: "×"
             onMoved: v => Config.cursor.motionSize = v
+        }
+        CatToggle {
+            present: Config.cursor.motion && CursorShake.ownMotion
+            label: I18n.t("Дробный размер", "Fractional size")
+            hint: I18n.t("шаг в четверть (1,25×, 1,5×…); у пиксельных тем пиксели станут неровными", "quarter steps (1.25×, 1.5×…); a pixel theme's pixels get uneven")
+            checked: !!Config.cursor.motionFineSize
+            onToggled: c => {
+                Config.cursor.motionFineSize = c;
+                if (!c)
+                    Config.cursor.motionSize = Math.round(Config.cursor.motionSize ?? 2);
+            }
         }
         CatSlider {
             present: Config.cursor.motion && CursorShake.ownMotion
@@ -248,6 +260,17 @@ CatPage {
             value: Math.round((Config.cursor.motionSway ?? 1) * 100)
             suffix: "%"
             onMoved: v => Config.cursor.motionSway = v / 100
+        }
+        CatSlider {
+            present: Config.cursor.motion && CursorShake.ownMotion
+            label: I18n.t("Смаз в движении", "Motion smear")
+            hint: I18n.t("след из копий стрелки на скорости; 0 — без него", "a trail of arrow copies when fast; 0 — none")
+            from: 0
+            to: 300
+            stepSize: 10
+            value: Math.round((Config.cursor.motionBlur ?? 0) * 100)
+            suffix: "%"
+            onMoved: v => Config.cursor.motionBlur = v / 100
         }
         CatSlider {
             present: Config.cursor.motion && CursorShake.ownMotion
@@ -282,6 +305,36 @@ CatPage {
             suffix: "%"
             onMoved: v => Config.cursor.motionShadowDist = v / 100
         }
+        CatSlider {
+            present: Config.cursor.motion && CursorShake.ownMotion
+            label: I18n.t("Мягкость тени", "Shadow softness")
+            hint: I18n.t("размытые края; 0 — чёткий пиксельный силуэт", "blurred edges; 0 — a crisp pixel silhouette")
+            from: 0
+            to: 400
+            stepSize: 10
+            value: Math.round((Config.cursor.motionShadowSoft ?? 0) * 100)
+            suffix: "%"
+            onMoved: v => Config.cursor.motionShadowSoft = v / 100
+        }
+        CatToggle {
+            present: Config.cursor.motion && CursorShake.ownMotion
+            label: I18n.t("Под бит", "On the beat")
+            hint: !CursorShake.ownKick ? I18n.t("нужна сборка angel-niri с CursorKick", "needs angel-niri with CursorKick") : I18n.t("курсор подпрыгивает на бочку играющей музыки — тот же слух, что качает окна и обои", "the pointer hops on the kicks of the music playing — the same hearing that springs the windows and the wallpaper")
+            enabled: CursorShake.ownKick
+            checked: !!Config.cursor.motionBeat && CursorShake.ownKick
+            onToggled: c => Config.cursor.motionBeat = c
+        }
+        CatSlider {
+            present: Config.cursor.motion && CursorShake.ownMotion && !!Config.cursor.motionBeat && CursorShake.ownKick
+            label: I18n.t("Сила прыжка", "Hop height")
+            hint: I18n.t("как высоко курсор подпрыгивает на бочку", "how high the pointer hops on a kick")
+            from: 30
+            to: 300
+            stepSize: 10
+            value: Math.round((Config.cursor.motionBeatPower ?? 1) * 100)
+            suffix: "%"
+            onMoved: v => Config.cursor.motionBeatPower = v / 100
+        }
         CatCustom {
             wide: true
             present: Config.cursor.motion && CursorShake.ownMotion
@@ -296,6 +349,10 @@ CatPage {
                         Config.cursor.motionBounce = 1;
                         Config.cursor.motionShadow = 1;
                         Config.cursor.motionShadowDist = 1;
+                        Config.cursor.motionFineSize = false;
+                        Config.cursor.motionBlur = 0;
+                        Config.cursor.motionShadowSoft = 0;
+                        Config.cursor.motionBeatPower = 1;
                     }
                 }
             }

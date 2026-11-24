@@ -64,9 +64,9 @@ CatPage {
                     width: parent.width
                     spacing: Theme.u * 4
                     // all five in a row while each has room for its name, else three or two
-                    readonly property int cols: width >= Theme.u * 5 * 96 ? 5 : width >= Theme.u * 3 * 96 ? 3 : 2
+                    readonly property int cols: width >= Theme.u * 6 * 96 ? 6 : width >= Theme.u * 3 * 96 ? 3 : 2  // serp-skin: six
                     Repeater {
-                        model: ["classic", "win10", "windose", "stream", "goldengate"]
+                        model: ["classic", "win10", "windose", "stream", "goldengate", "serp"]  // serp-skin
                         SettingsSkinCard {
                             required property string modelData
                             skin: modelData

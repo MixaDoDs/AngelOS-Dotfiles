@@ -7,6 +7,7 @@ import Quickshell.Services.Polkit
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Polkit authentication agent.
 Scope {
@@ -48,7 +49,7 @@ Scope {
             right: true
         }
         exclusionMode: ExclusionMode.Ignore
-        color: Qt.alpha(Theme.shadow, 0.35)
+        color: Serp.on ? Qt.alpha(Serp.crust, 0.25) : Qt.alpha(Theme.shadow, 0.35)  // serp-skin
         WlrLayershell.namespace: "angelos-polkit"
         WlrLayershell.layer: WlrLayer.Overlay
         // takes input: the password dialog
@@ -59,14 +60,16 @@ Scope {
             field.focusField();
         }
 
-        BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
+        BackgroundEffect.blurRegion: (Serp.on ? Serp.blurOn : Config.appearance.blur) ? blurRegion : null  // serp-skin
         Region {
             id: blurRegion
-            item: dialog
+            item: Serp.on ? serpDlg.card : dialog  // serp-skin
+            radius: Serp.on ? Serp.radius + Serp.px(4) : 0  // serp-skin
         }
 
         PxWindow {
             id: dialog
+            opacity: Serp.on ? 0 : 1  // serp-skin: hidden, its keys still listen (SerpDialog* draws)
             anchors.centerIn: parent
             width: Theme.u * 200
             height: titleHeight + col.implicitHeight + Theme.pad * 2 + Theme.u * 8
@@ -139,6 +142,8 @@ Scope {
                 }
             }
         }
+
+        SerpDialogPolkit { id: serpDlg; flow: root.flow; field: field }  // serp-skin
 
         RightClickGuard {}
     }

@@ -43,10 +43,15 @@ Singleton {
     // the Golden Gate skin: macOS's black arrow — "macOS" (ful1e5/apple_cursor, redrawn, GPL-3.0,
     // the catalog's "macos") when it is installed, else capitaine-cursors (drawn after macOS's
     // cursors, LGPL-3.0, from the distribution) — while it is on and the demon doesn't rule; the
-    // cursor before it comes back when it goes (Config.cursor.beforeMac)
+    // cursor before it comes back when it goes (Config.cursor.beforeMac). Settings → Golden Gate →
+    // «Pixel Mac cursor» (Config.mac.pixelCursor, off by default): angelOS Mac Pixel instead, the
+    // same cursors as 12×12 pixel art with a halo (frostpix's pc-kit, after apple_cursor, GPL-3.0)
     readonly property bool macInstalled: catalog.some(e => e.theme === "macOS" && e.installed)
-    readonly property string macTheme: macInstalled ? "macOS" : "capitaine-cursors"
-    readonly property bool macCursor: GoldenGate.on && !hellOn && (macInstalled || other.includes(macTheme))
+    readonly property string macTheme: Config.mac.pixelCursor && other.includes("angelOS-MacPixel") ? "angelOS-MacPixel" : macInstalled ? "macOS" : "capitaine-cursors"
+    readonly property bool macCursor: (GoldenGate.on || serpArrow) && !hellOn && (serpArrow || macInstalled || other.includes(macTheme))  // serp-skin
+    // serp-skin: the skin's own arrow while it is on, as Golden Gate's
+    readonly property bool serpArrow: Serp.on && other.includes("angelOS-Serp")
+    readonly property string skinArrow: serpArrow ? "angelOS-Serp" : macTheme
     // angelOS Glitter is one of heaven's things (services/Heaven): until it is earned the
     // pick stays, angelOS Pixel is worn instead
     readonly property bool glitterOk: Heaven.has("cursor.glitter")
@@ -55,7 +60,7 @@ Singleton {
     }
     readonly property string heavenTheme: {
         if (macCursor)
-            return macTheme;
+            return skinArrow;  // serp-skin
         if (theme === "angelOS-Glitter" && !glitterOk)
             return angelStep >= 3 ? "angelOS-Frost" : "angelOS-Pixel";
         const own = theme === "angelOS-Pixel" || theme === "angelOS-Glitter";
@@ -163,6 +168,10 @@ Singleton {
         _attempt = "";
         Qt.callLater(sync);
     }
+    onMacThemeChanged: if (macCursor) {
+        _attempt = "";
+        Qt.callLater(sync);
+    }
     // a new circle, a new mood step: the circle's cursor changes — only then
     onHellThemeChanged: if (hellOn) {
         _attempt = "";
@@ -205,15 +214,15 @@ Singleton {
             };
         const now = status.niri ? status.niri[0] : "";
         // the skin's arrow on; off again, the one before it back
-        if (macCursor && now !== macTheme) {
+        if (macCursor && now !== skinArrow) {  // serp-skin
             if (!Config.cursor.beforeMac)
                 Config.cursor.beforeMac = now || status.gsettings || "Adwaita";
             return {
-                "theme": macTheme,
+                "theme": skinArrow,  // serp-skin
                 "size": sz
             };
         }
-        if (!macCursor && now === macTheme && Config.cursor.beforeMac) {
+        if (!macCursor && (now === macTheme || now === "angelOS-Serp") && Config.cursor.beforeMac) {  // serp-skin
             const back = Config.cursor.theme ? heavenTheme : Config.cursor.beforeMac;
             Config.cursor.beforeMac = "";
             return {
@@ -286,6 +295,12 @@ Singleton {
                 } catch (e) {}
             }
         }
+    }
+    // X11's own default cursor (Steam's top strip, Wine) from the start: Xwayland begins with
+    // none of the theme's (an apply sets it again on every switch; scripts/cursors.py x11_root)
+    Process {
+        running: !Shell.dev
+        command: ["python3", root.script, "x11"]
     }
     Process {
         id: worker

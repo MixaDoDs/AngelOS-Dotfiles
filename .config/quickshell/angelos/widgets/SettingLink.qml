@@ -17,6 +17,7 @@ SettingRow {
     }
 
     PxButton {
+        maxWidth: root.stackControls ? parent.width : 0
         compact: true
         text: root.target + " ›"
         // inside Settings it goes on in the same window

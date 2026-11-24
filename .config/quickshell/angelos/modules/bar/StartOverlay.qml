@@ -7,6 +7,7 @@ import qs.config
 import qs.services
 import qs.widgets
 import qs.modules.mac
+import qs.modules.serp  // serp-skin
 
 // Start menu as a layer-shell overlay: opens from the Start button, from a
 // Meta tap or over IPC, takes the keyboard and closes on a click outside.
@@ -31,13 +32,13 @@ Variants {
         readonly property bool hellish: Angel.demon && Config.y2k.hellStart === "hell"
         readonly property bool hellSkin: Angel.demon && Config.y2k.hellStart === "skin"
         // the Golden Gate skin: its own Spotlight (modules/mac/MacSpotlight)
-        readonly property string style: hellish ? "hell" : GoldenGate.on ? "mac" : StartPrefs.current
+        readonly property string style: hellish ? "hell" : Serp.on ? "serp" : GoldenGate.on ? "mac" : StartPrefs.current  // serp-skin
         readonly property bool full: style === "fullscreen" || style === "xmb"
-        readonly property bool spot: style === "spotlight" || style === "mac"
+        readonly property bool spot: style === "spotlight" || style === "mac" || style === "serp"  // serp-skin
         property bool shown: false
         property real reveal: 0
         // this look's deep settings (services/StartPrefs: Settings → Bar → Start → Fine-tune)
-        readonly property var prefs: StartPrefs.of(style === "hell" ? "classic" : style === "mac" ? "spotlight" : style)
+        readonly property var prefs: StartPrefs.of(style === "hell" ? "classic" : style === "mac" || style === "serp" ? "spotlight" : style)  // serp-skin
 
         screen: modelData
         visible: shown
@@ -91,18 +92,27 @@ Variants {
             function onStartPrefillChanged() {
                 win.takePrefill();
             }
+            function onDismissStartOverlay() {
+                if (!win.shown)
+                    return;
+                appMenu.close();
+                revealAnim.stop();
+                win.reveal = 0;
+                win.finishClose();
+            }
+        }
+        // Clear the typed text so the search bindings stop running behind the closed menu.
+        function finishClose() {
+            shown = false;
+            if (body.item && body.item.setQuery)
+                body.item.setQuery("");
         }
         NumberAnimation {
             id: revealAnim
             target: win
             property: "reveal"
-            // closed: the typed text goes too, so the results bindings (apps,
-            // settings, the calculator) don't keep re-running behind a hidden menu
-            onFinished: if (!win.open) {
-                win.shown = false;
-                if (body.item && body.item.setQuery)
-                    body.item.setQuery("");
-            }
+            onFinished: if (!win.open)
+                win.finishClose()
         }
 
         // where the Start button of this screen sits (layer shell does not tell
@@ -235,6 +245,7 @@ Variants {
                     "tiles": tilesComp,
                     "spotlight": spotComp,
                     "mac": macComp,
+                    "serp": serpComp,  // serp-skin
                     "hell": hellComp
                 })[win.style] || classicComp
             // hell's version of whatever look this is
@@ -315,6 +326,11 @@ Variants {
         Component {
             id: macComp
             MacSpotlight {}
+        }
+        // serp-skin: Start in the Serpantinum look
+        Component {
+            id: serpComp
+            SerpLauncher {}
         }
         Component {
             id: hellComp

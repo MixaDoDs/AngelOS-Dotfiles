@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import qs.config
+import "../widgets/MacIcons.js" as MacIcons  // serp-skin
 
 // The look of the pixel menus (widgets/PxMenu: the desktop's, a widget's, the bar's, a task's,
 // the tray's, the Halo's): one look for all of them, the bevelled box of Settings' cards, with
@@ -123,5 +124,49 @@ Singleton {
             "tileEdge": Theme.edge,
             "tileBevel": true
         })
-    readonly property var classic: hell ? classicHell : plain
+    readonly property var classic: Serp.on ? serp : hell ? classicHell : plain  // serp-skin
+    // serp-skin: the Serpantinum skin's menus. `serp` marks the set: PxMenuList lays `plate` (a
+    // flat rounded Serp.solid) under a frame that draws nothing, rows light up rounded
+    readonly property var serp: ({
+            "name": "classic",
+            "serp": true,
+            "plate": Serp.solid,
+            "face": "transparent",
+            "edge": Serp.line,
+            "hi": Serp.surface2,
+            "lo": Serp.surface1,
+            "flat": true,
+            "outline": false,
+            "hellBox": false,
+            "shadow": false,
+            "shadowColor": "transparent",
+            "shadowU": 0,
+            "headText": Serp.subtext0,
+            "pad": 7,
+            "text": Serp.text,
+            "dim": Serp.subtext1,
+            "ink": Serp.subtext1,
+            "outlineText": "transparent",
+            "lit": Serp.selected,
+            "litText": Serp.accent,
+            "litInk": Serp.accent,
+            "markerColor": Serp.accent,
+            "sepLo": Serp.line,
+            "sepHi": "transparent",
+            "tileBg": Serp.surface0,
+            "tileEdge": Serp.line,
+            "tileBevel": false
+        })
+    // a menu entry's pixel icon name → the line icon the skin draws (MacIcons, Lucide)
+    readonly property var serpIcons: ({
+            "prev": "skip-back", "next": "skip-forward", "pin": "star", "maximize": "maximize-2",
+            "minimize": "minimize-2", "warn": "circle-x", "sparkleStar": "sparkles", "wifiOff": "wifi-off",
+            "bolt": "zap", "chat": "bot", "width": "sliders-horizontal", "height": "sliders-horizontal",
+            "spider": "activity", "skull": "angel-horns", "rotate": "rotate-ccw", "pill": "toggle-right",
+            "note": "file-text", "allDesks": "layout-grid", "phone": "airplay", "headphones": "volume-2",
+            "ampoule": "sun", "ethernet": "ethernet-port", "eye": "eye", "pause": "pause", "minus": "minus"
+        })
+    function serpIcon(n) {
+        return serpIcons[n] || MacIcons.fromPixel(n || "") || "circle-dot";
+    }
 }

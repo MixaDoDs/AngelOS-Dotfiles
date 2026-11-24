@@ -143,7 +143,8 @@ Singleton {
     // (#106: 3.5 s and gone, missed by anyone away from the screen); the bell counts the unread
     // (modules/bar/parts/Bell). Not over a hidden, slid-away or
     // full-screen-hidden Halo (then the corner popup comes as before)
-    readonly property bool takesNotifications: Config.ready && Config.halo.notify !== false && seenSomewhere && !(gameOn && Config.halo.overFullscreen !== "timer")
+    // over a game only when asked ("notify"): "timer" took them and showed nothing
+    readonly property bool takesNotifications: Config.ready && Config.halo.notify !== false && seenSomewhere && !(gameOn && Config.halo.overFullscreen !== "notify")
     // somewhere a full-screen window (the Halo's screens): it hides there
     readonly property bool gameOn: Shell.screens.some(s => on(s.name) && Shell.fullscreenOn(s.name))
     Connections {
@@ -284,7 +285,7 @@ Singleton {
         case "power":
             return ["battery-full-charging", I18n.t("Зарядка подключена", "Charger plugged in"), Power.percent + "%"];
         case "dlDone":
-            return ["folder-download", I18n.t("Скачано", "Downloaded"), (StreamMode.onAir ? "" : d.name + "\n") + I18n.t("Лежит на полке.", "It is on the shelf.")];
+            return ["folder-download", I18n.t("Скачано", "Downloaded"), StreamMode.onAir ? "" : d.name];
         case "updated":
             return d.ok ? ["system-software-update", I18n.t("angelOS обновлена", "angelOS updated"), ""] : ["dialog-warning", I18n.t("Обновление не удалось", "The update failed"), Updates.failure];
         case "place":
@@ -433,13 +434,14 @@ Singleton {
                 root.flashOf("power", {}, 3000);
         }
     }
-    // a download done: its name (services/Downloads put it on the shelf)
+    // a download done: its name and path for the file manager
     Connections {
         target: Downloads
         function onFinishedChanged() {
             if (Downloads.finished)
                 root.flashOf("dlDone", {
-                    "name": Downloads.finished
+                    "name": Downloads.finished,
+                    "path": Downloads.finishedPath
                 }, 3500);
         }
     }
@@ -645,7 +647,7 @@ Singleton {
             });
         // the shelf's loose things (services/Shelf): a stack with their number, last — only a
         // minute after something landed there (the shelf itself is a page of the open Halo)
-        if (Shelf.count > 0 && shelfFresh)
+        if (Config.halo.shelf && Shelf.count > 0 && shelfFresh)
             l.push({
                 "key": "shelf",
                 "kind": "shelf"

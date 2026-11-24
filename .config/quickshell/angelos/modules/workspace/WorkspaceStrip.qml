@@ -35,7 +35,7 @@ PanelWindow {
 
     // linger: shown goes false a beat before the slide-out starts, which unmapped the strip
     // for a few frames before it slid away (#87)
-    visible: shown || slide.running || linger.running
+    visible: (shown || slide.running || linger.running) && !Serp.on  // serp-skin
     anchors.right: true
     implicitWidth: box.width + Theme.u * 8
     implicitHeight: box.height + Theme.u * 6

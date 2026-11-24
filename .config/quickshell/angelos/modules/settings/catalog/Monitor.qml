@@ -13,6 +13,9 @@ CatPage {
     heading: I18n.t("Экран", "Display")
     subtitle: I18n.t("Разрешение, масштаб, поворот и расположение экранов.", "Resolution, scale, rotation and layout of the screens.")
     property string selected: Object.keys(Outputs.draft)[0] || ""
+    readonly property int outputCount: Object.keys(Outputs.draft).length
+    readonly property bool compactArrangement: outputCount === 1 && Theme.fluentFor(host) && Theme.settingsSkinFor(host) !== "goldengate"
+    property bool arrangementExpanded: false
     readonly property var d: Outputs.draft[selected] || null
     readonly property var o: Outputs.outputs[selected] || null
     function logicalSize(name) {
@@ -32,11 +35,22 @@ CatPage {
         name: "arrangement"
         title: I18n.t("Расположение", "Arrangement")
         icon: "monitor"
+        outlined: false
+        present: page.outputCount > 0
         CatCustom {
             wide: true
             CatBox {
+                spacing: Theme.gap
+                PxButton {
+                    visible: page.compactArrangement
+                    compact: true
+                    icon: page.arrangementExpanded ? "arrowUp" : "arrowDown"
+                    text: page.arrangementExpanded ? I18n.t("Свернуть схему", "Hide layout") : I18n.t("Показать схему", "Show layout")
+                    onClicked: page.arrangementExpanded = !page.arrangementExpanded
+                }
                 PxBox {
                     id: canvas
+                    visible: !page.compactArrangement || page.arrangementExpanded
                     width: parent.width
                     height: Theme.u * 110
                     sunken: true
@@ -143,6 +157,7 @@ CatPage {
         }
         CatCustom {
             wide: true
+            present: !page.compactArrangement
             CatBox {
                 Flow {
                     width: parent.width
@@ -165,6 +180,7 @@ CatPage {
         name: "output"
         title: page.selected + (page.o ? "  ·  " + (page.o.make || "") + " " + (page.o.model || "") : "")
         icon: "gear"
+        outlined: false
         present: !!page.d
         CatToggle {
             label: I18n.t("Включён", "Enabled")
@@ -252,6 +268,7 @@ CatPage {
         name: "brightness-colour"
         title: I18n.t("Яркость и цвет", "Brightness and colour")
         icon: "sun"
+        outlined: false
         CatNote {
             textKind: "tiny"
             dim: true
@@ -502,7 +519,8 @@ CatPage {
     CatCustom {
         wide: true
         CatBox {
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Theme.u * 4
                 // «Apply» keeps it after a reboot too (a change that may leave the screen unreadable is
                 // saved once «Keep» says so); «Just try» is live only, until the next start

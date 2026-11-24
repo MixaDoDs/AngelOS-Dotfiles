@@ -24,7 +24,9 @@ Singleton {
     readonly property string screenName: Config.sidebar.screen || (Shell.primaryScreen ? Shell.primaryScreen.name : "")
     readonly property bool enabled: Config.sidebar.enabled && Shell.screenByName(screenName) !== null
 
-    readonly property bool phone: Config.sidebar.look !== "panel"
+    readonly property bool phone: Config.sidebar.look !== "panel" && !Serp.on  // serp-skin: the skin's side panel instead
+    readonly property bool serpSide: Serp.on  // serp-skin: the look swapped under it (the skin on / off): away
+    onSerpSideChanged: hide()  // serp-skin
     // the phone: its screen's page (home, sound, system, ai — those of `sections` it has) and
     // on its side, which tab there (sound | walls | theme)
     property int page: 0

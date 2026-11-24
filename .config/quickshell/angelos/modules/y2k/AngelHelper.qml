@@ -725,7 +725,7 @@ Scope {
                 // a few players take turns: a pip is shorter than a letter
                 Item {
                     id: voice
-                    readonly property bool on: Sounds.enabled("voice") && !StreamMode.quiet && Sounds.ready
+                    readonly property bool on: Sounds.enabled("voice") && !StreamMode.quiet && Sounds.ready && !(Shell.gaming && Shell.fullscreenOn(Angel.screenName))  // no pips while a game fills her screen
                     // loaded once the pack is ready: an older, louder pack is synthesised again first
                     readonly property string clip: Sounds.ready ? Sounds.dir + "/" + (Angel.demon ? "voiceDemon" : "voiceAngel") + ".wav" : ""
                     // decoded ahead in sfx-player, so the first letter isn't late

@@ -39,7 +39,7 @@ Scope {
 
             Timer {
                 interval: 6000
-                running: !card.held
+                running: !card.held && !!ShotEdit.privacyScan && !ShotEdit.copyingMasked
                 onTriggered: ShotEdit.dismiss()
             }
             ShotCard {

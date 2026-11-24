@@ -166,7 +166,7 @@ IpcHandler {
             WindowConfig.setFloatAll(mode === "toggle" ? !WindowConfig.floatAll : mode === "on");
         else if (mode !== "status" && mode !== "")
             return "on | off | toggle | status";
-        return WindowConfig.floatAll ? "on" : "off";
+        return StackMemory.heading || (WindowConfig.floatAll ? "on" : "off");   // a switch under way: where it goes
     }
     // stay awake (services/Awake): on | off | toggle | status — by hand; stream mode and
     // full-screen windows switch it by themselves (Settings → Lock → Stay awake)
@@ -871,13 +871,13 @@ IpcHandler {
     }
     // what Settings wear: `angelos settingsSkin windose` (no argument: which one)
     function settingsSkin(skin: string): string {
-        const skins = ["classic", "win10", "windose", "stream", "goldengate"];
+        const skins = ["classic", "win10", "windose", "stream", "goldengate", "serp"];  // serp-skin
         const s = String(skin || "").trim().toLowerCase();
         if (s === "")
             return Config.settingsUi.skin + "  (" + skins.join(" | ") + ")";
         if (!skins.includes(s))
             return "unknown skin " + s + ": " + skins.join(" | ");
-        Config.settingsUi.skin = s;
+        GoldenGate.setSkin(s);
         Config.settingsUi.skinChosen = true;
         return "ok";
     }
@@ -1330,7 +1330,7 @@ IpcHandler {
     function peripherals(line: string): string {
         return Peripherals.ipc(line);
     }
-    // the devices' driver (Hall-effect keyboards, mice): `angelos devices status`; the rest of
+    // the devices' driver (mice): `angelos devices status`; the rest of
     // `angelos devices …` is scripts/devices.py and needs no shell (services/Devices.ipc)
     function devices(line: string): string {
         return Devices.ipc(line);

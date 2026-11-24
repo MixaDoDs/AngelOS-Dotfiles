@@ -511,6 +511,12 @@ Item {
                         host.checkInput();
                     }
                 }
+                // serp-skin: the skin's faces come and go with the skin
+                readonly property bool serpFace: Serp.on
+                onSerpFaceChanged: if (status !== Loader.Null) {
+                    source = "";
+                    load();
+                }
                 function load() {
                     if (!host.wantContent || !host.widget || !host.info)
                         return;
@@ -529,7 +535,7 @@ Item {
                             props.frameKind = Qt.binding(() => host.mac ? "mac" : host.frameKind);
                             props.face = host.face;
                         }
-                        setSource(Qt.resolvedUrl("widgets/" + name + "Widget.qml"), props);
+                        setSource(Serp.on && Serp.widgetFaces.includes(name) ? Qt.resolvedUrl("../serp/widgets/" + name + "Widget.qml") : Qt.resolvedUrl("widgets/" + name + "Widget.qml"), props);  // serp-skin
                     }
                 }
             }

@@ -56,6 +56,25 @@ CatPage {
             suffix: " px"
             onMoved: v => Config.mac.dockMagnifySize = v
         }
+        CatSlider {
+            label: I18n.t("Промежуток между значками", "Space between icons")
+            from: page.lim["mac.dockSpacing"][0]
+            to: page.lim["mac.dockSpacing"][1]
+            stepSize: 1
+            value: Config.mac.dockSpacing
+            suffix: " %"
+            onMoved: v => Config.mac.dockSpacing = v
+        }
+        CatSlider {
+            label: I18n.t("Поля вокруг значков", "Padding around icons")
+            hint: I18n.t("От значков до края подложки Dock, в долях значка: растёт вместе с ним.", "From the icons to the edge of the Dock's slab, as a share of an icon: it grows with them.")
+            from: page.lim["mac.dockPadding"][0]
+            to: page.lim["mac.dockPadding"][1]
+            stepSize: 1
+            value: Config.mac.dockPadding
+            suffix: " %"
+            onMoved: v => Config.mac.dockPadding = v
+        }
         CatChoice {
             label: I18n.t("Положение на экране", "Position on screen")
             model: [
@@ -247,7 +266,21 @@ CatPage {
                 }
             }
         }
+        CatToggle {
+            label: I18n.t("Цвет из обоев", "Colour from the wallpaper")
+            hint: I18n.t("акцент, окна, меню, Dock, Пункт управления и программы (GTK, Qt, терминалы, браузеры) окрашиваются под обои и меняются вместе с ними — как «Из обоев» в пиксельной теме", "the accent, windows, menus, the Dock, Control Center and the apps (GTK, Qt, terminals, browsers) take the wallpaper's colour and follow it, like the pixel theme's From wallpaper")
+            checked: Config.mac.wallpaperTint
+            onToggled: v => Config.mac.wallpaperTint = v
+        }
+        CatToggle {
+            present: Cursors.other.includes("angelOS-MacPixel")
+            label: I18n.t("Пиксельный мак-курсор", "Pixel Mac cursor")
+            hint: I18n.t("курсоры macOS пиксель-артом 12×12, у стрелки нимб; без него — обычная чёрная стрелка macOS", "macOS's cursors as 12×12 pixel art, a halo on the arrow; off, the plain black macOS arrow")
+            checked: Config.mac.pixelCursor
+            onToggled: v => Config.mac.pixelCursor = v
+        }
         CatChoice {
+            present: !Config.mac.wallpaperTint
             label: I18n.t("Цвет акцента", "Accent colour")
             model: [["blue", "Синий", "Blue"], ["purple", "Фиолетовый", "Purple"], ["pink", "Розовый", "Pink"], ["red", "Красный", "Red"], ["orange", "Оранжевый", "Orange"], ["yellow", "Жёлтый", "Yellow"], ["green", "Зелёный", "Green"], ["graphite", "Графит", "Graphite"]].map(a => ({
                         "label": I18n.t(a[1], a[2]),

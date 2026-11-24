@@ -329,7 +329,7 @@ PanelWindow {
     Item {
         id: dialog
         width: Math.min(Theme.u * 320, win.width - Theme.u * 20)
-        height: Math.min(Theme.u * 236, win.height - Theme.u * 20)
+        height: Math.min(Theme.u * Math.round(236 + (Theme.fs - 1) * 68), win.height - Theme.u * 20)
         x: Math.round((win.width - width) / 2)
         // a little above the middle, like a search box
         y: Math.round(Math.max(Theme.u * 10, win.height * 0.42 - height / 2)) + dropY
@@ -413,7 +413,7 @@ PanelWindow {
             x: Theme.u * 8
             y: ribbon.y + ribbon.height + Theme.u * 6
             width: parent.width - Theme.u * 16
-            height: Theme.u * 22
+            height: Math.max(Theme.u * 22, input.implicitHeight + Theme.u * 6)
             property alias text: input.text
             signal keyPressed(var event)
             function focusField() {
@@ -516,6 +516,7 @@ PanelWindow {
             width: parent.width - Theme.u * 16
             height: hints.y - y - Theme.u * 5
             readonly property bool split: width > Theme.u * 220
+            readonly property int rowHeight: Math.max(Theme.u * 17, (Theme.sizeBody + Theme.u) * (split ? 1 : 2))
             // the master password's pane stands here meanwhile
             visible: win.unlockFor === ""
 
@@ -554,7 +555,7 @@ PanelWindow {
                     // the picked row's frame slides between rows in whole pixels
                     highlight: Item {
                         width: list.width
-                        height: Theme.u * 17
+                        height: body.rowHeight
                         Rectangle {
                             anchors.fill: parent
                             color: Theme.select
@@ -588,7 +589,7 @@ PanelWindow {
                         readonly property bool isApp: !!modelData.app
                         readonly property var r: modelData.r || ({})
                         width: list.width
-                        height: Theme.u * 17
+                        height: body.rowHeight
 
                         Rectangle {
                             anchors.fill: parent
@@ -629,7 +630,7 @@ PanelWindow {
                             PxText {
                                 width: parent.width
                                 text: win.titleOf(item.modelData)
-                                elide: Text.ElideRight
+                                elide: item.modelData.file ? Text.ElideMiddle : Text.ElideRight
                                 color: item.sel ? Theme.selectText : Theme.text
                                 font.bold: item.sel
                             }
@@ -638,7 +639,6 @@ PanelWindow {
                                 visible: text !== "" && !body.split
                                 text: win.subtitleOf(item.modelData)
                                 elide: Text.ElideRight
-                                kind: "tiny"
                                 color: item.sel ? Theme.selectText : Theme.textDim
                             }
                         }
@@ -647,7 +647,8 @@ PanelWindow {
                             anchors.right: parent.right
                             anchors.rightMargin: Theme.u * 4
                             anchors.verticalCenter: parent.verticalCenter
-                            kind: "tiny"
+                            width: Math.min(implicitWidth, parent.width / 3)
+                            elide: Text.ElideRight
                             text: item.isApp ? "" : win.kindOf(item.modelData)
                             color: item.sel ? Theme.selectText : Theme.textDim
                         }
@@ -679,18 +680,28 @@ PanelWindow {
                 readonly property var row: win.command ? null : win.picked
                 readonly property var f: row && row.builtin === "file" ? row.file : null
 
-                Column {
-                    id: info
+                Flickable {
+                    id: detailViewport
                     x: Theme.u * 7
                     y: Theme.u * 8
                     width: parent.width - Theme.u * 14
-                    spacing: Theme.u * 4
+                    height: Math.max(0, detailKeys.y - y - Theme.gap)
+                    contentWidth: width
+                    contentHeight: info.implicitHeight
                     visible: !!details.row
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                }
+                Column {
+                    id: info
+                    parent: detailViewport.contentItem
+                    width: detailViewport.width
+                    spacing: Theme.u * 4
 
                     // the picture: an app's icon big, a file's preview, else a pixel icon
                     Item {
                         width: parent.width
-                        height: details.f && FileSearch.previewable(details.f) ? Math.min(Theme.u * 90, width * 0.75) : Theme.u * 34
+                        height: details.f && FileSearch.previewable(details.f) ? Math.min(Theme.u * 90, width * 0.75, Math.max(Theme.u * 34, detailViewport.height / 2)) : Theme.u * 34
                         PxBox {
                             anchors.fill: parent
                             visible: !!details.f && FileSearch.previewable(details.f)
@@ -722,9 +733,9 @@ PanelWindow {
                     PxText {
                         width: parent.width
                         kind: "title"
-                        wrapMode: Text.Wrap
-                        maximumLineCount: 2
-                        elide: Text.ElideRight
+                        wrapMode: details.f ? Text.NoWrap : Text.Wrap
+                        maximumLineCount: details.f ? 1 : 2
+                        elide: details.f ? Text.ElideMiddle : Text.ElideRight
                         text: win.titleOf(details.row)
                     }
                     PxText {
@@ -741,20 +752,18 @@ PanelWindow {
                         spacing: Theme.u * 3
                         Rectangle {
                             width: kindText.implicitWidth + Theme.u * 6
-                            height: Theme.u * 10
+                            height: kindText.implicitHeight + Theme.u * 3
                             color: Theme.mix(Theme.face, Theme.accent2, 0.3)
                             border.width: Math.max(1, Theme.u / 2)
                             border.color: Theme.accent2
                             PxText {
                                 id: kindText
                                 anchors.centerIn: parent
-                                kind: "tiny"
                                 text: win.kindOf(details.row)
                             }
                         }
                         PxText {
                             anchors.verticalCenter: parent.verticalCenter
-                            kind: "tiny"
                             dim: true
                             readonly property int used: details.row && details.row.app ? ((Config.launcher.usage || {})[details.row.app.id] || 0) : 0
                             visible: used > 0
@@ -764,26 +773,40 @@ PanelWindow {
                 }
                 // what Enter does with it
                 Column {
+                    id: detailKeys
                     visible: !!details.row
-                    x: Theme.u * 7
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: Theme.u * 7
+                    anchors.rightMargin: Theme.u * 7
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: Theme.u * 7
                     spacing: Theme.u * 2
                     PxText {
-                        kind: "tiny"
+                        visible: !details.f
+                        width: parent.width
+                        wrapMode: Text.Wrap
                         text: "Enter — " + (!details.row ? "" : details.row.builtin === "calc" ? I18n.t("скопировать", "copy") : details.row.builtin === "setting" ? I18n.t("открыть в настройках", "open in Settings") : details.row.builtin === "timer" ? I18n.t("запустить", "start") : details.row.builtin === "timerItem" ? I18n.t("пауза / дальше", "pause / resume") : win.pickedLogin ? I18n.t("пароль в буфер", "the password to the clipboard") : details.row.builtin === "vault" ? I18n.t("дальше", "go on") : details.row.builtin === "action" ? I18n.t("сделать", "do it") : I18n.t("открыть", "open"))
                     }
                     PxText {
                         visible: !!win.pickedLogin
-                        kind: "tiny"
+                        width: parent.width
+                        wrapMode: Text.Wrap
                         dim: true
                         text: I18n.t("Ctrl+Enter — логин · Shift+Enter — код 2FA", "Ctrl+Enter: the login · Shift+Enter: the 2FA code")
                     }
                     PxText {
                         visible: !!details.f
-                        kind: "tiny"
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: I18n.t("Enter открыть · ⇧Пробел просмотр", "Enter open · ⇧Space preview")
+                    }
+                    PxText {
+                        visible: !!details.f
+                        width: parent.width
+                        wrapMode: Text.Wrap
                         dim: true
-                        text: I18n.t("Ctrl+Enter — показать в папке · Shift+Пробел — просмотр", "Ctrl+Enter shows it in its folder · Shift+Space: a quick look")
+                        text: I18n.t("Ctrl+Enter — показать в папке", "Ctrl+Enter — show in folder")
                     }
                 }
                 // nothing picked: the angel waits
@@ -873,35 +896,50 @@ PanelWindow {
             }
         }
 
-        // the keys
-        Row {
+        // Navigation and search shortcuts get their own lines. Each can wrap on a narrow screen.
+        Column {
             id: hints
             x: Theme.u * 8
             y: parent.height - height - Theme.u * 6
-            spacing: Theme.u * 6
-            Repeater {
-                model: [["↑↓", I18n.t("выбрать", "pick")], ["Enter", I18n.t("открыть", "open")], [">", I18n.t("команда", "command")]].concat(Config.launcher.calc !== false ? [["2+2", I18n.t("счёт", "maths")]] : []).concat([["5m", I18n.t("таймер", "timer")]]).concat(Vault.enabled && Vault.installed.length ? [["pw", I18n.t("пароли", "passwords")]] : []).concat(win.providers.filter(p => p.prefix).slice(0, 2).map(p => [p.prefix, ""])).concat([["Esc", I18n.t("закрыть", "close")]])
+            width: parent.width - Theme.u * 16
+            spacing: Theme.u * 2
+            Component {
+                id: hintItem
                 Row {
                     id: hintRow
                     required property var modelData
                     spacing: Theme.u * 2
                     PxBox {
                         width: capText.implicitWidth + Theme.u * 6
-                        height: Theme.u * 10
+                        height: capText.implicitHeight + Theme.u * 3
                         color: Theme.face
                         PxText {
                             id: capText
                             anchors.centerIn: parent
-                            kind: "tiny"
                             text: hintRow.modelData[0]
                         }
                     }
                     PxText {
                         anchors.verticalCenter: parent.verticalCenter
-                        kind: "tiny"
                         dim: true
                         text: hintRow.modelData[1]
                     }
+                }
+            }
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 5
+                Repeater {
+                    model: [["↑↓", I18n.t("выбрать", "pick")], ["Enter", I18n.t("открыть", "open")], ["Esc", I18n.t("закрыть", "close")]]
+                    delegate: hintItem
+                }
+            }
+            Flow {
+                width: parent.width
+                spacing: Theme.u * 5
+                Repeater {
+                    model: [[">", I18n.t("команда", "command")]].concat(Config.launcher.calc !== false ? [["2+2", I18n.t("счёт", "maths")]] : []).concat([["5m", I18n.t("таймер", "timer")]]).concat(Vault.enabled && Vault.installed.length ? [["pw", I18n.t("пароли", "passwords")]] : []).concat(win.providers.filter(p => p.prefix).slice(0, 2).map(p => [p.prefix, ""]))
+                    delegate: hintItem
                 }
             }
         }
@@ -911,7 +949,7 @@ PanelWindow {
     Connections {
         target: field
         function onKeyPressed(e) {
-            const page = Math.max(1, Math.floor(list.height / (Theme.u * 17)) - 1);
+            const page = Math.max(1, Math.floor(list.height / body.rowHeight) - 1);
             if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && (e.modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) && win.pickedLogin) {
                 win.vaultAct(win.pickedLogin, (e.modifiers & Qt.ControlModifier) ? "username" : "totp");
                 e.accepted = true;

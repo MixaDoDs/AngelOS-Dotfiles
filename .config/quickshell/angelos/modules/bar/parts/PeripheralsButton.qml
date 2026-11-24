@@ -153,7 +153,7 @@ PxButton {
                             Shell.openSettings("peripherals");
                         }
                     }
-                    // the devices themselves: key travel live, Rapid Trigger (services/Devices)
+                    // the mouse itself: DPI, polling rate, the sensor (services/Devices)
                     PxButton {
                         compact: true
                         icon: "chip"

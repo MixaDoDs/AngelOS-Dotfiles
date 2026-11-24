@@ -9,6 +9,7 @@ Flow {
 
     property var model: []
     property var currentValue
+    property real buttonWidthLimit: 0
     signal activated(var value)
 
     spacing: Theme.u * 2
@@ -27,6 +28,7 @@ Flow {
         model: root.model
         PxButton {
             required property var modelData
+            maxWidth: root.buttonWidthLimit
             text: modelData.label || ""
             icon: modelData.icon || ""
             checked: root.currentValue === modelData.value

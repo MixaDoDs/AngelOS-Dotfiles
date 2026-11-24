@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Asked once, over the Settings window the first time it opens: the familiar look (Windows 11)
 // or the new one (P5) — services/SettingsLook. The answer opens Settings again in the look picked;
@@ -26,7 +27,7 @@ PanelWindow {
     }
     // takes input: a question over Settings, a click beside the card is «later»
     exclusionMode: ExclusionMode.Ignore
-    color: Qt.alpha(Theme.shadow, 0.35)
+    color: Serp.on ? Qt.alpha(Serp.crust, 0.25) : Qt.alpha(Theme.shadow, 0.35)  // serp-skin
     WlrLayershell.namespace: "angelos-settings-look"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
@@ -50,6 +51,7 @@ PanelWindow {
 
     PxWindow {
         anchors.centerIn: parent
+        visible: !Serp.on  // serp-skin: SerpDialog* draws
         width: Theme.u * 220
         height: titleHeight + col.implicitHeight + Theme.pad * 2 + Theme.u * 8
         title: I18n.t("Настройки", "Settings")
@@ -96,6 +98,8 @@ PanelWindow {
             }
         }
     }
+
+    SerpDialogLook { id: serpDlg; host: win }  // serp-skin
 
     RightClickGuard {}
 }

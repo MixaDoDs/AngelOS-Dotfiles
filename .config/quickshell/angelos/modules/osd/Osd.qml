@@ -32,7 +32,7 @@ PanelWindow {
     }
 
     screen: Shell.focusedScreen
-    visible: shown || fade.running
+    visible: (shown || fade.running) && !Serp.on  // serp-skin
     anchors.top: Place.top(pos)
     anchors.bottom: Place.bottom(pos)
     anchors.left: Place.left(pos)

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Win+V pastes (issue #61), offscreen (scripts/check.sh runs it): the Clipboard service against
-# stand-ins of wl-copy and wtype (no real clipboard, no keys pressed anywhere) — Ctrl+V in the
+# Clipboard history and Win+V, offscreen (scripts/check.sh runs it): the Clipboard service against
+# stand-ins of wl-paste, wl-copy and wtype (no real clipboard or key presses). Text and images
+# arrive before opening the panel. Win+V delivers Ctrl+V in the
 # window the history was opened over, Ctrl+Shift+V in a terminal, nothing for Shift+Enter, the
 # setting off or an empty desktop, waiting for the keyboard to come back, a stored picture.
 #
@@ -47,7 +48,19 @@ cat >"$T/bin/wtype" <<'EOF'
 #!/bin/sh
 echo "$*" >>"$FAKE_CLIP_DIR/wtype.log"
 EOF
-for t in wl-paste setpriv pkill; do printf '#!/bin/sh\nexit 0\n' >"$T/bin/$t"; done
+cat >"$T/bin/wl-paste" <<'EOF'
+#!/bin/sh
+case "$*" in
+    --watch*)
+        shift
+        printf 'Скопировано до Win+V' | env CLIPBOARD_STATE=data "$@"
+        env CLIPBOARD_STATE=data "$@" < "$ANGELOS_CLIPBOARD_DIR/0123456789abcdef0123456789abcdef.png"
+        exec sleep 30
+        ;;
+    '--no-newline --list-types') exit 1 ;;
+esac
+EOF
+printf '#!/bin/sh\nexit 0\n' >"$T/bin/pkill"
 chmod +x "$T/bin/"*
 printf '\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\1\0\0\0\1\10\6\0\0\0' >"$T/store/0123456789abcdef0123456789abcdef.png"
 
@@ -58,7 +71,7 @@ env -i PATH="$T/bin:$PATH" LANG=C.UTF-8 HOME="$H" USER="${USER:-angel}" \
   XDG_CONFIG_HOME="$H/.config" XDG_STATE_HOME="$H/.local/state" \
   XDG_CACHE_HOME="$H/.cache" XDG_DATA_HOME="$H/.local/share" XDG_RUNTIME_DIR="$T/rt" \
   QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= LD_LIBRARY_PATH="$LIB" QML_IMPORT_PATH="$QML" \
-  ANGELOS_DEV=1 ANGELOS_SCREENS=__none__ ANGELOS_TEST=1 QS_NO_RELOAD_POPUP=1 QS_DISABLE_CRASH_HANDLER=1 \
+  ANGELOS_DEV=0 ANGELOS_SCREENS=__none__ ANGELOS_TEST=1 QS_NO_RELOAD_POPUP=1 QS_DISABLE_CRASH_HANDLER=1 \
   NIRI_SOCKET="$T/no-niri" FAKE_CLIP_DIR="$T/fake" ANGELOS_CLIPBOARD_DIR="$T/store" \
   "${runner[@]}" timeout 90 "$QS" -p "$T/root" >"$log" 2>&1
 code=$?

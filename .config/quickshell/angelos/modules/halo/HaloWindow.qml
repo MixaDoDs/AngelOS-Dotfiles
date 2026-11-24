@@ -9,6 +9,7 @@ import qs.services
 import qs.widgets
 import qs.modules.bar.parts
 import qs.modules.desktop
+import qs.modules.serp  // serp-skin
 import "HaloCat.js" as Kitty
 
 // The Halo (Нимб) on one screen: the pixel Dynamic Island at the top centre (services/Halo).
@@ -44,7 +45,8 @@ PanelWindow {
     // (the game's cards go to one screen only: Halo.gameScreen)
     // over a full-screen game or film: nothing (Settings → Halo), or only a timer's end
     // (the stream's chat goes over it too while on air: that is what the viewers watch)
-    readonly property var baseItems: (full ? Halo.items.filter(i => Config.halo.overFullscreen === "timer" && i.kind === "ring" || i.kind === "chat" && StreamMode.onAir) : Halo.items).filter(i => !i.only || i.only === modelData.name)
+    // over a full screen: "timer" = a timer's end, "notify" = that and notifications, the stream's chat on air
+    readonly property var baseItems: (full ? Halo.items.filter(i => ["timer", "notify"].includes(Config.halo.overFullscreen) && i.kind === "ring" || Config.halo.overFullscreen === "notify" && i.kind === "notif" || i.kind === "chat" && StreamMode.onAir) : Halo.items).filter(i => !i.only || i.only === modelData.name)
     // music without synced lyrics here (a browser video, a song with none) doesn't take the pill
     // (Settings → Halo → «Music without synced lyrics»): its title peeks 5 s on a new track or
     // a pause, then its cover and bars take the resting pill's right side (`musicEar`); beside
@@ -346,7 +348,8 @@ PanelWindow {
     // must not stand in front of the track)
     readonly property var events: items.filter(i => mainable(i) && i.kind !== "music")
     readonly property var nowMusic: items.find(i => i.kind === "music") || null
-    readonly property var pages: events.length ? ["now", "events", "shelf", "buttons"] : ["now", "shelf", "buttons"]
+    readonly property bool shelfEnabled: Config.halo.shelf
+    readonly property var pages: ["now"].concat(events.length ? ["events"] : [], shelfEnabled ? ["shelf"] : [], ["buttons"])
     // the page is kept by its name when the events' page comes or goes (no jump, no slide)
     property string pageKey: "now"
     property bool noSlide: false
@@ -591,6 +594,9 @@ PanelWindow {
     }
     color: "transparent"
     WlrLayershell.namespace: "angelos-halo"
+    // over a full-screen game or film with nothing to show, no window at all (it redrew every
+    // frame for nobody, an overlay niri mixed into each game frame); a timer's end brings it back
+    visible: !(full && !shown)
     // the bar's glass is blurred under it, so is the closed pill there
     BackgroundEffect.blurRegion: inBar && GoldenGate.blurOn && open && !expanded ? pillBlur : null
     Region {
@@ -613,7 +619,8 @@ PanelWindow {
     // clicks on the desks under it
     WlrLayershell.layer: Shell.bootOpen || Shell.bootCover || mission ? WlrLayer.Top : WlrLayer.Overlay
     mask: Region {
-        item: win.shown ? hit : win.dodging ? peekZone : null
+        // over a full screen a notification takes no pointer (the game keeps it, nothing holds the pill)
+        item: win.shown && !(win.full && !win.items.some(i => i.kind === "ring" || i.kind === "chat")) ? hit : win.dodging ? peekZone : null
         Region {
             item: win.shown && !win.expanded && win.others.length ? bubbleRow : null
         }
@@ -642,9 +649,9 @@ PanelWindow {
     readonly property real wantW: expanded ? cardW : main || vol || seeking || rest ? Math.min(width - u * 40, closedW) + (lifted ? u * 4 : 0) : ring.width
     readonly property real wantH: expanded ? cardTop + cardBoxH + frame.chrome + u * 4 : main || vol || seeking || rest ? closedH + (lifted ? u * 2 : 0) : ring.height
     // open it is a desktop widget's window (square, PxWindow); closed the look's pill
-    readonly property real wantR: expanded ? 0 : px(8)
+    readonly property real wantR: expanded ? 0 : Serp.on ? Serp.radius : px(8)  // serp-skin
     // the open card's content starts under the window's title bar
-    readonly property real cardTop: frame.chrome + frame.titleHeight + u * 4
+    readonly property real cardTop: Serp.on ? Serp.px(38) : frame.chrome + frame.titleHeight + u * 4  // serp-skin: the slim header
     property real w: wantW
     // snug at rest the sides differ: the pill moves by half the difference, the middle stays put
     property real restShift: rest && !expanded && !(main || vol || seeking) && restRow.inRow ? (restRow.rightW - restRow.leftW) / 2 : 0
@@ -705,7 +712,7 @@ PanelWindow {
     // colour»); pushed lighter / darker until it reads on the face (3:1). The signals keep their
     // own colours: the recording's red, the privacy dots, the rest's green, the errors
     readonly property bool songShown: !!main && main.kind === "music" && !!Halo.coverTint
-    readonly property color accent: songShown ? readable(Theme.mix(Theme.accent, Halo.coverTint, 0.5)) : Theme.accent
+    readonly property color accent: songShown ? readable(Theme.mix(Serp.on ? Serp.accent : Theme.accent, Halo.coverTint, 0.5)) : Serp.on ? Serp.accent : Theme.accent  // serp-skin
     function lum(c) {
         const f = x => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
         return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
@@ -730,17 +737,23 @@ PanelWindow {
     readonly property string skin: inBar ? "bar" : Halo.skin
     readonly property bool glued: skin === "notch"
     readonly property bool earsRest: skin === "ears" && rest && !expanded && !card.visible
-    readonly property int pillY: skin === "bar" ? Math.round((GoldenGate.barHeight - closedH) / 2) : glued ? 0 : skin === "float" ? u * 4 + topGap : u + topGap
+    readonly property int pillY: skin === "bar" ? Math.round((GoldenGate.barHeight - closedH) / 2) : glued ? 0 : skin === "float" ? (Serp.on ? u * 4 : u * 4 + topGap) : u + topGap  // serp-skin: on the islands' line
     readonly property bool hell: Theme.hell
     // the widgets' see-through plate, a little denser: it lies over windows
     readonly property color baseFace: hell ? Theme.hellPanel : Qt.alpha(Theme.face, Math.max(0.9, Theme.panelAlpha))
     // (the notch is black on a dark theme; by day the text is dark, so the day's plate)
     readonly property color face: skin === "bar" ? GoldenGate.barGlass : skin === "notch" && (Theme.dark || hell) ? "#000000" : skin === "tamagotchi" ? Qt.tint(baseFace, "#402f6f9f") : baseFace
     readonly property color line: skin === "bar" ? GoldenGate.glassEdge : skin === "notch" ? "transparent" : hell ? Theme.hellEdge : Theme.edge
-    readonly property color inkColor: hell ? "#ff4d4d" : Theme.text
-    readonly property color textInk: Theme.text
-    readonly property color textInkDim: Theme.textDim
+    readonly property color inkColor: hell ? "#ff4d4d" : Serp.on ? Serp.text : Theme.text  // serp-skin
+    readonly property color textInk: Serp.on ? Serp.text : Theme.text  // serp-skin
+    readonly property color textInkDim: Serp.on ? Serp.subtext1 : Theme.textDim  // serp-skin
 
+    // serp-skin: the wallpaper in screen space for the Halo's liquid glass
+    SerpBackdrop {
+        id: serpHaloBack
+        screenName: win.modelData ? win.modelData.name : ""
+        origin: Qt.point(0, 0)
+    }
     // the top edge over the hidden pill (dodging): the pointer there brings the Halo back
     Item {
         id: peekZone
@@ -832,7 +845,7 @@ PanelWindow {
                 haloMenu.popup(win.menuItems(), "", at.x, at.y);
             }
         }
-        // something dragged over it: open it on the drop targets; dropped beside them: the shelf
+        // something dragged over it: open the drop targets
         DropArea {
             anchors.fill: parent
             onEntered: drag => {
@@ -844,7 +857,10 @@ PanelWindow {
             // moving onto a target is an exit from here too: wait to see if it went elsewhere
             onExited: dropLeave.restart()
             onDropped: drop => {
-                win.drop("shelf", drop, "");
+                if (win.shelfEnabled)
+                    win.drop("shelf", drop, "");
+                else
+                    dropLeave.restart();
             }
         }
         Timer {
@@ -963,13 +979,109 @@ PanelWindow {
             flatTop: win.glued
             // ears at rest: the pill itself is see-through, its three pieces have their own; open:
             // the window draws it
-            color: win.earsRest || win.expanded ? "transparent" : win.face
-            edge: win.earsRest || win.expanded ? "transparent" : win.edgeColor
+            color: win.earsRest || win.expanded || Serp.on ? "transparent" : win.face  // serp-skin
+            edge: win.earsRest || win.expanded || Serp.on ? "transparent" : win.edgeColor  // serp-skin
+            // serp-skin: the skin island under the pill (flat or liquid glass)
+            SGlass {
+                visible: Serp.on && !win.earsRest && !win.expanded
+                anchors.fill: parent
+                backdrop: serpHaloBack
+                radius: Math.min(parent.radius, height / 2)
+            }
 
+            // serp-skin: open, the skin's island instead of the pixel window — a slim header (the
+            // page's name; the pages' dots, the menu and close on the right), the pages under it
+            SGlass {
+                id: serpFrame
+                visible: Serp.on && win.expanded
+                anchors.fill: parent
+                backdrop: serpHaloBack
+                radius: Math.min(Serp.radius * 1.4, Serp.px(24))
+                Item {
+                    x: Serp.px(14)
+                    y: Serp.px(4)
+                    width: parent.width - Serp.px(22)
+                    height: win.cardTop - Serp.px(8)
+                    SText {
+                        anchors.left: parent.left
+                        anchors.right: serpTools.left
+                        anchors.rightMargin: Serp.px(8)
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: win.headName
+                        bold: true
+                    }
+                    Row {
+                        id: serpTools
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Serp.px(2)
+                        Row {
+                            visible: !win.menu && !win.dropping && win.pages.length > 1
+                            anchors.verticalCenter: parent.verticalCenter
+                            rightPadding: Serp.px(6)
+                            Repeater {
+                                model: win.pages.length
+                                Item {
+                                    id: serpDot
+                                    required property int index
+                                    width: Serp.px(14)
+                                    height: Serp.px(22)
+                                    Rectangle {
+                                        anchors.centerIn: parent
+                                        width: serpDot.index === win.page ? Serp.px(14) : Serp.px(6)
+                                        height: Serp.px(6)
+                                        radius: height / 2
+                                        color: serpDot.index === win.page || (win.pages[serpDot.index] === "events" && win.eventsNew) || serpDotHover.hovered ? Serp.accent : Serp.overlay
+                                        Behavior on width {
+                                            NumberAnimation {
+                                                duration: Serp.quick
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                    }
+                                    HoverHandler {
+                                        id: serpDotHover
+                                        cursorShape: Qt.PointingHandCursor
+                                    }
+                                    TapHandler {
+                                        onTapped: win.page = serpDot.index
+                                    }
+                                }
+                            }
+                        }
+                        SButton {
+                            id: serpMenuBtn
+                            active: win.menu
+                            onClicked: {
+                                if (haloMenu.visible) {
+                                    haloMenu.close();
+                                    return;
+                                }
+                                const at = serpMenuBtn.mapToItem(null, 0, serpMenuBtn.height);
+                                win.expanded = false;
+                                haloMenu.popup(win.menuItems(), "", at.x, at.y);
+                            }
+                            SIcon {
+                                name: "chevron-down"
+                                size: Serp.px(15)
+                                color: Serp.subtext1
+                            }
+                        }
+                        SButton {
+                            onClicked: win.expanded = false
+                            SIcon {
+                                name: "x"
+                                size: Serp.px(15)
+                                color: Serp.subtext1
+                            }
+                        }
+                    }
+                }
+            }
             // open: a desktop widget's pixel window (as clock.sh, music.sh), the title bar ours
             PxWindow {
                 id: frame
-                visible: win.expanded
+                visible: win.expanded && !Serp.on  // serp-skin: the island above instead
                 anchors.fill: parent
                 hell: win.hell
                 compact: true
@@ -1268,6 +1380,9 @@ PanelWindow {
                 }
                 Item {
                     id: card
+                    // serp-skin: the controls inside draw the modern look under the skin ("classic":
+                    // what Theme.settingsSkinFor found here without it)
+                    readonly property string settingsSkin: Serp.on ? "goldengate" : "classic"
                     // the window's body: under its title bar, inside its bevels and padding
                     width: win.cardW - win.u * 14
                     x: Math.round((parent.width - width) / 2 / win.u) * win.u
@@ -1340,7 +1455,7 @@ PanelWindow {
                                             visible: ev.index > 0
                                             width: parent.width
                                             height: win.u
-                                            color: win.hell ? Theme.hellEdge : Theme.edge
+                                            color: Serp.on ? Serp.line : win.hell ? Theme.hellEdge : Theme.edge  // serp-skin
                                         }
                                         Card {
                                             width: parent.width
@@ -1355,7 +1470,7 @@ PanelWindow {
                                 width: parent.width
                                 height: Math.max(implicitHeight, card.implicitHeight)
                                 x: win.pageX(at)
-                                visible: !win.dropping && win.pageSeen(at)
+                                visible: at >= 0 && !win.dropping && win.pageSeen(at)
                             }
                             ButtonsCard {
                                 id: buttonsCard
@@ -1589,8 +1704,6 @@ PanelWindow {
             return Wifi.connectivityText;
         case "power":
             return Power.statusText;
-        case "dlDone":
-            return I18n.t("Лежит на полке.", "It is on the shelf.");
         case "update":
             return Updates._lastSay;
         case "updated":
@@ -2430,8 +2543,19 @@ PanelWindow {
         hell: win.hell
         sunken: true
         readonly property color base: win.hell ? Theme.hellSunken : Theme.sunken
-        color: lit || (clickable && wellHov.hovered) ? Theme.mix(base, win.accent, 0.22) : base
+        color: Serp.on ? "transparent" : lit || (clickable && wellHov.hovered) ? Theme.mix(base, win.accent, 0.22) : base  // serp-skin
         edgeColor: lit ? win.accent : win.hell ? Theme.hellEdge : Theme.edge
+        // serp-skin: no bevels and no outline — the rounded plate below draws it
+        outline: !Serp.on
+        flat: Serp.on || settingsSkin === "windose" || p5 || (Theme.zine && !hell)
+        Rectangle {
+            visible: Serp.on
+            anchors.fill: parent
+            radius: Serp.radiusSmall
+            color: well.lit || (well.clickable && well.hovered) ? Serp.selected : Serp.surface0
+            border.width: well.lit ? 1 : 0
+            border.color: Serp.accent
+        }
         HoverHandler {
             id: wellHov
             cursorShape: well.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor
@@ -2489,7 +2613,7 @@ PanelWindow {
                     readonly property bool on: bb.value < 0 ? Math.abs(index - bb.runAt) < 2 : index < bb.lit
                     width: bb.cell
                     height: bb.cell
-                    color: on ? (bb.paused ? Theme.textDim : win.accent) : Qt.alpha(Theme.text, 0.16)
+                    color: on ? (bb.paused ? (Serp.on ? Serp.overlay : Theme.textDim) : win.accent) : Serp.on ? Serp.surface1 : Qt.alpha(Theme.text, 0.16)  // serp-skin
                 }
             }
         }
@@ -2510,7 +2634,7 @@ PanelWindow {
         property bool dim: false
         property bool bold: false
         property string kind: "body"
-        property color color: dim ? Theme.textDim : Theme.text
+        property color color: Serp.on ? (dim ? Serp.subtext1 : Serp.text) : dim ? Theme.textDim : Theme.text  // serp-skin
         property int align: Text.AlignLeft
         readonly property bool running: t.implicitWidth > width && rtHov.hovered
         property real off: 0
@@ -2592,7 +2716,7 @@ PanelWindow {
                 width: parent.width
                 text: hd.title
                 bold: true
-                color: hd.bad ? Theme.danger : Theme.text
+                color: hd.bad ? (Serp.on ? Serp.red : Theme.danger) : Serp.on ? Serp.text : Theme.text  // serp-skin
             }
             RunText {
                 visible: hd.line !== ""
@@ -3050,6 +3174,7 @@ PanelWindow {
             visible: card.kind === "shot"
             spacing: win.u * 2
             PxButton {
+                visible: win.shelfEnabled
                 compact: true
                 hell: win.hell
                 icon: "document"
@@ -3369,11 +3494,16 @@ PanelWindow {
                 onClicked: Halo.chestWaiting = false
             }
             PxButton {
-                visible: card.kind === "dlDone"
+                visible: card.kind === "dlDone" && !!card.item.path && !win.onAir
                 compact: true
                 hell: win.hell
-                text: I18n.t("На полке", "On the shelf")
-                onClicked: win.openOn("shelf")
+                icon: "folder"
+                text: I18n.t("В папке", "Show in folder")
+                onClicked: {
+                    win.expanded = false;
+                    const path = card.item.path;
+                    FileSearch.reveal({ "path": path, "dir": path.slice(0, path.lastIndexOf("/")) || "/" });
+                }
             }
             PxButton {
                 visible: card.kind === "dl"
@@ -3733,7 +3863,7 @@ PanelWindow {
                     }
                 }
                 Repeater {
-                    model: Shelf.favs.concat(Shelf.loose)
+                    model: win.shelfEnabled ? Shelf.favs.concat(Shelf.loose) : []
                     ShelfTile {
                         cell: sc.cell
                         gap: sc.gap
@@ -4007,11 +4137,15 @@ PanelWindow {
             dim: true
         }
         Flow {
+            id: destinations
             // as wide as its targets, in the middle
-            width: Math.min(parent.width, (2 + Shelf.favs.filter(i => i.kind === "folder").length) * (win.px(44) + win.u * 3) - win.u * 3)
+            readonly property var folders: win.shelfEnabled ? Shelf.favs.filter(i => i.kind === "folder") : []
+            width: Math.min(parent.width, (1 + (win.shelfEnabled ? 1 : 0) + folders.length) * (win.px(44) + spacing) - spacing)
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: win.u * 3
             DropTile {
+                visible: win.shelfEnabled
+                enabled: visible
                 target: "shelf"
                 icon: "document"
                 label: I18n.t("На полку", "To the shelf")
@@ -4022,7 +4156,7 @@ PanelWindow {
                 label: "Quick Share"
             }
             Repeater {
-                model: Shelf.favs.filter(i => i.kind === "folder")
+                model: destinations.folders
                 DropTile {
                     required property var modelData
                     target: "folder"
@@ -4209,6 +4343,20 @@ PanelWindow {
             hell: win.hell
             sunken: qtTap.pressed || qt.on
             color: qt.on ? win.accent : qtHover.hovered ? Theme.mix(win.hell ? Theme.hellFace : Theme.face, win.accent, 0.25) : win.hell ? Theme.hellFace : Theme.face
+            visible: !Serp.on  // serp-skin
+        }
+        // serp-skin: the tile as the skin's plate
+        Rectangle {
+            visible: Serp.on
+            anchors.fill: parent
+            radius: Serp.radiusSmall
+            color: qt.on ? Serp.accent : qtHover.hovered ? Serp.surface1 : Serp.surface0
+            scale: qtTap.pressed ? 0.97 : 1
+            Behavior on color {
+                ColorAnimation {
+                    duration: Serp.quick
+                }
+            }
         }
         Column {
             anchors.centerIn: parent
@@ -4217,13 +4365,13 @@ PanelWindow {
             PxIcon {
                 anchors.horizontalCenter: parent.horizontalCenter
                 name: qt.b.icon
-                ink: qt.on ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
+                ink: Serp.on ? (qt.on ? Serp.onAccent : Serp.text) : qt.on ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)  // serp-skin
             }
             RunText {
                 width: qt.width - win.u * 6
                 align: Text.AlignHCenter
                 text: HaloButtons.label(qt.b)
-                color: qt.on ? Theme.selectText : Theme.text
+                color: Serp.on ? (qt.on ? Serp.onAccent : Serp.text) : qt.on ? Theme.selectText : Theme.text  // serp-skin
             }
         }
         HoverHandler {

@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // The author's new apps after an update (services/AppsSync), in a window of the shell instead of
 // a terminal: what is new with a tick each, then the install right here — hearts for how far it
@@ -20,8 +21,8 @@ PanelWindow {
     visible: AppsSync.open && !Shell.setupLocked
     // a floating card: room around it for the shadow, the rest of the screen stays the desktop's
     readonly property int rim: Theme.u * 6
-    implicitWidth: dialog.width + rim * 2
-    implicitHeight: dialog.height + rim * 2
+    implicitWidth: (Serp.on ? serpDlg.cardWidth + Serp.px(32) : dialog.width) + rim * 2  // serp-skin
+    implicitHeight: (Serp.on ? serpDlg.card.height : dialog.height) + rim * 2  // serp-skin
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
     WlrLayershell.namespace: "angelos-apps"
@@ -31,16 +32,20 @@ PanelWindow {
     onVisibleChanged: if (visible)
         dialog.takeKeys()
 
-    BackgroundEffect.blurRegion: Config.appearance.blur ? blurRegion : null
+    BackgroundEffect.blurRegion: (Serp.on ? Serp.blurOn : Config.appearance.blur) ? blurRegion : null  // serp-skin
     Region {
         id: blurRegion
-        item: dialog
+        item: Serp.on ? serpDlg.card : dialog  // serp-skin
+        radius: Serp.on ? Serp.radius + Serp.px(4) : 0  // serp-skin
     }
 
     AppsSyncCard {
         id: dialog
+        opacity: Serp.on ? 0 : 1  // serp-skin: hidden, its keys still listen (SerpDialog* draws)
         anchors.centerIn: parent
     }
+
+    SerpDialogApps { id: serpDlg; host: dialog }  // serp-skin
 
     RightClickGuard {}
 }

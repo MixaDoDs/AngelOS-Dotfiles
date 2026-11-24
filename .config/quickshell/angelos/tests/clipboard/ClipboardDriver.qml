@@ -13,7 +13,7 @@ import qs.services
 Scope {
     id: root
 
-    property int step: 0
+    property int step: -1
     property double since: Date.now()
     readonly property string fake: Quickshell.env("FAKE_CLIP_DIR")
     readonly property string store: Quickshell.env("ANGELOS_CLIPBOARD_DIR")
@@ -62,6 +62,13 @@ Scope {
     FileView {
         id: typed
         path: root.fake + "/wtype.log"
+        watchChanges: true
+        onFileChanged: reload()
+        printErrors: false
+    }
+    FileView {
+        id: savedHistory
+        path: Config.stateDir + "/clipboard.json"
         watchChanges: true
         onFileChanged: reload()
         printErrors: false
@@ -120,6 +127,13 @@ Scope {
         running: true
         onTriggered: {
             switch (root.step) {
+            case -1:
+                root.until("captures-before-first-open", () => {
+                    savedHistory.reload();
+                    const entries = JSON.parse(savedHistory.text() || "[]");
+                    return entries.some(e => e.text === "Скопировано до Win+V") && entries.some(e => e.kind === "image");
+                }, 3500);
+                return;
             case 0:
                 Config.launcher.clipboardPaste = true;
                 root.pickOver(root.obsidian, "привет из истории", false);

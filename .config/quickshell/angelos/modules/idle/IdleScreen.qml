@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Screensaver: the ASCII art plays one random effect after another
 // (reveal → hold → dissolve). Any key, click or mouse movement ends it.
@@ -75,12 +76,12 @@ Variants {
 
         AodFace {
             anchors.fill: parent
-            visible: win.aod
+            visible: win.aod && !Serp.on  // serp-skin: SerpIdle draws
         }
         // the screensaver itself: not built on an AOD screen (its art and hearts keep moving)
         Loader {
             anchors.fill: parent
-            active: !win.aod
+            active: !win.aod && !Serp.on  // serp-skin: SerpIdle draws
             sourceComponent: Component {
                 Item {
                     // ---- floating pixel hearts behind the art ----
@@ -156,6 +157,18 @@ Variants {
                     color: Theme.textDim
                     opacity: 0.6
                 }
+                }
+            }
+        }
+
+        // serp-skin: the skin's face (it takes no input: the window's own ends the screensaver)
+        Loader {
+            anchors.fill: parent
+            active: Serp.on
+            sourceComponent: Component {
+                SerpIdle {
+                    screenName: win.modelData ? win.modelData.name : ""
+                    aod: win.aod
                 }
             }
         }

@@ -54,6 +54,9 @@ video/x-theora=mpv.desktop;
 video/x-theora+ogg=mpv.desktop;
 x-scheme-handler/tg=org.telegram.desktop.desktop;userapp-freshGram-L56YX3.desktop;
 x-scheme-handler/tonsite=org.telegram.desktop.desktop;userapp-freshGram-KSYYX3.desktop;
+application/pdf=ai.storyteller.wordcraft.desktop;ai.storyteller.pdfcraft.desktop;
+application/x-zerosize=ai.storyteller.wordcraft.desktop;
+application/vnd.openxmlformats-officedocument.wordprocessingml.document=ai.storyteller.wordcraft.desktop;
 
 [Default Applications]
 application/x-matroska=mpv.desktop;
@@ -173,5 +176,8 @@ application/x-7z-compressed=org.kde.ark.desktop
 application/x-tar=org.kde.ark.desktop
 application/vnd.rar=org.kde.ark.desktop
 application/x-compressed-tar=org.kde.ark.desktop
-x-scheme-handler/tg=userapp-freshGram-L56YX3.desktop
-x-scheme-handler/tonsite=userapp-freshGram-KSYYX3.desktop
+x-scheme-handler/tg=org.telegram.desktop.desktop
+x-scheme-handler/tonsite=org.telegram.desktop.desktop
+application/pdf=ai.storyteller.pdfcraft.desktop
+application/x-zerosize=ai.storyteller.wordcraft.desktop
+application/vnd.openxmlformats-officedocument.wordprocessingml.document=ai.storyteller.wordcraft.desktop

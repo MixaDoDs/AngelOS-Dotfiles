@@ -25,6 +25,8 @@ Item {
     // what PxMenuItems inside take their colours from (MenuLook.tokensFor), plugins' rows too
     readonly property var menuTokens: MenuLook.tokens(look)
     readonly property var t: menuTokens
+    // serp-skin: the rows' PxText in the skin's font and sizes (its mac branch); as before otherwise
+    readonly property string settingsSkin: Serp.on ? "goldengate" : Theme.settingsSkinFor(list.parent)
     property int minWidth: MenuLook.minWidth
     property int maxWidth: MenuLook.maxWidth
     property int maxHeight: 0               // the level's height at most (0: no limit): its rows scroll
@@ -182,6 +184,16 @@ Item {
         easing.type: Easing.OutCubic
     }
 
+    // serp-skin: the skin's flat rounded plate under the rows (the pixel frame draws nothing then)
+    Rectangle {
+        visible: !!list.t.serp
+        width: frame.width
+        height: frame.height
+        radius: Serp.radius
+        color: list.t.plate || "transparent"
+        border.width: 1
+        border.color: Serp.line
+    }
     PxBox {
         id: frame
         readonly property real natural: Math.max(list.minWidth, titleNeed, quickRow.visible ? quickRow.implicitWidth + Theme.u * 4 : 0, ...rowCol.children.map(list.need), ...headCol.children.map(list.need), ...footCol.children.map(list.need))
@@ -205,6 +217,8 @@ Item {
         Column {
             id: col
             width: parent.width
+            topPadding: list.t.serp ? Serp.px(5) : 0  // serp-skin: rows clear of the round corners
+            bottomPadding: list.t.serp ? Serp.px(5) : 0  // serp-skin
 
             // the title: small and dim
             PxText {

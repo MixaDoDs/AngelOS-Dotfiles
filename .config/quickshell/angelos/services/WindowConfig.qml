@@ -109,6 +109,17 @@ Singleton {
         }
         if (Config.windows.floatAll === on)
             return;
+        // each side's windows come back as they were (off by default)
+        if (Config.windows.stackMemory && Niri.nativeMinimize) {
+            StackMemory.run(on ? "strip" : "desk", on ? "desk" : "strip", () => {
+                if (Config.windows.floatAll === on)
+                    return;
+                Config.windows.floatAll = on;
+                root.modeFlipped(on, false);
+                Sounds.play(on ? "desktopOn" : "desktopOff");
+            }, null);
+            return;
+        }
         Config.windows.floatAll = on;
         modeFlipped(on, false);
         Sounds.play(on ? "desktopOn" : "desktopOff");
@@ -206,6 +217,20 @@ Singleton {
     }
     onRememberChanged: applyRemember()
     property var places: ({})            // app-id -> {output, workspace (a name or null), workspace_idx (from 0), floating}
+    // every program in Desktop where and as big as it was closed (Settings → Windows → Program
+    // places; off by default, pins win): scripts/window-memory.py, told whether Desktop is on
+    Process {
+        id: memoryDaemon
+        running: Config.ready && Niri.available && Config.windows.rememberAll === true
+        stdinEnabled: true
+        command: ["python3", "-u", Quickshell.shellDir + "/scripts/window-memory.py"]
+        onRunningChanged: if (running)
+            tell()
+        function tell() {
+            if (running)
+                write("desk " + (root.floatAll ? "on" : "off") + "\n");
+        }
+    }
     // where a window is now: {output, idx (from 1), name, floating}; null when minimized
     function placeOf(w) {
         const ws = w ? Niri.workspaceById(w.workspace_id) : null;
@@ -348,7 +373,10 @@ Singleton {
             });
     }
     readonly property bool aroundHalo: Config.halo.enabled && Config.halo.windows === "maximized"
-    onFloatAllChanged: applyStacking()
+    onFloatAllChanged: {
+        applyStacking();
+        memoryDaemon.tell();
+    }
     readonly property var _stackingLook: [GoldenGate.on, Config.mac.greenButton, Config.halo.windows, Config.halo.enabled, Halo.strip, Halo.notch, String(Config.halo.screens), Config.windows.buttonLook]
     on_StackingLookChanged: applyStacking()
     Connections {

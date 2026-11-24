@@ -6,6 +6,7 @@ import Quickshell.Io
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Quick Share's window (services/QuickShare; ShareSheet hosts it in a window of its own, AirDrop-
 // like: it stays beside the file manager, files are dragged into it, it can sit on another
@@ -52,6 +53,10 @@ Item {
         onActivated: view.pick()
     }
 
+    SerpShotFrame {  // serp-skin
+        win: frame
+        icon: "airplay"
+    }
     PxWindow {
         id: frame
         anchors.fill: parent
@@ -67,7 +72,7 @@ Item {
 
         Item {
             id: body
-            readonly property string settingsSkin: "classic"
+            readonly property string settingsSkin: Serp.on ? "goldengate" : "classic"  // serp-skin
             width: parent.width
             height: parent.height
 
@@ -112,7 +117,18 @@ Item {
                 // grows with what goes, up to a third of the window (then it scrolls)
                 height: Math.min(body.height / 3, Math.max(view.u * 30, list.contentHeight + view.u * 6))
                 sunken: true
-                color: Theme.sunken
+                color: Serp.on ? "transparent" : Theme.sunken  // serp-skin
+                outline: !Serp.on  // serp-skin
+                flat: Serp.on || Theme.zine  // serp-skin (its own: Theme.zine here)
+                Rectangle {  // serp-skin
+                    visible: Serp.on
+                    anchors.fill: parent
+                    z: -1
+                    radius: Serp.radius
+                    color: Serp.surface0
+                    border.width: 1
+                    border.color: Serp.line
+                }
                 PxText {
                     visible: !view.something
                     anchors.centerIn: parent
@@ -198,6 +214,18 @@ Item {
                         const ctx = getContext("2d");
                         ctx.reset();
                         const g = view.u;
+                        if (Serp.on) {  // serp-skin: smooth rings in the skin's accent
+                            const R = Math.min(width, height) / 2 - g;
+                            ctx.lineWidth = Serp.px(2);
+                            for (let k = 0; k < 3; k++) {
+                                const t = (phase + k / 3) % 1;
+                                ctx.strokeStyle = Qt.alpha(Serp.accent, 0.55 * (1 - t));
+                                ctx.beginPath();
+                                ctx.arc(radar.cx, radar.cy, R * (0.25 + 0.75 * t), 0, 2 * Math.PI);
+                                ctx.stroke();
+                            }
+                            return;
+                        }
                         const maxR = Math.min(width, height) / 2 - g;
                         // three rings going out, pixel squares on the grid, fading as they go
                         for (let k = 0; k < 3; k++) {
@@ -365,9 +393,10 @@ Item {
         visible: drop.containsDrag
         anchors.fill: parent
         anchors.margins: view.u * 6
-        color: Qt.alpha(Theme.accent, 0.16)
+        color: Qt.alpha(Serp.on ? Serp.accent : Theme.accent, 0.16)  // serp-skin
         border.width: Math.max(2, view.u)
-        border.color: Theme.accent
+        border.color: Serp.on ? Serp.accent : Theme.accent  // serp-skin
+        radius: Serp.on ? Serp.radius : 0  // serp-skin
         PxText {
             anchors.centerIn: parent
             font.bold: true

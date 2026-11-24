@@ -31,14 +31,12 @@
     },
     "kind": {
       "enum": [
-        "keyboard",
         "mouse"
       ]
     },
     "family": {
       "enum": [
-        "lamzu-aurora",
-        "nuphy-io"
+        "lamzu-aurora"
       ]
     },
     "usb": {
@@ -70,25 +68,7 @@
       "properties": {
         "via": {
           "enum": [
-            "hidraw",
-            "usbfs"
-          ]
-        },
-        "interface": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 31
-        },
-        "in": {
-          "type": [
-            "string",
-            "integer"
-          ]
-        },
-        "out": {
-          "type": [
-            "string",
-            "integer"
+            "hidraw"
           ]
         }
       }
@@ -125,144 +105,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "liveTravel": {
-          "type": [
-            "boolean",
-            "object"
-          ]
-        },
-        "actuation": {
-          "anyOf": [
-            {
-              "const": false
-            },
-            {
-              "type": "object",
-              "required": [
-                "min",
-                "max",
-                "step"
-              ],
-              "properties": {
-                "min": {
-                  "type": "number"
-                },
-                "max": {
-                  "type": "number"
-                },
-                "step": {
-                  "type": "number"
-                }
-              }
-            }
-          ]
-        },
-        "rapidTrigger": {
-          "anyOf": [
-            {
-              "const": false
-            },
-            {
-              "type": "object",
-              "required": [
-                "min",
-                "max",
-                "steps"
-              ],
-              "properties": {
-                "min": {
-                  "type": "number"
-                },
-                "max": {
-                  "type": "number"
-                },
-                "steps": {
-                  "type": "array",
-                  "minItems": 1
-                }
-              }
-            }
-          ]
-        },
-        "deadZones": {
-          "anyOf": [
-            {
-              "const": false
-            },
-            {
-              "type": "object",
-              "required": [
-                "max"
-              ],
-              "properties": {
-                "max": {
-                  "type": "number"
-                }
-              }
-            }
-          ]
-        },
-        "socd": {
-          "anyOf": [
-            {
-              "const": false
-            },
-            {
-              "type": "object",
-              "required": [
-                "modes"
-              ],
-              "properties": {
-                "modes": {
-                  "type": "array",
-                  "minItems": 1
-                }
-              }
-            }
-          ]
-        },
-        "dks": {
-          "type": [
-            "boolean",
-            "object"
-          ]
-        },
-        "modTap": {
-          "type": [
-            "boolean",
-            "object"
-          ]
-        },
-        "toggle": {
-          "type": [
-            "boolean",
-            "object"
-          ]
-        },
-        "remap": {
-          "type": [
-            "boolean",
-            "object"
-          ]
-        },
-        "layers": {
-          "type": [
-            "boolean",
-            "object"
-          ]
-        },
-        "macros": {
-          "type": [
-            "boolean",
-            "object"
-          ]
-        },
-        "lighting": {
-          "type": [
-            "boolean",
-            "object"
-          ]
-        },
         "pollingRate": {
           "anyOf": [
             {
@@ -280,18 +122,6 @@
                 }
               }
             }
-          ]
-        },
-        "calibration": {
-          "type": [
-            "boolean",
-            "object"
-          ]
-        },
-        "profiles": {
-          "type": [
-            "boolean",
-            "object"
           ]
         },
         "dpi": {
@@ -407,90 +237,6 @@
             "boolean",
             "object"
           ]
-        }
-      }
-    },
-    "switches": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "travel"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "name": {
-            "type": "string"
-          },
-          "travel": {
-            "type": "number"
-          }
-        }
-      }
-    },
-    "layout": {
-      "type": "object",
-      "required": [
-        "keys"
-      ],
-      "properties": {
-        "keys": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "required": [
-              "m",
-              "x",
-              "y"
-            ],
-            "properties": {
-              "m": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 255,
-                "description": "The key's number in the protocol (its slot of the key matrix)."
-              },
-              "x": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 40
-              },
-              "y": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 40
-              },
-              "w": {
-                "type": "number",
-                "minimum": 0.25,
-                "maximum": 12
-              },
-              "h": {
-                "type": "number",
-                "minimum": 0.25,
-                "maximum": 12
-              },
-              "label": {
-                "type": "string"
-              },
-              "default": {
-                "type": "array",
-                "minItems": 3,
-                "maxItems": 3,
-                "items": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 255
-                },
-                "description": "The three bytes of the key's factory action."
-              }
-            }
-          }
         }
       }
     }

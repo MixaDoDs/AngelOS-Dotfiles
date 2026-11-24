@@ -126,8 +126,8 @@ Item {
     // Classic stays the default; Windose and Stream are optional settings skins. Golden Gate is
     // the whole desktop's skin (services/GoldenGate): here it is macOS's System Settings — its
     // own view (views/MacView.qml), the Windows 11 look's cards drawn as a Mac's grouped rows
-    readonly property string skin: ["classic", "windose", "stream", "goldengate"].includes(Config.settingsUi.skin) ? Config.settingsUi.skin : "classic"
-    readonly property bool mac: skin === "goldengate" && !hellDress
+    readonly property string skin: ["classic", "windose", "stream", "goldengate", "serp"].includes(Config.settingsUi.skin) ? Config.settingsUi.skin : "classic"  // serp-skin
+    readonly property bool mac: (skin === "goldengate" || skin === "serp") && !hellDress  // serp-skin
     readonly property string settingsSkin: hellDress ? "classic" : mac ? "goldengate" : fluent ? "classic" : skin
     readonly property var macHost: mac ? win.Window.window : null
     // the P5 window (modules/settings/p5) when it is the look picked (services/SettingsLook): its own
@@ -147,10 +147,10 @@ Item {
         }
     ]
     // two looks only (2026-10-07): Windows 11 for the pixel skins, System Settings for Golden Gate
-    readonly property string viewId: mac ? "mac" : "win11"
+    readonly property string viewId: mac ? (skin === "serp" ? "serp" : "mac") : "win11"  // serp-skin
     // the Windows 11 look: a category with several pages has a page of its own ("cat:<id>",
     // CategoryPage), sub-pages unfold in place (PxGroup), every setting is a card (SettingRow)
-    readonly property bool fluent: viewId === "win11" || viewId === "mac"
+    readonly property bool fluent: viewId === "win11" || viewId === "mac" || viewId === "serp"  // serp-skin
     readonly property var viewItem: viewLoader.item
     // a folder of icons / the tiles: "home" is the view's own screen, no page on it
     readonly property bool hasHome: viewId === "controlpanel" || viewId === "tiles"
@@ -753,9 +753,10 @@ Item {
             anchors.fill: parent
             anchors.margins: -Theme.u * 2
             z: 100
-            color: Qt.alpha(Theme.accent, 0.12)
+            color: Qt.alpha(Serp.on ? Serp.accent : Theme.accent, 0.12)  // serp-skin
+            radius: Serp.on ? Serp.radius : 0  // serp-skin
             border.width: Math.max(2, Theme.u)
-            border.color: Theme.accent
+            border.color: Serp.on ? Serp.accent : Theme.accent  // serp-skin
             SequentialAnimation on opacity {
                 running: true
                 PauseAnimation {
@@ -913,7 +914,7 @@ Item {
         id: macFrame
         visible: win.mac
         anchors.fill: parent
-        color: GoldenGate.contentBg
+        color: win.viewId === "serp" ? "transparent" : GoldenGate.contentBg  // serp-skin: SerpView draws its own card
         Item {
             id: macHost
             anchors.fill: parent
@@ -973,7 +974,9 @@ Item {
         layer.enabled: (win.grimoire && !win.spread) || win.dressed
         layer.effect: inkFx
         function load() {
-            const v = win.viewId === "mac" ? {
+            const v = win.viewId === "serp" ? {  // serp-skin
+                "file": "SerpView.qml"
+            } : win.viewId === "mac" ? {
                 "file": "MacView.qml"
             } : win.views.find(x => x.id === win.viewId) || win.views[0];
             setSource(Qt.resolvedUrl("views/" + v.file), {
@@ -1211,7 +1214,8 @@ Item {
                         readonly property bool picked: win.hsel === index
                         width: resultCol.width
                         height: histRow.implicitHeight + Theme.u * 4
-                        color: picked ? Theme.select : hm.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.15) : "transparent"
+                        color: Serp.on ? (picked ? Serp.selected : hm.containsMouse ? Serp.hover : "transparent") : picked ? Theme.select : hm.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.15) : "transparent"  // serp-skin
+                        radius: Serp.on ? Serp.radiusSmall : 0  // serp-skin
                         MouseArea {
                             id: hm
                             anchors.fill: parent
@@ -1227,7 +1231,7 @@ Item {
                             PxIcon {
                                 name: "clock"
                                 anchors.verticalCenter: parent.verticalCenter
-                                ink: hist.picked ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
+                                ink: Serp.on ? (hist.picked ? Serp.accent : Serp.subtext0) : hist.picked ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)  // serp-skin
                             }
                             Column {
                                 width: hist.width - Theme.u * 20 - histX.width
@@ -1235,7 +1239,7 @@ Item {
                                     width: parent.width
                                     text: hist.modelData.q
                                     elide: Text.ElideRight
-                                    color: hist.picked ? Theme.selectText : Theme.text
+                                    color: Serp.on ? (hist.picked ? Serp.accent : Serp.text) : hist.picked ? Theme.selectText : Theme.text  // serp-skin
                                 }
                                 PxText {
                                     visible: text !== ""
@@ -1243,7 +1247,7 @@ Item {
                                     text: hist.modelData.title ? "→ " + hist.modelData.title : ""
                                     kind: "tiny"
                                     elide: Text.ElideRight
-                                    color: hist.picked ? Theme.selectText : Theme.textDim
+                                    color: Serp.on ? Serp.subtext0 : hist.picked ? Theme.selectText : Theme.textDim  // serp-skin
                                 }
                             }
                             PxButton {
@@ -1294,7 +1298,8 @@ Item {
                         readonly property bool picked: win.sel === index
                         width: resultCol.width
                         height: resRow.implicitHeight + Theme.u * 4
-                        color: picked ? Theme.select : rm.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.15) : "transparent"
+                        color: Serp.on ? (picked ? Serp.selected : rm.containsMouse ? Serp.hover : "transparent") : picked ? Theme.select : rm.containsMouse ? Theme.mix(Theme.face, Theme.accent, 0.15) : "transparent"  // serp-skin
+                        radius: Serp.on ? Serp.radiusSmall : 0  // serp-skin
                         Row {
                             id: resRow
                             x: Theme.u * 3
@@ -1303,7 +1308,7 @@ Item {
                             PxIcon {
                                 name: res.modelData.icon || "gear"
                                 anchors.verticalCenter: parent.verticalCenter
-                                ink: res.picked ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)
+                                ink: Serp.on ? (res.picked ? Serp.accent : Serp.subtext0) : res.picked ? Theme.selectText : (Theme.dark ? Theme.text : Theme.edge)  // serp-skin
                             }
                             Column {
                                 width: res.width - Theme.u * 20 - (resToggle.visible ? resToggle.width + Theme.u * 4 : 0)
@@ -1312,7 +1317,7 @@ Item {
                                     text: res.modelData.title
                                     elide: Text.ElideRight
                                     font.bold: res.modelData.kind === "page"
-                                    color: res.picked ? Theme.selectText : Theme.text
+                                    color: Serp.on ? (res.picked ? Serp.accent : Serp.text) : res.picked ? Theme.selectText : Theme.text  // serp-skin
                                 }
                                 // where it is; found through a concept («рулетка») says so first
                                 PxText {
@@ -1321,7 +1326,7 @@ Item {
                                     text: (res.modelData.related ? "≈ " + res.modelData.related + (res.modelData.crumb || res.modelData.hint ? "  ·  " : "") : "") + (res.modelData.crumb || res.modelData.hint)
                                     kind: "tiny"
                                     elide: Text.ElideRight
-                                    color: res.picked ? Theme.selectText : Theme.textDim
+                                    color: Serp.on ? Serp.subtext0 : res.picked ? Theme.selectText : Theme.textDim  // serp-skin
                                 }
                             }
                         }

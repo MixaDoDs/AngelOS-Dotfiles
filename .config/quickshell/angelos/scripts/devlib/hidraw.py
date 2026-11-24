@@ -9,10 +9,18 @@ import os
 import re
 from pathlib import Path
 
-from .usbfs import UsbError
-
 SYSFS = Path(os.environ.get("ANGELOS_SYSFS", "/sys"))
 DEVFS = Path(os.environ.get("ANGELOS_DEVFS", "/dev"))
+
+
+class UsbError(OSError):
+    """code: denied | busy | gone | timeout | io"""
+
+    def __init__(self, code, message, errno_=0):
+        super().__init__(message)
+        self.code = code
+        self.errno = errno_
+
 
 HIDIOCSFEATURE_65 = 0xC0414806      # report id 0 + 64 bytes
 HIDIOCGFEATURE_65 = 0xC0414807

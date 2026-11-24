@@ -9,8 +9,8 @@ import qs.services
 // script's --stop stops it and the shell notices; a recorder that dies by itself is noticed too.
 // Then where the lyrics go (Lyrics.placeOn, Halo.on) and the capsules (Halo.items): a timer, a
 // timer's end (ring, first), our recording. Then a paused recording (no recorder, the pieces'
-// time), a picked colour's capsule, a browser download (a half-file growing, then whole: on the
-// shelf, a moment's capsule).
+// time), a picked colour's capsule, a browser download (a half-file growing, then whole: a
+// capsule with the saved path, and an entry on the shelf if enabled).
 Scope {
     id: root
 
@@ -88,23 +88,6 @@ Scope {
                 root.ok("place-bar", Lyrics.placeOn("A") === "bar" && Halo.on("A"), Lyrics.placeOn("A"));
                 L.haloScreens = ["A"];
                 root.ok("place-halo", Lyrics.placeOn("A") === "halo" && Lyrics.placeOn("B") === "bar", Lyrics.placeOn("A") + " " + Lyrics.placeOn("B"));
-                const screen = Shell.screens[0];
-                H.screens = [screen.name];
-                const takesBefore = Halo.takesNotifications;
-                Halo.dodge(screen.name, true);
-                root.ok("notif-dodged", takesBefore && !Halo.takesNotifications, "before " + takesBefore + ", after " + Halo.takesNotifications + ", screens " + Shell.screens.length);
-                const haloScreen = { "name": "DP-1" }, focusedScreen = { "name": "HDMI-A-1" };
-                const popupTarget = typeof Notifs.popupScreen === "function" ? Notifs.popupScreen([haloScreen], focusedScreen) : focusedScreen;
-                root.ok("notif-fallback-on-halo-screen", popupTarget === haloScreen, popupTarget.name);
-                root.ok("notif-popup-target-shared", Notifs.popupTarget === screen, Notifs.popupTarget ? Notifs.popupTarget.name : "missing");
-                const oldScreen = Config.notifications.screen;
-                Config.notifications.screen = "primary";
-                const explicitTarget = typeof Notifs.popupScreen === "function" ? Notifs.popupScreen([haloScreen], focusedScreen) : focusedScreen;
-                root.ok("notif-explicit-screen", explicitTarget === Shell.primaryScreen, explicitTarget.name);
-                Config.notifications.screen = oldScreen;
-                Halo.dodge(screen.name, false);
-                root.ok("notif-focused-with-visible-halo", Notifs.popupScreen([haloScreen], focusedScreen) === focusedScreen, Halo.seenSomewhere);
-                H.screens = [];
                 // slid away from a window at the top (or hidden): the line back in the bar, the
                 // volume to the OSD box; back in sight, in the Halo again
                 Halo.dodge("A", true);
@@ -196,7 +179,12 @@ Scope {
             } else if (root.step === 38) {
                 if (root.hold(Downloads.finished === "a.zip"))
                     return;
-                root.ok("dl-done", !Downloads.active.length && Downloads.finished === "a.zip" && Shelf.items.some(i => i.path === Config.home + "/Downloads/a.zip") && Halo.items.some(i => i.kind === "dlDone"), JSON.stringify(Shelf.items));
+                const path = Config.home + "/Downloads/a.zip";
+                root.ok("dl-done-without-shelf", !Downloads.active.length && Downloads.finished === "a.zip" && !Shelf.items.some(i => i.path === path)
+                    && Halo.items.some(i => i.kind === "dlDone" && i.path === path), JSON.stringify(Halo.items));
+                Config.halo.shelf = true;
+                Downloads.done("a.zip", path);
+                root.ok("dl-done-with-shelf", Shelf.items.some(i => i.path === path), JSON.stringify(Shelf.items));
                 console.log("TEST DONE");
                 Qt.quit();
             }

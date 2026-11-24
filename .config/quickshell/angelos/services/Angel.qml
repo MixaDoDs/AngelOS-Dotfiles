@@ -183,6 +183,9 @@ Singleton {
     function say(msg, acts, ms, silent) {
         if (!shown || !msg)
             return;
+        // a game fills her screen: nobody reads or hears her, let the line go
+        if (Shell.gaming && Shell.fullscreenOn(screenName))
+            return;
         // cooled towards the player (Story.angelStep, item 11): no more hearts from her
         if (!demon && Story.angelStep >= 2)
             msg = String(msg).replace(/\s*♡/g, "");

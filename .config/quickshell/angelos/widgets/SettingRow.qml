@@ -23,7 +23,10 @@ Item {
     // the Golden Gate skin's System Settings: no card of its own — a row of its group's box with
     // a hairline between rows, the label regular
     readonly property bool mac: settingsSkin === "goldengate"
-    property int labelWidth: streamLayout ? width - Theme.u * 10 : Math.min(Theme.u * 120, width * 0.45)
+    property bool stackControls: false
+    readonly property bool stacked: streamLayout || (stackControls && width < Theme.fit(160))
+    readonly property int rightInset: mac ? Theme.pad : fluent || classicLike ? 0 : Theme.pad
+    property int labelWidth: streamLayout ? width - Theme.u * 10 : stacked ? width - labels.x - rightInset : Math.min(Theme.u * 120, width * 0.45)
     default property alias control: slot.data
     property string preview: ""
     property string previewVariant: ""
@@ -31,7 +34,16 @@ Item {
     property bool previewOpen: false
     // where it sits in its card: a catalog's row sits in a slot of its own (CatalogPage)
     readonly property real placeY: parent && parent.catRow === true ? parent.y : y
-    readonly property int rowHeight: streamLayout ? labels.implicitHeight + slot.childrenRect.height + Theme.u * 12 : fluent ? Math.max(Theme.fit(mac ? 20 : 17), Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (mac ? 8 : 6)) : Math.max(labels.implicitHeight, slot.childrenRect.height) + Theme.u * (settingsSkin === "windose" ? 8 : 2)
+    readonly property int rowHeight: {
+        const content = stacked ? labels.implicitHeight + slot.height : Math.max(labels.implicitHeight, slot.height);
+        if (streamLayout)
+            return content + Theme.u * 12;
+        if (stacked)
+            return content + Theme.gap * 2;
+        if (fluent)
+            return Math.max(Theme.fit(mac ? 20 : 17), content + Theme.u * (mac ? 8 : 6));
+        return content + Theme.u * (settingsSkin === "windose" ? 8 : 2);
+    }
 
     // new since you last looked (services/SettingsNews): a star after the label. The row's group
     // and page file come from its place on the page
@@ -70,7 +82,7 @@ Item {
         x: Theme.u * 5
         width: parent.width - x * 2
         height: 1
-        color: Theme.dark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.07)
+        color: Serp.on ? GoldenGate.separator : Theme.dark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.07)  // serp-skin
     }
     Rectangle {
         visible: root.fluent && !root.mac && root.placeY > 0
@@ -109,7 +121,7 @@ Item {
         id: labels
         x: root.mac ? Theme.u * 5 : root.fluent || root.classicLike ? 0 : Theme.u * 6
         width: root.labelWidth
-        y: root.streamLayout ? Theme.u * 4 : (root.rowHeight - implicitHeight) / 2
+        y: root.streamLayout ? Theme.gap : root.stacked ? Theme.gap / 2 : (root.rowHeight - implicitHeight) / 2
         PxText {
             id: labelText
             width: parent.width - (root.isNew ? newStar.width + Theme.u * 3 : 0)
@@ -135,16 +147,16 @@ Item {
     Item {
         id: slot
         readonly property bool fixedWidth: true // PxToggle wraps its label to fit
-        x: root.streamLayout ? Theme.u * 6 : labels.x + root.labelWidth + Theme.u * (root.fluent ? 5 : root.classicLike ? 6 : 12)
-        width: root.width - x - (root.mac ? Theme.u * 5 : root.fluent || root.classicLike ? 0 : Theme.u * 5)
-        y: root.streamLayout ? labels.y + labels.implicitHeight + Theme.u * 3 : (root.rowHeight - height) / 2
+        x: root.stacked ? labels.x : labels.x + root.labelWidth + Theme.u * (root.fluent ? 5 : root.classicLike ? 6 : 12)
+        width: root.stackControls ? Math.max(0, root.width - x - root.rightInset) : root.width - x - root.rightInset
+        y: root.stacked ? labels.y + labels.implicitHeight + (root.streamLayout ? Theme.u * 3 : Theme.gap) : (root.rowHeight - height) / 2
         height: childrenRect.height
     }
     Loader {
         id: gif
         active: root.preview !== "" && root.previewOpen
         y: root.rowHeight + Theme.u
-        x: Math.min(root.labelWidth, Theme.u * 20)
+        x: root.stackControls && root.stacked ? labels.x : Math.min(root.labelWidth, Theme.u * 20)
         width: Math.min(root.width - x, Theme.u * 230)
         sourceComponent: PxPreview {
             width: gif.width

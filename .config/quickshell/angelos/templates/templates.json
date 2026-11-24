@@ -33,6 +33,8 @@
   { "id": "qt",        "name": "Qt: qt6ct (рай/ад, пиксельный стиль)", "command": "python3 {{shellDir}}/scripts/qt-theme.py {{paletteFile}}",
     "writes": ["~/.config/qt6ct/colors/angelos.conf", "~/.config/qt6ct/qss/angelos.qss", "~/.config/qt6ct/qt6ct.conf",
                "~/.config/qt6ct/qss/angelos-frame-{raised,sunken,default,focus}.png", "~/.config/qt6ct/.angelos-stamp"] },
+  { "id": "kde-colors", "name": "EasyEffects: цвета Qt-программ (схема KDE)", "command": "python3 {{shellDir}}/scripts/kde-colors.py {{paletteFile}}",
+    "writes": ["~/.local/share/color-schemes/angelOS.colors", "~/.config/easyeffectsrc"] },
   { "id": "golden-gate", "name": "Golden Gate: системный шрифт, значки, модуль меню GTK 3", "command": "python3 {{shellDir}}/scripts/goldengate.py {{paletteFile}}",
     "writes": ["~/.config/gtk-3.0/settings.ini", "~/.config/gtk-4.0/settings.ini", "~/.local/state/angelos/goldengate-before.json"] },
   { "id": "folders", "name": "Папки Pixora в цветах темы", "command": "python3 {{shellDir}}/scripts/folder-tint.py {{paletteFile}}",

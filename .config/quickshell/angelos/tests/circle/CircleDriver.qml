@@ -861,6 +861,7 @@ Scope {
         () => {
             root.shots0 = shots.count;
             root.reopen();
+            CircleSearch.setMode("rect");
             CircleSearch.pickRect({
                 "x": 40,
                 "y": 50,
@@ -877,10 +878,7 @@ Scope {
             return true;
         },
         () => root.until("Ctrl+S-saves-the-picked-piece", () => root.savedIs("300x90"), 10000, () => shots.count + " " + shots.size),
-        () => {
-            root.report("saving-leaves-the-clipboard-alone", root.fileText(copied) === "kept", root.fileText(copied));
-            return true;
-        },
+        () => root.until("saving-a-rectangle-copies-the-picture", () => /image\/png/.test(root.fileText(copied)), 4000, () => copied.text()),
         // ---- the saved shot in the corner, its editor (services/ShotEdit, modules/capture/ShotEditor)
         () => root.until("a-saved-shot-waits-in-the-corner", () => ShotEdit.thumb && /\.png$/.test(ShotEdit.path), 4000, () => ShotEdit.thumb + " " + ShotEdit.path),
         () => {
@@ -1074,10 +1072,12 @@ Scope {
             if (!root.wait(1200))
                 return false;
             root.report("the-draft-is-still-temporary-after-copy", ShotEdit.temp, ShotEdit.path);
+            copied.setText("before saving the draft");
             editorFace.save();
             return true;
         },
         () => root.until("the-editor-saves-the-draft-on-request", () => !ShotEdit.temp && /Pictures\/Screenshots\/.*\.png$/.test(ShotEdit.path), 8000, () => ShotEdit.path),
+        () => root.until("saving-the-draft-copies-the-edited-picture", () => /image\/png/.test(root.fileText(copied)), 4000, () => copied.text()),
         () => {
             ShotEdit.close();
             return true;
@@ -1115,6 +1115,8 @@ Scope {
         () => root.until("save-keeps-the-picked-piece", () => root.savedIs("300x90"), 10000, () => shots.count + " " + shots.size),
         () => {
             root.reopen();
+            CircleSearch.setMode("text");
+            copied.setText("OCR before saving");
             root.shots0 = shots.count;
             face.at = Qt.point(150, 150);
             face.windowPreview = true;
@@ -1123,6 +1125,11 @@ Scope {
             return true;
         },
         () => root.until("Window-saves-the-window-under-the-pointer", () => root.savedIs("320x160"), 10000, () => shots.count + " " + shots.size),
+        () => {
+            root.report("saving-in-text-mode-keeps-the-copied-text", root.fileText(copied) === "OCR before saving", root.fileText(copied));
+            CircleSearch.setMode("rect");
+            return true;
+        },
         () => {
             root.reopen();
             root.shots0 = shots.count;

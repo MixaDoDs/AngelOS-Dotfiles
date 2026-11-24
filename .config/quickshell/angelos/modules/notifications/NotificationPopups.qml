@@ -18,7 +18,7 @@ PanelWindow {
     screen: Notifs.popupTarget
     // over the first-run wizard nothing pops up (they wait in the history)
     visible: Notifs.popups.length > 0 && !Shell.setupLocked
-    readonly property string pos: Config.notifications.position || "top-right"
+    readonly property string pos: Serp.on ? Serp.cfg.notifPosition : Config.notifications.position || "top-right"  // serp-skin
     anchors.top: Place.top(pos)
     anchors.bottom: Place.bottom(pos)
     anchors.left: Place.left(pos)

@@ -1,0 +1,50 @@
+{
+  "id": "celestia",
+  "name": "Селестия",
+  "version": "0.3.0",
+  "author": "Селестия и хозяин",
+  "description": {
+    "ru": "Селестия на рабочем столе: живое лицо, которое думает вместе с Claude, слушает музыку и реагирует на систему.",
+    "en": "Celestia on the desktop: a living face that thinks along with Claude, listens to music and reacts to the system."
+  },
+  "icon": "heart",
+  "enabledByDefault": false,
+  "themes": [
+    "pixel",
+    "mac"
+  ],
+  "realms": [
+    "heaven",
+    "hell"
+  ],
+  "main": "Main.qml",
+  "barWidget": "BarWidget.qml",
+  "desktopTitle": "celestia",
+  "desktopWidget": "DesktopWidget.qml",
+  "settings": "Settings.qml",
+  "launcher": "Launcher.qml",
+  "sidebarWidget": "SidebarBlock.qml",
+  "menu": [
+    {
+      "label": "Claude: продолжить сессию",
+      "icon": "bot",
+      "exec": "qs -c angelos ipc call claude continueSession"
+    }
+  ],
+  "achievements": [
+    {
+      "id": "poke-100",
+      "name": {
+        "ru": "Хватит тыкать",
+        "en": "Stop poking"
+      },
+      "desc": {
+        "ru": "Тыкнуть Селестию сто раз",
+        "en": "Poke Celestia a hundred times"
+      },
+      "goal": 100,
+      "tier": 2,
+      "icon": "heart"
+    }
+  ]
+}

@@ -15,7 +15,7 @@ import qs.config
 //    into the browsers found) writes {file, received, total} into
 //    $XDG_RUNTIME_DIR/angelos-browser-downloads.json; a file on disk alone never knows its size;
 //  · done = the half-file became its whole file, or a new whole file stopped growing: onto the
-//    Halo's shelf, and `finished` for a moment. A cancelled one (the half-file gone alone) says
+//    Halo's shelf if enabled, and `finished` for a moment. A cancelled one (the half-file gone alone) says
 //    nothing, nor do the files there before.
 //  · told: what services/VideoGrab says of its own job (a link through yt-dlp, a video squeezed
 //    for Discord), the same as a browser's word.
@@ -27,6 +27,7 @@ Singleton {
     // [{path, name, size, total, speed, paused}] — bytes, bytes/s; total 0 = unknown
     property var active: []
     property string finished: ""        // the name just done, "" after a few seconds
+    property string finishedPath: ""
     readonly property bool watching: Config.halo.enabled
     readonly property var halfRe: /\.(crdownload|part|download|!qB)$/i
 
@@ -125,7 +126,9 @@ Singleton {
             delete g[name];
             growing = g;
         }
-        Shelf.addDrop(["file://" + encodeURI(path || dir + "/" + name)], "", false);
+        finishedPath = path || dir + "/" + name;
+        if (Config.halo.shelf)
+            Shelf.addDrop([FileSearch.uri(finishedPath)], "", false);
         finished = "";
         finished = name;
         finishedOff.restart();

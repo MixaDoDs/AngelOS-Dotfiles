@@ -829,7 +829,7 @@ Item {
     }
     function pickSkin(mac) {
         Config.setup.from = mac ? "mac" : "";
-        Config.settingsUi.skin = mac ? "goldengate" : "classic";
+        GoldenGate.setSkin(mac ? "goldengate" : "classic");
         Config.settingsUi.skinChosen = true;
         wizard.macByWizard = mac;
     }

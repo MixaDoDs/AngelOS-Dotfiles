@@ -347,12 +347,12 @@ Singleton {
     readonly property string socketPath: runtimeDir + (Shell.dev ? "/ctl-dev.sock" : "/ctl.sock")
     property bool socketReady: false
     Process {
-        running: true
+        running: Quickshell.shellDir.indexOf("circle-root") < 0  // serp-skin: the main shell only
         command: ["sh", "-c", 'mkdir -p "$1" && chmod 700 "$1" && rm -f "$2"', "sh", root.runtimeDir, root.socketPath]
         onExited: code => root.socketReady = code === 0
     }
     SocketServer {
-        active: root.socketReady
+        active: root.socketReady && Quickshell.shellDir.indexOf("circle-root") < 0  // serp-skin
         path: root.socketPath
         handler: Socket {
             id: client

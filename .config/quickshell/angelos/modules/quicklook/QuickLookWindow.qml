@@ -7,6 +7,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Quick Look (services/QuickLook): the file in a window in the middle of the screen —
 // a picture, a frame of a video, an album cover, a PDF's first page, text, a folder's or
@@ -26,7 +27,7 @@ Scope {
                 right: true
             }
             exclusionMode: ExclusionMode.Ignore
-            color: Qt.alpha(Theme.shadow, 0.35)
+            color: Serp.on ? Qt.alpha(Serp.crust, 0.3) : Qt.alpha(Theme.shadow, 0.35)  // serp-skin
             WlrLayershell.namespace: "angelos-quicklook"
             WlrLayershell.layer: WlrLayer.Overlay
             // takes input: the preview: a click beside it closes it, Space too
@@ -90,6 +91,18 @@ Scope {
                 Component.onCompleted: forceActiveFocus()
             }
 
+            SerpShotFrame {  // serp-skin
+                win: dialog
+                icon: ({
+                        "folder": "folder",
+                        "image": "image",
+                        "video": "play",
+                        "audio": "music",
+                        "text": "file-text",
+                        "archive": "layers",
+                        "font": "type"
+                    })[win.kind] || "file"
+            }
             PxWindow {
                 id: dialog
                 anchors.centerIn: parent
@@ -106,6 +119,9 @@ Scope {
                     anchors.fill: parent
                 }
 
+                Item {  // serp-skin: the content's look (PxWindow says "classic" to all inside it)
+                readonly property string settingsSkin: Serp.on ? "goldengate" : "classic"
+                anchors.fill: parent
                 Item {
                     id: stage
                     width: parent.width
@@ -206,6 +222,18 @@ Scope {
                         anchors.bottomMargin: win.u * 5
                         width: vrow.implicitWidth + win.u * 6
                         height: vrow.implicitHeight + win.u * 4
+                        color: Serp.on ? "transparent" : Theme.face  // serp-skin
+                        outline: !Serp.on  // serp-skin
+                        flat: Serp.on || Theme.zine  // serp-skin (its own: Theme.zine here)
+                        Rectangle {  // serp-skin
+                            visible: Serp.on
+                            anchors.fill: parent
+                            z: -1
+                            radius: height / 2
+                            color: Serp.surface0
+                            border.width: 1
+                            border.color: Serp.line
+                        }
                         Row {
                             id: vrow
                             anchors.centerIn: parent
@@ -248,6 +276,18 @@ Scope {
                         visible: win.kind === "text"
                         anchors.fill: parent
                         sunken: true
+                        color: Serp.on ? "transparent" : Theme.face  // serp-skin
+                        outline: !Serp.on  // serp-skin
+                        flat: Serp.on || Theme.zine  // serp-skin (its own: Theme.zine here)
+                        Rectangle {  // serp-skin
+                            visible: Serp.on
+                            anchors.fill: parent
+                            z: -1
+                            radius: Serp.radius
+                            color: Serp.surface0
+                            border.width: 1
+                            border.color: Serp.line
+                        }
                         Flickable {
                             id: flick
                             anchors.fill: parent
@@ -287,6 +327,18 @@ Scope {
                             width: parent.width
                             height: parent.height - listHead.height - win.u * 2
                             sunken: true
+                            color: Serp.on ? "transparent" : Theme.face  // serp-skin
+                            outline: !Serp.on  // serp-skin
+                            flat: Serp.on || Theme.zine  // serp-skin (its own: Theme.zine here)
+                            Rectangle {  // serp-skin
+                                visible: Serp.on
+                                anchors.fill: parent
+                                z: -1
+                                radius: Serp.radius
+                                color: Serp.surface0
+                                border.width: 1
+                                border.color: Serp.line
+                            }
                             ListView {
                                 anchors.fill: parent
                                 anchors.margins: win.u * 2
@@ -414,7 +466,8 @@ Scope {
                             height: parent.height
                             color: "transparent"
                             border.width: win.u
-                            border.color: Theme.accent
+                            border.color: Serp.on ? Serp.accent : Theme.accent  // serp-skin
+                            radius: Serp.on ? Serp.radiusSmall : 0  // serp-skin
                         }
                         Rectangle {
                             x: trim.xOf(player.position) - width / 2
@@ -431,7 +484,8 @@ Scope {
                                 x: modelData ? trim.xOf(trim.a) : trim.xOf(trim.b) - width
                                 width: win.u * 5
                                 height: strip.height
-                                color: grip.pressed || grip.containsMouse ? Theme.mix(Theme.accent, Theme.text, 0.25) : Theme.accent
+                                color: Serp.on ? (grip.pressed || grip.containsMouse ? Qt.lighter(Serp.accent, 1.2) : Serp.accent) : grip.pressed || grip.containsMouse ? Theme.mix(Theme.accent, Theme.text, 0.25) : Theme.accent  // serp-skin
+                                radius: Serp.on ? width / 2 : 0  // serp-skin
                                 // two grip lines
                                 Row {
                                     anchors.centerIn: parent
@@ -595,6 +649,7 @@ Scope {
                         }
                     }
                 }
+                }  // serp-skin: the wrapper's end
             }
             RightClickGuard {}
         }

@@ -42,6 +42,8 @@ Item {
     // only its rows, no card or caption: what a catalog page had outside its groups
     // (CatalogPage); the page shows it where it showed those (PxPage.wants)
     property bool bare: false
+    // The Pixel settings can opt out of the card frame while keeping the heading.
+    property bool outlined: true
     default property alias content: col.data
     // new since you last looked (services/SettingsNews), looked up when the news change
     readonly property bool isNew: {
@@ -85,10 +87,18 @@ Item {
 
     // ---- the angelOS look: one raised card, the caption inside ----
     PxBox {
-        visible: root.angel && !root.bare
+        visible: root.angel && !root.bare && root.outlined
         width: root.width
         height: root.height
         color: Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "faceAlt"), 0.6)
+    }
+    Rectangle {
+        visible: root.angel && !root.outlined && head.visible
+        x: col.x
+        y: col.y - Theme.u
+        width: col.width
+        height: root.b
+        color: Qt.alpha(Theme.toneOf(root.settingsSkin, "textDim"), 0.35)
     }
     // ---- the Golden Gate skin: the box under the caption; the card that unfolds (both) ----
     Rectangle {
@@ -98,7 +108,7 @@ Item {
         width: root.width
         height: root.height - y
         radius: root.mac ? Theme.u * 5 : 0
-        color: root.mac ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)) : Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "sunken"), Theme.dark ? 0.45 : 0.3)
+        color: root.mac ? (Serp.on ? GoldenGate.groupBg : Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035)) : Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "sunken"), Theme.dark ? 0.45 : 0.3)  // serp-skin
         border.width: root.mac ? 0 : Math.max(1, Theme.u / 2)
         border.color: Qt.alpha(Theme.toneOf(root.settingsSkin, "lo"), Theme.dark ? 0.85 : 0.45)
     }
@@ -108,7 +118,7 @@ Item {
         width: root.width
         height: Math.max(Theme.fit(22), foldText.implicitHeight + Theme.u * 8)
         radius: root.mac ? Theme.u * 5 : 0
-        color: root.mac ? (foldMouse.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(0, 0, 0, 0.06)) : (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035))) : foldMouse.containsMouse ? Theme.mix(Theme.toneOf(root.settingsSkin, "faceAlt"), Theme.accent, 0.12) : Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "faceAlt"), 0.55)
+        color: root.mac ? (Serp.on ? (foldMouse.containsMouse ? Qt.alpha(Serp.surface1, 0.7) : GoldenGate.groupBg) : foldMouse.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(0, 0, 0, 0.06)) : (Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.035))) : foldMouse.containsMouse ? Theme.mix(Theme.toneOf(root.settingsSkin, "faceAlt"), Theme.accent, 0.12) : Theme.mix(Theme.toneOf(root.settingsSkin, "face"), Theme.toneOf(root.settingsSkin, "faceAlt"), 0.55)  // serp-skin
         border.width: root.mac ? 0 : Math.max(1, Theme.u / 2)
         border.color: Qt.alpha(Theme.toneOf(root.settingsSkin, "lo"), Theme.dark ? 0.9 : 0.5)
         SettingsTile {

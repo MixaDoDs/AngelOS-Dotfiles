@@ -1,0 +1,38 @@
+{
+  "id": "angelos-typer",
+  "name": "AngelOS Typer",
+  "version": "0.4.3",
+  "author": "AngelOS Typer contributors",
+  "description": {
+    "ru": "Быстрые заметки-бумажки на рабочем столе и текстовый редактор Typer.",
+    "en": "Quick sticky notes on the desktop and the Typer editor."
+  },
+  "icon": "note",
+  "enabledByDefault": false,
+  "themes": [
+    "pixel",
+    "mac"
+  ],
+  "realms": [
+    "heaven",
+    "hell"
+  ],
+  "barWidget": "TyperBar.qml",
+  "launcher": "TyperLauncher.qml",
+  "settings": "TyperSettings.qml",
+  "menu": [
+    {
+      "label": "Открыть Typer",
+      "icon": "note",
+      "exec": "angelos-typer"
+    },
+    {
+      "label": "Быстрая заметка",
+      "icon": "note",
+      "exec": "qs -c angelos ipc call typer-notes compose"
+    }
+  ],
+  "main": "TyperService.qml",
+  "desktopWidget": "TyperPaper.qml",
+  "desktopTitle": "Заметка"
+}

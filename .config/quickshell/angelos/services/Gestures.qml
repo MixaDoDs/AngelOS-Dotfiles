@@ -143,7 +143,9 @@ Singleton {
                 break;
             }
         case "notifications":
-            if (Skin.mac)
+            if (Serp.on)  // serp-skin
+                Serp.togglePanel("notifs", out);
+            else if (Skin.mac)
                 GoldenGate.togglePanel("nc", out);
             else
                 PopupManager.showPanel("calendar", out) || PopupManager.showPanel("calendar", "");
@@ -151,6 +153,8 @@ Singleton {
         case "sidebar":
             if (Sidebar.enabled)
                 Sidebar.toggle();
+            else if (Serp.on)  // serp-skin
+                Serp.togglePanel("quick", out);
             else if (Skin.mac)
                 GoldenGate.togglePanel("cc", out);
             else

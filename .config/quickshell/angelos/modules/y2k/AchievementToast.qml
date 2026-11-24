@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 import "../../widgets/MacIcons.js" as MacIcons
 
 // "Achievement earned": a card slides down at the top of the main screen (under the bar),
@@ -137,6 +138,10 @@ Scope {
             WlrLayershell.namespace: "angelos-achievement"
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
+            // serp-skin: the wallpaper in screen space for the island's liquid glass
+            SerpBackdrop {
+                id: serpToastBack
+            }
             // the card: hover holds it, a click opens the page (or the diary)
             MouseArea {
                 id: cardMouse
@@ -161,9 +166,16 @@ Scope {
                 width: win.width - win.pad * 2
                 height: body.implicitHeight
 
+                // serp-skin: the skin's island (Golden Gate's glass card steps aside)
+                SGlass {
+                    visible: Serp.on && !root.hell
+                    anchors.fill: parent
+                    backdrop: serpToastBack
+                    radius: Math.min(Serp.radius * 1.4, Serp.px(24))
+                }
                 // ---- pixel and Golden Gate ----
                 SkinCard {
-                    visible: !root.hell
+                    visible: !root.hell && !Serp.on  // serp-skin
                     anchors.fill: parent
                     padding: 0
                 }
@@ -342,7 +354,7 @@ Scope {
                                     visible: root.mac
                                     anchors.centerIn: parent
                                     name: root.card ? MacIcons.fromPixel(root.card.icon) || "star" : "star"
-                                    color: "#ffffff"
+                                    color: Serp.on ? Serp.onAccent : "#ffffff"  // serp-skin
                                     size: GoldenGate.px(22)
                                 }
                             }
@@ -354,7 +366,7 @@ Scope {
                                 PxText {
                                     width: parent.width
                                     kind: "tiny"
-                                    color: root.hell ? Theme.hellGold : Theme.textDim
+                                    color: root.hell ? Theme.hellGold : Serp.on ? Serp.subtext1 : Theme.textDim  // serp-skin
                                     font.letterSpacing: root.hell ? 1.5 : 0
                                     elide: Text.ElideRight
                                     text: root.hell ? root.header().toUpperCase() : root.header()
@@ -364,9 +376,9 @@ Scope {
                                     width: parent.width
                                     kind: "title"
                                     font.bold: !root.hell
-                                    font.family: root.hell ? Theme.fontHell : mac ? Theme.macFont : Theme.fontTitle
+                                    font.family: root.hell ? Theme.fontHell : mac ? (Serp.on ? Serp.font : Theme.macFont) : Theme.fontTitle  // serp-skin
                                     font.pixelSize: root.hell ? Math.round(basePx * 1.35) : basePx
-                                    color: root.hell ? Theme.hellText : Theme.text
+                                    color: root.hell ? Theme.hellText : Serp.on ? Serp.text : Theme.text  // serp-skin
                                     wrapMode: Text.Wrap
                                     text: root.card ? root.card.name : ""
                                 }
@@ -375,8 +387,8 @@ Scope {
                                     visible: text !== ""
                                     width: parent.width
                                     wrapMode: Text.Wrap
-                                    color: root.hell ? Theme.hellTextDim : Theme.text
-                                    font.family: root.hell ? Theme.fontHellText : mac ? Theme.macFont : Theme.fontBody
+                                    color: root.hell ? Theme.hellTextDim : Serp.on ? Serp.subtext1 : Theme.text  // serp-skin
+                                    font.family: root.hell ? Theme.fontHellText : mac ? (Serp.on ? Serp.font : Theme.macFont) : Theme.fontBody  // serp-skin
                                     text: root.card ? root.card.desc : ""
                                 }
                                 PxText {
@@ -406,7 +418,7 @@ Scope {
                                     width: root.mac ? GoldenGate.px(64) : Theme.u * 26
                                     height: width
                                     radius: root.mac ? GoldenGate.px(12) : 0
-                                    color: root.hell ? Qt.alpha(Theme.hellBlood, 0.25) : root.mac ? Qt.rgba(0, 0, 0, GoldenGate.dark ? 0.25 : 0.06) : Theme.sunken
+                                    color: root.hell ? Qt.alpha(Theme.hellBlood, 0.25) : root.mac ? (Serp.on ? Serp.surface0 : Qt.rgba(0, 0, 0, GoldenGate.dark ? 0.25 : 0.06)) : Theme.sunken  // serp-skin
                                     border.width: root.mac ? 0 : Math.max(1, Theme.u / 2)
                                     border.color: root.hell ? Theme.hellGold : Theme.edge
                                     // a glint across the slot
@@ -415,7 +427,7 @@ Scope {
                                         width: parent.width * 0.8
                                         height: width
                                         radius: width / 2
-                                        color: root.hell ? Theme.hellGold : Theme.accent
+                                        color: root.hell ? Theme.hellGold : Serp.on ? Serp.accent : Theme.accent  // serp-skin
                                         opacity: 0.12 + bob.t * 0.1
                                     }
                                     PxIcon {
@@ -461,14 +473,14 @@ Scope {
                                         width: parent.width
                                         font.bold: true
                                         wrapMode: Text.Wrap
-                                        color: root.hell ? Theme.hellGold : Theme.text
+                                        color: root.hell ? Theme.hellGold : Serp.on ? Serp.text : Theme.text  // serp-skin
                                         text: root.diary ? Diary.title() : root.card && root.card.thing ? I18n.t("В карточке лежит: ", "Left in the card: ") + Heaven.label(root.card.thing) : ""
                                     }
                                     PxText {
                                         visible: text !== ""
                                         width: parent.width
                                         kind: "tiny"
-                                        color: root.hell ? Theme.hellTextDim : Theme.textDim
+                                        color: root.hell ? Theme.hellTextDim : Serp.on ? Serp.subtext1 : Theme.textDim  // serp-skin
                                         wrapMode: Text.Wrap
                                         text: root.card ? root.card.thingDesc || "" : ""
                                     }

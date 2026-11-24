@@ -362,6 +362,13 @@ CatPage {
         }
         CatToggle {
             present: Niri.nativeMinimize && !GoldenGate.on
+            label: I18n.t("Каждая сторона помнит свои окна", "Each side keeps its windows")
+            hint: I18n.t("Лента и Desktop помнят свои окна: какие были свёрнуты, на каких столах и в каком порядке стояли колонки, где стояли окна в Desktop. Вернёшься на сторону — всё станет как было.", "The Strip and Desktop each remember their windows: which were minimized, on which desks and in what column order, where they stood in Desktop. Come back to a side and it's as it was.")
+            checked: Config.windows.stackMemory === true
+            onToggled: c => Config.windows.stackMemory = c
+        }
+        CatToggle {
+            present: Niri.nativeMinimize && !GoldenGate.on
             label: I18n.t("Бросок окон между столами", "Throwing windows between desks")
             hint: I18n.t("Входишь в Desktop — окна с других столов прилетают по одному, каждое своей дорогой; с дальних врезаются в верх экрана, и монитор «ломается»: чёрное пятно растёкшейся матрицы, линии, битые пиксели. Сначала заживают пиксели, потом втягивается пятно. Выходишь — окна улетают вниз. Звуки — в «Системных звуках».", "Entering Desktop, the windows of other desks fly in one by one, each its own way; the far ones slam into the top and the monitor breaks: a black blot of leaked crystal, lines, dead pixels. The pixels heal first, then the blot pulls back. Leaving, they fall off the bottom. Sounds are in System sounds.")
             checked: Config.windows.deskThrow
@@ -569,6 +576,12 @@ CatPage {
             hint: I18n.t("Закреплённая программа открывается на своём мониторе и столе. Закрепить — ПКМ по окну на панели.", "A pinned app opens on its own monitor and desk. Pin it by right-clicking it on the taskbar.")
             checked: Config.windows.remember
             onToggled: c => Config.windows.remember = c
+        }
+        CatToggle {
+            label: I18n.t("Любая программа там, где закрыли", "Every program where it was closed")
+            hint: I18n.t("В Desktop первое окно программы открывается на том же месте и того же размера, где его закрыли. Закреплённые программы слушаются закрепа.", "In Desktop a program's first window opens where and as big as it was closed. Pinned programs follow their pins.")
+            checked: Config.windows.rememberAll === true
+            onToggled: c => Config.windows.rememberAll = c
         }
         CatRepeat {
             model: Config.windows.remember ? Object.keys(WindowConfig.places).sort() : []

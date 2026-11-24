@@ -273,7 +273,8 @@ Singleton {
     function playSoft(name, soft) {
         if (!enabled(name) || (StreamMode.quiet && !show.includes(name)) || quietNow())
             return;
-        if (!inGame.includes(name) && Config.y2k.quietFullscreen && fullscreenNow())
+        // a notification's sound plays in the game when the Halo shows it there
+        if (!inGame.includes(name) && !(name === "notify" && Config.halo.overFullscreen === "notify") && Config.y2k.quietFullscreen && fullscreenNow())
             return;
         _play(name, false, soft);
     }
@@ -337,6 +338,10 @@ Singleton {
             return;
         if (macOwn("startup") && Date.now() - loginChimeAt < 8000)
             return;
+        if (Serp.on) {  // serp-skin: «Пробуждение» has its own
+            playFile(Quickshell.shellDir + "/modules/serp/sounds/boot.wav", 0.9);
+            return;
+        }
         _play("startup", true, 1);
     }
     // a sound goes out to the player (the UI test counts the boot screen's)

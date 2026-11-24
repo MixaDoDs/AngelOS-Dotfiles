@@ -21,6 +21,8 @@ Singleton {
     property bool still: false
     property bool hell: false
     property bool privacy: false
+    property bool liveCrop: false
+    property var cropWindow: -1
     // given with each opening
     property var ws: null
     property var windows: []
@@ -73,6 +75,7 @@ Singleton {
             still = !!m.still;
             hell = !!m.hell;
             privacy = !!m.privacy;
+            liveCrop = !!m.liveCrop;
             Motion.calm = calm;
             Motion.still = still;
             Theme.realm = hell ? "hell" : "heaven";
@@ -88,6 +91,7 @@ Singleton {
             ws = m.ws || null;
             windows = m.windows || [];
             focusedWindowId = m.focused === undefined ? -1 : m.focused;
+            cropWindow = m.cropWindow ?? -1;
             focusedOutput = m.screen || "";
             land = m.land || "bottom-right";
             barEdge = m.barEdge || "bottom";

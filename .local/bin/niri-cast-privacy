@@ -164,10 +164,10 @@ def rule(on: bool, apps: list[dict]) -> str:
             lines.append('    match app-id=r#"^%s$"#' % re.sub(r"([\\.+*?()|\[\]{}^$])", r"\\\1", a["id"]))
         lines.append('    block-out-from "screencast"')
         lines.append("}")
-        # the screenshot overlay shows a frozen frame of the screen, hidden windows and all
-        # (grim sees them: "screencast" only blocks them out of screencasts): black on stream too
+        # The screenshot overlay can contain hidden windows because grim uses a screenshot.
+        # Keep both capture pickers off the stream while there are hidden apps.
         lines.append("layer-rule {")
-        lines.append('    match namespace="^angelos-circle-search$"')
+        lines.append('    match namespace="^angelos-(circle-search|window-crop-picker)$"')
         lines.append('    block-out-from "screencast"')
         lines.append("}")
     return "\n".join(lines) + "\n"

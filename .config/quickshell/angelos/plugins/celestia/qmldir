@@ -1,0 +1,3 @@
+singleton Brain 1.0 Brain.qml
+singleton Pulse 1.0 Pulse.qml
+singleton Usage 1.0 Usage.qml

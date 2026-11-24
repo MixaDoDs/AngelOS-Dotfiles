@@ -81,20 +81,37 @@ def icon_theme_here(name):
     return any((d / name / "index.theme").exists() for d in (HOME / ".local/share/icons", HOME / ".icons", Path("/usr/share/icons")))
 
 
-def wanted():
+def mac_icons(pal):  # Golden Gate: MacTahoe's icons on? (the palette, else settings.json)
+    if "macIcons" in pal:
+        return pal["macIcons"] != ""
+    try:
+        return json.loads((HOME / ".config/angelos/settings.json").read_text()).get("mac", {}).get("dockMacIcons", True)
+    except (OSError, ValueError, AttributeError):
+        return True
+
+
+def wanted(mac=True):
     fams = families()
     want = {}
     if "Inter" in fams:
         want["font-name"] = "Inter 10"
     if "JetBrains Mono" in fams:
         want["monospace-font-name"] = "JetBrains Mono 10"
-    if icon_theme_here("Adwaita"):
+    if mac and icon_theme_here("Adwaita"):
         want["icon-theme"] = "Adwaita"
+    elif not mac:  # the user's own icons: Pixora's folders in Golden Gate's colours (folder-tint.py), else the theme before the skin
+        cur = (gsettings("icon-theme") or "").strip("'")
+        before = json.loads(STATE.read_text())["gsettings"].get("icon-theme") if STATE.exists() else cur
+        before = (before or "").strip("'")
+        if (cur.startswith("angelos-folders-mac-") or cur in ("pixora", "pixora-dark")) and icon_theme_here(cur):
+            want["icon-theme"] = cur
+        elif before and before != "Adwaita":
+            want["icon-theme"] = before
     return want
 
 
-def on():
-    want = wanted()
+def on(mac=True):
+    want = wanted(mac)
     module = any(p.exists() for p in MODULE_FILES)
     if not STATE.exists():
         before = {"gsettings": {k: gsettings(k) for k in ("font-name", "monospace-font-name", "icon-theme")}, "ini": {}}
@@ -178,7 +195,7 @@ def main():
         return 0
     pal = json.loads(Path(args[0]).read_text())
     if pal.get("skin") == "goldengate":
-        on()
+        on(mac_icons(pal))
     else:
         off()
     return 0

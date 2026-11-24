@@ -7,6 +7,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Y2K loading screen, like a CD-ROM game from 2000: spinning disc, "insert
 // disc 1", a chunky progress bar and the startup chime. Once per login (a
@@ -33,6 +34,8 @@ Scope {
     }
     function finish() {
         run.stop();
+        serpHold.stop();  // serp-skin
+        serpTail.stop();
         cover.stop();
         Shell.bootCover = false;
         Shell.bootOpen = false;
@@ -89,13 +92,41 @@ Scope {
             run.restart();                   // its chime: Sounds.playBoot
         }
     }
-    NumberAnimation {
+    // serp-skin: under the skin the show stops at «Готово» (0.84) until the wallpaper is
+    // drawn under it (Serp.wallsDrawn, at most 5 s), then the last part opens onto it
+    SequentialAnimation {
         id: run
+        NumberAnimation {
+            target: root
+            property: "p"
+            from: 0
+            to: Serp.on ? 0.84 : 1
+            duration: Motion.ms(Serp.on ? 3400 * 0.84 : 3400)
+        }
+        ScriptAction {
+            script: Serp.on ? serpHold.restart() : root.finish()
+        }
+    }
+    Timer {
+        id: serpHold
+        interval: 50
+        repeat: true
+        property int n: 0
+        onTriggered: {
+            if (Serp.wallsDrawn(Shell.bootScreens) || ++n > 100) {
+                stop();
+                n = 0;
+                serpTail.restart();
+            }
+        }
+    }
+    NumberAnimation {
+        id: serpTail
         target: root
         property: "p"
-        from: 0
+        from: 0.84
         to: 1
-        duration: Motion.ms(3400)
+        duration: Motion.ms(3400 * 0.16)
         onFinished: root.finish()
     }
 
@@ -114,7 +145,14 @@ Scope {
                 right: true
             }
             exclusionMode: ExclusionMode.Ignore
-            color: Shell.bootOpen ? "#0c0710" : "#000000"
+            // serp-skin: the window is always made see-through, its colour drawn by a rectangle in it.
+            // At login the window is made before the settings are read (the skin unknown): made opaque
+            // then, its surface had no alpha, and serp's show opened onto black. Classic looks the same
+            color: "transparent"
+            Rectangle {
+                anchors.fill: parent
+                color: Serp.on ? (Shell.bootOpen ? "transparent" : "black") : Shell.bootOpen ? "#0c0710" : "#000000"
+            }
             WlrLayershell.layer: WlrLayer.Overlay
             // takes input: the boot screen: a click skips it
             WlrLayershell.namespace: "angelos-boot"
@@ -133,7 +171,7 @@ Scope {
             // fade out at the very end
             Item {
                 anchors.fill: parent
-                visible: Shell.bootOpen
+                visible: Shell.bootOpen && !Serp.on  // serp-skin: SerpBoot instead
                 opacity: root.p < 0.9 ? 1 : Math.max(0, 1 - (root.p - 0.9) * 10)
 
                 // CRT scanlines
@@ -271,6 +309,13 @@ Scope {
                     kind: "tiny"
                     text: "© 2000 angelOS ♡ best viewed in 800×600"
                 }
+            }
+            // serp-skin: «Пробуждение»
+            SerpBoot {
+                anchors.fill: parent
+                visible: Shell.bootOpen && Serp.on
+                p: root.p
+                screenName: win.modelData.name
             }
             MouseArea {
                 anchors.fill: parent

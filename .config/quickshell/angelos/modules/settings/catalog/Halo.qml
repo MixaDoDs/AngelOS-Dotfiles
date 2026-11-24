@@ -11,7 +11,7 @@ import qs.modules.settings.kit
 // Settings → Halo (Нимб): the pixel Dynamic Island at the top centre (services/Halo, modules/halo)
 CatPage {
     heading: I18n.t("Нимб", "Halo")
-    subtitle: I18n.t("Капсулы сверху по центру: музыка, таймеры, загрузки. Брось на Нимб файл — он подождёт на Полке.", "Pills at the top centre: music, timers, downloads. Drop a file on the Halo to keep it on the Shelf.")
+    subtitle: I18n.t("Капсулы сверху по центру: музыка, таймеры и загрузки.", "Pills at the top centre: music, timers and downloads.")
     id: page
     // the look, as pictures: each a small Halo at rest in its colours
     CatGroup {
@@ -333,6 +333,12 @@ CatPage {
             checked: Config.halo.calls !== false
             onToggled: c => Config.halo.calls = c
         }
+        CatToggle {
+            label: I18n.t("Полка", "Shelf")
+            hint: I18n.t("Вкладка для файлов и заметок", "A tab for files and notes")
+            checked: Config.halo.shelf
+            onToggled: v => Config.halo.shelf = v
+        }
     }
     // the rest of what it can show (Settings → Halo → More)
     // the Halo with the music's bass — shown on the Music and rhythm page (tree.json "rhythm")
@@ -403,6 +409,10 @@ CatPage {
                 {
                     label: I18n.t("Только конец таймера", "A timer's end only"),
                     value: "timer"
+                },
+                {
+                    label: I18n.t("Таймер и уведомления (со звуком)", "A timer's end and notifications (with sound)"),
+                    value: "notify"
                 }
             ]
             currentValue: Config.halo.overFullscreen
@@ -555,7 +565,7 @@ CatPage {
         }
         CatButton {
             label: I18n.t("Подсказки при наведении", "Hints on hover")
-            hint: I18n.t("первые несколько раскрытий в покое объясняют колёсико, полку и меню", "the first few openings at rest explain the wheel, the shelf and the menu")
+            hint: I18n.t("первые несколько раскрытий в покое объясняют колёсико и меню", "the first few openings at rest explain the wheel and the menu")
             compact: true
             text: Config.halo.hintsLeft > 0 ? I18n.t("Ещё покажутся: ", "Still to show: ") + Config.halo.hintsLeft : I18n.t("Показать снова", "Show again")
             enabled: Config.halo.hintsLeft < 3
@@ -595,7 +605,8 @@ CatPage {
                         readonly property var b: HaloButtons.catalog.find(x => x.id === modelData) || ({})
                         readonly property bool on: btnList.on.includes(modelData)
                         width: parent.width
-                        height: rowBox.implicitHeight
+                        visible: modelData !== "note" || Config.halo.shelf
+                        height: visible ? rowBox.implicitHeight : 0
                         z: drag.active ? 1 : 0
                         transform: Translate {
                             y: drag.active ? drag.translation.y : 0

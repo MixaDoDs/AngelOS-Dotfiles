@@ -69,7 +69,9 @@ Singleton {
         let exts = [];
         const name = [];
         for (const w of words) {
-            const m = /^\.([\p{L}\p{N}_+-]{1,16})$/u.exec(w);
+            // Qt JS engines without Unicode property escapes still recognize extensions
+            // and the Cyrillic aliases in kindWords.
+            const m = /^\.([\w\u0400-\u04ff+-]{1,16})$/.exec(w) || /^\.([\p{L}\p{N}_+-]{1,16})$/u.exec(w);
             if (!m) {
                 name.push(w);
                 continue;
@@ -123,13 +125,16 @@ Singleton {
             return;
         }
         const p = asked;
-        const args = ["--absolute-path", "--color", "never", "-i", "-F", "--max-results", "4000", "--exclude", "node_modules", "--exclude", "__pycache__", "--exclude", "**/drive_c/windows"];
+        const args = ["--absolute-path", "--color", "never", "-i", "-F", "--exclude", "node_modules", "--exclude", "__pycache__", "--exclude", "**/drive_c/windows"];
         for (const e of p.exts)
             args.push("-e", e);
         args.push("--", p.name, Config.home);
         proc.question = p;
-        // newest first; a name with a newline in it is lost (stat prints one per line)
-        proc.command = ["sh", "-c", "fd -0 \"$@\" | xargs -0 -r stat -L --printf '%Y\\t%s\\t%F\\t%n\\n' 2>/dev/null | sort -rn | head -n 400", "sh"].concat(args);
+        // Sort every match by the full UTC timestamp before keeping the newest 400. Drop
+        // the sort field afterward. Names with newlines are still split by stat's output.
+        const command = "fd -0 \"$@\" | LC_ALL=C TZ=UTC0 xargs -0 -r stat -L --printf '%y\\t%Y\\t%s\\t%F\\t%n\\n' 2>/dev/null"
+            + " | LC_ALL=C sort -r | head -n 400 | cut -f2-";
+        proc.command = ["sh", "-c", command, "sh"].concat(args);
         proc.running = true;
     }
     Process {

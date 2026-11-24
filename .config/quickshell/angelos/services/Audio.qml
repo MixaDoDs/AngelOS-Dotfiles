@@ -9,7 +9,9 @@ import Quickshell.Services.Pipewire
 Singleton {
     id: root
 
-    readonly property PwNode sink: Pipewire.defaultAudioSink
+    // the default output; with mono audio on (services/MonoAudio) the system's default is the mono
+    // twin, and this is the real device behind it, so volume and lists stay on the device
+    readonly property PwNode sink: MonoAudio.isTwin(Pipewire.defaultAudioSink) ? (byName(MonoAudio.master) || Pipewire.defaultAudioSink) : Pipewire.defaultAudioSink
     readonly property PwNode source: Pipewire.defaultAudioSource
     readonly property bool ready: !!sink && !!sink.audio
     readonly property real volume: ready ? sink.audio.volume : 0
@@ -18,7 +20,10 @@ Singleton {
     readonly property bool micMuted: source && source.audio ? source.audio.muted : false
 
     readonly property var nodes: Pipewire.nodes.values
-    readonly property var sinks: nodes.filter(n => n.audio && n.isSink && !n.isStream)
+    readonly property var sinks: nodes.filter(n => n.audio && n.isSink && !n.isStream && n.name !== MonoAudio.twinName)
+    function byName(name) {
+        return name ? sinks.find(n => n.name === name) || null : null;
+    }
     readonly property var sources: nodes.filter(n => n.audio && !n.isSink && !n.isStream)
     readonly property var streams: nodes.filter(n => n.audio && n.isStream && n.isSink)
     // what the mixers list: programs playing sound. Not angelOS's own clicks and chimes

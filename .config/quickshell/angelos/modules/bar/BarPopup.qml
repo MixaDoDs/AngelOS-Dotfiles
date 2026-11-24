@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import qs.config
 import qs.services
 import qs.widgets
+import qs.modules.serp  // serp-skin
 
 // Popup window anchored to a bar item, framed as a small NGO window — or, in the Golden Gate
 // look (services/Skin.mac), a Liquid Glass popover under the menu bar extra: rounded glass, the
@@ -84,6 +85,24 @@ PopupWindow {
         Keys.onEscapePressed: PopupManager.close(root)
     }
 
+    // serp-skin: where this popup stands on its screen, for the glass's wallpaper
+    readonly property var serpBarWin: root.anchorItem ? root.anchorItem.QsWindow.window : null
+    readonly property point serpOrigin: {
+        if (!root.anchorItem || !serpBarWin)
+            return Qt.point(0, 0);
+        const p = root.anchorItem.mapToItem(null, 0, 0);
+        const sw = serpBarWin.screen ? serpBarWin.screen.width : serpBarWin.width;
+        const ax = p.x + root.anchor.rect.x + root.anchor.rect.width;
+        const ay = p.y + root.anchor.rect.y + root.anchor.rect.height;
+        const x = Math.max(0, Math.min(sw - root.width, ax - root.width));
+        return Qt.point(x, root.above ? ay - root.height : ay);
+    }
+    SerpBackdrop {
+        id: serpPopBack
+        active: Serp.glassOn && root.mac
+        screenName: root.serpBarWin && root.serpBarWin.screen ? root.serpBarWin.screen.name : ""
+        origin: root.serpOrigin
+    }
     MacGlass {
         id: macPanel
         visible: root.mac
@@ -91,11 +110,23 @@ PopupWindow {
         y: root.above ? GoldenGate.px(4) : GoldenGate.px(8)
         width: root.contentWidth + root.macPad * 2
         height: root.macTitleH + root.contentHeight + root.macPad * 2
-        radius: GoldenGate.px(14)
+        radius: Serp.on ? Serp.radius : GoldenGate.px(14)  // serp-skin
+        fill: Serp.on ? Serp.solid : GoldenGate.glassFill  // serp-skin
+        highlight: !Serp.on  // serp-skin
         shadowSize: GoldenGate.px(20)
         shadowY: GoldenGate.px(5)
         focus: root.mac
         Keys.onEscapePressed: PopupManager.close(root)
+        // serp-skin: the liquid glass over the flat plate (menus: dense and frosted, text reads)
+        SGlass {
+            visible: Serp.glassOn
+            anchors.fill: parent
+            backdrop: serpPopBack
+            radius: macPanel.radius  // its content item has none (an undefined → double warning)
+            tintAmount: Math.max(Serp.cfg.glassTint, 0.7)
+            frost: 10
+            bezel: Serp.px(10)  // a thin lens edge like the islands: a thick one stretched the wallpaper into bars
+        }
         MacText {
             visible: root.macTitleH > 0
             x: root.macPad

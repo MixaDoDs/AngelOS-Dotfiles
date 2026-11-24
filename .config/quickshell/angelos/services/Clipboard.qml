@@ -73,6 +73,19 @@ Singleton {
     function isFav(entry) {
         return !!(entry && history.find(h => key(h) === key(normalize(entry)) && h.fav));
     }
+
+    // The panel unloads shortly after closing, so keep its last tab here.
+    property string pickerTab: "clipboard"
+    property double pickerClosedAt: 0
+    function rememberPickerTab(tab) {
+        pickerTab = tab;
+        pickerClosedAt = Date.now();
+    }
+    function restorePickerTab() {
+        const idle = Date.now() - pickerClosedAt;
+        return idle >= 0 && idle < 3 * 60 * 1000 ? pickerTab : "clipboard";
+    }
+
     function clearFavorites() {
         history = trim(history.map(h => h.fav ? Object.assign({}, h, {
                     "fav": false

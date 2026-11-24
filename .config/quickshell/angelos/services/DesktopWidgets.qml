@@ -29,34 +29,34 @@ Singleton {
     // and the plugins that know it ("macLook") draw a card face of their own, the host draws
     // the card (widgets/MacWidgetCard) and drags it by the whole card in edit mode.
     readonly property string style: ["auto", "pixel", "mac"].includes(Config.desktop.widgetStyle) ? Config.desktop.widgetStyle : "auto"
-    readonly property bool macStyle: Config.ready && (style === "mac" || (style === "auto" && GoldenGate.on))
+    readonly property bool macStyle: Config.ready && (style === "mac" || (style === "auto" && (GoldenGate.on || Serp.on)))  // serp-skin
     readonly property bool macLook: macStyle && !Theme.hell
     // macOS widget measures (points, grown with the font scale): 16 pt inside, 22 pt corners
     function mpx(v) {
         return Math.round(v * Theme.fs);
     }
     readonly property int macPad: mpx(16)
-    readonly property int macRadius: mpx(22)
+    readonly property int macRadius: Serp.on ? Math.min(Serp.px(24), Math.round(Serp.radius * 1.4)) : mpx(22)  // serp-skin
     // SF Pro when it is installed (Display from 20 pt up, as Apple sets it), else the skin's
     // font (Inter); Config.mac.font wins when it is set
     readonly property bool sfPro: Theme.macFamilies.includes("SF Pro Text")
-    readonly property string macTextFamily: Config.mac.font && Theme.macFamilies.includes(Config.mac.font) ? Config.mac.font : sfPro ? "SF Pro Text" : Theme.macFont
-    readonly property string macDisplayFamily: Config.mac.font && Theme.macFamilies.includes(Config.mac.font) ? Config.mac.font : sfPro ? (Theme.macFamilies.includes("SF Pro Display") ? "SF Pro Display" : "SF Pro Text") : Theme.macFont
+    readonly property string macTextFamily: Serp.on ? Serp.font : Config.mac.font && Theme.macFamilies.includes(Config.mac.font) ? Config.mac.font : sfPro ? "SF Pro Text" : Theme.macFont
+    readonly property string macDisplayFamily: Serp.on ? Serp.font : Config.mac.font && Theme.macFamilies.includes(Config.mac.font) ? Config.mac.font : sfPro ? (Theme.macFamilies.includes("SF Pro Display") ? "SF Pro Display" : "SF Pro Text") : Theme.macFont
     function macFamily(px) {
         return px >= 20 ? macDisplayFamily : macTextFamily;
     }
     // colours from the theme in use (its flavour, light or dark): the Golden Gate skin's Mac
     // palette while it is on, the wallpaper's or a flavour's otherwise
-    readonly property color macLabel: Qt.alpha(Theme.text, 0.95)
-    readonly property color macSecondary: Theme.mix(Theme.textDim, Theme.text, Theme.dark ? 0.15 : 0.4)
-    readonly property color macTertiary: Theme.dark ? Qt.alpha(Theme.textDim, 0.8) : Theme.mix(Theme.textDim, Theme.text, 0.15)
-    readonly property color macSeparator: Qt.alpha(Theme.text, Theme.dark ? 0.12 : 0.1)
+    readonly property color macLabel: Serp.on ? Serp.text : Qt.alpha(Theme.text, 0.95)  // serp-skin
+    readonly property color macSecondary: Serp.on ? Serp.subtext1 : Theme.mix(Theme.textDim, Theme.text, Theme.dark ? 0.15 : 0.4)
+    readonly property color macTertiary: Serp.on ? Serp.subtext0 : Theme.dark ? Qt.alpha(Theme.textDim, 0.8) : Theme.mix(Theme.textDim, Theme.text, 0.15)
+    readonly property color macSeparator: Serp.on ? Serp.line : Qt.alpha(Theme.text, Theme.dark ? 0.12 : 0.1)
     // the glass: a tint of the theme's surface over the blurred wallpaper (no blur: nearly
     // opaque, as macOS's Reduce Transparency); Golden Gate's clear … tinted slider moves it
     readonly property real macTintAlpha: Config.appearance.blur ? 0.46 + Math.max(0, Math.min(1, Config.mac.glass)) * 0.38 : 0.92
-    readonly property color macFill: Qt.alpha(Theme.mix(Theme.face, Theme.dark ? "#000000" : "#ffffff", 0.12), macTintAlpha)
-    readonly property color macEdge: Theme.dark ? Qt.rgba(0, 0, 0, 0.45) : Qt.rgba(0, 0, 0, 0.1)
-    readonly property color macRim: Theme.dark ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.7)
+    readonly property color macFill: Serp.on ? Serp.cardFill : Qt.alpha(Theme.mix(Theme.face, Theme.dark ? "#000000" : "#ffffff", 0.12), macTintAlpha)
+    readonly property color macEdge: Serp.on ? Serp.line : Theme.dark ? Qt.rgba(0, 0, 0, 0.45) : Qt.rgba(0, 0, 0, 0.1)
+    readonly property color macRim: Serp.on ? "transparent" : Theme.dark ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.7)
     readonly property color macShadow: Qt.rgba(0, 0, 0, Theme.dark ? 0.42 : 0.18)
     // a theme colour as ink on the glass: a flavour's dark accent (a wallpaper's) lifted on dark
     // glass, a pale one deepened on light glass — the hue stays
@@ -70,7 +70,7 @@ Singleton {
     }
     // a set of distinct tints from the theme's accents (a flavour may repeat one: then the next)
     function macTints(n) {
-        const pool = [Theme.accent, Theme.accent2, Theme.accent4, Theme.accent3, Theme.ok, Theme.danger, Theme.title2].map(macInk);
+        const pool = Serp.on ? [Serp.mauve, Serp.blue, Serp.peach, Serp.green, Serp.teal, Serp.red, Serp.pink] : [Theme.accent, Theme.accent2, Theme.accent4, Theme.accent3, Theme.ok, Theme.danger, Theme.title2].map(macInk);  // serp-skin
         const out = [];
         const far = (a, b) => Math.abs(a.r - b.r) + Math.abs(a.g - b.g) + Math.abs(a.b - b.b) > 0.3;
         for (const c of pool)
@@ -506,7 +506,7 @@ Singleton {
     Binding {
         target: Weather
         property: "wanted"
-        value: root.weatherWanted || Halo.weatherWanted || StartPrefs.current === "tiles"
+        value: root.weatherWanted || Halo.weatherWanted || StartPrefs.current === "tiles" || Serp.on  // serp-skin
     }
     // ---- choosing a file or a folder for a widget (the picture; the desktop's file chooser,
     // scripts/pick-file.py), from Settings → Widgets or the widget's right-click menu ----

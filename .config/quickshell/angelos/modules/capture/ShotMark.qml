@@ -92,6 +92,16 @@ Item {
         }
     }
     Loader {
+        active: root.t === "redact"
+        sourceComponent: Rectangle {
+            x: root.mark.x
+            y: root.mark.y
+            width: root.mark.w
+            height: root.mark.h
+            color: "#111111"
+        }
+    }
+    Loader {
         active: root.t === "ellipse"
         sourceComponent: Shape {
             preferredRendererType: Shape.CurveRenderer

@@ -52,6 +52,16 @@ Singleton {
         onTriggered: sorter.running = true
     }
 
+    readonly property bool liveCropSupported: LiveCrops.supported
+    readonly property var liveCropWindow: {
+        const ws = Niri.activeWorkspace(CircleSearch.screenName);
+        return ws ? (ws.active_window_id ?? -1) : -1;
+    }
+
+    function pickLiveCrop(windowId, screen) {
+        LiveCrops.begin(windowId, screen);
+    }
+
     // the screenshot is the overlay now (services/CircleSearch: areas, words, search, save);
     // Settings → Screenshots → «Classic region selection» keeps the old selector. Called from
     // menus and panels: the overlay grabs the screen once they have gone (wait)
@@ -192,7 +202,7 @@ Singleton {
     }
     // the recording is saved (IPC recSaved from the script): onto the Halo's shelf
     function saved(path) {
-        if (Config.halo.enabled && path)
+        if (Config.halo.enabled && Config.halo.shelf && path)
             Shelf.addDrop([FileSearch.uri(path)], "", false);
     }
     Process {
