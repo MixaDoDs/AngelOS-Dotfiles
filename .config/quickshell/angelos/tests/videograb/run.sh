@@ -161,7 +161,7 @@ ShellRoot {
 }
 QML
 cat >"$H/.config/angelos/settings.json" <<'JSON'
-{"setup": {"complete": true}, "appearance": {"language": "ru"}}
+{"setup": {"complete": true}, "appearance": {"language": "ru"}, "halo": {"shelf": true}}
 JSON
 log="${ANGELOS_TEST_LOG:-$T/qs.log}"
 env -i PATH="$T/bin:$PATH" LANG=C.UTF-8 HOME="$H" USER="${USER:-angel}" \

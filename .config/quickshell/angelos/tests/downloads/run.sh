@@ -43,7 +43,7 @@ ShellRoot {
 QML
 cat >"$H/.config/angelos/settings.json" <<'JSON'
 {"setup": {"complete": true}, "stream": {"auto": false}, "y2k": {"sounds": false, "helper": false, "boot": false},
- "updates": {"autoCheck": false}, "appearance": {"language": "ru"}}
+ "updates": {"autoCheck": false}, "appearance": {"language": "ru"}, "halo": {"shelf": true}}
 JSON
 for t in gdbus pw-play qs notify-send; do printf '#!/bin/sh\nexit 0\n' >"$T/bin/$t"; done
 chmod +x "$T/bin/"*

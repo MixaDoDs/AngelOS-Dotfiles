@@ -2148,14 +2148,13 @@
           },
           {
             "id": "driver",
-            "ru": "Драйвер устройств",
+            "ru": "Игровая мышь",
             "en": "Device driver",
             "icon": "chip",
-            "hintRu": "магнитные клавиатуры и мыши: ход клавиш вживую, Rapid Trigger",
-            "hintEn": "Hall-effect keyboards and mice: key travel live, Rapid Trigger",
+            "hintRu": "DPI, частота опроса и сенсор прямо в мыши",
+            "hintEn": "DPI, polling rate and the sensor, in the mouse itself",
             "blocks": [
               "driver/devices",
-              "driver/keyboard",
               "driver/mouse"
             ],
             "more": [
