@@ -91,6 +91,7 @@ Singleton {
     readonly property int barGap: haloFloat ? Theme.u * 4 : px(8)
     readonly property int barPill: haloFloat ? Math.round(16 * Halo.scale) * Theme.u : px(28)
     readonly property int barHeight: barGap + barPill          // the zone the bar keeps
+    readonly property bool dockAutohideOn: cfg.dockAutohide || Config.bar.autoHide
     property int zoneNow: -1          // what SerpZone keeps now (for `serp status`)
     readonly property string font: fontOk(cfg.font) ? cfg.font : Theme.macMono
     readonly property int textSize: px(13)

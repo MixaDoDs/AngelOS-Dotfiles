@@ -1,4 +1,5 @@
 import QtQuick
+import qs.config
 import qs.services
 import qs.modules.serp
 
@@ -43,8 +44,12 @@ SPage {
             title: "Автоскрытие"
             desc: "Док прячется и выезжает, когда курсор у нижнего края"
             STog {
-                checked: Serp.cfg.dockAutohide
-                onToggled: on => Serp.cfg.dockAutohide = on
+                checked: Serp.dockAutohideOn
+                onToggled: on => {
+                    Serp.cfg.dockAutohide = on;
+                    if (!on)
+                        Config.bar.autoHide = false;
+                }
             }
         }
         SetRow {
