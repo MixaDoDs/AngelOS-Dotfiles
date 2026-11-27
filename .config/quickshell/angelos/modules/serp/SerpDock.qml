@@ -25,7 +25,7 @@ PanelWindow {
     readonly property int pad: Serp.px(10)
     readonly property int margin: Serp.px(8)
     readonly property int slabH: size + pad * 2
-    readonly property bool autohide: Serp.cfg.dockAutohide
+    readonly property bool autohide: Serp.dockAutohideOn
     readonly property bool fullscreen: Shell.fullscreenOn(screenName)
     property bool hover: false
     readonly property bool shown: !fullscreen && (!autohide || hover || menu.visible)
@@ -135,7 +135,7 @@ PanelWindow {
     }
     Timer {
         id: leave
-        interval: 600
+        interval: Math.max(200, Config.bar.autoHideMs || 600)
         onTriggered: win.hover = false
     }
 
